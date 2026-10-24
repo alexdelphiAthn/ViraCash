@@ -118,6 +118,8 @@ type
     // sea la suya.
     FPropuestaCargada: TPropuestaTraspaso;
     FGridCtrl: TGridArticulosLineas;
+    FProcesandoSolicitud: Boolean;
+    FSeleccionSolicitudInicial: Boolean;
     FModoSku: TModoEntradaSku;
     FModoEntradaSel: TModoColumnasSku;
     FComboCodigos: TStringList;
@@ -725,7 +727,6 @@ procedure TfrmMtoOpeTraspaso.ConstruirEntradaDesglosada(
   const ACampos: TCamposGridArt);
 var
   Columna: TcxGridDBColumn;
-  NombresAtributos: TArray<string>;
 begin
   FGridCtrl := TGridArticulosLineas.Create(
     ConexionPrincipal,
@@ -748,6 +749,7 @@ begin
   // Selector de atributos en combo fijo con filtrado, en vez de la
   // paleta emergente.
   FGridCtrl.UsarCombosAtributos := True;
+  FGridCtrl.NombresAtributosGenericos := True;
   FGridCtrl.OnEntrarEdicion := DesactivarEnterAsTabTemporal;
   FGridCtrl.OnSalirEdicion := SalirEdicionModoEntrada;
   if FModo = mtReposicion then
@@ -756,19 +758,6 @@ begin
   Columna := FView.GetColumnByFieldName('CODIGO_ART');
   if Assigned(Columna) then
     Columna.Caption := SCaptionColArticulo;
-  NombresAtributos := CrearColumnasDocumentoLecturas(
-    ConexionPrincipal).ListarNombresAtributosGlobales;
-  if Length(NombresAtributos) = 0 then
-    NombresAtributos := TArray<string>.Create('Color', 'Talla')
-  else if Length(NombresAtributos) = 1 then
-  begin
-    SetLength(NombresAtributos, 2);
-    NombresAtributos[1] := 'Talla';
-  end
-  else if Length(NombresAtributos) > 2 then
-    SetLength(NombresAtributos, 2);
-  AplicarNombresAtributosGlobalesDocumento(
-    FView, NombresAtributos);
 end;
 
 procedure TfrmMtoOpeTraspaso.CrearColumnasTraspaso;
@@ -1586,6 +1575,7 @@ end;
 procedure TfrmMtoOpeTraspaso.AplicarModo(AModo: TModoTraspaso);
 begin
   FModo := AModo;
+  FSeleccionSolicitudInicial := AModo = mtAtender;
   FReposicionCargada := False;
   FDatos.PrepararNuevo(AModo, FEmpresa, FAlmacen, FCaja, FFecha);
   txtOrigen.Text := FAlmacen;
@@ -2141,7 +2131,17 @@ begin
         if cboDestino.CanFocus then
           cboDestino.SetFocus;
       mtAtender:
-        AbrirModalSolicitudes;
+        begin
+          // Restaurar la ventana tras un modal no vuelve a abrir la
+          // selección. Así Esc y la X pueden cerrar el formulario.
+          if FSeleccionSolicitudInicial then
+          begin
+            FSeleccionSolicitudInicial := False;
+            AbrirModalSolicitudes;
+          end
+          else if FGrid.CanFocus then
+            FGrid.SetFocus;
+        end;
       mtTraspaso:
         if (FGrid <> nil) and FGrid.CanFocus then
         begin
@@ -4371,33 +4371,38 @@ procedure TfrmMtoOpeTraspaso.EnviarSolicitud;
 var
   sNum, sSer, sOrigen: string;
 begin
-  if EmpleadoValido then
+  if not FProcesandoSolicitud and EmpleadoValido then
   begin
-    sOrigen := DestinoSeleccionado;
-    if sOrigen = '' then
-      ShowMessage_fza(SErrorAlmacenOrigenSolicitudNoSeleccionado)
-    else
-    begin
-      try
-        // Una peticion puede enviarse aunque el almacen solicitado no tenga
-        // stock en este momento; se informa sin impedir cerrar el ticket.
-        AvisarStockSolicitud(sOrigen);
-        if FDatos.GrabarSolicitud(sOrigen, sNum, sSer) then
-        begin
-          ShowMessage_fza(Format(SInfoSolicitudTraspasoEnviada, [sSer, sNum]));
-          // Ticket de la solicitud: cada SKU con stock origen / destino.
-          TTraspasoTicket.ImprimirSolicitud(
-                                            PreviewTicket,
-                                            FRepositorioTraspasoTicket,
-                                            sNum, sSer,
-                                            ParametrosCaja.ImpresoraCaja);
-          AplicarModo(mtSolicitar);
+    FProcesandoSolicitud := True;
+    try
+      sOrigen := DestinoSeleccionado;
+      if sOrigen = '' then
+        ShowMessage_fza(SErrorAlmacenOrigenSolicitudNoSeleccionado)
+      else
+      begin
+        try
+          // Una peticion puede enviarse aunque el almacen solicitado no tenga
+          // stock en este momento; se informa sin impedir cerrar el ticket.
+          AvisarStockSolicitud(sOrigen);
+          if FDatos.GrabarSolicitud(sOrigen, sNum, sSer) then
+          begin
+            ShowMessage_fza(Format(SInfoSolicitudTraspasoEnviada, [sSer, sNum]));
+            // Ticket de la solicitud: cada SKU con stock origen / destino.
+            TTraspasoTicket.ImprimirSolicitud(
+                                              PreviewTicket,
+                                              FRepositorioTraspasoTicket,
+                                              sNum, sSer,
+                                              ParametrosCaja.ImpresoraCaja);
+            AplicarModo(mtSolicitar);
+          end;
+        except
+          // Validaciones de negocio: aviso normal (vease EValidacionTraspaso).
+          on E: EValidacionTraspaso do
+            ShowMessage_fza(E.Message);
         end;
-      except
-        // Validaciones de negocio: aviso normal (vease EValidacionTraspaso).
-        on E: EValidacionTraspaso do
-          ShowMessage_fza(E.Message);
       end;
+    finally
+      FProcesandoSolicitud := False;
     end;
   end;
 end;

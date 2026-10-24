@@ -372,24 +372,11 @@ end;
 
 procedure TEmbeddedFormManager.CloseActiveForm;
 var
-  ActiveSheet: TcxTabSheet;
-  I: Integer;
-  F: TForm;
+  oFormulario: TForm;
 begin
-  ActiveSheet := FPageControl.ActivePage;
-  if ActiveSheet <> nil then
-  begin
-    // Se busca el formulario alojado en la pestaña activa.
-    for I := FForms.Count - 1 downto 0 do
-    begin
-      F := FForms[I];
-      if F.Parent = ActiveSheet then
-      begin
-        InternalCloseForm(F);
-        Break;
-      end;
-    end;
-  end;
+  oFormulario := FormActivo;
+  if FForms.Contains(oFormulario) then
+    InternalCloseForm(oFormulario);
 end;
 
 procedure TEmbeddedFormManager.InternalCloseForm(AForm: TForm;
@@ -400,6 +387,11 @@ var
   oMantenimiento: IMantenimientoEmbebido;
   bInterceptar: Boolean;
   oRegistro: TRegistroVentanaGestionada;
+  oAnterior: TForm;
+  oPrincipal: TCustomForm;
+  aVentanas: TArray<TForm>;
+  iIndice: Integer;
+  bVolverAnterior: Boolean;
 begin
   if (AForm <> nil) and (PPointer(AForm)^ <> nil) then
   begin
@@ -416,6 +408,22 @@ begin
           bInterceptar := not AForm.CloseQuery;
         if not bInterceptar then
         begin
+          oAnterior := nil;
+          bVolverAnterior := not ALiberarAhora and
+            (Screen.ActiveForm = AForm) and
+            FVentanas.TryGetValue(AForm, oRegistro) and
+            oRegistro.Separada;
+          if bVolverAnterior then
+          begin
+            // El mismo orden circular que Ctrl+Tab, sin depender de Windows.
+            aVentanas := VentanasAbiertas;
+            iIndice := Length(aVentanas) - 1;
+            while (iIndice >= 0) and (aVentanas[iIndice] <> AForm) do
+              Dec(iIndice);
+            if (iIndice >= 0) and (Length(aVentanas) > 1) then
+              oAnterior := aVentanas[
+                (iIndice + Length(aVentanas) - 1) mod Length(aVentanas)];
+          end;
           SendMessage(FPageControl.Handle, WM_SETREDRAW, WPARAM(False), 0);
           SendMessage(AForm.Handle, WM_SETREDRAW, WPARAM(False), 0);
           AForm.Hide;
@@ -435,6 +443,24 @@ begin
           if (ParentTab <> nil) and (ParentTab is TcxTabSheet) and
              not (csDestroying in ParentTab.ComponentState) then
             FreeAndNil(ParentTab);
+          if bVolverAnterior then
+          begin
+            if Assigned(oAnterior) then
+              ActivarFormulario(oAnterior)
+            else
+            begin
+              oPrincipal := GetParentForm(FPageControl);
+              if Assigned(oPrincipal) then
+              begin
+                if oPrincipal.WindowState = wsMinimized then
+                  oPrincipal.WindowState := wsNormal;
+                oPrincipal.Show;
+                oPrincipal.BringToFront;
+                if oPrincipal.CanFocus then
+                  oPrincipal.SetFocus;
+              end;
+            end;
+          end;
         end;
       end;
     finally

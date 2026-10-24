@@ -49,6 +49,7 @@ type
     procedure unqryRetencionesBeforePost(DataSet: TDataSet);
     procedure unqryRetencionesBeforeInsert(DataSet: TDataSet);
     procedure unqrySeriesBeforePost(DataSet: TDataSet);
+    procedure unqrySeriesAfterPost(DataSet: TDataSet);
     procedure unqrySeriesAfterInsert(DataSet: TDataSet);
     procedure unqryBancosBeforePost(DataSet: TDataSet);
     procedure unqryBancosAfterInsert(DataSet: TDataSet);
@@ -254,6 +255,13 @@ begin
   Dataset.FindField('CODIGO_SERIE_EMPSER').AsString := '0';
   if Dataset.FindField('ESDEFECTO_EMPSER') <> nil then
     Dataset.FindField('ESDEFECTO_EMPSER').AsString := 'S';
+end;
+
+procedure TdmEmpresas.unqrySeriesAfterPost(DataSet: TDataSet);
+begin
+  AsegurarContadorCompraEmpresa(TUniQuery(DataSet).Connection,
+    DataSet.FieldByName('CODIGO_EMP_EMPSER').AsString,
+    IdentidadSesion.Usuario);
 end;
 
 procedure TdmEmpresas.unqrySeriesBeforePost(DataSet: TDataSet);
@@ -546,6 +554,8 @@ begin
     end;
   end;
   GrabarClienteTraspasos(DataSet, oConexion);
+  AsegurarContadorCompraEmpresa(oConexion,
+    DataSet.FieldByName('CODIGO_EMP_EMP').AsString, IdentidadSesion.Usuario);
   GrabarTotalMaximoLinea(DataSet, oConexion);
   SincronizarRecargoClienteTraspasos(DataSet, oConexion);
   try

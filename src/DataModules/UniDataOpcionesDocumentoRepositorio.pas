@@ -81,6 +81,14 @@ const
     '         WHERE TIPO_DOC_CON = :TIP ' +
     '           AND ESACTIVO_CON = ''S'' ' +
     '           AND EMPRESA_CON IN (:EMP, ''-'') ' +
+    // Un contador de simplificadas no puede colarse como serie normal.
+    '           AND NOT EXISTS (SELECT 1 FROM vi_empresas_series X ' +
+    '             WHERE X.CODIGO_EMP_EMPSER = :EMP ' +
+    '             AND X.TIPO_DOC_EMPSER = :TIP ' +
+    '             AND X.EMPSER = SERIE_CON ' +
+    '             AND COALESCE(X.SUBTIPO_EMPSER, '''') <> '''' ' +
+    '             AND X.SUBTIPO_EMPSER <> ' +
+    '                 COALESCE(NULLIF(:SUB, ''''), ''NORMAL'')) ' +
     '         UNION ALL ' +
     '        SELECT EMPSER AS SERIE, ' +
     '               CASE WHEN IFNULL(CODIGO_ALM_EMPSER, '''') = '''' ' +

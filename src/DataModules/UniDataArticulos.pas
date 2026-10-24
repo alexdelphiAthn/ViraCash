@@ -280,7 +280,7 @@ uses
   inLibArticulosGuardado,
   inLibMsgCompras,
   inLibTrazabilidadAlta, UniDataFamilias,
-  UniDataTarifasPrecioSql,
+  UniDataTarifasPrecioSql, UniDataPrecioUnidad,
 
   System.Diagnostics,
   UniDataAperturaConsultas,
@@ -423,6 +423,7 @@ const
     'tar.FECHA_HASTA_DTO_TAR >= :FECHA_APLICACION))';
   cSqlEtiquetasArt =
     'SELECT eti.*, '                                                          +
+    '       {CAMPOS_PRECIO_UNIDAD} ' +
     '       prc.PRECIO_SALIDA_ARTTAR, ' +
     '       CASE WHEN {DESCUENTO_VIGENTE} ' +
     '            THEN prc.PRECIO_FINAL_ARTTAR ' +
@@ -2801,6 +2802,8 @@ begin
     SqlSeleccionPrecioTarifa('eti.CODIGO_ART_ART',
       'eti.CODIGO_UNIDAD_SKU', ':CODIGO_TAR_ARTTAR',
       ':FECHA_APLICACION'), [rfReplaceAll]);
+  sSql := StringReplace(sSql, '{CAMPOS_PRECIO_UNIDAD}',
+    SqlCamposPrecioUnidadEtiqueta, [rfReplaceAll]);
   sSql := StringReplace(sSql, '{DESCUENTO_VIGENTE}',
     cSqlDescuentoVigenteEtiquetas, [rfReplaceAll]);
   sSql := StringReplace(sSql,
@@ -2832,6 +2835,7 @@ begin
   // null), y a la vez nos da margen para anyadir el campo HEX_ATR_CO en
   // la misma pasada.
   PoblarCdsEtiquetasArtDesdeUniQuery;
+  PrepararPreciosUnidadEtiquetas(cdsEtiquetasArt);
 
   // Cuando el usuario marca almacenes, una etiqueta por unidad de stock:
   // se elimina cualquier SKU sin existencia en los almacenes elegidos y se

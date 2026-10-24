@@ -151,7 +151,15 @@ begin
       '       COALESCE(fa.ORDEN_MOSTRAR_FA, 999) AS ORDEN_MOSTRAR_FA ' +
       '  FROM (SELECT DISTINCT CODIGO_ART_ART, CODIGO_PROP_ARTPROP ' +
       '          FROM fza_articulos_propiedades ' +
-      '         WHERE CODIGO_ART_ART = :ARTICULO) d ' +
+      '         WHERE CODIGO_ART_ART = :ARTICULO ' +
+      // Incluye las obligatorias aunque el artículo aún no tenga valor.
+      '         UNION ' +
+      '        SELECT art.CODIGO_ART_ART, fa.CODIGO_PROP_ARTPROP ' +
+      '          FROM fza_articulos art ' +
+      '          JOIN fza_familias_atributos fa ' +
+      '            ON fa.CODIGO_FAM_FAM = art.CODIGO_FAM_ART ' +
+      '         WHERE art.CODIGO_ART_ART = :ARTICULO ' +
+      '           AND fa.ESREQUERIDO_FA = ''S'') d ' +
       '  JOIN fza_propiedades p ' +
       '    ON p.CODIGO_PROP_ARTPROP = d.CODIGO_PROP_ARTPROP ' +
       '  LEFT JOIN fza_articulos_propiedades apz ' +

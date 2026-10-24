@@ -123,6 +123,7 @@ type
     FOrdenConfirmacionPendiente: Integer;
     FValorConfirmacionPendiente: string;
     FMaximoAtributosVisibles: Integer;
+    FNombresAtributosGenericos: Boolean;
     // Sigue activo durante SafePassFocus: DevExpress devuelve el foco al
     // grid antes de ejecutar OnCloseUp.
     FComboAtributoEnCurso: Boolean;
@@ -322,6 +323,8 @@ type
     // Permite que una pantalla limite la presentacion sin alterar el SKU.
     property MaximoAtributosVisibles: Integer
       read FMaximoAtributosVisibles write SetMaximoAtributosVisibles;
+    property NombresAtributosGenericos: Boolean
+      read FNombresAtributosGenericos write FNombresAtributosGenericos;
   end;
 
 implementation
@@ -939,9 +942,13 @@ begin
     FMaximoAtributosVisibles);
   for i := 1 to 5 do
     if FColAtributo[i] <> nil then
+    begin
+      if FNombresAtributosGenericos then
+        FColAtributo[i].Caption := Format(SCaptionAtributoN, [i]);
       AjustarAnchoColumnaAtributo(
         FColAtributo[i],
         EsAtributoConPaleta(FConn, FColAtributo[i].Caption));
+    end;
 end;
 
 procedure TGridArticulosLineas.SetMaximoAtributosVisibles(

@@ -18,7 +18,7 @@ interface
 uses
   System.SysUtils,
   inLibCajaDatosFactura,
-  inLibGenerarTicketIntf;
+  inLibGenerarTicketIntf, inLibPrecioUnidad;
 
 type
   TContextoOperacionTicketCaja = record
@@ -117,6 +117,7 @@ type
   end;
 
   TLineaTicketCaja = record
+    ContenidoPrecio: TContenidoPrecioUnidad;
     ClaveAgrupacion: string;
     CodigoUnidad: string;
     TipoCantidad: string;

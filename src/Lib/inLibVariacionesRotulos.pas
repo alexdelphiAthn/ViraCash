@@ -68,6 +68,7 @@ const
 // Rótulos de la variación histórica de ropa y calzado; valen también
 // mientras la sesión aún no tiene tipo de variación.
 function RotulosVariacionPorDefecto: TRotulosVariacion;
+function TraducirRotuloAtributoVariacion(const ATexto: string): string;
 // El pivote es el último atributo por orden y código dentro del tipo;
 // el eje de fila es el primero que no sea el pivote. Un nombre vacío cae
 // al rótulo por defecto y, sin rótulo del botón, se forma «Otro <fila>».
@@ -93,6 +94,21 @@ uses
   System.Generics.Defaults,
   inLibEjesVariacion,
   inLibMsgCompras;
+
+function TraducirRotuloAtributoVariacion(const ATexto: string): string;
+begin
+  Result := ATexto;
+  if SameText(Trim(ATexto), 'Color') then
+    Result := SRotuloEjeFilaVariacionSesion
+  else if SameText(Trim(ATexto), 'Talla') then
+    Result := SRotuloEjePivoteVariacionSesion
+  else if SameText(Trim(ATexto), 'Copa') then
+    Result := SRotuloCopaVariacionSesion
+  else if SameText(Trim(ATexto), 'Contorno') then
+    Result := SRotuloContornoVariacionSesion
+  else if SameText(Trim(ATexto), 'Medida') then
+    Result := SRotuloMedidaVariacionSesion;
+end;
 
 function RotulosVariacionPorDefecto: TRotulosVariacion;
 begin
@@ -211,6 +227,7 @@ var
   iFila: Integer;
   iPivote: Integer;
   iPestana: Integer;
+  sFilaOriginal: string;
 begin
   Result := RotulosVariacionPorDefecto;
   Result.CodigoVariacion := Trim(ACodigoVariacion);
@@ -238,9 +255,17 @@ begin
   end;
   if not Result.TieneEjeFila then
     Result.AtributoFila := '';
+  sFilaOriginal := Result.EjeFila;
+  Result.EjeFila := TraducirRotuloAtributoVariacion(Result.EjeFila);
+  Result.EjePivote := TraducirRotuloAtributoVariacion(Result.EjePivote);
+  Result.SistemaPivote := TraducirRotuloAtributoVariacion(
+    Result.SistemaPivote);
   Result.OtroValorFila := TextoODefecto(ARotuloOtroValorFila,
     Format(SRotuloOtroValorFilaVariacionSesion,
       [LowerCase(Result.EjeFila)]));
+  if SameText(Trim(ARotuloOtroValorFila), 'Otro ' + sFilaOriginal) then
+    Result.OtroValorFila := Format(SRotuloOtroValorFilaVariacionSesion,
+      [LowerCase(Result.EjeFila)]);
   iPestana := IndicePestana(AAtributos);
   Result.TienePestanas := iPestana >= 0;
   if Result.TienePestanas then
@@ -248,6 +273,7 @@ begin
     Result.AtributoPestana := AAtributos[iPestana].Id;
     Result.EjePestana := TextoODefecto(AAtributos[iPestana].Nombre,
       AAtributos[iPestana].Id);
+    Result.EjePestana := TraducirRotuloAtributoVariacion(Result.EjePestana);
     Result.OtroValorPestana := Format(SRotuloOtroValorPestanaSesion,
       [LowerCase(Result.EjePestana)]);
     Result.TodosValoresPestana := Format(SRotuloTodosValoresPestanaSesion,

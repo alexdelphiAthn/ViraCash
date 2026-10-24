@@ -110,7 +110,7 @@ type
 implementation
 
 uses
-  inLibRegistroPantallas, inLibTraduccionesIntf;
+  inLibRegistroPantallas, inLibTraduccionesIntf, inLibTraducciones;
 
 resourcestring
   SErrorLectorRegistroPantallasNoDisponible =
@@ -158,6 +158,7 @@ begin
           Assigned(Proveedor.Traducciones) then
     Result := Proveedor.Traducciones.Traducir(
       FUnitForm + '.Caption', FCaption);
+  Result := NormalizarMarcaViraCash(Result);
 end;
 
 function TfzaForm.GetDataUnit: string;

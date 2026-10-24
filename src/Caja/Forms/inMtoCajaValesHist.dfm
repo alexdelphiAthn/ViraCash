@@ -52,17 +52,17 @@
             object cxGrdDBTabPrinCODIGO_EMPRESA_EMI_VL: TcxGridDBColumn
               Caption = 'Empresa Emi.'
               DataBinding.FieldName = 'CODIGO_EMP_EMI_VL'
-              Width = 110
+              Width = 160
             end
             object cxGrdDBTabPrinCODIGO_ALMACEN_EMI_VL: TcxGridDBColumn
               Caption = 'Almac'#233'n Emi.'
               DataBinding.FieldName = 'CODIGO_ALM_EMI_VL'
-              Width = 110
+              Width = 170
             end
             object cxGrdDBTabPrinCODIGO_CAJA_EMI_VL: TcxGridDBColumn
               Caption = 'Caja Emi.'
               DataBinding.FieldName = 'CODIGO_CAJA_EMI_VL'
-              Width = 100
+              Width = 130
             end
             object cxGrdDBTabPrinNUMERO_OPERACION_EMI_VL: TcxGridDBColumn
               Caption = 'N'#250'm. Op. Emi.'
@@ -72,12 +72,12 @@
             object cxGrdDBTabPrinSERIE_FACTURA_EMI_VL: TcxGridDBColumn
               Caption = 'Serie Fac. Emi.'
               DataBinding.FieldName = 'SERIE_FAC_EMI_VL'
-              Width = 110
+              Width = 160
             end
             object cxGrdDBTabPrinNRO_FACTURA_EMI_VL: TcxGridDBColumn
               Caption = 'Nro. Fac. Emi.'
               DataBinding.FieldName = 'NUMERO_FAC_EMI_VL'
-              Width = 110
+              Width = 150
             end
             object cxGrdDBTabPrinFECHA_REDENCION_VL: TcxGridDBColumn
               Caption = 'F. Redenci'#243'n'

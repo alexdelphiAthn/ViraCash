@@ -274,6 +274,7 @@ type
     function RepositorioLecturas: IRepositorioLecturasFactura;
     function LineaActualPendienteDeResolver: Boolean;
     function ClienteTieneDatosFiscales: Boolean;
+    function ClienteIdentificadoParaRecargo: Boolean;
     function CrearConfiguracionMotorFiscal:
       TConfiguracionMotorFiscalVenta;
     procedure InicializarTotales;
@@ -1193,19 +1194,9 @@ begin
 end;
 
 function TFacturaTotales.ObtenerPorcentajeREPorTipo(tipo: string): Currency;
-var
-  sNif, sRazon, sDir: string;
-  tieneDatosMinimos: Boolean;
 begin
-  // Primero verificamos los datos mínimos del cliente
-  sNif   := Trim(_unqryFac.FieldByName('NIF_CLIENTE_FAC').AsString);
-  sRazon := Trim(_unqryFac.FieldByName('RAZON_SOCIAL_CLIENTE_FAC').AsString);
-  sDir   := Trim(_unqryFac.FieldByName('DIRECCION1_CLIENTE_FAC').AsString);
-  tieneDatosMinimos := (sNif <> '') and (sRazon <> '') and (sDir <> '');
-  // Si es Simplificada O no tiene datos mínimos O no aplica recargo por config:
-  // devolvemos 0
   if _configuracion.EsFacturaSimplificada or
-     (not tieneDatosMinimos) or
+     not ClienteIdentificadoParaRecargo or
      not (_configuracion.AplicaRecargo and _configuracion.IVARecargo) then
   begin
     Result := 0;
@@ -1269,6 +1260,15 @@ begin
     (Direccion <> '');
 end;
 
+function TFacturaTotales.ClienteIdentificadoParaRecargo: Boolean;
+begin
+  // Una dirección incompleta requiere revisión de la ficha; no convierte
+  // en cero el recargo de un cliente identificado y sujeto a él.
+  Result :=
+    (Trim(_unqryFac.FieldByName('NIF_CLIENTE_FAC').AsString) <> '') and
+    (Trim(_unqryFac.FieldByName('RAZON_SOCIAL_CLIENTE_FAC').AsString) <> '');
+end;
+
 function TFacturaTotales.CrearConfiguracionMotorFiscal:
   TConfiguracionMotorFiscalVenta;
 var
@@ -1283,7 +1283,7 @@ begin
   Result.EsFacturaSimplificada :=
     _configuracion.EsFacturaSimplificada;
   Result.ClienteConDatosFiscales :=
-    ClienteTieneDatosFiscales;
+    ClienteIdentificadoParaRecargo;
   Result.RetencionIncluyeImpuestos :=
     _configuracion.IRPFImpuestoIncluido;
   PuedeAplicarRetencion :=
@@ -1292,7 +1292,8 @@ begin
     not (
       _configuracion.EsVentaActivoFijo and
       _configuracion.EsRegimenAgricolaEmpresa);
-  Result.AplicaRetencion := PuedeAplicarRetencion;
+  Result.AplicaRetencion := PuedeAplicarRetencion and
+    ClienteTieneDatosFiscales;
   if _configuracion.EsVentaActivoFijo and
      _configuracion.EsRegimenAgricolaEmpresa then
     _dPorRetencion := 0;

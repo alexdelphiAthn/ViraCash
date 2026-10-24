@@ -24,7 +24,8 @@ const
   cMaximoLineasDetalleIntegridad = 300;
 
 function TextoInformeIntegridad(
-  const AComprobacion: TComprobacionIntegridad): string;
+  const AComprobacion: TComprobacionIntegridad;
+  AAlArrancar: Boolean = False): string;
 // Una línea para el log: estado y huellas.
 function ResumenLogIntegridad(
   const AComprobacion: TComprobacionIntegridad): string;
@@ -87,7 +88,8 @@ begin
   end;
 end;
 
-function TextoResultado(const AResultado: TResultadoIntegridad): string;
+function TextoResultado(const AResultado: TResultadoIntegridad;
+  AAlArrancar: Boolean): string;
 begin
   case AResultado.Estado of
     eiIntegra:
@@ -99,6 +101,9 @@ begin
     // Con solo código distinto no sirve mandar a buscar scripts.
     if SoloDifiereElCodigo(AResultado) then
       Result := Format(SIntegridadResultadoSoloCodigo,
+                       [ContarDiferencias(AResultado, False)])
+    else if AAlArrancar then
+      Result := Format(SIntegridadResultadoDiferenciasArranque,
                        [ContarDiferencias(AResultado, False)])
     else
       Result := Format(SIntegridadResultadoDiferencias,
@@ -237,7 +242,8 @@ begin
 end;
 
 function TextoInformeIntegridad(
-  const AComprobacion: TComprobacionIntegridad): string;
+  const AComprobacion: TComprobacionIntegridad;
+  AAlArrancar: Boolean): string;
 var
   oLineas: TStringList;
 begin
@@ -250,7 +256,7 @@ begin
                          [AComprobacion.TextoFirma]));
       oLineas.Add('');
     end;
-    oLineas.Add(TextoResultado(AComprobacion.Resultado));
+    oLineas.Add(TextoResultado(AComprobacion.Resultado, AAlArrancar));
     oLineas.Add('');
     AnadirAvisos(AComprobacion, oLineas);
     oLineas.Add('');

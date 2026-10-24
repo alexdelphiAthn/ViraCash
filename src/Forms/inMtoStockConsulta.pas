@@ -1233,7 +1233,8 @@ begin
   mInfoCabecera.Lines.Clear;
   if FVista.HayArticulo then
     mInfoCabecera.Lines.Text := FormatearInfoCabeceraStock(
-      FDependencias.InfoCabecera.Cargar(FVista.CodigoArticulo),
+      FDependencias.InfoCabecera.Cargar(FVista.CodigoArticulo,
+        ParametrosCaja.TarifaDefecto),
       ParametrosCaja.TarifaDefecto,
       FVista.VerCoste);
   mInfoCabecera.SelStart := 0;

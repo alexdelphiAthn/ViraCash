@@ -494,6 +494,24 @@ begin
   Result.Pvp := ASku.Pvp;
 end;
 
+procedure AsegurarSkuBaseSesion(AConexion: TUniConnection;
+  const ALecturas: ILecturasArticulosMaterializacion;
+  const ACodigoArticulo, APrefijoEan, AUsuario: string);
+var
+  oConsulta: TUniQuery;
+begin
+  oConsulta := TUniQuery.Create(nil);
+  try
+    oConsulta.Connection := AConexion;
+    InsertarSkuMaterializado(oConsulta, ACodigoArticulo,
+      ACodigoArticulo, '-', AUsuario);
+    AsegurarEan13Sku(ALecturas, oConsulta, ACodigoArticulo,
+      APrefijoEan, AUsuario);
+  finally
+    FreeAndNil(oConsulta);
+  end;
+end;
+
 procedure InsertarSkusYBarras(AConn: TUniConnection;
                               const ALecturas:
                               ILecturasArticulosMaterializacion;
@@ -862,6 +880,14 @@ begin
         iLin,
         iIdTemporadaLinea,
         oPreciosLinea);
+    end
+    else if (oLineas[iIndice].TipoLinea = 'ESCALAR') and
+            (oLineas[iIndice].AccionDuplicado <> 'REUSAR') then
+    begin
+      // Sin variación: SKU único, con el mismo código del artículo.
+      // Usa la conexión de materialización para participar en su rollback.
+      AsegurarSkuBaseSesion(AConexion, ALecturas, sCodigoArt,
+        sPrefijoEan, AUsuario);
     end;
     InsertarPropiedadesFijas(
       AConexion,

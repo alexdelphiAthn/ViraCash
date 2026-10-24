@@ -21,12 +21,14 @@ uses
 
 function CargarInfoCabeceraStock(
   AConexion: TUniConnection;
-  const ACodigoArticulo: string): TInfoCabeceraStock;
+  const ACodigoArticulo: string;
+  const ATarifa: string = 'PVP'): TInfoCabeceraStock;
 
 implementation
 
 uses
-  System.SysUtils, Data.DB;
+  System.SysUtils, System.Generics.Collections, Data.DB,
+  UniDataPrecioUnidad;
 
 procedure CargarPropiedades(
   AConsulta: TUniQuery;
@@ -167,9 +169,11 @@ end;
 
 function CargarInfoCabeceraStock(
   AConexion: TUniConnection;
-  const ACodigoArticulo: string): TInfoCabeceraStock;
+  const ACodigoArticulo: string; const ATarifa: string): TInfoCabeceraStock;
 var
   Consulta: TUniQuery;
+  Precio: TPrecioSkuContenido;
+  oPrecios: TList<string>;
 begin
   Result := Default(TInfoCabeceraStock);
   if Trim(ACodigoArticulo) <> '' then
@@ -180,6 +184,17 @@ begin
       CargarPropiedades(Consulta, ACodigoArticulo, Result);
       CargarTarifas(Consulta, ACodigoArticulo, Result);
       CargarProveedores(Consulta, ACodigoArticulo, Result);
+      oPrecios := TList<string>.Create;
+      try
+        for Precio in ListarPreciosContenido(AConexion, ACodigoArticulo,
+          ATarifa, Date) do
+          if Precio.PrecioUnidad.Texto <> '' then
+            oPrecios.Add(Precio.Contenido.CodigoSku + ': ' +
+              Precio.PrecioUnidad.Texto);
+        Result.PreciosUnidad := oPrecios.ToArray;
+      finally
+        FreeAndNil(oPrecios);
+      end;
     finally
       FreeAndNil(Consulta);
     end;

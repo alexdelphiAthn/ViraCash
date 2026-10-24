@@ -524,7 +524,7 @@ end;
 {$R *.dfm}
 
 const
-  URL_MANUAL_WEB = 'https://www.veryverifactu.com/manual/index.html';
+  URL_MANUAL_WEB = 'https://viracash.net/manual/index.html';
   URL_FORO_SOPORTE = 'https://foro.veryverifactu.com/';
 
 resourcestring
@@ -2060,7 +2060,19 @@ begin
     else if Application.ModalLevel > 0 then
       Result := inherited IsShortCut(Message)
     else if bEsFlotante then
-      Result := inherited IsShortCut(Message)
+    begin
+      if Assigned(FormManager) and FormManager.ModoSDI and
+         Assigned(FormManager.MantenimientoDeForm(
+           TForm(FormularioActivo))) then
+      begin
+        if not ((FormularioActivo is TfrmBase) and
+                TfrmBase(FormularioActivo).CancelarEdicionConEscape) then
+          FormManager.CloseActiveForm;
+        Result := True;
+      end
+      else
+        Result := inherited IsShortCut(Message);
+    end
     else if pcPrincipal.PageCount = 0 then
     begin
       PostMessage(Self.Handle, WM_CLOSE, 0, 0);
@@ -2341,6 +2353,8 @@ begin
   begin
     Estado := LeerEstadoActualizacion;
     if Estado.Existe and Estado.HayScriptsPendientes and
+       Estado.CorrespondeABase(ConexionPrincipal.Server,
+         ConexionPrincipal.Port, ConexionPrincipal.Database) and
        (MessageDlg_fza(
           Format(
             SPreguntaAplicarScriptsPendientesArranque,

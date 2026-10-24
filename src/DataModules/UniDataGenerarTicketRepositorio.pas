@@ -5,7 +5,7 @@ interface
 uses
   Uni,
   inLibCajaDatosFactura,
-  inLibGenerarTicketIntf;
+  inLibGenerarTicketIntf, inLibPrecioUnidad;
 
 function CrearLecturasImpresionTicket(
   AConexion: TUniConnection): ILecturasImpresionTicket;
@@ -22,7 +22,7 @@ implementation
 uses
   System.SysUtils, Data.DB, DBAccess,
   inLibGenerarTicketCajaPersistenciaIntf,
-  UniDataGenerarTicketCajaRepositorio;
+  UniDataGenerarTicketCajaRepositorio, UniDataPrecioUnidad;
 
 const
   CAMPOS_PIE_TICKET_CAJA: array[0..3] of string = (
@@ -44,6 +44,8 @@ type
     constructor Create(AConexion: TUniConnection);
     function ListarPieCaja(
       const ACodigoEmpresa: string): TArray<string>;
+    function ListarContenidoFactura(const ASerie, ANumero: string):
+      TArray<TContenidoPrecioUnidad>;
     function ObtenerDiminutivoVendedor(
       const ACodigoEmpleado: string): string;
     function ObtenerCodigoBarras(
@@ -54,6 +56,13 @@ type
       const AClave: TClaveOperacionTicketCaja):
       TDatosOperacionTicketCaja;
   end;
+
+function TLecturasImpresionTicket.ListarContenidoFactura(
+  const ASerie, ANumero: string): TArray<TContenidoPrecioUnidad>;
+begin
+  Result := UniDataPrecioUnidad.ListarContenidoFactura(FConexion,
+    ASerie, ANumero);
+end;
 
 function CrearLecturasImpresionTicket(
   AConexion: TUniConnection): ILecturasImpresionTicket;

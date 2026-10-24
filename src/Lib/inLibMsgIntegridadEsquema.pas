@@ -17,10 +17,19 @@ unit inLibMsgIntegridadEsquema;
 interface
 
 resourcestring
+  SIntegridadBotonActualizar = 'Comprobar actualizaciones';
+  SIntegridadActualizacionArranque =
+    'Puede pulsar Comprobar actualizaciones para actualizar antes de ' +
+    'entrar. Se solicitará una copia de seguridad. Al terminar se ' +
+    'volverá a comprobar la integridad de la base de datos.';
+  SErrorActualizarIntegridadArranque =
+    'No se pudo actualizar la base de datos durante el arranque: %s';
   SIntegridadArranqueBloqueado =
     'ViraCash no puede arrancar porque la base de datos no ha superado ' +
-    'la comprobación de integridad. Corrija las incidencias con el ' +
-    'administrador o el soporte y vuelva a iniciar el programa.';
+    'la comprobación de integridad. El menú Ayuda no está disponible ' +
+    'hasta completar el arranque. Envíe este informe al administrador ' +
+    'o al soporte para revisar la base de datos y vuelva a iniciar ' +
+    'el programa cuando se hayan corregido las incidencias.';
   SErrorComprobarIntegridadArranque =
     'No se ha podido completar la comprobación de integridad: %s';
   STituloComprobarIntegridad = 'Comprobar integridad de la base de datos';
@@ -50,6 +59,12 @@ resourcestring
     'La estructura de la base de datos NO coincide con la de esta ' +
     'versión: %d diferencias. Use Ayuda > Comprobar actualizaciones para ' +
     'ponerla al día.';
+  SIntegridadResultadoDiferenciasArranque =
+    'La estructura de la base de datos NO coincide con la de esta ' +
+    'versión: %d diferencias. Si faltan actualizaciones, el ' +
+    'administrador o el soporte debe hacer una copia de seguridad y ' +
+    'actualizar la base con los scripts oficiales correspondientes ' +
+    'a esta versión.';
   SIntegridadResultadoSoloCodigo =
     'Las tablas, vistas y procedimientos coinciden con los de esta ' +
     'versión, pero el código de %d procedimientos es distinto: alguno se ' +

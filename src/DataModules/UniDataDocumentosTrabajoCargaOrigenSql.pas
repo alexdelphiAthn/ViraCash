@@ -28,6 +28,7 @@ function SqlConsultarUltimosDocumentosOrigen(
 function SqlCabecerasRecientesDocumentosOrigen(
   AIncluirPropuestasTraspaso: Boolean = False): string;
 function SqlExisteTablaPropuestasTraspaso: string;
+function SqlDescripcionSkuDocumentoTrabajo(const ACampoSku: string): string;
 function SqlTotalesUltimosDocumentosOrigen: string;
 function SqlPrevisualizarLineasAlbaranVenta: string;
 function SqlPrevisualizarLineasAlbaranCompra: string;
@@ -151,12 +152,18 @@ begin
     ' HAVING COUNT(*) = 1))';
 end;
 
-function SqlDescripcionSku(const ACampoSku: string): string;
+function SqlDescripcionSkuDocumentoTrabajo(const ACampoSku: string): string;
 begin
   Result :=
-    '(SELECT GROUP_CONCAT(AV.AV ORDER BY AV.ORDEN_AV SEPARATOR '' / '') ' +
+    '(SELECT GROUP_CONCAT(AV.AV ORDER BY COALESCE(VA.ORDEN_VA, 999), ' +
+    'AV.ID_VA_AV, AV.ORDEN_AV, AV.ID_AV SEPARATOR '' / '') ' +
     '   FROM fza_atributos_sku SA ' +
     '   JOIN fza_atributos_valores AV ON AV.ID_AV = SA.ID_AV_SA ' +
+    '   JOIN fza_articulos_skus SK ' +
+    '     ON SK.CODIGO_UNIDAD_SKU = SA.CODIGO_UNIDAD_SKU_SA ' +
+    '   LEFT JOIN fza_variaciones_atributos VA ' +
+    '     ON VA.ID_VAR_VA = SK.CODIGO_VAR_SKU ' +
+    '    AND VA.ID_ATB_VA = AV.ID_VA_AV ' +
     '  WHERE SA.CODIGO_UNIDAD_SKU_SA = ' + ACampoSku + ')';
 end;
 
@@ -169,7 +176,7 @@ begin
     '       B.ORDEN_PIVOTE, B.ORDEN_ALMACEN, B.CODIGO_ARTICULO, ' +
     '       B.CODIGO_SKU, B.CODIGO_ALMACEN, B.LOTE, ' +
     '       B.FECHA_CADUCIDAD, B.DESCRIPCION_ARTICULO, ' +
-    '       COALESCE(' + SqlDescripcionSku('B.CODIGO_SKU') +
+    '       COALESCE(' + SqlDescripcionSkuDocumentoTrabajo('B.CODIGO_SKU') +
     ', '''') AS DESCRIPCION_SKU, B.CANTIDAD ' +
     '  FROM (' + ASqlLineas + ') B';
 end;

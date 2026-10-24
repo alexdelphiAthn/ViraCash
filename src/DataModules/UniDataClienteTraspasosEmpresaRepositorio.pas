@@ -31,6 +31,8 @@ const
 // Da de alta el cliente E_<empresa> si no existe y devuelve su código. Si ya
 // existe (se creó antes o lo dio de alta alguien a mano) no se toca: sus
 // datos y su casilla de retenciones son los que mandan.
+procedure AsegurarContadorCompraEmpresa(AConexion: TUniConnection;
+  const AEmpresa, AUsuario: string);
 function CrearClienteTraspasosEmpresa(
   AConexion: TUniConnection;
   const ADatos: TDatosClienteTraspasosEmpresa;
@@ -48,6 +50,45 @@ implementation
 
 uses
   System.SysUtils;
+
+procedure AsegurarContadorCompraEmpresa(AConexion: TUniConnection;
+  const AEmpresa, AUsuario: string);
+var
+  oConsulta: TUniQuery;
+begin
+  oConsulta := TUniQuery.Create(nil);
+  try
+    oConsulta.Connection := AConexion;
+    // No reactiva contadores deshabilitados ni cambia numeraciones.
+    oConsulta.SQL.Text :=
+      'INSERT INTO fza_contadores (TIPO_DOC_CON, EMPRESA_CON, ' +
+      'SERIE_CON, CON, NUM_DIGITOS_CON, ESACTIVO_CON, DEFAULT_CON, ' +
+      'INSTANTE_ALTA, INSTANTE_MODIF, USUARIO_ALTA, USUARIO_MODIF) ' +
+      'SELECT DISTINCT ''FP'', S.CODIGO_EMP_EMPSER, S.EMPSER, ' +
+      'COALESCE((SELECT MAX(CAST(F.NUMERO_FACC AS UNSIGNED)) ' +
+      'FROM fza_facturas_compra F WHERE F.SERIE_FACC = S.EMPSER ' +
+      'AND F.NUMERO_FACC REGEXP ''^[0-9]+$''), 0) + 1, ' +
+      '6, ''S'', COALESCE(S.ESDEFECTO_EMPSER, ''N''), ' +
+      'NOW(), NOW(), :USUARIO, :USUARIO ' +
+      'FROM vi_empresas_series S ' +
+      'WHERE S.CODIGO_EMP_EMPSER = :EMPRESA ' +
+      'AND S.TIPO_DOC_EMPSER = ''FA'' AND TRIM(S.EMPSER) <> '''' ' +
+      'AND (S.FECHA_DESDE_EMPSER IS NULL ' +
+      'OR S.FECHA_DESDE_EMPSER <= CURDATE()) ' +
+      'AND (S.FECHA_HASTA_EMPSER IS NULL ' +
+      'OR S.FECHA_HASTA_EMPSER >= CURDATE()) ' +
+      'AND NOT EXISTS (SELECT 1 FROM fza_contadores C ' +
+      'WHERE C.TIPO_DOC_CON = ''FP'' ' +
+      'AND C.EMPRESA_CON = S.CODIGO_EMP_EMPSER ' +
+      'AND C.SERIE_CON = S.EMPSER) ' +
+      'ON DUPLICATE KEY UPDATE CON = fza_contadores.CON';
+    oConsulta.ParamByName('EMPRESA').AsString := AEmpresa;
+    oConsulta.ParamByName('USUARIO').AsString := AUsuario;
+    oConsulta.Execute;
+  finally
+    oConsulta.Free;
+  end;
+end;
 
 const
   // La empresa guarda el país como 'ES' o como '724'; el cliente, con el
@@ -128,6 +169,7 @@ begin
   finally
     FreeAndNil(oConsulta);
   end;
+  AsegurarContadorCompraEmpresa(AConexion, ADatos.CodigoEmpresa, AUsuario);
 end;
 
 procedure ActualizarRecargoClienteTraspasos(

@@ -182,6 +182,8 @@ type
       const AResultado: TResultadoAutenticacionLogon): Boolean;
     procedure IniciarRestauracionAdministrativa;
     procedure ReiniciarServiciosLogonTrasRestauracion;
+    function ActualizarBaseAlArrancar: Boolean;
+    function CrearCopiaPreviaAlArrancar(out ARutaCopia: string): Boolean;
   protected
     procedure CreateParams(var Params: TCreateParams); override;
   public
@@ -205,6 +207,19 @@ implementation
 
 uses
   inMtoPrincipalIntegridadVcl,
+  System.Threading,
+  inLibContextoSesion,
+  inLibConexionesUniDAC,
+  inLibParametrosIntf,
+  inLibPerfilesUsuarioIntf,
+  inLibAppParam,
+  inLibGlobalVar,
+  inLibActualizacionProceso,
+  inLibMsgIntegraciones,
+  inLibMsgIntegridadEsquema,
+  inLibVentanaEspera,
+  inMtoModalActualizacion,
+  UniDataPerfiles,
   inLibMensajesVcl,
   inLibWin,
       inLibConfiguracionIni,
@@ -310,6 +325,9 @@ begin
         RegistroLog)));
   AplicarIdiomaFastReport(Traducciones.Idioma);
   Traducciones.Aplicar(Self);
+  // Los catálogos anteriores conservan la marca antigua en el título.
+  Caption := StringReplace(Caption, 'Factuzam', oAppName,
+    [rfReplaceAll, rfIgnoreCase]);
 end;
 
 function TfrmLogon.ResolverErrorScriptLogon(
@@ -1948,6 +1966,124 @@ begin
   Result := FCerrarAplicacion;
 end;
 
+function TfrmLogon.CrearCopiaPreviaAlArrancar(
+  out ARutaCopia: string): Boolean;
+var
+  oRepositorio: IRepositorioCopiasSeguridad;
+  oTarea: ITask;
+  oEspera: IVentanaEspera;
+  eResultado: TResultadoCopiaSeguridad;
+  sError: string;
+  sRuta: string;
+begin
+  Result := False;
+  ARutaCopia := '';
+  oRepositorio := TRepositorioCopiasSeguridadUniDAC.Create(
+    ContextoSesion, ConexionPrincipal);
+  saveDialog.Title := STituloGuardarCopiaSeguridad;
+  saveDialog.DefaultExtension := oRepositorio.ExtensionCreacion;
+  saveDialog.FileTypes.Clear;
+  saveDialog.FileTypes.Add.DisplayName := STituloGuardarCopiaSeguridad;
+  saveDialog.FileTypes[0].FileMask := '*' + oRepositorio.ExtensionCreacion;
+  saveDialog.Options := saveDialog.Options + [fdoOverWritePrompt];
+  saveDialog.FileName := 'viracash_antes_actualizacion_' +
+    FormatDateTime('yyyymmdd_hhnnss', Now) +
+    oRepositorio.ExtensionCreacion;
+  if saveDialog.Execute then
+  begin
+    sRuta := saveDialog.FileName;
+    eResultado := rcsFallida;
+    oEspera := CrearVentanaEspera(BoundsRect, CurrentPPI, Handle);
+    oEspera.Mostrar(SCaptionPreparandoCopiaSeguridad);
+    try
+      oTarea := TTask.Run(
+        procedure
+        begin
+          try
+            eResultado := oRepositorio.CrearCopia(sRuta, '', nil, sError);
+          except
+            on E: Exception do
+              sError := E.ClassName + ': ' + E.Message;
+          end;
+        end);
+      EsperarTareaAtendiendoMensajes(oTarea);
+    finally
+      oEspera.Ocultar;
+    end;
+    Result := eResultado = rcsCompletada;
+    if Result then
+      ARutaCopia := sRuta
+    else
+    begin
+      RegistroLog.RegistrarError(sError);
+      MessageDlg_fza(Format(SErrorCrearCopiaSeguridad, [sError]),
+        mtError, [mbOk], 0);
+    end;
+  end;
+end;
+
+function TfrmLogon.ActualizarBaseAlArrancar: Boolean;
+var
+  oConexion: TUniConnection;
+  oPerfiles: TdmPerfiles;
+  oParametros: TServiciosParametrosAplicacion;
+  oResultado: TResultadoActualizacion;
+begin
+  Result := False;
+  if FResultadoInicioSesion.Autenticado and
+     FResultadoInicioSesion.Identidad.EsAdministrador then
+  begin
+    oConexion := FFabricaConexiones.CrearConexion(nil);
+    try
+      FFabricaConexiones.Conectar(oConexion);
+      AsignarConexiones(TServicioConexionesUniDAC.Create(
+        oConexion, FFabricaConexiones));
+      AsignarContextoSesion(TContextoSesionAplicacion.Create(
+        FResultadoInicioSesion.Identidad,
+        FResultadoInicioSesion.Ubicacion));
+      try
+        oPerfiles := TdmPerfiles.Create(Self);
+        try
+          oParametros := CrearParametrosAplicacion(oPerfiles, oPerfiles,
+            RegistroLog, IdentidadSesion.Usuario, IdentidadSesion.Grupo);
+          try
+            AsignarParametros(oParametros.Lectura, nil);
+            TfrmModalActualizacion.Ejecutar(Self, nil,
+              oParametros.Lectura, oParametros.Edicion, oConexion,
+              oVersion, mpaComprobar, oResultado,
+              function(out ARutaCopia: string): Boolean
+              begin
+                Result := CrearCopiaPreviaAlArrancar(ARutaCopia);
+              end, True);
+            if Trim(oResultado.Mensaje) <> '' then
+              ShowMessage_fza(oResultado.Mensaje);
+            FCerrarAplicacion := oResultado.RequiereSalir;
+            if FCerrarAplicacion then
+            begin
+              RegistroLog.RegistrarInformacion(
+                'Actualización desde el login: cierre para reiniciar.');
+              ShowMessage_fza(SAvisoSalirTrasActualizacion);
+              Application.Terminate;
+            end;
+            Result := oResultado.Ok and not oResultado.Cancelado and
+              not FCerrarAplicacion;
+          finally
+            AsignarParametros(nil, nil);
+            oParametros := Default(TServiciosParametrosAplicacion);
+          end;
+        finally
+          oPerfiles.Free;
+        end;
+      finally
+        AsignarContextoSesion(nil);
+        AsignarConexiones(nil);
+      end;
+    finally
+      oConexion.Free;
+    end;
+  end;
+end;
+
 function TfrmLogon.ValidarIntegridadArranque: Boolean;
 const
   // Desarrollo: False omite la validación; True la activa.
@@ -1955,8 +2091,29 @@ const
   ValidarIntegridad = True;
 begin
   if ValidarIntegridad then
-    Result := ValidarIntegridadEsquemaAlArrancar(
-      Self, FFabricaConexiones, RegistroLog)
+  begin
+    try
+      if FResultadoInicioSesion.Autenticado and
+         FResultadoInicioSesion.Identidad.EsAdministrador then
+        Result := ValidarIntegridadEsquemaAlArrancar(
+          Self, FFabricaConexiones, RegistroLog,
+          function: Boolean
+          begin
+            Result := ActualizarBaseAlArrancar;
+          end)
+      else
+        Result := ValidarIntegridadEsquemaAlArrancar(
+          Self, FFabricaConexiones, RegistroLog);
+    except
+      on E: Exception do
+      begin
+        Result := False;
+        RegistroLog.RegistrarError(E.ClassName + ': ' + E.Message);
+        MessageDlg_fza(Format(SErrorActualizarIntegridadArranque,
+          [E.Message]), mtError, [mbOk], 0);
+      end;
+    end;
+  end
   else
   begin
     RegistroLog.RegistrarInformacion(

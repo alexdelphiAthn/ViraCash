@@ -828,6 +828,7 @@ begin
   btn.Height  := ALTO_FILA;
   btn.Caption := '×';
   btn.Tag     := ASlotIdx;
+  btn.Enabled := not FSlots[ASlotIdx].EsRequerido;
   btn.Hint    := Format(SHintQuitarPropiedad,
                         [FSlots[ASlotIdx].NombrePropiedad]);
   btn.ShowHint:= True;
@@ -995,10 +996,10 @@ begin
   for i := 0 to FSlots.Count - 1 do
   begin
     S := FSlots[i];
-    if (Result = '') and (not S.Eliminar) and S.EsRequerido and
-       Assigned(S.Ctrl) then
+    if (Result = '') and S.EsRequerido then
     begin
       TieneValor := False;
+      if (not S.Eliminar) and Assigned(S.Ctrl) then
       case S.TipoValor of
         tvpLista:
           TieneValor := (S.Ctrl as TcxComboBox).ItemIndex > 0;

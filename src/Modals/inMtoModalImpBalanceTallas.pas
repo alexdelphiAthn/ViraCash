@@ -325,6 +325,7 @@ begin
   // Las filas de aviso del SP (facturado distinto de vendido, stock sin
   // movimientos) salen en rojo.
   ResaltarAvisosBalance(frxrprt1, fxdsBalance);
+  ExplicarAvisosBalance(frxrprt1);
   // El base ha enganchado el OnBeforePrint a las fotos. Lo sustituimos por el
   // nuestro, que encadena las fotos y además oculta las bandas de grupo de los
   // niveles inactivos (sin esto, FastReport pinta una banda vacía por nivel).

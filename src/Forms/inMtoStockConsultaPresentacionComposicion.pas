@@ -38,7 +38,7 @@ type
   ILectorInfoCabeceraStock = interface
     ['{6E1B4C7A-0D2F-49B8-9C31-5A70F4E2D118}']
     function Cargar(
-      const ACodigoArticulo: string): TInfoCabeceraStock;
+      const ACodigoArticulo, ATarifa: string): TInfoCabeceraStock;
   end;
 
   // Capacidades que la consulta de stock necesita del exterior. Los
@@ -109,7 +109,7 @@ type
   public
     constructor Create(AConexion: TUniConnection);
     function Cargar(
-      const ACodigoArticulo: string): TInfoCabeceraStock;
+      const ACodigoArticulo, ATarifa: string): TInfoCabeceraStock;
   end;
 
 constructor TLectorInfoCabeceraStockUniData.Create(
@@ -120,9 +120,9 @@ begin
 end;
 
 function TLectorInfoCabeceraStockUniData.Cargar(
-  const ACodigoArticulo: string): TInfoCabeceraStock;
+  const ACodigoArticulo, ATarifa: string): TInfoCabeceraStock;
 begin
-  Result := CargarInfoCabeceraStock(FConexion, ACodigoArticulo);
+  Result := CargarInfoCabeceraStock(FConexion, ACodigoArticulo, ATarifa);
 end;
 
 class function TContextoDependenciasStockConsulta.Crear(

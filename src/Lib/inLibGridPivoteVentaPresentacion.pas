@@ -109,6 +109,7 @@ type
     FModelo             : TModeloPivoteVenta;
     FColLineaVista      : TcxGridDBColumn;
     FColArticulo        : TcxGridDBColumn;
+    FPropiedadesCantidad: TcxCurrencyEditProperties;
     FColColor           : TcxGridDBColumn;
     FColPestana         : TcxGridDBColumn;
     FPestanas           : TControlPestanasEje;
@@ -174,6 +175,9 @@ type
                           AItem: TcxCustomGridTableItem;
                           var AAllow: Boolean);
     procedure EditorSalir(Sender: TObject);
+    procedure PropiedadesCantidadEdicion(Sender: TcxCustomGridTableItem;
+      ARecord: TcxCustomGridRecord;
+      var AProperties: TcxCustomEditProperties);
     procedure ViewInitEdit(Sender: TcxCustomGridTableView;
                            AItem: TcxCustomGridTableItem;
                            AEdit: TcxCustomEdit);
@@ -310,6 +314,7 @@ begin
   FreeAndNil(FPestanas);
   FreeAndNil(FVista);
   FreeAndNil(FTimerRecarga);
+  FreeAndNil(FPropiedadesCantidad);
   inherited;
 end;
 
@@ -611,6 +616,7 @@ begin
         '#,##0.##';
       TcxCurrencyEditProperties(oCol.Properties).
         UseDisplayFormatWhenEditing := True;
+      oCol.OnGetPropertiesForEdit := PropiedadesCantidadEdicion;
       TcxCurrencyEditProperties(oCol.Properties).OnValidate :=
         CeldaTallaValidate;
       FColumnasTallas[i - 1] := oCol;
@@ -1371,6 +1377,38 @@ begin
     iLinea := LineaDesdeRecord(Sender.Controller.FocusedRecord);
     AAllow := (iLinea = 0) or
               (FModelo.BandaDesdeLinea(iLinea) = bpvPedida);
+  end;
+end;
+
+procedure TPresentacionPivoteVenta.PropiedadesCantidadEdicion(
+  Sender: TcxCustomGridTableItem; ARecord: TcxCustomGridRecord;
+  var AProperties: TcxCustomEditProperties);
+var
+  oGrupo: TGrupoPivoteVenta;
+  oPropiedades: TcxCurrencyEditProperties;
+  iLineaBase, iDecimales: Integer;
+begin
+  if (ARecord <> nil) and
+     (AProperties is TcxCurrencyEditProperties) then
+  begin
+    iLineaBase := FModelo.ObtenerLineaBase(LineaDesdeRecord(ARecord));
+    oGrupo := Default(TGrupoPivoteVenta);
+    FModelo.Grupo(iLineaBase, oGrupo);
+    iDecimales := 3;
+    if Assigned(FCfg.UnidadesMedida) then
+      iDecimales := FCfg.UnidadesMedida.Decimales(oGrupo.TipoCantidad);
+    // No modificar la columna durante GetPropertiesForEdit: el cambio
+    // notifica a la rejilla y puede destruir el editor que está abriendo.
+    if FPropiedadesCantidad = nil then
+      FPropiedadesCantidad := TcxCurrencyEditProperties.Create(nil);
+    FPropiedadesCantidad.Assign(Sender.Properties);
+    oPropiedades := FPropiedadesCantidad;
+    oPropiedades.DecimalPlaces := iDecimales;
+    oPropiedades.DisplayFormat := '#,##0';
+    if iDecimales > 0 then
+      oPropiedades.DisplayFormat := '#,##0.' +
+        StringOfChar('0', iDecimales);
+    AProperties := oPropiedades;
   end;
 end;
 

@@ -320,7 +320,7 @@ uses
   inLibFormatoCantidadesInforme,
   inLibVentasPantallaIntf, inLibCorreoDocumentoVcl,
   UniDataVentasPantallaComposicion, UniDataCorreoDocumento,
-  inLibResumenSeleccionesFrx;
+  inLibResumenSeleccionesFrx, inLibPrecioUnidad;
 
 {$R *.dfm}
 
@@ -1600,8 +1600,17 @@ end;
 
 procedure TfrmPrint.PrepararConsultaInforme;
 begin
-  Preparar_consulta;
-  ReenlazarDatasetsInforme;
+  try
+    Preparar_consulta;
+    ReenlazarDatasetsInforme;
+  except
+    on E: EValidacionPrecioUnidad do
+    begin
+      OcultarEspera;
+      ShowMessage_fza(E.Message);
+      Abort;
+    end;
+  end;
 end;
 
 // FZ-ISSUE-344: TfrxDBDataset guarda el dataset de su DataSource al

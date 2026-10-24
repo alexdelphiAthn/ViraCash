@@ -18,6 +18,7 @@ unit inMtoPrincipalIntegridadVcl;
 interface
 
 uses
+  System.SysUtils,
   Vcl.Forms,
   Uni,
   inLibConexionesIntf,
@@ -30,15 +31,17 @@ procedure ComprobarIntegridadEsquemaVcl(
 function ValidarIntegridadEsquemaAlArrancar(
   AOwner: TForm;
   const AFabrica: IFabricaConexionesUniDAC;
-  const ARegistroLog: IRegistroLog): Boolean;
+  const ARegistroLog: IRegistroLog;
+  const AActualizar: TFunc<Boolean> = nil): Boolean;
 
 implementation
 
 uses
-  System.SysUtils,
   System.UITypes,
   System.Diagnostics,
+  Vcl.Controls,
   Vcl.Dialogs,
+  cxButtons,
   inLibMensajesVcl,
   inLibVentanaEspera,
   inLibFirmaEjecutable,
@@ -88,15 +91,20 @@ end;
 function ValidarIntegridadEsquemaAlArrancar(
   AOwner: TForm;
   const AFabrica: IFabricaConexionesUniDAC;
-  const ARegistroLog: IRegistroLog): Boolean;
+  const ARegistroLog: IRegistroLog;
+  const AActualizar: TFunc<Boolean>): Boolean;
 var
   oConexion: TUniConnection;
   oIdeal: TEsquemaIdeal;
   oComprobacion: TComprobacionIntegridad;
   iMilisegundos: Int64;
   sDetalle: string;
+  bPuedeActualizar: Boolean;
+  oDialogo: TfrmModalMensajeTexto;
+  oBoton: TcxButton;
 begin
   Result := False;
+  bPuedeActualizar := False;
   try
     oIdeal := CargarEsquemaIdeal;
     if not Assigned(oIdeal) then
@@ -121,13 +129,16 @@ begin
         ResumenLogIntegridad(oComprobacion));
       ARegistroLog.RegistrarRendimiento('IntegridadEsquemaArranque',
         oComprobacion.Contexto.BaseDatos, iMilisegundos);
-      sDetalle := TextoInformeIntegridad(oComprobacion);
+      sDetalle := TextoInformeIntegridad(oComprobacion, True);
       Result := IntegridadPermiteArranque(oComprobacion);
+      bPuedeActualizar := Assigned(AActualizar) and
+        oComprobacion.EsquemaIdealCoherente;
     end;
   except
     on E: Exception do
     begin
       Result := False;
+      bPuedeActualizar := False;
       sDetalle := Format(SErrorComprobarIntegridadArranque,
         [E.ClassName + ': ' + E.Message]);
     end;
@@ -136,9 +147,38 @@ begin
   begin
     sDetalle := SIntegridadArranqueBloqueado + sLineBreak +
       sLineBreak + sDetalle;
+    if bPuedeActualizar then
+      sDetalle := SIntegridadActualizacionArranque + sLineBreak +
+        sLineBreak + sDetalle;
     ARegistroLog.RegistrarError(sDetalle);
-    TfrmModalMensajeTexto.Mostrar(AOwner, STituloComprobarIntegridad,
-      sDetalle);
+    oDialogo := TfrmModalMensajeTexto.Create(AOwner);
+    try
+      oDialogo.Caption := STituloComprobarIntegridad;
+      oDialogo.mTexto.Text := sDetalle;
+      if bPuedeActualizar then
+      begin
+        oDialogo.Constraints.MinWidth := oDialogo.Width;
+        oBoton := TcxButton.Create(oDialogo);
+        oBoton.Parent := oDialogo.pnlBotones;
+        oBoton.SetBounds(12 * oDialogo.CurrentPPI div 96,
+          oDialogo.btnCerrar.Top, 240 * oDialogo.CurrentPPI div 96,
+          oDialogo.btnCerrar.Height);
+        oBoton.Caption := SIntegridadBotonActualizar;
+        oBoton.ModalResult := mrYes;
+      end;
+      bPuedeActualizar := (oDialogo.ShowModal = mrYes) and
+        bPuedeActualizar;
+    finally
+      oDialogo.Free;
+    end;
+    if bPuedeActualizar then
+    begin
+      if AActualizar() then
+        // Una sola reparación por intento. La segunda comprobación
+        // nunca vuelve a ofrecer el actualizador ni omite la validación.
+        Result := ValidarIntegridadEsquemaAlArrancar(
+          AOwner, AFabrica, ARegistroLog);
+    end;
   end;
 end;
 

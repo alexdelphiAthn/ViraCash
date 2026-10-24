@@ -57,7 +57,8 @@ implementation
 uses
   inLibDir, inLibVerifactu, inLibFormatoDocumento,
   inLibMsgTickets, inLibTraducciones, inLibTipoCantidad, inLibTrazabilidad,
-  inLibTicketDesgloseIva, inLibTicketLotes, Datasnap.DBClient;
+  inLibTicketDesgloseIva, inLibTicketLotes, Datasnap.DBClient,
+  inLibPrecioUnidad;
 
 type
   TImpresorTicketVenta = class
@@ -83,6 +84,7 @@ type
     FImprimirLotes       : Boolean;
     FDocumento           : string;
     FQRTexto             : string;
+    FContenidosTicket    : TArray<TContenidoPrecioUnidad>;
     constructor Create(
       const AParametrosApp: IParametrosAplicacion;
       const APreview: IPreviewTicket;
@@ -106,6 +108,7 @@ type
     procedure EscribirCabecera;
     procedure EscribirArticulos;
     procedure EscribirLoteArticulo;
+    procedure EscribirPrecioUnidad;
     procedure EscribirResumenImportes;
     procedure EscribirPagosYCambio;
     procedure EscribirValeEmitido;
@@ -252,6 +255,10 @@ begin
   if FFechaOperacion = 0 then
     FFechaOperacion := Now;
   FLineas := FDatosCobro.TotalesFactura.Lineas;
+  if not FSinPrecios and (FLecturasTicket <> nil) then
+    FContenidosTicket := FLecturasTicket.ListarContenidoFactura(
+      FDatosCobro.TotalesFactura.Cabecera.FieldByName('SERIE_FAC').AsString,
+      FDatosCobro.TotalesFactura.Cabecera.FieldByName('NUMERO_FAC').AsString);
   FDocumento := FormatearDocumentoDataSet(
     FDatosCobro.TotalesFactura.Cabecera,
     'SERIE_FAC',
@@ -362,6 +369,21 @@ begin
   end;
 end;
 
+procedure TImpresorTicketVenta.EscribirPrecioUnidad;
+var
+  sPrecio: string;
+begin
+  if not FSinPrecios then
+  begin
+    sPrecio := TextoPrecioUnidadTicket(BuscarContenidoSku(FContenidosTicket,
+      FLineas.FieldByName('CODIGO_UNIDAD_FACLIN').AsString),
+      FLineas.FieldByName('TOTAL_FACLIN').AsCurrency,
+      FLineas.FieldByName('CANTIDAD_FACLIN').AsFloat);
+    if sPrecio <> '' then
+      FTicket.EscribirLinea(sPrecio);
+  end;
+end;
+
 procedure TImpresorTicketVenta.EscribirArticulos;
 var
   sArticulo, sUnidad, sUnidades, sPrecio, sDescuento: string;
@@ -417,6 +439,7 @@ begin
             FTicket.EscribirLinea(sDescuento);
         end;
         EscribirLoteArticulo;
+        EscribirPrecioUnidad;
         FLineas.Next;
       end;
     finally

@@ -36,10 +36,38 @@ function EsBandaAvisoBalance(const ABanda: string): Boolean;
 procedure ResaltarAvisosBalance(AInforme: TfrxReport;
   ADatos: TfrxDataSet);
 
+// Explica los avisos en la cabecera, incluidas las plantillas guardadas.
+procedure ExplicarAvisosBalance(AInforme: TfrxReport);
+
 implementation
 
 uses
-  System.SysUtils, System.Classes, System.UITypes, Vcl.Graphics;
+  System.SysUtils, System.Classes, System.UITypes, Vcl.Graphics, inLibMsgArticulos;
+
+procedure ExplicarAvisosBalance(AInforme: TfrxReport);
+var
+  oCabecera: TfrxComponent;
+  oLeyenda: TfrxMemoView;
+begin
+  if (AInforme <> nil) and
+     (AInforme.FindObject('LeyendaAvisosBalance') = nil) then
+  begin
+    oCabecera := AInforme.FindObject('ReportTitle1');
+    if oCabecera is TfrxReportTitle then
+    begin
+      oLeyenda := TfrxMemoView.Create(oCabecera);
+      oLeyenda.Name := 'LeyendaAvisosBalance';
+      oLeyenda.Left := 0;
+      oLeyenda.Top := TfrxReportTitle(oCabecera).Height;
+      oLeyenda.Width := TfrxReportTitle(oCabecera).Width;
+      oLeyenda.Height := 30;
+      oLeyenda.Font.Name := 'Arial';
+      oLeyenda.Font.Size := 8;
+      oLeyenda.Text := SLeyendaAvisosBalance;
+      TfrxReportTitle(oCabecera).Height := oLeyenda.Top + oLeyenda.Height;
+    end;
+  end;
+end;
 
 function EsBandaAvisoBalance(const ABanda: string): Boolean;
 begin

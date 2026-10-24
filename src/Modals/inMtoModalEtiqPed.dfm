@@ -237,7 +237,7 @@
           Left = 62.000000000000000000
           Top = 24.000000000000000000
           Width = 205.000000000000000000
-          Height = 32.000000000000000000
+          Height = 26.000000000000000000
           ContentScaleOptions.Constraints.MaxIterationValue = 0
           ContentScaleOptions.Constraints.MinIterationValue = 0
           DataField = 'PRECIO_FINAL_ARTTAR'
@@ -253,6 +253,25 @@
           Frame.Typ = []
           Memo.UTF8W = (
             '[EtiquetasArt."PRECIO_FINAL_ARTTAR"]')
+          ParentFont = False
+        end
+        object EtiqPrecioUnidad: TfrxMemoView
+          Left = 8.000000000000000000
+          Top = 50.000000000000000000
+          Width = 255.000000000000000000
+          Height = 13.000000000000000000
+          GapY = 0.000000000000000000
+          DataField = 'PRECIO_UNIDAD_TEXTO'
+          DataSet = dmArticulos.fxdsEtiquetasArt
+          DataSetName = 'EtiquetasArt'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -11
+          Font.Name = 'Arial'
+          Font.Style = []
+          Frame.Typ = []
+          Memo.UTF8W = (
+            '[EtiquetasArt."PRECIO_UNIDAD_TEXTO"]')
           ParentFont = False
         end
         object EtiqPestana: TfrxMemoView

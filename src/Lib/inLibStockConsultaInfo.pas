@@ -40,6 +40,7 @@ type
     Propiedades: TArray<TPropiedadInfoStock>;
     Tarifas: TArray<TTarifaInfoStock>;
     Proveedores: TArray<TProveedorInfoStock>;
+    PreciosUnidad: TArray<string>;
   end;
 
 function FormatearInfoCabeceraStock(
@@ -81,6 +82,7 @@ var
   sNombre: string;
   sPropiedades: string;
   sValor: string;
+  sPrecioUnidad: string;
 begin
   Lineas := TStringList.Create;
   try
@@ -114,6 +116,8 @@ begin
         FormatFloat('#,##0.00', Tarifa.PrecioFinal) + ' '#8364;
       Lineas.Add(sLinea);
     end;
+    for sPrecioUnidad in AInfo.PreciosUnidad do
+      Lineas.Add(sPrecioUnidad);
     if Length(AInfo.Proveedores) > 0 then
       Lineas.Add('');
     for Proveedor in AInfo.Proveedores do

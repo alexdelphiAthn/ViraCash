@@ -141,6 +141,7 @@ function TCasoUsoConsolidacionFactura.Evaluar(
 ): TResultadoOperacionFactura;
 var
   ResultadoFiscal: TResultadoOperacionFactura;
+  ValidadorRecibida: IPreparacionFacturaRecibidaInterna;
 begin
   if not ADatos.Encontrada then
   begin
@@ -163,6 +164,16 @@ begin
       ResultadoFiscal := EvaluarFiscal(ADatos);
       if not ResultadoFiscal.Exito then
         Result := ResultadoFiscal;
+      if Result.Exito and Supports(FFacturaRecibida,
+           IPreparacionFacturaRecibidaInterna, ValidadorRecibida) then
+      begin
+        try
+          ValidadorRecibida.PrepararAntesDeEmitir(ASerie, ANumero);
+        except
+          on E: EConsolidacionFactura do
+            Result := TResultadoOperacionFactura.Error(E.Message);
+        end;
+      end;
     end;
   end;
 end;

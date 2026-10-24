@@ -16,6 +16,11 @@ unit inLibMsgCompras;
 interface
 
 resourcestring
+  SCaptionVariacionLineaSesion = 'Variación';
+  SCaptionSinVariacionSesion = 'Sin variación';
+  SRotuloCopaVariacionSesion = 'Copa';
+  SRotuloContornoVariacionSesion = 'Contorno';
+  SRotuloMedidaVariacionSesion = 'Medida';
   SErrorSkuSesionNoEncontrado =
     'No se encuentra el SKU de %s, color %s, talla %d. '
     + 'No se ha materializado la sesión.';

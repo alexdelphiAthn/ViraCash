@@ -1660,16 +1660,16 @@
                 TabOrder = 2
                 Transparent = True
                 Height = 24
-                Width = 52
+                Width = 64
               end
               object txtNumero: TcxDBTextEdit
-                Left = 232
+                Left = 244
                 Top = 20
                 DataBinding.DataField = 'NUMERO_SES'
                 DataBinding.DataSource = dsTablaG
                 Properties.ReadOnly = True
                 TabOrder = 3
-                Width = 70
+                Width = 58
               end
               object lblFecha: TcxLabel
                 Left = 316
@@ -1807,16 +1807,16 @@
                 TabOrder = 10
                 Transparent = True
                 Height = 24
-                Width = 72
+                Width = 106
               end
               object txtRefPrv: TcxDBTextEdit
-                Left = 92
+                Left = 124
                 Top = 147
                 DataBinding.DataField = 'REF_PRV_SES'
                 DataBinding.DataSource = dsTablaG
                 Properties.MaxLength = 100
                 TabOrder = 11
-                Width = 190
+                Width = 158
               end
               object lblAlmacen: TcxLabel
                 Left = 12

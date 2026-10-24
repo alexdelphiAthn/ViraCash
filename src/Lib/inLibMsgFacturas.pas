@@ -20,6 +20,7 @@ function EsCampoValorDocumento(const ACampo: string): Boolean;
 function TextoValorDocumento(const ACampo, AValor: string): string;
 
 resourcestring
+  SEstadoDocumentoFacturada = 'Facturada';
   SProformaDesde =
     'Desde';
   SProformaHasta =
@@ -661,6 +662,11 @@ resourcestring
   SErrorContadorRecibidaInterna =
     'No se pudo obtener número para la factura recibida (serie %s, ' +
     'empresa %s).';
+  SErrorConfiguracionRecibidaInterna =
+    'No se puede consolidar: la empresa destino %s necesita una serie ' +
+    'de factura de compra y un contador FP activo (serie: %s). ' +
+    'Revise Empresas > Series y Contadores antes de emitir.';
+  SCaptionRegistrarRecibidasPendientes = 'Registrar recibidas pendientes';
   SInfoRecibidaInternaRegistrada =
     'Factura recibida registrada en la empresa %s: %s/%s.';
   SInfoRecibidaInternaYaExistia =
@@ -697,8 +703,8 @@ resourcestring
   SAvisoRecibidaInternaNoRegistrada =
     'La factura se ha consolidado, pero no se pudo registrar la ' +
     'factura recibida en la empresa destino:' + sLineBreak + '%s' +
-    sLineBreak + 'Regístrala a mano o revisa el cuadre de facturas ' +
-    'internas.';
+    sLineBreak + 'Revise la configuración y use Registrar recibidas ' +
+    'pendientes en el cuadre de facturas internas.';
 resourcestring
   SCaptionColumnaFacturaNumero =
     'Nro Línea';
@@ -779,6 +785,8 @@ begin
     SameText(ACampo, 'ESTADO_EFECTO') or
     SameText(ACampo, 'ESTADO_REMV') or
     SameText(ACampo, 'ESTADO_REMC') or
+    SameText(ACampo, 'ESTADO_DOCUMENTO') or
+    SameText(ACampo, 'ESTADO_PERIODO') or
     SameText(ACampo, 'ESTADO_VL');
 end;
 
@@ -953,6 +961,7 @@ begin
     else if AValor = 'RECIBIDO' then Result := SEstadoDocumentoRecibido
     else if AValor = 'CONVERTIDO' then Result := SEstadoDocumentoConvertido
     else if AValor = 'CERRADO' then Result := SEstadoDocumentoCerrado
+    else if AValor = 'FACTURADA' then Result := SEstadoDocumentoFacturada
     else if AValor = 'CERRADA' then Result := SEstadoDocumentoCerrada
     else if AValor = 'PENDIENTE' then Result := SEstadoDocumentoPendiente
     else if AValor = 'REMESADO' then Result := SEstadoDocumentoRemesado

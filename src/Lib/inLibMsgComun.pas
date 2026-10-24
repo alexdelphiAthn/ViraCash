@@ -579,7 +579,7 @@ resourcestring
     'Puede consultar la comunicación en: %s';
   SInfoEnviarContrasenaCopiaError =
     'La contraseña no se ha enviado ni almacenado. Envíela usted por ' +
-    'correo a info@veryverifactu.com e indique esta referencia: %s';
+    'correo a info@viracash.net e indique esta referencia: %s';
   SCaptionSinFiltrosGuardados = '(Sin filtros guardados)';
   SCaptionGuardarFiltroActual = 'Guardar filtro actual...';
   SCaptionGestionarCompartirFiltros = 'Gestionar y compartir filtros...';

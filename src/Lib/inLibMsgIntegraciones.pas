@@ -16,6 +16,10 @@ unit inLibMsgIntegraciones;
 interface
 
 resourcestring
+  SErrorPendientesOtraBase =
+    'Los scripts guardados pertenecen a otra base de datos o no tienen ' +
+    'identificado su destino. Use Comprobar actualizaciones para ' +
+    'calcular lo que necesita la base abierta.';
   SColaEsperandoPrimerCiclo = 'Cola activada. Esperando el primer ciclo.';
   SColaSinIncidencias =
     'Comprobación terminada sin incidencias en las últimas %d horas.';
@@ -217,6 +221,10 @@ resourcestring
     'Se descargarán: %s bytes' + sLineBreak +
     'Programas auxiliares: %d' + sLineBreak + sLineBreak +
     'Novedades:' + sLineBreak + '%s';
+  SPreguntaInstalarActualizacionArranque =
+    '¿Descargar e instalar la versión %s?' + sLineBreak + sLineBreak +
+    'ViraCash se cerrará al terminar. Vuelva a abrirlo para usar la ' +
+    'versión nueva y actualizar la base de datos antes de entrar.';
   SPreguntaInstalarActualizacion =
     '¿Descargar e instalar la versión %s?' + sLineBreak + sLineBreak +
     'El programa en curso seguirá funcionando; la versión nueva entrará ' +

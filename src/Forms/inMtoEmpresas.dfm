@@ -1,4 +1,4 @@
-inherited frmMtoEmpresas: TfrmMtoEmpresas
+﻿inherited frmMtoEmpresas: TfrmMtoEmpresas
   Left = 5
   Top = 4
   Margins.Left = 0
@@ -1965,8 +1965,11 @@ inherited frmMtoEmpresas: TfrmMtoEmpresas
             end
             object chkAplicaRetenciones: TcxDBCheckBox
               Left = 24
-              Top = 126
+              Top = 122
+              Width = 150
+              Height = 36
               Caption = 'Retiene IRPF'
+              Properties.MultiLine = True
               DataBinding.DataField = 'ESRETENCIONES_EMP'
               DataBinding.DataSource = dsTablaG
               Properties.ValueChecked = 'S'

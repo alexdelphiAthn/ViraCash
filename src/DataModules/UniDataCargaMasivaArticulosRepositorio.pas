@@ -18,6 +18,7 @@ uses
 
 function ConstruirSqlPreviewCargaMasivaDocumentoTrabajo(
   const AFiltros: TFiltrosCargaMasivaArticulos): string;
+function ConstruirSqlSkuCargaDocumentoTrabajo: string;
 
 function CrearServicioCargaMasivaArticulosUniDAC(
   AConexion: TUniConnection): TServiciosCargaMasivaArticulos;
@@ -27,7 +28,8 @@ implementation
 uses
   System.SysUtils, System.Classes, System.Generics.Collections, System.Math,
   Data.DB, inLibCargaMasivaArticulosReglas, UniDataRectificativasSql,
-  UniDataPrestaShopEncolado, inLibPrestaShopColaSenal;
+  UniDataPrestaShopEncolado, inLibPrestaShopColaSenal,
+  UniDataDocumentosTrabajoCargaOrigenSql;
 
 resourcestring
   // FZ-ISSUE-306: un inventario de solo negativos no se mezcla con cargas
@@ -151,11 +153,8 @@ const
   SQL_SKU_DOCUMENTO =
     'SELECT s.CODIGO_ALM_STK AS ALM, s.CODIGO_UNIDAD_STK AS SKU, ' +
     's.LOTE_STK, s.FECHA_CADUCIDAD_STK, s.CANTIDAD_STK, ' +
-    'a.DESCRIPCION_ART AS DESC_ART, COALESCE((SELECT GROUP_CONCAT(' +
-    'av.AV ORDER BY av.ORDEN_AV SEPARATOR '' / '') ' +
-    'FROM fza_atributos_sku sa JOIN fza_atributos_valores av ' +
-    'ON av.ID_AV = sa.ID_AV_SA WHERE sa.CODIGO_UNIDAD_SKU_SA = ' +
-    's.CODIGO_UNIDAD_STK), '''') AS DESC_SKU ' +
+    'a.DESCRIPCION_ART AS DESC_ART, ' +
+    'COALESCE({DESCRIPCION_SKU}, '''') AS DESC_SKU ' +
     'FROM fza_articulos_stockactual s LEFT JOIN fza_articulos_skus sk ' +
     'ON sk.CODIGO_UNIDAD_SKU = s.CODIGO_UNIDAD_STK JOIN fza_articulos a ' +
     'ON a.CODIGO_ART_ART = COALESCE(sk.CODIGO_ART_SKU, ' +
@@ -326,6 +325,13 @@ type
       const AParametros: TParametrosInsercionSesionTarifa
     ): TResultadoInsercionCargaMasiva;
   end;
+
+function ConstruirSqlSkuCargaDocumentoTrabajo: string;
+begin
+  Result := StringReplace(SQL_SKU_DOCUMENTO, '{DESCRIPCION_SKU}',
+    SqlDescripcionSkuDocumentoTrabajo('s.CODIGO_UNIDAD_STK'),
+    [rfReplaceAll]);
+end;
 
 constructor TConsultaCargaMasivaArticulosUniDAC.Create(AConsulta: TUniQuery);
 begin
@@ -1711,7 +1717,7 @@ var
   oConsulta: TUniQuery;
   sSql: string;
 begin
-  sSql := SQL_SKU_DOCUMENTO;
+  sSql := ConstruirSqlSkuCargaDocumentoTrabajo;
   if Length(AParametros.CodigosAlmacen) > 0 then
   begin
     sSql := sSql + ' AND s.CODIGO_ALM_STK IN (' +

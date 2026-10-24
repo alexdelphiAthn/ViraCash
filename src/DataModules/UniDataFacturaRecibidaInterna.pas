@@ -252,11 +252,12 @@ uses
   inLibDocumento,
   inLibDocumentoIntf,
   inLibMsgFacturas,
-  UniDataValoresAutomaticosRepositorio;
+  UniDataValoresAutomaticosRepositorio,
+  UniDataClienteTraspasosEmpresaRepositorio;
 
 type
   TServicioFacturaRecibidaInternaUniDAC = class(TInterfacedObject,
-    IServicioFacturaRecibidaInterna)
+    IServicioFacturaRecibidaInterna, IPreparacionFacturaRecibidaInterna)
   private
     FConexion: TUniConnection;
     function CrearConsulta(const ASql: string): TUniQuery;
@@ -266,6 +267,7 @@ type
       const ASerie, ANumero, AEmisora, ADestino, AUsuario: string): string;
   public
     constructor Create(AConexion: TUniConnection);
+    procedure PrepararAntesDeEmitir(const ASerie, ANumero: string);
     function Registrar(const ASerie, ANumero, AUsuario: string): string;
   end;
 
@@ -292,6 +294,42 @@ begin
   Result := TUniQuery.Create(nil);
   Result.Connection := FConexion;
   Result.SQL.Text := ASql;
+end;
+
+procedure TServicioFacturaRecibidaInternaUniDAC.PrepararAntesDeEmitir(
+  const ASerie, ANumero: string);
+var
+  oConsulta: TUniQuery;
+  sDestino: string;
+  sSerie: string;
+begin
+  oConsulta := CrearConsulta(SQL_FACTURA_INTERNA);
+  try
+    oConsulta.ParamByName('SERIE_EMITIDA').AsString := ASerie;
+    oConsulta.ParamByName('NUMERO_EMITIDA').AsString := ANumero;
+    oConsulta.Open;
+    sDestino := oConsulta.FieldByName('DESTINO').AsString;
+    if sDestino <> '' then
+    begin
+      AsegurarContadorCompraEmpresa(FConexion, sDestino, 'SISTEMA');
+      sSerie := ObtenerSerieDefecto(FConexion, sDestino, 'FA');
+      oConsulta.Close;
+      oConsulta.SQL.Text :=
+        'SELECT CON FROM fza_contadores ' +
+        'WHERE TIPO_DOC_CON = ''FP'' AND EMPRESA_CON = :EMPRESA ' +
+        'AND SERIE_CON = :SERIE AND ESACTIVO_CON = ''S'' ' +
+        'AND NUM_DIGITOS_CON BETWEEN 1 AND 12 ' +
+        'AND CON BETWEEN 0 AND 999999999999';
+      oConsulta.ParamByName('EMPRESA').AsString := sDestino;
+      oConsulta.ParamByName('SERIE').AsString := sSerie;
+      oConsulta.Open;
+      if (sSerie = '') or oConsulta.IsEmpty then
+        raise EConsolidacionFactura.CreateFmt(
+          SErrorConfiguracionRecibidaInterna, [sDestino, sSerie]);
+    end;
+  finally
+    oConsulta.Free;
+  end;
 end;
 
 function TServicioFacturaRecibidaInternaUniDAC.SiguienteNumero(
@@ -356,6 +394,7 @@ begin
       [ADestino, sSerie, sNumero])
   else
   begin
+    AsegurarContadorCompraEmpresa(FConexion, ADestino, AUsuario);
     oConsulta := CrearConsulta(SQL_INSERTAR_PROVEEDOR_EMPRESA);
     try
       oConsulta.ParamByName('PROVEEDOR').AsString := sProveedor;

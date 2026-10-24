@@ -614,6 +614,7 @@
     BeforeInsert = unqryRetencionesBeforeInsert
     AfterInsert = unqrySeriesAfterInsert
     BeforePost = unqrySeriesBeforePost
+    AfterPost = unqrySeriesAfterPost
     Left = 272
     Top = 24
     ParamData = <

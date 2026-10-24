@@ -54,6 +54,8 @@ type
     FModo: TModoPantallaActualizacion;
     FProcesando: Boolean;
     FResultado: TResultadoActualizacion;
+    FSolicitarCopiaPrevia: TSolicitarCopiaPreviaActualizacion;
+    FAlArrancar: Boolean;
     function TextoScriptsFaltantes(
       const AFaltantes: TArray<TScriptFaltante>): string;
     function TextoEstadoReversion(
@@ -104,7 +106,10 @@ type
       AConexion: TUniConnection;
       const AVersionInstalada: string;
       AModo: TModoPantallaActualizacion;
-      out AResultado: TResultadoActualizacion): Boolean;
+      out AResultado: TResultadoActualizacion;
+      const ASolicitarCopiaPrevia: TSolicitarCopiaPreviaActualizacion = nil;
+      AAlArrancar: Boolean = False
+      ): Boolean;
   end;
 
 implementation
@@ -134,13 +139,17 @@ class function TfrmModalActualizacion.Ejecutar(
   AConexion: TUniConnection;
   const AVersionInstalada: string;
   AModo: TModoPantallaActualizacion;
-  out AResultado: TResultadoActualizacion): Boolean;
+  out AResultado: TResultadoActualizacion;
+  const ASolicitarCopiaPrevia: TSolicitarCopiaPreviaActualizacion;
+  AAlArrancar: Boolean): Boolean;
 var
   oFormulario: TfrmModalActualizacion;
 begin
   oFormulario := TfrmModalActualizacion.Create(AOwner);
   try
     oFormulario.FAnfitrion := AAnfitrion;
+    oFormulario.FSolicitarCopiaPrevia := ASolicitarCopiaPrevia;
+    oFormulario.FAlArrancar := AAlArrancar;
     oFormulario.FModo := AModo;
     oFormulario.FProcesando := True;
     oFormulario.FParametros := AParametros;
@@ -206,8 +215,12 @@ begin
      Length(AManifiesto.Auxiliares),
      AManifiesto.Notas]);
   TfrmModalMensajeTexto.Mostrar(Self, sTexto);
+  if FAlArrancar then
+    sTexto := SPreguntaInstalarActualizacionArranque
+  else
+    sTexto := SPreguntaInstalarActualizacion;
   Result := MessageDlg_fza(
-    Format(SPreguntaInstalarActualizacion, [AManifiesto.Version]),
+    Format(sTexto, [AManifiesto.Version]),
     mtConfirmation,
     [mbYes, mbNo],
     0) = mrYes;
@@ -334,7 +347,7 @@ function TfrmModalActualizacion.SolicitarCopiaPrevia(
   out ARutaCopia: string): Boolean;
 begin
   ARutaCopia := '';
-  Result := Assigned(FAnfitrion);
+  Result := Assigned(FAnfitrion) or Assigned(FSolicitarCopiaPrevia);
   if not Result then
     MessageDlg_fza(
       SErrorAnfitrionCopiaPreviaNoDisponible,
@@ -344,7 +357,10 @@ begin
   else
   begin
     MessageDlg_fza(SAvisoCopiaPreviaObligatoria, mtInformation, [mbOk], 0);
-    Result := FAnfitrion.CrearCopiaPreviaActualizacion(ARutaCopia);
+    if Assigned(FSolicitarCopiaPrevia) then
+      Result := FSolicitarCopiaPrevia(ARutaCopia)
+    else
+      Result := FAnfitrion.CrearCopiaPreviaActualizacion(ARutaCopia);
   end;
 end;
 
@@ -576,7 +592,7 @@ begin
         if RevisarMotorBaseDatos then
           FResultado := ComprobarEInstalarActualizacion(
             FContexto,
-            Interaccion)
+            Interaccion, FAlArrancar)
         else
         begin
           FResultado := Default(TResultadoActualizacion);

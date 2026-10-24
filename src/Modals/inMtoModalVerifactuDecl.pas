@@ -76,7 +76,7 @@ begin
     if iPosHead > 0 then
     begin
       sBase := sLineBreak +
-        '    <base href="https://veryverifactu.com/">';
+        '    <base href="https://viracash.net/">';
       Insert(sBase, Result, iPosHead + Length('<head>'));
     end;
   end;

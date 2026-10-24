@@ -1547,7 +1547,7 @@ begin
     dbcLinVariacion := tvLineas.CreateColumn;
     dbcLinVariacion.Name := 'dbcLinVariacion';
   end;
-  dbcLinVariacion.Caption := 'Variación';
+  dbcLinVariacion.Caption := SCaptionVariacionLineaSesion;
   dbcLinVariacion.DataBinding.FieldName := 'CODIGO_VAR_SESLIN';
   if not (dbcLinVariacion.Properties is TcxImageComboBoxProperties) then
     dbcLinVariacion.PropertiesClass := TcxImageComboBoxProperties;
@@ -1571,7 +1571,7 @@ begin
   oPropiedades.Items.Clear;
   oItem := oPropiedades.Items.Add;
   oItem.Value := '';
-  oItem.Description := 'Sin variación';
+  oItem.Description := SCaptionSinVariacionSesion;
   Dmm.unqryVariaciones.First;
   while not Dmm.unqryVariaciones.Eof do
   begin

@@ -13,7 +13,7 @@ implementation
 
 uses
   System.SysUtils, System.Generics.Collections,
-  Data.DB, DBAccess;
+  Data.DB, DBAccess, inLibTraducciones;
 
 type
   TRepositorioPermisosAdmin = class(
@@ -143,7 +143,8 @@ begin
         while not Consulta.Eof do
         begin
           Permiso.Codigo := Consulta.FieldByName('CODIGO_PERM').AsString;
-          Permiso.Descripcion := Consulta.FieldByName('DESCR').AsString;
+          Permiso.Descripcion := NormalizarMarcaViraCash(
+            Consulta.FieldByName('DESCR').AsString);
           Lista.Add(Permiso);
           Consulta.Next;
         end;

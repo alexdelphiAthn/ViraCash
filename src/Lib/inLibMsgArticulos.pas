@@ -16,6 +16,43 @@ unit inLibMsgArticulos;
 interface
 
 resourcestring
+  SErrorContenidoNetoAusente =
+    'El SKU «%s» tiene indicación obligatoria, pero no tiene un contenido ' +
+    'neto mayor que cero. Complete su contenido antes de imprimir.';
+  SErrorReferenciaContenidoIncompatible =
+    'El SKU «%s» tiene unidades de contenido y referencia incompatibles ' +
+    'o una referencia no válida. Revise su configuración.';
+  SErrorTarifaContenidoSinImpuestos =
+    'La tarifa del SKU «%s» no incluye impuestos. Seleccione una tarifa ' +
+    'con impuestos incluidos para mostrar el precio al público.';
+  SErrorPrecioContenidoAusente =
+    'El SKU «%s» no tiene un precio vigente en la tarifa seleccionada.';
+SLeyendaAvisosBalance =
+    'Dif. fact./ventas: unidades facturadas menos salidas por venta. ' +
+    'Se excluyen borradores y facturas internas de traspaso.' + sLineBreak +
+    'Stock sin movimientos: existencias sin movimientos que las justifiquen. ' +
+    'Las filas rojas son diferencias para revisar, no ventas adicionales.';
+  SCaptionContenidoPrecioUnidad = 'Contenido y precio por unidad';
+  SCaptionContenidoNeto = 'Contenido neto del SKU';
+  SCaptionUnidadContenido = 'Unidad del contenido (g, kg, ml, l, ud)';
+  SCaptionReferenciaPrecio = 'Cantidad de referencia (1, 100...)';
+  SCaptionUnidadReferencia = 'Unidad de referencia (g, kg, ml, l, ud)';
+  SCaptionIndicarPrecioUnidad = 'Indicación obligatoria en etiquetas';
+  SCaptionPrecioUnidadTicket = 'Mostrar también en el ticket';
+  SAyudaContenidoPrecioUnidad =
+    'El contenido pertenece a este SKU. La referencia y las opciones ' +
+    'se comparten con todos los SKU del artículo.';
+  SErrorContenidoPrecioUnidad =
+    'Indique un contenido y una referencia mayores que cero, con unidades ' +
+    'compatibles: g/kg, ml/l o ud. Para imprimir en el ticket active ' +
+    'también la indicación del precio por unidad.';
+  SErrorContenidoSkuNoExiste = 'No se ha encontrado el SKU «%s».';
+  SErrorContenidoEtiqueta =
+    'Revise el contenido neto de «%s» y seleccione una tarifa con ' +
+    'impuestos incluidos para imprimir su precio por unidad.';
+  SInfoContenidoSeleccionarSku =
+    'Seleccione el SKU en la pestaña de mantenimiento de SKU para ' +
+    'consultar o editar su contenido neto.';
   SValorTarifaAplicada = 'Aplicada';
   SValorTarifaPrecioOrigen = 'Precio de origen';
   SValorTarifaPrecioCoste = 'Precio de coste';

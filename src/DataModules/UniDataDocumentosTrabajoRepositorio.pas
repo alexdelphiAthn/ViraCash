@@ -810,11 +810,7 @@ begin
   try
     Consulta.SQL.Text :=
       'SELECT a.DESCRIPCION_ART, ' +
-      '       (SELECT GROUP_CONCAT(av.AV ORDER BY av.ORDEN_AV ' +
-      '               SEPARATOR '' / '') ' +
-      '          FROM fza_atributos_sku sa ' +
-      '          JOIN fza_atributos_valores av ON av.ID_AV = sa.ID_AV_SA ' +
-      '         WHERE sa.CODIGO_UNIDAD_SKU_SA = :SKU) AS DESCRIPCION_SKU ' +
+      SqlDescripcionSkuDocumentoTrabajo(':SKU') + ' AS DESCRIPCION_SKU ' +
       '  FROM fza_articulos a ' +
       ' WHERE a.CODIGO_ART_ART = :ART';
     Consulta.ParamByName('ART').AsString := ALinea.CodigoArticulo;

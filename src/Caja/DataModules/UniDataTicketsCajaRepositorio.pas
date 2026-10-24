@@ -103,7 +103,7 @@ uses
   System.Generics.Collections, Data.DB, inLibTrazabilidad,
   inLibCatalogoSqlEjecucion,
   UniDataCatalogoSqlValidacion,
-  UniDataGenerarTicketRepositorio;
+  UniDataGenerarTicketRepositorio, UniDataPrecioUnidad, inLibPrecioUnidad;
 
 const
   SQL_EMPRESA_RESGUARDO =
@@ -881,11 +881,13 @@ var
   oLinea: TLineaTicketCaja;
   oLista: TList<TLineaTicketCaja>;
   oQuery: TUniQuery;
+  Contenidos: TArray<TContenidoPrecioUnidad>;
 begin
   sSerie := ASerie;
   sNumero := ANumero;
   oLista := TList<TLineaTicketCaja>.Create;
   try
+    Contenidos := ListarContenidoFactura(FConexion, ASerie, ANumero);
     oQuery := AbrirConsulta(
       8,
       procedure(AConsulta: TUniQuery)
@@ -900,6 +902,8 @@ begin
         oLinea.ClaveAgrupacion := ClaveAgrupacionTicket(oQuery);
         oLinea.CodigoUnidad :=
           oQuery.FieldByName('CODIGO_UNIDAD_FACLIN').AsString;
+        oLinea.ContenidoPrecio := BuscarContenidoSku(Contenidos,
+          oLinea.CodigoUnidad);
         oLinea.TipoCantidad :=
           oQuery.FieldByName(
             'TIPO_CANTIDAD_ARTICULO_FACLIN').AsString;

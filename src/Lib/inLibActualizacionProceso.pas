@@ -128,7 +128,8 @@ type
 
 function ComprobarEInstalarActualizacion(
   const AContexto: TContextoActualizacion;
-  const AInteraccion: TInteraccionActualizacion): TResultadoActualizacion;
+  const AInteraccion: TInteraccionActualizacion;
+  AAlArrancar: Boolean = False): TResultadoActualizacion;
 function AplicarScriptsPendientesActualizacion(
   AConexion: TUniConnection;
   const AInteraccion: TInteraccionActualizacion): TResultadoActualizacion;
@@ -1185,6 +1186,15 @@ begin
           AManifiesto.Version,
           AManifiesto.Arquitectura);
         Estado.RutaComprobacion := sRutaComprobacion;
+        if not Estado.CorrespondeABase(AContexto.Conexion.Server,
+             AContexto.Conexion.Port, AContexto.Conexion.Database) then
+        begin
+          Estado.Aplicados := nil;
+          Estado.RutaCopiaPrevia := '';
+        end;
+        Estado.ServidorBase := AContexto.Conexion.Server;
+        Estado.PuertoBase := AContexto.Conexion.Port;
+        Estado.NombreBase := AContexto.Conexion.Database;
         Estado.Instante := FormatDateTime('yyyy-mm-dd hh:nn:ss', Now);
         bDescargados := DescargarScriptsFaltantes(
           AContexto,
@@ -1271,7 +1281,8 @@ end;
 function InstalarVersionPublicada(
   const AContexto: TContextoActualizacion;
   const AManifiesto: TManifiestoActualizacion;
-  const AInteraccion: TInteraccionActualizacion): TResultadoActualizacion;
+  const AInteraccion: TInteraccionActualizacion;
+  AAlArrancar: Boolean): TResultadoActualizacion;
 var
   aFaltantes: TArray<TScriptFaltante>;
   bCancelado: Boolean;
@@ -1298,6 +1309,9 @@ begin
       Estado.VersionOrigen := AContexto.VersionInstalada;
       Estado.VersionDestino := AManifiesto.Version;
       Estado.Arquitectura := AManifiesto.Arquitectura;
+      Estado.ServidorBase := AContexto.Conexion.Server;
+      Estado.PuertoBase := AContexto.Conexion.Port;
+      Estado.NombreBase := AContexto.Conexion.Database;
       Estado.Instante := FormatDateTime('yyyy-mm-dd hh:nn:ss', Now);
       TDirectory.CreateDirectory(
         CarpetaDescargasActualizacion(AManifiesto.Version));
@@ -1324,14 +1338,16 @@ begin
       else
       begin
         Result.Ok := True;
+        // Desde el login se termina con el binario instalado. Los scripts
+        // pendientes se ofrecen al abrir la versión nueva.
+        Result.RequiereSalir := AAlArrancar;
         Estado.Estado := cEstadoActualizacionCompletada;
         if Estado.HayScriptsPendientes then
         begin
-          Decision := DecidirAplicacion(
-            AInteraccion,
-            AManifiesto,
-            aFaltantes,
-            True);
+          Decision := dsaAplazar;
+          if not AAlArrancar then
+            Decision := DecidirAplicacion(
+              AInteraccion, AManifiesto, aFaltantes, True);
           if (Decision <> dsaAplazar) and
              AInteraccion.SolicitarCopiaPrevia(
                Estado.RutaCopiaPrevia) then
@@ -1383,7 +1399,8 @@ end;
 
 function ComprobarEInstalarActualizacion(
   const AContexto: TContextoActualizacion;
-  const AInteraccion: TInteraccionActualizacion): TResultadoActualizacion;
+  const AInteraccion: TInteraccionActualizacion;
+  AAlArrancar: Boolean): TResultadoActualizacion;
 var
   Manifiesto: TManifiestoActualizacion;
 begin
@@ -1414,7 +1431,7 @@ begin
         Result := InstalarVersionPublicada(
           AContexto,
           Manifiesto,
-          AInteraccion);
+          AInteraccion, AAlArrancar);
     end;
 end;
 
@@ -1436,6 +1453,9 @@ begin
     Result.Ok := True;
     Result.Mensaje := SInfoSinScriptsPendientes;
   end
+  else if not Estado.CorrespondeABase(AConexion.Server,
+    AConexion.Port, AConexion.Database) then
+    Result.Mensaje := SErrorPendientesOtraBase
   else if not AInteraccion.SolicitarCopiaPrevia(Estado.RutaCopiaPrevia) then
   begin
     Result.Ok := True;
@@ -1571,6 +1591,10 @@ begin
   Result.Version := Estado.VersionDestino;
   if not Estado.SePuedeRevertir then
     Result.Mensaje := SErrorSinActualizacionRevertible
+  else if Estado.HayScriptsAplicados and
+    not Estado.CorrespondeABase(AContexto.Conexion.Server,
+      AContexto.Conexion.Port, AContexto.Conexion.Database) then
+    Result.Mensaje := SErrorPendientesOtraBase
   else if not AInteraccion.ConfirmarReversion(Estado) then
   begin
     Result.Ok := True;

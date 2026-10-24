@@ -64,7 +64,10 @@ type
     function CrearBotonBarraDerecha(const ACaption: string; ATop: Integer;
       AOnClick: TNotifyEvent): TcxButton;
     procedure CrearColumnas;
+    procedure MostrarEstadoProforma(Sender: TcxCustomGridTableItem;
+      ARecord: TcxCustomGridRecord; var ATexto: string);
     procedure ActualizarEstadoEmpresaDestino;
+    procedure EmpresaOrigenCambiada(Sender: TObject);
     function CrearColumna(const ACampo, ATitulo: string;
       AAncho: Integer): TcxGridDBColumn;
     function EscalaMargenMinimoTraspasos: TEscalaMargenMinimo;
@@ -116,6 +119,9 @@ type
   end;
 
 resourcestring
+  SAyudaEmisoraTraspasoVendido =
+    'TV: emite la empresa de origen por lo vendido en destino. ' +
+    'La propuesta de vales la emite la empresa con saldo a favor.';
   SPreguntaGenerarProformaVenta =
     'Se generará una proforma interna no fiscal para VENTA CONTADO. ' +
     'No declarará IVA ni VeriFactu. ¿Desea continuar?';
@@ -274,6 +280,7 @@ begin
   begin
     pnlFacturacion := TPanel.Create(Self);
     pnlFacturacion.Name := 'pnlFacturacion';
+    pnlFacturacion.Caption := '';
     pnlFacturacion.Parent := tsLista;
     pnlFacturacion.Align := alTop;
     pnlFacturacion.Height := EscalarDpi(296);
@@ -306,6 +313,7 @@ begin
     cbbEmpresaOrigen.Properties.DropDownListStyle := lsFixedList;
     cbbEmpresaOrigen.Properties.KeyFieldNames := 'CODIGO_EMP_EMP';
     cbbEmpresaOrigen.Properties.ListFieldNames := 'RAZON_SOCIAL_EMP';
+    cbbEmpresaOrigen.Properties.ListOptions.ShowHeader := False;
     lblEmpresaDestino := TcxLabel.Create(Self);
     lblEmpresaDestino.Parent := pnlFacturacion;
     lblEmpresaDestino.Left := EscalarDpi(388);
@@ -320,6 +328,7 @@ begin
     cbbEmpresaDestino.Properties.DropDownListStyle := lsFixedList;
     cbbEmpresaDestino.Properties.KeyFieldNames := 'CODIGO_EMP_EMP';
     cbbEmpresaDestino.Properties.ListFieldNames := 'RAZON_SOCIAL_EMP';
+    cbbEmpresaDestino.Properties.ListOptions.ShowHeader := False;
     rgModalidad := TcxRadioGroup.Create(Self);
     rgModalidad.Name := 'rgModalidad';
     rgModalidad.Parent := pnlFacturacion;
@@ -426,6 +435,16 @@ begin
   Result.Caption := ATitulo;
   Result.Width := EscalarDpi(AAncho);
   Result.Options.Editing := False;
+  if (ACampo = 'ESTADO_DOCUMENTO') or (ACampo = 'ESTADO_PERIODO') then
+    Result.OnGetDisplayText := MostrarEstadoProforma;
+end;
+
+procedure TfrmMtoFacturasProforma.MostrarEstadoProforma(
+  Sender: TcxCustomGridTableItem; ARecord: TcxCustomGridRecord;
+  var ATexto: string);
+begin
+  ATexto := TextoValorDocumento(TcxGridDBColumn(Sender).
+    DataBinding.FieldName, ATexto);
 end;
 
 procedure TfrmMtoFacturasProforma.CrearColumnas;
@@ -464,10 +483,10 @@ begin
   chkCargarVales.Enabled := ObtenerModalidad = mfcTraspasoVendido;
   if chkCargarVales.Enabled and chkCargarVales.Checked then
   begin
-    lblEmpresaOrigen.Caption := SProformaEmpresaA;
-    lblEmpresaDestino.Caption := SProformaEmpresaB;
+    lblEmpresaOrigen.Caption := SProformaEmpresaOrigen;
+    lblEmpresaDestino.Caption := SProformaEmpresaDestino;
     lblExplicacion.Caption :=
-      SProformaAyudaVales;
+      SAyudaEmisoraTraspasoVendido + sLineBreak + SProformaAyudaVales;
   end
   else
   begin
@@ -475,6 +494,18 @@ begin
     lblEmpresaDestino.Caption := SProformaEmpresaDestino;
     lblExplicacion.Caption :=
       SProformaAyuda;
+  end;
+end;
+
+procedure TfrmMtoFacturasProforma.EmpresaOrigenCambiada(Sender: TObject);
+begin
+  if Assigned(dmmFacturasProforma) then
+  begin
+    if VarToStr(cbbEmpresaDestino.EditValue) =
+       VarToStr(cbbEmpresaOrigen.EditValue) then
+      cbbEmpresaDestino.EditValue := Null;
+    dmmFacturasProforma.AbrirEmpresasDestino(
+      VarToStr(cbbEmpresaOrigen.EditValue));
   end;
 end;
 
@@ -493,9 +524,11 @@ begin
   cbbEmpresaOrigen.Properties.ListSource :=
     dmmFacturasProforma.dsEmpresas;
   cbbEmpresaDestino.Properties.ListSource :=
-    dmmFacturasProforma.dsEmpresas;
+    dmmFacturasProforma.dsEmpresasDestino;
   cbbEmpresaOrigen.EditValue := UbicacionSesion.Empresa;
   cbbEmpresaDestino.EditValue := Null;
+  cbbEmpresaOrigen.Properties.OnEditValueChanged := EmpresaOrigenCambiada;
+  EmpresaOrigenCambiada(nil);
   ActualizarEstadoEmpresaDestino;
   CrearColumnas;
 end;
@@ -765,6 +798,7 @@ function TfrmMtoFacturasProforma.TipoFacturaOpcionesDocumento:
 begin
   Result := Default(TTipoOpcionesDocumento);
   Result.Codigo := 'FC';
+  Result.Subtipo := 'NORMAL';
   Result.Nombre := SNombreFacturaVentaOpcionesDocumento;
 end;
 
@@ -878,15 +912,35 @@ var
   aLineas   : TLineasCuadreFacturasInternas;
   iSin      : Integer;
   sResultado: string;
+  oCuadre: TfrmModalMensajeTexto;
+  oRegistrar: TcxButton;
+  iAccion: Integer;
 begin
   try
     aLineas := CargarCuadreFacturasInternas(ConexionPrincipal,
       dteDesde.Date, dteHasta.Date);
-    TfrmModalMensajeTexto.Mostrar(Self,
-      STituloCuadreFacturasInternas,
-      TextoCuadreFacturasInternas(aLineas, dteDesde.Date, dteHasta.Date));
     iSin := ContarSinRecibida(aLineas);
-    if (iSin > 0) and
+    oCuadre := TfrmModalMensajeTexto.Create(Self);
+    try
+      oCuadre.Caption := STituloCuadreFacturasInternas;
+      oCuadre.mTexto.Text := TextoCuadreFacturasInternas(
+        aLineas, dteDesde.Date, dteHasta.Date);
+      if iSin > 0 then
+      begin
+        oCuadre.Constraints.MinWidth := oCuadre.Width;
+        oRegistrar := TcxButton.Create(oCuadre);
+        oRegistrar.Parent := oCuadre.pnlBotones;
+        oRegistrar.SetBounds(12 * oCuadre.CurrentPPI div 96,
+          oCuadre.btnCerrar.Top, 290 * oCuadre.CurrentPPI div 96,
+          oCuadre.btnCerrar.Height);
+        oRegistrar.Caption := SCaptionRegistrarRecibidasPendientes;
+        oRegistrar.ModalResult := mrYes;
+      end;
+      iAccion := oCuadre.ShowModal;
+    finally
+      oCuadre.Free;
+    end;
+    if (iAccion = mrYes) and (iSin > 0) and
        (MessageDlg_fza(Format(SPreguntaRegistrarRecibidasPendientes,
           [iSin]), mtConfirmation, [mbYes, mbNo], 0) = mrYes) then
     begin
@@ -959,6 +1013,8 @@ begin
   Result.Titulo := STituloConvertirProformaValesOpcionesDocumento;
   Result.Tipos := [TipoFacturaOpcionesDocumento];
   Result.Propuesta := APropuesta;
+  // Dejar que el diálogo proponga la serie NORMAL filtrada.
+  Result.Propuesta.Serie := '';
   // Emite la empresa con saldo a favor: no se elige.
   Result.Visibles := [codEmpresa, codSerie, codNumero, codFecha,
     codFormaPago];

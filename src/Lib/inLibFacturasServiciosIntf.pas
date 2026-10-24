@@ -205,6 +205,10 @@ type
     ['{6F0B7C42-3A1D-4E58-9C2B-58E3B0A7D911}']
     function Registrar(const ASerie, ANumero, AUsuario: string): string;
   end;
+  IPreparacionFacturaRecibidaInterna = interface
+    ['{6D919587-B3A3-4895-947C-4C6B99102819}']
+    procedure PrepararAntesDeEmitir(const ASerie, ANumero: string);
+  end;
   EConsolidacionFactura = class(Exception);
   EReaperturaBorrador = class(Exception);
   ICasoUsoConsolidacionFactura = interface

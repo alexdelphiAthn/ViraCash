@@ -83,6 +83,7 @@ type
     procedure Aplicar(AComponente: TComponent);
   end;
 
+function NormalizarMarcaViraCash(const ATexto: string): string;
 function ClaveTraduccionComponente(
   ARaiz, AComponente: TComponent;
   const APropiedad: string): string;
@@ -112,9 +113,19 @@ implementation
 uses
   System.Character, System.SysUtils, System.TypInfo, Vcl.Forms, Vcl.Menus,
   cxGridCustomTableView, cxGridDBTableView, cxDBEdit, cxImageComboBox,
-  Data.DB, System.Variants,
+  Data.DB, System.Variants, System.RegularExpressions,
   inLibMsgFacturas,
   inLibRegistroResourcestringTraducciones, inLibRegistroLogNulo;
+
+function NormalizarMarcaViraCash(const ATexto: string): string;
+begin
+  // Solo presentación en este producto: no se cambia el catálogo común,
+  // ni identificadores como factuzam_demo o FactuzamMigrator.exe.
+  Result := TRegEx.Replace(ATexto, '\bfzam\.exe\b', 'vcash.exe',
+    [roIgnoreCase]);
+  Result := TRegEx.Replace(Result, '\b(factu ?zam|fzam)\b', 'ViraCash',
+    [roIgnoreCase]);
+end;
 
 const
   PROPIEDADES_TRADUCIBLES: array[0..5] of string = (
@@ -648,7 +659,12 @@ begin
       if sClave <> '' then
         FTextos.AddOrSetValue(
           sClave,
-          EvitarLigaduraElaGeminada(oCatalogo.Textos[iEntrada].Texto));
+          EvitarLigaduraElaGeminada(NormalizarMarcaViraCash(
+            oCatalogo.Textos[iEntrada].Texto)));
+      if SameText(FIdioma, 'zh-CN') and
+         (sClave = 'inmtosplash.tfrmsplash.cxlabel2.caption') and
+         (oCatalogo.Textos[iEntrada].Texto = '与申诉人的接触') then
+        FTextos.AddOrSetValue(sClave, '联系作者');
     end;
     for iEntrada := 0 to High(oCatalogo.TextosInforme) do
     begin
@@ -767,6 +783,7 @@ begin
   finally
     FBloqueo.Release;
   end;
+  Result := NormalizarMarcaViraCash(Result);
 end;
 
 function TServicioTraducciones.TraducirTextoInforme(

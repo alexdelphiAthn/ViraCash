@@ -84,7 +84,7 @@ const
   cRutaInstalacionSif = 'sif/instalacion.php';
   cRutaDeclaracionSif = 'sif/declaracion.php';
   cUrlDeclaracionPublica =
-    'https://www.veryverifactu.com/declaracion.html';
+    'https://viracash.net/declaracion.html';
 
 function TraducirErrorInstalacionSif(const ACodigo,
   AMensajeOriginal: string): string;

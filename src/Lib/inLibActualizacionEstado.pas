@@ -56,10 +56,15 @@ type
     RutaCopiaPrevia: string;
     RutaComprobacion: string;
     IntegridadVerificada: Boolean;
+    ServidorBase: string;
+    PuertoBase: Integer;
+    NombreBase: string;
     Ejecutables: TArray<TEjecutableActualizado>;
     Aplicados: TArray<TScriptAplicadoActualizacion>;
     Pendientes: TArray<TScriptPendienteActualizacion>;
     function HayScriptsPendientes: Boolean;
+    function CorrespondeABase(const AServidor: string; APuerto: Integer;
+      const ABase: string): Boolean;
     function HayScriptsAplicados: Boolean;
     function SePuedeRevertir: Boolean;
     procedure AnadirEjecutable(
@@ -298,6 +303,9 @@ begin
           Result.VersionDestino := TextoJson(oObjeto, 'version_destino');
           Result.Instante := TextoJson(oObjeto, 'instante');
           Result.Arquitectura := TextoJson(oObjeto, 'arquitectura');
+          Result.ServidorBase := TextoJson(oObjeto, 'servidor_base');
+          Result.PuertoBase := EnteroJson(oObjeto, 'puerto_base');
+          Result.NombreBase := TextoJson(oObjeto, 'nombre_base');
           Result.RutaCopiaPrevia := TextoJson(oObjeto, 'copia_previa');
           Result.RutaComprobacion := TextoJson(oObjeto, 'comprobacion');
           Result.IntegridadVerificada :=
@@ -350,6 +358,9 @@ begin
   Result.AddPair('version_destino', AEstado.VersionDestino);
   Result.AddPair('instante', AEstado.Instante);
   Result.AddPair('arquitectura', AEstado.Arquitectura);
+  Result.AddPair('servidor_base', AEstado.ServidorBase);
+  Result.AddPair('puerto_base', TJSONNumber.Create(AEstado.PuertoBase));
+  Result.AddPair('nombre_base', AEstado.NombreBase);
   Result.AddPair('copia_previa', AEstado.RutaCopiaPrevia);
   Result.AddPair('comprobacion', AEstado.RutaComprobacion);
   Result.AddPair(
@@ -510,6 +521,17 @@ begin
 end;
 
 { TEstadoActualizacion }
+
+function TEstadoActualizacion.CorrespondeABase(const AServidor: string;
+  APuerto: Integer; const ABase: string): Boolean;
+begin
+  // Un estado antiguo sin identidad requiere Comprobar actualizaciones:
+  // nunca se aplican sus scripts a ciegas sobre el perfil abierto.
+  Result := (Trim(NombreBase) <> '') and (Trim(ServidorBase) <> '') and
+    SameText(Trim(ServidorBase), Trim(AServidor)) and
+    SameText(Trim(NombreBase), Trim(ABase)) and
+    (PuertoBase = APuerto);
+end;
 
 function TEstadoActualizacion.HayScriptsPendientes: Boolean;
 begin

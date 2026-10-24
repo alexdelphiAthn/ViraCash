@@ -35,7 +35,10 @@ type
   public
     unqryEmpresas: TUniQuery;
     dsEmpresas   : TDataSource;
+    unqryEmpresasDestino: TUniQuery;
+    dsEmpresasDestino: TDataSource;
     procedure AbrirEmpresas;
+    procedure AbrirEmpresasDestino(const AOrigen: string);
     procedure AbrirDetalles; override;
     function CrearRepositorio(
       const AParametrosApp: IParametrosAplicacion
@@ -68,6 +71,10 @@ begin
   unqryEmpresas.Connection := unqryTablaG.Connection;
   dsEmpresas := TDataSource.Create(Self);
   dsEmpresas.DataSet := unqryEmpresas;
+  unqryEmpresasDestino := TUniQuery.Create(Self);
+  unqryEmpresasDestino.Connection := unqryTablaG.Connection;
+  dsEmpresasDestino := TDataSource.Create(Self);
+  dsEmpresasDestino.DataSet := unqryEmpresasDestino;
   ConfigurarConsultas;
 end;
 
@@ -298,6 +305,17 @@ procedure TdmFacturasProforma.AbrirDetalles;
 begin
   inherited;
   AbrirEmpresas;
+end;
+
+procedure TdmFacturasProforma.AbrirEmpresasDestino(const AOrigen: string);
+begin
+  unqryEmpresasDestino.Close;
+  unqryEmpresasDestino.SQL.Text :=
+    'SELECT CODIGO_EMP_EMP, RAZON_SOCIAL_EMP FROM fza_empresas ' +
+    'WHERE ESACTIVO_EMP = ''S'' AND CODIGO_EMP_EMP <> :ORIGEN ' +
+    'ORDER BY ORDEN_EMP, RAZON_SOCIAL_EMP';
+  unqryEmpresasDestino.ParamByName('ORIGEN').AsString := AOrigen;
+  unqryEmpresasDestino.Open;
 end;
 
 procedure TdmFacturasProforma.AbrirEmpresas;
