@@ -1,0 +1,91 @@
+======================================
+ INFORME DE IMPACTO
+======================================
+
+Columnas en plan:           981
+  - Que cambian:            832
+  - Sin cambio:             149
+Índices a renombrar:        78
+
+Coincidencias en SQL fuera de CREATE TABLE: 4531
+
+Columnas con más matches en SQL:
+--------------------------------
+  USUARIOMODIF                                         183
+  INSTANTEMODIF                                        175
+  USUARIOALTA                                          167
+  INSTANTEALTA                                         161
+  CODIGO_ARTICULO                                       85
+  CODIGO_TARIFA                                         36
+  DESCRIPCION_ARTICULO                                  33
+  CODIGO_ARTICULO_SKU                                   31
+  KEY_PERFILES                                          26
+  SERIE_CONTADOR                                        26
+  TIPODOC_CONTADOR                                      26
+  USUARIO_GRUPO_PERFILES                                26
+  SUBKEY_PERFILES                                       25
+  CODIGO_ALMACEN_MOV                                    24
+  CODIGO_FAMILIA_ARTICULO                               24
+  NRO_FACTURA                                           24
+  RAZONSOCIAL_PROVEEDOR                                 23
+  VALUE_PERFILES                                        23
+  CODIGO_PROVEEDOR                                      22
+  SERIE_FACTURA                                         22
+  … y 576 más
+
+Distribución por contexto:
+--------------------------
+  INSERT                                              4512
+  PROCEDURE                                             16
+  OTHER                                                  3
+
+Coincidencias en código Delphi: 8862 (en 123 ficheros)
+
+Columnas con más matches en código:
+-----------------------------------
+  USUARIOALTA                                          236
+  USUARIOMODIF                                         229
+  INSTANTEALTA                                         219
+  INSTANTEMODIF                                        201
+  CODIGO_ARTICULO                                      176
+  SERIE_FACTURA                                        152
+  NRO_FACTURA                                          133
+  CODIGO_CLIENTE                                       102
+  NRO_FACTURA_LINEA                                     80
+  DESCRIPCION_ARTICULO                                  77
+  SERIE_FACTURA_LINEA                                   74
+  CODIGO_FAMILIA                                        71
+  CODIGO_TARIFA                                         71
+  CODIGO_ARTICULO_FACTURA_LINEA                         66
+  FECHA_FACTURA                                         66
+  CODIGO_CLIENTE_FACTURA                                61
+  CODIGO_EMPRESA                                        57
+  LINEA_FACTURA_LINEA                                   57
+  PRECIOVENTA_SIVA_ARTICULO_FACTURA_LINEA               54
+  CODIGO_ARTICULO_TARIFA                                51
+  … y 556 más
+
+Ficheros más afectados:
+-----------------------
+  C:\DISCO_DURO\proyectos\Factuzam\src\DataModules\UniDataFacturas.dfm  1241
+  C:\DISCO_DURO\proyectos\Factuzam\src\DataModules\UniDataEmpresas.dfm   742
+  C:\DISCO_DURO\proyectos\Factuzam\src\DataModules\UniDataClientes.dfm   731
+  C:\DISCO_DURO\proyectos\Factuzam\src\DataModules\UniDataPedidos.dfm   510
+  C:\DISCO_DURO\proyectos\Factuzam\src\DataModules\UniDataCaja.pas   441
+  C:\DISCO_DURO\proyectos\Factuzam\src\DataModules\UniDataArticulos.dfm   355
+  C:\DISCO_DURO\proyectos\Factuzam\src\DataModules\UniDataFacturas.pas   278
+  C:\DISCO_DURO\proyectos\Factuzam\src\Forms\inMtoClientes.dfm   247
+  C:\DISCO_DURO\proyectos\Factuzam\src\Forms\inMtoFacturas.dfm   227
+  C:\DISCO_DURO\proyectos\Factuzam\src\Lib\inLibFacturas.pas   226
+  C:\DISCO_DURO\proyectos\Factuzam\src\verifactu\UniDataCaja.dfm   195
+  C:\DISCO_DURO\proyectos\Factuzam\src\Forms\inMtoCajaOpe.pas   179
+  C:\DISCO_DURO\proyectos\Factuzam\src\DataModules\UniDataFamilias.dfm   163
+  C:\DISCO_DURO\proyectos\Factuzam\src\Forms\inMtoEmpresas.dfm   142
+  C:\DISCO_DURO\proyectos\Factuzam\src\DataModules\UniDataInventarios.pas   134
+  C:\DISCO_DURO\proyectos\Factuzam\src\Modals\inMtoModalImpFac.dfm   133
+  C:\DISCO_DURO\proyectos\Factuzam\src\Forms\inMtoPedidos.dfm   123
+  C:\DISCO_DURO\proyectos\Factuzam\src\DataModules\UniDataConsultaOpe.pas   121
+  C:\DISCO_DURO\proyectos\Factuzam\src\Forms\inMtoFormasdePago.dfm   104
+  C:\DISCO_DURO\proyectos\Factuzam\src\Modals\inMtoModalAddBlockBase.pas   103
+  … y 103 más
+

@@ -1,0 +1,11 @@
+﻿inherited FormLogin_LgXhdpiPh: TFormLogin_LgXhdpiPh
+  ClientHeight = 696
+  ClientWidth = 448
+  DesignerMasterStyle = 3
+  inherited sb: TVertScrollBox
+    Size.Width = 448.000000000000000000
+    Size.Height = 696.000000000000000000
+    Viewport.Width = 448.000000000000000000
+    Viewport.Height = 696.000000000000000000
+  end
+end

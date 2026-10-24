@@ -1,0 +1,86 @@
+
+EMPRESA  : MONEDEROLID, S.L.
+DIRECCION: C/Nicasio Pérez, 14
+POBLACION: 47005 VALLADOLID
+PROVINCIA: VALLADOLID
+CIF      : B47486535
+
+TIENDA   : CANOVAS
+DIRECCION: C/Cánovas del Castillo
+POBLACION: 47002 VALLADOLID
+PROVINCIA: VALLADOLID
+TELEFONO : 983308001
+
+-ARQUEO CAJA 01  DIAS 01/10/25 02/10/25-
+
+
+Empleado: 021 PALOMA
+
+Primera operacion: 00007439
+Ultima  operacion: 00007493
+
+----------------------------------------
+OPERACIONES                           55
+
+UNIDADES VTA.                        110
+
+CLIENTES CONTADO
+LINEAS DE ARTICULOS
+   BRUTO                        1.672,70
+
+OPERACIONES
+   BRUTO                        1.534,40
+   DESCUENTOS               -       2,05
+   NETO                         1.532,35
+
+COBROS
+   PENDIENTE                -       0,00
+
+   INGRESOS/VENTA               1.532,35
+
+   TARJETA INGRESOS               920,50
+   EFTV.INGRESOS                  611,85
+
+   EFTV.ANTERIOR            +     400,00
+   EFTV.TEORICO             =   1.011,85
+
+   EFTVO.RECONTADO          =     695,55
+   EFTVO.RETIRADO           -     295,55
+   EFTVO.FINAL              =     400,00
+
+DEVOLUCIONES CLIENTES
+   NETO ARTICULOS           =      86,80
+      EFECTIVO                     36,90
+      TARJETA                      49,90
+
+       RESUMEN NETO POR SECCION
+1  CONTADO CORSETERIA    13%      205,40
+3  CONTADO MEDIAS         8%      124,70
+4  CONTADO PIJAMAS       26%      393,00
+6  CONTADO INTERIORES    45%      685,55
+7  CONTADO EXTERIORES     0%        3,20
+9  CONTADO CALCETINES     8%      120,50
+
+     RESUMEN UNIDADES POR SECCION
+1  CONTADO CORSETERIA     6%           7
+3  CONTADO MEDIAS        16%          18
+4  CONTADO PIJAMAS        8%           9
+6  CONTADO INTERIORES    45%          49
+7  CONTADO EXTERIORES    10%          11
+9  CONTADO CALCETINES    15%          16
+
+     RESUMEN VENTAS POR EMPLEADO
+Emp Nombre   Ope    Comision    Base com
+021 PALOMA    96        0,00    1.137,81
+263 INMA       9        0,00       62,89
+334 ANA H.     5        0,00       65,70
+
+TARJ. BRUTO     %COM  COMISION      NETO
+VISA     920,50 0,00      0,00    920,50
+TOTAL    920,50           0,00    920,50
+
+     RESUMEN VENTAS POR SERIE
+SE BASE IMP__ _%IVA ____CUOTA _____TOTAL
+01   1.266,41 21,00    265,95   1.532,36
+
+----------------------------------------

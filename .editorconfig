@@ -1,0 +1,36 @@
+root = true
+
+[*.{pas,dfm,dpr}]
+charset = utf-8-bom
+end_of_line = crlf
+insert_final_newline = true
+
+[*.{dproj,groupproj,deployproj,dpk,fmx,dsv,inc,rc,sql,md,txt,bat,cmd,ps1,xml,json,csv,dxsettings}]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+
+[*.~dsk]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+
+[DESARROLLOS EN CURSO/migracion/*.sql]
+charset = unset
+end_of_line = unset
+insert_final_newline = unset
+
+[*.{php,py,html,css,svg,nsi,bpk,cpp,dof,conf,kof,skincfg}]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+
+[{.editorconfig,.gitignore,.gitconfig,LICENSE,README,touch,entornopre}]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+
+[.gitattributes]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true

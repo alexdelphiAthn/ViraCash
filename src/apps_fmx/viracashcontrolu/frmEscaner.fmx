@@ -1,0 +1,87 @@
+﻿object FormEscaner: TFormEscaner
+  Left = 0
+  Top = 0
+  Caption = 'ViraCash - Escanear c'#243'digo'
+  ClientHeight = 600
+  ClientWidth = 400
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop]
+  OnClose = FormClose
+  OnDestroy = FormDestroy
+  OnResize = FormResize
+  OnShow = FormShow
+  DesignerMasterStyle = 0
+  object pnlTop: TPanel
+    Align = Top
+    Size.Width = 400.000000000000000000
+    Size.Height = 56.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 0
+    object btnCancelar: TButton
+      Position.X = 8.000000000000000000
+      Position.Y = 10.000000000000000000
+      Size.Width = 100.000000000000000000
+      Size.Height = 36.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 0
+      Text = 'Cancelar'
+      OnClick = btnCancelarClick
+    end
+    object lblEstado: TLabel
+      Position.X = 116.000000000000000000
+      Position.Y = 10.000000000000000000
+      Size.Width = 276.000000000000000000
+      Size.Height = 36.000000000000000000
+      Size.PlatformDefault = False
+      TextSettings.Font.Size = 14.000000000000000000
+      TextSettings.HorzAlign = Center
+      Text = 'Apunta al c'#243'digo de barras'
+    end
+  end
+  object pnlBottom: TPanel
+    Align = Bottom
+    Position.Y = 540.000000000000000000
+    Size.Width = 400.000000000000000000
+    Size.Height = 60.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 1
+    object btnCapturar: TButton
+      Position.X = 8.000000000000000000
+      Position.Y = 8.000000000000000000
+      Size.Width = 188.000000000000000000
+      Size.Height = 44.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 0
+      Text = 'Capturar ahora'
+      OnClick = btnCapturarClick
+    end
+    object btnLinterna: TButton
+      Position.X = 204.000000000000000000
+      Position.Y = 8.000000000000000000
+      Size.Width = 188.000000000000000000
+      Size.Height = 44.000000000000000000
+      Size.PlatformDefault = False
+      Enabled = False
+      TabOrder = 1
+      Text = 'Linterna OFF'
+      OnClick = btnLinternaClick
+    end
+  end
+  object imgPreview: TImage
+    MultiResBitmap = <
+      item
+      end>
+    Align = Client
+    Size.Width = 400.000000000000000000
+    Size.Height = 484.000000000000000000
+    Size.PlatformDefault = False
+    HitTest = False
+    WrapMode = Fit
+  end
+  object cam: TCameraComponent
+    OnSampleBufferReady = camSampleBufferReady
+    Left = 16
+    Top = 80
+  end
+end

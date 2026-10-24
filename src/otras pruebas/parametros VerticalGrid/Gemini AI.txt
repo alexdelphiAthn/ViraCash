@@ -1,0 +1,136 @@
+Esta es una arquitectura clásica y muy potente. Viendo tu código (`inMtoModalGenImpSave.pas`), ya tienes la lógica conceptual de "Niveles" (`rgNivel` con items Usuario/Grupo/Todos).
+
+Para integrar esto con tu `TcxVerticalGrid`, la mejor estrategia UX (Experiencia de Usuario) no es un simple botón de "Guardar", sino un **SplitButton** (Botón con desplegable) o un **Menú Contextual** que permita decidir el "Scope" (Alcance) al momento de guardar.
+
+Aquí tienes cómo implementarlo:
+
+### 1. La Estructura de Datos (SQL)
+
+Basándome en tu lógica Unix y tus archivos, tu tabla de parámetros (`fza_usuarios_parametros` o similar) debería tener una clave compuesta lógica.
+Supongamos esta estructura lógica para el `INSERT/UPDATE`:
+
+* `PARAM_NAME` (Varchar): El nombre de la fila en el grid.
+* `PARAM_VALUE` (Varchar/Variant): El valor.
+* `LEVEL_ID` (Integer):
+* `0`: Global (Todos)
+* `1`: Grupo
+* `2`: Usuario
+
+
+* `TARGET_ID` (Integer):
+* Si Level=0 -> `0` (o NULL)
+* Si Level=1 -> `id_perfil` (de tu tabla `fza_perfiles`)
+* Si Level=2 -> `id_usuario` (de tu tabla `fza_usuarios`)
+
+
+
+### 2. La Interfaz (El Menú)
+
+En lugar de un `RadioGroup` externo (que ocupa espacio), te sugiero usar un **`TcxButton`** con la propiedad `Kind` configurada como **`cxbSplit`**. Esto crea un botón que tiene una parte principal (Guardar por defecto) y una flechita desplegable.
+
+1. Coloca un `TcxButton` encima del Grid.
+2. Ponle `Caption := 'Guardar Cambios'`.
+3. Cambia `Kind` a **`cxbSplit`**.
+4. Asocia un `TPopupMenu` a la propiedad `DropDownMenu` del botón.
+5. En el `TPopupMenu`, crea tres items:
+* **Nivel Usuario** (Tag: 2) -> "Guardar solo para mí"
+* **Nivel Grupo** (Tag: 1) -> "Guardar para mi grupo"
+* **Nivel Global** (Tag: 0) -> "Guardar para todos (Global)"
+
+
+
+### 3. El Código Delphi
+
+El truco aquí es recorrer el VerticalGrid y guardar según el nivel seleccionado en el menú.
+
+```delphi
+// Evento al hacer clic en un item del menú desplegable
+procedure TForm1.MenuGuardarNivelClick(Sender: TObject);
+var
+  Nivel: Integer;
+  TargetID: Integer;
+begin
+  Nivel := (Sender as TMenuItem).Tag; // 0, 1 o 2
+
+  // Determinamos el ID objetivo según el nivel
+  case Nivel of
+    0: TargetID := 0; // Global
+    1: TargetID := MiUsuarioActual.IdPerfil; // Tu lógica de sesión
+    2: TargetID := MiUsuarioActual.IdUsuario;
+  end;
+  
+  // Advertencia de seguridad para Global/Grupo
+  if (Nivel < 2) and (MessageDlg('¿Seguro que quieres afectar a otros usuarios?', 
+      mtConfirmation, [mbYes, mbNo], 0) = mrNo) then Exit;
+
+  GuardarGrid(Nivel, TargetID);
+end;
+
+procedure TForm1.GuardarGrid(Nivel, TargetID: Integer);
+var
+  i: Integer;
+  Row: TcxCustomRow;
+  NombreParam, Valor: string;
+begin
+  // Recorremos todas las filas del VerticalGrid
+  for i := 0 to cxVerticalGrid1.Rows.Count - 1 do
+  begin
+    Row := cxVerticalGrid1.Rows[i];
+    
+    // Solo guardamos si es una fila de edición (no categorías)
+    if Row is TcxEditorRow then
+    begin
+      NombreParam := TcxEditorRow(Row).Properties.Caption;
+      Valor := VarToStr(TcxEditorRow(Row).Properties.Value);
+
+      // AQUÍ LLAMAS A TU SQL
+      // Lógica: "UPSERT" (Update si existe, Insert si no) para ese Nivel+TargetID specific
+      EjecutarSQL_GuardarParametro(NombreParam, Valor, Nivel, TargetID);
+    end;
+  end;
+  
+  ShowMessage('Parámetros guardados correctamente en el nivel seleccionado.');
+end;
+
+```
+
+### 4. Feedback Visual (El toque "Pro")
+
+Ya que tienes un sistema de herencia, es muy útil que el usuario sepa **de dónde viene** el dato que está viendo antes de tocarlo.
+
+Usa el evento **`OnGetContentStyle`** del VerticalGrid para colorear las celdas:
+
+* **Verde suave:** El valor es mío (Nivel Usuario).
+* **Amarillo suave:** El valor es heredado del Grupo.
+* **Blanco/Gris:** El valor es el Global por defecto.
+
+```delphi
+procedure TForm1.cxVerticalGrid1StylesGetContentStyle(Sender: TObject;
+  AEditProp: TcxCustomEditorRowProperties; AFocused: Boolean;
+  var AStyle: TcxStyle);
+var
+  OrigenDato: Integer; // 0=Global, 1=Grupo, 2=Usuario
+begin
+  // Necesitas una forma rápida de saber el origen. 
+  // Puedes usar la propiedad "Row.Tag" al cargar los datos para guardar el origen.
+  OrigenDato := AEditProp.Row.Tag; 
+
+  case OrigenDato of
+    2: AStyle := styleNivelUsuario; // Defines este estilo en un cxStyleRepository (Verde)
+    1: AStyle := styleNivelGrupo;   // (Amarillo)
+    // 0 se queda por defecto
+  end;
+end;
+
+```
+
+### Resumen de la Lógica de Carga (Lectura)
+
+Para que lo anterior funcione (`Row.Tag`), al cargar:
+
+1. Haces `SELECT * FROM Parametros WHERE (Level=0) OR (Level=1 AND Target=MiGrupo) OR (Level=2 AND Target=MiUser)`.
+2. Ordenas por Nivel ascendente (0, 1, 2).
+3. Recorres el dataset. Como ordenas ascendente, el último valor que leas machacará al anterior (Unix style).
+4. Al asignar el valor al Grid, asigna también `Row.Tag := Query.FieldByName('Level').AsInteger`.
+
+¿Te encaja este enfoque de menú en el botón guardar? Es menos intrusivo que abrir una ventana modal cada vez.

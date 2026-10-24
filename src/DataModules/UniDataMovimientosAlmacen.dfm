@@ -1,0 +1,51 @@
+﻿inherited dmMovimientosAlmacen: TdmMovimientosAlmacen
+  inherited unqryTablaG: TUniQuery
+    BeforeInsert = unqryTablaGBeforeInsert
+    BeforeEdit = unqryTablaGBeforeEdit
+    BeforeDelete = unqryTablaGBeforeDelete
+    SQLInsert.Strings = (
+      'INSERT INTO `fza_movimientos_almacen`'
+      '  (`NUMERO_MOV`, `TIPO_DOC_MOV`, `SERIE_DOC_MOV`, `NUMERO_DOC_MOV`, `LINEA_MOV`, `CODIGO_EMP_MOV`, `CODIGO_ALM_MOV`, `FECHA_MOV`, `CODIGO_ART_MOV`, `CODIGO_UNIDAD_MOV`, `DESCRIPCION_ARTICULO_MOV`, `TI' +
+      'PO_MOV`, `CANTIDAD_MOV`, `PRECIO_COSTE_UNITARIO_MOV`, `TOTAL_COSTE_MOV`, `PRECIO_MEDIO_MOV`, `CODIGO_ALM_CONTRA_MOV`, `CODIGO_CLI_MOV`, `CODIGO_PRV_MOV`, `ESACTIVO_MOV`, `INSTANTE_MODIF`, `INSTANTE_AL' +
+      'TA`, `USUARIO_ALTA`, `USUARIO_MODIF`, `TIPO_DOC_REF_MOV`, `SERIE_DOC_REF_MOV`, `NUMERO_DOC_REF_MOV`, `LINEA_REF_MOV`, `LOTE_MOV`, `FECHA_CADUCIDAD_MOV`)'
+      'VALUES'
+      '  (:`NUMERO_MOV`, :`TIPO_DOC_MOV`, :`SERIE_DOC_MOV`, :`NUMERO_DOC_MOV`, :`LINEA_MOV`, :`CODIGO_EMP_MOV`, :`CODIGO_ALM_MOV`, :`FECHA_MOV`, :`CODIGO_ART_MOV`, :`CODIGO_UNIDAD_MOV`, :`DESCRIPCION_ARTICUL' +
+      'O_MOV`, :`TIPO_MOV`, :`CANTIDAD_MOV`, :`PRECIO_COSTE_UNITARIO_MOV`, :`TOTAL_COSTE_MOV`, :`PRECIO_MEDIO_MOV`, :`CODIGO_ALM_CONTRA_MOV`, :`CODIGO_CLI_MOV`, :`CODIGO_PRV_MOV`, :`ESACTIVO_MOV`, :`INSTANTE' +
+      '_MODIF`, :`INSTANTE_ALTA`, :`USUARIO_ALTA`, :`USUARIO_MODIF`, :`TIPO_DOC_REF_MOV`, :`SERIE_DOC_REF_MOV`, :`NUMERO_DOC_REF_MOV`, :`LINEA_REF_MOV`, :`LOTE_MOV`, :`FECHA_CADUCIDAD_MOV`)')
+    SQLDelete.Strings = (
+      'DELETE FROM `fza_movimientos_almacen`'
+      'WHERE'
+      '  `NUMERO_MOV` = :`Old_NUMERO_MOV`')
+    SQLUpdate.Strings = (
+      'UPDATE `fza_movimientos_almacen`'
+      'SET'
+      '  `NUMERO_MOV` = :`NUMERO_MOV`, `TIPO_DOC_MOV` = :`TIPO_DOC_MOV`, `SERIE_DOC_MOV` = :`SERIE_DOC_MOV`, `NUMERO_DOC_MOV` = :`NUMERO_DOC_MOV`, `LINEA_MOV` = :`LINEA_MOV`, `CODIGO_EMP_MOV` = :`CODIGO_EMP_' +
+      'MOV`, `CODIGO_ALM_MOV` = :`CODIGO_ALM_MOV`, `FECHA_MOV` = :`FECHA_MOV`, `CODIGO_ART_MOV` = :`CODIGO_ART_MOV`, `CODIGO_UNIDAD_MOV` = :`CODIGO_UNIDAD_MOV`, `DESCRIPCION_ARTICULO_MOV` = :`DESCRIPCION_ART' +
+      'ICULO_MOV`, `TIPO_MOV` = :`TIPO_MOV`, `CANTIDAD_MOV` = :`CANTIDAD_MOV`, `PRECIO_COSTE_UNITARIO_MOV` = :`PRECIO_COSTE_UNITARIO_MOV`, `TOTAL_COSTE_MOV` = :`TOTAL_COSTE_MOV`, `PRECIO_MEDIO_MOV` = :`PRECI' +
+      'O_MEDIO_MOV`, `CODIGO_ALM_CONTRA_MOV` = :`CODIGO_ALM_CONTRA_MOV`, `CODIGO_CLI_MOV` = :`CODIGO_CLI_MOV`, `CODIGO_PRV_MOV` = :`CODIGO_PRV_MOV`, `ESACTIVO_MOV` = :`ESACTIVO_MOV`, `INSTANTE_MODIF` = :`INS' +
+      'TANTE_MODIF`, `INSTANTE_ALTA` = :`INSTANTE_ALTA`, `USUARIO_ALTA` = :`USUARIO_ALTA`, `USUARIO_MODIF` = :`USUARIO_MODIF`, `TIPO_DOC_REF_MOV` = :`TIPO_DOC_REF_MOV`, `SERIE_DOC_REF_MOV` = :`SERIE_DOC_REF_' +
+      'MOV`, `NUMERO_DOC_REF_MOV` = :`NUMERO_DOC_REF_MOV`, `LINEA_REF_MOV` = :`LINEA_REF_MOV`, `LOTE_MOV` = :`LOTE_MOV`, `FECHA_CADUCIDAD_MOV` = :`FECHA_CADUCIDAD_MOV`'
+      'WHERE'
+      '  `NUMERO_MOV` = :`Old_NUMERO_MOV`')
+    SQLLock.Strings = (
+      'SELECT * FROM `fza_movimientos_almacen`'
+      'WHERE'
+      '  `NUMERO_MOV` = :`Old_NUMERO_MOV`'
+      'FOR UPDATE')
+    SQLRefresh.Strings = (
+      'SELECT * FROM `fza_movimientos_almacen`'
+      'WHERE'
+      '  `NUMERO_MOV` = :`NUMERO_MOV`')
+    SQLRecCount.Strings = (
+      'SELECT COUNT(*) FROM fza_movimientos_almacen')
+    Connection = dmConn.conUni
+    SQL.Strings = (
+      'SELECT m.*, a.TIPO_CANTIDAD_ART'
+      'FROM fza_movimientos_almacen m'
+      'LEFT JOIN fza_articulos a ON a.CODIGO_ART_ART = m.CODIGO_ART_MOV'
+      'ORDER BY m.FECHA_MOV DESC'
+      '')
+    Active = False
+    Left = 24
+  end
+end

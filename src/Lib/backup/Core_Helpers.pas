@@ -1,0 +1,135 @@
+﻿unit Core_Helpers;
+
+interface
+uses
+  Backup.Types, System.SysUtils, System.StrUtils,
+  Data.DB, system.Classes, Core_Interfaces;
+type
+  // Base común de los helpers SQL: implementa los contratos segregados
+  // de Core_Interfaces; cada consumidor recibe solo la vista que usa
+  TDBHelpers = class(TInterfacedObject,
+                     IComparadorEsquemaBBDD,
+                     IGeneradorSqlValores,
+                     IGeneradorSqlCreacion,
+                     IGeneradorSqlEliminacion,
+                     IGeneradorSqlModificacion)
+  public
+    // Métodos comunes que SÍ son universales
+    function ColumnsAreEqual(const Col1, Col2: TColumnInfo): Boolean;
+    function IndexesAreEqual(const Idx1, Idx2: TIndexInfo): Boolean; virtual;
+    function NormalizeExtra(const AExtra: string): string; virtual;
+    // Métodos ABSTRACTOS que cada proveedor debe implementar
+    function QuoteIdentifier(const Identifier: string): string; virtual;
+    abstract;
+    function GenerateColumnDefinition(const Col: TColumnInfo): string; virtual;
+    abstract;
+    function GenerateIndexDefinition(const TableName: string;
+      const Idx: TIndexInfo): string; virtual; abstract;
+    function GenerarIndicesSecundarios(
+      const ANombreTabla: string;
+      const AIndices: TArray<TIndexInfo>): string; virtual; abstract;
+    function NormalizeType(const AType: string): string; virtual; abstract;
+    function TriggersAreEqual(const Trg1, Trg2: TTriggerInfo): Boolean; virtual;
+    abstract;
+    function GenerateCreateTableSQL(const Table: TTableInfo;
+      const Indexes: TArray<TIndexInfo>): string; virtual; abstract;
+    function GenerateAddColumnSQL(const TableName: string;
+      const ColumnInfo: TColumnInfo): string; virtual; abstract;
+    function GenerateDropColumnSQL(const TableName, ColumnName:string): string;
+    virtual;abstract;
+    function GenerateModifyColumnSQL(const TableName: string;
+      const ColumnInfo: TColumnInfo): string; virtual; abstract;
+    function GenerateUpdateSQL(const TableName: string;
+      const SetClause, WhereClause: string): string; virtual; abstract;
+    function GenerateDropIndexSQL(const TableName, IndexName:string): string;
+    virtual;abstract;
+    function GenerateDropTableSQL(const TableName:String): string; virtual;
+    abstract;
+    function GenerateDropTrigger(const Trigger:string):string; virtual;
+    abstract;
+    function GenerateDropView(const View:string):string; virtual; abstract;
+    function GenerateDropProcedure(const Proc:string):string; virtual; abstract;
+    function GenerateDropFunction(const FuncName:string):string; virtual;
+    abstract;
+    function GenerateDeleteSQL(const TableName, WhereClause: string): string;
+    virtual; abstract;
+    function GenerateInsertSQL(const TableName: string;
+      Fields, Values: TStringList;
+      const HasIdentity: Boolean = False): string; virtual; abstract;
+    function ValueToSQL(const Field: TField): string; virtual; abstract;
+    function GenerateCreateProcedureSQL(const Body: string): string; virtual;
+    abstract;
+    function GenerateCreateFunctionSQL(const Body: string): string; virtual;
+    abstract;
+    function GenerateCreateViewSQL(const Body: string): string; virtual;
+    abstract;
+    function GenerateCreateTriggerSQL(const Body: string): string; virtual;
+    abstract;
+    // Secuencias: sin consumidor hoy y fuera de contrato; se conservan
+    // como métodos de clase para motores con sequences
+    function GenerateCreateSequence(const SeqName: string): string; virtual;
+    abstract;
+    function GenerateDropSequence(const SeqName: string): string; virtual;
+    abstract;
+  end;
+implementation
+
+function TDBHelpers.NormalizeExtra(const AExtra: string): string;
+begin
+  Result := LowerCase(Trim(AExtra));
+end;
+function TDBHelpers.ColumnsAreEqual(const Col1, Col2: TColumnInfo): Boolean;
+var
+  Typ1, Typ2, Null1, Null2, Key1, Key2, Extra1, Extra2, Def1, Def2: string;
+  IsAutoInc: Boolean;
+begin
+  Typ1 := NormalizeType(Col1.DataType);
+  Typ2 := NormalizeType(Col2.DataType);
+  Null1 := LowerCase(Trim(Col1.IsNullable));
+  Null2 := LowerCase(Trim(Col2.IsNullable));
+  Key1 := LowerCase(Trim(Col1.ColumnKey));
+  Key2 := LowerCase(Trim(Col2.ColumnKey));
+  Extra1 := NormalizeExtra(Col1.Extra);
+  Extra2 := NormalizeExtra(Col2.Extra);
+  Def1 := Trim(Col1.ColumnDefault);
+  Def2 := Trim(Col2.ColumnDefault);
+  Result := (Typ1 = Typ2) and (Null1 = Null2) and
+            (Key1 = Key2) and (Extra1 = Extra2);
+  if Result then
+  begin
+    IsAutoInc := (Pos('auto_increment', Extra1) > 0) or
+                 (Pos('auto_increment', Extra2) > 0);
+    if not IsAutoInc then
+    begin
+      if SameText(Def1, 'NULL') then Def1 := '';
+      if SameText(Def2, 'NULL') then Def2 := '';
+      if not SameText(Def1, Def2) then
+        Result := False;
+    end;
+  end;
+  if Result then
+    Result := SameText(Col1.ColumnComment, Col2.ColumnComment);
+end;
+
+function TDBHelpers.IndexesAreEqual(const Idx1, Idx2: TIndexInfo): Boolean;
+var
+  i: Integer;
+begin
+  Result := SameText(Idx1.IndexName, Idx2.IndexName) and
+            (Idx1.IsUnique = Idx2.IsUnique) and
+            (Idx1.IsPrimary = Idx2.IsPrimary) and
+            (Length(Idx1.Columns) = Length(Idx2.Columns));
+  if Result then
+  begin
+    for i := 0 to High(Idx1.Columns) do
+    begin
+      if not SameText(Idx1.Columns[i].ColumnName, Idx2.Columns[i].ColumnName) or
+         (Idx1.Columns[i].SeqInIndex <> Idx2.Columns[i].SeqInIndex) then
+      begin
+        Result := False;
+        Break;
+      end;
+    end;
+  end;
+end;
+end.

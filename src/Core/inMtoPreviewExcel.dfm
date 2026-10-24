@@ -1,0 +1,96 @@
+﻿inherited frmMtoPreviewExcel: TfrmMtoPreviewExcel
+  BorderIcons = []
+  Caption = 'Previsualizaci'#243'n Excel'
+  ClientHeight = 563
+  ClientWidth = 970
+  StyleElements = [seFont, seClient]
+  OnShow = FormShow
+  ExplicitWidth = 988
+  ExplicitHeight = 610
+  TextHeight = 19
+  object dxSpreadSheet1: TdxSpreadSheet [0]
+    Left = 0
+    Top = 68
+    Width = 970
+    Height = 495
+    Align = alClient
+    OptionsView.PrintAreas = True
+    Data = {
+      A402000044585353763242461000000042465320000000000000000001000101
+      010100000100000001004246532000000000424653200100000001000000200B
+      00000007000000430061006C0069006200720069000000000000002000000020
+      0000000020000000000020000000000020000000000020000007000000470045
+      004E004500520041004C00000000000002000000000000000001424653200100
+      0000424653201700000054006400780053007000720065006100640053006800
+      6500650074005400610062006C00650056006900650077000600000053006800
+      650065007400310001FFFFFFFFFFFFFFFF640000000200000002000000020000
+      0055000000140000000200000002000000000200000002000000000000010000
+      0000000101000042465320550000000000000042465320000000004246532014
+      0000000000000042465320000000000000000000000000010000000000000000
+      0000000000000000000000424653200000000002020000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000000000000000000000000000064000000000000000000000000000000
+      0000000000000000000000000000000000000000000000000000000000000000
+      0000000200020200020000000000000000000000000000000000020000000000
+      0000000000000000000000000000000000000000000000000000000000000202
+      00000000000000004246532000000000000000000900000041006C0065006A00
+      61006E00640072006F0000000000000000000900000041006C0065006A006100
+      6E00640072006F0000000000000000008D047C33C67DE640B6768DF9C67DE640
+      0000000000000000}
+  end
+  object Panel1: TPanel [1]
+    Left = 0
+    Top = 0
+    Width = 970
+    Height = 41
+    Align = alTop
+    TabOrder = 1
+    object btnGuardar: TcxButton
+      Left = 6
+      Top = 3
+      Width = 193
+      Height = 34
+      Caption = 'Guardar Excel'
+      TabOrder = 0
+      OnClick = btnGuardarClick
+    end
+    object btnCerrar: TcxButton
+      Left = 238
+      Top = 3
+      Width = 193
+      Height = 34
+      Caption = 'Cerrar (ESC)'
+      TabOrder = 1
+      OnClick = btnCerrarClick
+    end
+  end
+  object dxSpreadSheetFormulaBar1: TdxSpreadSheetFormulaBar [2]
+    Left = 0
+    Top = 41
+    Width = 970
+    Height = 27
+    Align = alTop
+    SpreadSheet = dxSpreadSheet1
+    TabOrder = 2
+  end
+  inherited Localizer1: TcxLocalizer
+    Active = False
+  end
+  object DialogoGuardar: TdxSaveFileDialog
+    DefaultExt = 'xlsx'
+    Options = [ofOverwritePrompt, ofHideReadOnly, ofEnableSizing]
+    Title = 'Guardar Excel'
+    Left = 72
+    Top = 56
+  end
+  object ActionList1: TActionList
+    Left = 480
+    Top = 288
+    object actSalir: TAction
+      Caption = 'Salir'
+      ShortCut = 27
+      OnExecute = actSalirExecute
+    end
+  end
+end

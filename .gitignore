@@ -1,0 +1,97 @@
+# Archivos compilados de Delphi
+*.dcu
+*.exe
+*.map
+*.drc
+*.msi
+*.rsm
+*.dll
+!src/3rdpartyComp/WebView2/x86/WebView2Loader.dll
+!src/3rdpartyComp/WebView2/x64/WebView2Loader.dll
+*.bpl
+*.dcp
+*.tds
+*.so
+*.dsk
+*.~dsk
+*._sql
+*.dsv
+*.local
+vcash.res
+*.identcache
+*.tvsconfig
+*.stat
+*.dproj.local
+*.delphilsp.json
+*.vlb
+*.7z
+.identcache
+__history/
+__recovery/
+Win32/
+Win64/
+Android/
+!src/apps_fmx/viracashcontrolu/ViraCashControlU.Artwork/Android/
+!src/apps_fmx/viracashcontrolu/ViraCashControlU.Artwork/Android/**
+Android64/
+Android32/
+iOSDevice64/
+iOSSimARM64/
+OSX64/
+OSXARM64/
+Linux64/
+*.so
+*.apk
+*.aab
+.git
+
+# Salida de Free Pascal (compilando utilfmt80/Ancho80 fuera de Delphi)
+*.o
+*.ppu
+link.res
+src/apps_fmx/recuento/RecuentoViraCash.res
+ppas.sh
+src/utilfmt80/Ancho80
+tests/bin/
+tests/dcu/
+tests/ViraCashTests.res
+
+# Configuración sensible (MySQL, etc.)
+config.ini
+database.cfg
+*.key
+*.lic
+
+# Archivos temporales o de backup de Delphi
+*.~**.dsv
+
+# Contexto local para asistentes de IA (rutas específicas de este equipo)
+/AGENTS.md
+
+# Laboratorio local de PrestaShop (instalacion, datos y credenciales locales)
+/tmp/prestashop_viracash_lab/
+
+# Entorno y cachés del servidor MCP de ViraCash
+/mcp_viracash/.venv/
+/mcp_viracash/.pytest_cache/
+/mcp_viracash/**/__pycache__/
+/mcp_viracash/**/*.pyc
+
+# Artefactos de compilacion y empaquetado (nunca a git: ficheros de cientos de MB)
+/build/
+/build_codex_viracash/
+*.rsm
+*.tds
+*.msi
+# Compilados de las pruebas con Free Pascal
+tests/fpc/build/
+
+# Material auxiliar copiado: se mantiene local, fuera del repositorio nuevo.
+/tmp/
+/tests/
+/scripts/
+.env
+.env.*
+*.pem
+*.log
+*.bak

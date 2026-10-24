@@ -1,0 +1,58 @@
+08:51:22  Normalizer iniciado.
+08:51:22  Carga el SQL original (Cargar SQL...) o un CSV de plan ya editado (Cargar CSV...).
+08:51:26  SQL cargado: C:\Users\V3607\Downloads\changesbbdd2\factuzam_original.sql (1855319 bytes)
+08:51:26  Generando plan…
+08:51:27  Procesadas 981 columnas en 66 tablas
+08:51:27  Procesados 78 índices
+08:51:27  Plan generado: 981 columnas (832 cambian, 149 sin cambios), 78 índices.
+08:51:27  [WARN] Conflicto en plan: CODIGO_ARTICULO aparece como CODIGO_ART y como CODIGO_ART_ARTPROP en tablas distintas. Se omite del plan textual; renombra manualmente.
+08:51:27  [WARN] Conflicto en plan: CODIGO_FORMAP aparece como CODIGO_FP_CFP y como CODIGO_CFP_PAGO en tablas distintas. Se omite del plan textual; renombra manualmente.
+08:51:27  [WARN] Conflicto en plan: CODIGO_FAMILIA aparece como CODIGO_FAM y como CODIGO_FAM_FA en tablas distintas. Se omite del plan textual; renombra manualmente.
+08:51:27  [WARN] Conflicto en plan: CODIGO_PROPIEDAD aparece como CODIGO_PROP_ARTPROP y como CODIGO_PROP_FA en tablas distintas. Se omite del plan textual; renombra manualmente.
+08:51:27  [WARN] Conflicto en plan: DESCRIPCION_ZONA_IVA aparece como DESCRIPCION_IVA_IVAGRP y como DESCRIPCION_IVA_IVAZON en tablas distintas. Se omite del plan textual; renombra manualmente.
+08:51:27  [WARN] Conflicto en plan: ESDEFAULT_ZONA_IVA aparece como ESDEFAULT_IVA_IVAGRP y como ESDEFAULT_IVA_IVAZON en tablas distintas. Se omite del plan textual; renombra manualmente.
+08:51:27  [WARN] Conflicto en plan: CODIGO_PROPIEDAD aparece como CODIGO_PROP_ARTPROP y como CODIGO_PROP en tablas distintas. Se omite del plan textual; renombra manualmente.
+08:51:27  [WARN] Conflicto en plan: ID_VALOR_PV aparece como ID_PV_ARTPROP y como ID_PV en tablas distintas. Se omite del plan textual; renombra manualmente.
+08:51:27  [WARN] Conflicto en plan: ES_GENERACION_AUTO aparece como ESGENERACION_AUTO_ACA y como ESGENERACION_AUTO_PFC en tablas distintas. Se omite del plan textual; renombra manualmente.
+08:51:27  [WARN] Conflicto en plan: CODIGO_TARIFA aparece como CODIGO_TAR_ARTTAR y como CODIGO_TAR en tablas distintas. Se omite del plan textual; renombra manualmente.
+08:51:27  [WARN] Conflicto en plan: ACTIVO_TARIFA aparece como ESACTIVO_ARTTAR y como ESACTIVO_TAR en tablas distintas. Se omite del plan textual; renombra manualmente.
+08:51:27  Búsqueda en SQL completada: 4531 coincidencias fuera de CREATE TABLE.
+08:51:29  SQL completo modificado generado (4531 reemplazos aplicados).
+08:52:04  Carpeta añadida: C:\DISCO_DURO\proyectos\Factuzam\src
+08:52:07  [WARN] Conflicto en plan: CODIGO_ARTICULO aparece como CODIGO_ART y como CODIGO_ART_ARTPROP en tablas distintas. Se omite del plan textual; renombra manualmente.
+08:52:07  [WARN] Conflicto en plan: CODIGO_FORMAP aparece como CODIGO_FP_CFP y como CODIGO_CFP_PAGO en tablas distintas. Se omite del plan textual; renombra manualmente.
+08:52:07  [WARN] Conflicto en plan: CODIGO_FAMILIA aparece como CODIGO_FAM y como CODIGO_FAM_FA en tablas distintas. Se omite del plan textual; renombra manualmente.
+08:52:07  [WARN] Conflicto en plan: CODIGO_PROPIEDAD aparece como CODIGO_PROP_ARTPROP y como CODIGO_PROP_FA en tablas distintas. Se omite del plan textual; renombra manualmente.
+08:52:07  [WARN] Conflicto en plan: DESCRIPCION_ZONA_IVA aparece como DESCRIPCION_IVA_IVAGRP y como DESCRIPCION_IVA_IVAZON en tablas distintas. Se omite del plan textual; renombra manualmente.
+08:52:07  [WARN] Conflicto en plan: ESDEFAULT_ZONA_IVA aparece como ESDEFAULT_IVA_IVAGRP y como ESDEFAULT_IVA_IVAZON en tablas distintas. Se omite del plan textual; renombra manualmente.
+08:52:07  [WARN] Conflicto en plan: CODIGO_PROPIEDAD aparece como CODIGO_PROP_ARTPROP y como CODIGO_PROP en tablas distintas. Se omite del plan textual; renombra manualmente.
+08:52:07  [WARN] Conflicto en plan: ID_VALOR_PV aparece como ID_PV_ARTPROP y como ID_PV en tablas distintas. Se omite del plan textual; renombra manualmente.
+08:52:07  [WARN] Conflicto en plan: ES_GENERACION_AUTO aparece como ESGENERACION_AUTO_ACA y como ESGENERACION_AUTO_PFC en tablas distintas. Se omite del plan textual; renombra manualmente.
+08:52:07  [WARN] Conflicto en plan: CODIGO_TARIFA aparece como CODIGO_TAR_ARTTAR y como CODIGO_TAR en tablas distintas. Se omite del plan textual; renombra manualmente.
+08:52:07  [WARN] Conflicto en plan: ACTIVO_TARIFA aparece como ESACTIVO_ARTTAR y como ESACTIVO_TAR en tablas distintas. Se omite del plan textual; renombra manualmente.
+08:52:07  Escaneando 441 ficheros…
+08:52:16  Escaneo completado: 8862 coincidencias en 441 ficheros revisados.
+08:52:59    + 01_renombrar_columnas.sql
+08:52:59    + 02_renombrar_indices.sql
+08:52:59    + plan_renombrado.csv
+08:52:59    + 03_dump_completo_modificado.sql
+08:52:59    + 04_codigo_coincidencias.csv
+08:52:59    + 04_codigo_coincidencias.txt
+08:52:59    (sin ocurrencias dudosas en auditoría: omito 05_codigo_auditoria.*)
+08:52:59    + informe_impacto.txt
+08:52:59    + 06_aplicar_cambios.zip (script + CSV + LEEME)
+08:52:59  Exportados 8 ficheros a C:\Users\V3607\Downloads\changesbbdd2\cambios3
+08:53:08  [WARN] Conflicto en plan: CODIGO_ARTICULO aparece como CODIGO_ART y como CODIGO_ART_ARTPROP en tablas distintas. Se omite del plan textual; renombra manualmente.
+08:53:08  [WARN] Conflicto en plan: CODIGO_FORMAP aparece como CODIGO_FP_CFP y como CODIGO_CFP_PAGO en tablas distintas. Se omite del plan textual; renombra manualmente.
+08:53:08  [WARN] Conflicto en plan: CODIGO_FAMILIA aparece como CODIGO_FAM y como CODIGO_FAM_FA en tablas distintas. Se omite del plan textual; renombra manualmente.
+08:53:08  [WARN] Conflicto en plan: CODIGO_PROPIEDAD aparece como CODIGO_PROP_ARTPROP y como CODIGO_PROP_FA en tablas distintas. Se omite del plan textual; renombra manualmente.
+08:53:08  [WARN] Conflicto en plan: DESCRIPCION_ZONA_IVA aparece como DESCRIPCION_IVA_IVAGRP y como DESCRIPCION_IVA_IVAZON en tablas distintas. Se omite del plan textual; renombra manualmente.
+08:53:08  [WARN] Conflicto en plan: ESDEFAULT_ZONA_IVA aparece como ESDEFAULT_IVA_IVAGRP y como ESDEFAULT_IVA_IVAZON en tablas distintas. Se omite del plan textual; renombra manualmente.
+08:53:08  [WARN] Conflicto en plan: CODIGO_PROPIEDAD aparece como CODIGO_PROP_ARTPROP y como CODIGO_PROP en tablas distintas. Se omite del plan textual; renombra manualmente.
+08:53:08  [WARN] Conflicto en plan: ID_VALOR_PV aparece como ID_PV_ARTPROP y como ID_PV en tablas distintas. Se omite del plan textual; renombra manualmente.
+08:53:08  [WARN] Conflicto en plan: ES_GENERACION_AUTO aparece como ESGENERACION_AUTO_ACA y como ESGENERACION_AUTO_PFC en tablas distintas. Se omite del plan textual; renombra manualmente.
+08:53:08  [WARN] Conflicto en plan: CODIGO_TARIFA aparece como CODIGO_TAR_ARTTAR y como CODIGO_TAR en tablas distintas. Se omite del plan textual; renombra manualmente.
+08:53:08  [WARN] Conflicto en plan: ACTIVO_TARIFA aparece como ESACTIVO_ARTTAR y como ESACTIVO_TAR en tablas distintas. Se omite del plan textual; renombra manualmente.
+08:53:08  Auditoría laxa: escaneando 441 ficheros…
+08:53:17  Auditoría completada: 7026 ocurrencias sospechosas en 441 ficheros revisados.
+08:53:25  Informe de auditoría exportado: C:\Users\V3607\Downloads\changesbbdd2\cambios3\casos_a_revisar.txt (7026 filas)

@@ -1,0 +1,2 @@
+﻿inherited frmMtoDocumento: TfrmMtoDocumento
+end

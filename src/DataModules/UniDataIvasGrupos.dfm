@@ -1,0 +1,47 @@
+﻿inherited dmIvasGrupos: TdmIvasGrupos
+  PixelsPerInch = 120
+  inherited unqryTablaG: TUniQuery
+    SQLInsert.Strings = (
+      'INSERT INTO fza_ivas_grupos'
+      
+        '  (IVA_IVAGRP, DESCRIPCION_IVA_IVAGRP, ESIRPF_IMP_INCL_IVA_IVAGRP, ESIVAAGRICOLA_IVA_IVAGRP, ESAPLICA_RE_IVA_IVAGRP, ESDEFAULT_IVA_IVAGRP, PALABRA_REPORTS_IVA_IVAGRP, INSTANTE_MODIF, INSTANTE_ALTA, US' +
+        'UARIO_ALTA, USUARIO_MODIF)'
+      'VALUES'
+      
+        '  (:IVA_IVAGRP, :DESCRIPCION_IVA_IVAGRP, :ESIRPF_IMP_INCL_IVA_IVAGRP, :ESIVAAGRICOLA_IVA_IVAGRP, :ESAPLICA_RE_IVA_IVAGRP, :ESDEFAULT_IVA_IVAGRP, :PALABRA_REPORTS_IVA_IVAGRP, :INSTANTE_MODIF, :INSTANTE' +
+        '_ALTA, :USUARIO_ALTA, :USUARIO_MODIF)')
+    SQLDelete.Strings = (
+      'DELETE FROM fza_ivas_grupos'
+      'WHERE'
+      '  IVA_IVAGRP = :Old_IVA_IVAGRP')
+    SQLUpdate.Strings = (
+      'UPDATE fza_ivas_grupos'
+      'SET'
+      
+        '  IVA_IVAGRP = :IVA_IVAGRP, DESCRIPCION_IVA_IVAGRP = :DESCRIPCION_IVA_IVAGRP, ESIRPF_IMP_INCL_IVA_IVAGRP = :ESIRPF_IMP_INCL_IVA_IVAGRP, ESIVAAGRICOLA_IVA_IVAGRP = :ESIVAAGRICOLA_IVA_IVAGRP, ESAPLICA_R' +
+        'E_IVA_IVAGRP = :ESAPLICA_RE_IVA_IVAGRP, ESDEFAULT_IVA_IVAGRP = :ESDEFAULT_IVA_IVAGRP, PALABRA_REPORTS_IVA_IVAGRP = :PALABRA_REPORTS_IVA_IVAGRP, INSTANTE_MODIF = :INSTANTE_MODIF, INSTANTE_ALTA = :INSTA' +
+        'NTE_ALTA, USUARIO_ALTA = :USUARIO_ALTA, USUARIO_MODIF = :USUARIO_MODIF'
+      'WHERE'
+      '  IVA_IVAGRP = :Old_IVA_IVAGRP')
+    SQLLock.Strings = (
+      'SELECT * FROM fza_ivas_grupos'
+      'WHERE'
+      '  IVA_IVAGRP = :Old_IVA_IVAGRP'
+      'FOR UPDATE')
+    SQLRefresh.Strings = (
+      
+        'SELECT IVA_IVAGRP, DESCRIPCION_IVA_IVAGRP, ESIRPF_IMP_INCL_IVA_IVAGRP, ESIVAAGRICOLA_IVA_IVAGRP, ESAPLICA_RE_IVA_IVAGRP, ESDEFAULT_IVA_IVAGRP, PALABRA_REPORTS_IVA_IVAGRP, INSTANTE_MODIF, INSTANTE_ALTA' +
+        ', USUARIO_ALTA, USUARIO_MODIF FROM fza_ivas_grupos'
+      'WHERE'
+      '  IVA_IVAGRP = :IVA_IVAGRP')
+    SQLRecCount.Strings = (
+      'SELECT COUNT(*) FROM fza_ivas_grupos')
+    Connection = dmConn.conUni
+    SQL.Strings = (
+      'select * from vi_ivas_grupos')
+    AfterInsert = unqryTablaGAfterInsert
+    AfterPost = unqryTablaGAfterPost
+    BeforeDelete = unqryTablaGBeforeDelete
+    AfterDelete = unqryTablaGAfterDelete
+  end
+end

@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!--
+      La URL se configura en tiempo de ejecucion, por lo que Android no puede
+      limitar aqui los dominios HTTP. uUrlSegura.pas solo admite HTTP para
+      hosts privados/locales y aplica la misma regla tambien en Win32.
+    -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

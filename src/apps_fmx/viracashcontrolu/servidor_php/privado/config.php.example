@@ -1,0 +1,29 @@
+<?php
+
+declare(strict_types=1);
+
+// Copia este fichero como config.php y completa los valores de la instalacion.
+// config.php esta ignorado por Git y debe quedar fuera del DocumentRoot.
+
+const CFG_DB_DSN =
+    'mysql:host=127.0.0.1;port=3306;dbname=Factuzam;charset=utf8mb4';
+const CFG_DB_USUARIO = 'fzamcontrolu';
+const CFG_DB_PASSWORD = 'CAMBIAR_PASSWORD_BD';
+
+// Genera un secreto distinto por instalacion, por ejemplo:
+// php -r "echo bin2hex(random_bytes(32)), PHP_EOL;"
+const CFG_TOKEN_SECRETO = 'CAMBIAR_POR_64_CARACTERES_HEXADECIMALES';
+const CFG_TOKEN_DURACION = 28800; // 8 horas
+const CFG_ACTUALIZAR_ULTIMO_LOGIN = true;
+
+// Limite basico de intentos por IP. El usuario de PHP debe poder escribir en
+// este directorio, que permanece fuera del DocumentRoot.
+const CFG_LOGIN_RATE_LIMIT_ACTIVO = true;
+const CFG_LOGIN_RATE_LIMIT_DIRECTORIO = __DIR__ . '/estado_login';
+const CFG_LOGIN_MAX_INTENTOS = 10;
+const CFG_LOGIN_VENTANA_SEGUNDOS = 60;
+
+// Carpeta raiz configurada como appDirFotos en Factuzam. Debe contener /300.
+// En Windows tambien se recomienda usar barras normales en la ruta PHP.
+const CFG_FOTOS_DIRECTORIO = 'C:/Factuzam/fotos';
+const CFG_FOTO_MAX_BYTES = 4194304; // 4 MiB

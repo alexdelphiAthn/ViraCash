@@ -1,0 +1,49 @@
+﻿inherited dmDepositosCliente: TdmDepositosCliente
+  inherited unqryTablaG: TUniQuery
+    SQLInsert.Strings = (
+      'INSERT INTO `fza_depositos_cliente`'
+      '  (`ID_DEPOSITO_DEP`, `CODIGO_EMP_DEP`, `CODIGO_CLI_DEP`, `CODIGO_ART_DEP`, `CODIGO_UNIDAD_DEP`, `PRECIO_VENTA_DEP`, `IMPORTE_ANTICIPO_DEP`, `ESTADO_DEP`, `FECHA_CREACION_DEP`, `INSTANTE_MODIF`, `INST' +
+      'ANTE_ALTA`, `USUARIO_ALTA`, `USUARIO_MODIF`, `TIPO_IVA_DEP`, `PORCENTAJE_IVA_DEP`, `ESIMP_INCL_DEP`, `CANTIDAD_PENDIENTE_DEP`, `FECHA_ENTREGA_DEP`)'
+      'VALUES'
+      '  (:`ID_DEPOSITO_DEP`, :`CODIGO_EMP_DEP`, :`CODIGO_CLI_DEP`, :`CODIGO_ART_DEP`, :`CODIGO_UNIDAD_DEP`, :`PRECIO_VENTA_DEP`, :`IMPORTE_ANTICIPO_DEP`, :`ESTADO_DEP`, :`FECHA_CREACION_DEP`, :`INSTANTE_MOD' +
+      'IF`, :`INSTANTE_ALTA`, :`USUARIO_ALTA`, :`USUARIO_MODIF`, :`TIPO_IVA_DEP`, :`PORCENTAJE_IVA_DEP`, :`ESIMP_INCL_DEP`, :`CANTIDAD_PENDIENTE_DEP`, :`FECHA_ENTREGA_DEP`)')
+    SQLDelete.Strings = (
+      'DELETE FROM `fza_depositos_cliente`'
+      'WHERE'
+      '  `ID_DEPOSITO_DEP` = :`Old_ID_DEPOSITO_DEP`')
+    SQLUpdate.Strings = (
+      'UPDATE `fza_depositos_cliente`'
+      'SET'
+      '  `ID_DEPOSITO_DEP` = :`ID_DEPOSITO_DEP`, `CODIGO_EMP_DEP` = :`CODIGO_EMP_DEP`, `CODIGO_CLI_DEP` = :`CODIGO_CLI_DEP`, `CODIGO_ART_DEP` = :`CODIGO_ART_DEP`, `CODIGO_UNIDAD_DEP` = :`CODIGO_UNIDAD_DEP`, ' +
+      '`PRECIO_VENTA_DEP` = :`PRECIO_VENTA_DEP`, `IMPORTE_ANTICIPO_DEP` = :`IMPORTE_ANTICIPO_DEP`, `ESTADO_DEP` = :`ESTADO_DEP`, `FECHA_CREACION_DEP` = :`FECHA_CREACION_DEP`, `INSTANTE_MODIF` = :`INSTANTE_MO' +
+      'DIF`, `INSTANTE_ALTA` = :`INSTANTE_ALTA`, `USUARIO_ALTA` = :`USUARIO_ALTA`, `USUARIO_MODIF` = :`USUARIO_MODIF`, `TIPO_IVA_DEP` = :`TIPO_IVA_DEP`, `PORCENTAJE_IVA_DEP` = :`PORCENTAJE_IVA_DEP`, `ESIMP_I' +
+      'NCL_DEP` = :`ESIMP_INCL_DEP`, `CANTIDAD_PENDIENTE_DEP` = :`CANTIDAD_PENDIENTE_DEP`, `FECHA_ENTREGA_DEP` = :`FECHA_ENTREGA_DEP`'
+      'WHERE'
+      '  `ID_DEPOSITO_DEP` = :`Old_ID_DEPOSITO_DEP`')
+    SQLLock.Strings = (
+      'SELECT * FROM `fza_depositos_cliente`'
+      'WHERE'
+      '  `ID_DEPOSITO_DEP` = :`Old_ID_DEPOSITO_DEP`'
+      'FOR UPDATE')
+    SQLRefresh.Strings = (
+      'SELECT * FROM `fza_depositos_cliente`'
+      'WHERE'
+      '  `ID_DEPOSITO_DEP` = :`ID_DEPOSITO_DEP`')
+    SQLRecCount.Strings = (
+      'SELECT COUNT(*) FROM fza_depositos_cliente'
+      'WHERE CODIGO_EMP_DEP = :EMPRESA'
+      'AND CODIGO_ALM_DEP = :ALMACEN'
+      'AND CODIGO_CAJA_DEP = :CAJA')
+    Connection = dmConn.conUni
+    SQL.Strings = (
+      'SELECT *'
+      'FROM fza_depositos_cliente'
+      'WHERE CODIGO_EMP_DEP = :EMPRESA'
+      'AND CODIGO_ALM_DEP = :ALMACEN'
+      'AND CODIGO_CAJA_DEP = :CAJA'
+      'ORDER BY FECHA_CREACION_DEP DESC'
+      '')
+    Active = False
+    Left = 24
+  end
+end

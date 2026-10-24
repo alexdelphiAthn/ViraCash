@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#174c3c">
+  <meta name="description" content="Control U de ViraCash: consulta de stock por talla, color y almacén en tu red local.">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob:; media-src 'none'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Control U">
+  <meta property="og:title" content="ViraCash Control U">
+  <meta property="og:description" content="Tu stock, talla por talla. Consulta conectada al servidor de tu tienda.">
+  <title>ViraCash Control U</title>
+  <link rel="icon" href="./controlu-192.png">
+  <link rel="apple-touch-icon" href="./controlu-192.png">
+  <link rel="manifest" href="./controlu.webmanifest">
+  <link rel="stylesheet" href="./controlu.css?v=20260827-3">
+  <script type="module" src="./controlu.js?v=20261020-1"></script>
+</head>
+<body>
+  <a class="saltar" href="#contenido">Ir al contenido</a>
+  <header class="cabecera">
+    <a class="marca" href="./" aria-label="ViraCash Control U, inicio"><span class="monograma">fz<span>.</span></span><span>viracash <strong>control u</strong></span></a>
+    <div class="acciones-cabecera"><span class="sello">Red local · Solo consulta</span><button id="abrir-ajustes" class="boton-suave" hidden>Mi conexión</button></div>
+  </header>
+  <main id="contenido">
+    <aside id="aviso-demo" class="aviso demostracion" hidden><div><strong>Demostración · datos ficticios</strong><p>Prueba los filtros y las tallas. No se conecta a tu instalación.</p></div><a href="./">Salir de la demo</a></aside>
+    <section id="acceso" class="acceso" aria-labelledby="titulo-acceso">
+      <div class="presentacion">
+        <p class="ceja">EL STOCK DE TU TIENDA, A MANO</p>
+        <h1 id="titulo-acceso">Cada talla. <br>Cada color. <br><em>Todo a la vista.</em></h1>
+        <p class="introduccion">Busca un artículo y consulta sus existencias por color, talla y almacén. El Control U de siempre, ahora en tu navegador.</p>
+        <div class="muestra" aria-label="Ejemplo ficticio de una consulta">
+          <div class="muestra-titulo"><span>Así se ve tu stock</span><span class="etiqueta">Ejemplo</span></div>
+          <table><thead><tr><th>Color</th><th>37</th><th>38</th><th>39</th><th>Total</th></tr></thead><tbody><tr><th>Plata</th><td>2</td><td>4</td><td>1</td><td>7</td></tr><tr><th>Marino</th><td>3</td><td>2</td><td>2</td><td>7</td></tr></tbody></table>
+        </div>
+        <p class="nota">Misma conexión local. Mismos permisos. Sin modificar tus datos.</p>
+      </div>
+      <form id="formulario-acceso" class="tarjeta formulario" method="post">
+        <p class="ceja">TU INSTALACIÓN</p><h2>Vamos a conectar</h2>
+        <p>Entra con tu usuario y contraseña de ViraCash.</p>
+        <label for="nombre">Nombre de la instalación</label><input id="nombre" name="nombre" maxlength="80" value="Pruebas" autocomplete="organization" required>
+        <label for="usuario">Usuario ViraCash</label><input id="usuario" name="username" maxlength="100" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+        <label for="password">Contraseña</label><div class="campo-clave"><input id="password" name="password" type="password" maxlength="512" autocomplete="current-password" required><button id="ver-password" type="button" aria-pressed="false">Ver</button></div>
+        <label class="opcion"><input id="recordar" type="checkbox"><span>Recordar acceso en este dispositivo<small>Hasta que caduque el token del servidor. Solo en un dispositivo personal.</small></span></label>
+        <p id="aviso-http" class="aviso aviso-local" hidden>Esta conexión HTTP no está cifrada. Úsala solo en una red interna de confianza.</p>
+        <p id="error-acceso" class="aviso error" role="alert" hidden></p>
+        <button id="conectar" class="boton-principal" type="submit" disabled>Entrar a Control U <span aria-hidden="true">→</span></button>
+        <p id="estado-acceso" class="nota" role="status">Cargando Control U… Si has abierto un archivo, entra por la dirección HTTP del servidor.</p>
+        <a class="enlace-demo" href="./?demo=1">Probar una demostración sin conectar →</a>
+        <div class="servidor"><span>Servidor de esta página</span><strong id="servidor-acceso"></strong></div>
+      </form>
+    </section>
+    <section id="consulta" hidden aria-labelledby="titulo-consulta">
+      <div class="titulo-pagina"><div><p id="instalacion" class="ceja"></p><h1 id="titulo-consulta">Consulta tu stock</h1><p>Artículo, SKU o código de barras. Todo desde la red de tu tienda.</p></div><span class="etiqueta">CONTROL U</span></div>
+      <form id="formulario-busqueda" class="tarjeta buscador"><label class="sr-only" for="codigo">Artículo, SKU o código de barras</label><input id="codigo" name="articulo" maxlength="50" placeholder="Artículo, SKU o código de barras…" autocomplete="off" autocapitalize="none" spellcheck="false" required><button id="buscar" class="boton-principal" type="submit">Consultar</button></form>
+      <p id="ayuda-codigo" class="nota">Escribe el código o utiliza un lector externo que lo introduzca como un teclado.</p>
+      <div class="barra-estados" role="group" aria-label="Tipo de consulta"><button data-estado="stock" aria-pressed="true">Stock</button><button data-estado="entradas" aria-pressed="false">Entradas</button><button data-estado="ventas" aria-pressed="false">Ventas</button><button data-estado="pte_recibir" aria-pressed="false">Ptes. de recibir</button></div>
+      <p id="aviso-sesion" class="nota" role="status" hidden></p>
+      <p id="error-consulta" class="aviso error" role="alert" hidden></p>
+      <div class="barra-historial"><p id="estado-consulta" role="status">Introduce un código para consultar.</p><div><button id="anterior" class="boton-icono" aria-label="Artículo anterior" disabled>‹</button><span id="posicion-historial" class="nota"></span><button id="siguiente" class="boton-icono" aria-label="Artículo siguiente" disabled>›</button><button id="actualizar" class="boton-suave" disabled>↻ Actualizar</button></div></div>
+      <div id="espera-inicial" class="vacio tarjeta"><span class="icono-codigo" aria-hidden="true">▥</span><h2>¿Qué artículo necesitas?</h2><p>Escribe su referencia o utiliza un lector de códigos de barras.</p></div>
+      <article id="resultado" class="tarjeta resultado" data-estado="stock" hidden>
+        <section id="filtros-visuales" class="filtros-visuales" aria-label="Filtrar la consulta">
+          <div class="filtro-visible">
+            <div class="titulo-filtro"><strong id="etiqueta-colores">Colores</strong><div class="acciones-filtro"><button type="button" data-seleccionar="colores" data-conjunto="todos">Todos</button><button type="button" data-seleccionar="colores" data-conjunto="ninguno">Ninguno</button></div></div>
+            <div id="seleccion-colores" class="seleccion-filtros" role="group" aria-labelledby="etiqueta-colores"></div>
+            <p class="nota ayuda-basicos">Cada cuadradito muestra el color básico de ViraCash. El cuadrado rayado indica que no hay un tono definido.</p>
+          </div>
+          <div class="filtro-visible">
+            <div class="titulo-filtro"><strong id="etiqueta-almacenes">Almacenes</strong><div class="acciones-filtro"><button type="button" data-seleccionar="almacenes" data-conjunto="predeterminados">Habituales</button><button type="button" data-seleccionar="almacenes" data-conjunto="todos">Todos</button><button type="button" data-seleccionar="almacenes" data-conjunto="ninguno">Ninguno</button></div></div>
+            <div id="seleccion-almacenes" class="seleccion-filtros" role="group" aria-labelledby="etiqueta-almacenes"></div>
+          </div>
+        </section>
+        <div class="opciones-tabla"><label>Agrupar por <select id="agrupar"><option value="color">Color</option><option value="almacen">Almacén</option></select></label><label class="opcion compacta"><input id="ocultar-ceros" type="checkbox" checked><span>Ocultar tallas sin cantidad</span></label><button id="abrir-filtros" class="boton-suave">Filtros <span id="contador-filtros"></span></button></div>
+        <p id="resumen-filtros" class="nota resumen-filtros"></p>
+        <header id="cabecera-articulo" class="resumen-articulo">
+          <div class="datos-articulo"><p id="articulo" class="ceja"></p><h2 id="descripcion"></h2><p id="unidad" class="nota"></p></div>
+          <div class="cantidad-resumen"><span id="titulo-cantidad">Stock</span><strong id="total-articulo">—</strong><small>en almacenes seleccionados</small></div>
+          <button id="ampliar-foto" class="foto-articulo" disabled aria-label="Ampliar foto del artículo"><span id="sustituto-foto">Sin foto</span><img id="foto" alt="" hidden><span id="pie-foto" class="pie-foto" hidden>Ampliar foto ↗</span></button>
+        </header>
+        <div class="tabla-desplazable" tabindex="0" role="region" aria-label="Cantidades por talla, desplazable horizontalmente"><table id="tabla-stock"><caption class="sr-only">Existencias del artículo por talla</caption><thead id="cabecera-stock"></thead><tbody id="cuerpo-stock"></tbody><tfoot id="pie-stock"></tfoot></table></div>
+        <p id="sin-cantidades" class="vacio" hidden>No hay cantidades con estos filtros.</p>
+        <p class="nota pie-tabla">Pulsa una fila para ver el detalle. Desliza la tabla para consultar más tallas.</p>
+      </article>
+    </section>
+    <dialog id="filtros" aria-labelledby="titulo-filtros"><div class="cabecera-dialogo"><div><p class="ceja">AFINA LA CONSULTA</p><h2 id="titulo-filtros">Colores y almacenes</h2></div><button class="boton-icono" data-cerrar="filtros" aria-label="Cerrar filtros">×</button></div><form id="formulario-filtros"><div class="listas-filtros"><fieldset><legend>Colores</legend><div class="acciones-filtro"><button type="button" data-marcar="colores" data-valor="si">Todos</button><button type="button" data-marcar="colores" data-valor="no">Ninguno</button></div><div id="filtro-colores" class="lista-filtros"></div></fieldset><fieldset><legend>Almacenes</legend><div class="acciones-filtro"><button type="button" data-marcar="almacenes" data-valor="si">Todos</button><button type="button" data-marcar="almacenes" data-valor="no">Ninguno</button></div><div id="filtro-almacenes" class="lista-filtros"></div></fieldset></div><p class="nota">Depósitos, taras y tránsito empiezan desmarcados, como en Control U.</p><div class="acciones-dialogo"><button type="button" class="boton-suave" id="predeterminados">Restablecer</button><button class="boton-principal" type="submit">Aplicar filtros</button></div></form></dialog>
+    <dialog id="ajustes" aria-labelledby="titulo-ajustes"><div class="cabecera-dialogo"><h2 id="titulo-ajustes">Mi conexión</h2><button class="boton-icono" data-cerrar="ajustes" aria-label="Cerrar conexión">×</button></div><dl class="datos-conexion"><dt>Instalación</dt><dd id="conexion-nombre"></dd><dt>Usuario</dt><dd id="conexion-usuario"></dd><dt>Servidor local</dt><dd id="conexion-servidor"></dd><dt>Acceso válido hasta</dt><dd id="conexion-vence"></dd></dl><p class="nota">Se conserva la duración del hook actual. La web no guarda tu contraseña ni puede renovar el acceso por su cuenta.</p><button id="salir" class="boton-principal">Cerrar sesión y olvidar este acceso</button></dialog>
+    <dialog id="foto-grande" aria-label="Foto del artículo"><div class="cabecera-dialogo"><h2>Foto del artículo</h2><button class="boton-icono" data-cerrar="foto-grande" aria-label="Cerrar foto">×</button></div><img id="imagen-grande" alt="Foto del artículo"></dialog>
+  </main>
+  <footer>ViraCash Control U · Tus datos permanecen en tu red local.</footer>
+  <noscript><p class="aviso error" lang="es">Activa JavaScript para consultar Control U.</p><p class="aviso error" lang="en">Enable JavaScript to use Control U.</p></noscript>
+</body>
+</html>

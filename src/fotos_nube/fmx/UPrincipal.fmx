@@ -1,0 +1,395 @@
+object frmPrincipal: TfrmPrincipal
+  Left = 0
+  Top = 0
+  Caption = 'ViraCash - Fotos Nube'
+  ClientHeight = 640
+  ClientWidth = 360
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop, iPhone, iPad]
+  OnCreate = FormCreate
+  OnCloseQuery = FormCloseQuery
+  OnDestroy = FormDestroy
+  DesignerMasterStyle = 0
+  object memoLog: TMemo
+    Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+    DataDetectorTypes = []
+    ReadOnly = True
+    StyledSettings = [Family, Style, FontColor]
+    Align = Bottom
+    Position.Y = 510.000000000000000000
+    Size.Width = 360.000000000000000000
+    Size.Height = 130.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 0
+    Viewport.Width = 356.000000000000000000
+    Viewport.Height = 126.000000000000000000
+  end
+  object TabControl1: TTabControl
+    Align = Client
+    Size.Width = 360.000000000000000000
+    Size.Height = 510.000000000000000000
+    Size.PlatformDefault = False
+    TabIndex = 1
+    TabOrder = 1
+    TabPosition = PlatformDefault
+    Sizes = (
+      360s
+      484s
+      360s
+      484s)
+    object tabCapturar: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = False
+      Size.Width = 66.000000000000000000
+      Size.Height = 26.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'Capturar'
+      ExplicitSize.cx = 100.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object cajaCaptura: TVertScrollBox
+        Align = Client
+        Size.Width = 360.000000000000000000
+        Size.Height = 484.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 0
+        Viewport.Width = 360.000000000000000000
+        Viewport.Height = 484.000000000000000000
+        object lytCaptura: TLayout
+          Align = Top
+          Size.Width = 360.000000000000000000
+          Size.Height = 560.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+      object lblArticulo: TLabel
+        Align = Top
+        Margins.Left = 6.000000000000000000
+        Margins.Top = 6.000000000000000000
+        Margins.Right = 6.000000000000000000
+        Position.X = 6.000000000000000000
+        Position.Y = 6.000000000000000000
+        Size.Width = 348.000000000000000000
+        Size.Height = 18.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'C'#243'digo de art'#237'culo (obligatorio)'
+        TabOrder = 0
+      end
+      object edArticulo: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        Align = Top
+        TabOrder = 1
+        Position.X = 6.000000000000000000
+        Position.Y = 24.000000000000000000
+        Margins.Left = 6.000000000000000000
+        Margins.Right = 6.000000000000000000
+        Size.Width = 348.000000000000000000
+        Size.Height = 40.000000000000000000
+        Size.PlatformDefault = False
+        TextPrompt = 'C'#243'digo de art'#237'culo'
+      end
+      object lblColor: TLabel
+        Align = Top
+        Margins.Left = 6.000000000000000000
+        Margins.Top = 4.000000000000000000
+        Margins.Right = 6.000000000000000000
+        Position.X = 6.000000000000000000
+        Position.Y = 68.000000000000000000
+        Size.Width = 348.000000000000000000
+        Size.Height = 18.000000000000000000
+        Size.PlatformDefault = False
+        Text = 'Color (obligatorio)'
+        TabOrder = 2
+      end
+      object edColor: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        Align = Top
+        TabOrder = 3
+        Position.X = 6.000000000000000000
+        Position.Y = 86.000000000000000000
+        Margins.Left = 6.000000000000000000
+        Margins.Right = 6.000000000000000000
+        Size.Width = 348.000000000000000000
+        Size.Height = 40.000000000000000000
+        Size.PlatformDefault = False
+        TextPrompt = 'Color'
+      end
+      object lblIndice: TLabel
+        Align = Top
+        Margins.Left = 6.000000000000000000
+        Margins.Top = 4.000000000000000000
+        Margins.Right = 6.000000000000000000
+        Position.X = 6.000000000000000000
+        Position.Y = 130.000000000000000000
+        Size.Width = 348.000000000000000000
+        Size.Height = 18.000000000000000000
+        Size.PlatformDefault = False
+        Text = #205'ndice de foto (m'#237'nimo 1)'
+        TabOrder = 4
+      end
+      object edIndice: TEdit
+        Touch.InteractiveGestures = [LongTap, DoubleTap]
+        Align = Top
+        TabOrder = 5
+        KeyboardType = NumberPad
+        Text = '1'
+        Position.X = 6.000000000000000000
+        Position.Y = 148.000000000000000000
+        Margins.Left = 6.000000000000000000
+        Margins.Right = 6.000000000000000000
+        Size.Width = 348.000000000000000000
+        Size.Height = 40.000000000000000000
+        Size.PlatformDefault = False
+        TextPrompt = #205'ndice de foto'
+      end
+      object imgPrevia: TImage
+        MultiResBitmap = <
+          item
+          end>
+        Align = Top
+        Margins.Left = 6.000000000000000000
+        Margins.Top = 6.000000000000000000
+        Margins.Right = 6.000000000000000000
+        Position.X = 6.000000000000000000
+        Position.Y = 194.000000000000000000
+        Size.Width = 348.000000000000000000
+        Size.Height = 90.000000000000000000
+        Size.PlatformDefault = False
+      end
+      object btnCamara: TButton
+        Align = Top
+        Margins.Left = 6.000000000000000000
+        Margins.Top = 6.000000000000000000
+        Margins.Right = 6.000000000000000000
+        Position.X = 6.000000000000000000
+        Position.Y = 290.000000000000000000
+        Size.Width = 348.000000000000000000
+        Size.Height = 44.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 6
+        Text = 'Hacer foto'
+        OnClick = btnCamaraClick
+      end
+      object btnGaleria: TButton
+        Align = Top
+        Margins.Left = 6.000000000000000000
+        Margins.Top = 6.000000000000000000
+        Margins.Right = 6.000000000000000000
+        Position.X = 6.000000000000000000
+        Position.Y = 340.000000000000000000
+        Size.Width = 348.000000000000000000
+        Size.Height = 44.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 7
+        Text = 'Elegir de galer'#237'a'
+        OnClick = btnGaleriaClick
+      end
+      object btnSubir: TButton
+        Align = Bottom
+        Margins.Left = 6.000000000000000000
+        Margins.Top = 6.000000000000000000
+        Margins.Right = 6.000000000000000000
+        Margins.Bottom = 6.000000000000000000
+        Position.X = 6.000000000000000000
+        Position.Y = 510.000000000000000000
+        Size.Width = 348.000000000000000000
+        Size.Height = 44.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 8
+        Text = 'Subir todas (0)'
+        OnClick = btnSubirClick
+      end
+      object lstCola: TListView
+        ItemAppearanceClassName = 'TListItemAppearance'
+        ItemEditAppearanceClassName = 'TListItemShowCheckAppearance'
+        HeaderAppearanceClassName = 'TListHeaderObjects'
+        FooterAppearanceClassName = 'TListHeaderObjects'
+        Align = Client
+        Margins.Left = 6.000000000000000000
+        Margins.Right = 6.000000000000000000
+        Size.Width = 348.000000000000000000
+        Size.Height = 120.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 9
+      end
+        end
+      end
+    end
+    object tabConfig: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = True
+      Size.Width = 94.000000000000000000
+      Size.Height = 26.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      TabOrder = 0
+      Text = 'Configuraci'#243'n'
+      ExplicitSize.cx = 100.000000000000000000
+      ExplicitSize.cy = 50.000000000000000000
+      object cajaConfig: TVertScrollBox
+        Align = Client
+        Size.Width = 360.000000000000000000
+        Size.Height = 484.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 0
+        Viewport.Width = 360.000000000000000000
+        Viewport.Height = 484.000000000000000000
+        object lblUrl: TLabel
+          Align = Top
+          Margins.Left = 6.000000000000000000
+          Margins.Top = 6.000000000000000000
+          Margins.Right = 6.000000000000000000
+          Position.X = 6.000000000000000000
+          Position.Y = 6.000000000000000000
+          Size.Width = 348.000000000000000000
+          Size.Height = 20.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Endpoint de subida de fotos'
+          TabOrder = 0
+        end
+        object edUrl: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Align = Top
+          TabOrder = 1
+          Text = 'https://webservice.veryverifactu.com/api/v1/fotos/subir.php'
+          Position.X = 6.000000000000000000
+          Position.Y = 26.000000000000000000
+          Margins.Left = 6.000000000000000000
+          Margins.Right = 6.000000000000000000
+          Size.Width = 348.000000000000000000
+          Size.Height = 40.000000000000000000
+          Size.PlatformDefault = False
+          TextPrompt = 'https://servidor/api/v1/fotos/subir.php'
+        end
+        object lblApiKey: TLabel
+          Align = Top
+          Margins.Left = 6.000000000000000000
+          Margins.Top = 6.000000000000000000
+          Margins.Right = 6.000000000000000000
+          Position.X = 6.000000000000000000
+          Position.Y = 72.000000000000000000
+          Size.Width = 348.000000000000000000
+          Size.Height = 20.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'API / token'
+          TabOrder = 2
+        end
+        object edApiKey: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Align = Top
+          TabOrder = 3
+          Text = 'fza_aaaaaaaaaaaaaaaaaaa'
+          Position.X = 6.000000000000000000
+          Position.Y = 92.000000000000000000
+          Margins.Left = 6.000000000000000000
+          Margins.Right = 6.000000000000000000
+          Size.Width = 348.000000000000000000
+          Size.Height = 40.000000000000000000
+          Size.PlatformDefault = False
+          TextPrompt = 'Credencial Bearer de la API'
+        end
+        object lblCarpetaCliente: TLabel
+          Align = Top
+          Margins.Left = 6.000000000000000000
+          Margins.Top = 6.000000000000000000
+          Margins.Right = 6.000000000000000000
+          Position.X = 6.000000000000000000
+          Position.Y = 138.000000000000000000
+          Size.Width = 348.000000000000000000
+          Size.Height = 20.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Nombre de la instalación (referencia)'
+          TabOrder = 4
+        end
+        object edCarpetaCliente: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Align = Top
+          TabOrder = 5
+          Text = 'Pruebas'
+          Position.X = 6.000000000000000000
+          Position.Y = 158.000000000000000000
+          Margins.Left = 6.000000000000000000
+          Margins.Right = 6.000000000000000000
+          Size.Width = 348.000000000000000000
+          Size.Height = 40.000000000000000000
+          Size.PlatformDefault = False
+          TextPrompt = 'Referencia de la instalación'
+        end
+        object lblResolucion: TLabel
+          Align = Top
+          Margins.Left = 6.000000000000000000
+          Margins.Top = 6.000000000000000000
+          Margins.Right = 6.000000000000000000
+          Position.X = 6.000000000000000000
+          Position.Y = 204.000000000000000000
+          Size.Width = 348.000000000000000000
+          Size.Height = 20.000000000000000000
+          Size.PlatformDefault = False
+          Text = 'Resoluci'#243'n m'#225'xima en p'#237'xeles (lado mayor)'
+          TabOrder = 6
+        end
+        object edResolucion: TEdit
+          Touch.InteractiveGestures = [LongTap, DoubleTap]
+          Align = Top
+          TabOrder = 7
+          KeyboardType = NumberPad
+          Text = '1000'
+          Position.X = 6.000000000000000000
+          Position.Y = 224.000000000000000000
+          Margins.Left = 6.000000000000000000
+          Margins.Right = 6.000000000000000000
+          Size.Width = 348.000000000000000000
+          Size.Height = 40.000000000000000000
+          Size.PlatformDefault = False
+          TextPrompt = '1000'
+        end
+        object btnGuardarConfig: TButton
+          Align = Top
+          Margins.Left = 6.000000000000000000
+          Margins.Top = 12.000000000000000000
+          Margins.Right = 6.000000000000000000
+          Position.X = 6.000000000000000000
+          Position.Y = 276.000000000000000000
+          Size.Width = 348.000000000000000000
+          Size.Height = 44.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 8
+          Text = 'Guardar configuraci'#243'n'
+          OnClick = btnGuardarConfigClick
+        end
+        object lblRutaIni: TLabel
+          Align = Top
+          StyledSettings = [Family, Style, FontColor]
+          Margins.Left = 6.000000000000000000
+          Margins.Top = 6.000000000000000000
+          Margins.Right = 6.000000000000000000
+          Position.X = 6.000000000000000000
+          Position.Y = 326.000000000000000000
+          Size.Width = 348.000000000000000000
+          Size.Height = 32.000000000000000000
+          Size.PlatformDefault = False
+          TextSettings.Font.Size = 11.000000000000000000
+          Text = 'INI:'
+          TabOrder = 9
+        end
+      end
+    end
+  end
+  object ActionList1: TActionList
+    Left = 280
+    Top = 16
+    object actHacerFoto: TTakePhotoFromCameraAction
+      Category = 'Media Library'
+      OnDidFinishTaking = actHacerFotoDidFinishTaking
+    end
+    object actElegirFoto: TTakePhotoFromLibraryAction
+      Category = 'Media Library'
+      OnDidFinishTaking = actElegirFotoDidFinishTaking
+    end
+  end
+end

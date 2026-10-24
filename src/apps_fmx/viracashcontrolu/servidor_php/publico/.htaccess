@@ -1,0 +1,5 @@
+Options -Indexes
+
+# Conserva Authorization para PHP/FastCGI en Apache.
+SetEnvIf Authorization "(.+)" HTTP_AUTHORIZATION=$1
+

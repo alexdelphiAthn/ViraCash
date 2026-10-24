@@ -1,0 +1,135 @@
+object FormFiltrosStock: TFormFiltrosStock
+  Left = 0
+  Top = 0
+  Caption = 'Filtros de stock'
+  ClientHeight = 600
+  ClientWidth = 400
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop]
+  OnClose = FormClose
+  OnResize = FormResize
+  DesignerMasterStyle = 0
+  object pnlTitulo: TPanel
+    Align = Top
+    Size.Width = 400.000000000000000000
+    Size.Height = 56.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 0
+    object lblTitulo: TLabel
+      Align = Client
+      Margins.Left = 12.000000000000000000
+      Margins.Right = 12.000000000000000000
+      Size.Width = 376.000000000000000000
+      Size.Height = 56.000000000000000000
+      Size.PlatformDefault = False
+      TextSettings.Font.Size = 18.000000000000000000
+      TextSettings.VertAlign = Center
+      Text = 'Colores y almacenes visibles'
+    end
+  end
+  object pnlBotones: TPanel
+    Align = Bottom
+    Position.Y = 544.000000000000000000
+    Size.Width = 400.000000000000000000
+    Size.Height = 56.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 1
+    object btnTodos: TButton
+      Position.X = 4.000000000000000000
+      Position.Y = 6.000000000000000000
+      Size.Width = 95.000000000000000000
+      Size.Height = 44.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 0
+      Text = 'Todos'
+      OnClick = btnTodosClick
+    end
+    object btnNinguno: TButton
+      Position.X = 103.000000000000000000
+      Position.Y = 6.000000000000000000
+      Size.Width = 95.000000000000000000
+      Size.Height = 44.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 1
+      Text = 'Ninguno'
+      OnClick = btnNingunoClick
+    end
+    object btnCancelar: TButton
+      Position.X = 202.000000000000000000
+      Position.Y = 6.000000000000000000
+      Size.Width = 95.000000000000000000
+      Size.Height = 44.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 2
+      Text = 'Cancelar'
+      OnClick = btnCancelarClick
+    end
+    object btnAplicar: TButton
+      Position.X = 301.000000000000000000
+      Position.Y = 6.000000000000000000
+      Size.Width = 95.000000000000000000
+      Size.Height = 44.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 3
+      Text = 'Aplicar'
+      OnClick = btnAplicarClick
+    end
+  end
+  object tabFiltros: TTabControl
+    Align = Client
+    Size.Width = 400.000000000000000000
+    Position.Y = 56.000000000000000000
+    Size.Height = 488.000000000000000000
+    Size.PlatformDefault = False
+    TabIndex = 0
+    TabOrder = 2
+    object tabColores: TTabItem
+      CustomIcon = <
+        item
+        end>
+      IsSelected = True
+      Size.Width = 72.000000000000000000
+      Size.Height = 26.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      Text = 'Colores'
+      object lstColores: TListBox
+        Align = Client
+        ShowCheckboxes = True
+        Size.Width = 400.000000000000000000
+        Size.Height = 462.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 0
+        DefaultItemStyles.ItemStyle = 'listboxitemstyle'
+        DefaultItemStyles.GroupHeaderStyle = 'listboxgroupheaderstyle'
+        DefaultItemStyles.GroupFooterStyle = 'listboxgroupfooterstyle'
+        Viewport.Width = 396.000000000000000000
+        Viewport.Height = 458.000000000000000000
+      end
+    end
+    object tabAlmacenes: TTabItem
+      CustomIcon = <
+        item
+        end>
+      Size.Width = 92.000000000000000000
+      Size.Height = 26.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = ''
+      Text = 'Almacenes'
+      object lstAlmacenes: TListBox
+        Align = Client
+        ShowCheckboxes = True
+        Size.Width = 400.000000000000000000
+        Size.Height = 462.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 0
+        DefaultItemStyles.ItemStyle = 'listboxitemstyle'
+        DefaultItemStyles.GroupHeaderStyle = 'listboxgroupheaderstyle'
+        DefaultItemStyles.GroupFooterStyle = 'listboxgroupfooterstyle'
+        Viewport.Width = 396.000000000000000000
+        Viewport.Height = 458.000000000000000000
+      end
+    end
+  end
+end

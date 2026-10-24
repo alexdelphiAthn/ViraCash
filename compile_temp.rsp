@@ -1,0 +1,275 @@
+﻿-$L-
+-$Y-
+--no-config
+-B
+-Q
+-TX.exe
+-AGenerics.Collections=System.Generics.Collections;Generics.Defaults=System.Generics.Defaults;WinTypes=Winapi.Windows;WinProcs=Winapi.Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE
+-DRELEASE
+-$D0
+-$O+
+-E.\Win32\Release
+-I$(BDSLIB)\$(Platform)\release
+-I$(BDSUSERDIR)\Imports
+-I$(BDS)\Imports
+-I$(BDSCOMMONDIR)\Dcp
+-I$(BDS)\include
+-I"c:\DISCO DURO\jedi"
+-I"C:\DISCO DURO\sqlbuilder\src"
+-I"C:\DISCO DURO\sqlbuilder\dependencies\gaSQLParser\src"
+-I"C:\DISCO DURO\SynEdit\Source"
+-I"C:\DISCO DURO\crypt\DCPCrypt-master\Ciphers"
+-I"C:\DISCO DURO\crypt\DCPCrypt-master"
+-I"C:\DISCO DURO\FastMM4"
+-I"C:\DISCO DURO\delphi-synapse\delphi-synapse-master"
+-I"C:\DISCO DURO\OmniThreadLibrary"
+-I"C:\DISCO DURO\OmniThreadLibrary\src"
+-I"C:\DISCO DURO\clever11\Sources\common"
+-I"C:\DISCO DURO\clever11\Sources\ssh"
+-I"C:\DISCO DURO\DevExpressVCL25.1.5\DevExpress\Library\RS26"
+-I"C:\DISCO DURO\dexif-master\dexif-master"
+-I"C:\DISCO DURO\jcl\jcl\lib\d26\win32"
+-I"C:\DISCO DURO\jcl\jcl\source\include"
+-I"C:\DISCO DURO\jvcl\jvcl\lib\D26\win32"
+-I"C:\DISCO DURO\jvcl\jvcl\common"
+-I"C:\DISCO DURO\jvcl\jvcl\Resources"
+-I$(BDS)\OCX\Servers
+-I$(BDS)\SOURCE\VCL
+-I$(BDS)\SOURCE\VCL\AppAnalytics
+-I$(BDS)\source\rtl\common
+-I$(BDS)\SOURCE\RTL\SYS
+-I$(BDS)\source\rtl\win
+-I$(BDS)\source\ToolsAPI
+-I$(BDS)\SOURCE\IBX
+-I$(BDS)\source\Internet
+-I"$(BDS)\SOURCE\PROPERTY EDITORS"
+-I$(BDS)\source\soap
+-I$(BDS)\SOURCE\XML
+-I$(BDS)\source\Indy10\Core
+-I$(BDS)\source\Indy10\System
+-I$(BDS)\source\Indy10\Protocols
+-I$(BDS)\source\fmx
+-I$(BDS)\source\databinding\components
+-I$(BDS)\source\databinding\engine
+-I$(BDS)\source\databinding\graph
+-I$(BDS)\source\data
+-I$(BDS)\source\data\ado
+-I$(BDS)\source\data\bde
+-I$(BDS)\source\data\cloud
+-I$(BDS)\source\data\datasnap
+-I$(BDS)\source\data\dbx
+-I$(BDS)\source\data\dsnap
+-I$(BDS)\source\data\Test
+-I$(BDS)\source\data\vclctrls
+-I$(BDS)\source\data\datasnap\connectors
+-I$(BDS)\source\data\datasnap\proxygen
+-I$(BDS)\source\DataExplorer
+-I$(BDS)\source\DUnit\Contrib\DUnitWizard\Source\Common
+-I$(BDS)\source\DUnit\Contrib\DUnitWizard\Source\Common\dunit
+-I$(BDS)\source\DUnit\Contrib\DUnitWizard\Source\DelphiExperts\Common
+-I$(BDS)\source\DUnit\Contrib\DUnitWizard\Source\DelphiExperts\DUnitProject
+-I$(BDS)\source\DUnit\Contrib\DUnitWizard\Source\DelphiExperts\DUnitProject\dunit
+-I$(BDS)\source\DUnit\src
+-I$(BDS)\source\DUnit\tests
+-I$(BDS)\source\Experts
+-I$(BDS)\source\indy\abstraction
+-I$(BDS)\source\indy\implementation
+-I$(BDS)\source\indyimpl
+-I$(BDS)\source\LiveTile
+-I"$(BDS)\source\Property Editors\Indy10"
+-I$(BDS)\source\soap\wsdlimporter
+-I$(BDS)\source\Visualizers
+-I$(BDS)\source\xtab
+-I$(BDS)\source\DUnit\Contrib\XMLReporting
+-I$(BDS)\source\DUnit\Contrib\XPGen
+-I$(BDS)\source\data\rest
+-I$(BDS)\source\data\firedac
+-I$(BDS)\source\tethering
+-I$(BDS)\source\DUnitX
+-I$(BDS)\source\data\ems
+-I$(BDS)\source\rtl\net
+-I$(BDS)\source\FlatBox2D
+-I"C:\DISCO DURO\DevExpressVCL25.1.5\DevExpress\Library\Sources"
+-I"C:\DISCO DURO\jcl\jcl\source\common"
+-I"C:\DISCO DURO\jcl\jcl\source\windows"
+-I"C:\DISCO DURO\jcl\jcl\source\vcl"
+-I"C:\DISCO DURO\jvcl\jvcl\run"
+-LEC:\Users\Public\Documents\Embarcadero\Studio\20.0\Bpl
+-LNC:\Users\Public\Documents\Embarcadero\Studio\20.0\Dcp
+-NU.\Win32\Release\dcu
+-NSWinapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;System;Xml;Data;Datasnap;Web;Soap;Vcl;Vcl.Imaging;Vcl.Touch;Vcl.Samples;Vcl.Shell;
+-R$(BDSLIB)\$(Platform)\release
+-R$(BDSUSERDIR)\Imports
+-R$(BDS)\Imports
+-R$(BDSCOMMONDIR)\Dcp
+-R$(BDS)\include
+-R"c:\DISCO DURO\jedi"
+-R"C:\DISCO DURO\sqlbuilder\src"
+-R"C:\DISCO DURO\sqlbuilder\dependencies\gaSQLParser\src"
+-R"C:\DISCO DURO\SynEdit\Source"
+-R"C:\DISCO DURO\crypt\DCPCrypt-master\Ciphers"
+-R"C:\DISCO DURO\crypt\DCPCrypt-master"
+-R"C:\DISCO DURO\FastMM4"
+-R"C:\DISCO DURO\delphi-synapse\delphi-synapse-master"
+-R"C:\DISCO DURO\OmniThreadLibrary"
+-R"C:\DISCO DURO\OmniThreadLibrary\src"
+-R"C:\DISCO DURO\clever11\Sources\common"
+-R"C:\DISCO DURO\clever11\Sources\ssh"
+-R"C:\DISCO DURO\DevExpressVCL25.1.5\DevExpress\Library\RS26"
+-R"C:\DISCO DURO\dexif-master\dexif-master"
+-R"C:\DISCO DURO\jcl\jcl\lib\d26\win32"
+-R"C:\DISCO DURO\jcl\jcl\source\include"
+-R"C:\DISCO DURO\jvcl\jvcl\lib\D26\win32"
+-R"C:\DISCO DURO\jvcl\jvcl\common"
+-R"C:\DISCO DURO\jvcl\jvcl\Resources"
+-R$(BDS)\OCX\Servers
+-R$(BDS)\SOURCE\VCL
+-R$(BDS)\SOURCE\VCL\AppAnalytics
+-R$(BDS)\source\rtl\common
+-R$(BDS)\SOURCE\RTL\SYS
+-R$(BDS)\source\rtl\win
+-R$(BDS)\source\ToolsAPI
+-R$(BDS)\SOURCE\IBX
+-R$(BDS)\source\Internet
+-R"$(BDS)\SOURCE\PROPERTY EDITORS"
+-R$(BDS)\source\soap
+-R$(BDS)\SOURCE\XML
+-R$(BDS)\source\Indy10\Core
+-R$(BDS)\source\Indy10\System
+-R$(BDS)\source\Indy10\Protocols
+-R$(BDS)\source\fmx
+-R$(BDS)\source\databinding\components
+-R$(BDS)\source\databinding\engine
+-R$(BDS)\source\databinding\graph
+-R$(BDS)\source\data
+-R$(BDS)\source\data\ado
+-R$(BDS)\source\data\bde
+-R$(BDS)\source\data\cloud
+-R$(BDS)\source\data\datasnap
+-R$(BDS)\source\data\dbx
+-R$(BDS)\source\data\dsnap
+-R$(BDS)\source\data\Test
+-R$(BDS)\source\data\vclctrls
+-R$(BDS)\source\data\datasnap\connectors
+-R$(BDS)\source\data\datasnap\proxygen
+-R$(BDS)\source\DataExplorer
+-R$(BDS)\source\DUnit\Contrib\DUnitWizard\Source\Common
+-R$(BDS)\source\DUnit\Contrib\DUnitWizard\Source\Common\dunit
+-R$(BDS)\source\DUnit\Contrib\DUnitWizard\Source\DelphiExperts\Common
+-R$(BDS)\source\DUnit\Contrib\DUnitWizard\Source\DelphiExperts\DUnitProject
+-R$(BDS)\source\DUnit\Contrib\DUnitWizard\Source\DelphiExperts\DUnitProject\dunit
+-R$(BDS)\source\DUnit\src
+-R$(BDS)\source\DUnit\tests
+-R$(BDS)\source\Experts
+-R$(BDS)\source\indy\abstraction
+-R$(BDS)\source\indy\implementation
+-R$(BDS)\source\indyimpl
+-R$(BDS)\source\LiveTile
+-R"$(BDS)\source\Property Editors\Indy10"
+-R$(BDS)\source\soap\wsdlimporter
+-R$(BDS)\source\Visualizers
+-R$(BDS)\source\xtab
+-R$(BDS)\source\DUnit\Contrib\XMLReporting
+-R$(BDS)\source\DUnit\Contrib\XPGen
+-R$(BDS)\source\data\rest
+-R$(BDS)\source\data\firedac
+-R$(BDS)\source\tethering
+-R$(BDS)\source\DUnitX
+-R$(BDS)\source\data\ems
+-R$(BDS)\source\rtl\net
+-R$(BDS)\source\FlatBox2D
+-R"C:\DISCO DURO\DevExpressVCL25.1.5\DevExpress\Library\Sources"
+-R"C:\DISCO DURO\jcl\jcl\source\common"
+-R"C:\DISCO DURO\jcl\jcl\source\windows"
+-R"C:\DISCO DURO\jcl\jcl\source\vcl"
+-R"C:\DISCO DURO\jvcl\jvcl\run"
+-R"C:\DISCO DURO\OmniThreadLibrary\Res"
+-U$(BDSLIB)\$(Platform)\release
+-U$(BDSUSERDIR)\Imports
+-U$(BDS)\Imports
+-U$(BDSCOMMONDIR)\Dcp
+-U$(BDS)\include
+-U"c:\DISCO DURO\jedi"
+-U"C:\DISCO DURO\sqlbuilder\src"
+-U"C:\DISCO DURO\sqlbuilder\dependencies\gaSQLParser\src"
+-U"C:\DISCO DURO\SynEdit\Source"
+-U"C:\DISCO DURO\crypt\DCPCrypt-master\Ciphers"
+-U"C:\DISCO DURO\crypt\DCPCrypt-master"
+-U"C:\DISCO DURO\FastMM4"
+-U"C:\DISCO DURO\delphi-synapse\delphi-synapse-master"
+-U"C:\DISCO DURO\OmniThreadLibrary"
+-U"C:\DISCO DURO\OmniThreadLibrary\src"
+-U"C:\DISCO DURO\clever11\Sources\common"
+-U"C:\DISCO DURO\clever11\Sources\ssh"
+-U"C:\DISCO DURO\DevExpressVCL25.1.5\DevExpress\Library\RS26"
+-U"C:\DISCO DURO\dexif-master\dexif-master"
+-U"C:\DISCO DURO\jcl\jcl\lib\d26\win32"
+-U"C:\DISCO DURO\jcl\jcl\source\include"
+-U"C:\DISCO DURO\jvcl\jvcl\lib\D26\win32"
+-U"C:\DISCO DURO\jvcl\jvcl\common"
+-U"C:\DISCO DURO\jvcl\jvcl\Resources"
+-U$(BDS)\OCX\Servers
+-U$(BDS)\SOURCE\VCL
+-U$(BDS)\SOURCE\VCL\AppAnalytics
+-U$(BDS)\source\rtl\common
+-U$(BDS)\SOURCE\RTL\SYS
+-U$(BDS)\source\rtl\win
+-U$(BDS)\source\ToolsAPI
+-U$(BDS)\SOURCE\IBX
+-U$(BDS)\source\Internet
+-U"$(BDS)\SOURCE\PROPERTY EDITORS"
+-U$(BDS)\source\soap
+-U$(BDS)\SOURCE\XML
+-U$(BDS)\source\Indy10\Core
+-U$(BDS)\source\Indy10\System
+-U$(BDS)\source\Indy10\Protocols
+-U$(BDS)\source\fmx
+-U$(BDS)\source\databinding\components
+-U$(BDS)\source\databinding\engine
+-U$(BDS)\source\databinding\graph
+-U$(BDS)\source\data
+-U$(BDS)\source\data\ado
+-U$(BDS)\source\data\bde
+-U$(BDS)\source\data\cloud
+-U$(BDS)\source\data\datasnap
+-U$(BDS)\source\data\dbx
+-U$(BDS)\source\data\dsnap
+-U$(BDS)\source\data\Test
+-U$(BDS)\source\data\vclctrls
+-U$(BDS)\source\data\datasnap\connectors
+-U$(BDS)\source\data\datasnap\proxygen
+-U$(BDS)\source\DataExplorer
+-U$(BDS)\source\DUnit\Contrib\DUnitWizard\Source\Common
+-U$(BDS)\source\DUnit\Contrib\DUnitWizard\Source\Common\dunit
+-U$(BDS)\source\DUnit\Contrib\DUnitWizard\Source\DelphiExperts\Common
+-U$(BDS)\source\DUnit\Contrib\DUnitWizard\Source\DelphiExperts\DUnitProject
+-U$(BDS)\source\DUnit\Contrib\DUnitWizard\Source\DelphiExperts\DUnitProject\dunit
+-U$(BDS)\source\DUnit\src
+-U$(BDS)\source\DUnit\tests
+-U$(BDS)\source\Experts
+-U$(BDS)\source\indy\abstraction
+-U$(BDS)\source\indy\implementation
+-U$(BDS)\source\indyimpl
+-U$(BDS)\source\LiveTile
+-U"$(BDS)\source\Property Editors\Indy10"
+-U$(BDS)\source\soap\wsdlimporter
+-U$(BDS)\source\Visualizers
+-U$(BDS)\source\xtab
+-U$(BDS)\source\DUnit\Contrib\XMLReporting
+-U$(BDS)\source\DUnit\Contrib\XPGen
+-U$(BDS)\source\data\rest
+-U$(BDS)\source\data\firedac
+-U$(BDS)\source\tethering
+-U$(BDS)\source\DUnitX
+-U$(BDS)\source\data\ems
+-U$(BDS)\source\rtl\net
+-U$(BDS)\source\FlatBox2D
+-U"C:\DISCO DURO\DevExpressVCL25.1.5\DevExpress\Library\Sources"
+-U"C:\DISCO DURO\jcl\jcl\source\common"
+-U"C:\DISCO DURO\jcl\jcl\source\windows"
+-U"C:\DISCO DURO\jcl\jcl\source\vcl"
+-U"C:\DISCO DURO\jvcl\jvcl\run"
+-NBC:\Users\Public\Documents\Embarcadero\Studio\20.0\Dcp
+-NHC:\Users\Public\Documents\Embarcadero\Studio\20.0\hpp\Win32
+-NO.\Win32\Release
+"fzam.dpr"

@@ -1,0 +1,117 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <VIRACASH_DELPHI_ROOT Condition="'$(VIRACASH_DELPHI_ROOT)'==''">$(FACTUZAM_DELPHI_ROOT)</VIRACASH_DELPHI_ROOT>
+        <VIRACASH_DEVEXPRESS_ROOT Condition="'$(VIRACASH_DEVEXPRESS_ROOT)'==''">$(FACTUZAM_DEVEXPRESS_ROOT)</VIRACASH_DEVEXPRESS_ROOT>
+        <VIRACASH_FASTREPORT_ROOT Condition="'$(VIRACASH_FASTREPORT_ROOT)'==''">$(FACTUZAM_FASTREPORT_ROOT)</VIRACASH_FASTREPORT_ROOT>
+        <VIRACASH_UNIDAC_ROOT Condition="'$(VIRACASH_UNIDAC_ROOT)'==''">$(FACTUZAM_UNIDAC_ROOT)</VIRACASH_UNIDAC_ROOT>
+        <VIRACASH_DUNITX_ROOT Condition="'$(VIRACASH_DUNITX_ROOT)'==''">$(FACTUZAM_DUNITX_ROOT)</VIRACASH_DUNITX_ROOT>
+        <VIRACASH_JCL_ROOT Condition="'$(VIRACASH_JCL_ROOT)'==''">$(FACTUZAM_JCL_ROOT)</VIRACASH_JCL_ROOT>
+        <VIRACASH_JVCL_ROOT Condition="'$(VIRACASH_JVCL_ROOT)'==''">$(FACTUZAM_JVCL_ROOT)</VIRACASH_JVCL_ROOT>
+        <VIRACASH_DCPCRYPT_ROOT Condition="'$(VIRACASH_DCPCRYPT_ROOT)'==''">$(FACTUZAM_DCPCRYPT_ROOT)</VIRACASH_DCPCRYPT_ROOT>
+        <VIRACASH_SYNEDIT_ROOT Condition="'$(VIRACASH_SYNEDIT_ROOT)'==''">$(FACTUZAM_SYNEDIT_ROOT)</VIRACASH_SYNEDIT_ROOT>
+        <VIRACASH_SYNPDF_ROOT Condition="'$(VIRACASH_SYNPDF_ROOT)'==''">$(FACTUZAM_SYNPDF_ROOT)</VIRACASH_SYNPDF_ROOT>
+    </PropertyGroup>
+    <PropertyGroup>
+        <ViraCashDevExpressRoot
+            Condition="'$(ViraCashDevExpressRoot)'==''">$(VIRACASH_DEVEXPRESS_ROOT)</ViraCashDevExpressRoot>
+        <ViraCashFastReportRoot
+            Condition="'$(ViraCashFastReportRoot)'==''">$(VIRACASH_FASTREPORT_ROOT)</ViraCashFastReportRoot>
+        <ViraCashUniDacRoot
+            Condition="'$(ViraCashUniDacRoot)'==''">$(VIRACASH_UNIDAC_ROOT)</ViraCashUniDacRoot>
+        <ViraCashDUnitXRoot
+            Condition="'$(ViraCashDUnitXRoot)'==''">$(VIRACASH_DUNITX_ROOT)</ViraCashDUnitXRoot>
+        <ViraCashJclRoot
+            Condition="'$(ViraCashJclRoot)'==''">$(VIRACASH_JCL_ROOT)</ViraCashJclRoot>
+        <ViraCashJvclRoot
+            Condition="'$(ViraCashJvclRoot)'==''">$(VIRACASH_JVCL_ROOT)</ViraCashJvclRoot>
+        <ViraCashDcpCryptRoot
+            Condition="'$(ViraCashDcpCryptRoot)'==''">$(VIRACASH_DCPCRYPT_ROOT)</ViraCashDcpCryptRoot>
+        <ViraCashSynEditRoot
+            Condition="'$(ViraCashSynEditRoot)'==''">$(VIRACASH_SYNEDIT_ROOT)</ViraCashSynEditRoot>
+        <ViraCashSynPdfRoot
+            Condition="'$(ViraCashSynPdfRoot)'==''">$(VIRACASH_SYNPDF_ROOT)</ViraCashSynPdfRoot>
+        <ViraCashRequiereDUnitX
+            Condition="'$(ViraCashRequiereDUnitX)'==''">false</ViraCashRequiereDUnitX>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Platform)'=='Win32'">
+        <ViraCashDevExpressPath>$(ViraCashDevExpressRoot)</ViraCashDevExpressPath>
+        <ViraCashFastReportPath>$(ViraCashFastReportRoot)\Win32</ViraCashFastReportPath>
+        <ViraCashUniDacPath>$(ViraCashUniDacRoot)\Win32</ViraCashUniDacPath>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Platform)'=='Win64'">
+        <ViraCashDevExpressPath>$(ViraCashDevExpressRoot)\Win64</ViraCashDevExpressPath>
+        <ViraCashFastReportPath>$(ViraCashFastReportRoot)\Win64</ViraCashFastReportPath>
+        <ViraCashUniDacPath>$(ViraCashUniDacRoot)\Win64</ViraCashUniDacPath>
+    </PropertyGroup>
+    <PropertyGroup>
+        <ViraCashJclPath>$(ViraCashJclRoot)\lib\d37\$(Platform)</ViraCashJclPath>
+        <ViraCashJvclPath>$(ViraCashJvclRoot)\lib\d37\$(Platform)</ViraCashJvclPath>
+        <ViraCashSynEditPath>$(ViraCashSynEditRoot)\build\$(Platform)</ViraCashSynEditPath>
+        <ViraCashSynPdfPath>$(ViraCashSynPdfRoot)\Lib\RS37\$(Platform)</ViraCashSynPdfPath>
+        <ViraCashIncludes>$(ViraCashJclRoot)\source\include;$(ViraCashJvclRoot)\common;$(ViraCashDcpCryptRoot);$(ViraCashSynEditRoot)\Source;$(ViraCashSynPdfRoot)</ViraCashIncludes>
+        <ViraCashRecursos>$(ViraCashJvclRoot)\resources;$(ViraCashSynEditRoot)\Source</ViraCashRecursos>
+        <ViraCashDependenciasPlataforma>$(ViraCashDevExpressPath);$(ViraCashFastReportPath);$(ViraCashUniDacPath);$(ViraCashJclPath);$(ViraCashJclRoot)\source\include;$(ViraCashJvclPath);$(ViraCashJvclRoot)\common;$(ViraCashJvclRoot)\resources;$(ViraCashDcpCryptRoot);$(ViraCashDcpCryptRoot)\Ciphers;$(ViraCashDcpCryptRoot)\Hashes;$(ViraCashSynEditPath);$(ViraCashSynEditRoot)\Source;$(ViraCashSynPdfPath)</ViraCashDependenciasPlataforma>
+        <ViraCashDependenciasPruebas>$(ViraCashDependenciasPlataforma);$(ViraCashDUnitXRoot)</ViraCashDependenciasPruebas>
+    </PropertyGroup>
+    <Target
+        Name="ValidarDependenciasViraCash"
+        BeforeTargets="Build">
+        <Error
+            Condition="'$(Platform)'!='Win32' and '$(Platform)'!='Win64'"
+            Text="Plataforma no soportada: $(Platform). Use Win32 o Win64."/>
+        <Error
+            Condition="'$(ViraCashDevExpressRoot)'==''"
+            Text="Falta DevExpress. Defina VIRACASH_DEVEXPRESS_ROOT o ViraCashDevExpressRoot. Consulte factuzam_web\scripts\README.md."/>
+        <Error
+            Condition="'$(ViraCashFastReportRoot)'==''"
+            Text="Falta FastReport. Defina VIRACASH_FASTREPORT_ROOT o ViraCashFastReportRoot. Consulte factuzam_web\scripts\README.md."/>
+        <Error
+            Condition="'$(ViraCashUniDacRoot)'==''"
+            Text="Falta UniDAC. Defina VIRACASH_UNIDAC_ROOT o ViraCashUniDacRoot. Consulte factuzam_web\scripts\README.md."/>
+        <Error
+            Condition="'$(ViraCashDevExpressRoot)'!='' and !Exists('$(ViraCashDevExpressPath)\cxClasses.dcu')"
+            Text="DevExpress no contiene cxClasses.dcu para $(Platform): $(ViraCashDevExpressPath)."/>
+        <Error
+            Condition="'$(ViraCashFastReportRoot)'!='' and !Exists('$(ViraCashFastReportPath)\frxClass.dcu')"
+            Text="FastReport no contiene frxClass.dcu para $(Platform): $(ViraCashFastReportPath)."/>
+        <Error
+            Condition="'$(ViraCashUniDacRoot)'!='' and !Exists('$(ViraCashUniDacPath)\Uni.dcu')"
+            Text="UniDAC no contiene Uni.dcu para $(Platform): $(ViraCashUniDacPath)."/>
+        <Error
+            Condition="'$(ViraCashRequiereDUnitX)'=='true' and '$(ViraCashDUnitXRoot)'==''"
+            Text="Falta DUnitX. Defina VIRACASH_DUNITX_ROOT o ViraCashDUnitXRoot."/>
+        <Error
+            Condition="'$(ViraCashRequiereDUnitX)'=='true' and '$(ViraCashDUnitXRoot)'!='' and !Exists('$(ViraCashDUnitXRoot)\DUnitX.TestFramework.pas')"
+            Text="DUnitX.TestFramework.pas no existe en $(ViraCashDUnitXRoot)."/>
+        <Error
+            Condition="'$(ViraCashJclRoot)'==''"
+            Text="Falta JCL. Defina VIRACASH_JCL_ROOT o ViraCashJclRoot. Consulte factuzam_web\scripts\README.md."/>
+        <Error
+            Condition="'$(ViraCashJvclRoot)'==''"
+            Text="Falta JVCL. Defina VIRACASH_JVCL_ROOT o ViraCashJvclRoot. Consulte factuzam_web\scripts\README.md."/>
+        <Error
+            Condition="'$(ViraCashDcpCryptRoot)'==''"
+            Text="Falta DCPCrypt. Defina VIRACASH_DCPCRYPT_ROOT o ViraCashDcpCryptRoot. Consulte factuzam_web\scripts\README.md."/>
+        <Error
+            Condition="'$(ViraCashSynEditRoot)'==''"
+            Text="Falta SynEdit. Defina VIRACASH_SYNEDIT_ROOT o ViraCashSynEditRoot. Consulte factuzam_web\scripts\README.md."/>
+        <Error
+            Condition="'$(ViraCashSynPdfRoot)'==''"
+            Text="Falta SynPDF. Defina VIRACASH_SYNPDF_ROOT o ViraCashSynPdfRoot. Consulte factuzam_web\scripts\README.md."/>
+        <Error
+            Condition="'$(ViraCashJclRoot)'!='' and (!Exists('$(ViraCashJclPath)\JclBase.dcu') or !Exists('$(ViraCashJclRoot)\source\include\jcl.inc'))"
+            Text="JCL incompleta para $(Platform): $(ViraCashJclPath) y source\include\jcl.inc."/>
+        <Error
+            Condition="'$(ViraCashJvclRoot)'!='' and (!Exists('$(ViraCashJvclPath)\JvComponentBase.dcu') or !Exists('$(ViraCashJvclRoot)\common\jvcl.inc') or !Exists('$(ViraCashJvclRoot)\resources\JvConsts.res'))"
+            Text="JVCL incompleta para $(Platform): $(ViraCashJvclPath), common\jvcl.inc y resources\JvConsts.res."/>
+        <Error
+            Condition="'$(ViraCashDcpCryptRoot)'!='' and (!Exists('$(ViraCashDcpCryptRoot)\DCPcrypt2.pas') or !Exists('$(ViraCashDcpCryptRoot)\Ciphers\DCPrijndael.pas') or !Exists('$(ViraCashDcpCryptRoot)\Hashes\DCPsha256.pas'))"
+            Text="DCPCrypt incompleta en $(ViraCashDcpCryptRoot)."/>
+        <Error
+            Condition="'$(ViraCashSynEditRoot)'!='' and (!Exists('$(ViraCashSynEditPath)\SynEdit.dcu') or !Exists('$(ViraCashSynEditRoot)\Source\SynEdit.res'))"
+            Text="SynEdit incompleta para $(Platform): $(ViraCashSynEditPath) y Source\SynEdit.res."/>
+        <Error
+            Condition="'$(ViraCashSynPdfRoot)'!='' and !Exists('$(ViraCashSynPdfPath)\SynPdf.dcu')"
+            Text="SynPDF no contiene SynPdf.dcu para $(Platform): $(ViraCashSynPdfPath)."/>
+    </Target>
+</Project>

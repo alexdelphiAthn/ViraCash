@@ -1,0 +1,8 @@
+/orders/?display=[id, id_customer,id_address_delivery,id_address_invoice]&filter[id]=[6]
+/customers/?display=[firstname,lastname,email]&filter[id]=[]
+/addresses/?display=[id, firstname,lastname, address1, address2, postcode, city, postcode, phone, phone_mobile, dni, id_state, company, vat_number]&filter[id]=[]
+/states/?display=[id, name]&filter[id]=[]
+/orders/?display=full&filter[id]=[6]
+/orders/?display=[id_carrier,current_state,date_add,payment,total_paid_tax_incl,total_paid_tax_excl,total_paid_real,total_products,total_products_wt,total_shipping_tax_incl,total_shipping_tax_excl, carrier_tax_rate, reference,]&filter[id]=[7];
+/carriers/?display=[name]&filter[id]=[1];
+/customer_threads/?display=full&filter[id_order]=[6];

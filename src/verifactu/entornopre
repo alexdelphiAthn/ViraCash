@@ -1,0 +1,16 @@
+
+
+    Este portal tiene por finalidad facilitar las pruebas de presentación y consulta de declaraciones tributarias a los usuarios externos de la Agencia Tributaria, de forma totalmente libre, con la única condición de autenticarse mediante un certificado electrónico.
+
+    Las declaraciones presentadas a través de este Portal se guardan en una Base de Datos del entorno de pruebas de la AEAT, sin que en ningún caso tengan trascendencia tributaria.
+
+    Configuración de sitios web de preproducción por Internet
+        https://prewww2.aeat.es equivalente en cuanto a requisitos a https://www2.agenciatributaria.gob.es
+        https://prewww1.aeat.es equivalente en cuanto a requisitos a https://www1.agenciatributaria.gob.es
+        https//prewww10.aeat.es (pruebas de Web Services para Contribuyentes con certificado de sello) equivalente en cuanto a requisitos a https://www10.agenciatributaria.gob.es
+
+    ¿Para qué se puede utilizar este entorno de PREPRODUCCIÓN?
+
+    Estos sitios web están destinados a ofrecer exclusivamente pruebas en un entorno de PREPRODUCCIÓN para facilitar la integración y validación de servicios que la Agencia Tributaria determine publicar en este entorno y se haya autorizado para que se puedan usar para realizar las pruebas. Estos servicios solo permitirán realizar pruebas de modelos y consultar los presentado en las mismas condiciones que los servicios en Preproducción.
+
+    Se recuerda que este entorno solo se debe utilizar para realizar este tipo de pruebas puntuales y en ningún caso para realizar pruebas masivas, validaciones integradas en procesos de presentación en producción, etc. Si se detectan usos que se consideren abusivos se podrán adoptar medidas para bloquear el acceso.

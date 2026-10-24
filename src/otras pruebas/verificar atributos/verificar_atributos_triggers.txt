@@ -1,0 +1,318 @@
+-- ============================================================================
+-- TRIGGERS DE PREVENCIÓN DE INCONSISTENCIAS
+-- ============================================================================
+-- Estos triggers evitan que vuelvan a ocurrir problemas de inconsistencias
+-- entre SKUs y sus atributos
+-- ============================================================================
+
+-- ============================================================================
+-- TRIGGER 1: Validar que el SKU existe antes de insertar atributos
+-- ============================================================================
+-- Evita crear atributos para SKUs que no existen (SKUs huérfanos)
+
+DROP TRIGGER IF EXISTS trg_validar_sku_existe$$
+
+DELIMITER $$
+
+CREATE TRIGGER trg_validar_sku_existe
+BEFORE INSERT ON fza_atributos_sku
+FOR EACH ROW
+BEGIN
+  DECLARE sku_existe INT DEFAULT 0;
+  
+  -- Verificar si el SKU existe en fza_articulos_skus
+  SELECT COUNT(*) INTO sku_existe
+  FROM fza_articulos_skus
+  WHERE CODIGO_UNIDAD_SKU = NEW.CODIGO_UNIDAD_SA;
+  
+  IF sku_existe = 0 THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'ERROR: No se puede insertar atributo. El SKU no existe en fza_articulos_skus';
+  END IF;
+END$$
+
+DELIMITER ;
+
+-- Descripción:
+-- Este trigger se ejecuta ANTES de cada INSERT en fza_atributos_sku
+-- Si el SKU no existe, lanza un error y cancela la operación
+
+-- ============================================================================
+-- TRIGGER 2: Auto-crear atributos al insertar un nuevo SKU
+-- ============================================================================
+-- Cuando se crea un SKU nuevo, automáticamente crea sus atributos
+-- extrayéndolos del nombre del SKU (formato: ARTICULO/COLOR/TALLA)
+
+DROP TRIGGER IF EXISTS trg_autocrear_atributos$$
+
+DELIMITER $$
+
+CREATE TRIGGER trg_autocrear_atributos
+AFTER INSERT ON fza_articulos_skus
+FOR EACH ROW
+BEGIN
+  DECLARE articulo_requiere_atributos CHAR(1) DEFAULT 'N';
+  DECLARE num_partes INT DEFAULT 0;
+  DECLARE color_valor VARCHAR(50) DEFAULT '';
+  DECLARE talla_valor VARCHAR(50) DEFAULT '';
+  DECLARE id_color INT DEFAULT NULL;
+  DECLARE id_talla INT DEFAULT NULL;
+  
+  -- 1. Verificar si el artículo padre requiere atributos
+  SELECT ESATRIBUTOS_ARTICULO INTO articulo_requiere_atributos
+  FROM fza_articulos
+  WHERE CODIGO_ARTICULO = NEW.CODIGO_ARTICULO_SKU
+  LIMIT 1;
+  
+  -- Solo proceder si el artículo requiere atributos
+  IF articulo_requiere_atributos = 'S' THEN
+    
+    -- 2. Contar cuántas partes tiene el SKU (separadas por /)
+    SET num_partes = LENGTH(NEW.CODIGO_UNIDAD_SKU) - 
+                     LENGTH(REPLACE(NEW.CODIGO_UNIDAD_SKU, '/', '')) + 1;
+    
+    -- 3. Si tiene al menos 3 partes (ARTICULO/COLOR/TALLA), extraer atributos
+    IF num_partes >= 3 THEN
+      
+      -- Extraer COLOR (segunda parte)
+      SET color_valor = UPPER(TRIM(
+        SUBSTRING_INDEX(SUBSTRING_INDEX(NEW.CODIGO_UNIDAD_SKU, '/', 2), '/', -1)
+      ));
+      
+      -- Extraer TALLA (tercera parte)
+      SET talla_valor = UPPER(TRIM(
+        SUBSTRING_INDEX(NEW.CODIGO_UNIDAD_SKU, '/', -1)
+      ));
+      
+      -- 4. Buscar el ID del COLOR en fza_atributos_valores
+      SELECT ID_VALOR_AV INTO id_color 
+      FROM fza_atributos_valores 
+      WHERE ID_VA_AV = 'CO' 
+        AND UPPER(VALOR_AV) = color_valor 
+      LIMIT 1;
+      
+      -- 5. Buscar el ID de la TALLA en fza_atributos_valores
+      SELECT ID_VALOR_AV INTO id_talla 
+      FROM fza_atributos_valores 
+      WHERE ID_VA_AV = 'TAL' 
+        AND UPPER(VALOR_AV) = talla_valor 
+      LIMIT 1;
+      
+      -- 6. Insertar el atributo COLOR si se encontró
+      IF id_color IS NOT NULL THEN
+        INSERT INTO fza_atributos_sku 
+        (CODIGO_UNIDAD_SA, ID_VALOR_SA, INSTANTEALTA, INSTANTEMODIF, USUARIOALTA, USUARIOMODIF)
+        VALUES 
+        (NEW.CODIGO_UNIDAD_SKU, id_color, NOW(), NOW(), 'TRIGGER_AUTO', 'TRIGGER_AUTO')
+        ON DUPLICATE KEY UPDATE INSTANTEMODIF = NOW();
+      END IF;
+      
+      -- 7. Insertar el atributo TALLA si se encontró
+      IF id_talla IS NOT NULL THEN
+        INSERT INTO fza_atributos_sku 
+        (CODIGO_UNIDAD_SA, ID_VALOR_SA, INSTANTEALTA, INSTANTEMODIF, USUARIOALTA, USUARIOMODIF)
+        VALUES 
+        (NEW.CODIGO_UNIDAD_SKU, id_talla, NOW(), NOW(), 'TRIGGER_AUTO', 'TRIGGER_AUTO')
+        ON DUPLICATE KEY UPDATE INSTANTEMODIF = NOW();
+      END IF;
+      
+    END IF;
+  END IF;
+END$$
+
+DELIMITER ;
+
+-- Descripción:
+-- Este trigger se ejecuta DESPUÉS de cada INSERT en fza_articulos_skus
+-- Automáticamente crea los atributos correspondientes extrayendo
+-- color y talla del nombre del SKU
+
+-- ============================================================================
+-- TRIGGER 3: Evitar eliminar un SKU que tiene atributos sin eliminar primero
+-- ============================================================================
+-- Mantiene integridad referencial inversa
+
+DROP TRIGGER IF EXISTS trg_prevenir_eliminar_sku_con_atributos$$
+
+DELIMITER $$
+
+CREATE TRIGGER trg_prevenir_eliminar_sku_con_atributos
+BEFORE DELETE ON fza_articulos_skus
+FOR EACH ROW
+BEGIN
+  DECLARE num_atributos INT DEFAULT 0;
+  
+  -- Contar cuántos atributos tiene este SKU
+  SELECT COUNT(*) INTO num_atributos
+  FROM fza_atributos_sku
+  WHERE CODIGO_UNIDAD_SA = OLD.CODIGO_UNIDAD_SKU;
+  
+  -- Si tiene atributos, no permitir eliminación
+  IF num_atributos > 0 THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'ERROR: No se puede eliminar el SKU porque tiene atributos asociados. Elimine primero los atributos.';
+  END IF;
+END$$
+
+DELIMITER ;
+
+-- Descripción:
+-- Este trigger evita que se elimine un SKU si aún tiene atributos
+-- Fuerza a eliminar primero los atributos, manteniendo consistencia
+
+-- ============================================================================
+-- TRIGGER 4: Auto-eliminar atributos al eliminar un SKU (OPCIONAL)
+-- ============================================================================
+-- Alternativa al trigger anterior: en lugar de prevenir, elimina automáticamente
+
+DROP TRIGGER IF EXISTS trg_autoeliminar_atributos$$
+
+DELIMITER $$
+
+CREATE TRIGGER trg_autoeliminar_atributos
+BEFORE DELETE ON fza_articulos_skus
+FOR EACH ROW
+BEGIN
+  -- Eliminar todos los atributos asociados a este SKU
+  DELETE FROM fza_atributos_sku
+  WHERE CODIGO_UNIDAD_SA = OLD.CODIGO_UNIDAD_SKU;
+END$$
+
+DELIMITER ;
+
+-- Descripción:
+-- IMPORTANTE: Solo usa ESTE trigger O el anterior, NO ambos
+-- Este elimina automáticamente los atributos al borrar un SKU
+-- Comentar/descomentar según lo que prefieras
+
+-- ============================================================================
+-- PROCEDIMIENTO: Validar integridad de todos los SKUs
+-- ============================================================================
+-- Procedimiento para ejecutar manualmente y verificar que todo está bien
+
+DROP PROCEDURE IF EXISTS sp_validar_integridad_skus$$
+
+DELIMITER $$
+
+CREATE PROCEDURE sp_validar_integridad_skus()
+BEGIN
+  DECLARE done INT DEFAULT FALSE;
+  DECLARE sku_codigo VARCHAR(50);
+  DECLARE articulo_codigo VARCHAR(50);
+  DECLARE requiere_atributos CHAR(1);
+  DECLARE num_atributos_encontrados INT;
+  DECLARE num_atributos_esperados INT;
+  DECLARE problemas_encontrados INT DEFAULT 0;
+  
+  -- Cursor para recorrer todos los SKUs
+  DECLARE sku_cursor CURSOR FOR 
+    SELECT sku.CODIGO_UNIDAD_SKU, sku.CODIGO_ARTICULO_SKU, a.ESATRIBUTOS_ARTICULO
+    FROM fza_articulos_skus sku
+    JOIN fza_articulos a ON sku.CODIGO_ARTICULO_SKU = a.CODIGO_ARTICULO
+    WHERE a.ESATRIBUTOS_ARTICULO = 'S';
+  
+  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+  
+  -- Crear tabla temporal para resultados
+  DROP TEMPORARY TABLE IF EXISTS tmp_validacion;
+  CREATE TEMPORARY TABLE tmp_validacion (
+    sku VARCHAR(50),
+    articulo VARCHAR(50),
+    problema VARCHAR(200)
+  );
+  
+  OPEN sku_cursor;
+  
+  read_loop: LOOP
+    FETCH sku_cursor INTO sku_codigo, articulo_codigo, requiere_atributos;
+    
+    IF done THEN
+      LEAVE read_loop;
+    END IF;
+    
+    -- Contar atributos actuales
+    SELECT COUNT(DISTINCT sa.ID_VALOR_SA) INTO num_atributos_encontrados
+    FROM fza_atributos_sku sa
+    WHERE sa.CODIGO_UNIDAD_SA = sku_codigo;
+    
+    -- Contar atributos esperados (normalmente 2: color + talla)
+    SELECT COUNT(DISTINCT ID_ATRIBUTO) INTO num_atributos_esperados
+    FROM vi_atributos_nombres
+    WHERE CODIGO_ARTICULO_PADRE = articulo_codigo;
+    
+    -- Registrar si hay problemas
+    IF num_atributos_encontrados = 0 THEN
+      INSERT INTO tmp_validacion VALUES 
+        (sku_codigo, articulo_codigo, 'SKU sin atributos');
+      SET problemas_encontrados = problemas_encontrados + 1;
+    ELSEIF num_atributos_encontrados < num_atributos_esperados THEN
+      INSERT INTO tmp_validacion VALUES 
+        (sku_codigo, articulo_codigo, 
+         CONCAT('Atributos incompletos: ', num_atributos_encontrados, '/', num_atributos_esperados));
+      SET problemas_encontrados = problemas_encontrados + 1;
+    END IF;
+    
+  END LOOP;
+  
+  CLOSE sku_cursor;
+  
+  -- Mostrar resultados
+  IF problemas_encontrados = 0 THEN
+    SELECT '✅ No se encontraron problemas. Todos los SKUs tienen sus atributos correctamente.' AS resultado;
+  ELSE
+    SELECT CONCAT('⚠️ Se encontraron ', problemas_encontrados, ' problemas:') AS resultado;
+    SELECT * FROM tmp_validacion ORDER BY articulo, sku;
+  END IF;
+  
+  DROP TEMPORARY TABLE tmp_validacion;
+END$$
+
+DELIMITER ;
+
+-- ============================================================================
+-- INSTRUCCIONES DE USO
+-- ============================================================================
+
+/*
+
+APLICAR LOS TRIGGERS:
+----------------------
+Ejecuta este script completo en tu base de datos.
+
+DECIDIR QUÉ TRIGGER USAR PARA ELIMINACIÓN:
+-------------------------------------------
+OPCIÓN A: Prevenir eliminación si hay atributos (trg_prevenir_eliminar_sku_con_atributos)
+  - Más seguro, evita pérdidas accidentales
+  - Requiere eliminar atributos manualmente primero
+
+OPCIÓN B: Auto-eliminar atributos (trg_autoeliminar_atributos)
+  - Más conveniente para borrados rápidos
+  - Menos control, puede eliminar datos sin querer
+
+Para activar SOLO UNO, comenta el otro con:
+-- DROP TRIGGER IF EXISTS nombre_trigger$$
+
+VALIDAR INTEGRIDAD:
+-------------------
+Ejecuta el procedimiento para verificar que todo está bien:
+
+CALL sp_validar_integridad_skus();
+
+PROBAR LOS TRIGGERS:
+--------------------
+1. Intenta insertar un atributo para un SKU inexistente:
+   INSERT INTO fza_atributos_sku VALUES ('FAKE-SKU', 1, NOW(), NOW(), 'TEST', 'TEST');
+   -- Debería dar error
+
+2. Inserta un nuevo SKU:
+   INSERT INTO fza_articulos_skus VALUES ('TEST-ART/ROJO/L', 'TEST-ART', 'TC', 'S', NOW(), NOW(), 'TEST', 'TEST');
+   -- Si TEST-ART requiere atributos, se crearán automáticamente
+
+3. Verifica que se crearon:
+   SELECT * FROM fza_atributos_sku WHERE CODIGO_UNIDAD_SA = 'TEST-ART/ROJO/L';
+
+*/
+
+-- ============================================================================
+-- FIN DEL SCRIPT
+-- ============================================================================

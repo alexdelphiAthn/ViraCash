@@ -1,0 +1,34 @@
+Aplicar cambios al codigo fuente
+================================
+
+Generado por Factuzam Normalizer.
+
+CONTENIDO
+---------
+  aplicar_cambios.ps1   Script PowerShell que recorre la carpeta y
+                        aplica los reemplazos sobre .pas y .dfm.
+  aplicar_cambios.csv   Lista de pares (OldName;NewName) a aplicar.
+
+USO
+---
+  1) Descomprime el ZIP en cualquier carpeta.
+  2) Abre PowerShell ahi (Shift+click derecho > Abrir aqui).
+  3) Prueba primero en modo simulacion:
+       .\aplicar_cambios.ps1 -Carpeta 'C:\ruta\proyecto\src' -DryRun
+  4) Si el resultado te convence, aplica de verdad:
+       .\aplicar_cambios.ps1 -Carpeta 'C:\ruta\proyecto\src'
+
+  Si Windows te bloquea por ExecutionPolicy:
+       powershell -ExecutionPolicy Bypass -File .\aplicar_cambios.ps1 -Carpeta '...'
+
+GARANTIAS
+---------
+  - Cada fichero modificado tiene una copia .bak junto al original.
+  - Los reemplazos son CASE-SENSITIVE y solo "palabra completa".
+  - El script genera un log CSV con cada ejecucion en su carpeta.
+
+AVISO
+-----
+  Antes de ejecutar en produccion, asegurate de tener tu codigo en
+  control de versiones (git, svn) o haz una copia de la carpeta.
+  Los .bak son una segunda red, no la primera.
