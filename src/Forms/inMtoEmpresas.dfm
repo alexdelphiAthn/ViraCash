@@ -213,11 +213,16 @@
                 Height = 421
                 Width = 745
                 object lblMovil: TcxLabel
-                  Left = 51
-                  Top = 25
+                  Left = 8
+                  Top = 21
+                  AutoSize = False
                   Caption = 'M'#243'vil'
+                  Properties.Alignment.Horz = taRightJustify
+                  Properties.Alignment.Vert = taVCenter
                   TabOrder = 12
                   Transparent = True
+                  Height = 24
+                  Width = 90
                 end
                 object txtMOVIL_EMPRESA: TcxDBTextEdit
                   Left = 106
@@ -228,18 +233,28 @@
                   Width = 322
                 end
                 object lblEmail: TcxLabel
-                  Left = 49
-                  Top = 63
+                  Left = 8
+                  Top = 59
+                  AutoSize = False
                   Caption = 'Email'
+                  Properties.Alignment.Horz = taRightJustify
+                  Properties.Alignment.Vert = taVCenter
                   TabOrder = 13
                   Transparent = True
+                  Height = 24
+                  Width = 90
                 end
                 object lblDireccion: TcxLabel
-                  Left = 26
-                  Top = 98
+                  Left = 8
+                  Top = 94
+                  AutoSize = False
                   Caption = 'Direcci'#243'n'
+                  Properties.Alignment.Horz = taRightJustify
+                  Properties.Alignment.Vert = taVCenter
                   TabOrder = 14
                   Transparent = True
+                  Height = 24
+                  Width = 90
                 end
                 object txtDIRECCION1_EMPRESA: TcxDBTextEdit
                   Left = 106
@@ -274,18 +289,28 @@
                   Width = 322
                 end
                 object lblPoblacion: TcxLabel
-                  Left = 22
-                  Top = 207
+                  Left = 8
+                  Top = 203
+                  AutoSize = False
                   Caption = 'Poblaci'#243'n'
+                  Properties.Alignment.Horz = taRightJustify
+                  Properties.Alignment.Vert = taVCenter
                   TabOrder = 16
                   Transparent = True
+                  Height = 24
+                  Width = 90
                 end
                 object lblProvincia: TcxLabel
-                  Left = 26
-                  Top = 245
+                  Left = 8
+                  Top = 240
+                  AutoSize = False
                   Caption = 'Provincia'
+                  Properties.Alignment.Horz = taRightJustify
+                  Properties.Alignment.Vert = taVCenter
                   TabOrder = 17
                   Transparent = True
+                  Height = 24
+                  Width = 90
                 end
                 object txtPROVINCIA_EMPRESA: TcxDBTextEdit
                   Left = 106
@@ -317,18 +342,28 @@
                   Width = 322
                 end
                 object lblCodPostal: TcxLabel
-                  Left = 18
-                  Top = 171
+                  Left = 8
+                  Top = 166
+                  AutoSize = False
                   Caption = 'C'#243'd Postal'
+                  Properties.Alignment.Horz = taRightJustify
+                  Properties.Alignment.Vert = taVCenter
                   TabOrder = 15
                   Transparent = True
+                  Height = 24
+                  Width = 90
                 end
                 object lblIBAN: TcxLabel
-                  Left = 57
-                  Top = 310
+                  Left = 8
+                  Top = 306
+                  AutoSize = False
                   Caption = 'IBAN'
+                  Properties.Alignment.Horz = taRightJustify
+                  Properties.Alignment.Vert = taVCenter
                   TabOrder = 21
                   Transparent = True
+                  Height = 24
+                  Width = 90
                 end
                 object txtIBAN_EMPRESA: TcxDBMaskEdit
                   Left = 107
@@ -350,11 +385,16 @@
                   OnClick = btnValidarClick
                 end
                 object lblProvincia1: TcxLabel
-                  Left = 36
-                  Top = 278
+                  Left = 8
+                  Top = 273
+                  AutoSize = False
                   Caption = 'Pa'#237's'
+                  Properties.Alignment.Horz = taRightJustify
+                  Properties.Alignment.Vert = taVCenter
                   TabOrder = 20
                   Transparent = True
+                  Height = 24
+                  Width = 90
                 end
                 object txtNOMBRE_PAIS_EMPRESA: TcxDBTextEdit
                   Left = 176
