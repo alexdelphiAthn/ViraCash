@@ -92,6 +92,7 @@ resourcestring
   SEstadoDocumentoAplicado = 'APLICADO';
   SEstadoDocumentoBorrador = 'BORRADOR';
   SEstadoDocumentoRecibido = 'RECIBIDO';
+  SEstadoDocumentoEntregado = 'ENTREGADO';
   SEstadoDocumentoConvertido = 'CONVERTIDO';
   SEstadoDocumentoCerrado = 'CERRADO';
   SEstadoDocumentoCerrada = 'CERRADA';
@@ -959,6 +960,7 @@ begin
       Result := SEstadoDocumentoAplicado
     else if AValor = 'BORRADOR' then Result := SEstadoDocumentoBorrador
     else if AValor = 'RECIBIDO' then Result := SEstadoDocumentoRecibido
+    else if AValor = 'ENTREGADO' then Result := SEstadoDocumentoEntregado
     else if AValor = 'CONVERTIDO' then Result := SEstadoDocumentoConvertido
     else if AValor = 'CERRADO' then Result := SEstadoDocumentoCerrado
     else if AValor = 'FACTURADA' then Result := SEstadoDocumentoFacturada

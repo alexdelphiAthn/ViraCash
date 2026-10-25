@@ -77,7 +77,8 @@ implementation
 uses
   Winapi.Messages, Winapi.CommCtrl, System.SysUtils, System.RegularExpressions,
   Data.DB, Vcl.Clipbrd, cxTextEdit, cxMaskEdit, cxSpinEdit, cxCurrencyEdit,
-  cxCalc, cxGridCustomView, cxGridCustomTableView, cxGridDBTableView,
+  cxCalc, cxLookupEdit, cxGridCustomView, cxGridCustomTableView,
+  cxGridDBTableView,
   inLibMsgArticulos;
 
 // Celda de cxGrid con editor de texto (o mascara) ligada a un campo
@@ -139,6 +140,12 @@ begin
          (TcxSpinEditProperties(Propiedades).ValueType = vtFloat));
       Result := Result or ADecimales or
         (Propiedades.ClassType = TcxSpinEditProperties);
+      // El lookup escribe nombres aunque su clave sea un ID numerico.
+      if Propiedades is TcxCustomLookupEditProperties then
+      begin
+        Result := False;
+        ADecimales := False;
+      end;
     end;
   end;
 end;
@@ -152,7 +159,8 @@ begin
   // La columna sin propiedades usa el editor por defecto de DevExpress
   // para campos float, TcxMaskEditProperties (no TcxTextEditProperties):
   // vale cualquier editor de texto, el filtro real es el tipo del campo.
-  if AEditor.ActiveProperties is TcxCustomTextEditProperties then
+  if (AEditor.ActiveProperties is TcxCustomTextEditProperties) and
+     not (AEditor.ActiveProperties is TcxCustomLookupEditProperties) then
     Campo := CampoCeldaGrid(AEditor);
   if Campo <> nil then
     Result := Campo.DataType in
@@ -370,14 +378,12 @@ end;
 function EditorNumericoDe(AVentana: HWND): TcxCustomEdit;
 var
   Control: TWinControl;
-  Campo: TField;
-  EsNumerico: Boolean;
+  EsNumerico, Decimales: Boolean;
 begin
   Result := nil;
   Control := FindControl(AVentana);
   EsNumerico := EsEditorNumericoDecimal(Control);
-  Campo := CampoCeldaGrid(Control);
-  EsNumerico := EsNumerico or (Campo is TNumericField);
+  EsNumerico := EsCeldaNumerica(Control, Decimales) or EsNumerico;
   while (Control <> nil) and not (Control is TcxCustomEdit) do
     Control := Control.Parent;
   if Control is TcxCustomEdit then

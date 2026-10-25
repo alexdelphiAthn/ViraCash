@@ -54,6 +54,8 @@ type
     procedure FormShow(Sender: TObject);
     procedure Action2Execute(Sender: TObject);
     procedure Action1Execute(Sender: TObject);
+    procedure NavegarCajas(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
   private
     FRepositorioPersistencia: IRepositorioCajasDefecto;
     FResultado: IResultadoCajasDefecto;
@@ -133,7 +135,24 @@ begin
     'selección de cajas');
   Self.Position := poScreenCenter;
   ActualizarRotulos;
+  KeyPreview := True;
+  OnKeyDown := NavegarCajas;
+  tvAlmacenesCajas.OptionsBehavior.IncSearch := True;
+  tvAlmacenesCajas.OptionsBehavior.IncSearchItem := tvAlmacenesCajasAlmacn;
   Cargar;
+end;
+
+procedure TfrmMtoModalCajDef.NavegarCajas(Sender: TObject;
+  var Key: Word; Shift: TShiftState);
+begin
+  if (Shift = []) and (Key in [VK_HOME, VK_END]) then
+  begin
+    if Key = VK_HOME then
+      tvAlmacenesCajas.Controller.GoToFirst(True)
+    else
+      tvAlmacenesCajas.Controller.GoToLast(True);
+    Key := 0;
+  end;
 end;
 
 procedure TfrmMtoModalCajDef.AplicarTraduccionActual;
@@ -210,8 +229,8 @@ begin
       VarArrayOf([sEmpresa, sAlmacen, sCaja]),
       []);
   end;
-  if btnAceptar.CanBeFocused then
-    btnAceptar.SetFocus;
+  if cxgrdAlmacenCajas.CanFocus then
+    cxgrdAlmacenCajas.SetFocus;
   tvAlmacenesCajas.ApplyBestFit(nil, True, False);
 end;
 

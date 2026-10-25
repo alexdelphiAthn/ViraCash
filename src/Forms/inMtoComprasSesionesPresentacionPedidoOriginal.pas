@@ -72,6 +72,7 @@ type
     FInicioArrastre: TPoint;
     FInicioScroll: TPoint;
     procedure ConectarEventos;
+    procedure ConfigurarBarra;
     procedure DesconectarEventos;
     procedure MostrarPagina(AVista: TVistaPedidoOriginal);
     procedure AplicarZoom(AZoom: Double);
@@ -111,7 +112,7 @@ function ResolverVistaCargaPedidoOriginal(
 implementation
 
 uses
-  inLibArchivosPedidoSesion, inLibMsgCompras;
+  inLibArchivosPedidoSesion, inLibMsgCompras, cxEdit;
 
 function LimitarZoomPedidoOriginal(AZoom: Double): Double;
 begin
@@ -180,6 +181,7 @@ begin
   inherited Create;
   ValidarEntornoVisorPedidoOriginal(AEntorno);
   FEntorno := AEntorno;
+  ConfigurarBarra;
   FImagenOriginal := TPicture.Create;
   FZoom := 1;
   ConectarEventos;
@@ -207,6 +209,28 @@ begin
   FEntorno.Imagen.OnMouseUp := ImagenMouseUp;
   FEntorno.Contenedor.OnMouseWheel := ContenedorMouseWheel;
   FEventosConectados := True;
+end;
+
+procedure TVisorPedidoOriginalSesion.ConfigurarBarra;
+var
+  Boton: TcxButton;
+begin
+  // Align recalcula el espacio cuando idioma, tema o DPI cambian el ancho.
+  for Boton in TArray<TcxButton>.Create(FEntorno.BotonAnterior,
+    FEntorno.BotonSiguiente, FEntorno.BotonAlejar, FEntorno.BotonAcercar,
+    FEntorno.BotonAjustar, FEntorno.BotonZoomReal,
+    FEntorno.BotonFijarZoom) do
+  begin
+    Boton.AlignWithMargins := True;
+    Boton.Margins.SetBounds(4, 3, 0, 3);
+    Boton.Align := alLeft;
+  end;
+  FEntorno.EtiquetaPagina.AutoSize := False;
+  FEntorno.EtiquetaPagina.AlignWithMargins := True;
+  FEntorno.EtiquetaPagina.Margins.SetBounds(8, 3, 4, 3);
+  FEntorno.EtiquetaPagina.Properties.WordWrap := False;
+  FEntorno.EtiquetaPagina.Properties.Alignment.Vert := taVCenter;
+  FEntorno.EtiquetaPagina.Align := alClient;
 end;
 
 procedure TVisorPedidoOriginalSesion.DesconectarEventos;

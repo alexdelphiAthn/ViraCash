@@ -644,10 +644,10 @@ end;
 
 function TfrmMtoGen.HayEdicionesPendientes: Boolean;
 begin
-  Result := Assigned(dsTablaG) and Assigned(dsTablaG.DataSet) and
-    (dsTablaG.DataSet.State in [dsEdit, dsInsert]);
+  Result := Assigned(dsTablaG) and
+    DataSetTieneCambiosPendientes(dsTablaG.DataSet);
   if not Result and (tdmDataModule is TDataModule) then
-    Result := CheckOpenDatasets(TDataModule(tdmDataModule));
+    Result := CheckOpenDatasets(TDataModule(tdmDataModule), True);
 end;
 
 function TfrmMtoGen.ConfirmarCierreConCambios: Integer;

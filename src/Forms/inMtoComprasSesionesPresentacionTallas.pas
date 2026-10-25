@@ -113,6 +113,11 @@ type
     function DebeDesplegarSelector(AKey: Word; AShift: TShiftState;
       AEditor: TcxCustomEdit): Boolean;
     procedure AplicarSistemaDeLaCelda(AEditor: TcxCustomEdit);
+    function BuscarSistemaPorTexto(const ATexto: string): Integer;
+    procedure ConfirmarSistemaTecleado(AEditor: TcxCustomEdit);
+    procedure ValidarSistemaTecleado(Sender: TObject;
+      var DisplayValue: TcxEditValue; var ErrorText: TCaption;
+      var Error: Boolean);
     procedure DesplegarSelector(AEditor: TcxCustomEdit);
     procedure AplicarSistemaElegido(ASender: TObject; AIdNuevo: Integer);
     procedure RefrescarColumnasSistema;
@@ -163,12 +168,13 @@ type
 implementation
 
 uses
-  System.Math, inLibMsgArticulos,
+  System.Math, System.StrUtils, inLibMsgArticulos,
   inLibMensajesVcl,
   Vcl.Forms,
   Vcl.Dialogs,
   Vcl.Graphics,
   cxDataStorage,
+  cxTextEdit,
   cxDropDownEdit,
   cxLookupDBGrid,
   inLibEnterComoTabDesplegables,
@@ -365,12 +371,15 @@ begin
     Propiedades.ListFieldIndex := 0;
     Propiedades.ListOptions.ShowHeader := True;
     Propiedades.ListOptions.CaseInsensitive := True;
-    Propiedades.DropDownListStyle := lsFixedList;
+    Propiedades.DropDownListStyle := lsEditList;
+    Propiedades.IncrementalFilteringOptions :=
+      Propiedades.IncrementalFilteringOptions + [ifoUseContainsOperator];
     Propiedades.DropDownWidth := cAnchoSelectorTallas;
     Propiedades.DropDownRows := cFilasSelectorTallas;
     Propiedades.ImmediateDropDownWhenKeyPressed := True;
     Propiedades.ClearKey := VK_DELETE;
     Propiedades.OnEditValueChanged := SistemaCambiado;
+    Propiedades.OnValidate := ValidarSistemaTecleado;
     Propiedades.OnInitPopup := AlAbrirDesplegable;
     Propiedades.OnCloseUp := AlCerrarDesplegable;
     Propiedades.OnClosePopup := AlCerrarPopup;
@@ -834,6 +843,105 @@ begin
     Result := FLineas.FieldByName('ID_AC_PIVOT_SESLIN').AsInteger;
 end;
 
+function TCoordinadorTallasSesion.BuscarSistemaPorTexto(
+  const ATexto: string): Integer;
+var
+  Marca: TBookmark;
+  Nombre, Codigo, Texto: string;
+  Coincidencias, Exacto, Separador, Numero: Integer;
+  BuscarPrefijo: Boolean;
+begin
+  Result := 0;
+  Coincidencias := 0;
+  Exacto := 0;
+  Texto := Trim(ATexto);
+  // Una cifra suelta no debe elegir un rango de tallas por su comienzo.
+  BuscarPrefijo := not TryStrToInt(Texto, Numero);
+  Marca := FConjuntos.GetBookmark;
+  FConjuntos.DisableControls;
+  try
+    FConjuntos.First;
+    while not FConjuntos.Eof do
+    begin
+      Nombre := FConjuntos.FieldByName('NOMBRE_AC').AsString;
+      Codigo := Nombre;
+      Separador := Pos(' - ', Nombre);
+      if Separador > 0 then
+        Codigo := Copy(Nombre, 1, Separador - 1);
+      if SameText(Texto, Nombre) or SameText(Texto, Codigo) then
+        Exacto := FConjuntos.FieldByName('ID_AC').AsInteger;
+      if BuscarPrefijo and (StartsText(Texto, Nombre) or
+         ((Separador > 0) and
+          StartsText(Texto, Copy(Nombre, Separador + 3, MaxInt)))) then
+      begin
+        Inc(Coincidencias);
+        Result := FConjuntos.FieldByName('ID_AC').AsInteger;
+      end;
+      FConjuntos.Next;
+    end;
+    if Exacto > 0 then
+      Result := Exacto
+    else if Coincidencias <> 1 then
+      Result := 0;
+  finally
+    if FConjuntos.BookmarkValid(Marca) then
+      FConjuntos.GotoBookmark(Marca);
+    FConjuntos.FreeBookmark(Marca);
+    FConjuntos.EnableControls;
+  end;
+end;
+
+procedure TCoordinadorTallasSesion.ValidarSistemaTecleado(Sender: TObject;
+  var DisplayValue: TcxEditValue; var ErrorText: TCaption;
+  var Error: Boolean);
+var
+  Texto: string;
+  Sistema: Integer;
+begin
+  if not FAplicandoSistema and not EsLineaReusada then
+  begin
+    Texto := Trim(VarToStr(DisplayValue));
+    if Texto <> '' then
+    begin
+      Sistema := BuscarSistemaPorTexto(Texto);
+      Error := Sistema <= 0;
+      if Error then
+        ErrorText := Format(SErrorSistemaTallasTecleadoNoValido, [Texto])
+      else
+        DisplayValue := FConjuntos.Lookup('ID_AC', Sistema, 'NOMBRE_AC');
+    end;
+  end;
+end;
+
+procedure TCoordinadorTallasSesion.ConfirmarSistemaTecleado(
+  AEditor: TcxCustomEdit);
+var
+  Sistema: Integer;
+  Texto: string;
+begin
+  if Assigned(AEditor) and not FAplicandoSistema and
+     not EsLineaReusada then
+  begin
+    Texto := Trim(TDesplegableAcceso(AEditor).Text);
+    if Texto <> '' then
+    begin
+      Sistema := BuscarSistemaPorTexto(Texto);
+      if Sistema <= 0 then
+        raise EcxEditValidationError.CreateFmt(
+          SErrorSistemaTallasTecleadoNoValido, [Texto]);
+      FAplicandoSistema := True;
+      try
+        if AEditor is TcxCustomDropDownEdit then
+          TDesplegableAcceso(AEditor).CloseUp(crEnter);
+        AEditor.EditValue := Sistema;
+        AplicarSistemaElegido(AEditor, Sistema);
+      finally
+        FAplicandoSistema := False;
+      end;
+    end;
+  end;
+end;
+
 function TCoordinadorTallasSesion.EsLineaReusada: Boolean;
 begin
   Result := HayLineaActiva and
@@ -1039,7 +1147,11 @@ begin
     // (FZ-ISSUE-138): solo se edita la columna de unidades de un
     // articulo sin tallas; el resto queda bloqueado.
     Posiciones := FGestor.GetPosicionesConjunto(iConjunto);
-    if iPosicion > Length(Posiciones) then
+    if (iConjunto <= 0) and not EsLineaReusada and
+       not SameText(FLineas.FieldByName('TIPO_LINEA_SESLIN').AsString,
+         'ESCALAR') then
+      AAllow := False
+    else if iPosicion > Length(Posiciones) then
       AAllow := False
     else if (iConjunto > 0) and EsFormatoDistribuido then
     begin
@@ -1114,6 +1226,9 @@ var
   Propiedades: TcxButtonEditProperties;
 begin
   Result := False;
+  if (AItem = FEntorno.ColumnaSelector) and (AKey = VK_TAB) and
+     ((AShift = []) or (AShift = [ssShift])) then
+    ConfirmarSistemaTecleado(AEdit);
   // Dentro del grid el Enter llega antes al grid que al combo: pasaba a
   // la celda siguiente, ocultaba el editor y la lista se cerraba sin
   // elegir (con el raton si elegia). Con la lista abierta se acepta aqui
@@ -1174,6 +1289,17 @@ begin
   if (Columna = FEntorno.ColumnaSelector) and
      FEntorno.Vista.Controller.EditingController.IsEditing then
     Editor := FEntorno.Vista.Controller.EditingController.Edit;
+  if (Columna = nil) and
+     FEntorno.Vista.Controller.EditingController.IsEditing then
+  begin
+    Editor := FEntorno.Vista.Controller.EditingController.Edit;
+    if (Editor is TcxCustomDropDownEdit) and
+       TcxCustomDropDownEdit(Editor).DroppedDown then
+      Columna := FEntorno.Vista.Controller.FocusedColumn;
+  end;
+  if (Columna = FEntorno.ColumnaSelector) and (AKey = VK_TAB) and
+     ((AShift = []) or (AShift = [ssShift])) then
+    ConfirmarSistemaTecleado(Editor);
   if (Columna = FEntorno.ColumnaSelector) and (not bDesplegado) and
      DebeDesplegarSelector(AKey, AShift, Editor) then
   begin

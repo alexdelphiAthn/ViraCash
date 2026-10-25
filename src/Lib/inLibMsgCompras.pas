@@ -209,6 +209,9 @@ resourcestring
   SErrorSistemaTallasLineaSesionObligatorio =
     'La línea no tiene sistema de tallas. Asígnale uno en la columna ' +
     '"Sistema tallas" antes de aplicar el kit.';
+  SErrorSistemaTallasTecleadoNoValido =
+    'El sistema de tallas «%s» no existe o no es único. ' +
+    'Escriba su código o selecciónelo en la lista.';
   SErrorKitProveedorNoExiste =
     'El kit %s no existe para el proveedor %s.';
   SErrorKitSinSistemaTallas =

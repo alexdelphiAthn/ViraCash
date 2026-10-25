@@ -29871,6 +29871,12 @@ begin
   ARegistrar('inLibMsgFacturas.SEstadoDocumentoFacturada',
     'src/Lib/inLibMsgFacturas.pas',
     @inLibMsgFacturas.SEstadoDocumentoFacturada);
+  ARegistrar('inLibMsgCompras.SErrorSistemaTallasTecleadoNoValido',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SErrorSistemaTallasTecleadoNoValido);
+  ARegistrar('inLibMsgFacturas.SEstadoDocumentoEntregado',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SEstadoDocumentoEntregado);
 end;
 {$WARN SYMBOL_DEPRECATED ON}
 

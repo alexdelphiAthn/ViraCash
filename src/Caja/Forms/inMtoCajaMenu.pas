@@ -522,9 +522,9 @@ begin
   try
     // Cierra el cronometro SQL antes de entrar en el selector modal.
     CerrarMonitorSQLPendiente;
-    frm.sEmpresa := UbicacionSesion.Empresa;
-    frm.sAlmacen := UbicacionSesion.Almacen;
-    frm.sCaja    := UbicacionSesion.Caja;
+    frm.sEmpresa := FEmpresa;
+    frm.sAlmacen := FAlmacen;
+    frm.sCaja := FCaja;
     frm.ShowModal;
     if (frm.sFicha = 'S') then
     begin

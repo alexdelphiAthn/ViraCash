@@ -58,7 +58,9 @@ procedure GrabarDatasets(AModulo: TDataModule);
 procedure CancelarDatasets(AModulo: TDataModule); overload;
 procedure CancelarDatasets(AModulo: TDataModule;
   APrincipal: TDataSet); overload;
-function CheckOpenDatasets(AModulo: TDataModule): Boolean;
+function DataSetTieneCambiosPendientes(ADataSet: TDataSet): Boolean;
+function CheckOpenDatasets(AModulo: TDataModule;
+  ASoloModificados: Boolean = False): Boolean;
 function ExistePeriodoUnico(
   ADataSet: TDataSet;
   ACampoFechaInicio: TField;
@@ -528,8 +530,16 @@ begin
   end;
 end;
 
-function CheckOpenDatasets(
-  AModulo: TDataModule): Boolean;
+function DataSetTieneCambiosPendientes(ADataSet: TDataSet): Boolean;
+begin
+  // Entrar en edición por foco no implica haber cambiado el registro.
+  Result := Assigned(ADataSet) and ADataSet.Active and
+    ((ADataSet.State = dsInsert) or
+     ((ADataSet.State = dsEdit) and ADataSet.Modified));
+end;
+
+function CheckOpenDatasets(AModulo: TDataModule;
+  ASoloModificados: Boolean): Boolean;
 var
   i: Integer;
   oDataSet: TDataSet;
@@ -546,7 +556,9 @@ begin
         TDataSet(AModulo.Components[i]);
       Result :=
         oDataSet.Active and
-        (oDataSet.State in [dsEdit, dsInsert]);
+        (oDataSet.State in [dsEdit, dsInsert]) and
+        (not ASoloModificados or
+         DataSetTieneCambiosPendientes(oDataSet));
     end;
     Inc(i);
   end;
