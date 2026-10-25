@@ -26,7 +26,7 @@ interface
 uses
   System.Classes, System.Types, System.Generics.Collections, Winapi.Messages,
   Vcl.Controls, Vcl.Graphics, Vcl.ExtCtrls, cxGraphics, cxEdit, cxLabel, cxButtons,
-  cxStyles, cxGridTableView;
+  cxStyles, cxGridTableView, cxImage;
 
 const
   FUENTE_CAJA = 'Source Sans 3';
@@ -95,6 +95,7 @@ type
   end;
 
 /// Estilo de caja creado para AOwner (nil si no hay).
+procedure AdaptarLogotipoCaja(AImagen: TcxImage);
 function EstiloCajaDe(AOwner: TComponent): TEstiloCaja;
 function MezclaCaja(AColor1, AColor2: TColor; APorcentaje1: Integer): TColor;
 function EscalarCaja(AControl: TControl; AValor: Integer): Integer;
@@ -140,10 +141,29 @@ implementation
 uses
   System.SysUtils, System.Math, Winapi.Windows, Vcl.Forms, Vcl.Menus,
   cxControls, cxLookAndFeels, cxLookAndFeelPainters, dxGDIPlusClasses,
-  dxCoreGraphics, dxDPIAwareUtils;
+  dxCoreGraphics, dxDPIAwareUtils, Vcl.Imaging.pngimage,
+  inLibEditorCodigoSkin;
 
 type
   TcxControlAccesoCaja = class(TcxControl);
+
+  TLogotipoCajaSkin = class(TComponent,
+    IcxLookAndFeelNotificationListener)
+  private
+    FImagen: TcxImage;
+    FOriginal: TPngImage;
+    FInverso: TPngImage;
+    FRegistrado: Boolean;
+    procedure Actualizar;
+  public
+    constructor Create(AImagen: TcxImage); reintroduce;
+    destructor Destroy; override;
+    function GetObject: TObject;
+    procedure MasterLookAndFeelChanged(Sender: TcxLookAndFeel;
+      AChangedValues: TcxLookAndFeelValues);
+    procedure MasterLookAndFeelDestroying(Sender: TcxLookAndFeel);
+  end;
+
 
 const
   RADIO_TARJETA = 12;
@@ -203,6 +223,100 @@ begin
       end;
     end;
   end;
+end;
+
+
+constructor TLogotipoCajaSkin.Create(AImagen: TcxImage);
+var
+  Flujo: TMemoryStream;
+  Pixel: PRGBTriple;
+  X, Y: Integer;
+begin
+  inherited Create(AImagen);
+  FImagen := AImagen;
+  FOriginal := TPngImage.Create;
+  FInverso := TPngImage.Create;
+  Flujo := TMemoryStream.Create;
+  try
+    (AImagen.Picture.Graphic as TdxSmartImage).SaveToStreamByCodec(
+      Flujo, dxImagePng);
+    Flujo.Position := 0;
+    FOriginal.LoadFromStream(Flujo);
+  finally
+    Flujo.Free;
+  end;
+  FInverso.Assign(FOriginal);
+  for Y := 0 to FInverso.Height - 1 do
+  begin
+    Pixel := FInverso.Scanline[Y];
+    for X := 0 to FInverso.Width - 1 do
+    begin
+      if (Pixel.rgbtRed = $10) and (Pixel.rgbtGreen = $3E) and
+        (Pixel.rgbtBlue = $30) then
+      begin
+        Pixel.rgbtRed := 255;
+        Pixel.rgbtGreen := 255;
+        Pixel.rgbtBlue := 255;
+      end;
+      Inc(Pixel);
+    end;
+  end;
+  RootLookAndFeel.AddChangeListener(Self);
+  FRegistrado := True;
+  Actualizar;
+end;
+
+destructor TLogotipoCajaSkin.Destroy;
+begin
+  if FRegistrado then
+    RootLookAndFeel.RemoveChangeListener(Self);
+  FInverso.Free;
+  FOriginal.Free;
+  inherited;
+end;
+
+procedure TLogotipoCajaSkin.Actualizar;
+const
+  VERDE_VIRA = TColor($00303E10);
+var
+  Fondo: TColor;
+begin
+  Fondo := TColoresCaja.Actuales.Fondo;
+  if RelacionContraste(clWhite, Fondo) >
+    RelacionContraste(VERDE_VIRA, Fondo) then
+    FImagen.Picture.Assign(FInverso)
+  else
+    FImagen.Picture.Assign(FOriginal);
+end;
+
+function TLogotipoCajaSkin.GetObject: TObject;
+begin
+  Result := Self;
+end;
+
+procedure TLogotipoCajaSkin.MasterLookAndFeelChanged(
+  Sender: TcxLookAndFeel; AChangedValues: TcxLookAndFeelValues);
+begin
+  Actualizar;
+end;
+
+procedure TLogotipoCajaSkin.MasterLookAndFeelDestroying(
+  Sender: TcxLookAndFeel);
+begin
+  FRegistrado := False;
+end;
+
+procedure AdaptarLogotipoCaja(AImagen: TcxImage);
+var
+  I: Integer;
+  Registrado: Boolean;
+begin
+  Registrado := False;
+  for I := 0 to AImagen.ComponentCount - 1 do
+    Registrado := Registrado or
+      (AImagen.Components[I] is TLogotipoCajaSkin);
+  if not Registrado then
+    TLogotipoCajaSkin.Create(AImagen);
 end;
 
 function EstiloCajaDe(AOwner: TComponent): TEstiloCaja;

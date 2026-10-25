@@ -991,6 +991,7 @@ var
   Teclas: TArray<TcxButton>;
   I: Integer;
 begin
+  AdaptarLogotipoCaja(cxImage1);
   Estilo := TEstiloCaja.Create(Self);
   QuitarBiselesCaja([pnlLogoLeft, pnlContenedor]);
   ConvertirPanelEnTarjetaCaja(pnlTotales, EscalarCaja(Self, 4));

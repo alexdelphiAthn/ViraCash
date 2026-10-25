@@ -140,7 +140,7 @@ procedure MostrarMenuCaja(
 implementation
 
 uses
-  inLibMensajesVcl,
+  inLibMensajesVcl, inLibCajaEstiloVcl,
   DateUtils,
   inMtoModalArqueo, inMtoModalEntradaCambio, inMtoModalGastoCaja,
   inLibMsgCaja, inLibTraducciones, inLibVentanaBarraTareas;
@@ -348,6 +348,7 @@ begin
   // La maqueta crea el handle del calendario, que pide enseguida los días en
   // negrita: tiene que ir después de crear el caché.
   CrearTarjetas;
+  AdaptarLogotipoCaja(cxImage1);
   MaquetarPantalla;
 
   if ParametrosCaja.GetBool('vgerShowCajaSelection', True) then
