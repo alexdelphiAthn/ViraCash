@@ -1565,6 +1565,7 @@
                   object dbcFotoUnidad: TcxGridDBColumn
                     Caption = 'Asignada a'
                     DataBinding.FieldName = 'ASIGNACION_FOTO'
+                    OnGetDisplayText = dbcFotoUnidadGetDisplayText
                     Width = 120
                   end
                   object dbcFotoFichero: TcxGridDBColumn

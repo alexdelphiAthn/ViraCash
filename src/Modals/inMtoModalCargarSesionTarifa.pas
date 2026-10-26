@@ -30,11 +30,15 @@ type
   end;
 
   TfrmModalCargarSesionTarifa = class(TfrmModalAddBlockBase)
+  private
+    function NumeroArticulosPreview(ASoloPendientes: Boolean): Integer;
   protected
     FCodigoTarc    : Integer;
     FCodigoTarOrig : string;
     FCodigoTarDest : string;
     FResultado     : TCargarSesionTarifaResult;
+    procedure ConfigurarPreviewExtra; override;
+    function TextoResumenPreview(ANumeroRegistros: Integer): string; override;
     function ContextoCargaMasiva: TContextoCargaMasivaArticulos; override;
     function  TextoConfirmacion(ANumPendientes: Integer): string; override;
     function  TextoExito(ANumInsertados: Integer): string; override;
@@ -57,6 +61,7 @@ implementation
 {$R *.dfm}
 
 uses
+  Data.DB, cxGridDBTableView,
   inLibMensajesVcl,
   inLibUser, inLibMsgArticulos;
 
@@ -97,17 +102,81 @@ begin
   Result.TarifaDestinoSesion := FCodigoTarDest;
 end;
 
+procedure TfrmModalCargarSesionTarifa.ConfigurarPreviewExtra;
+var
+  Columna: TcxGridDBColumn;
+begin
+  inherited;
+  Columna := tvPreview.GetColumnByFieldName('CODIGO_UNIDAD_SKU');
+  if Columna = nil then
+  begin
+    Columna := tvPreview.CreateColumn;
+    Columna.DataBinding.FieldName := 'CODIGO_UNIDAD_SKU';
+    Columna.Index := colPrevCodigo.Index + 1;
+    Columna.Width := 160;
+    Columna.Options.Editing := False;
+  end;
+  Columna.Caption := SCaptionColSku;
+end;
+
+function TfrmModalCargarSesionTarifa.NumeroArticulosPreview(
+  ASoloPendientes: Boolean): Integer;
+var
+  Codigos: TStringList;
+  Marca: TBookmark;
+begin
+  Result := 0;
+  if Assigned(DatosPreview) and DatosPreview.Active then
+  begin
+    Codigos := TStringList.Create;
+    try
+      Codigos.Sorted := True;
+      Codigos.Duplicates := dupIgnore;
+      Marca := DatosPreview.Bookmark;
+      DatosPreview.DisableControls;
+      try
+        DatosPreview.First;
+        while not DatosPreview.Eof do
+        begin
+          if (not ASoloPendientes) or
+            (DatosPreview.FieldByName('YA_CARGADO').AsString <> 'S') then
+          begin
+            Codigos.Add(DatosPreview.FieldByName('CODIGO_ART_ART').AsString);
+          end;
+          DatosPreview.Next;
+        end;
+      finally
+        if DatosPreview.BookmarkValid(Marca) then
+        begin
+          DatosPreview.Bookmark := Marca;
+        end;
+        DatosPreview.EnableControls;
+      end;
+      Result := Codigos.Count;
+    finally
+      Codigos.Free;
+    end;
+  end;
+end;
+
+function TfrmModalCargarSesionTarifa.TextoResumenPreview(
+  ANumeroRegistros: Integer): string;
+begin
+  Result := inherited TextoResumenPreview(NumeroArticulosPreview(False));
+end;
+
 function TfrmModalCargarSesionTarifa.TextoConfirmacion(
   ANumPendientes: Integer): string;
 begin
   Result := Format(SPreguntaConfirmarCargaSesionTarifa,
-                   [ANumPendientes]);
+                   [NumeroArticulosPreview(True)]);
 end;
 
 function TfrmModalCargarSesionTarifa.TextoExito(
   ANumInsertados: Integer): string;
 begin
-  Result := Format(SInfoArticulosCargadosSesionTarifa, [ANumInsertados]);
+  Result := Format(SInfoArticulosCargadosSesionTarifa,
+    [NumeroArticulosPreview(True)]);
 end;
 
 function TfrmModalCargarSesionTarifa.TextoExcluirYaCargados: string;

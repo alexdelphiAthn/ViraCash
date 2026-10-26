@@ -94,6 +94,8 @@ type
     procedure ReportBeforePrintConColor(
       Component: TfrxReportComponent);
   public
+    class procedure AjustarTextosDetalle(AInforme: TfrxReport;
+      const ANombreDatos: string); static;
     constructor Create(
       AOwner: TComponent;
       const ARepositorio: IRepositorioInformesCaja); reintroduce;
@@ -266,6 +268,12 @@ end;
 // de texto del detalle van en un solo renglón y recortan lo que sobra.
 // Se aplica también a los formatos guardados con el salto activado.
 procedure TfrmPrintOperacionesVenta.RecortarTextosDetalle;
+begin
+  AjustarTextosDetalle(frxrprt1, fxdsVentas.UserName);
+end;
+
+class procedure TfrmPrintOperacionesVenta.AjustarTextosDetalle(
+  AInforme: TfrxReport; const ANombreDatos: string);
 const
   MEMOS_TEXTO: array[0..9] of string = (
     'MemoArticulo', 'MemoColor', 'MemoTalla', 'MemoCopa', 'MemoProveedor',
@@ -276,10 +284,49 @@ var
   oObjeto: TfrxComponent;
   iObjeto: Integer;
   oMemo: TfrxMemoView;
+
+  procedure AmpliarColor(const ANombreColor, ANombreDescripcion: string);
+  var
+    Color, Descripcion, Celda: TfrxMemoView;
+    Objeto: TfrxComponent;
+    Delta, InicioDescripcion, FinColor: Extended;
+    I: Integer;
+  begin
+    Objeto := AInforme.FindObject(ANombreColor);
+    if Objeto is TfrxMemoView then
+    begin
+      Color := TfrxMemoView(Objeto);
+      Objeto := AInforme.FindObject(ANombreDescripcion);
+      if Objeto is TfrxMemoView then
+      begin
+        Descripcion := TfrxMemoView(Objeto);
+        Delta := 52 - Color.Width;
+        if (Delta > 0) and (Descripcion.Width - Delta >= 80) and
+          (Color.Parent = Descripcion.Parent) then
+        begin
+          InicioDescripcion := Descripcion.Left;
+          FinColor := Color.Left + Color.Width;
+          for I := 0 to Color.Parent.Objects.Count - 1 do
+            if TObject(Color.Parent.Objects[I]) is TfrxMemoView then
+            begin
+              Celda := TfrxMemoView(Color.Parent.Objects[I]);
+              if (Celda.Left >= FinColor - 0.01) and
+                (Celda.Left <= InicioDescripcion + 0.01) then
+                Celda.Left := Celda.Left + Delta;
+            end;
+          Descripcion.Width := Descripcion.Width - Delta;
+          Color.Width := 52;
+        end;
+      end;
+    end;
+  end;
+
 begin
+  AmpliarColor('MemoColor', 'MemoDescripcion');
+  AmpliarColor('MemoHColor', 'MemoHDescripcion');
   for sNombre in MEMOS_TEXTO do
   begin
-    oObjeto := frxrprt1.FindObject(sNombre);
+    oObjeto := AInforme.FindObject(sNombre);
     if oObjeto is TfrxMemoView then
     begin
       TfrxMemoView(oObjeto).WordWrap := False;
@@ -288,17 +335,28 @@ begin
   end;
   // FZ-ISSUE-641: las celdas de detalle ocupan una sola línea,
   // también cuando el formato se carga desde la BBDD.
-  for iObjeto := 0 to frxrprt1.AllObjects.Count - 1 do
-    if TObject(frxrprt1.AllObjects[iObjeto]) is TfrxMemoView then
+  for iObjeto := 0 to AInforme.AllObjects.Count - 1 do
+    if TObject(AInforme.AllObjects[iObjeto]) is TfrxMemoView then
     begin
-      oMemo := TfrxMemoView(frxrprt1.AllObjects[iObjeto]);
+      oMemo := TfrxMemoView(AInforme.AllObjects[iObjeto]);
       if (oMemo.Parent is TfrxMasterData) and
-         SameText(oMemo.DataSetName, fxdsVentas.UserName) then
+         SameText(oMemo.DataSetName, ANombreDatos) then
       begin
         oMemo.WordWrap := False;
         oMemo.Clipped := True;
       end;
     end;
+  // El color se muestra completo; la banda crece con sus renglones.
+  // Mantener WordWrap sin estirar la banda provocaba la regresión 641.
+  oObjeto := AInforme.FindObject('MemoColor');
+  if oObjeto is TfrxMemoView then
+  begin
+    oMemo := TfrxMemoView(oObjeto);
+    oMemo.WordWrap := True;
+    oMemo.StretchMode := smActualHeight;
+    if oMemo.Parent is TfrxBand then
+      TfrxBand(oMemo.Parent).Stretched := True;
+  end;
 end;
 
 // FZ-ISSUE-450: «Color / Aroma» y «Talla / Medida» no caben en una línea

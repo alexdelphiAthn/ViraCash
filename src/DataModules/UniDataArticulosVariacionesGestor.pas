@@ -35,7 +35,9 @@ uses
   cxLabel,
   cxDropDownEdit,
   DBAccess,
-  inLibMsgArticulos;
+  inLibMsgArticulos,
+  inLibTraducciones,
+  inLibTraduccionesIntf;
 
 const
   ALTO_FILA = 26;
@@ -60,6 +62,7 @@ type
   private
     FConexion: TUniConnection;
     FPanelAtributos: TScrollBox;
+    FEtiquetaTipo: TcxLabel;
     FCodigoArticulo: string;
     FTipoVariacion: string;
     FNombreVariacion: string;
@@ -117,11 +120,29 @@ end;
 procedure TGestorArticulosVariacionesUniDAC.ActualizarIdioma;
 var
   rSlot: TSlotVariacionUniDAC;
+  Servicio: IServicioTraducciones;
+  FormatoTipo: string;
+  OpcionSinConjunto: string;
 begin
+  Servicio := ResolverServicioTraducciones(FPanelAtributos);
+  FormatoTipo := SCaptionTipoVariacionDetalle;
+  OpcionSinConjunto := SOpcionSinConjuntoSku;
+  if Assigned(Servicio) then
+  begin
+    FormatoTipo := Servicio.Traducir(
+      'inLibMsgArticulos.SCaptionTipoVariacionDetalle', FormatoTipo);
+    OpcionSinConjunto := Servicio.Traducir(
+      'inLibMsgArticulos.SOpcionSinConjuntoSku', OpcionSinConjunto);
+  end;
+  if Assigned(FEtiquetaTipo) then
+  begin
+    FEtiquetaTipo.Caption := Format(
+      FormatoTipo, [FTipoVariacion, FNombreVariacion]);
+  end;
   for rSlot in FSlots do
     if Assigned(rSlot.Control) and
        (rSlot.Control.Properties.Items.Count > 0) then
-      rSlot.Control.Properties.Items[0] := SOpcionSinConjuntoSku;
+      rSlot.Control.Properties.Items[0] := OpcionSinConjunto;
 end;
 
 destructor TGestorArticulosVariacionesUniDAC.Destroy;
@@ -139,6 +160,7 @@ begin
     if Assigned(FSlots[Indice].Opciones) then
       FSlots[Indice].Opciones.Free;
   FSlots.Clear;
+  FEtiquetaTipo := nil;
   while FPanelAtributos.ControlCount > 0 do
     FPanelAtributos.Controls[0].Free;
 end;
@@ -374,6 +396,7 @@ var
 begin
   FPanelAtributos.DisableAlign;
   try
+    FEtiquetaTipo := nil;
     while FPanelAtributos.ControlCount > 0 do
       FPanelAtributos.Controls[0].Free;
     for Indice := 0 to FSlots.Count - 1 do
@@ -389,9 +412,8 @@ begin
   Etiqueta.Parent := FPanelAtributos;
   Etiqueta.Left := MARGEN_H;
   Etiqueta.Top := MARGEN_V;
-  Etiqueta.Caption := Format(
-    SCaptionTipoVariacionDetalle,
-    [FTipoVariacion, FNombreVariacion]);
+  FEtiquetaTipo := Etiqueta;
+  ActualizarIdioma;
   Etiqueta.Style.Font.Style := [fsBold];
   Etiqueta.Transparent := True;
   PosicionSuperior := MARGEN_V + ALTO_FILA + MARGEN_V;
@@ -402,6 +424,7 @@ begin
     FSlots[Indice] := Slot;
     Inc(PosicionSuperior, ALTO_FILA + MARGEN_V);
   end;
+  ActualizarIdioma;
 end;
 
 procedure TGestorArticulosVariacionesUniDAC.CrearFilaAtributo(

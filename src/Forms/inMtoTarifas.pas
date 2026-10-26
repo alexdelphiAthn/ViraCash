@@ -328,6 +328,14 @@ begin
   inherited;
   dmmTarifas := tdmDataModule as TdmTarifas;
   tvArticulos.DataController.DataSource := dmmTarifas.dsArticulosTarifas;
+  tvArticulos.OptionsData.Deleting := PuedeAccionMto(apmBorrar);
+  tvArticulos.Navigator.Buttons.Delete.Enabled := True;
+  lblInstanteAlta.Caption := SCaptionInstanteAltaServidor;
+  lblInstanteModif.Caption := SCaptionInstanteModificacionServidor;
+  cxdbtxtdtUSUARIOALTA.Hint := SAyudaInstantesServidor;
+  cxdbtxtdtUSUARIOALTA.ShowHint := True;
+  cxdbtxtdtINSTANTEALTA.Hint := SAyudaInstantesServidor;
+  cxdbtxtdtINSTANTEALTA.ShowHint := True;
   tvArticulos.OnDblClick := DobleClickArticulo;
   pkFieldName := 'CODIGO_TAR_ARTTAR';
   CrearBotonSesionesCambios;

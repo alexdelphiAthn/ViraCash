@@ -16,6 +16,7 @@ unit inLibAlbaranesVentaPresentacionArticulo;
 interface
 
 uses
+  Data.DB,
   inLibArticulosResolverIntf,
   inLibArticulosValidadorIntf;
 
@@ -38,6 +39,9 @@ type
     function Preparado: Boolean;
   end;
 
+procedure AplicarPrecioTarifaAlbaranVenta(ALinea: TDataSet;
+  const AResultado: TResultadoArticuloAlbaranVenta);
+
 function ResolverArticuloAlbaranVenta(
   const AValidador: IArticulosValidador;
   const AResolver: IArticulosResolver;
@@ -48,6 +52,42 @@ implementation
 
 uses
   System.SysUtils;
+
+procedure AplicarPrecioTarifaAlbaranVenta(ALinea: TDataSet;
+  const AResultado: TResultadoArticuloAlbaranVenta);
+var
+  Salida, Final, Descuento, Porcentaje: Double;
+  CampoMaestro, CampoComplementario: string;
+begin
+  CampoMaestro := 'PRECIO_VENTA_SIVA_ARTICULO_ALBLIN';
+  CampoComplementario := 'PRECIO_VENTA_CIVA_ARTICULO_ALBLIN';
+  if AResultado.Precio.EsImpIncl then
+  begin
+    ALinea.FieldByName('ESIMP_INCL_TARIFA_ALBLIN').AsString := 'S';
+    CampoMaestro := 'PRECIO_VENTA_CIVA_ARTICULO_ALBLIN';
+    CampoComplementario := 'PRECIO_VENTA_SIVA_ARTICULO_ALBLIN';
+  end
+  else
+    ALinea.FieldByName('ESIMP_INCL_TARIFA_ALBLIN').AsString := 'N';
+  Salida := 0;
+  Final := 0;
+  Descuento := 0;
+  Porcentaje := 0;
+  if not AResultado.Datos.RequiereSku then
+  begin
+    Salida := AResultado.Precio.PrecioSalida;
+    Final := AResultado.Precio.PrecioFinal;
+    Descuento := AResultado.Precio.PrecioDto;
+    Porcentaje := AResultado.Precio.PorcentajeDto;
+  end;
+  // Las notificaciones del dataset pueden recalcular el neto. Terminar
+  // por el precio maestro conserva exactamente el importe de la tarifa.
+  ALinea.FieldByName('PRECIO_SALIDA_ALBLIN').AsFloat := Salida;
+  ALinea.FieldByName('PORCENTAJE_DTO_ALBLIN').AsFloat := Porcentaje;
+  ALinea.FieldByName('PRECIO_DTO_ALBLIN').AsFloat := Descuento;
+  ALinea.FieldByName(CampoComplementario).AsFloat := 0;
+  ALinea.FieldByName(CampoMaestro).AsFloat := Final;
+end;
 
 function TResultadoArticuloAlbaranVenta.Preparado: Boolean;
 begin

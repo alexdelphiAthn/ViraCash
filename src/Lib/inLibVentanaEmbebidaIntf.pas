@@ -21,6 +21,12 @@ uses
   System.SysUtils;
 
 type
+  IBorradoContextualVentana = interface
+    ['{F8B1F60D-1E74-4403-8DB9-F6B56C20AFD8}']
+    // True consume el atajo, incluso si el contexto sólo permite consultar.
+    function ProcesarBorradoContextual: Boolean;
+  end;
+
   TConfiguracionVentanaGestionada = record
     Separada: Boolean;
     Grupo: string;
@@ -83,7 +89,18 @@ function RolAperturaMantenimiento(
   ABusqueda: Boolean;
   ANumeroInstancia: Integer): TRolAperturaMantenimiento;
 
+function ConsumirBorradoContextual(AReceptor: TObject): Boolean;
+
 implementation
+
+function ConsumirBorradoContextual(AReceptor: TObject): Boolean;
+var
+  Receptor: IBorradoContextualVentana;
+begin
+  Result := Supports(AReceptor, IBorradoContextualVentana, Receptor);
+  if Result then
+    Result := Receptor.ProcesarBorradoContextual;
+end;
 
 function RolAperturaMantenimiento(
   ABusqueda: Boolean;

@@ -16,6 +16,11 @@ unit inLibMsgVentas;
 interface
 
 resourcestring
+  STituloMovimientosVentasFacturadas =
+    'Movimientos de ventas facturadas por artículos y fechas';
+  SCaptionOrigenVentasInforme = 'Origen de las ventas';
+  SAlcanceVentasFacturadasInforme =
+    'Facturas y tickets; excluye albaranes pendientes de facturar';
   SCaptionProveedorEfectosRemesa = 'Proveedor';
   SCaptionClienteEfectosRemesa = 'Cliente';
   STextoEfectosPagadosRemesa = 'pagados';

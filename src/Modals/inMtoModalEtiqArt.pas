@@ -58,6 +58,7 @@ type
     procedure btnEditarClick(Sender: TObject);
   private
     FCrearDataSetExterno: TCrearDataSetEtiquetasProc;
+    FSeleccionesCargadas: Boolean;
     FCargarAlmacenesExterno: TCargarAlmacenesEtiquetasProc;
     FTextoOrigenExterno: string;
     FCodigosTarifa: TStringList;
@@ -71,11 +72,14 @@ type
     function ObtenerAlmacenesCsv: string;
     procedure ReportBeforePrintEtiquetas(
       Component: TfrxReportComponent);
+  protected
+    procedure AvisarAntesDeConsulta; override;
   public
     // Data module asignado por el Mto Articulos que invoca este modal
     // (campo de instancia del form padre, no variable global, para que
     // funcione cuando hay dos ventanas Articulos abiertas a la vez).
     DM: TdmArticulos;
+    procedure ValidarSeleccionEtiquetas;
     procedure preparar_consulta; override;
     procedure AfterReportLoaded; override;
     // <-- AÑADIR
@@ -273,29 +277,59 @@ end;
 
 procedure TfrmPrintEtiqArt.FormShow(Sender: TObject);
 var
-  Idx: Integer;
+  Idx, I: Integer;
+  TarifaAnterior: string;
+  Marcados: TStringList;
 begin
   inherited;
   AplicarOrigenExterno;
-  // Las cargas que dependen de DM se hacen aqui (no en FormCreate)
-  // porque la asignacion formulario.DM := dmmArticulos en el invocador
-  // ocurre DESPUES del Create y ANTES del ShowModal.
-  if Assigned(DM) then
-  begin
-    Idx := -1;
-    DM.CargarTarifasEtiquetas(cbbTarifa.Properties.Items, FCodigosTarifa, Idx);
-    if Idx >= 0 then
+  if not Assigned(FCodigosTarifa) then
+    FCodigosTarifa := TStringList.Create;
+  TarifaAnterior := ObtenerCodigoTarifa;
+  Marcados := TStringList.Create;
+  try
+    for I := 0 to lvAlmacenes.Items.Count - 1 do
+      if lvAlmacenes.Items[I].Checked then
+        Marcados.Add(lvAlmacenes.Items[I].Caption);
+    // Se vuelve a leer el catálogo: una primera carga vacía nunca deja
+    // bloqueada la lista. La selección se conserva por código, no índice.
+    if Assigned(DM) then
+    begin
+      Idx := -1;
+      DM.CargarTarifasEtiquetas(cbbTarifa.Properties.Items,
+        FCodigosTarifa, Idx);
+      if FCodigosTarifa.IndexOf(TarifaAnterior) >= 0 then
+        Idx := FCodigosTarifa.IndexOf(TarifaAnterior);
       cbbTarifa.ItemIndex := Idx;
-    if Assigned(FCargarAlmacenesExterno) then
-    begin
-      FCargarAlmacenesExterno(lvAlmacenes);
-    end
-    else
-    begin
-      DM.CargarAlmacenesEtiquetas(lvAlmacenes);
+      if Assigned(FCargarAlmacenesExterno) then
+        FCargarAlmacenesExterno(lvAlmacenes)
+      else
+        DM.CargarAlmacenesEtiquetas(lvAlmacenes);
+      if FSeleccionesCargadas then
+        for I := 0 to lvAlmacenes.Items.Count - 1 do
+          lvAlmacenes.Items[I].Checked :=
+            Marcados.IndexOf(lvAlmacenes.Items[I].Caption) >= 0;
+      if not FSeleccionesCargadas and Assigned(FLayout) then
+        RestaurarLayout;
+      FSeleccionesCargadas := FCodigosTarifa.Count > 0;
     end;
+  finally
+    Marcados.Free;
   end;
-  RestaurarLayout;
+end;
+
+procedure TfrmPrintEtiqArt.ValidarSeleccionEtiquetas;
+begin
+  if ObtenerCodigoTarifa = '' then
+    raise EArgumentException.Create(SErrorTarifaEtiquetasNoSeleccionada);
+end;
+
+procedure TfrmPrintEtiqArt.AvisarAntesDeConsulta;
+begin
+  inherited;
+  // Esta validación se ejecuta antes de abrir la espera y desactivar
+  // controles; nunca crea un diálogo modal desde la consulta del informe.
+  ValidarSeleccionEtiquetas;
 end;
 
 procedure TfrmPrintEtiqArt.AplicarOrigenExterno;
@@ -375,11 +409,7 @@ procedure TfrmPrintEtiqArt.preparar_consulta;
 var
   sCodArt: string;
 begin
-  if ObtenerCodigoTarifa = '' then
-  begin
-    ShowMessage_fza(SErrorTarifaEtiquetasNoSeleccionada);
-    Abort;
-  end;
+  ValidarSeleccionEtiquetas;
   if Assigned(FCrearDataSetExterno) then
   begin
     FCrearDataSetExterno(DM,

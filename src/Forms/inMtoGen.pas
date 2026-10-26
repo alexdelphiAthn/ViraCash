@@ -318,6 +318,7 @@ type
     function NombreCampoESACTIVO: string; virtual;
     function ContarHijosActivos: Integer; virtual;
     function DescripcionHijos: string; virtual;
+    function TextoConfirmacionBorrado: string; virtual;
     procedure EjecutarEnBackground(AccionBG: TProc;
                                    AlTerminar: TProc<string>);
     procedure AbrirTablaPrincipalAsync;
@@ -1585,7 +1586,7 @@ begin
   FGuardianBorrado := TGestorGuardianBorradoMto.Create(
     dsTablaG, nvNavegador, cxGrdDBTabPrin,
     PuedeAccionMto, NombreCampoESACTIVO,
-    ContarHijosActivos, DescripcionHijos);
+    ContarHijosActivos, DescripcionHijos, TextoConfirmacionBorrado);
   FGestorGuias := TGestorGuiasGridMto.Create(
     Self, cxgrdPrincipal, cxGrdDBTabPrin,
     InformesGuiasCache, ObtenerConsultaGuias,
@@ -2700,6 +2701,11 @@ end;
 function TfrmMtoGen.ContarHijosActivos: Integer;
 begin
   Result := 0;
+end;
+
+function TfrmMtoGen.TextoConfirmacionBorrado: string;
+begin
+  Result := '';
 end;
 
 function TfrmMtoGen.DescripcionHijos: string;

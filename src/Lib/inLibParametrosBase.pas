@@ -22,6 +22,7 @@ uses
 type
   TParametroDef = class
   public
+    EsHeredado: Boolean;
     Categoria: string;
     Nombre: string;
     Descripcion: string;
@@ -242,12 +243,13 @@ begin
           else
           begin
             RegistrarParametroSinBloqueo(
-              'Otros (Heredados de BD)',
+              SCategoriaParametrosHeredados,
               ParPerfil.Key,
-              'Parámetro sin descripción',
+              SDescripcionParametroHeredado,
               tpString,
               ParPerfil.Value.sValue
             );
+            FDefiniciones[ParPerfil.Key].EsHeredado := True;
           end;
         end;
       end;
@@ -332,6 +334,12 @@ begin
       Result[Indice].Categoria := Parametro.Categoria;
       Result[Indice].Nombre := Parametro.Nombre;
       Result[Indice].Descripcion := Parametro.Descripcion;
+      // Resolver al listar permite cambiar de idioma sin recargar la BD.
+      if Parametro.EsHeredado then
+      begin
+        Result[Indice].Categoria := SCategoriaParametrosHeredados;
+        Result[Indice].Descripcion := SDescripcionParametroHeredado;
+      end;
       Result[Indice].Tipo := Parametro.Tipo;
       Result[Indice].ValorPorDefecto := Parametro.ValorPorDefecto;
       Result[Indice].ValorActual := Parametro.ValorActual;

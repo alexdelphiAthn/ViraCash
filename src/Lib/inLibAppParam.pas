@@ -95,7 +95,9 @@ begin
       'Height',
       'Divider',
       'appVerifactuIdInstalacion',
-      'appVerifactuInstalacionUrl'
+      'appVerifactuInstalacionUrl',
+      // Retirado: TEMPORADA se determina por artículo, no por este perfil.
+      'appTrazabilidadTemporada'
     )
   );
   FBloqueoLicencia := TCriticalSection.Create;

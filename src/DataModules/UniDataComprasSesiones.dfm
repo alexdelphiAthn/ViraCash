@@ -200,11 +200,7 @@
       '                F.CODIGO_ART_TENTATIVO_CSF)'
       '         AS CODIGO_ART_TENTATIVO_CSF,'
       '       F.CODIGO_UNIDAD_CSF,'
-      '       CASE'
-      '         WHEN COALESCE(F.CODIGO_UNIDAD_CSF, '#39#39') = '#39#39
-      '         THEN '#39'Art'#237'culo'#39
-      '         ELSE CONCAT('#39'SKU '#39', F.CODIGO_UNIDAD_CSF)'
-      '       END AS ASIGNACION_FOTO,'
+      '       COALESCE(F.CODIGO_UNIDAD_CSF, '#39#39') AS ASIGNACION_FOTO,'
       '       L.REF_PRV_SESLIN,'
       '       L.DESCRIPCION_SESLIN,'
       '       L.COLOR_TEXTO_SESLIN,'

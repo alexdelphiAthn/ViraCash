@@ -3773,8 +3773,7 @@ procedure TfrmMtoOpeCaja.actSalirExecute(Sender: TObject);
 begin
   if Assigned(FSubsanacion) then
     CerrarSubsanacion
-  else if DatosCaja.cdsLineas.Active and
-          not DatosCaja.cdsLineas.IsEmpty then
+  else if not VentaCajaSinContenido(DatosCaja.cdsLineas) then
   begin
     if MessageDlg_fza(SPreguntaBorrarVentaCaja,
                   mtConfirmation, [mbYes, mbNo], 0) = mrYes then

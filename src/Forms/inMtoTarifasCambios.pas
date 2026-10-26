@@ -16,7 +16,7 @@ unit inMtoTarifasCambios;
 interface
 
 uses
-  inLibRegistroPantallas,
+  inLibRegistroPantallas, inLibVentanaEmbebidaIntf,
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, System.UITypes, Vcl.Graphics, Vcl.Controls, Vcl.Forms,
   Vcl.Dialogs, Vcl.ExtCtrls, Vcl.Menus, System.Actions, Vcl.ActnList,
@@ -34,7 +34,7 @@ uses
   inLibCargaMasivaArticulosPersistenciaIntf, inLibPermisosIntf;
 
 type
-  TfrmMtoTarifasCambios = class(TfrmMtoGen)
+  TfrmMtoTarifasCambios = class(TfrmMtoGen, IBorradoContextualVentana)
     procedure FormCreate(Sender: TObject);
   private
     FCargaMasiva: TServiciosCargaMasivaArticulos;
@@ -71,6 +71,8 @@ type
     pnlSeleccion: TPanel;
     btnMarcarTodo: TcxButton;
     btnDesmarcarTodo: TcxButton;
+    btnActualizarCostes: TcxButton;
+    btnEliminarLineas: TcxButton;
     actIrArticulo     : TAction;
     procedure CrearControlesDinamicos;
     procedure CrearAtajos;
@@ -103,6 +105,8 @@ type
     procedure btnCargarExcelClick(Sender: TObject);
     procedure btnDescuentoLoteClick(Sender: TObject);
     procedure btnMarcarTodoClick(Sender: TObject);
+    procedure btnActualizarCostesClick(Sender: TObject);
+    procedure btnEliminarLineasClick(Sender: TObject);
     procedure btnDesmarcarTodoClick(Sender: TObject);
     function IdsLineasSeleccionadas: TArray<Integer>;
     function LeerExcelSesion(const AArchivo: string;
@@ -110,6 +114,9 @@ type
     procedure actIrArticuloExecute(Sender: TObject);
   public
     dmmTarifasCambios: TdmTarifasCambios;
+    function TextoConfirmacionBorrado: string; override;
+    function IsShortCut(var Message: TWMKey): Boolean; override;
+    function ProcesarBorradoContextual: Boolean;
     constructor Create(
       AOwner: TComponent;
       const AContexto: TContextoAutorizacionPantalla;
@@ -378,6 +385,16 @@ begin
   btnDesmarcarTodo.SetBounds(146, 5, 140, 25);
   btnDesmarcarTodo.Caption := SCaptionDesmarcarTodoSesionTarifa;
   btnDesmarcarTodo.OnClick := btnDesmarcarTodoClick;
+  btnActualizarCostes := TcxButton.Create(Self);
+  btnActualizarCostes.Parent := pnlSeleccion;
+  btnActualizarCostes.SetBounds(300, 5, 160, 25);
+  btnActualizarCostes.Caption := SCaptionActualizarCostesSesion;
+  btnActualizarCostes.OnClick := btnActualizarCostesClick;
+  btnEliminarLineas := TcxButton.Create(Self);
+  btnEliminarLineas.Parent := pnlSeleccion;
+  btnEliminarLineas.SetBounds(472, 5, 150, 25);
+  btnEliminarLineas.Caption := SCaptionEliminarLineasSesion;
+  btnEliminarLineas.OnClick := btnEliminarLineasClick;
   cxgrdLineas := TcxGrid.Create(Self);
   cxgrdLineas.Parent := tsLineas;
   cxgrdLineas.Align := alClient;
@@ -385,6 +402,23 @@ begin
   glLineas := cxgrdLineas.Levels.Add;
   glLineas.GridView := tvLineas;
   tvLineas.OptionsData.Deleting := False;
+  tvLineas.OptionsData.Inserting := False;
+  tvLineas.OptionsData.Appending := False;
+  tvLineas.Navigator.Visible := True;
+  tvLineas.Navigator.Buttons.First.Visible := True;
+  tvLineas.Navigator.Buttons.PriorPage.Visible := False;
+  tvLineas.Navigator.Buttons.Prior.Visible := True;
+  tvLineas.Navigator.Buttons.Next.Visible := True;
+  tvLineas.Navigator.Buttons.NextPage.Visible := False;
+  tvLineas.Navigator.Buttons.Last.Visible := True;
+  tvLineas.Navigator.Buttons.Insert.Visible := False;
+  tvLineas.Navigator.Buttons.Append.Visible := False;
+  tvLineas.Navigator.Buttons.Delete.Visible := True;
+  tvLineas.Navigator.Buttons.Delete.Hint := SCaptionEliminarLineasSesion;
+  tvLineas.Navigator.Buttons.Delete.OnClick := btnEliminarLineasClick;
+  tvLineas.Navigator.Buttons.SaveBookmark.Visible := False;
+  tvLineas.Navigator.Buttons.GotoBookmark.Visible := False;
+  tvLineas.Navigator.Buttons.Filter.Visible := False;
   tvLineas.OptionsView.GroupByBox := False;
   // Casillas y seleccion con Ctrl, Mayus y Ctrl+Mayus.
   tvLineas.OptionsSelection.MultiSelect := True;
@@ -476,6 +510,11 @@ begin
   dmmTarifasCambios.unqryLineas.DetailFields := 'CODIGO_TARC_TARCLIN';
   dmmTarifasCambios.unqryLineas.MasterSource := dsTablaG;
   tvLineas.DataController.DataSource := dmmTarifasCambios.dsLineas;
+  btnActualizarCostes.Enabled := PuedeAccionMto(apmModificar);
+  btnEliminarLineas.Enabled := PuedeAccionMto(apmBorrar);
+  nvNavegador.Buttons.Delete.Hint := SCaptionEliminarSesionCompleta;
+  tvLineas.OptionsData.Deleting := PuedeAccionMto(apmBorrar);
+  tvLineas.Navigator.Buttons.Delete.Enabled := True;
   cbbTarifaOrigen.Properties.ListSource := dmmTarifasCambios.dsTarifas;
   cbbTarifaDestino.Properties.ListSource := dmmTarifasCambios.dsTarifas;
   pkFieldName := 'CODIGO_TARC';
@@ -559,6 +598,16 @@ procedure TfrmMtoTarifasCambios.dsTablaGDataChange(Sender: TObject;
 begin
   if not (csDestroying in ComponentState) then
   begin
+    if Assigned(dsTablaG.DataSet) and dsTablaG.DataSet.Active and
+      not dsTablaG.DataSet.IsEmpty then
+      tvLineas.OptionsData.Deleting := PuedeAccionMto(apmBorrar) and
+        not SameText(dsTablaG.DataSet.FieldByName('ESTADO_TARC').AsString,
+          'APLICADA');
+    if Assigned(dsTablaG.DataSet) and dsTablaG.DataSet.Active and
+      not dsTablaG.DataSet.IsEmpty then
+      tvLineas.OptionsData.Editing := PuedeAccionMto(apmModificar) and
+        not SameText(dsTablaG.DataSet.FieldByName('ESTADO_TARC').AsString,
+          'APLICADA');
     if (Field = nil) or SameText(Field.FieldName, 'TIPO_APLICACION_TARC') then
       ActualizarFormatoValor;
   end;
@@ -588,6 +637,8 @@ begin
     CrearColumna(tvLineas, 'ESAPLICAR_TARCLIN', SCaptionCambioAplicar, 65);
     CrearColumna(tvLineas, 'ESTADO_TARCLIN', SCaptionCambioTarifaEstado, 90);
     CrearColumna(tvLineas, 'CODIGO_ART_TARCLIN', SCaptionCambioArticulo, 110);
+    CrearColumna(tvLineas, 'CODIGO_UNIDAD_SKU_TARCLIN',
+      SCaptionColSku, 160).Options.Editing := False;
     CrearColumna(tvLineas, 'DESCRIPCION_ART', SCaptionCambioDescripcion, 240);
     CrearColumna(tvLineas, 'NOMBRE_FAM_FAM', SCaptionCambioFamilia, 160);
     CrearColumna(tvLineas, 'RAZON_SOCIAL_PRV', SCaptionCambioProveedor, 180);
@@ -689,6 +740,8 @@ begin
     iLineas := dmmTarifasCambios.RecalcularSesionActual(Ids, sMensaje);
     if sMensaje <> '' then
       ShowMessage_fza(sMensaje)
+    else if iLineas = 1 then
+      ShowMessage_fza(SInfoLineaSesionTarifaRecalculada)
     else
       ShowMessage_fza(Format(SInfoLineasSesionTarifaRecalculadas, [iLineas]));
   end;
@@ -830,7 +883,91 @@ end;
 
 procedure TfrmMtoTarifasCambios.btnMarcarTodoClick(Sender: TObject);
 begin
-  tvLineas.Controller.SelectAll;
+  if GrabarCabeceraSiNecesario then
+  begin
+    tvLineas.Controller.EditingController.HideEdit(True);
+    if dmmTarifasCambios.unqryLineas.State in dsEditModes then
+      dmmTarifasCambios.unqryLineas.Post;
+    tvLineas.Site.SetFocus;
+    tvLineas.Controller.SelectAll;
+  end;
+end;
+
+function TfrmMtoTarifasCambios.TextoConfirmacionBorrado: string;
+begin
+  Result := Format(SPreguntaEliminarSesionCompleta,
+    [dsTablaG.DataSet.FieldByName('CODIGO_TARC').AsString]);
+end;
+
+function TfrmMtoTarifasCambios.ProcesarBorradoContextual: Boolean;
+begin
+  // No propagar a las acciones de otro mantenimiento, tampoco cuando
+  // la sesión aplicada o el foco actual impiden borrar una línea.
+  Result := True;
+  if Assigned(cxgrdLineas) and
+    ((Screen.ActiveControl = cxgrdLineas) or
+     cxgrdLineas.ContainsControl(Screen.ActiveControl)) then
+    btnEliminarLineasClick(Self)
+  else if Assigned(cxgrdPrincipal) and
+    ((Screen.ActiveControl = cxgrdPrincipal) or
+     cxgrdPrincipal.ContainsControl(Screen.ActiveControl)) then
+    actEliminarRegistroExecute(Self);
+end;
+
+function TfrmMtoTarifasCambios.IsShortCut(var Message: TWMKey): Boolean;
+begin
+  if (Message.CharCode = VK_DELETE) and
+    (GetKeyState(VK_CONTROL) < 0) and (GetKeyState(VK_MENU) >= 0) then
+    Result := ProcesarBorradoContextual
+  else
+    Result := inherited IsShortCut(Message);
+end;
+
+procedure TfrmMtoTarifasCambios.btnEliminarLineasClick(Sender: TObject);
+var
+  Ids: TArray<Integer>;
+  Mensaje: string;
+begin
+  if PuedeAccionMto(apmBorrar) and GrabarCabeceraSiNecesario then
+  begin
+    Ids := IdsLineasSeleccionadas;
+    if (Length(Ids) = 0) and dmmTarifasCambios.unqryLineas.Active and
+      not dmmTarifasCambios.unqryLineas.IsEmpty then
+      Ids := [dmmTarifasCambios.unqryLineas.
+        FieldByName('ID_TARCLIN').AsInteger];
+    if Length(Ids) = 0 then
+      ShowMessage_fza(SErrorSeleccionVaciaSesionTarifa)
+    else if SameText(dsTablaG.DataSet.FieldByName('ESTADO_TARC').AsString,
+      'APLICADA') then
+      ShowMessage_fza(SErrorSesionTarifaAplicadaNoEditable)
+    else
+    begin
+      if Length(Ids) = 1 then
+        Mensaje := SPreguntaEliminarUnaLineaSesion
+      else
+        Mensaje := Format(SPreguntaEliminarLineasSesion, [Length(Ids)]);
+      if MessageDlg_fza(Mensaje, mtConfirmation, [mbYes, mbNo], 0) = mrYes then
+        dmmTarifasCambios.EliminarLineasSesion(Ids);
+    end;
+  end;
+end;
+
+procedure TfrmMtoTarifasCambios.btnActualizarCostesClick(Sender: TObject);
+var
+  Ids: TArray<Integer>;
+begin
+  if PuedeAccionMto(apmModificar) and GrabarCabeceraSiNecesario then
+  begin
+    Ids := IdsLineasSeleccionadas;
+    if Length(Ids) = 0 then
+      ShowMessage_fza(SErrorSeleccionVaciaSesionTarifa)
+    else if SameText(dsTablaG.DataSet.FieldByName('ESTADO_TARC').AsString,
+      'APLICADA') then
+      ShowMessage_fza(SErrorSesionTarifaAplicadaNoEditable)
+    else if MessageDlg_fza(SPreguntaActualizarCostesSesion,
+      mtConfirmation, [mbYes, mbNo], 0) = mrYes then
+      dmmTarifasCambios.ActualizarCostesLineas(Ids);
+  end;
 end;
 
 procedure TfrmMtoTarifasCambios.btnDesmarcarTodoClick(Sender: TObject);
@@ -859,6 +996,7 @@ var
   dPorcentaje: Double;
   Ids: TArray<Integer>;
   sPorcentaje: string;
+  sConfirmacion: string;
 begin
   if Assigned(dmmTarifasCambios) and GrabarCabeceraSiNecesario then
   begin
@@ -884,15 +1022,23 @@ begin
         if (not TryStrToFloat(sPorcentaje, dPorcentaje)) or
            (dPorcentaje < 0) or (dPorcentaje > 100) then
           ShowMessage_fza(SErrorPorcentajeDescuentoLoteSesionTarifa)
-        else if MessageDlg_fza(Format(SPreguntaDescuentoLoteSesionTarifa,
-                  [FormatFloat('0.##', dPorcentaje), Length(Ids)]),
-                  mtConfirmation, [mbYes, mbNo], 0) = mrYes then
+        else
         begin
-          Screen.Cursor := crHourGlass;
-          try
-            dmmTarifasCambios.AplicarDescuentoLote(Ids, dPorcentaje);
-          finally
-            Screen.Cursor := crDefault;
+          if Length(Ids) = 1 then
+            sConfirmacion := Format(SPreguntaDescuentoUnaLineaSesionTarifa,
+              [FormatFloat('0.##', dPorcentaje)])
+          else
+            sConfirmacion := Format(SPreguntaDescuentoLoteSesionTarifa,
+              [FormatFloat('0.##', dPorcentaje), Length(Ids)]);
+          if MessageDlg_fza(sConfirmacion, mtConfirmation,
+            [mbYes, mbNo], 0) = mrYes then
+          begin
+            Screen.Cursor := crHourGlass;
+            try
+              dmmTarifasCambios.AplicarDescuentoLote(Ids, dPorcentaje);
+            finally
+              Screen.Cursor := crDefault;
+            end;
           end;
         end;
       end;

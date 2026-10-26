@@ -126,6 +126,9 @@ function HayLineasConCantidadCero(ALineas: TDataSet): Boolean;
 
 // La operacion esta vacia; una insercion o edicion pendiente se
 // cancela antes de mirar.
+// Consulta sin cancelar una línea válida que todavía se está escribiendo.
+function VentaCajaSinContenido(ALineas: TClientDataSet): Boolean;
+
 function OperacionVentaVacia(ALineas: TDataSet): Boolean;
 
 // Estampa la fecha de caja en la cabecera; si estaba en reposo, graba.
@@ -757,6 +760,60 @@ begin
         ALineas.GotoBookmark(Marcador);
       ALineas.FreeBookmark(Marcador);
       ALineas.EnableControls;
+    end;
+  end;
+end;
+
+function VentaCajaSinContenido(ALineas: TClientDataSet): Boolean;
+var
+  Copia: TClientDataSet;
+
+  function TieneContenido(ADatos: TDataSet): Boolean;
+  const
+    CAMPOS: array[0..3] of string = (
+      'CODIGO_ART_FACLIN', 'CODIGO_UNIDAD_FACLIN',
+      'DESCRIPCION_ARTICULO_FACLIN', 'DESCRIPCION_VARIACION_FACLIN');
+    PRECIOS: array[0..1] of string = (
+      'PRECIO_VENTA_CIVA_ARTICULO_FACLIN',
+      'PRECIO_VENTA_SIVA_ARTICULO_FACLIN');
+  var
+    Nombre: string;
+    Campo: TField;
+  begin
+    Result := False;
+    for Nombre in CAMPOS do
+    begin
+      Campo := ADatos.FindField(Nombre);
+      if Assigned(Campo) and (Trim(Campo.AsString) <> '') then
+        Result := True;
+    end;
+    for Nombre in PRECIOS do
+    begin
+      Campo := ADatos.FindField(Nombre);
+      if Assigned(Campo) and (Campo.AsFloat <> 0) then
+        Result := True;
+    end;
+  end;
+
+begin
+  Result := True;
+  if Assigned(ALineas) and ALineas.Active then
+  begin
+    Result := not TieneContenido(ALineas);
+    if Result then
+    begin
+      Copia := TClientDataSet.Create(nil);
+      try
+        Copia.CloneCursor(ALineas, True);
+        Copia.First;
+        while Result and not Copia.Eof do
+        begin
+          Result := not TieneContenido(Copia);
+          Copia.Next;
+        end;
+      finally
+        Copia.Free;
+      end;
     end;
   end;
 end;

@@ -140,6 +140,7 @@ end;
 
 procedure TfrmModalListadoVentas.CrearInterfaz;
 begin
+  Caption := STituloVentasFacturadas;
   CrearFiltros;
   CrearGrid;
   pnlBotones := TPanel.Create(Self);
@@ -203,7 +204,7 @@ begin
   dteDesde.Left := 12;
   dteDesde.Top := 32;
   dteDesde.Width := 112;
-  dteDesde.Date := IncYear(Date, -2);
+  dteDesde.Date := StartOfTheMonth(Date);
   lblHasta := TcxLabel.Create(Self);
   lblHasta.Parent := pnlFiltros;
   lblHasta.Left := 136;
@@ -310,7 +311,7 @@ begin
   NuevaColumna('FECHA_FAC', SCaptionListadoVentasFecha, 86);
   NuevaColumna('DOCUMENTO_FAC', SCaptionListadoVentasDocumento, 112);
   NuevaColumna('TIPO_FAC', SCaptionListadoVentasTipo, 96);
-  NuevaColumna('FASE_FAC', SCaptionListadoVentasFase, 96);
+  NuevaColumna('FASE_FAC', SCaptionListadoVentasFaseDocumento, 145);
   NuevaColumna('ESCONSOLIDADA_FAC', SCaptionListadoVentasEmitida, 68);
   NuevaColumna('CODIGO_ALM_FACLIN', SCaptionListadoVentasAlmacen, 80);
   NuevaColumna('CODIGO_CLI_FAC', SCaptionListadoVentasCliente, 86);
@@ -429,7 +430,7 @@ var
   Filtro: TFiltroListadoVentas;
 begin
   if dteDesde.Date <= 0 then
-    dteDesde.Date := IncYear(Date, -2);
+    dteDesde.Date := StartOfTheMonth(Date);
   if dteHasta.Date <= 0 then
     dteHasta.Date := Date;
   if dteHasta.Date < dteDesde.Date then

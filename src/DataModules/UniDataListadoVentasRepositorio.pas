@@ -98,7 +98,9 @@ begin
     Anyadir('       f.`ESCONSOLIDADA_FAC`,');
     Anyadir('       COALESCE(fl.`CODIGO_ALM_FACLIN`,');
     Anyadir('                f.`CODIGO_ALM_FAC`) AS `CODIGO_ALM_FACLIN`,');
-    Anyadir('       f.`CODIGO_CLI_FAC`,');
+    Anyadir('       CASE WHEN TRIM(COALESCE(f.`CODIGO_CLI_FAC`,');
+    Anyadir('         '''')) IN ('''', ''0'') THEN ''''');
+    Anyadir('         ELSE f.`CODIGO_CLI_FAC` END AS `CODIGO_CLI_FAC`,');
     Anyadir('       f.`RAZON_SOCIAL_CLIENTE_FAC`,');
     Anyadir('       COALESCE(' + SQL_CODIGO_VENDEDOR + ', '''')');
     Anyadir('         AS `CODIGO_VENDEDOR`,');

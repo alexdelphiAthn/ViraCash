@@ -109,6 +109,8 @@ type
     function FuentesVinculadas: TArray<TDataSource>;
   end;
 
+function TextoAsignacionFotoSesion(const ACodigoUnidad: string): string;
+
 function EvaluarSeleccionFotoSesion(
   const ASeleccion: TSeleccionFotoSesion;
   ARequiereCodigo: Boolean): TEstadoSeleccionFotoSesion;
@@ -136,6 +138,14 @@ resourcestring
   SFiltroImagenFotosSesion =
     'Imagenes (*.png;*.jpg;*.jpeg;*.webp;*.avif;*.bmp)|' +
     '*.png;*.jpg;*.jpeg;*.webp;*.avif;*.bmp';
+
+function TextoAsignacionFotoSesion(const ACodigoUnidad: string): string;
+begin
+  if ACodigoUnidad = '' then
+    Result := SAsignacionFotoArticulo
+  else
+    Result := Format(SAsignacionFotoSku, [ACodigoUnidad]);
+end;
 
 function EvaluarSeleccionFotoSesion(
   const ASeleccion: TSeleccionFotoSesion;

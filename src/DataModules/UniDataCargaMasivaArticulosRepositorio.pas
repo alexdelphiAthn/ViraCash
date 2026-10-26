@@ -181,7 +181,7 @@ const
     'PORCENTAJE_DTO_ACTUAL_TARCLIN, PRECIO_NUEVO_TARCLIN, ' +
     'PRECIO_FINAL_NUEVO_TARCLIN, PRECIO_DTO_NUEVO_TARCLIN, ' +
     'PORCENTAJE_DTO_NUEVO_TARCLIN, ESAPLICAR_TARCLIN, ESTADO_TARCLIN, ' +
-    'USUARIO_ALTA, USUARIO_MODIF) VALUES (:TARC, :ART, '''', :TAR_ORIG, ' +
+    'USUARIO_ALTA, USUARIO_MODIF) VALUES (:TARC, :ART, :SKU, :TAR_ORIG, ' +
     ':TAR_DEST, :P_ORIG, :P_COSTE, :P_SAL_ACT, :P_FIN_ACT, :P_DTO_ACT, ' +
     ':P_PDTO_ACT, :P_NUEVO, :P_FIN_NUEVO, 0, 0, ''S'', ''PENDIENTE'', ' +
     ':USUARIO, :USUARIO) ON DUPLICATE KEY UPDATE ' +
@@ -579,30 +579,32 @@ begin
     mcSesionTarifa:
       begin
         Result :=
+          'U.SKU AS CODIGO_UNIDAD_SKU, ' +
           '(SELECT TOG.PRECIO_SALIDA_ARTTAR FROM fza_articulos_tarifas TOG ' +
           'WHERE TOG.CODIGO_ART_ARTTAR = a.CODIGO_ART_ART ' +
-          'AND COALESCE(TOG.CODIGO_UNIDAD_ARTTAR, '''') = '''' ' +
+          'AND COALESCE(TOG.CODIGO_UNIDAD_ARTTAR, '''') IN (U.SKU, '''') ' +
           'AND TOG.CODIGO_TAR_ARTTAR = :P_TAR_ORIG ' +
           'AND TOG.ESACTIVO_ARTTAR = ''S'' ' +
-          'ORDER BY TOG.FECHA_DESDE_ARTTAR DESC, ' +
+          'ORDER BY (COALESCE(TOG.CODIGO_UNIDAD_ARTTAR, '''') = U.SKU) ' +
+          'DESC, TOG.FECHA_DESDE_ARTTAR DESC, ' +
           'TOG.CODIGO_UNICO_ARTTAR DESC LIMIT 1) AS PRECIO_ORIGEN, ' +
           '(SELECT TDE.PRECIO_SALIDA_ARTTAR FROM fza_articulos_tarifas TDE ' +
           'WHERE TDE.CODIGO_ART_ARTTAR = a.CODIGO_ART_ART ' +
-          'AND COALESCE(TDE.CODIGO_UNIDAD_ARTTAR, '''') = '''' ' +
+          'AND COALESCE(TDE.CODIGO_UNIDAD_ARTTAR, '''') = U.SKU ' +
           'AND TDE.CODIGO_TAR_ARTTAR = :P_TAR_DEST_SAL ' +
           'AND TDE.ESACTIVO_ARTTAR = ''S'' ' +
           'ORDER BY TDE.FECHA_DESDE_ARTTAR DESC, ' +
           'TDE.CODIGO_UNICO_ARTTAR DESC LIMIT 1) AS PRECIO_SALIDA_ACT, ' +
           '(SELECT TDF.PRECIO_FINAL_ARTTAR FROM fza_articulos_tarifas TDF ' +
           'WHERE TDF.CODIGO_ART_ARTTAR = a.CODIGO_ART_ART ' +
-          'AND COALESCE(TDF.CODIGO_UNIDAD_ARTTAR, '''') = '''' ' +
+          'AND COALESCE(TDF.CODIGO_UNIDAD_ARTTAR, '''') = U.SKU ' +
           'AND TDF.CODIGO_TAR_ARTTAR = :P_TAR_DEST_FIN ' +
           'AND TDF.ESACTIVO_ARTTAR = ''S'' ' +
           'ORDER BY TDF.FECHA_DESDE_ARTTAR DESC, ' +
           'TDF.CODIGO_UNICO_ARTTAR DESC LIMIT 1) AS PRECIO_FINAL_ACT, ' +
           '(SELECT TDD.PRECIO_DTO_ARTTAR FROM fza_articulos_tarifas TDD ' +
           'WHERE TDD.CODIGO_ART_ARTTAR = a.CODIGO_ART_ART ' +
-          'AND COALESCE(TDD.CODIGO_UNIDAD_ARTTAR, '''') = '''' ' +
+          'AND COALESCE(TDD.CODIGO_UNIDAD_ARTTAR, '''') = U.SKU ' +
           'AND TDD.CODIGO_TAR_ARTTAR = :P_TAR_DEST_DTO ' +
           'AND TDD.ESACTIVO_ARTTAR = ''S'' ' +
           'ORDER BY TDD.FECHA_DESDE_ARTTAR DESC, ' +
@@ -610,15 +612,31 @@ begin
           '(SELECT TDP.PORCENTAJE_DTO_ARTTAR ' +
           'FROM fza_articulos_tarifas TDP ' +
           'WHERE TDP.CODIGO_ART_ARTTAR = a.CODIGO_ART_ART ' +
-          'AND COALESCE(TDP.CODIGO_UNIDAD_ARTTAR, '''') = '''' ' +
+          'AND COALESCE(TDP.CODIGO_UNIDAD_ARTTAR, '''') = U.SKU ' +
           'AND TDP.CODIGO_TAR_ARTTAR = :P_TAR_DEST_PDTO ' +
           'AND TDP.ESACTIVO_ARTTAR = ''S'' ' +
           'ORDER BY TDP.FECHA_DESDE_ARTTAR DESC, ' +
           'TDP.CODIGO_UNICO_ARTTAR DESC LIMIT 1) AS PORC_DTO_ACT, ' +
+          'COALESCE((SELECT C.PRECIO_ULT_COMPRA_SKUC ' +
+          'FROM fza_articulos_skus_costes C ' +
+          'WHERE C.CODIGO_UNIDAD_SKU_SKUC = NULLIF(U.SKU, '''') LIMIT 1), ' +
+          '(SELECT T.PRECIO_COSTE_ARTTAR FROM fza_articulos_tarifas T ' +
+          'WHERE T.CODIGO_ART_ARTTAR = a.CODIGO_ART_ART ' +
+          'AND T.CODIGO_UNIDAD_ARTTAR = NULLIF(U.SKU, '''') ' +
+          'AND T.CODIGO_TAR_ARTTAR = :P_TAR_ORIG ' +
+          'AND T.ESACTIVO_ARTTAR = ''S'' ' +
+          'AND (T.FECHA_DESDE_ARTTAR IS NULL OR ' +
+          'T.FECHA_DESDE_ARTTAR <= CURDATE()) ' +
+          'AND (T.FECHA_HASTA_ARTTAR IS NULL OR ' +
+          'T.FECHA_HASTA_ARTTAR >= CURDATE()) ' +
+          'ORDER BY T.FECHA_DESDE_ARTTAR DESC, ' +
+          'T.CODIGO_UNICO_ARTTAR DESC LIMIT 1), ' +
           '(SELECT AP.PRECIO_ULT_COMPRA_AP ' +
           'FROM fza_articulos_proveedores AP ' +
           'WHERE AP.CODIGO_ART_AP = a.CODIGO_ART_ART ' +
-          'AND AP.ESPROVEEDORPRINCIPAL_AP = ''S'' LIMIT 1) AS PRECIO_COSTE,';
+          'ORDER BY AP.ESPROVEEDORPRINCIPAL_AP = ''S'' DESC, ' +
+          'AP.FECHA_VALIDEZ_AP DESC, AP.CODIGO_PRV_AP LIMIT 1)) ' +
+          'AS PRECIO_COSTE,';
       end;
   else
     Result := '';
@@ -655,7 +673,7 @@ begin
       'CASE WHEN EXISTS (SELECT 1 FROM fza_tarifas_cambios_lineas SL ' +
       'WHERE SL.CODIGO_TARC_TARCLIN = :P_TARC_CHK ' +
       'AND SL.CODIGO_ART_TARCLIN = a.CODIGO_ART_ART ' +
-      'AND SL.CODIGO_UNIDAD_SKU_TARCLIN = '''') ' +
+      'AND SL.CODIGO_UNIDAD_SKU_TARCLIN = U.SKU) ' +
       'THEN ''S'' ELSE ''N'' END';
   end;
 end;
@@ -687,7 +705,7 @@ begin
       'NOT EXISTS (SELECT 1 FROM fza_tarifas_cambios_lineas SLX ' +
       'WHERE SLX.CODIGO_TARC_TARCLIN = :P_TARC_EXCL ' +
       'AND SLX.CODIGO_ART_TARCLIN = a.CODIGO_ART_ART ' +
-      'AND SLX.CODIGO_UNIDAD_SKU_TARCLIN = '''')';
+      'AND SLX.CODIGO_UNIDAD_SKU_TARCLIN = U.SKU)';
   end;
 end;
 
@@ -989,7 +1007,7 @@ end;
 
 procedure AnadirOrigenPreviewArticulos(
   ASql: TStrings;
-  const AAlmacenes, AColumnasExtra, AYaCargado: string);
+  const AAlmacenes, AColumnasExtra, AYaCargado, AUniones: string);
 begin
   ASql.Add('SELECT a.CODIGO_ART_ART, a.DESCRIPCION_ART,');
   ASql.Add('a.CODIGO_FAM_ART, f.NOMBRE_FAM_FAM,');
@@ -1011,7 +1029,12 @@ begin
     ASql.Add(AColumnasExtra);
   ASql.Add(AYaCargado + ' AS YA_CARGADO');
   ASql.Add('FROM fza_articulos a LEFT JOIN fza_articulos_familias f');
-  ASql.Add('ON f.CODIGO_FAM_FAM = a.CODIGO_FAM_ART WHERE 1 = 1');
+  ASql.Add('ON f.CODIGO_FAM_FAM = a.CODIGO_FAM_ART');
+  if AUniones <> '' then
+  begin
+    ASql.Add(AUniones);
+  end;
+  ASql.Add('WHERE 1 = 1');
 end;
 
 procedure AnadirFiltroStockPreviewArticulos(
@@ -1147,16 +1170,32 @@ var
   sFamilias: string;
   sProveedores: string;
   sPropiedades: string;
+  sUniones: string;
 begin
   sAlmacenes := StrArrToCsvSql(AFiltros.CodigosAlmacen);
   sFamilias := StrArrToCsvSql(AFiltros.CodigosFamilia);
   sProveedores := StrArrToCsvSql(AFiltros.CodigosProveedor);
   sPropiedades := IntArrToCsvSql(AFiltros.IdsValorPropiedad);
+  sUniones := '';
+  if AContexto.Modo = mcSesionTarifa then
+  begin
+    // Una fila general y los SKU con precio propio en la tarifa destino.
+    // UNION elimina repeticiones de un SKU con varios periodos de precio.
+    sUniones :=
+      'JOIN (SELECT CODIGO_ART_ART AS ARTICULO, ' +
+      ''''' AS SKU FROM fza_articulos UNION ' +
+      'SELECT CODIGO_ART_ARTTAR, CODIGO_UNIDAD_ARTTAR ' +
+      'FROM fza_articulos_tarifas ' +
+      'WHERE CODIGO_TAR_ARTTAR = :P_TAR_DEST_SKU ' +
+      'AND ESACTIVO_ARTTAR = ''S'' ' +
+      'AND COALESCE(CODIGO_UNIDAD_ARTTAR, '''') <> '''') U ' +
+      'ON U.ARTICULO = a.CODIGO_ART_ART';
+  end;
   oSql := TStringList.Create;
   try
     AnadirOrigenPreviewArticulos(
       oSql, sAlmacenes, ColumnasExtra(AContexto),
-      ExpresionYaCargado(AContexto));
+      ExpresionYaCargado(AContexto), sUniones);
     if AFiltros.SoloActivos then
       oSql.Add('AND a.ESACTIVO_ART = ''S''');
     if AFiltros.ExcluirYaCargados then
@@ -1178,7 +1217,14 @@ begin
     AnadirFiltrosCatalogoPreviewArticulos(
       oSql, AFiltros, sProveedores, sPropiedades);
     AnadirFiltroVentasPreviewArticulos(oSql, AFiltros);
-    oSql.Add('ORDER BY a.CODIGO_FAM_ART, a.CODIGO_ART_ART');
+    if AContexto.Modo = mcSesionTarifa then
+    begin
+      oSql.Add('ORDER BY a.CODIGO_FAM_ART, a.CODIGO_ART_ART, U.SKU');
+    end
+    else
+    begin
+      oSql.Add('ORDER BY a.CODIGO_FAM_ART, a.CODIGO_ART_ART');
+    end;
     Result := oSql.Text;
   finally
     FreeAndNil(oSql);
@@ -1273,6 +1319,7 @@ begin
   Entero('P_TARC_CHK', AContexto.CodigoSesionTarifa);
   Entero('P_TARC_EXCL', AContexto.CodigoSesionTarifa);
   Cadena('P_TAR_ORIG', AContexto.TarifaOrigenSesion);
+  Cadena('P_TAR_DEST_SKU', AContexto.TarifaDestinoSesion);
   Cadena('P_TAR_DEST_SAL', AContexto.TarifaDestinoSesion);
   Cadena('P_TAR_DEST_FIN', AContexto.TarifaDestinoSesion);
   Cadena('P_TAR_DEST_DTO', AContexto.TarifaDestinoSesion);
@@ -1857,7 +1904,7 @@ function TServicioCargaMasivaArticulosUniDAC.InsertarSesionTarifa(
   TResultadoInsercionCargaMasiva;
 var
   dOrigen: Double;
-  oCodigos: TList<string>;
+  oCodigos: TDictionary<string, Boolean>;
   oDatos: TDataSet;
   oInsercion: TUniQuery;
   sArticulo: string;
@@ -1866,7 +1913,7 @@ begin
   Result.NumeroArticulos := 0;
   SetLength(Result.CodigosArticulo, 0);
   oDatos := AConsulta.DataSet;
-  oCodigos := TList<string>.Create;
+  oCodigos := TDictionary<string, Boolean>.Create;
   oInsercion := CrearConsulta(SQL_INSERTAR_SESION_TARIFA);
   try
     oDatos.DisableControls;
@@ -1881,6 +1928,8 @@ begin
           dOrigen := oDatos.FieldByName('PRECIO_ORIGEN').AsFloat;
           oInsercion.ParamByName('TARC').AsInteger := AParametros.CodigoSesion;
           oInsercion.ParamByName('ART').AsString := sArticulo;
+          oInsercion.ParamByName('SKU').AsString :=
+            oDatos.FieldByName('CODIGO_UNIDAD_SKU').AsString;
           oInsercion.ParamByName('TAR_ORIG').AsString :=
             AParametros.TarifaOrigen;
           oInsercion.ParamByName('TAR_DEST').AsString :=
@@ -1900,14 +1949,14 @@ begin
           oInsercion.ParamByName('P_FIN_NUEVO').AsFloat := dOrigen;
           oInsercion.ParamByName('USUARIO').AsString := AParametros.Usuario;
           oInsercion.Execute;
-          oCodigos.Add(sArticulo);
+          oCodigos.AddOrSetValue(sArticulo, True);
+          Inc(Result.NumeroLineas);
         end;
         oDatos.Next;
       end;
       FConexion.Commit;
-      Result.NumeroLineas := oCodigos.Count;
       Result.NumeroArticulos := oCodigos.Count;
-      Result.CodigosArticulo := oCodigos.ToArray;
+      Result.CodigosArticulo := oCodigos.Keys.ToArray;
     except
       FConexion.Rollback;
       raise;

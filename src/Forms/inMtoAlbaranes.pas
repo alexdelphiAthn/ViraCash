@@ -17,7 +17,7 @@ unit inMtoAlbaranes;
 interface
 
 uses
-  inLibRegistroPantallas, inLibPivoteVentaCalculo,
+  inLibRegistroPantallas, inLibPivoteVentaCalculo, inLibPermisosIntf,
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, inMtoDocumento, dxSkinsCore, dxSkinBlue,
   cxClasses, cxPropertiesStore, cxGraphics, cxControls, cxLookAndFeels,
@@ -276,6 +276,8 @@ type
     FColsModoConstruido: Boolean;
     FContextoVentas: TContextoAlbaranesVentasPantalla;
     FLectorDocumento: TLectorDocumento;
+    procedure GrabarAlbaranExecute(Sender: TObject);
+    procedure GrabarAlbaranUpdate(Sender: TObject);
     procedure ConfigurarLectorDocumento;
     procedure ConfigurarTrazabilidadVenta;
     procedure SalirEdicionModoEntrada(Sender: TObject);
@@ -611,31 +613,7 @@ procedure TfrmMtoAlbaranes.AplicarPrecioArticuloLinea(
   ADataSet: TDataSet;
   const AResultado: TResultadoArticuloAlbaranVenta);
 begin
-  if AResultado.Precio.EsImpIncl then
-    AsignarStringLinea(ADataSet, 'ESIMP_INCL_TARIFA_ALBLIN', 'S')
-  else
-    AsignarStringLinea(ADataSet, 'ESIMP_INCL_TARIFA_ALBLIN', 'N');
-  if AResultado.Datos.RequiereSku then
-  begin
-    AsignarNumeroLinea(
-      ADataSet, 'PRECIO_VENTA_SIVA_ARTICULO_ALBLIN', 0);
-    AsignarNumeroLinea(
-      ADataSet, 'PRECIO_VENTA_CIVA_ARTICULO_ALBLIN', 0);
-  end
-  else if AResultado.Precio.EsImpIncl then
-  begin
-    AsignarNumeroLinea(ADataSet, 'PRECIO_VENTA_CIVA_ARTICULO_ALBLIN',
-      AResultado.Precio.PrecioFinal);
-    AsignarNumeroLinea(
-      ADataSet, 'PRECIO_VENTA_SIVA_ARTICULO_ALBLIN', 0);
-  end
-  else
-  begin
-    AsignarNumeroLinea(ADataSet, 'PRECIO_VENTA_SIVA_ARTICULO_ALBLIN',
-      AResultado.Precio.PrecioFinal);
-    AsignarNumeroLinea(
-      ADataSet, 'PRECIO_VENTA_CIVA_ARTICULO_ALBLIN', 0);
-  end;
+  AplicarPrecioTarifaAlbaranVenta(ADataSet, AResultado);
 end;
 
 procedure TfrmMtoAlbaranes.EnfocarSkuArticuloAlbaran(
@@ -1329,6 +1307,8 @@ var
   stFact: TcxStyle;
 begin
   inherited;
+  actGrabarRegistro.OnExecute := GrabarAlbaranExecute;
+  actGrabarRegistro.OnUpdate := GrabarAlbaranUpdate;
   // Contrato de entrada ColumnSKUcxGrid: Auto por defecto (resuelve a
   // desglose); F1 cicla los modos con las lineas a la vista.
   FModoEntradaSel := mcsAuto;
@@ -1362,11 +1342,39 @@ begin
   pcAlbaran.ActivePage := tsLineasAlbaran;
 end;
 
+procedure TfrmMtoAlbaranes.GrabarAlbaranUpdate(Sender: TObject);
+var
+  Permitido: Boolean;
+begin
+  Permitido := False;
+  if Assigned(dsTablaG.DataSet) and dsTablaG.DataSet.Active then
+  begin
+    if dsTablaG.State = dsInsert then
+      Permitido := PuedeAccionMto(apmInsertar)
+    else
+      Permitido := PuedeAccionMto(apmModificar) and
+        ((dsTablaG.State = dsEdit) or
+         (Assigned(dmmAlbaranes) and
+          (dmmAlbaranes.unqryAlbaranesLineas.State in dsEditModes)));
+  end;
+  TAction(Sender).Enabled := Permitido;
+end;
+
+procedure TfrmMtoAlbaranes.GrabarAlbaranExecute(Sender: TObject);
+begin
+  GrabarAlbaranUpdate(actGrabarRegistro);
+  if actGrabarRegistro.Enabled then
+    btnGrabarClick(Sender);
+end;
+
 procedure TfrmMtoAlbaranes.btnGrabarClick(Sender: TObject);
 var
   sLineasCero: string;
   sLineasSinSku: string;
 begin
+  // F12 no cambia el foco: aceptar primero la celda activa, como al
+  // pulsar Grabar, antes de validar y guardar todos los datasets.
+  tvLineasAlbaran.Controller.EditingController.HideEdit(True);
   // Aviso: lineas con articulo y cantidad 0 (FZ-ISSUE-206). Solo en
   // Desglose y SKU: en tallas una celda vacia es una cantidad 0 normal.
   sLineasCero := '';

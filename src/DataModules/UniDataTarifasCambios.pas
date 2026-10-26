@@ -54,6 +54,7 @@ type
     procedure CompletarDescuentoLineaExcel(AConsulta: TUniQuery;
       const ALinea: TLineaSesionTarifaExcel);
     procedure unqryLineasAfterOpen(DataSet: TDataSet);
+    procedure unqryLineasBeforeDelete(DataSet: TDataSet);
     procedure CampoPrecioNuevoChange(Sender: TField);
     function  RedondearConCabecera(AImporte: Double): Double;
     function  SalidaParaDescuento: Double;
@@ -67,6 +68,8 @@ type
     unqryTarifas : TUniQuery;
     dsTarifas    : TDataSource;
     procedure RellenarPreciosPartida;
+    function ActualizarCostesLineas(const AIds: TArray<Integer>): Integer;
+    function EliminarLineasSesion(const AIds: TArray<Integer>): Integer;
     procedure ImportarLineasExcel(const ALineas: TLineasSesionTarifaExcel;
       out ANuevas, AActualizadas: Integer);
     procedure AbrirDetalles; override;
@@ -113,9 +116,25 @@ const
     'NOT (L.CODIGO_TAR_DESTINO_TARCLIN <=> :TAR_DEST)';
   // Ultimo precio de compra: proveedor principal o, si no hay, cualquiera.
   SQL_COSTE_LINEA =
+    'COALESCE((SELECT C.PRECIO_ULT_COMPRA_SKUC ' +
+    'FROM fza_articulos_skus_costes C ' +
+    'WHERE C.CODIGO_UNIDAD_SKU_SKUC = ' +
+    'NULLIF(L.CODIGO_UNIDAD_SKU_TARCLIN, '''') LIMIT 1), ' +
+    '(SELECT T.PRECIO_COSTE_ARTTAR FROM fza_articulos_tarifas T ' +
+    'WHERE T.CODIGO_ART_ARTTAR = L.CODIGO_ART_TARCLIN ' +
+    'AND T.CODIGO_UNIDAD_ARTTAR = ' +
+    'NULLIF(L.CODIGO_UNIDAD_SKU_TARCLIN, '''') ' +
+    'AND T.CODIGO_TAR_ARTTAR = :TAR_ORIG AND T.ESACTIVO_ARTTAR = ''S'' ' +
+    'AND (T.FECHA_DESDE_ARTTAR IS NULL OR ' +
+    'T.FECHA_DESDE_ARTTAR <= CURDATE()) ' +
+    'AND (T.FECHA_HASTA_ARTTAR IS NULL OR ' +
+    'T.FECHA_HASTA_ARTTAR >= CURDATE()) ' +
+    'ORDER BY T.FECHA_DESDE_ARTTAR DESC, T.CODIGO_UNICO_ARTTAR DESC ' +
+    'LIMIT 1), ' +
     '(SELECT AP.PRECIO_ULT_COMPRA_AP FROM fza_articulos_proveedores AP ' +
     'WHERE AP.CODIGO_ART_AP = L.CODIGO_ART_TARCLIN ' +
-    'ORDER BY AP.ESPROVEEDORPRINCIPAL_AP = ''S'' DESC LIMIT 1)';
+    'ORDER BY AP.ESPROVEEDORPRINCIPAL_AP = ''S'' DESC, ' +
+    'AP.FECHA_VALIDEZ_AP DESC, AP.CODIGO_PRV_AP LIMIT 1))';
   // Salida nueva de partida para un descuento: la calculada, si no la
   // actual de la tarifa destino y, si tampoco, la de origen.
   SQL_BASE_SALIDA_NUEVA =
@@ -199,6 +218,11 @@ begin
     ' ORDER BY L.ID_TARCLIN';
   unqryLineas.KeyFields := 'ID_TARCLIN';
   unqryLineas.AfterOpen := unqryLineasAfterOpen;
+  unqryLineas.BeforeDelete := unqryLineasBeforeDelete;
+  unqryLineas.SQLDelete.Text :=
+    'DELETE FROM fza_tarifas_cambios_lineas ' +
+    'WHERE ID_TARCLIN = :Old_ID_TARCLIN ' +
+    'AND CODIGO_TARC_TARCLIN = :Old_CODIGO_TARC_TARCLIN';
   unqryLineas.SQLUpdate.Text :=
     'UPDATE fza_tarifas_cambios_lineas SET ' +
     '  CODIGO_ART_TARCLIN = :CODIGO_ART_TARCLIN, ' +
@@ -551,6 +575,100 @@ end;
 // En un UPDATE de una sola tabla MySQL evalua las asignaciones en orden: los
 // codigos de tarifa de la linea se actualizan al final, tras comparar. Por
 // eso no hay JOIN con la cabecera: sus tarifas llegan como parametros.
+function TdmTarifasCambios.EliminarLineasSesion(
+  const AIds: TArray<Integer>): Integer;
+var
+  Consulta: TUniQuery;
+  Parametros: TStringList;
+  I: Integer;
+begin
+  Result := 0;
+  if not unqryTablaG.Active or unqryTablaG.IsEmpty then
+    raise Exception.Create(SErrorTarifasCambiosSinSesionActiva);
+  if SameText(unqryTablaG.FieldByName('ESTADO_TARC').AsString,
+    'APLICADA') then
+    raise Exception.Create(SErrorTarifasCambiosSesionAplicada);
+  if Length(AIds) > 0 then
+  begin
+    GrabarLineaPendiente;
+    Consulta := TUniQuery.Create(nil);
+    Parametros := TStringList.Create;
+    try
+      for I := 0 to High(AIds) do
+        Parametros.Add(':ID' + IntToStr(I));
+      Consulta.Connection := unqryTablaG.Connection;
+      Consulta.SQL.Text :=
+        'DELETE L FROM fza_tarifas_cambios_lineas L ' +
+        'JOIN fza_tarifas_cambios C ON C.CODIGO_TARC=' +
+        'L.CODIGO_TARC_TARCLIN WHERE C.CODIGO_TARC=:SESION ' +
+        'AND C.ESTADO_TARC <> ''APLICADA'' AND L.ID_TARCLIN IN (' +
+        Parametros.CommaText + ')';
+      Consulta.ParamByName('SESION').AsInteger :=
+        unqryTablaG.FieldByName('CODIGO_TARC').AsInteger;
+      for I := 0 to High(AIds) do
+        Consulta.ParamByName('ID' + IntToStr(I)).AsInteger := AIds[I];
+      Consulta.Execute;
+      Result := Consulta.RowsAffected;
+      unqryLineas.Refresh;
+    finally
+      Parametros.Free;
+      Consulta.Free;
+    end;
+  end;
+end;
+
+function TdmTarifasCambios.ActualizarCostesLineas(
+  const AIds: TArray<Integer>): Integer;
+var
+  Consulta: TUniQuery;
+  Parametros: TStringList;
+  I: Integer;
+begin
+  Result := 0;
+  if not unqryTablaG.Active or unqryTablaG.IsEmpty then
+    raise Exception.Create(SErrorTarifasCambiosSinSesionActiva);
+  if SameText(unqryTablaG.FieldByName('ESTADO_TARC').AsString,
+    'APLICADA') then
+    raise Exception.Create(SErrorTarifasCambiosSesionAplicada);
+  if Length(AIds) > 0 then
+  begin
+    GrabarLineaPendiente;
+    Parametros := TStringList.Create;
+    Consulta := TUniQuery.Create(nil);
+    try
+      for I := 0 to High(AIds) do
+        Parametros.Add(':ID' + IntToStr(I));
+      Consulta.Connection := unqryTablaG.Connection;
+      Consulta.SQL.Text :=
+        'UPDATE fza_tarifas_cambios_lineas L SET ' +
+        'L.PRECIO_COSTE_TARCLIN = ' + SQL_COSTE_LINEA + ', ' +
+        'L.USUARIO_MODIF = :USUARIO, L.INSTANTE_MODIF = NOW() ' +
+        'WHERE L.CODIGO_TARC_TARCLIN = :SESION AND L.ID_TARCLIN IN (' +
+        Parametros.CommaText + ')';
+      Consulta.ParamByName('SESION').AsInteger :=
+        unqryTablaG.FieldByName('CODIGO_TARC').AsInteger;
+      Consulta.ParamByName('TAR_ORIG').AsString :=
+        unqryTablaG.FieldByName('CODIGO_TAR_ORIGEN_TARC').AsString;
+      Consulta.ParamByName('USUARIO').AsString := IdentidadSesion.Usuario;
+      for I := 0 to High(AIds) do
+        Consulta.ParamByName('ID' + IntToStr(I)).AsInteger := AIds[I];
+      Consulta.Execute;
+      Result := Consulta.RowsAffected;
+      unqryLineas.Refresh;
+    finally
+      Consulta.Free;
+      Parametros.Free;
+    end;
+  end;
+end;
+
+procedure TdmTarifasCambios.unqryLineasBeforeDelete(DataSet: TDataSet);
+begin
+  if unqryTablaG.Active and not unqryTablaG.IsEmpty and
+    SameText(unqryTablaG.FieldByName('ESTADO_TARC').AsString, 'APLICADA') then
+    raise Exception.Create(SErrorTarifasCambiosSesionAplicada);
+end;
+
 procedure TdmTarifasCambios.RellenarPreciosPartida;
 var
   qry: TUniQuery;
@@ -921,13 +1039,14 @@ begin
                 if dDto < 0 then
                   dDto := 0;
               end
-              else if SameText(sCampoDestino, 'PRECIO_SALIDA') then
+              else
               begin
-                dSalida := dNuevo;
-                dDto := LeerFloatLinea('PRECIO_DTO_ACTUAL_TARCLIN');
-                dFinal := dSalida - dDto;
-                if dFinal < 0 then
-                  dFinal := dSalida;
+                // Conservar la rebaja preparada en la sesión, también
+                // después de «Descuento en lote» o de importar Excel.
+                dPorcDto := LeerFloatLinea(
+                  'PORCENTAJE_DTO_NUEVO_TARCLIN');
+                CalcularDescuento(dSalida, dPorcDto,
+                  dFinal, dDto, dPorcDto);
               end;
               if (dSalida > 0) and (dDto > 0) then
                 dPorcDto := dDto / dSalida * 100;

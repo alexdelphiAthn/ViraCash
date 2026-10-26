@@ -16,6 +16,8 @@ unit inLibMsgCompras;
 interface
 
 resourcestring
+  SAsignacionFotoArticulo = 'Artículo';
+  SAsignacionFotoSku = 'SKU %s';
   SCaptionVariacionLineaSesion = 'Variación';
   SCaptionSinVariacionSesion = 'Sin variación';
   SRotuloCopaVariacionSesion = 'Copa';

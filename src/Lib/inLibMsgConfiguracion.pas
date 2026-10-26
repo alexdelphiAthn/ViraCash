@@ -16,6 +16,8 @@ unit inLibMsgConfiguracion;
 interface
 
 resourcestring
+  SCategoriaParametrosHeredados = 'Otros (Heredados de BD)';
+  SDescripcionParametroHeredado = 'Parámetro sin descripción';
   SDegradadoBordesSin = 'Sin degradado';
   SDegradadoBordesSuave = 'Degradado suave';
   SDegradadoBordesIntenso = 'Degradado intenso';

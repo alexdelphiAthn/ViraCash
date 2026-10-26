@@ -18,6 +18,7 @@ unit inMtoPrincipal;
 interface
 
 uses
+  inLibVentanaEmbebidaIntf,
   Winapi.Windows, Winapi.Messages, Winapi.ShellAPI, System.SysUtils,
   System.Variants,
   System.Classes, Vcl.Graphics, System.Generics.Collections, Vcl.ActnList,
@@ -418,6 +419,8 @@ type
   public
     { Public declarations }
     FormManager : TEmbeddedFormManager;
+    function DespacharBorradoContextual(ATecla: Word;
+      AShift: TShiftState): Boolean;
     procedure AplicarTraduccionActual; override;
     destructor Destroy; override;
     // Además de los bordes, el degradado del fondo de la principal.
@@ -630,10 +633,8 @@ begin
       EstadoTeclas := EstadoTeclas + 'NUM  ';
     if (GetKeyState(VK_SCROLL) and 1) <> 0 then
       EstadoTeclas := EstadoTeclas + 'SCRL  ';
-    if (GetKeyState(VK_INSERT) and 1) <> 0 then
-      EstadoTeclas := EstadoTeclas + 'OVR'
-    else
-      EstadoTeclas := EstadoTeclas + 'INS';
+    // Insert también da de alta registros. Su bit global de alternancia
+    // no indica el modo de edición del control que tiene el foco.
     EstadoTeclas := Trim(EstadoTeclas);
     if jvStatusBar1.Panels[0].Text <> EstadoTeclas then
     begin
@@ -1849,6 +1850,10 @@ begin
     FormManager.ProcesarArrastre(Msg);
   if not Handled and Assigned(FormManager) then
     Handled := FormManager.ProcesarCambioVentana(Msg);
+  if not Handled and
+    ((Msg.message = WM_KEYDOWN) or (Msg.message = WM_SYSKEYDOWN)) then
+    Handled := DespacharBorradoContextual(Word(Msg.wParam),
+      KeyDataToShiftState(Msg.lParam));
   // FZ-ISSUE-204: '.' y ',' indistintos como separador decimal en los
   // editores numericos; el caracter se corrige y sigue su curso.
   if not Handled then
@@ -1955,6 +1960,23 @@ begin
   end;
 end;
 
+function TfrmMtoPrincipal.DespacharBorradoContextual(
+  ATecla: Word; AShift: TShiftState): Boolean;
+var
+  Receptor: TCustomForm;
+begin
+  Result := False;
+  if (ATecla = VK_DELETE) and (ssCtrl in AShift) and
+    not (ssAlt in AShift) and (Application.ModalLevel = 0) then
+  begin
+    if not Active and EsFormularioFlotante(Screen.ActiveForm, Self) then
+      Receptor := Screen.ActiveForm
+    else
+      Receptor := FormularioPestanaActiva(pcPrincipal);
+    Result := ConsumirBorradoContextual(Receptor);
+  end;
+end;
+
 // KeyPreview del principal: la VCL entrega el OnKeyPress de los controles
 // de una pestana embebida a la ventana superior (este formulario), no al
 // formulario de la pestana. Se le reenvia para que su OnKeyPress (p. ej. el
@@ -2011,9 +2033,12 @@ var
   bEsFlotante: Boolean;
   Atajo: TShortCut;
 begin
-  Result := False;
+  Result := DespacharBorradoContextual(Message.CharCode,
+    KeyDataToShiftState(Message.KeyData));
   FormularioActivo := Screen.ActiveForm;
   bEsFlotante := EsFormularioFlotante(FormularioActivo, Self);
+  if not Result then
+  begin
   // F9 sola (sin Ctrl/Alt/Mayus ni autorrepeticion) -> abrir el cajon
   // portamonedas, mismo criterio que AppMessage. Via redundante: cubre el
   // foco en el principal y sus pestañas embebidas aunque Application.OnMessage
@@ -2122,6 +2147,7 @@ begin
           Result := inherited IsShortCut(Message);
       end;
     end;
+  end;
   end;
 end;
 

@@ -132,6 +132,9 @@ begin
   inherited;
   if not FInicializado then
   begin
+    Caption := STituloMovimientosVentasFacturadas;
+    Hint := SAlcanceVentasFacturadasInforme;
+    ShowHint := True;
     CrearControlesPropios;
     // El botón Excel del base exporta el FastReport a XLSX (farragoso); lo
     // redirigimos a una exportación limpia con el mismo layout que el informe.
@@ -320,6 +323,8 @@ var
   eOrden: TOrdenMovVentasArt;
 begin
   inherited;
+  AResumen.Anadir(SCaptionOrigenVentasInforme,
+    SAlcanceVentasFacturadasInforme);
   if (FchkIniCompras <> nil) and FchkIniCompras.Checked and
      (FdteIniCompras <> nil) then
     AResumen.Anadir(
@@ -470,8 +475,13 @@ begin
 end;
 
 procedure TfrmPrintMovVentasArt.AfterReportLoaded;
+var
+  Titulo: TfrxComponent;
 begin
   inherited;
+  Titulo := frxrprt1.FindObject('MemoTitulo');
+  if Titulo is TfrxMemoView then
+    TfrxMemoView(Titulo).Text := STituloMovimientosVentasFacturadas;
   // La foto necesita el DataSet directo del TfrxDBDataset (no solo el
   // DataSource): ver inLibFotos.ObtenerDataSetDeBandaPadre.
   fxdsMovVentas.DataSet := FResultadoMovimientos.DataSet;

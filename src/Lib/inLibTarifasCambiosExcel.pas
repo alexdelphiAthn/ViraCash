@@ -173,7 +173,9 @@ begin
     Campo := ALineas.FieldByName(CAMPOS_IMPORTE[Importe]);
     iColumna := ColumnaImporte(Importe);
     if not Campo.IsNull then
-      W(AHoja, AFila, iColumna, Campo.AsFloat, False, ssahRight);
+      W(AHoja, AFila, iColumna, Campo.AsFloat, False, ssahRight)
+    else if Importe in [istDtoActual, istPorcDtoActual] then
+      W(AHoja, AFila, iColumna, 0, False, ssahRight);
     Celda := AHoja.CreateCell(AFila, iColumna);
     Celda.Style.AlignHorz := ssahRight;
     if ES_PORCENTAJE[Importe] then

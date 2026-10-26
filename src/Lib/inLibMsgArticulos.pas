@@ -980,6 +980,7 @@ SLeyendaAvisosBalance =
     'La tarifa actual está en edición. ¿Guardar antes de continuar?';
   SErrorSesionTarifaNoSeleccionada =
     'Selecciona o crea primero una sesión.';
+  SInfoLineaSesionTarifaRecalculada = '1 línea recalculada.';
   SInfoLineasSesionTarifaRecalculadas =
     '%d líneas recalculadas.';
   SErrorCalcularSesionTarifa =
@@ -1805,6 +1806,32 @@ resourcestring
     'Documento';
   SCaptionListadoVentasTipo =
     'Tipo';
+  SCaptionEliminarLineasSesion = 'Borrar línea';
+  SCaptionEliminarSesionCompleta = 'Eliminar la sesión completa';
+  SPreguntaEliminarSesionCompleta =
+    '¿Eliminar la sesión %s completa y todas sus líneas? ' +
+    'Los precios ya aplicados en las tarifas no se borrarán.';
+  SPreguntaEliminarUnaLineaSesion =
+    '¿Eliminar 1 línea de esta sesión? La sesión y los precios de ' +
+    'las tarifas se conservarán.';
+  SPreguntaEliminarLineasSesion =
+    '¿Eliminar %d líneas de esta sesión? La sesión y los precios de ' +
+    'las tarifas se conservarán.';
+  SCaptionActualizarCostesSesion = 'Actualizar costes';
+  SPreguntaActualizarCostesSesion =
+    '¿Actualizar los costes de las líneas seleccionadas con el coste ' +
+    'actual de su talla? Se sustituirán los costes escritos en la sesión.';
+  SCaptionInstanteAltaServidor = 'Instante alta (servidor)';
+  SCaptionInstanteModificacionServidor = 'Modificación (servidor)';
+  SAyudaInstantesServidor =
+    'Hora de la sesión del servidor, igual que los demás mantenimientos. ' +
+    'Una consulta en otra zona horaria puede mostrar otra hora ' +
+    'para el mismo instante.';
+  SCaptionListadoVentasFaseDocumento = 'Fase del documento';
+  STituloVentasFacturadas =
+    'Ventas facturadas (sin albaranes pendientes de facturar)';
+  SPreguntaDescuentoUnaLineaSesionTarifa =
+    '¿Aplicar un descuento del %s %% a 1 línea?';
   SCaptionListadoVentasFase =
     'Fase';
   SCaptionListadoVentasEmitida =

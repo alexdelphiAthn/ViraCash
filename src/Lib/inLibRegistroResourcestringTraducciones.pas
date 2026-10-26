@@ -64,6 +64,70 @@ begin
     'src/Lib/inLibMsgArticulos.pas',
     @inLibMsgArticulos.SPreguntaCodigoProveedorAltaArticulo);
   ARegistrar(
+    'inLibMsgArticulos.SCaptionEliminarLineasSesion',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SCaptionEliminarLineasSesion);
+  ARegistrar(
+    'inLibMsgArticulos.SCaptionEliminarSesionCompleta',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SCaptionEliminarSesionCompleta);
+  ARegistrar(
+    'inLibMsgArticulos.SPreguntaEliminarSesionCompleta',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPreguntaEliminarSesionCompleta);
+  ARegistrar(
+    'inLibMsgArticulos.SPreguntaEliminarUnaLineaSesion',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPreguntaEliminarUnaLineaSesion);
+  ARegistrar(
+    'inLibMsgArticulos.SPreguntaEliminarLineasSesion',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPreguntaEliminarLineasSesion);
+  ARegistrar(
+    'inLibMsgArticulos.SCaptionActualizarCostesSesion',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SCaptionActualizarCostesSesion);
+  ARegistrar(
+    'inLibMsgArticulos.SPreguntaActualizarCostesSesion',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPreguntaActualizarCostesSesion);
+  ARegistrar(
+    'inLibMsgArticulos.SCaptionInstanteAltaServidor',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SCaptionInstanteAltaServidor);
+  ARegistrar(
+    'inLibMsgArticulos.SCaptionInstanteModificacionServidor',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SCaptionInstanteModificacionServidor);
+  ARegistrar(
+    'inLibMsgArticulos.SAyudaInstantesServidor',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SAyudaInstantesServidor);
+  ARegistrar(
+    'inLibMsgArticulos.SCaptionListadoVentasFaseDocumento',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SCaptionListadoVentasFaseDocumento);
+  ARegistrar(
+    'inLibMsgArticulos.STituloVentasFacturadas',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.STituloVentasFacturadas);
+  ARegistrar(
+    'inLibMsgArticulos.SPreguntaDescuentoUnaLineaSesionTarifa',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPreguntaDescuentoUnaLineaSesionTarifa);
+  ARegistrar(
+    'inLibMsgVentas.STituloMovimientosVentasFacturadas',
+    'src/Lib/inLibMsgVentas.pas',
+    @inLibMsgVentas.STituloMovimientosVentasFacturadas);
+  ARegistrar(
+    'inLibMsgVentas.SCaptionOrigenVentasInforme',
+    'src/Lib/inLibMsgVentas.pas',
+    @inLibMsgVentas.SCaptionOrigenVentasInforme);
+  ARegistrar(
+    'inLibMsgVentas.SAlcanceVentasFacturadasInforme',
+    'src/Lib/inLibMsgVentas.pas',
+    @inLibMsgVentas.SAlcanceVentasFacturadasInforme);
+  ARegistrar(
     'inLibMsgArticulos.' +
     'SErrorColorBasicoEnUso',
     'src/Lib/inLibMsgArticulos.pas',
@@ -7627,6 +7691,10 @@ begin
     'src/Lib/inLibMsgArticulos.pas',
     @inLibMsgArticulos.
       SErrorSesionTarifaNoSeleccionada);
+  ARegistrar(
+    'inLibMsgArticulos.SInfoLineaSesionTarifaRecalculada',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SInfoLineaSesionTarifaRecalculada);
   ARegistrar(
     'inLibMsgArticulos.' +
     'SInfoLineasSesionTarifaRecalculadas',
@@ -29877,6 +29945,18 @@ begin
   ARegistrar('inLibMsgFacturas.SEstadoDocumentoEntregado',
     'src/Lib/inLibMsgFacturas.pas',
     @inLibMsgFacturas.SEstadoDocumentoEntregado);
+  ARegistrar('inLibMsgConfiguracion.SCategoriaParametrosHeredados',
+    'src/Lib/inLibMsgConfiguracion.pas',
+    @inLibMsgConfiguracion.SCategoriaParametrosHeredados);
+  ARegistrar('inLibMsgConfiguracion.SDescripcionParametroHeredado',
+    'src/Lib/inLibMsgConfiguracion.pas',
+    @inLibMsgConfiguracion.SDescripcionParametroHeredado);
+  ARegistrar('inLibMsgCompras.SAsignacionFotoArticulo',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SAsignacionFotoArticulo);
+  ARegistrar('inLibMsgCompras.SAsignacionFotoSku',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SAsignacionFotoSku);
 end;
 {$WARN SYMBOL_DEPRECATED ON}
 

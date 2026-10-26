@@ -401,6 +401,8 @@ type
     // ------------------------------------------------------------------
     // Eventos
     // ------------------------------------------------------------------
+    procedure dbcFotoUnidadGetDisplayText(Sender: TcxCustomGridTableItem;
+      ARecord: TcxCustomGridRecord; var ATexto: string);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnAddLineaClick(Sender: TObject);
@@ -2723,6 +2725,13 @@ begin
   if Sender is TcxCustomEdit then
     TcxCustomEdit(Sender).PostEditValue;
   FModeloPrv.ProponerPrecioVenta;
+end;
+
+procedure TfrmMtoComprasSesiones.dbcFotoUnidadGetDisplayText(
+  Sender: TcxCustomGridTableItem; ARecord: TcxCustomGridRecord;
+  var ATexto: string);
+begin
+  ATexto := TextoAsignacionFotoSesion(ATexto);
 end;
 
 initialization

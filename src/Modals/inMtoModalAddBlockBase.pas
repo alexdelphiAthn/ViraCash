@@ -1061,6 +1061,7 @@ var
   pendientes : Integer;
   bContinuar : Boolean;
 begin
+  btnAceptar.ModalResult := mrNone;
   bContinuar := True;
   pendientes := 0;
   if (not Assigned(FDatosPreview)) or
@@ -1110,6 +1111,7 @@ begin
     FBaseResultado.NumInsertados    := numIns;
     FBaseResultado.ArticulosCodigos := codigos;
     ShowMessage_fza(TextoExito(numIns));
+    btnAceptar.ModalResult := mrOk;
     Self.ModalResult := mrOk;
   end;
 end;

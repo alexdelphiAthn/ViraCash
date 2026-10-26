@@ -52,6 +52,7 @@ type
     FNombreCampoActivo: TNombreCampoActivoMto;
     FContarHijosActivos: TContarHijosActivosMto;
     FDescripcionHijos: TDescripcionHijosMto;
+    FConfirmacionPersonalizada: TDescripcionHijosMto;
     FBeforeInsertOrig: TDataSetNotifyEvent;
     FBeforeEditOrig: TDataSetNotifyEvent;
     FBeforePostOrig: TDataSetNotifyEvent;
@@ -71,7 +72,8 @@ type
       APuedeAccion: TPuedeAccionMto;
       ANombreCampoActivo: TNombreCampoActivoMto;
       AContarHijosActivos: TContarHijosActivosMto;
-      ADescripcionHijos: TDescripcionHijosMto);
+      ADescripcionHijos: TDescripcionHijosMto;
+      AConfirmacionPersonalizada: TDescripcionHijosMto = nil);
     procedure Instalar;
     procedure ComprobarPermisoGrabar(AEstado: TDataSetState);
   end;
@@ -89,7 +91,8 @@ constructor TGestorGuardianBorradoMto.Create(
   APuedeAccion: TPuedeAccionMto;
   ANombreCampoActivo: TNombreCampoActivoMto;
   AContarHijosActivos: TContarHijosActivosMto;
-  ADescripcionHijos: TDescripcionHijosMto);
+  ADescripcionHijos: TDescripcionHijosMto;
+  AConfirmacionPersonalizada: TDescripcionHijosMto);
 begin
   inherited Create;
   FDataSource := ADataSource;
@@ -99,6 +102,7 @@ begin
   FNombreCampoActivo := ANombreCampoActivo;
   FContarHijosActivos := AContarHijosActivos;
   FDescripcionHijos := ADescripcionHijos;
+  FConfirmacionPersonalizada := AConfirmacionPersonalizada;
   FInstalado := False;
   FDesactivandoPorBorrado := False;
 end;
@@ -244,8 +248,19 @@ begin
   sDescHijos := FDescripcionHijos;
   if sDescHijos = '' then
     sDescHijos := SDescripcionHijosGenerica;
+  sMsg := '';
+  if Assigned(FConfirmacionPersonalizada) then
+    sMsg := FConfirmacionPersonalizada;
+  if sMsg <> '' then
+  begin
+    if MessageBox_fza(PChar(sMsg), PChar(STituloConfirmarEliminacion),
+      MB_YESNO + MB_ICONWARNING + MB_DEFBUTTON2) = ID_YES then
+      Result := abContinuar
+    else
+      Result := abCancelar;
+  end
   // Caso 0: el mantenimiento confirma por su cuenta.
-  if iHijos = cBorradoConConfirmacionPropia then
+  else if iHijos = cBorradoConConfirmacionPropia then
     Result := abContinuar
   // Caso 1: tabla no desactivable y sin hijos -> confirmacion simple Si/No.
   else if (not bDesactivable) and (iHijos = 0) then

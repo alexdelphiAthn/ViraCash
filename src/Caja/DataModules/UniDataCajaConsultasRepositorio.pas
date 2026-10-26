@@ -53,6 +53,8 @@ type
     function EjecutarObtenerCliente(
       const ASql, ACodigo: string;
       out ACliente: TClienteCaja): Boolean;
+    function BuscarNumeroFacturaConCeros(
+      const ASerie, ANumero: string; AAnchoMaximo: Integer): string;
     function EjecutarConsultarCabeceraFactura(
       const ASql, ASerie, ANumero: string):
       IResultadoConsultaCaja;
@@ -692,20 +694,95 @@ begin
   end;
 end;
 
+function TRepositorioConsultasCaja.BuscarNumeroFacturaConCeros(
+  const ASerie, ANumero: string; AAnchoMaximo: Integer): string;
+var
+  Consulta: TUniQuery;
+  Numero: string;
+  Parametros: string;
+  Indice: Integer;
+  Ancho: Integer;
+  EsNumerico: Boolean;
+begin
+  Result := '';
+  Numero := Trim(ANumero);
+  EsNumerico := Numero <> '';
+  for Indice := 1 to Length(Numero) do
+  begin
+    EsNumerico := EsNumerico and CharInSet(Numero[Indice], ['0'..'9']);
+  end;
+  if EsNumerico then
+  begin
+    while (Length(Numero) > 1) and (Numero[1] = '0') do
+    begin
+      Delete(Numero, 1, 1);
+    end;
+    if Length(Numero) <= AAnchoMaximo then
+    begin
+      Parametros := '';
+      for Ancho := Length(Numero) to AAnchoMaximo do
+      begin
+        if Parametros <> '' then
+        begin
+          Parametros := Parametros + ', ';
+        end;
+        Parametros := Parametros + ':N' + IntToStr(Ancho);
+      end;
+      Consulta := TUniQuery.Create(nil);
+      try
+        Consulta.Connection := FConexion;
+        // Cada candidato mantiene la búsqueda por serie/número indexada.
+        // No convierte a entero ni presupone el ancho del contador actual:
+        // admite también tickets históricos con otro relleno de ceros.
+        Consulta.SQL.Text :=
+          'SELECT NUMERO_FAC FROM fza_facturas ' +
+          'WHERE SERIE_FAC = :SERIE AND NUMERO_FAC IN (' +
+          Parametros + ') LIMIT 2';
+        Consulta.ParamByName('SERIE').AsString := Trim(ASerie);
+        for Ancho := Length(Numero) to AAnchoMaximo do
+        begin
+          Consulta.ParamByName('N' + IntToStr(Ancho)).AsString :=
+            StringOfChar('0', Ancho - Length(Numero)) + Numero;
+        end;
+        Consulta.Open;
+        // Si hay dos documentos distintos, debe indicarse el número exacto.
+        if Consulta.RecordCount = 1 then
+        begin
+          Result := Consulta.FieldByName('NUMERO_FAC').AsString;
+        end;
+      finally
+        Consulta.Free;
+      end;
+    end;
+  end;
+end;
+
 function TRepositorioConsultasCaja.
   EjecutarConsultarCabeceraFactura(
   const ASql, ASerie, ANumero: string):
   IResultadoConsultaCaja;
 var
   oConsulta: TUniQuery;
+  NumeroGuardado: string;
 begin
   oConsulta := TUniQuery.Create(nil);
   try
     oConsulta.Connection := FConexion;
     oConsulta.SQL.Text := ASql;
-    oConsulta.ParamByName('SERIE').AsString := ASerie;
-    oConsulta.ParamByName('NUMERO').AsString := ANumero;
+    oConsulta.ParamByName('SERIE').AsString := Trim(ASerie);
+    oConsulta.ParamByName('NUMERO').AsString := Trim(ANumero);
     oConsulta.Open;
+    if oConsulta.IsEmpty then
+    begin
+      NumeroGuardado := BuscarNumeroFacturaConCeros(
+        ASerie, ANumero, oConsulta.FieldByName('NUMERO_FAC').Size);
+      if NumeroGuardado <> '' then
+      begin
+        oConsulta.Close;
+        oConsulta.ParamByName('NUMERO').AsString := NumeroGuardado;
+        oConsulta.Open;
+      end;
+    end;
     ValidarCamposResultadoSql(
       DefinicionConsultarCabeceraFactura,
       oConsulta);
