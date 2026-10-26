@@ -552,6 +552,10 @@
         ShortCut = 57414
         OnClick = MenuGenericoClick
       end
+      object mnuComprasDirectasTerceros: TMenuItem
+        Caption = 'Compras directas a terceros'
+        OnClick = MenuGenericoClick
+      end
       object EfectosCompra1: TMenuItem
         Caption = 'Efectos de pago'
         ShortCut = 49219

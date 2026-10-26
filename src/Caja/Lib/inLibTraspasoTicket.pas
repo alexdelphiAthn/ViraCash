@@ -78,6 +78,13 @@ type
                                        TUnidadLineaTicketTraspaso);
     // Los tres pasos de la solicitud: encabezado, cuerpo de lineas y
     // cierre con la salida a impresora o vista previa.
+    // FZ-ISSUE-717: en una carga a un almacen de transito, el destino final
+    // y las empresas que entregan y reciben la mercancia.
+    class procedure ImprimirCargaTransito(ATicket: TTicketTermico;
+                                          const ARepositorio:
+                                          IRepositorioTraspasoTicket;
+                                          const AEmpresa, AAlmacen, ACaja,
+                                          ANumOperacion: string);
     class procedure ImprimirCabeceraSolicitud(
       ATicket: TTicketTermico;
       const ACabecera: TSolicitudTraspasoTicket;
@@ -110,7 +117,8 @@ type
                                      const ARepositorio:
                                      IRepositorioTraspasoTicket;
                                      const ADocRef, AOrigen, ADestino,
-                                     AEmpleado: string; ALineas: TDataSet;
+                                     AEmpleado, AEmpresa, ACaja: string;
+                                     ALineas: TDataSet;
                                      const ANombreImpresora: string = 'DEBUG');
     // Reimprime el ticket de un traspaso ya grabado leyendo la cabecera de la
     // operacion de caja y sus lineas (movimientos de salida) de la BBDD. Lo usa
@@ -396,6 +404,36 @@ begin
     TextoCantidadTicketTraspaso(ADestino, AUnidad));
 end;
 
+function TextoCodigoNombre(const ACodigo, ANombre: string): string;
+begin
+  if Trim(ANombre) = '' then
+    Result := ACodigo
+  else
+    Result := ACodigo + ' - ' + ANombre;
+end;
+
+class procedure TTraspasoTicket.ImprimirCargaTransito(
+  ATicket: TTicketTermico;
+  const ARepositorio: IRepositorioTraspasoTicket;
+  const AEmpresa, AAlmacen, ACaja, ANumOperacion: string);
+var
+  Carga: TCargaTransitoTicket;
+begin
+  Carga := ARepositorio.ObtenerCargaTransito(AEmpresa, AAlmacen, ACaja,
+    ANumOperacion);
+  if Carga.Existe then
+  begin
+    ATicket.TextoColumnas(STicketDestinoFinal,
+      TextoCodigoNombre(Carga.DestinoFinal, Carga.NombreDestinoFinal));
+    ATicket.TextoColumnas(STicketEmpresaOrigen,
+      TextoCodigoNombre(Carga.EmpresaOrigen, Carga.NombreEmpresaOrigen));
+    if Trim(Carga.EmpresaDestino) <> '' then
+      ATicket.TextoColumnas(STicketEmpresaDestino,
+        TextoCodigoNombre(Carga.EmpresaDestino,
+          Carga.NombreEmpresaDestino));
+  end;
+end;
+
 class procedure TTraspasoTicket.ImprimirCabeceraSolicitud(
   ATicket: TTicketTermico;
   const ACabecera: TSolicitudTraspasoTicket;
@@ -633,7 +671,8 @@ class procedure TTraspasoTicket.ImprimirTraspaso(
                                    const ARepositorio:
                                    IRepositorioTraspasoTicket;
                                    const ADocRef, AOrigen, ADestino,
-                                   AEmpleado: string; ALineas: TDataSet;
+                                   AEmpleado, AEmpresa, ACaja: string;
+                                   ALineas: TDataSet;
                                    const ANombreImpresora: string);
 var
   Ticket: TTicketTermico;
@@ -659,6 +698,9 @@ begin
       Ticket.Alinear(alIzquierda);
       Ticket.TextoColumnas(STicketOrigen, AOrigen);
       Ticket.TextoColumnas(STicketDestino, ADestino);
+      // ADocRef es el numero de la operacion recien grabada.
+      ImprimirCargaTransito(Ticket, ARepositorio, AEmpresa, AOrigen, ACaja,
+        ADocRef);
       Ticket.TextoColumnas(STicketEmpleado, AEmpleado);
       Ticket.TextoColumnas(
         STicketFecha,
@@ -761,13 +803,23 @@ begin
         Ticket.ConfigurarEspanol;
         Ticket.Alinear(alCentro);
         Ticket.Negrita(True);
-        Ticket.EscribirLinea(STicketTraspaso);
+        if SameText(Cabecera.TipoOperacion, 'TP') then
+          Ticket.EscribirLinea(STicketPerdidaTransito)
+        else
+          Ticket.EscribirLinea(STicketTraspaso);
         Ticket.EscribirLinea(sDocRef);
         Ticket.Negrita(False);
         Ticket.SaltarLineas(1);
         Ticket.Alinear(alIzquierda);
-        Ticket.TextoColumnas(STicketOrigen, Cabecera.Origen);
-        Ticket.TextoColumnas(STicketDestino, Cabecera.Destino);
+        if SameText(Cabecera.TipoOperacion, 'TP') then
+          Ticket.TextoColumnas(STicketOrigen, Cabecera.Destino)
+        else
+        begin
+          Ticket.TextoColumnas(STicketOrigen, Cabecera.Origen);
+          Ticket.TextoColumnas(STicketDestino, Cabecera.Destino);
+        end;
+        ImprimirCargaTransito(Ticket, ARepositorio, AEmpresa, AAlmacen,
+          ACaja, ANumOperacion);
         Ticket.TextoColumnas(STicketEmpleado, Cabecera.Empleado);
         Ticket.TextoColumnas(STicketOperacion, ANumOperacion);
         Ticket.LineaSeparadora('-');
@@ -785,21 +837,34 @@ begin
         while iLinea < Length(Lineas) do
         begin
           dPed := Lineas[iLinea].Cantidad;
-          dOrg := ARepositorio.ObtenerStock(
-            Cabecera.Origen,
-            Lineas[iLinea].Sku);
-          dDes := ARepositorio.ObtenerStock(
-            Cabecera.Destino,
-            Lineas[iLinea].Sku);
-          // Reimpresion: el stock es el actual de cada almacen (puede haber
-          // variado por movimientos posteriores), por eso "actual".
-          ImprimirLineaSku(Ticket,
-            Lineas[iLinea].Sku,
-            Lineas[iLinea].Descripcion,
-            STicketUnidades, dPed,
-            STicketStockOrigenActual, dOrg,
-            STicketStockDestinoActual, dDes,
-            UnidadLineaTicketDesconocida);
+          if SameText(Cabecera.TipoOperacion, 'TP') then
+          begin
+            Ticket.Negrita(True);
+            Ticket.EscribirLinea(Lineas[iLinea].Sku);
+            Ticket.Negrita(False);
+            Ticket.EscribirLinea(Copy(Lineas[iLinea].Descripcion,
+              1, N_CHAR_LIN));
+            Ticket.TextoColumnas(STicketUnidades,
+              FormatFloat('0.###', dPed));
+          end
+          else
+          begin
+            dOrg := ARepositorio.ObtenerStock(
+              Cabecera.Origen,
+              Lineas[iLinea].Sku);
+            dDes := ARepositorio.ObtenerStock(
+              Cabecera.Destino,
+              Lineas[iLinea].Sku);
+            // Reimpresion: el stock es el actual de cada almacen (puede haber
+            // variado por movimientos posteriores), por eso "actual".
+            ImprimirLineaSku(Ticket,
+              Lineas[iLinea].Sku,
+              Lineas[iLinea].Descripcion,
+              STicketUnidades, dPed,
+              STicketStockOrigenActual, dOrg,
+              STicketStockDestinoActual, dDes,
+              UnidadLineaTicketDesconocida);
+          end;
           Inc(iLinea);
         end;
         Ticket.LineaSeparadora('-');

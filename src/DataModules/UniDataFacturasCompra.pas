@@ -84,6 +84,7 @@ type
     procedure unqryTablaGBeforeDelete(DataSet: TDataSet);
     procedure unqryFacturasCompraLineasAfterInsert(DataSet: TDataSet);
     procedure unqryFacturasCompraLineasBeforePost(DataSet: TDataSet);
+    procedure unqryFacturasCompraLineasBeforeDelete(DataSet: TDataSet);
     procedure unqryFacturasCompraLineasAfterPost(DataSet: TDataSet);
   private
     // Transicion de estado detectada en BeforePost. La aplicamos en
@@ -91,12 +92,15 @@ type
     // generamos/revertimos los movimientos. Valores: 'CERRAR' (mov.
     // salida nueva), 'ABRIR' (revertir mov. existentes) o ''.
     FTransicionEstadoFacc: string;
+    FEsCompraDirecta: Boolean;
+    FProveedoresDirectosBusqueda: TUniQuery;
     // True mientras DesempaquetarAtributosLineas postea lineas: cambio
     // puramente descriptivo que NO debe disparar la logica fiscal ni
     // la sincronizacion de movimientos (cascada por linea al navegar).
     FDesempaquetandoAtributos: Boolean;
     // F-LOTEC-013: lote de las líneas (nil = como siempre).
     FLotesLineas: TLotesLineasDocumento;
+    procedure AsignarCompraDirecta(AValor: Boolean);
     procedure CancelarLineaVaciaDiferida;
     procedure AsignarNumeroLineaFacturaCompra(DataSet: TDataSet);
     function ObtenerSkusFacturaCsv(const ASerie, ANumero: string): string;
@@ -115,6 +119,11 @@ type
     function BuscarFacturaCompraRepetida(
       const AProveedor, ADocumento, ASerieExcluida, ANumeroExcluido: string;
       out AExistente: TFacturaCompraRepetida): Boolean;
+    function DatosBusquedaProveedoresDirectos: TDataSet;
+    procedure CargarSeriesCompra(AElementos: TStrings);
+    procedure ActualizarModalidadCompra;
+    property EsCompraDirecta: Boolean read FEsCompraDirecta
+      write AsignarCompraDirecta;
     procedure GetCodigoAutoFacturaCompra;
     procedure CalcularTotalesFacturaCompra;
     procedure RefrescarAlmacenes(const ACodigoEmpresa: string);
@@ -188,7 +197,8 @@ uses
   inLibArticulosValidadorIntf,
   UniDataArticulosValidadorRepositorio,
   inLibMsgCompras, inLibDocumento, inLibDocumentoIntf,
-  UniDataDatosProveedorDocumento;
+  UniDataDatosProveedorDocumento, UniDataComprasDirectas,
+  inLibComprasDirectas, UniDataComprasDirectasFiscal;
 
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 
@@ -237,6 +247,8 @@ begin
   unstrdprcGetContadorFacc.Connection   := ConexionPrincipal;
   unqryDefArticuloFacc.Connection       := ConexionPrincipal;
   unqryEfectos.Connection := ConexionPrincipal;
+  unqryFacturasCompraLineas.BeforeDelete :=
+    unqryFacturasCompraLineasBeforeDelete;
   VigilarTotalMaximoLinea(unqryFacturasCompraLineas, 'TOTAL_FACCLIN');
 end;
 
@@ -531,6 +543,14 @@ var
   end;
 begin
   inherited;
+  FieldByName('ESREPRESENTACION_FISCAL_FACC').AsString := 'N';
+  FieldByName('FECHA_REGISTRO_CONTABLE_FACC').AsDateTime := Date;
+  FieldByName('MODALIDAD_FACC').AsString := 'ORDINARIA';
+  FieldByName('PORCENTAJE_COMPENSACION_FACC').AsCurrency := 0;
+  FieldByName('TOTAL_COMPENSACION_FACC').AsCurrency := 0;
+  FieldByName('ESACUERDO_AUTOFAC_FACC').AsString := 'N';
+  if FEsCompraDirecta then
+    FieldByName('MODALIDAD_FACC').AsString := 'AUTOFAC';
   FieldByName('NUMERO_FACC').AsString := '0';
     // Serie por defecto: buscar en fza_empresas_series para TIPO_DOC='FP'
     sSerie := ObtenerSerieDefecto(
@@ -563,6 +583,9 @@ begin
     AplicarPorcentajesIvaCompra(
       CrearLecturasImpuestos(ConexionEscritura), unqryTablaG,
       'FACC');
+  if FEsCompraDirecta then
+    ProponerSerieCompraDirecta(ConexionEscritura, unqryTablaG,
+      IdentidadSesion.Usuario);
   RefrescarAlmacenes(FieldByName('CODIGO_EMP_FACC').AsString);
   FTransicionEstadoFacc := '';
 end;
@@ -583,6 +606,9 @@ begin
     oContador.ProviderFlags := [];
   end;
   inherited;
+  ExigirCompraSinRegistroFiscal(ConexionEscritura,
+    DataSet.FieldByName('SERIE_FACC').AsString,
+    DataSet.FieldByName('NUMERO_FACC').AsString);
   // Antes de numerar: si se cancela no se consume el contador.
   ComprobarDocumentoExternoRepetido(DataSet);
   if (DataSet.FindField('ESPIVOTE_HORIZONTAL_FACC') <> nil) and
@@ -591,6 +617,11 @@ begin
     DataSet.FieldByName('ESPIVOTE_HORIZONTAL_FACC').AsString := 'N';
   // FZ-ISSUE-249: datos del proveedor en la cabecera, como los de empresa.
   CopiarDatosProveedorDocumento(DataSet, 'FACC');
+  if FEsCompraDirecta then
+    ProponerSerieCompraDirecta(ConexionEscritura, DataSet,
+      IdentidadSesion.Usuario);
+  ValidarCompraDirecta(ConexionEscritura, DataSet,
+    UbicacionSesion.Empresa, ParametrosApp);
   if (unqryTablaG.FieldByName('NUMERO_FACC').AsString = '0') or
      (unqryTablaG.FieldByName('NUMERO_FACC').AsString = '') then
     GetCodigoAutoFacturaCompra;
@@ -789,6 +820,9 @@ var
 
 begin
   inherited;
+  ExigirCompraSinRegistroFiscal(ConexionEscritura,
+    DataSet.FieldByName('SERIE_FACC').AsString,
+    DataSet.FieldByName('NUMERO_FACC').AsString);
   sSerie  := DataSet.FieldByName('SERIE_FACC').AsString;
   sNumero := DataSet.FieldByName('NUMERO_FACC').AsString;
   if (sSerie <> '') and (sNumero <> '') then
@@ -904,6 +938,14 @@ begin
   FieldByName('INSTANTE_MODIF').AsDateTime := Now;
 end;
 
+procedure TdmFacturasCompra.unqryFacturasCompraLineasBeforeDelete(
+  DataSet: TDataSet);
+begin
+  ExigirCompraSinRegistroFiscal(ConexionEscritura,
+    DataSet.FieldByName('SERIE_FACC_FACCLIN').AsString,
+    DataSet.FieldByName('NUMERO_FACC_FACCLIN').AsString);
+end;
+
 procedure TdmFacturasCompra.unqryFacturasCompraLineasBeforePost(
                                                        DataSet: TDataSet);
 var
@@ -918,6 +960,9 @@ var
   end;
 begin
   inherited;
+  ExigirCompraSinRegistroFiscal(ConexionEscritura,
+    DataSet.FieldByName('SERIE_FACC_FACCLIN').AsString,
+    DataSet.FieldByName('NUMERO_FACC_FACCLIN').AsString);
   // Desempaquetado ATTR en curso: post descriptivo, sin logica fiscal.
   if not FDesempaquetandoAtributos then
   begin
@@ -1109,6 +1154,52 @@ begin
   unqryTablaG.FieldByName('NUMERO_FACC').AsString := sNumero;
 end;
 
+procedure TdmFacturasCompra.AsignarCompraDirecta(AValor: Boolean);
+begin
+  FEsCompraDirecta := AValor;
+  if AValor then
+  begin
+    unqryPrvDataFacc.Filter := 'ESFACTURACION_DIRECTA_PRV = ''S''';
+    unqryPrvDataFacc.Filtered := True;
+  end;
+end;
+
+function TdmFacturasCompra.DatosBusquedaProveedoresDirectos: TDataSet;
+begin
+  if not Assigned(FProveedoresDirectosBusqueda) then
+  begin
+    FProveedoresDirectosBusqueda := TUniQuery.Create(Self);
+    FProveedoresDirectosBusqueda.Connection := ConexionEscritura;
+    FProveedoresDirectosBusqueda.SQL.Text :=
+      'SELECT CODIGO_PRV_PRV, NOMBRE_PRV, RAZON_SOCIAL_PRV, NIF_PRV, ' +
+      'MOVIL_PRV, EMAIL_PRV FROM fza_proveedores ' +
+      'WHERE ESFACTURACION_DIRECTA_PRV = ''S'' ' +
+      'AND COALESCE(ESACTIVO_PRV, ''S'') = ''S'' ' +
+      'ORDER BY RAZON_SOCIAL_PRV';
+  end;
+  FProveedoresDirectosBusqueda.Close;
+  FProveedoresDirectosBusqueda.Open;
+  Result := FProveedoresDirectosBusqueda;
+end;
+
+procedure TdmFacturasCompra.CargarSeriesCompra(AElementos: TStrings);
+begin
+  CargarSeriesModalidadCompra(ConexionEscritura,
+    unqryTablaG.FieldByName('CODIGO_EMP_FACC').AsString,
+    ModalidadCompra(unqryTablaG.FieldByName('MODALIDAD_FACC').AsString),
+    AElementos, unqryTablaG.FieldByName('CODIGO_PRV_FACC').AsString);
+end;
+
+procedure TdmFacturasCompra.ActualizarModalidadCompra;
+begin
+  if unqryTablaG.State in dsEditModes then
+  begin
+    ProponerSerieCompraDirecta(ConexionEscritura, unqryTablaG,
+      IdentidadSesion.Usuario);
+    CalcularTotalesFacturaCompra;
+  end;
+end;
+
 procedure TdmFacturasCompra.CalcularTotalesFacturaCompra;
 begin
   // Los posts del desempaquetado ATTR no alteran importes: saltar el
@@ -1119,6 +1210,7 @@ begin
       CrearLecturasImpuestos(ConexionEscritura), unqryTablaG,
       unqryFacturasCompraLineas, 'FACC', 'TOTAL_FACCLIN',
       'TIPO_IVA_ARTICULO_FACCLIN', 'PORCENTAJE_IVA_FACCLIN');
+    AplicarCompensacionCompraDirecta(unqryTablaG);
   end;
 end;
 

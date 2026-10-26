@@ -16,6 +16,45 @@ unit inLibMsgCaja;
 interface
 
 resourcestring
+  SCaptionViajeHojaRuta = 'Viaje';
+  SCaptionAlbaranHojaRuta = 'Albarán de entrega';
+  SErrorSeleccionViajeHojaRuta =
+    'Indique la referencia del viaje y marque al menos una carga.';
+  SCaptionLoteHojaRuta = 'Lote';
+  SCaptionHojaRutaTransito =
+    'Hoja de ruta';
+  STextoAyudaHojaRuta =
+    'Indique el viaje y marque sus cargas. Una hoja de ruta y un ' +
+    'albarán por origen y destino.';
+  SErrorHojaRutaSinCargas =
+    'No hay mercancía pendiente en este almacén de tránsito.';
+  SErrorHojaRutaSinTransito =
+    'Seleccione un almacén de tránsito para imprimir su hoja de ruta.';
+  SCaptionEntregaHojaRuta =
+    'Emisor (empresa)';
+  SCaptionRecibeHojaRuta =
+    'Receptor (empresa)';
+  SCaptionRecibidasHojaRuta =
+    'Recibidas';
+  SCaptionTarasHojaRuta =
+    'Taras';
+  SCaptionPerdidasHojaRuta =
+    'Perdidas';
+  SCaptionTotalHojaRuta =
+    'Total unidades cargadas';
+  STextoFirmaHojaRuta =
+    'Firma de quien recibe: __________________________';
+  STextoFechaHojaRuta =
+    'Fecha de entrega: __________________________';
+  SNotaHojaRutaTransito =
+    'Documento de transporte, no factura. Al cambiar de empresa, la TA' +
+    ' se genera al recepcionar y se factura desde Facturas proforma.';
+  SNotaCotejoHojaRuta =
+    'Coteje por número de carga y SKU. En Recepcionar con incidencias ' +
+    'anote las unidades recibidas, deterioradas y perdidas.';
+  SErrorCreditoSinAlmacenDeposito =
+    'Para vender a crédito la empresa %s necesita un almacén de ' +
+    'depósitos activo (Archivo > Almacenes, Uso = Depósito).';
   STituloBusquedaArticulosCaja = 'Búsqueda de Artículos en Caja';
   SEstadoArqueoCerrado = 'CERRADO';
   SEstadoSolicitudCompletadoTotal = 'COMPLETADO TOTAL';
@@ -357,16 +396,18 @@ resourcestring
     'Cargas en tránsito pendientes de recibir en %s';
   SInfoCargasTransitoRecibidas =
     'Cargas recibidas: %d. Operaciones: %s.';
-  STituloDestinoFinalTransito =
-    'Destino final de la carga';
-  SEtiquetaDestinoFinalTransito =
-    'La mercancía viaja en %s. Almacén que la recibirá:';
   SErrorDestinoFinalTransitoNoElegido =
     'Elija el almacén que recibirá la carga.';
   SInfoCargaTransitoGrabada =
     'Carga %s grabada: queda en %s pendiente de recibir en %s.';
-  STextoAlmacenTransito =
-    'tránsito';
+  SCaptionUsarAlmacenTransito =
+    'Usar almacén de tránsito';
+  SHintUsarAlmacenTransito =
+    'La mercancía viaja en una furgoneta o agencia hasta el almacén ' +
+    'destino. Elija en el desplegable el almacén de tránsito.';
+  SErrorAlmacenTransitoNoSeleccionado =
+    'Elija el almacén de tránsito en el que viaja la carga o desmarque ' +
+    '«Usar almacén de tránsito».';
   SCaptionRecibirCargasTransito =
     'Recibir';
   SCaptionColFechaCargaTransito =

@@ -228,6 +228,7 @@ type
     function ValidarCobroSubsanacion: Boolean;
     function PedirContactoApartado: Boolean;
     function ValidaryConfirmar:boolean;
+    function ValidarDepositoCredito: Boolean;
     function PuedeEmitir(const ASerie: string; AFecha: TDateTime): Boolean;
     function SerieAdmiteFecha(const ASerie: string;
       AFecha: TDateTime): Boolean;
@@ -285,7 +286,7 @@ implementation
 {$R *.dfm}
 
 uses
-  inLibMensajesVcl, inLibRedondeo,
+  inLibMensajesVcl, inLibRedondeo, UniDataFaseCobroRepositorio,
   inMtoCajaSeleccionVale, inMtoModalOpcionesDocumento,
   inLibOpcionesDocumentoIntf, inLibMsgOpcionesDocumento,
   UniDataOpcionesDocumentoRepositorio, Uni,
@@ -732,6 +733,16 @@ begin
   end;
 end;
 
+function TfrmMtoCajaFaseCobro.ValidarDepositoCredito: Boolean;
+var
+  Mensaje: string;
+begin
+  Result := ValidarAlmacenDepositoCredito(
+    ConexionPrincipal, FCodigoEmpresa, Mensaje);
+  if not Result then
+    ShowMessage_fza(Mensaje);
+end;
+
 function TfrmMtoCajaFaseCobro.ValidarYConfirmar: Boolean;
 var
   Res: TResultadoValidacion;
@@ -748,6 +759,8 @@ begin
     Result := Res.Valido;
     if not Result then
       MessageDlg_fza(Res.Mensaje, mtError, [mbOK], 0);
+    if Result and (FDatosCobro.ImporteDejarCuenta > 0) then
+      Result := ValidarDepositoCredito;
   end;
 end;
 
@@ -1671,6 +1684,8 @@ begin
   else if FDatosCobro.EsClienteVarios and
           (FDatosCobro.ImporteEntregado <= 0) then
     ShowMessage_fza(SErrorApartadoCajaSinEntrega)
+  else if not ValidarDepositoCredito then
+    ActualizarInterfaz
   else if FDatosCobro.EsClienteVarios and
           (not PedirContactoApartado) then
     ActualizarInterfaz

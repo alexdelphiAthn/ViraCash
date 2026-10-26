@@ -1231,6 +1231,8 @@ SLeyendaAvisosBalance =
     'Excel cargado: %d líneas nuevas y %d actualizadas.';
   SErrorSesionTarifaAplicadaNoEditable =
     'La sesión ya está aplicada; no se puede cargar un Excel en ella.';
+  SErrorSesionTarifaAplicadaNoBorrarLineas =
+    'La sesión ya está aplicada; no se pueden borrar sus líneas.';
   SErrorTarifasCambiosSesionAplicadaLote =
     'La sesión ya está aplicada; no se pueden cambiar sus descuentos.';
   SCaptionMarcarTodoSesionTarifa = 'Marcar todo';

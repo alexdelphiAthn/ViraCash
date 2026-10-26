@@ -51,6 +51,10 @@ type
       const AEmpresa, AAlmacen, ACaja,
       ANumeroOperacion: string):
       TArray<TLineaTraspasoTicket>;
+    function ObtenerCargaTransito(
+      const AEmpresa, AAlmacen, ACaja,
+      ANumeroOperacion: string):
+      TCargaTransitoTicket;
   end;
 
 implementation
@@ -150,7 +154,7 @@ const
   SQL_TRASPASO_HISTORICO =
     'SELECT o.SERIE_FAC_OPCAJA, o.NUMERO_FAC_OPCAJA, ' +
     'o.CODIGO_ALM_OPCAJA, o.CODIGO_ALM_CONTRA_OPCAJA, ' +
-    'o.CODIGO_EMPLEADO_OPCAJA, ' +
+    'o.CODIGO_EMPLEADO_OPCAJA, o.TIPO_OPERACION_OPCAJA, ' +
     'COALESCE(e.FORMATO_DOCUMENTO_EMP, ''Serie.NroDocumento'') ' +
     'AS FORMATO_DOCUMENTO_EMP FROM fza_caja_operaciones o ' +
     'LEFT JOIN fza_empresas e ' +
@@ -160,13 +164,42 @@ const
     'AND o.CODIGO_CAJA_OPCAJA = :CAJA ' +
     'AND o.NUMERO_OPERACION_OPCAJA = :NUMOP';
   SQL_LINEAS_TRASPASO =
-    'SELECT CODIGO_UNIDAD_MOV, CANTIDAD_MOV, ' +
-    'COALESCE(DESCRIPCION_ARTICULO_MOV, '''') AS DESCRIPCION ' +
-    'FROM fza_movimientos_almacen ' +
-    'WHERE CODIGO_EMP_MOV = :EMP AND CODIGO_ALM_DOC_MOV = :ALM ' +
-    'AND CODIGO_CAJA_DOC_MOV = :CAJA ' +
-    'AND NUMERO_OPERACION_DOC_MOV = :NUMOP AND TIPO_MOV = ''S'' ' +
-    'ORDER BY LINEA_MOV';
+    'SELECT m.CODIGO_UNIDAD_MOV, m.CANTIDAD_MOV, ' +
+    'COALESCE(m.DESCRIPCION_ARTICULO_MOV, '''') AS DESCRIPCION ' +
+    'FROM fza_movimientos_almacen m ' +
+    'WHERE m.CODIGO_ALM_DOC_MOV = :ALM ' +
+    'AND m.CODIGO_CAJA_DOC_MOV = :CAJA ' +
+    'AND m.NUMERO_OPERACION_DOC_MOV = :NUMOP AND m.TIPO_MOV = ''S'' ' +
+    'AND EXISTS (SELECT 1 FROM fza_caja_operaciones o ' +
+    'WHERE o.CODIGO_EMP_OPCAJA = :EMP ' +
+    'AND o.CODIGO_ALM_OPCAJA = m.CODIGO_ALM_DOC_MOV ' +
+    'AND o.CODIGO_CAJA_OPCAJA = m.CODIGO_CAJA_DOC_MOV ' +
+    'AND o.NUMERO_OPERACION_OPCAJA = m.NUMERO_OPERACION_DOC_MOV ' +
+    'AND o.TIPO_OPERACION_OPCAJA = m.TIPO_DOC_MOV ' +
+    'AND o.SERIE_FAC_OPCAJA = m.SERIE_DOC_MOV ' +
+    'AND o.NUMERO_FAC_OPCAJA = m.NUMERO_DOC_MOV) ' +
+    'ORDER BY m.LINEA_MOV';
+  // La carga se identifica por la operacion que la grabo; la empresa
+  // destino es la del almacen destino final.
+  SQL_CARGA_TRANSITO =
+    'SELECT t.CODIGO_ALM_DESTINO_TRTRA, ' +
+    'COALESCE(d.NOMBRE_ALM_ALM, '''') AS NOMBRE_DESTINO, ' +
+    't.CODIGO_EMP_TRTRA, ' +
+    'COALESCE(eo.RAZON_SOCIAL_EMP, '''') AS NOMBRE_EMP_ORIGEN, ' +
+    'COALESCE(d.CODIGO_EMP_ALM, '''') AS EMP_DESTINO, ' +
+    'COALESCE(ed.RAZON_SOCIAL_EMP, '''') AS NOMBRE_EMP_DESTINO ' +
+    'FROM fza_traspasos_transito t ' +
+    'LEFT JOIN fza_almacenes d ' +
+    'ON d.CODIGO_ALM_ALM = t.CODIGO_ALM_DESTINO_TRTRA ' +
+    'LEFT JOIN fza_empresas eo ' +
+    'ON eo.CODIGO_EMP_EMP = t.CODIGO_EMP_TRTRA ' +
+    'LEFT JOIN fza_empresas ed ' +
+    'ON ed.CODIGO_EMP_EMP = d.CODIGO_EMP_ALM ' +
+    'WHERE t.CODIGO_EMP_TRTRA = :EMP ' +
+    'AND t.CODIGO_ALM_ORIGEN_TRTRA = :ALM ' +
+    'AND t.CODIGO_CAJA_CARGA_TRTRA = :CAJA ' +
+    'AND t.NUMERO_OPERACION_CARGA_TRTRA = :NUMOP ' +
+    'ORDER BY t.ID_TRTRA DESC LIMIT 1';
 
 function DefinicionSql(
   const AOperacion, ASql, AParametros,
@@ -196,7 +229,7 @@ end;
 class function TRepositorioTraspasoTicket.DefinicionesSql:
   TDefinicionesSql;
 begin
-  SetLength(Result, 5);
+  SetLength(Result, 6);
   Result[0] := DefinicionSql(
     'ObtenerSolicitud',
     SQL_SOLICITUD,
@@ -220,12 +253,18 @@ begin
     'EMP,ALM,CAJA,NUMOP',
     'SERIE_FAC_OPCAJA,NUMERO_FAC_OPCAJA,CODIGO_ALM_OPCAJA,' +
     'CODIGO_ALM_CONTRA_OPCAJA,CODIGO_EMPLEADO_OPCAJA,' +
-    'FORMATO_DOCUMENTO_EMP');
+    'FORMATO_DOCUMENTO_EMP,TIPO_OPERACION_OPCAJA');
   Result[4] := DefinicionSql(
     'ListarLineasTraspaso',
     SQL_LINEAS_TRASPASO,
     'EMP,ALM,CAJA,NUMOP',
     'CODIGO_UNIDAD_MOV,CANTIDAD_MOV,DESCRIPCION');
+  Result[5] := DefinicionSql(
+    'ObtenerCargaTransito',
+    SQL_CARGA_TRANSITO,
+    'EMP,ALM,CAJA,NUMOP',
+    'CODIGO_ALM_DESTINO_TRTRA,NOMBRE_DESTINO,CODIGO_EMP_TRTRA,' +
+    'NOMBRE_EMP_ORIGEN,EMP_DESTINO,NOMBRE_EMP_DESTINO');
 end;
 
 function TRepositorioTraspasoTicket.ObtenerSolicitud(
@@ -403,6 +442,8 @@ begin
     Result.Existe := not oQuery.IsEmpty;
     if Result.Existe then
     begin
+      Result.TipoOperacion :=
+        oQuery.FieldByName('TIPO_OPERACION_OPCAJA').AsString;
       Result.Serie :=
         oQuery.FieldByName('SERIE_FAC_OPCAJA').AsString;
       Result.NumeroDocumento :=
@@ -469,6 +510,57 @@ begin
   finally
     FreeAndNil(oQuery);
     FreeAndNil(oLineas);
+  end;
+end;
+
+function TRepositorioTraspasoTicket.ObtenerCargaTransito(
+  const AEmpresa, AAlmacen, ACaja,
+  ANumeroOperacion: string):
+  TCargaTransitoTicket;
+var
+  oDefinicion: TDefinicionSql;
+  oQuery: TUniQuery;
+begin
+  Result := Default(TCargaTransitoTicket);
+  oDefinicion := DefinicionesSql[5];
+  oQuery := TUniQuery.Create(nil);
+  try
+    oQuery.Connection := FConexion;
+    EjecutarLecturaSqlConFallback(
+      oDefinicion,
+      FCatalogoSql,
+      procedure(const ASql: string)
+      begin
+        oQuery.Close;
+        oQuery.SQL.Text := ASql;
+        oQuery.ParamByName('EMP').AsString := AEmpresa;
+        oQuery.ParamByName('ALM').AsString := AAlmacen;
+        oQuery.ParamByName('CAJA').AsString := ACaja;
+        oQuery.ParamByName('NUMOP').AsString := ANumeroOperacion;
+        oQuery.Open;
+        ValidarCamposResultadoSql(
+          oDefinicion,
+          oQuery);
+      end,
+      FIncidenciasSql);
+    Result.Existe := not oQuery.IsEmpty;
+    if Result.Existe then
+    begin
+      Result.DestinoFinal :=
+        oQuery.FieldByName('CODIGO_ALM_DESTINO_TRTRA').AsString;
+      Result.NombreDestinoFinal :=
+        oQuery.FieldByName('NOMBRE_DESTINO').AsString;
+      Result.EmpresaOrigen :=
+        oQuery.FieldByName('CODIGO_EMP_TRTRA').AsString;
+      Result.NombreEmpresaOrigen :=
+        oQuery.FieldByName('NOMBRE_EMP_ORIGEN').AsString;
+      Result.EmpresaDestino :=
+        oQuery.FieldByName('EMP_DESTINO').AsString;
+      Result.NombreEmpresaDestino :=
+        oQuery.FieldByName('NOMBRE_EMP_DESTINO').AsString;
+    end;
+  finally
+    FreeAndNil(oQuery);
   end;
 end;
 

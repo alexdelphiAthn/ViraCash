@@ -108,6 +108,7 @@ type
     Devoluciones1: TMenuItem;
     FacturarAlbaranes1: TMenuItem;
     Facturas1: TMenuItem;
+    mnuComprasDirectasTerceros: TMenuItem;
     EfectosCompra1: TMenuItem;
     RemesasCompra1: TMenuItem;
     CargarEfectos1: TMenuItem;

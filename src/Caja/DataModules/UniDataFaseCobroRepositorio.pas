@@ -20,6 +20,9 @@ function CrearRepositorioFaseCobroUniDAC(
   AConexion: TUniConnection
 ): IRepositorioFaseCobro;
 
+function ValidarAlmacenDepositoCredito(AConexion: TUniConnection;
+  const AEmpresa: string; out AMensaje: string): Boolean;
+
 procedure AsegurarSerieFacturaCaja(AConexion: TUniConnection;
   const AEmpresa, AAlmacen, ACaja, ASerie, ASubtipo, AUsuario: string;
   AFecha: TDateTime);
@@ -27,7 +30,21 @@ procedure AsegurarSerieFacturaCaja(AConexion: TUniConnection;
 implementation
 
 uses
-  System.SysUtils, Data.DB, UniDataValoresAutomaticosRepositorio;
+  System.SysUtils, Data.DB, UniDataValoresAutomaticosRepositorio,
+  UniDataAlmacenesEmpresaRepositorio, inLibAlmacenesEmpresaPersistenciaIntf,
+  inLibMsgCaja;
+
+function ValidarAlmacenDepositoCredito(AConexion: TUniConnection;
+  const AEmpresa: string; out AMensaje: string): Boolean;
+var
+  Repositorio: IRepositorioAlmacenesEmpresa;
+begin
+  Repositorio := TRepositorioAlmacenesEmpresaUniDAC.Create(AConexion);
+  Result := Repositorio.ObtenerAlmacenDepositoEmpresa(AEmpresa) <> '';
+  AMensaje := '';
+  if not Result then
+    AMensaje := Format(SErrorCreditoSinAlmacenDeposito, [AEmpresa]);
+end;
 
 const
   SQL_INICIO_CONTADOR_CAJA =

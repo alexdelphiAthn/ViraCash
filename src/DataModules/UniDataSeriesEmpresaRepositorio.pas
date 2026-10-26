@@ -46,7 +46,7 @@ const
     '                    '''')) LIKE ''%pedido%'' ' +
     '         THEN ''N'' ' +
     '         WHEN DOC.TIPO_DOC IN ' +
-    '              (''VE'', ''DE'', ''DV'', ''TR'', ''TA'') ' +
+    '              (''VE'', ''DE'', ''DV'', ''TR'', ''TA'', ''TP'') ' +
     '         THEN ''S'' ELSE ''N'' ' +
     '       END AS ESCAJA ' +
     '  FROM (SELECT CODIGO_TIPO_DOCUMENTO_TD AS TIPO_DOC ' +
@@ -60,7 +60,8 @@ const
     '         UNION SELECT ''DE'' ' +
     '         UNION SELECT ''DV'' ' +
     '         UNION SELECT ''TR'' ' +
-    '         UNION SELECT ''TA'') DOC ' +
+    '         UNION SELECT ''TA'' ' +
+    '         UNION SELECT ''TP'') DOC ' +
     '  LEFT JOIN fza_tipos_documentos TD ' +
     '    ON TD.CODIGO_TIPO_DOCUMENTO_TD = DOC.TIPO_DOC ' +
     ' ORDER BY DOC.TIPO_DOC';

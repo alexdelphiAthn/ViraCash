@@ -482,6 +482,7 @@ begin
   unqryTablaG.FieldByName(fdescripcionblanco).AsString := 'N';
   if unqryTablaG.FindField('ESACTIVO_PRV') <> nil then
     unqryTablaG.FieldByName('ESACTIVO_PRV').AsString := 'S';
+  unqryTablaG.FieldByName('ESFACTURACION_DIRECTA_PRV').AsString := 'N';
   if unqryTablaG.FindField('ESVARIOS_TIPOS_IVA_PRV') <> nil then
     unqryTablaG.FieldByName(
       'ESVARIOS_TIPOS_IVA_PRV').AsString := 'N';

@@ -939,7 +939,7 @@ begin
       ShowMessage_fza(SErrorSeleccionVaciaSesionTarifa)
     else if SameText(dsTablaG.DataSet.FieldByName('ESTADO_TARC').AsString,
       'APLICADA') then
-      ShowMessage_fza(SErrorSesionTarifaAplicadaNoEditable)
+      ShowMessage_fza(SErrorSesionTarifaAplicadaNoBorrarLineas)
     else
     begin
       if Length(Ids) = 1 then

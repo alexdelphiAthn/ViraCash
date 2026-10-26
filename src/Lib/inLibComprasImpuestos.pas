@@ -90,11 +90,13 @@ const
 
 
 
-function DocumentoCompraExentoIntracomunitario(ACabecera: TDataSet;
+function DocumentoCompraSinIva(ACabecera: TDataSet;
   const ASufijoCabecera: string): Boolean;
 begin
-  Result := UpperCase(Trim(CampoString(ACabecera,
-    'ESIVA_EXENTO_INTRACOMUNITARIO_' + ASufijoCabecera))) = 'S';
+  Result := (UpperCase(Trim(CampoString(ACabecera,
+    'ESIVA_EXENTO_INTRACOMUNITARIO_' + ASufijoCabecera))) = 'S') or
+    ((ASufijoCabecera = 'FACC') and
+     SameText(CampoString(ACabecera, 'MODALIDAD_FACC'), 'REAGP'));
 end;
 
 
@@ -117,7 +119,7 @@ var
   rIvaN, rIvaR, rIvaS, rIvaE, rRecN, rRecR, rRecS, rRecE: Double;
   sCodigoIva, sEmpresa: string;
 begin
-  if DocumentoCompraExentoIntracomunitario(ACabecera, ASufijoCabecera) then
+  if DocumentoCompraSinIva(ACabecera, ASufijoCabecera) then
     Result := 0
   else
   begin
@@ -269,7 +271,7 @@ var
 begin
   if Assigned(ACabecera) then
   begin
-    if DocumentoCompraExentoIntracomunitario(ACabecera, ASufijoCabecera) then
+    if DocumentoCompraSinIva(ACabecera, ASufijoCabecera) then
     begin
       PonerFloat(ACabecera, 'PORCENTAJE_IVAN_' + ASufijoCabecera,
                  0);
@@ -363,7 +365,7 @@ var
 begin
   if Assigned(ACabecera) then
   begin
-    if DocumentoCompraExentoIntracomunitario(ACabecera, ASufijoCabecera) then
+    if DocumentoCompraSinIva(ACabecera, ASufijoCabecera) then
     begin
       rRecN := 0;
       rRecR := 0;
@@ -398,7 +400,7 @@ begin
     sCampoTipo := 'TIPO_IVA_ARTICULO_' + ASufijoLinea;
     sArticulo := CampoString(ALinea, 'CODIGO_ART_' + ASufijoLinea);
     sTipoIva := NormalizarTipoIva(CampoString(ALinea, sCampoTipo));
-    if DocumentoCompraExentoIntracomunitario(ACabecera, ASufijoCabecera) then
+    if DocumentoCompraSinIva(ACabecera, ASufijoCabecera) then
       sTipoIva := 'E'
     else
     begin
@@ -533,7 +535,7 @@ begin
     AplicarPorcentajesIvaCompra(
       ALecturas, ACabecera, ASufijoCabecera);
     sSufijoLinea := SufijoLineaFiscalDesdeCampo(ACampoTipoIvaLinea);
-    bExento := DocumentoCompraExentoIntracomunitario(ACabecera,
+    bExento := DocumentoCompraSinIva(ACabecera,
       ASufijoCabecera);
     bAplicaRe :=
       (not bExento) and

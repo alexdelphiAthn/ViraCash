@@ -41,6 +41,7 @@ type
     procedure ValidarAlmacenRelacionado(ADataSet: TDataSet;
       const ACampo, AEtiqueta: string; APermitirTransito: Boolean);
     procedure ValidarAlmacenesRelacionados(ADataSet: TDataSet);
+    procedure ValidarTransitoCompartido(ADataSet: TDataSet);
     procedure ValidarCajasTransito(ADataSet: TDataSet);
     procedure RefrescarLookupAlmacenes;
   public
@@ -172,6 +173,16 @@ begin
     SEtiquetaCodigoPadre, True);
 end;
 
+// FZ-ISSUE-717: solo una furgoneta o agencia lleva cargas de varias
+// empresas; en una tienda la marca no significaría nada.
+procedure TdmAlmacenes.ValidarTransitoCompartido(ADataSet: TDataSet);
+begin
+  if SameText(ADataSet.FieldByName('ESCOMPARTIDO_ALM').AsString, 'S') and
+     (not EsTipoUsoTransito(
+       ADataSet.FieldByName('TIPO_USO_ALM').AsString)) then
+    raise EValidacionBBDD.Create(SErrorCompartidoSoloTransito);
+end;
+
 // FZ-ISSUE-240: la furgoneta no es una tienda, no vende ni tiene cajas.
 procedure TdmAlmacenes.ValidarCajasTransito(ADataSet: TDataSet);
 var
@@ -256,6 +267,7 @@ begin
     ValorPorDefecto(DataSet, 'ESFISICO_ALM', 'S');
     ValorPorDefecto(DataSet, 'ESWEB_ALM', 'N');
     ValorPorDefecto(DataSet, 'TIPO_USO_ALM', 'ESTANDAR');
+    ValorPorDefecto(DataSet, 'ESCOMPARTIDO_ALM', 'N');
     ValorPorDefecto(DataSet, 'ORDEN_ALM', 0);
   end;
 end;
@@ -329,6 +341,7 @@ begin
      (not bAlmacenWebValido) then
     raise EValidacionBBDD.Create(SAlmacenWebNoValido);
   ValidarAlmacenesRelacionados(DataSet);
+  ValidarTransitoCompartido(DataSet);
 end;
 
 procedure TdmAlmacenes.unqryTablaGAfterPost(DataSet: TDataSet);

@@ -28,7 +28,8 @@ uses
   inLibTraspasoOpePersistenciaIntf,
   inLibLotesPersistenciaIntf, inLibLotesLineaDocumento,
   System.Generics.Collections, inLibTraspasoTicket,
-  inLibRecuentoSkuNormalizacion, inLibTraspasoRecuentoApp;
+  inLibRecuentoSkuNormalizacion, inLibTraspasoRecuentoApp,
+  inLibTransitoEmpresas;
 
 type
   // Modo de la operativa: traspaso directo, solicitud, atención o reposición.
@@ -53,6 +54,10 @@ type
     Empleado: string;
     NumeroOperacion: string;
     FechaOperacion: TDateTime;
+    // Salida de un transito (FZ-ISSUE-717): empresa de la operacion de
+    // caja y su contrapartida. En una TA, la que entrega y la que recibe.
+    EmpresaOperacion: string;
+    EmpresaContraOperacion: string;
   end;
 
   // Reparto de una linea de una carga en transito al recibirla
@@ -80,6 +85,8 @@ type
   // Carga en transito bloqueada dentro de la transaccion que la cierra.
   TCargaTransito = record
     Id: Int64;
+    // Empresa que cargo: duena de la mercancia en un transito compartido.
+    Empresa: string;
     AlmacenOrigen: string;
     AlmacenTransito: string;
     AlmacenDestino: string;
@@ -203,6 +210,8 @@ type
     procedure DesempaquetarAtributosLinea(const ASku: string);
     procedure cdsLineasNewRecord(DataSet: TDataSet);
     function ObtenerEmpresaAlmacen(const AAlmacen: string): string;
+    function LeerTransitoEmpresa(
+      const AAlmacen: string): TTransitoEmpresa;
     // Devuelve el articulo padre del SKU activo. Vacio si no existe.
     function ObtenerArticuloSku(const ASku: string): string;
     // Devuelve el articulo padre aunque el SKU historico este inactivo.
@@ -361,7 +370,6 @@ type
     function ListarAlmacenesTransito: TAlmacenesDestinoTraspaso;
     function EsAlmacenTransito(const AAlmacen: string): Boolean;
     // Destino propuesto por el almacen de transito (DESTINO_ACTUAL_ALM).
-    function DestinoActualTransito(const AAlmacen: string): string;
     // Antes de GrabarTraspaso hacia un transito: destino final de la carga.
     procedure EstablecerDestinoFinalTransito(const AAlmacen: string);
     // Numero de cargas pendientes de recibir en AAlmacen (boton
@@ -1153,6 +1161,29 @@ begin
   end;
 end;
 
+// Empresa del almacen y si es un transito compartido (FZ-ISSUE-717): la
+// marca solo puede estar en un almacen de transito.
+function TdmTraspaso.LeerTransitoEmpresa(
+  const AAlmacen: string): TTransitoEmpresa;
+begin
+  Result := Default(TTransitoEmpresa);
+  qryAux.SQL.Text :=
+    'SELECT CODIGO_EMP_ALM, ESCOMPARTIDO_ALM FROM fza_almacenes ' +
+    ' WHERE CODIGO_ALM_ALM = :ALM';
+  qryAux.ParamByName('ALM').AsString := AAlmacen;
+  qryAux.Open;
+  try
+    if not qryAux.IsEmpty then
+    begin
+      Result.Empresa := qryAux.FieldByName('CODIGO_EMP_ALM').AsString;
+      Result.EsCompartido := SameText(
+        qryAux.FieldByName('ESCOMPARTIDO_ALM').AsString, 'S');
+    end;
+  finally
+    qryAux.Close;
+  end;
+end;
+
 function TdmTraspaso.ObtenerArticuloSku(const ASku: string): string;
 begin
   // Un SKU es valido solo si existe (activo) en fza_articulos_skus. Asi se
@@ -1862,7 +1893,10 @@ begin
   Result.FechaOperacion := cdsCabecera.FieldByName('FECHA').AsDateTime;
   if SameText(Result.AlmacenOrigen, Result.AlmacenDestino) then
     raise EValidacionTraspaso.Create(SErrorAlmacenesTraspasoCoincidentes);
-  Result.EmpresaContra := ObtenerEmpresaAlmacen(Result.AlmacenDestino);
+  // FZ-ISSUE-717: lo que entra en un transito compartido sigue siendo de
+  // la empresa que lo carga; la TA, si la hay, sera al descargar.
+  Result.EmpresaContra := EmpresaEntradaTransito(Result.Empresa,
+    LeerTransitoEmpresa(Result.AlmacenDestino));
   if (Result.EmpresaContra = '') or
      SameText(Result.EmpresaContra, Result.Empresa) then
     Result.TipoDocumento := 'TR'
@@ -2166,10 +2200,6 @@ const
   DESBLOQUEO_PERDIDA = 'PERDIDA';
   INCIDENCIA_PERDIDA = 'PERDIDA';
   INCIDENCIA_DETERIORO = 'DETERIORO';
-  // La perdida en transporte sale del transito con un tipo de documento
-  // propio: no es un traspaso (no entra en ningun almacen) ni un
-  // inventario, y asi se distingue en los movimientos.
-  TIPO_DOC_PERDIDA_TRANSITO = 'TP';
   COLUMNA_ALMACEN_ORIGEN_CARGA = 'CODIGO_ALM_ORIGEN_TRTRA';
   COLUMNA_ALMACEN_DESTINO_CARGA = 'CODIGO_ALM_DESTINO_TRTRA';
   TOLERANCIA_UNIDADES_TRANSITO = 0.0000005;
@@ -2219,24 +2249,6 @@ begin
     oConsulta.ParamByName('ALM').AsString := AAlmacen;
     oConsulta.Open;
     Result := not oConsulta.IsEmpty;
-  finally
-    FreeAndNil(oConsulta);
-  end;
-end;
-
-function TdmTraspaso.DestinoActualTransito(const AAlmacen: string): string;
-var
-  oConsulta: TUniQuery;
-begin
-  oConsulta := TUniQuery.Create(nil);
-  try
-    oConsulta.Connection := FConexion;
-    oConsulta.SQL.Text :=
-      'SELECT DESTINO_ACTUAL_ALM FROM fza_almacenes ' +
-      ' WHERE CODIGO_ALM_ALM = :ALM';
-    oConsulta.ParamByName('ALM').AsString := AAlmacen;
-    oConsulta.Open;
-    Result := Trim(oConsulta.FieldByName('DESTINO_ACTUAL_ALM').AsString);
   finally
     FreeAndNil(oConsulta);
   end;
@@ -2481,9 +2493,10 @@ begin
   else
     sColumna := COLUMNA_ALMACEN_DESTINO_CARGA;
   QryTrx.SQL.Text :=
-    'SELECT CODIGO_ALM_ORIGEN_TRTRA, CODIGO_ALM_TRANSITO_TRTRA, ' +
-    '       CODIGO_ALM_DESTINO_TRTRA, TIPO_DOC_CARGA_TRTRA, ' +
-    '       SERIE_CARGA_TRTRA, NUMERO_CARGA_TRTRA ' +
+    'SELECT CODIGO_EMP_TRTRA, CODIGO_ALM_ORIGEN_TRTRA, ' +
+    '       CODIGO_ALM_TRANSITO_TRTRA, CODIGO_ALM_DESTINO_TRTRA, ' +
+    '       TIPO_DOC_CARGA_TRTRA, SERIE_CARGA_TRTRA, ' +
+    '       NUMERO_CARGA_TRTRA ' +
     '  FROM fza_traspasos_transito ' +
     ' WHERE ID_TRTRA = :ID ' +
     '   AND ESTADO_TRTRA = ''PENDIENTE'' ' +
@@ -2500,6 +2513,7 @@ begin
       raise EValidacionTraspaso.Create(SErrorCargaTransitoNoPendiente);
   end;
   Result.Id := AId;
+  Result.Empresa := QryTrx.FieldByName('CODIGO_EMP_TRTRA').AsString;
   Result.AlmacenOrigen :=
     QryTrx.FieldByName('CODIGO_ALM_ORIGEN_TRTRA').AsString;
   Result.AlmacenTransito :=
@@ -2745,11 +2759,14 @@ end;
 
 // Cabecera del documento que saca mercancia del transito. Lo emite la caja
 // de la cabecera y entra en AAlmacenEntrada: su almacen, uno de taras de su
-// empresa o ninguno si es una perdida. Lo lleva la empresa del transito
-// (lado que sale), como en el traspaso directo; TA si es de otra empresa.
+// empresa o ninguno si es una perdida. Entrega la empresa del transito o,
+// si es compartido, la que cargo (FZ-ISSUE-717); TA si no es la de la caja.
+// El documento se numera en la caja que lo graba.
 function TdmTraspaso.CrearContextoSalidaTransito(
   const ACarga: TCargaTransito;
   const AAlmacenEntrada: string): TContextoGrabacionTraspaso;
+var
+  oSalida: TSalidaTransitoEmpresas;
 begin
   Result := Default(TContextoGrabacionTraspaso);
   Result.AlmacenOrigen := ACarga.AlmacenTransito;
@@ -2760,15 +2777,12 @@ begin
   Result.FechaOperacion := cdsCabecera.FieldByName('FECHA').AsDateTime;
   Result.EmpresaDestino := cdsCabecera.FieldByName('CODIGO_EMP').AsString;
   Result.EmpresaContra := Result.EmpresaDestino;
-  Result.Empresa := ObtenerEmpresaAlmacen(Result.AlmacenOrigen);
-  if Result.Empresa = '' then
-    Result.Empresa := Result.EmpresaDestino;
-  if AAlmacenEntrada = '' then
-    Result.TipoDocumento := TIPO_DOC_PERDIDA_TRANSITO
-  else if SameText(Result.Empresa, Result.EmpresaDestino) then
-    Result.TipoDocumento := 'TR'
-  else
-    Result.TipoDocumento := 'TA';
+  oSalida := ResolverSalidaTransito(ACarga.Empresa, Result.EmpresaDestino,
+    LeerTransitoEmpresa(ACarga.AlmacenTransito), AAlmacenEntrada = '');
+  Result.Empresa := oSalida.EmpresaEntrega;
+  Result.TipoDocumento := oSalida.TipoDocumento;
+  Result.EmpresaOperacion := oSalida.EmpresaOperacion;
+  Result.EmpresaContraOperacion := oSalida.EmpresaContraOperacion;
   Result.SerieDocumento := ObtenerSerieDocumento(Result.EmpresaDestino,
     AlmacenCaja, Result.Caja, Result.TipoDocumento);
   Result.NumeroOperacion := SiguienteOpCaja(Result.EmpresaDestino,
@@ -2834,7 +2848,6 @@ function TdmTraspaso.GrabarSalidaTransito(QryTrx: TUniQuery;
   AParte: TParteCargaTransito): TSalidaTransito;
 var
   oContexto: TContextoGrabacionTraspaso;
-  sTipoOperacion: string;
   cTotal: Currency;
   aSalidas: TArray<string>;
 begin
@@ -2849,15 +2862,13 @@ begin
       oContexto.TipoDocumento, oContexto.SerieDocumento,
       oContexto.NumeroDocumento, 'TRASPASO_CAJA', oContexto.Usuario);
     cTotal := TotalCosteMovimientos(QryTrx, aSalidas);
-    // La operacion de caja es siempre de traspaso; el tipo propio de la
-    // perdida va solo en sus movimientos.
-    sTipoOperacion := oContexto.TipoDocumento;
-    if AAlmacenEntrada = '' then
-      sTipoOperacion := 'TR';
-    InsertarOperacionCaja(QryTrx, oContexto.EmpresaDestino, AlmacenCaja,
-      oContexto.Caja, oContexto.NumeroOperacion, sTipoOperacion, cTotal,
+    // Operación y movimientos conservan el tipo de su contador (TP en
+    // una pérdida). No se identifica como TR un documento numerado en TP.
+    InsertarOperacionCaja(QryTrx, oContexto.EmpresaOperacion, AlmacenCaja,
+      oContexto.Caja, oContexto.NumeroOperacion,
+      oContexto.TipoDocumento, cTotal,
       oContexto.FechaOperacion, oContexto.Empleado, AConcepto,
-      ACarga.Serie, ACarga.Numero, oContexto.Empresa,
+      ACarga.Serie, ACarga.Numero, oContexto.EmpresaContraOperacion,
       oContexto.AlmacenOrigen, 'S', oContexto.NumeroDocumento,
       oContexto.SerieDocumento);
     Result.TipoDocumento := oContexto.TipoDocumento;

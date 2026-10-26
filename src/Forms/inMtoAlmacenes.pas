@@ -106,6 +106,7 @@ type
     cxdbtxtdtPROVINCIA_ALM: TcxDBTextEdit;
     lblCodigoCliente: TcxLabel;
     cxdbtxtdtCODIGO_CLIENTE_ALM: TcxDBTextEdit;
+    chkESCOMPARTIDO_ALM: TcxDBCheckBox;
     dbmAlmacenesCajasCODIGO_ALMACEN_ALMCAJ: TcxGridDBColumn;
     dbmAlmacenesCajasCODIGO_CAJA_ALMCAJ: TcxGridDBColumn;
     dbmAlmacenesCajasDESCRIPCION_ALMCAJ: TcxGridDBColumn;

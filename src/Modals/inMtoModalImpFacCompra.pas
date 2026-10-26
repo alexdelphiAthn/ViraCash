@@ -58,7 +58,8 @@ implementation
 
 uses
   inLibMensajesVcl,
-  inMtoPreviewExcel, inLibDocCompraExcel, inLibMsgCompras;
+  inMtoPreviewExcel, inLibDocCompraExcel, inLibMsgCompras,
+  inLibComprasDirectasInforme;
 
 {$R *.dfm}
 
@@ -100,6 +101,7 @@ begin
     cfg.FieldEstado    := 'ESTADO_FACC';
     cfg.FieldRefPrv    := 'REF_PROVEEDOR_FACC';
     cfg.MostrarPrecioVenta := False;
+    AdaptarExcelCompraDirecta(dmFacc.unqryCabFaccPrint, cfg);
     Screen.Cursor := crHourGlass;
     try
       fPreview := TfrmMtoPreviewExcel.Create(Self);
@@ -145,14 +147,20 @@ end;
 procedure TfrmPrintFacCompra.preparar_consulta;
 begin
   if dmFacc <> nil then
+  begin
     dmFacc.PrepararPrint(edtSerie.Text, edtNumero.Text);
+    AdaptarInformeCompraDirecta(frxrprt1, dmFacc.unqryCabFaccPrint);
+  end;
 end;
 
 procedure TfrmPrintFacCompra.AfterReportLoaded;
 begin
   inherited;
   if dmFacc <> nil then
+  begin
     RebindReportDataSetsByDataModule(frxrprt1, dmFacc);
+    AdaptarInformeCompraDirecta(frxrprt1, dmFacc.unqryCabFaccPrint);
+  end;
 end;
 
 end.

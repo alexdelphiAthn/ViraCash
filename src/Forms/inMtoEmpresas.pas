@@ -215,6 +215,7 @@ type
     pnlSeriesCli: TPanel;
     cxGrdSeries: TcxGrid;
     tvSeries: TcxGridDBTableView;
+    tvSeriesCODIGO_PRV_EMPSER: TcxGridDBColumn;
     lvSeries: TcxGridLevel;
     tsBancos: TcxTabSheet;
     pnlBancosOpts: TPanel;

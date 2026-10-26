@@ -82,6 +82,7 @@ type
     procedure CrearColumnasIncidencias;
     procedure FiltroCambiado(Sender: TObject);
     procedure btnRefrescarClick(Sender: TObject);
+    procedure btnHojaRutaClick(Sender: TObject);
     procedure btnExcelIncidenciasClick(Sender: TObject);
     procedure btnReclamacionClick(Sender: TObject);
   protected
@@ -96,7 +97,7 @@ implementation
 uses
   inLibMensajesVcl,
   inLibMsgCaja,
-  inLibDevExp;
+  inLibDevExp, inMtoModalImpHojaRutaTransito;
 
 {$R *.dfm}
 
@@ -194,7 +195,9 @@ begin
   cbbEstado := CrearCombo(1140, 12, 220);
   CrearBoton(pnlFiltros, SCaptionRefrescarCargasTransito, 1380,
     10, 110, btnRefrescarClick);
-  CrearEtiqueta(pnlFiltros, STextoAyudaCargasTransito, 12, 50);
+  CrearBoton(pnlFiltros, SCaptionHojaRutaTransito, 12,
+    44, 170, btnHojaRutaClick);
+  CrearEtiqueta(pnlFiltros, STextoAyudaCargasTransito, 200, 50);
 end;
 
 // Debajo de la rejilla de cargas, con su separador: los apuntes de
@@ -468,6 +471,15 @@ end;
 procedure TfrmMtoCargasTransito.btnRefrescarClick(Sender: TObject);
 begin
   FiltroCambiado(Sender);
+end;
+
+procedure TfrmMtoCargasTransito.btnHojaRutaClick(Sender: TObject);
+var
+  Transito: string;
+begin
+  Transito := CodigoCombo(cbbTransito, FCodigosTransito);
+  TfrmPrintHojaRutaTransito.Ejecutar(Self, ConexionPrincipal, Transito,
+    PuedeImprimir, PuedeExportar);
 end;
 
 procedure TfrmMtoCargasTransito.btnExcelIncidenciasClick(Sender: TObject);

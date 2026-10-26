@@ -13,6 +13,7 @@ type
     // imprimen los efectos de Efectos (CSV de NUMERO_EFV); si no, todos los
     // de la factura.
     EsEfectosVenta: Boolean;
+    EsEfectosCompra: Boolean;
     Efectos: string;
   end;
 

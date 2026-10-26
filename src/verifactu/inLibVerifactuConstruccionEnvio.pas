@@ -52,6 +52,7 @@ type
     SistemaInformaticoXml: string;
     DesgloseXml: string;
     DescripcionOperacion: string;
+    EmitidaPorTerceroODestinatario: string;
     EsSubsanacion: Boolean;
   end;
 
@@ -300,6 +301,22 @@ begin
       '</sum1:RegistroAnterior></sum1:Encadenamiento>';
 end;
 
+function ConstruirExpedidorDelegado(
+  const AEntrada: TEntradaConstruccionRegistroAlta): string;
+begin
+  Result := '';
+  if AEntrada.EmitidaPorTerceroODestinatario <> '' then
+  begin
+    if (AEntrada.EmitidaPorTerceroODestinatario <> 'D') and
+       (AEntrada.EmitidaPorTerceroODestinatario <> 'T') then
+      raise EArgumentException.Create(
+        'El expedidor delegado debe ser D (destinatario) o T (tercero).');
+    Result := '<sum1:EmitidaPorTerceroODestinatario>' +
+      AEntrada.EmitidaPorTerceroODestinatario +
+      '</sum1:EmitidaPorTerceroODestinatario>';
+  end;
+end;
+
 function ConstruirCuerpoRegistroAlta(
   const AEntrada: TEntradaConstruccionRegistroAlta;
   const AHuella: string): string;
@@ -321,7 +338,8 @@ begin
     ConstruirFechaOperacion(AEntrada) +
     '<sum1:DescripcionOperacion>' +
     EscaparXml(AEntrada.DescripcionOperacion) +
-    '</sum1:DescripcionOperacion>' + ConstruirDestinatarios(AEntrada) +
+    '</sum1:DescripcionOperacion>' + ConstruirExpedidorDelegado(AEntrada) +
+    ConstruirDestinatarios(AEntrada) +
     '<sum1:Desglose>' + AEntrada.DesgloseXml + '</sum1:Desglose>' +
     '<sum1:CuotaTotal>' + AEntrada.CuotaTotal + '</sum1:CuotaTotal>' +
     '<sum1:ImporteTotal>' + AEntrada.ImporteTotal +

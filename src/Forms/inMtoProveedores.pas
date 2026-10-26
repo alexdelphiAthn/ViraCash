@@ -85,6 +85,7 @@ type
     lblProvincia: TcxLabel;
     cxdbtxtdt16: TcxDBTextEdit;
     chkESIVA_EXENTO_INTRACOMUNITARIO_PRV: TcxDBCheckBox;
+    chkESFACTURACION_DIRECTA_PRV: TcxDBCheckBox;
     lblPais: TcxLabel;
     // Combo de pais (fza_paises via vi_paises). cxdbtxtdt16 (PAIS_PRV)
     // queda oculto: sigue guardando el nombre denormalizado que usan

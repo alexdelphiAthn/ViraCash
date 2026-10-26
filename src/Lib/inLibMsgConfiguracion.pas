@@ -639,6 +639,10 @@ resourcestring
     'cobros, arqueos...). Si la borra, esas operaciones quedarán con una ' +
     'caja que ya no existe.' + sLineBreak + sLineBreak +
     '¿Desea borrarla de todas formas?';
+  // FZ-ISSUE-717: la marca solo tiene sentido en una furgoneta o agencia.
+  SErrorCompartidoSoloTransito =
+    'Solo un almacén de tránsito puede ser compartido entre empresas: ' +
+    'desmarque «Compartido entre empresas» o cambie el tipo de uso.';
 implementation
 
 end.

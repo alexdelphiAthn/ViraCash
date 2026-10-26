@@ -310,6 +310,8 @@ type
   public
     dmmFacturasCompra: TdmFacturasCompra;
     procedure AplicarEtiquetas; override;
+    function SqlRestriccionUsuario: string; override;
+    function EsPantallaCompraDirecta: Boolean; virtual;
     procedure CrearTablaPrincipal; override;
   end;
 
@@ -431,11 +433,8 @@ begin
   begin
     sEmpresa := Trim(UbicacionSesion.Empresa);
   end;
-  CargarSeriesEmpresa(
-    ConexionPrincipal,
-    sEmpresa,
-    ConfiguracionDocumento.TipoContador,
-    cbbSERIE_FACC.Properties.Items);
+  if Assigned(dmmFacturasCompra) then
+    dmmFacturasCompra.CargarSeriesCompra(cbbSERIE_FACC.Properties.Items);
   if cbbSERIE_FACC.Properties.Items.Count = 0 then
   begin
     if MessageDlg_fza(Format(SPreguntaAbrirSeriesFacturaCompra, [sEmpresa]),
@@ -578,6 +577,22 @@ begin
     ConstruirModoEntrada;
 end;
 
+function TfrmMtoFacturasCompra.EsPantallaCompraDirecta: Boolean;
+begin
+  Result := False;
+end;
+
+function TfrmMtoFacturasCompra.SqlRestriccionUsuario: string;
+begin
+  Result := inherited;
+  if Result <> '' then
+    Result := '(' + Result + ') AND ';
+  if EsPantallaCompraDirecta then
+    Result := Result + 'F.MODALIDAD_FACC IN (''AUTOFAC'', ''REAGP'')'
+  else
+    Result := Result + 'F.MODALIDAD_FACC = ''ORDINARIA''';
+end;
+
 procedure TfrmMtoFacturasCompra.AplicarEtiquetas;
 begin
   inherited;
@@ -604,6 +619,7 @@ begin
     [dmmFacturasCompra.unqryFacturasCompraLineas,
      dmmFacturasCompra.unqryEfectos],
     pkFieldName, 'SERIE_FACC;NUMERO_FACC');
+  dmmFacturasCompra.EsCompraDirecta := EsPantallaCompraDirecta;
   tvEfectos.DataController.DataSource := dmmFacturasCompra.dsEfectos;
   cbbFORMA_PAGO_FACC.Properties.ListSource :=
     dmmFacturasCompra.dsFormasPago;
@@ -1698,8 +1714,13 @@ var
   oDatos: TDataSet;
 begin
   ACodigo := '';
-  oConsulta := FBusquedaProveedores.ConsultarProveedores;
-  oDatos := oConsulta.DataSet;
+  if EsPantallaCompraDirecta then
+    oDatos := dmmFacturasCompra.DatosBusquedaProveedoresDirectos
+  else
+  begin
+    oConsulta := FBusquedaProveedores.ConsultarProveedores;
+    oDatos := oConsulta.DataSet;
+  end;
   Result := BusquedaVisual.EjecutarBusquedaDataSet(
     STituloBuscarProveedoresFacturaCompra, oDatos,
     'frmMtoFaccProvSearch', Self);

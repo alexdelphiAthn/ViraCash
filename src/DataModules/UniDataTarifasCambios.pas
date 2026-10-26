@@ -55,6 +55,7 @@ type
       const ALinea: TLineaSesionTarifaExcel);
     procedure unqryLineasAfterOpen(DataSet: TDataSet);
     procedure unqryLineasBeforeDelete(DataSet: TDataSet);
+    procedure CabeceraAntesDeBorrar(DataSet: TDataSet);
     procedure CampoPrecioNuevoChange(Sender: TField);
     function  RedondearConCabecera(AImporte: Double): Double;
     function  SalidaParaDescuento: Double;
@@ -202,6 +203,9 @@ begin
   unqryTablaG.KeyFields := 'CODIGO_TARC';
   unqryTablaG.AfterInsert := unqryTablaGAfterInsert;
   unqryTablaG.BeforePost := unqryTablaGBeforePost;
+  unqryTablaG.BeforeDelete := CabeceraAntesDeBorrar;
+  unqryTablaG.AfterDelete := ConfirmarBorradoTransaccional;
+  unqryTablaG.OnDeleteError := ErrorBorradoTransaccional;
   unqryLineas.SQL.Text :=
     'SELECT L.*, A.DESCRIPCION_ART, A.CODIGO_FAM_ART, ' +
     '       F.NOMBRE_FAM_FAM, P.RAZON_SOCIAL_PRV ' +
@@ -659,6 +663,30 @@ begin
       Consulta.Free;
       Parametros.Free;
     end;
+  end;
+end;
+
+procedure TdmTarifasCambios.CabeceraAntesDeBorrar(DataSet: TDataSet);
+var
+  Consulta: TUniQuery;
+begin
+  IniciarBorradoTransaccional;
+  try
+    Consulta := TUniQuery.Create(nil);
+    try
+      Consulta.Connection := unqryTablaG.Connection;
+      Consulta.SQL.Text :=
+        'DELETE FROM fza_tarifas_cambios_lineas ' +
+        'WHERE CODIGO_TARC_TARCLIN = :SESION';
+      Consulta.ParamByName('SESION').AsInteger :=
+        DataSet.FieldByName('CODIGO_TARC').AsInteger;
+      Consulta.Execute;
+    finally
+      Consulta.Free;
+    end;
+  except
+    RevertirBorradoTransaccional;
+    raise;
   end;
 end;
 

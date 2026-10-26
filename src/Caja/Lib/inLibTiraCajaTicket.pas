@@ -172,11 +172,13 @@ type
     FGrupoAnterior    : string;
     FNumeroVentas     : Integer;
     FNumeroTraspasos  : Integer;
+    FNumeroPerdidas: Integer;
     FNumeroIngresos   : Integer;
     FNumeroGastos     : Integer;
     FNumeroDepositos  : Integer;
     FTotalVentas      : Currency;
     FTotalTraspasos   : Currency;
+    FTotalPerdidas: Currency;
     FTotalIngresos    : Currency;
     FTotalGastos      : Currency;
     FTotalDepositos   : Currency;
@@ -478,13 +480,18 @@ begin
       AOperacion.NumeroFactura)
   else
     sRef := Format(STicketOperacionCorta, [sOpe]);
+  if AOperacion.Grupo = 'PER' then
+    ATicket.EscribirLinea(STicketPerdidaTransito + ' (TP)');
   ATicket.Negrita(True);
   ATicket.EscribirLinea(sRef + ' ' +
     FormatDateTime('dd/mm/yy hh:nn',
       AOperacion.FechaOperacion));
   ATicket.Negrita(False);
   if sDestino <> '' then
-    ATicket.EscribirLinea('  -> ' + sDestino);
+    if AOperacion.Grupo = 'PER' then
+      ATicket.TextoColumnas(STicketOrigen, sDestino)
+    else
+      ATicket.EscribirLinea('  -> ' + sDestino);
   aLineas := ARepositorio.ListarLineasTraspaso(
     sEmp,
     sAlm,
@@ -634,6 +641,8 @@ function TImpresorTiraCajaTicket.RotuloGrupo(
 begin
   if AGrupo = 'TRA' then
     Result := STicketRotuloTraspaso
+  else if AGrupo = 'PER' then
+    Result := STicketPerdidas
   else if AGrupo = 'ING' then
     Result := STicketRotuloIngreso
   else if AGrupo = 'GAS' then
@@ -646,7 +655,8 @@ end;
 
 function TImpresorTiraCajaTicket.NumeroOperaciones: Integer;
 begin
-  Result := FNumeroVentas + FNumeroTraspasos + FNumeroIngresos +
+  Result := FNumeroVentas + FNumeroTraspasos + FNumeroPerdidas +
+    FNumeroIngresos +
     FNumeroGastos + FNumeroDepositos;
 end;
 
@@ -655,11 +665,13 @@ begin
   FGrupoAnterior := '';
   FNumeroVentas := 0;
   FNumeroTraspasos := 0;
+  FNumeroPerdidas := 0;
   FNumeroIngresos := 0;
   FNumeroGastos := 0;
   FNumeroDepositos := 0;
   FTotalVentas := 0;
   FTotalTraspasos := 0;
+  FTotalPerdidas := 0;
   FTotalIngresos := 0;
   FTotalGastos := 0;
   FTotalDepositos := 0;
@@ -711,6 +723,8 @@ begin
   FTicket.Negrita(True);
   if AGrupo = 'TRA' then
     FTicket.EscribirLinea(STicketTraspasosSalientes)
+  else if AGrupo = 'PER' then
+    FTicket.EscribirLinea(STicketPerdidasTransito)
   else if AGrupo = 'ING' then
     FTicket.EscribirLinea(STicketIngresosPorCaja)
   else if AGrupo = 'GAS' then
@@ -737,6 +751,13 @@ begin
         STicketSubtotalCoste, TTiraCajaTicket.FmtImp(FTotalTraspasos));
       FTicket.Negrita(False);
     end;
+  end
+  else if AGrupo = 'PER' then
+  begin
+    FTicket.TextoColumnas(STicketPerdidas, IntToStr(FNumeroPerdidas));
+    if FVerCoste then
+      FTicket.TextoColumnas(STicketSubtotalCoste,
+        TTiraCajaTicket.FmtImp(FTotalPerdidas));
   end
   else if AGrupo = 'ING' then
   begin
@@ -786,6 +807,13 @@ begin
       TTiraCajaTicket.EscribirTraspasoOpe(
         FTicket, FRepositorio, AOperacion, FVerCoste);
     Inc(FNumeroTraspasos);
+  end
+  else if AOperacion.Grupo = 'PER' then
+  begin
+    FTotalPerdidas := FTotalPerdidas +
+      TTiraCajaTicket.EscribirTraspasoOpe(
+        FTicket, FRepositorio, AOperacion, FVerCoste);
+    Inc(FNumeroPerdidas);
   end
   else if AOperacion.Grupo = 'ING' then
   begin
@@ -871,6 +899,8 @@ begin
       EscribirSubtotalGrupo('VEN');
     if FNumeroTraspasos > 0 then
       EscribirSubtotalGrupo('TRA');
+    if FNumeroPerdidas > 0 then
+      EscribirSubtotalGrupo('PER');
     if FNumeroIngresos > 0 then
       EscribirSubtotalGrupo('ING');
     if FNumeroGastos > 0 then
@@ -978,12 +1008,14 @@ type
     FFila: Integer;
     FImporteVentas: Currency;
     FImporteTraspasos: Currency;
+    FImportePerdidas: Currency;
     FImporteIngresos: Currency;
     FImporteGastos: Currency;
     FVentaDepositos: Currency;
     FCobroDepositos: Currency;
     FNumeroVentas: Integer;
     FNumeroTraspasos: Integer;
+    FNumeroPerdidas: Integer;
     FNumeroIngresos: Integer;
     FNumeroGastos: Integer;
     FNumeroDepositos: Integer;
@@ -1166,7 +1198,10 @@ begin
   begin
     dCantidad := oLinea.Cantidad;
     dCoste := oLinea.PrecioCosteUnitario;
-    W(FHoja, FFila, COL_EXCEL_TIPO, STipoTraspasoTiraCajaExcel);
+    if FOperacion.Grupo = 'PER' then
+      W(FHoja, FFila, COL_EXCEL_TIPO, STicketPerdidaTransito)
+    else
+      W(FHoja, FFila, COL_EXCEL_TIPO, STipoTraspasoTiraCajaExcel);
     W(FHoja, FFila, COL_EXCEL_FECHA, FechaOperacion);
     W(FHoja, FFila, COL_EXCEL_DOCUMENTO, sDocumento);
     W(FHoja, FFila, COL_EXCEL_REFERENCIA, sDestino);
@@ -1176,11 +1211,17 @@ begin
     if FVerCoste then
     begin
       EscribirMoneda(FFila, COL_EXCEL_IMPORTE, dCantidad * dCoste);
-      FImporteTraspasos := FImporteTraspasos + dCantidad * dCoste;
+      if FOperacion.Grupo = 'PER' then
+        FImportePerdidas := FImportePerdidas + dCantidad * dCoste
+      else
+        FImporteTraspasos := FImporteTraspasos + dCantidad * dCoste;
     end;
     Inc(FFila);
   end;
-  Inc(FNumeroTraspasos);
+  if FOperacion.Grupo = 'PER' then
+    Inc(FNumeroPerdidas)
+  else
+    Inc(FNumeroTraspasos);
 end;
 
 procedure TExportadorTiraCajaExcel.VolcarIngresoGasto(
@@ -1254,6 +1295,8 @@ begin
   if AGrupo = 'TRA' then
     W(FHoja, FFila, COL_EXCEL_TIPO,
       STituloTraspasosTiraCajaExcel, True)
+  else if AGrupo = 'PER' then
+    W(FHoja, FFila, COL_EXCEL_TIPO, STicketPerdidasTransito, True)
   else if AGrupo = 'ING' then
     W(FHoja, FFila, COL_EXCEL_TIPO, STituloIngresosTiraCajaExcel, True)
   else if AGrupo = 'GAS' then
@@ -1275,6 +1318,13 @@ begin
       SSubtotalTraspasosTiraCajaExcel, True, ssahRight);
     if FVerCoste then
       EscribirMoneda(FFila, COL_EXCEL_IMPORTE, FImporteTraspasos);
+  end
+  else if AGrupo = 'PER' then
+  begin
+    W(FHoja, FFila, COL_EXCEL_DESCRIPCION,
+      STicketPerdidas, True, ssahRight);
+    if FVerCoste then
+      EscribirMoneda(FFila, COL_EXCEL_IMPORTE, FImportePerdidas);
   end
   else if AGrupo = 'ING' then
   begin
@@ -1306,7 +1356,7 @@ end;
 
 procedure TExportadorTiraCajaExcel.VolcarFila(const AGrupo: string);
 begin
-  if AGrupo = 'TRA' then
+  if (AGrupo = 'TRA') or (AGrupo = 'PER') then
     VolcarTraspaso
   else if AGrupo = 'ING' then
     VolcarIngresoGasto(STipoIngresoTiraCajaExcel)
@@ -1359,7 +1409,7 @@ end;
 procedure TExportadorTiraCajaExcel.EscribirCierre(
   const AUltimoGrupo: string);
 begin
-  if (FNumeroVentas + FNumeroTraspasos + FNumeroIngresos +
+  if (FNumeroVentas + FNumeroTraspasos + FNumeroPerdidas + FNumeroIngresos +
       FNumeroGastos + FNumeroDepositos) = 0 then
     W(FHoja, FFila, COL_EXCEL_TIPO, SSinOperacionesTiraCajaExcel)
   else if not FCronologico then
@@ -1373,6 +1423,8 @@ begin
       EscribirSubtotalGrupo('VEN');
     if FNumeroTraspasos > 0 then
       EscribirSubtotalGrupo('TRA');
+    if FNumeroPerdidas > 0 then
+      EscribirSubtotalGrupo('PER');
     if FNumeroIngresos > 0 then
       EscribirSubtotalGrupo('ING');
     if FNumeroGastos > 0 then

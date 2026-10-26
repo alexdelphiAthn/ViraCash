@@ -4234,6 +4234,50 @@ end;
 procedure EnumerarResourcestringsTraduccion(
   const ARegistrar: TRegistrarResourcestringTraduccion);
 begin
+  ARegistrar('inLibMsgTickets.STicketPerdidaTransito',
+    'src/Lib/inLibMsgTickets.pas', @inLibMsgTickets.STicketPerdidaTransito);
+  ARegistrar('inLibMsgTickets.STicketPerdidasTransito',
+    'src/Lib/inLibMsgTickets.pas', @inLibMsgTickets.STicketPerdidasTransito);
+  ARegistrar('inLibMsgTickets.STicketPerdidas',
+    'src/Lib/inLibMsgTickets.pas', @inLibMsgTickets.STicketPerdidas);
+
+  ARegistrar('inLibMsgCaja.SCaptionViajeHojaRuta',
+    'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.SCaptionViajeHojaRuta);
+  ARegistrar('inLibMsgCaja.SCaptionAlbaranHojaRuta',
+    'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.SCaptionAlbaranHojaRuta);
+  ARegistrar('inLibMsgCaja.SErrorSeleccionViajeHojaRuta',
+    'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.SErrorSeleccionViajeHojaRuta);
+  ARegistrar('inLibMsgCaja.SCaptionLoteHojaRuta',
+    'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.SCaptionLoteHojaRuta);
+  ARegistrar('inLibMsgCaja.SCaptionHojaRutaTransito',
+    'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.SCaptionHojaRutaTransito);
+  ARegistrar('inLibMsgCaja.STextoAyudaHojaRuta',
+    'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.STextoAyudaHojaRuta);
+  ARegistrar('inLibMsgCaja.SErrorHojaRutaSinCargas',
+    'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.SErrorHojaRutaSinCargas);
+  ARegistrar('inLibMsgCaja.SErrorHojaRutaSinTransito',
+    'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.SErrorHojaRutaSinTransito);
+  ARegistrar('inLibMsgCaja.SCaptionEntregaHojaRuta',
+    'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.SCaptionEntregaHojaRuta);
+  ARegistrar('inLibMsgCaja.SCaptionRecibeHojaRuta',
+    'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.SCaptionRecibeHojaRuta);
+  ARegistrar('inLibMsgCaja.SCaptionRecibidasHojaRuta',
+    'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.SCaptionRecibidasHojaRuta);
+  ARegistrar('inLibMsgCaja.SCaptionTarasHojaRuta',
+    'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.SCaptionTarasHojaRuta);
+  ARegistrar('inLibMsgCaja.SCaptionPerdidasHojaRuta',
+    'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.SCaptionPerdidasHojaRuta);
+  ARegistrar('inLibMsgCaja.SCaptionTotalHojaRuta',
+    'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.SCaptionTotalHojaRuta);
+  ARegistrar('inLibMsgCaja.STextoFirmaHojaRuta',
+    'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.STextoFirmaHojaRuta);
+  ARegistrar('inLibMsgCaja.STextoFechaHojaRuta',
+    'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.STextoFechaHojaRuta);
+  ARegistrar('inLibMsgCaja.SNotaHojaRutaTransito',
+    'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.SNotaHojaRutaTransito);
+  ARegistrar('inLibMsgCaja.SNotaCotejoHojaRuta',
+    'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.SNotaCotejoHojaRuta);
+
   ARegistrar('inLibMsgComun.SCerrarPestana',
     'src/Lib/inLibMsgComun.pas',
     @inLibMsgComun.SCerrarPestana);
@@ -5159,6 +5203,12 @@ begin
     'src/Lib/inLibMsgConfiguracion.pas',
     @inLibMsgConfiguracion.
       SAvisoBorrarCajaConOperaciones);
+  ARegistrar(
+    'inLibMsgConfiguracion.' +
+    'SErrorCompartidoSoloTransito',
+    'src/Lib/inLibMsgConfiguracion.pas',
+    @inLibMsgConfiguracion.
+      SErrorCompartidoSoloTransito);
   ARegistrar(
     'inLibMsgConfiguracion.' +
     'SErrorScriptCopiaIncompleto',
@@ -9456,18 +9506,6 @@ begin
       SInfoCargasTransitoRecibidas);
   ARegistrar(
     'inLibMsgCaja.' +
-    'STituloDestinoFinalTransito',
-    'src/Lib/inLibMsgCaja.pas',
-    @inLibMsgCaja.
-      STituloDestinoFinalTransito);
-  ARegistrar(
-    'inLibMsgCaja.' +
-    'SEtiquetaDestinoFinalTransito',
-    'src/Lib/inLibMsgCaja.pas',
-    @inLibMsgCaja.
-      SEtiquetaDestinoFinalTransito);
-  ARegistrar(
-    'inLibMsgCaja.' +
     'SErrorDestinoFinalTransitoNoElegido',
     'src/Lib/inLibMsgCaja.pas',
     @inLibMsgCaja.
@@ -9480,10 +9518,22 @@ begin
       SInfoCargaTransitoGrabada);
   ARegistrar(
     'inLibMsgCaja.' +
-    'STextoAlmacenTransito',
+    'SCaptionUsarAlmacenTransito',
     'src/Lib/inLibMsgCaja.pas',
     @inLibMsgCaja.
-      STextoAlmacenTransito);
+      SCaptionUsarAlmacenTransito);
+  ARegistrar(
+    'inLibMsgCaja.' +
+    'SHintUsarAlmacenTransito',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      SHintUsarAlmacenTransito);
+  ARegistrar(
+    'inLibMsgCaja.' +
+    'SErrorAlmacenTransitoNoSeleccionado',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      SErrorAlmacenTransitoNoSeleccionado);
   ARegistrar(
     'inLibMsgCaja.' +
     'SCaptionRecibirCargasTransito',
@@ -18386,6 +18436,24 @@ begin
     'src/Lib/inLibMsgTickets.pas',
     @inLibMsgTickets.
       STicketDestino);
+  ARegistrar(
+    'inLibMsgTickets.' +
+    'STicketDestinoFinal',
+    'src/Lib/inLibMsgTickets.pas',
+    @inLibMsgTickets.
+      STicketDestinoFinal);
+  ARegistrar(
+    'inLibMsgTickets.' +
+    'STicketEmpresaOrigen',
+    'src/Lib/inLibMsgTickets.pas',
+    @inLibMsgTickets.
+      STicketEmpresaOrigen);
+  ARegistrar(
+    'inLibMsgTickets.' +
+    'STicketEmpresaDestino',
+    'src/Lib/inLibMsgTickets.pas',
+    @inLibMsgTickets.
+      STicketEmpresaDestino);
   ARegistrar(
     'inLibMsgTickets.' +
     'STicketEstado',

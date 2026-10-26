@@ -916,6 +916,7 @@
         <DCCReference Include="src\Caja\Lib\inLibTraspasoTicketIntf.pas"/>
         <DCCReference Include="src\Caja\DataModules\UniDataTraspasoTicketRepositorio.pas"/>
         <DCCReference Include="src\Caja\Lib\inLibTraspasoTicket.pas"/>
+        <DCCReference Include="src\Caja\Lib\inLibTransitoEmpresas.pas"/>
         <DCCReference Include="src\Caja\Lib\inLibTraspasoSolicitudAtencion.pas"/>
         <DCCReference Include="src\Caja\Lib\inLibTraspasoSolicitudesExcel.pas"/>
         <DCCReference Include="src\Caja\Lib\inLibOperacionesCajaExcel.pas"/>
@@ -1096,6 +1097,12 @@
         <DCCReference Include="src\Lib\inLibExportacionCompraModelo.pas"/>
         <DCCReference Include="src\Lib\inLibImpuestosComun.pas"/>
         <DCCReference Include="src\Lib\inLibComprasImpuestos.pas"/>
+        <DCCReference Include="src\Lib\inLibComprasDirectas.pas"/>
+        <DCCReference Include="src\Lib\inLibComprasDirectasInforme.pas"/>
+        <DCCReference Include="src\DataModules\UniDataComprasDirectas.pas"/>
+        <DCCReference Include="src\verifactu\inLibComprasDirectasFiscal.pas"/>
+        <DCCReference Include="src\DataModules\UniDataComprasDirectasFiscal.pas"/>
+        <DCCReference Include="src\Forms\inMtoComprasDirectasTerceros.pas"/>
         <DCCReference Include="src\Lib\inLibVentasImpuestos.pas"/>
         <DCCReference Include="src\Lib\inLibInventarioExcel.pas"/>
         <DCCReference Include="src\Lib\inLibTarifasCambiosExcel.pas"/>
@@ -2069,6 +2076,9 @@
         <DCCReference Include="src\DataModules\UniDataDistribucionTiendasRepositorio.pas"/>
         <DCCReference Include="src\Caja\DataModules\UniDataPropuestasTraspasoConfirmador.pas"/>
         <DCCReference Include="src\Lib\inLibInformePropuestasTraspaso.pas"/>
+        <DCCReference Include="src\Modals\inMtoModalImpHojaRutaTransito.pas">
+            <Form>frmPrintHojaRutaTransito</Form>
+        </DCCReference>
         <DCCReference Include="src\Modals\inMtoModalImpPropuestasTraspaso.pas">
             <Form>frmPrintPropuestasTraspaso</Form>
         </DCCReference>

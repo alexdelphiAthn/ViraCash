@@ -602,6 +602,23 @@
                 TabOrder = 9
                 Width = 150
               end
+              object chkESCOMPARTIDO_ALM: TcxDBCheckBox
+                Left = 360
+                Top = 41
+                Hint = 
+                  'Furgoneta o agencia que lleva cargas de varias empresas: la ' +
+                  'mercanc'#237'a en ruta sigue siendo de la empresa que la carga'
+                Caption = 'Compartido entre empresas'
+                DataBinding.DataField = 'ESCOMPARTIDO_ALM'
+                DataBinding.DataSource = dsTablaG
+                ParentShowHint = False
+                Properties.NullStyle = nssUnchecked
+                Properties.ValueChecked = 'S'
+                Properties.ValueUnchecked = 'N'
+                ShowHint = True
+                TabOrder = 10
+                Transparent = True
+              end
             end
             object tsAuditoria: TcxTabSheet
               Caption = '&3_Otros'

@@ -522,6 +522,19 @@
                 TabOrder = 12
                 Transparent = True
               end
+              object chkESFACTURACION_DIRECTA_PRV: TcxDBCheckBox
+                Left = 147
+                Top = 245
+                Width = 240
+                Height = 26
+                Caption = 'Facturación directa'
+                DataBinding.DataField = 'ESFACTURACION_DIRECTA_PRV'
+                DataBinding.DataSource = dsTablaG
+                Properties.ValueChecked = 'S'
+                Properties.ValueUnchecked = 'N'
+                TabOrder = 13
+                Transparent = True
+              end
               object lblPais: TcxLabel
                 Left = 98
                 Top = 222

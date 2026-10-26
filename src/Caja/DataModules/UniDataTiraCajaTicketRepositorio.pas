@@ -128,11 +128,18 @@ begin
     'FROM fza_movimientos_almacen m ' +
     'LEFT JOIN fza_articulos a ' +
     'ON a.CODIGO_ART_ART = m.CODIGO_ART_MOV ' +
-    'WHERE m.CODIGO_EMP_MOV = :pEMP ' +
-    'AND m.CODIGO_ALM_DOC_MOV = :pALM ' +
+    'WHERE m.CODIGO_ALM_DOC_MOV = :pALM ' +
     'AND m.CODIGO_CAJA_DOC_MOV = :pCAJA ' +
     'AND m.NUMERO_OPERACION_DOC_MOV = :pOPE ' +
     'AND m.TIPO_MOV = ''S'' ' +
+    'AND EXISTS (SELECT 1 FROM fza_caja_operaciones o ' +
+    'WHERE o.CODIGO_EMP_OPCAJA = :pEMP ' +
+    'AND o.CODIGO_ALM_OPCAJA = m.CODIGO_ALM_DOC_MOV ' +
+    'AND o.CODIGO_CAJA_OPCAJA = m.CODIGO_CAJA_DOC_MOV ' +
+    'AND o.NUMERO_OPERACION_OPCAJA = m.NUMERO_OPERACION_DOC_MOV ' +
+    'AND o.TIPO_OPERACION_OPCAJA = m.TIPO_DOC_MOV ' +
+    'AND o.SERIE_FAC_OPCAJA = m.SERIE_DOC_MOV ' +
+    'AND o.NUMERO_FAC_OPCAJA = m.NUMERO_DOC_MOV) ' +
     'ORDER BY m.LINEA_MOV';
 end;
 
@@ -171,16 +178,18 @@ begin
     'f.TOTAL_LIQUIDO_FAC, f.FECHA_FAC, f.NIF_EMPRESA_FAC, ' +
     'COALESCE(e.FORMATO_DOCUMENTO_EMP, ' +
     '''Serie.NroDocumento'') AS FORMATO_DOCUMENTO_EMP, ' +
-    'CASE WHEN o.TIPO_OPERACION_OPCAJA IN (''TR'',''AT'') ' +
+    'CASE WHEN o.TIPO_OPERACION_OPCAJA = ''TP'' THEN ''PER'' ' +
+    'WHEN o.TIPO_OPERACION_OPCAJA IN (''TR'',''TA'',''AT'') ' +
     'THEN ''TRA'' ' +
     'WHEN o.TIPO_OPERACION_OPCAJA = ''EC'' THEN ''ING'' ' +
     'WHEN o.TIPO_OPERACION_OPCAJA = ''GC'' THEN ''GAS'' ' +
     'WHEN o.TIPO_OPERACION_OPCAJA = ''DE'' THEN ''DEP'' ' +
     'ELSE ''VEN'' END AS GRUPO, ' +
-    'CASE WHEN o.TIPO_OPERACION_OPCAJA IN (''TR'',''AT'') THEN 2 ' +
-    'WHEN o.TIPO_OPERACION_OPCAJA = ''EC'' THEN 3 ' +
-    'WHEN o.TIPO_OPERACION_OPCAJA = ''GC'' THEN 4 ' +
-    'WHEN o.TIPO_OPERACION_OPCAJA = ''DE'' THEN 5 ' +
+    'CASE WHEN o.TIPO_OPERACION_OPCAJA = ''TP'' THEN 3 ' +
+    'WHEN o.TIPO_OPERACION_OPCAJA IN (''TR'',''TA'',''AT'') THEN 2 ' +
+    'WHEN o.TIPO_OPERACION_OPCAJA = ''EC'' THEN 4 ' +
+    'WHEN o.TIPO_OPERACION_OPCAJA = ''GC'' THEN 5 ' +
+    'WHEN o.TIPO_OPERACION_OPCAJA = ''DE'' THEN 6 ' +
     'ELSE 1 END AS GRUPO_ORDEN ' +
     'FROM fza_caja_operaciones o ' +
     'LEFT JOIN fza_facturas f ' +
@@ -203,7 +212,7 @@ begin
     'AND ((o.SERIE_FAC_OPCAJA IS NOT NULL ' +
     'AND o.SERIE_FAC_OPCAJA <> '''' ' +
     'AND o.TIPO_OPERACION_OPCAJA ' +
-    'NOT IN (''TR'',''AT'',''EC'',''GC'',''DE'') ' +
+    'NOT IN (''TR'',''TA'',''AT'',''TP'',''EC'',''GC'',''DE'') ' +
     // Una venta puede dejar varias filas en fza_caja_operaciones
     // con la misma factura (VE + DV, CB de anticipo, VR de vale
     // canjeado, VL de vale emitido). La tira imprime el documento
@@ -221,14 +230,14 @@ begin
     'AND od.SERIE_FAC_OPCAJA = o.SERIE_FAC_OPCAJA ' +
     'AND od.NUMERO_FAC_OPCAJA = o.NUMERO_FAC_OPCAJA ' +
     'AND od.TIPO_OPERACION_OPCAJA ' +
-    'NOT IN (''TR'',''AT'',''EC'',''GC'',''DE'') ' +
+    'NOT IN (''TR'',''TA'',''AT'',''TP'',''EC'',''GC'',''DE'') ' +
     'ORDER BY CASE od.TIPO_OPERACION_OPCAJA ' +
     'WHEN ''VE'' THEN 0 WHEN ''DV'' THEN 1 ELSE 2 END, ' +
     'od.ID_OPCAJA LIMIT 1)) ' +
     'AND (:pTODAS_SERIES = ''S'' ' +
     'OR FIND_IN_SET(o.SERIE_FAC_OPCAJA, :pSERIES) > 0)) ' +
     'OR (:pINCLUIR_TRASPASOS = ''S'' ' +
-    'AND o.TIPO_OPERACION_OPCAJA IN (''TR'',''AT'')) ' +
+    'AND o.TIPO_OPERACION_OPCAJA IN (''TR'',''TA'',''AT'',''TP'')) ' +
     'OR (:pINCLUIR_INGRESOS = ''S'' ' +
     'AND o.TIPO_OPERACION_OPCAJA = ''EC'') ' +
     'OR (:pINCLUIR_GASTOS = ''S'' ' +

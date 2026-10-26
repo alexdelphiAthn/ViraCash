@@ -46,7 +46,7 @@ uses
   inMtoTarifasCambios,
   inMtoStockConsultaPresentacionComposicion,
   inMtoAlbaranesCompra,
-  inMtoFacturasCompra,
+  inMtoFacturasCompra, inMtoComprasDirectasTerceros,
   inMtoPedidosCompra,
   inMtoDevolucionesCompra,
   inMtoDocumentosTrabajo,
@@ -248,6 +248,30 @@ begin
         OwnerCreacion,
         ReparentarAplicacion);
       Result := CrearFacturasCompraInyectada(
+        OwnerCreacion,
+        TContextoAutorizacionPantalla.Crear(FComposicion.Permisos),
+        CrearCompositorFacturaCompraPantalla(
+          FComposicion.CrearRepositoriosArticulosPantalla(
+            NOMBRE_PANTALLA_FACTURAS_COMPRA),
+          FComposicion.CrearRepositoriosConfiguracionPantalla(
+            NOMBRE_PANTALLA_FACTURAS_COMPRA).
+            CrearRepositorioSeleccionBancoEmpresa));
+      ReparentarAplicacionSiProcede(Result, ReparentarAplicacion);
+    end);
+
+  RegistrarFabricaPantalla(
+    TfrmMtoComprasDirectasTerceros,
+    function(AOwner: TComponent): TForm
+    var
+      OwnerCreacion: TComponent;
+      ReparentarAplicacion: Boolean;
+    begin
+      NormalizarOwnerPantalla(
+        AOwner,
+        FOwnerRaiz,
+        OwnerCreacion,
+        ReparentarAplicacion);
+      Result := CrearComprasDirectasTercerosInyectada(
         OwnerCreacion,
         TContextoAutorizacionPantalla.Crear(FComposicion.Permisos),
         CrearCompositorFacturaCompraPantalla(
@@ -520,6 +544,7 @@ begin
   RetirarFabricaPantalla(TfrmMtoDevolucionesCompra);
   RetirarFabricaPantalla(TfrmMtoPedidosCompra);
   RetirarFabricaPantalla(TfrmMtoFacturasCompra);
+  RetirarFabricaPantalla(TfrmMtoComprasDirectasTerceros);
   RetirarFabricaPantalla(TfrmMtoAlbaranesCompra);
   RetirarFabricaPantalla(TfrmMtoTarifasCambios);
   RetirarFabricaPantalla(TfrmMtoTarifas);

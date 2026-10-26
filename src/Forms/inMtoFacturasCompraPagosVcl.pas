@@ -9,7 +9,7 @@ interface
 
 uses
   System.Classes, Data.DB,
-  inLibSeleccionBancoEmpresaPersistenciaIntf;
+  inLibSeleccionBancoEmpresaPersistenciaIntf, UniDataFacturasCompra;
 
 type
   TObtenerBancoDefectoProveedor = reference to function(
@@ -33,13 +33,16 @@ procedure RegistrarPagoFacturaCompraVcl(
   const ARegistrarPago: TRegistrarPagoEfectoCompra;
   const AMensajeConciliado, AMensajeError: string);
 
+procedure ImprimirReciboPagoCompraVcl(AOwner: TComponent;
+  ADataModule: TdmFacturasCompra);
+
 implementation
 
 uses
   inLibMensajesVcl,
   System.SysUtils, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   inLibMsgCompras,
-  inMtoModalRegistrarPago, inMtoModalSeleccionarBanco;
+  inMtoModalRegistrarPago, inMtoModalSeleccionarBanco, inMtoModalImpRecFac;
 
 resourcestring
   STituloRegistrarPagoEfectoFacturaCompra =
@@ -129,6 +132,35 @@ begin
   end
   else
     ShowMessage_fza(SErrorEfectoCompraNoSeleccionado);
+end;
+
+procedure ImprimirReciboPagoCompraVcl(AOwner: TComponent;
+  ADataModule: TdmFacturasCompra);
+var
+  oFormulario: TfrmPrintRecFac;
+  oEfectos: TDataSet;
+begin
+  oEfectos := ADataModule.unqryEfectos;
+  if (not oEfectos.Active) or oEfectos.IsEmpty then
+    ShowMessage_fza(SErrorEfectoCompraNoSeleccionado)
+  else if oEfectos.FieldByName('IMPORTE_PAGADO_EFEC').AsCurrency <= 0 then
+    ShowMessage_fza('Registre primero el pago al proveedor o agricultor.')
+  else
+  begin
+    oFormulario := TfrmPrintRecFac.Create(AOwner);
+    try
+      oFormulario.edtSerie.Text :=
+        ADataModule.unqryTablaG.FieldByName('SERIE_FACC').AsString;
+      oFormulario.edtNroFac.Text :=
+        ADataModule.unqryTablaG.FieldByName('NUMERO_FACC').AsString;
+      oFormulario.PrepararEfectosCompra(
+        ADataModule.unqryTablaG.Connection,
+        oEfectos.FieldByName('NUMERO_EFEC').AsString);
+      oFormulario.ShowModal;
+    finally
+      FreeAndNil(oFormulario);
+    end;
+  end;
 end;
 
 end.

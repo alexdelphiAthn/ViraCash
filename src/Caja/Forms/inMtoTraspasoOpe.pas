@@ -26,6 +26,7 @@ uses
   cxLookAndFeels,
   cxLookAndFeelPainters, cxContainer, cxEdit, cxLabel, cxTextEdit, cxMaskEdit,
   cxButtonEdit, cxSpinEdit, cxCurrencyEdit, cxDropDownEdit, cxButtons,
+  cxCheckBox,
   cxClasses, cxGridLevel, cxGridCustomTableView, cxGridCustomView,
   cxGridTableView, cxGridDBTableView, cxGrid, cxSplitter,
   Vcl.Imaging.PngImage, System.Generics.Collections,
@@ -128,6 +129,8 @@ type
     FAlmacenesTransito: TStringList;
     btnRecepcionarTransito: TcxButton;
     FDestinoFinalCarga: string;
+    chkUsarTransito: TcxCheckBox;
+    cboTransito: TcxComboBox;
     // FZ-ISSUE-256: boton «Enviadas (n)» del origen, permiso para
     // desbloquear y, mientras dura el reparto de una recepcion con
     // incidencias, sus lineas, su rejilla y el almacen de taras.
@@ -343,9 +346,13 @@ type
       const ACampoOculto: string);
     procedure ModalCargasTransitoKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
-    function PrepararCargaTransito(const ADestino: string): Boolean;
-    function ElegirDestinoFinalTransito(const ATransito: string;
-      out ADestinoFinal: string): Boolean;
+    function PrepararCargaTransito(const ADestino: string;
+      out AAlmacenCarga: string): Boolean;
+    procedure CrearControlesTransito;
+    procedure ColocarControlesTransito;
+    procedure ConfigurarControlesTransito;
+    procedure chkUsarTransitoChange(Sender: TObject);
+    function TransitoSeleccionado: string;
     function ElegirAlmacenDestinoFinal(
       const ATitulo, AEtiqueta, ADefecto, AExcluido: string;
       out ADestinoFinal: string): Boolean;
@@ -450,7 +457,7 @@ implementation
 {$R *.dfm}
 
 uses
-  inLibMensajesVcl,
+  inLibMensajesVcl, inMtoModalImpHojaRutaTransito,
   inLibMsgCaja, inLibMsgComun, inLibMsgFacturas, inLibTraspasoSolicitudAtencion,
   UniDataGridArticulosRepositorio, UniDataColumnasSkuServicios,
   UniDataColumnasDocumentoRepositorio, inLibColumnasDocumento,
@@ -566,6 +573,7 @@ procedure TfrmMtoOpeTraspaso.AjustarEtiquetasAlmacenes;
 begin
   AjustarCampoTrasEtiquetaCaja(lblOrigen, txtOrigen);
   AjustarCampoTrasEtiquetaCaja(lblDestino, cboDestino);
+  ColocarControlesTransito;
 end;
 
 procedure TfrmMtoOpeTraspaso.FormCreate(Sender: TObject);
@@ -581,6 +589,7 @@ begin
   FAlmacenesTransito := TStringList.Create;
   FDatos := TdmTraspaso.Create(Self, ConexionPrincipal);
   CrearBotonRecepcionarTransito;
+  CrearControlesTransito;
   AplicarEstiloCaja;
   // La entrada detallada es el modo inicial de traspasos. F1 alterna con la
   // entrada por SKU completo en una sola columna, como en documentos.
@@ -1615,6 +1624,7 @@ begin
   ConfigurarControlesReposicion;
   AjustarEtiquetasAlmacenes;
   CargarCombo;
+  ConfigurarControlesTransito;
   cboDestino.ItemIndex := -1;
   cboDestino.Text := '';
   cboDestino.Properties.ReadOnly := AModo = mtAtender;
@@ -1642,6 +1652,9 @@ begin
     lblVentasDesde, lblVentasHasta) do
     EstilarEtiquetaCaja(Etiqueta, 15, True);
   EstilarEtiquetaCaja(lblEmpleadoNombre, 15, False);
+  chkUsarTransito.ParentFont := False;
+  chkUsarTransito.Style.Font.Assign(lblEmpleado.Style.Font);
+  chkUsarTransito.Style.TextColor := lblEmpleado.Style.TextColor;
   AjustarEtiquetasAlmacenes;
   EstilarEtiquetaCaja(lblTotal, 18, True);
   Estilo.EstilarRejilla(FView);
@@ -2394,7 +2407,8 @@ begin
   AplicarModo(mtTraspaso);
   sDestino := Trim(ATraspaso.CodigoAlmDestino);
   if (sDestino = '') or SameText(sDestino, FAlmacen) or
-     (FComboCodigos.IndexOf(sDestino) < 0) then
+     ((FComboCodigos.IndexOf(sDestino) < 0) and
+      (FAlmacenesTransito.IndexOf(sDestino) < 0)) then
     ShowMessage_fza(Format(SErrorDestinoTraspasoAppNoValido,
       [ATraspaso.Id, sDestino, FAlmacen]))
   else
@@ -2406,8 +2420,20 @@ begin
     else
     begin
       CargarLineasExternas(Lineas);
-      cboDestino.ItemIndex := FComboCodigos.IndexOf(sDestino);
-      cboDestino.Properties.ReadOnly := True;
+      // Si la app manda la carga a una furgoneta, queda marcado el
+      // transito y el destino final se elige en el almacen destino.
+      if FAlmacenesTransito.IndexOf(sDestino) >= 0 then
+      begin
+        chkUsarTransito.Checked := True;
+        chkUsarTransito.Properties.ReadOnly := True;
+        cboTransito.ItemIndex := FAlmacenesTransito.IndexOf(sDestino);
+        cboTransito.Properties.ReadOnly := True;
+      end
+      else
+      begin
+        cboDestino.ItemIndex := FComboCodigos.IndexOf(sDestino);
+        cboDestino.Properties.ReadOnly := True;
+      end;
       FDatos.VincularRecuentoApp(ATraspaso.Id);
       sAviso := Format(SInfoTraspasoAppCargado, [ATraspaso.Id, sDestino]);
       if ADescartadas.Count > 0 then
@@ -2564,7 +2590,12 @@ begin
   begin
     oColumna := AVista.Columns[iColumna];
     sCampo := oColumna.DataBinding.FieldName;
-    if SameText(sCampo, 'ID_TRTRA') or SameText(sCampo, ACampoOculto) then
+    if SameText(sCampo, 'ID_TRTRA') then
+    begin
+      oColumna.Caption := SCaptionColNumeroCargaTransito;
+      oColumna.Visible := True;
+    end
+    else if SameText(sCampo, ACampoOculto) then
       oColumna.Visible := False
     else if SameText(sCampo, 'FECHA_CARGA_TRTRA') then
     begin
@@ -2610,33 +2641,110 @@ begin
   end;
 end;
 
-// Destino de transito: se elige el destino final de la carga (por defecto
-// el que anuncia el transito). Un destino normal no pide nada.
-function TfrmMtoOpeTraspaso.PrepararCargaTransito(
-  const ADestino: string): Boolean;
-var
-  sFinal: string;
+// Con «Usar almacén de tránsito» la mercancía se carga en el tránsito
+// elegido y ADestino (el almacén destino) es su destino final. Sin ella el
+// traspaso va directo a ADestino (FZ-ISSUE-717).
+function TfrmMtoOpeTraspaso.PrepararCargaTransito(const ADestino: string;
+  out AAlmacenCarga: string): Boolean;
 begin
   FDestinoFinalCarga := '';
   FDatos.EstablecerDestinoFinalTransito('');
-  Result := FAlmacenesTransito.IndexOf(ADestino) < 0;
-  if not Result then
+  AAlmacenCarga := ADestino;
+  Result := True;
+  if chkUsarTransito.Visible and chkUsarTransito.Checked then
   begin
-    Result := ElegirDestinoFinalTransito(ADestino, sFinal);
+    AAlmacenCarga := TransitoSeleccionado;
+    Result := AAlmacenCarga <> '';
     if Result then
     begin
-      FDestinoFinalCarga := sFinal;
-      FDatos.EstablecerDestinoFinalTransito(sFinal);
-    end;
+      FDestinoFinalCarga := ADestino;
+      FDatos.EstablecerDestinoFinalTransito(ADestino);
+    end
+    else
+      ShowMessage_fza(SErrorAlmacenTransitoNoSeleccionado);
   end;
 end;
 
-function TfrmMtoOpeTraspaso.ElegirDestinoFinalTransito(
-  const ATransito: string; out ADestinoFinal: string): Boolean;
+// Casilla «Usar almacén de tránsito» y desplegable de tránsitos, debajo del
+// almacén destino. Solo en el traspaso directo y si hay algún tránsito.
+procedure TfrmMtoOpeTraspaso.CrearControlesTransito;
 begin
-  Result := ElegirAlmacenDestinoFinal(STituloDestinoFinalTransito,
-    Format(SEtiquetaDestinoFinalTransito, [ATransito]),
-    FDatos.DestinoActualTransito(ATransito), '', ADestinoFinal);
+  chkUsarTransito := TcxCheckBox.Create(Self);
+  chkUsarTransito.Parent := pnlTop;
+  chkUsarTransito.Visible := False;
+  chkUsarTransito.Transparent := True;
+  chkUsarTransito.AutoSize := True;
+  chkUsarTransito.ShowHint := True;
+  chkUsarTransito.Properties.OnChange := chkUsarTransitoChange;
+  cboTransito := TcxComboBox.Create(Self);
+  cboTransito.Parent := pnlTop;
+  cboTransito.Visible := False;
+  cboTransito.Enabled := False;
+  cboTransito.Properties.DropDownListStyle := lsFixedList;
+end;
+
+// A la altura del empleado: la casilla bajo la etiqueta del destino y el
+// desplegable hasta el borde derecho del destino. Los textos se ponen aquí
+// porque se vuelve a llamar al cambiar de idioma y el ancho depende de ellos.
+procedure TfrmMtoOpeTraspaso.ColocarControlesTransito;
+var
+  iIzquierda, iDerecha: Integer;
+begin
+  if not Assigned(chkUsarTransito) then
+    Exit;
+  chkUsarTransito.Caption := SCaptionUsarAlmacenTransito;
+  chkUsarTransito.Hint := SHintUsarAlmacenTransito;
+  iDerecha := cboDestino.Left + cboDestino.Width;
+  chkUsarTransito.Left := lblDestino.Left;
+  chkUsarTransito.Top := txtEmpleado.Top +
+    (txtEmpleado.Height - chkUsarTransito.Height) div 2;
+  iIzquierda := chkUsarTransito.Left + chkUsarTransito.Width +
+    EscalarCaja(Self, 12);
+  cboTransito.SetBounds(iIzquierda, txtEmpleado.Top,
+    Max(EscalarCaja(Self, 80), iDerecha - iIzquierda), cboTransito.Height);
+  cboTransito.Anchors := cboDestino.Anchors;
+  // El nombre del empleado se corta antes de llegar a la casilla.
+  lblEmpleadoNombre.AutoSize := not chkUsarTransito.Visible;
+  if chkUsarTransito.Visible then
+    lblEmpleadoNombre.Width := Max(0, chkUsarTransito.Left -
+      lblEmpleadoNombre.Left - EscalarCaja(Self, 8));
+end;
+
+procedure TfrmMtoOpeTraspaso.ConfigurarControlesTransito;
+var
+  bVisible: Boolean;
+begin
+  if not Assigned(chkUsarTransito) then
+    Exit;
+  bVisible := (FModo = mtTraspaso) and (FAlmacenesTransito.Count > 0);
+  chkUsarTransito.Properties.ReadOnly := False;
+  cboTransito.Properties.ReadOnly := False;
+  chkUsarTransito.Checked := False;
+  cboTransito.Enabled := False;
+  // Con un solo tránsito queda propuesto al marcar la casilla.
+  if FAlmacenesTransito.Count = 1 then
+    cboTransito.ItemIndex := 0
+  else
+    cboTransito.ItemIndex := -1;
+  chkUsarTransito.Visible := bVisible;
+  cboTransito.Visible := bVisible;
+  ColocarControlesTransito;
+end;
+
+procedure TfrmMtoOpeTraspaso.chkUsarTransitoChange(Sender: TObject);
+begin
+  cboTransito.Enabled := chkUsarTransito.Checked;
+  if chkUsarTransito.Checked and cboTransito.CanFocus then
+    cboTransito.SetFocus;
+end;
+
+function TfrmMtoOpeTraspaso.TransitoSeleccionado: string;
+begin
+  Result := '';
+  if chkUsarTransito.Visible and chkUsarTransito.Checked and
+     (cboTransito.ItemIndex >= 0) and
+     (cboTransito.ItemIndex < FAlmacenesTransito.Count) then
+    Result := FAlmacenesTransito[cboTransito.ItemIndex];
 end;
 
 // Desplegable con los almacenes que pueden recibir una carga (los destinos
@@ -2809,16 +2917,22 @@ begin
   oPanel := TPanel.Create(ADialogo);
   oPanel.Parent := ADialogo;
   oPanel.Align := alTop;
-  oPanel.Height := EscalarCaja(Self, 48);
+  oPanel.Height := EscalarCaja(Self, 84);
   oPanel.BevelOuter := bvNone;
   oEtiqueta := TcxLabel.Create(ADialogo);
   oEtiqueta.Parent := oPanel;
   oEtiqueta.Left := EscalarCaja(Self, 16);
-  oEtiqueta.Top := EscalarCaja(Self, 14);
+  oEtiqueta.Top := EscalarCaja(Self, 8);
+  oEtiqueta.AutoSize := False;
+  oEtiqueta.Width := oPanel.ClientWidth - EscalarCaja(Self, 32);
+  oEtiqueta.Height := EscalarCaja(Self, 36);
+  oEtiqueta.Anchors := [akLeft, akTop, akRight];
+  oEtiqueta.Properties.WordWrap := True;
   oEtiqueta.Transparent := True;
   FComboTarasTransito := TcxComboBox.Create(ADialogo);
   FComboTarasTransito.Parent := oPanel;
-  FComboTarasTransito.Top := EscalarCaja(Self, 10);
+  FComboTarasTransito.Left := EscalarCaja(Self, 16);
+  FComboTarasTransito.Top := EscalarCaja(Self, 48);
   FComboTarasTransito.Width := EscalarCaja(Self, 420);
   FComboTarasTransito.Properties.DropDownListStyle := lsFixedList;
   for Almacen in FDatos.ListarAlmacenesTaras do
@@ -2831,8 +2945,6 @@ begin
   begin
     oEtiqueta.Caption := SEtiquetaAlmacenTarasTransito;
     FComboTarasTransito.ItemIndex := 0;
-    FComboTarasTransito.Left := oEtiqueta.Left + oEtiqueta.Width +
-      EscalarCaja(Self, 12);
   end
   else
   begin
@@ -3123,7 +3235,10 @@ begin
       FreeAndNil(oCargas);
     end;
     bPrimera := False;
-    if iAccion <> mrCancel then
+    if iAccion = mrAll then
+      TfrmPrintHojaRutaTransito.Ejecutar(Self, ConexionPrincipal,
+        Carga.Transito, True, True)
+    else if iAccion <> mrCancel then
       DesbloquearCargaEnviadaTransito(Carga, iAccion);
   until iAccion = mrCancel;
   ActualizarBotonesPendientes;
@@ -3136,7 +3251,7 @@ var
   oPanelBotones: TPanel;
   oFuente: TDataSource;
   oVista: TcxGridDBTableView;
-  oDevolver, oCambiar, oPerder, oApuntes, oSalir: TcxButton;
+  oDevolver, oCambiar, oPerder, oApuntes, oRuta, oSalir: TcxButton;
 begin
   ACarga := Default(TCargaTransitoElegida);
   oDialogo := TForm.CreateNew(Self);
@@ -3166,10 +3281,13 @@ begin
     oSalir.Cancel := True;
     oSalir.ModalResult := mrCancel;
     oApuntes := CrearBotonIncidenciasTransito(oDialogo, oPanelBotones);
+    oRuta := CrearBotonModal(oDialogo, oPanelBotones,
+      SCaptionHojaRutaTransito);
+    oRuta.ModalResult := mrAll;
     ColocarBotonesModal(oPanelBotones,
-      [oDevolver, oCambiar, oPerder, oApuntes], oSalir);
+      [oDevolver, oCambiar, oPerder, oApuntes, oRuta], oSalir);
     Result := oDialogo.ShowModal;
-    if Result in [mrYes, mrRetry, mrNo] then
+    if Result in [mrYes, mrRetry, mrNo, mrAll] then
       ACarga := CargaTransitoActual(ADatos)
     else
       Result := mrCancel;
@@ -3535,16 +3653,17 @@ begin
     cboDestino.Properties.Items.Add(
       Almacen.Codigo + ' - ' + Almacen.Nombre);
   end;
-  // En el traspaso directo tambien se puede cargar un almacen de transito
-  // (furgoneta, agencia); al grabar se pide el destino final (FZ-215).
+  // En el traspaso directo la mercancia puede viajar en un almacen de
+  // transito (furgoneta, agencia): se elige en su propio desplegable y el
+  // almacen destino es el destino final de la carga (FZ-ISSUE-717).
   FAlmacenesTransito.Clear;
+  cboTransito.Properties.Items.Clear;
   if FModo = mtTraspaso then
     for Almacen in FDatos.ListarAlmacenesTransito do
     begin
-      FComboCodigos.Add(Almacen.Codigo);
       FAlmacenesTransito.Add(Almacen.Codigo);
-      cboDestino.Properties.Items.Add(Almacen.Codigo + ' - ' +
-        Almacen.Nombre + ' (' + STextoAlmacenTransito + ')');
+      cboTransito.Properties.Items.Add(Almacen.Codigo + ' - ' +
+        Almacen.Nombre);
     end;
 end;
 
@@ -4517,7 +4636,7 @@ end;
 
 procedure TfrmMtoOpeTraspaso.EjecutarTraspasoInterno(AConTicket: Boolean);
 var
-  sNumOp, sDestino, sOrigen, sEmpleado, sNumSol, sSerSol: string;
+  sNumOp, sDestino, sOrigen, sEmpleado, sNumSol, sSerSol, sCarga: string;
   iServidas: Integer;
   bFaltaMotivo: Boolean;
 begin
@@ -4580,7 +4699,8 @@ begin
                 sNumOp,
                 sOrigen,
                 sDestino,
-                sEmpleado, FDatos.cdsLineas, ParametrosCaja.ImpresoraCaja);
+                sEmpleado, FEmpresa, FCaja, FDatos.cdsLineas,
+                ParametrosCaja.ImpresoraCaja);
             AplicarModo(mtAtender);
           end;
         end
@@ -4601,12 +4721,13 @@ begin
       sDestino := DestinoSeleccionado;
       if sDestino = '' then
         ShowMessage_fza(SErrorAlmacenDestinoTraspasoNoSeleccionado)
-      else if ElegirEstadoPropuesta and PrepararCargaTransito(sDestino) and
-              FDatos.GrabarTraspaso(sDestino, sNumOp) then
+      else if ElegirEstadoPropuesta and
+              PrepararCargaTransito(sDestino, sCarga) and
+              FDatos.GrabarTraspaso(sCarga, sNumOp) then
       begin
         if FDestinoFinalCarga <> '' then
           ShowMessage_fza(Format(SInfoCargaTransitoGrabada,
-            [sNumOp, sDestino, FDestinoFinalCarga]))
+            [sNumOp, sCarga, FDestinoFinalCarga]))
         else
           ShowMessage_fza(Format(SInfoTraspasoGrabado, [sNumOp]));
         if AConTicket then
@@ -4615,8 +4736,9 @@ begin
             FRepositorioTraspasoTicket,
             sNumOp,
             sOrigen,
-            sDestino,
-            sEmpleado, FDatos.cdsLineas, ParametrosCaja.ImpresoraCaja);
+            sCarga,
+            sEmpleado, FEmpresa, FCaja, FDatos.cdsLineas,
+            ParametrosCaja.ImpresoraCaja);
         // FZ-ISSUE-351: el traspaso de la app ya esta en local; ahora se
         // marca RECOGIDO (si falla, se avisa y se reintenta al elegirlo).
         if FDatos.IdRecuentoApp > 0 then

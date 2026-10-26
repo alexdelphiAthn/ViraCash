@@ -337,6 +337,8 @@ begin
         'SELECT EMPSER FROM vi_empresas_series ' +
         ' WHERE CODIGO_EMP_EMPSER = :emp ' +
         '   AND TIPO_DOC_EMPSER = :tip ' +
+        '   AND (:tip <> ''FP'' OR COALESCE(SUBTIPO_EMPSER, '''') ' +
+        '        NOT IN (''AUTOFAC'', ''REAGP'')) ' +
         '   AND CODIGO_ALM_EMPSER = :alm ' +
         SQL_VIGENCIA_SERIE +
         SQL_ORDEN_SERIE_DEFECTO +
@@ -388,6 +390,8 @@ begin
           'SELECT EMPSER FROM vi_empresas_series ' +
           ' WHERE CODIGO_EMP_EMPSER = :emp ' +
           '   AND TIPO_DOC_EMPSER = :tip ' +
+        '   AND (:tip <> ''FP'' OR COALESCE(SUBTIPO_EMPSER, '''') ' +
+        '        NOT IN (''AUTOFAC'', ''REAGP'')) ' +
           SQL_VIGENCIA_SERIE +
           sFiltroAlmacen +
           SQL_ORDEN_SERIE_DEFECTO +
@@ -425,6 +429,8 @@ begin
         'SELECT EMPSER FROM vi_empresas_series ' +
         ' WHERE CODIGO_EMP_EMPSER = :emp ' +
         '   AND TIPO_DOC_EMPSER = :tip ' +
+        '   AND (:tip <> ''FP'' OR COALESCE(SUBTIPO_EMPSER, '''') ' +
+        '        NOT IN (''AUTOFAC'', ''REAGP'')) ' +
         SQL_VIGENCIA_SERIE +
         ' GROUP BY EMPSER ' +
         ' ORDER BY MAX(ESDEFECTO_EMPSER) DESC, EMPSER';

@@ -117,8 +117,15 @@ resourcestring
   STicketSolicitudTraspaso = 'SOLICITUD DE TRASPASO';
   STicketReposicionAutomatica = 'REPOSICIÓN AUTOMÁTICA';
   STicketTraspaso = 'TRASPASO';
+  STicketPerdidaTransito = 'PÉRDIDA EN TRÁNSITO';
+  STicketPerdidasTransito = 'PÉRDIDAS EN TRÁNSITO';
+  STicketPerdidas = 'PÉRDIDAS';
   STicketOrigen = 'Origen:';
   STicketDestino = 'Destino:';
+  // FZ-ISSUE-717: carga a un almacén de tránsito
+  STicketDestinoFinal = 'Destino final:';
+  STicketEmpresaOrigen = 'Empresa origen:';
+  STicketEmpresaDestino = 'Empresa destino:';
   STicketEstado = 'Estado:';
   STicketVentasDesde = 'Ventas desde:';
   STicketVentasHasta = 'Ventas hasta:';

@@ -40,6 +40,7 @@ type
 
   TTraspasoTicketHistorico = record
     Existe: Boolean;
+    TipoOperacion: string;
     Serie: string;
     NumeroDocumento: string;
     FormatoDocumento: string;
@@ -52,6 +53,18 @@ type
     Sku: string;
     Descripcion: string;
     Cantidad: Double;
+  end;
+
+  // Carga a un almacén de tránsito (FZ-ISSUE-717): adónde va y de qué
+  // empresa a qué empresa pasa la mercancía.
+  TCargaTransitoTicket = record
+    Existe: Boolean;
+    DestinoFinal: string;
+    NombreDestinoFinal: string;
+    EmpresaOrigen: string;
+    NombreEmpresaOrigen: string;
+    EmpresaDestino: string;
+    NombreEmpresaDestino: string;
   end;
 
   IRepositorioTraspasoTicket = interface
@@ -72,6 +85,10 @@ type
       const AEmpresa, AAlmacen, ACaja,
       ANumeroOperacion: string):
       TArray<TLineaTraspasoTicket>;
+    function ObtenerCargaTransito(
+      const AEmpresa, AAlmacen, ACaja,
+      ANumeroOperacion: string):
+      TCargaTransitoTicket;
   end;
 
 implementation

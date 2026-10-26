@@ -47,6 +47,10 @@ type
     procedure RefrescarIncidencias;
   end;
 
+function ConsultarHojaRutaTransito(AOwner: TComponent;
+  AConexion: TUniConnection; const ATransito: string;
+  const AIds: TArray<Int64> = nil): TUniQuery;
+
 function SqlCargasTransito: string;
 function SqlIncidenciasTransito: string;
 
@@ -56,7 +60,14 @@ implementation
 
 {$R *.dfm}
 
+uses
+  inLibMsgCaja;
+
 const
+  SQL_EMPRESA_HOJA_RUTA =
+    'CASE WHEN V.ESCOMPARTIDO_ALM = ''S'' THEN T.CODIGO_EMP_TRTRA ' +
+    'ELSE COALESCE(NULLIF(V.CODIGO_EMP_ALM, ''''), ' +
+    'T.CODIGO_EMP_TRTRA) END';
   SQL_CONDICION_TRANSITO =
     'TIPO_USO_ALM IN (''TR' + #$C1 + 'NSITO'', ''TRANSITO'')';
   SQL_FILTROS_CARGA =
@@ -67,6 +78,109 @@ const
 
 procedure ForceReferenceToClass(C: TClass);
 begin
+end;
+
+function SqlCamposHojaRuta: string;
+begin
+  Result :=
+      'SELECT CONCAT(LENGTH(T.CODIGO_ALM_ORIGEN_TRTRA), '':'' , ' +
+      'T.CODIGO_ALM_ORIGEN_TRTRA' +
+      ', LENGTH(T.CODIGO_ALM_DESTINO_TRTRA), '':'' , ' +
+      ' T.CODIGO_ALM_DESTINO_TRTRA, COALESCE(D.CODIGO_EMP_ALM, '''')) ' +
+      ' AS GRUPO, T.ID_TRTRA AS ID_CARGA, ' +
+      ' T.FECHA_CARGA_TRTRA AS FECHA_CARGA, ' +
+      ' CONCAT_WS('' - '', T.CODIGO_ALM_TRANSITO_TRTRA, ' +
+      ' V.NOMBRE_ALM_ALM) AS TRANSITO, ' +
+      ' CONCAT_WS('' - '', ' + SQL_EMPRESA_HOJA_RUTA + ', ' +
+      ' EO.RAZON_SOCIAL_EMP) AS ENTREGA, ' +
+      ' CONCAT_WS('' - '', D.CODIGO_EMP_ALM, ' +
+      ' ED.RAZON_SOCIAL_EMP) AS RECIBE, ' +
+      ' CONCAT_WS('' - '', T.CODIGO_ALM_DESTINO_TRTRA, ' +
+      ' D.NOMBRE_ALM_ALM) AS DESTINO, ' +
+      ' CONCAT_WS('' - '', T.CODIGO_ALM_ORIGEN_TRTRA, ' +
+      ' O.NOMBRE_ALM_ALM) AS ORIGEN, ' +
+      ' CONCAT(T.TIPO_DOC_CARGA_TRTRA, '' '', ' +
+      ' T.SERIE_CARGA_TRTRA, ''/'', T.NUMERO_CARGA_TRTRA) AS DOCUMENTO, ' +
+      ' T.NUMERO_OPERACION_CARGA_TRTRA AS OPERACION, ' +
+      ' M.CODIGO_UNIDAD_MOV AS SKU, ' +
+      ' COALESCE(NULLIF(M.DESCRIPCION_ARTICULO_MOV, ''''), ' +
+      ' A.DESCRIPCION_ART, M.CODIGO_ART_MOV) AS DESCRIPCION, ' +
+      ' COALESCE(M.LOTE_MOV, '''') AS LOTE, ' +
+      ' M.CANTIDAD_MOV AS UNIDADES ';
+end;
+
+function SqlOrigenHojaRuta: string;
+begin
+  Result :=
+      ' FROM fza_traspasos_transito T ' +
+      ' JOIN fza_almacenes V ' +
+      ' ON V.CODIGO_ALM_ALM = T.CODIGO_ALM_TRANSITO_TRTRA ' +
+      ' LEFT JOIN fza_almacenes O ' +
+      ' ON O.CODIGO_ALM_ALM = T.CODIGO_ALM_ORIGEN_TRTRA ' +
+      ' LEFT JOIN fza_almacenes D ' +
+      ' ON D.CODIGO_ALM_ALM = T.CODIGO_ALM_DESTINO_TRTRA ' +
+      ' LEFT JOIN fza_empresas EO ' +
+      ' ON EO.CODIGO_EMP_EMP = ' + SQL_EMPRESA_HOJA_RUTA + ' ' +
+      ' LEFT JOIN fza_empresas ED ' +
+      ' ON ED.CODIGO_EMP_EMP = D.CODIGO_EMP_ALM ' +
+      ' JOIN fza_movimientos_almacen M ' +
+      ' ON M.TIPO_DOC_MOV = T.TIPO_DOC_CARGA_TRTRA ' +
+      ' AND M.SERIE_DOC_MOV = T.SERIE_CARGA_TRTRA ' +
+      ' AND M.NUMERO_DOC_MOV = T.NUMERO_CARGA_TRTRA ' +
+      ' AND M.CODIGO_ALM_MOV = T.CODIGO_ALM_TRANSITO_TRTRA ' +
+      ' AND M.CODIGO_ALM_CONTRA_MOV = T.CODIGO_ALM_ORIGEN_TRTRA ' +
+      ' AND M.TIPO_MOV = ''E'' AND M.CANTIDAD_MOV > 0 ' +
+      ' LEFT JOIN fza_articulos A ON A.CODIGO_ART_ART = M.CODIGO_ART_MOV ' +
+      ' WHERE T.CODIGO_ALM_TRANSITO_TRTRA = :TRANSITO ' +
+      ' AND T.ESTADO_TRTRA = ''PENDIENTE'' ' +
+      ' AND V.TIPO_USO_ALM IN (''TRÁNSITO'', ''TRANSITO'') ' +
+      ' ORDER BY GRUPO, T.ID_TRTRA, M.LINEA_MOV, M.CODIGO_UNIDAD_MOV';
+end;
+
+// La hoja reúne la furgoneta completa, sin limitarla a la empresa que
+// consulta. El origen de cada entrada evita cruzar documentos con igual
+// serie y número pertenecientes a empresas distintas (FZ-ISSUE-377).
+procedure FiltrarCargasHojaRuta(AConsulta: TUniQuery;
+  const AIds: TArray<Int64>);
+var
+  Parametros: string;
+  I: Integer;
+begin
+  if Length(AIds) > 0 then
+  begin
+    Parametros := '';
+    for I := 0 to High(AIds) do
+    begin
+      if I > 0 then
+        Parametros := Parametros + ',';
+      Parametros := Parametros + ':CARGA' + IntToStr(I);
+    end;
+    AConsulta.SQL.Text := StringReplace(AConsulta.SQL.Text,
+      ' ORDER BY GRUPO', ' AND T.ID_TRTRA IN (' + Parametros +
+      ') ORDER BY GRUPO', []);
+    for I := 0 to High(AIds) do
+      AConsulta.ParamByName('CARGA' + IntToStr(I)).AsLargeInt := AIds[I];
+  end;
+end;
+
+function ConsultarHojaRutaTransito(AOwner: TComponent;
+  AConexion: TUniConnection; const ATransito: string;
+  const AIds: TArray<Int64>): TUniQuery;
+begin
+  if Trim(ATransito) = '' then
+    raise EArgumentException.Create(SErrorHojaRutaSinTransito);
+  Result := TUniQuery.Create(AOwner);
+  try
+    Result.Connection := AConexion;
+    Result.ReadOnly := True;
+    Result.SQL.Text := SqlCamposHojaRuta + SqlOrigenHojaRuta;
+    FiltrarCargasHojaRuta(Result,AIds);
+    Result.ParamByName('TRANSITO').AsString := Trim(ATransito);
+    Result.Open;
+  except
+    FreeAndNil(Result);
+    raise;
+  end;
 end;
 
 // Las pendientes primero y, dentro, las más antiguas; después las

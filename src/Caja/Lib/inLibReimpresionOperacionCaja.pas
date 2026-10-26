@@ -77,7 +77,8 @@ uses
 
 function EsTiposTraspasoCaja(const ATipos: string): Boolean;
 begin
-  Result := (Pos('TR', ATipos) > 0) or (Pos('TA', ATipos) > 0);
+  Result := (Pos('TR', ATipos) > 0) or (Pos('TA', ATipos) > 0) or
+    (Pos('TP', ATipos) > 0);
 end;
 
 function EsTiposOperacionCaja(const ATipos: string): Boolean;

@@ -21,6 +21,8 @@ type
     FConsultaRecibos: TUniQuery;
     procedure PrepararRecibos(
       const ACriterios: TCriteriosInformeRecibosFactura);
+    procedure PrepararEfectosCompra(
+      const ACriterios: TCriteriosInformeRecibosFactura);
     procedure PrepararEfectosVenta(
       const ACriterios: TCriteriosInformeRecibosFactura);
   public
@@ -93,12 +95,44 @@ begin
     'ORDER BY r.NUMERO_PLAZO_REC';
 end;
 
+procedure TPreparadorInformeRecibosFacturaUniDAC.PrepararEfectosCompra(
+  const ACriterios: TCriteriosInformeRecibosFactura);
+var
+  sEfectos: string;
+begin
+  sEfectos := '';
+  if ACriterios.ReciboActual then
+    sEfectos := ACriterios.Efectos;
+  FConsultaRecibos.Connection.ExecSQL(
+    'CALL PRC_PREPARAR_RECIBOS_EFECTOS_COMPRA(:SERIE, :NUMERO, :EFECTOS)',
+    [ACriterios.Serie, ACriterios.NumeroFactura, sEfectos]);
+  FConsultaRecibos.SQL.Text :=
+    'SELECT R.SERIE_FAC_REC, R.NUMERO_FAC_REC, R.NUMERO_PLAZO_REC, ' +
+    'R.ESTADO_RECIBO_REC, R.EUROS_RECIBO_REC, ' +
+    'R.FECHA_EXPEDICION_RECIBO_REC, R.FECHA_VENCIMIENTO_RECIBO_REC, ' +
+    'R.IBAN_CLI_REC, R.LOCALIDAD_EXPEDICION_RECIBO_REC, ' +
+    'R.CODIGO_CLI_REC, R.RAZON_SOCIAL_CLI_REC, ' +
+    'R.DIRECCION1_CLIENTE_RECIBO_REC, R.POBLACION_CLI_REC, ' +
+    'R.PROVINCIA_CLI_REC, R.CODIGO_POSTAL_CLI_REC, ' +
+    'R.IMPORTE_LETRA_RECIBO_REC, ' +
+    ExpresionSqlFormatoDocumento('E.FORMATO_DOCUMENTO_EMP',
+      'R.SERIE_FAC_REC', 'R.NUMERO_FAC_REC') +
+    ' AS DOCUMENTO_FACTURA_FORMATO ' +
+    'FROM tmp_recibos_efectos_compra R ' +
+    'JOIN fza_facturas_compra F ON F.SERIE_FACC = R.SERIE_FAC_REC ' +
+    'AND F.NUMERO_FACC = R.NUMERO_FAC_REC ' +
+    'JOIN fza_empresas E ON E.CODIGO_EMP_EMP = F.CODIGO_EMP_FACC ' +
+    'ORDER BY R.NUMERO_PLAZO_REC';
+end;
+
 procedure TPreparadorInformeRecibosFacturaUniDAC.Preparar(
   const ACriterios: TCriteriosInformeRecibosFactura);
 begin
   FConsultaRecibos.Close;
   FConsultaRecibos.Params.Clear;
-  if ACriterios.EsEfectosVenta then
+  if ACriterios.EsEfectosCompra then
+    PrepararEfectosCompra(ACriterios)
+  else if ACriterios.EsEfectosVenta then
     PrepararEfectosVenta(ACriterios)
   else
     PrepararRecibos(ACriterios);
