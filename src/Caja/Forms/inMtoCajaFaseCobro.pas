@@ -230,8 +230,8 @@ type
     function ValidaryConfirmar:boolean;
     function ValidarDepositoCredito: Boolean;
     function PuedeEmitir(const ASerie: string; AFecha: TDateTime): Boolean;
-    function SerieAdmiteFecha(const ASerie: string;
-      AFecha: TDateTime): Boolean;
+    function SerieAdmiteFecha(var ASerie: string;
+      AFecha: TDateTime; const ASubtipo: string): Boolean;
     procedure AvisarSiNumeracionConHuecos(const ASerie: string);
     function NumeroManualIntroducido: string;
     function ValidarHuecoManual(const ASerie, ANumero: string;
@@ -630,7 +630,7 @@ begin
     if SolicitarSerieFechaFacturaCaja(Self, ConexionPrincipal,
          FCodigoEmpresa, FCodigoAlmacen, oDatos) then
     begin
-      if SerieAdmiteFecha(oDatos.Serie, oDatos.Fecha) then
+      if SerieAdmiteFecha(oDatos.Serie, oDatos.Fecha, 'NORMAL') then
       begin
         AvisarSiNumeracionConHuecos(oDatos.Serie);
         FNumeroManual  := '';
@@ -778,14 +778,15 @@ begin
   end;
 end;
 
-function TfrmMtoCajaFaseCobro.SerieAdmiteFecha(const ASerie: string;
-  AFecha: TDateTime): Boolean;
+function TfrmMtoCajaFaseCobro.SerieAdmiteFecha(var ASerie: string;
+  AFecha: TDateTime; const ASubtipo: string): Boolean;
 var
   dUltima: TDateTime;
+  oConfig: TConfiguracionOpcionesDocumento;
+  oTipo: TTipoOpcionesDocumento;
+  oElegido: TOpcionesDocumento;
+  sAviso: string;
 begin
-  // El ticket no puede llevar una fecha anterior a la del ultimo documento
-  // ya emitido en la misma serie. Si lo es, se avisa y NO se cierra la fase
-  // de cobro, para elegir otra serie sin perder las formas de pago.
   Result := True;
   dUltima := TdmCajaOpe.FechaUltimoTicketSerie(
     ConexionPrincipal,
@@ -794,12 +795,48 @@ begin
   if (dUltima > 0) and (Trunc(AFecha) < Trunc(dUltima)) then
   begin
     Result := False;
-    MessageDlg_fza(
-      Format(SErrorFechaSerieEmisionCajaNoValida,
-             [ASerie,
-              FormatDateTime('dd/mm/yyyy', dUltima),
-              FormatDateTime('dd/mm/yyyy', AFecha)]),
-      mtWarning, [mbOK], 0);
+    sAviso := Format(SErrorFechaSerieEmisionCajaNoValida,
+      [ASerie, FormatDateTime('dd/mm/yyyy', dUltima),
+       FormatDateTime('dd/mm/yyyy', AFecha)]);
+    if MessageDlg_fza(sAviso + sLineBreak + sLineBreak +
+         SPreguntaCambiarSerieFechaVenta, mtWarning,
+         [mbYes, mbNo], 0, mbNo) = mrYes then
+    begin
+      oTipo := Default(TTipoOpcionesDocumento);
+      oTipo.Codigo := 'FC';
+      oTipo.Subtipo := ASubtipo;
+      oConfig := Default(TConfiguracionOpcionesDocumento);
+      oConfig.Titulo := STituloCambiarSerieFechaVenta;
+      oConfig.Aviso := sAviso;
+      oConfig.Tipos := [oTipo];
+      oConfig.Propuesta.Empresa := FCodigoEmpresa;
+      oConfig.Propuesta.Almacen := FCodigoAlmacen;
+      oConfig.Propuesta.Tipo := 'FC';
+      oConfig.Propuesta.Serie := ASerie;
+      oConfig.Propuesta.Fecha := Trunc(AFecha);
+      oConfig.Visibles := [codEmpresa, codSerie, codFecha];
+      oConfig.Fijos := [codEmpresa, codFecha];
+      oConfig.Validar :=
+        function(const AOpciones: TOpcionesDocumento;
+          out AMensaje: string): Boolean
+        var
+          dUltimaElegida: TDateTime;
+        begin
+          dUltimaElegida := TdmCajaOpe.FechaUltimoTicketSerie(
+            ConexionPrincipal, FCodigoEmpresa, AOpciones.Serie);
+          Result := (dUltimaElegida = 0) or
+            (Trunc(AFecha) >= Trunc(dUltimaElegida));
+          if not Result then
+            AMensaje := Format(SErrorFechaSerieEmisionCajaNoValida,
+              [AOpciones.Serie, FormatDateTime('dd/mm/yyyy', dUltimaElegida),
+               FormatDateTime('dd/mm/yyyy', AFecha)]);
+        end;
+      Result := TfrmModalOpcionesDocumento.Solicitar(Self,
+        CrearLectorOpcionesDocumentoUniDAC(ConexionPrincipal),
+        oConfig, oElegido);
+      if Result then
+        ASerie := oElegido.Serie;
+    end;
   end;
 end;
 
@@ -911,7 +948,7 @@ end;
 function TfrmMtoCajaFaseCobro.PuedeEmitir(const ASerie: string;
   AFecha: TDateTime): Boolean;
 var
-  sManual, sNumeroFmt, sSerie: string;
+  sManual, sNumeroFmt, sSerie, sSubtipo: string;
 begin
   sSerie := Trim(ASerie);
   Result := sSerie <> '';
@@ -947,9 +984,15 @@ begin
     begin
       // Emision normal: control de fecha y aviso (no bloqueante) de huecos.
       FNumeroManual := '';
-      Result := SerieAdmiteFecha(sSerie, AFecha);
+      sSubtipo := 'SIMPLIFICADA';
+      if FRectificaA <> '' then
+        sSubtipo := 'RECTIFICATIVA';
+      Result := SerieAdmiteFecha(sSerie, AFecha, sSubtipo);
       if Result then
-      AvisarSiNumeracionConHuecos(sSerie);
+      begin
+        cbbSERIE_FAC.Text := sSerie;
+        AvisarSiNumeracionConHuecos(sSerie);
+      end;
     end;
   end;
 end;

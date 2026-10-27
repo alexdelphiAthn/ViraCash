@@ -268,6 +268,9 @@ resourcestring
     'No se puede emitir en la serie "%s".' + sLineBreak +
     'El último ticket de esa serie tiene fecha %s, posterior a la fecha ' +
     '%s.' + sLineBreak + 'Elija otra serie para emitir con esta fecha.';
+  SPreguntaCambiarSerieFechaVenta =
+    '¿Desea cambiar la serie de la venta para conservar esta fecha?';
+  STituloCambiarSerieFechaVenta = 'Cambiar serie de la venta';
   SAvisoHuecosNumeracionSerieCaja =
     'La serie "%s" tiene huecos en la numeración: faltan %d números entre ' +
     'el %d y el %d.' + sLineBreak +
@@ -950,6 +953,11 @@ resourcestring
   SCaptionHoyCalendarioCaja = 'Hoy';
   STituloMisPeticionesTraspaso = 'Mis peticiones';
   SCaptionAtajoMisPeticionesTraspaso = 'May+F7';
+  // Atajos de los botones de Traspasos y tránsito (FZ-ISSUE-739).
+  SCaptionAtajoRecogerTraspasoApp = 'May+F4';
+  SCaptionAtajoCargasEnviadasTransito = 'May+F5';
+  SCaptionAtajoRecepcionarTransito = 'May+F6';
+  SCaptionAtajoIncidenciasTransito = 'May+F8';
   SCaptionColEmpresaSeleccionCaja = 'Empresa';
   SCaptionColNombreEmpresaSeleccionCaja = 'Nombre empresa';
   SCaptionColAlmacenSeleccionCaja = 'Almacén';

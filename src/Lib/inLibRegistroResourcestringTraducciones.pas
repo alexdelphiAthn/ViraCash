@@ -29298,6 +29298,22 @@ begin
     'inLibMsgCaja.SCaptionAtajoMisPeticionesTraspaso',
     'src/Lib/inLibMsgCaja.pas',
     @inLibMsgCaja.SCaptionAtajoMisPeticionesTraspaso);
+  ARegistrar(
+    'inLibMsgCaja.SCaptionAtajoRecogerTraspasoApp',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.SCaptionAtajoRecogerTraspasoApp);
+  ARegistrar(
+    'inLibMsgCaja.SCaptionAtajoCargasEnviadasTransito',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.SCaptionAtajoCargasEnviadasTransito);
+  ARegistrar(
+    'inLibMsgCaja.SCaptionAtajoRecepcionarTransito',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.SCaptionAtajoRecepcionarTransito);
+  ARegistrar(
+    'inLibMsgCaja.SCaptionAtajoIncidenciasTransito',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.SCaptionAtajoIncidenciasTransito);
   ARegistrar('inLibMsgCaja.SEditarFormatosTicket',
     'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.SEditarFormatosTicket);
   ARegistrar('inLibMsgCaja.SPulsarEditarFormatosTicket',

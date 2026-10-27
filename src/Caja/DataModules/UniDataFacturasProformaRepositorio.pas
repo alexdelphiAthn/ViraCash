@@ -916,7 +916,9 @@ const
     'I.PORCENTAJE_EXENTO_RE_IVA, :FORMA_PAGO, ' +
     'E.TEXTO_LEGAL_FACTURA_EMP, ' +
     ':COMENTARIO, ' +
-    '''0000'', ''N'', ''S'', ''N'', NOW(), NOW(), :USUARIO, :USUARIO ' +
+    // Descripciones ampliadas a N, como los borradores de ticket
+    // (FZ-ISSUE-738).
+    '''0000'', ''N'', ''N'', ''N'', NOW(), NOW(), :USUARIO, :USUARIO ' +
     'FROM fza_empresas E JOIN fza_empresas D ' +
     ' ON D.CODIGO_EMP_EMP = :EMPRESA_DESTINO ' +
     'JOIN fza_clientes C ' +

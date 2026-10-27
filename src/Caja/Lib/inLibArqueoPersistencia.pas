@@ -13,9 +13,11 @@ unit inLibArqueoPersistencia;
 interface
 
 uses
-  inLibArqueo;
+  inLibArqueo, inLibPermisosIntf;
 
 type
+  TModoCambioArqueoVenta = (mcavSubsanacion, mcavDiferencias,
+    mcavSustitutiva);
   TArqueoRecuentoLinea = record
     CodigoFP: string;
     Descripcion: string;
@@ -46,7 +48,46 @@ type
       ACodigoEmpleado, AUsuario: string);
   end;
 
+function CambiaDineroArqueoVenta(AOriginal, ANuevo: Currency;
+  AModo: TModoCambioArqueoVenta): Boolean;
+function EsRootParaCambiarArqueo(
+  const APermisos: IPermisosAplicacion): Boolean;
+
+resourcestring
+  SArqueoVentaRequiereRoot =
+    'Para cambiar el importe de una venta con arqueo cerrado se necesita ' +
+    'permiso root (administrador).';
+  SArqueoVentaConfirmar =
+    'El importe económico de la venta cambia y pertenece a un arqueo ' +
+    'cerrado. Se borrará el cierre actual (%s) al guardar. Tendrá que ' +
+    'realizar de nuevo el cierre de caja. ¿Desea continuar?';
+  SArqueoVentaSinConfirmar =
+    'El arqueo cerrado ha cambiado o falta confirmar su eliminación. ' +
+    'Vuelva a guardar y confirme que tendrá que repetir el cierre.';
+
 implementation
+
+function CambiaDineroArqueoVenta(AOriginal, ANuevo: Currency;
+  AModo: TModoCambioArqueoVenta): Boolean;
+begin
+  if AModo = mcavDiferencias then
+    Result := ANuevo <> 0
+  else
+    Result := ANuevo <> AOriginal;
+end;
+
+function EsRootParaCambiarArqueo(
+  const APermisos: IPermisosAplicacion): Boolean;
+var
+  rPermiso: TResultadoPermiso;
+begin
+  Result := False;
+  if Assigned(APermisos) and APermisos.Disponible then
+  begin
+    rPermiso := APermisos.Evaluar(PERMISO_CAJA_BUSCAR_SUBSANAR, paDenegar);
+    Result := rPermiso.Permitido and (rPermiso.Origen = opAdministrador);
+  end;
+end;
 
 class procedure TArqueoPersistencia.GrabarArqueo(
   const APersistencia: IArqueoPersistencia;

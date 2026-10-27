@@ -42,7 +42,8 @@ uses
   inLibCajaSubsanacion, inLibFacturas,
   inLibMsgPersistenciaSubsanacionCaja, UniDataCajaSubsanacionImportes,
   UniDataMovimientosAlmacenRecalculo, inLibPrestaShopColaSenal,
-  inLibVerifactu, System.Math;
+  inLibVerifactu, System.Math, inLibArqueoPersistencia,
+  UniDataArqueoPersistencia;
 
 const
   ftotal = 'TOTAL_LIQUIDO_FAC';
@@ -159,8 +160,6 @@ type
       const AClave: TClaveOperacionSubsanacionCaja);
     procedure ValidarFiscal(const AClave: TClaveOperacionSubsanacionCaja);
     procedure ValidarVinculos(const AClave: TClaveOperacionSubsanacionCaja);
-    procedure ValidarArqueo(ADatos: TDatosSubsanacionCaja;
-      const AClave: TClaveOperacionSubsanacionCaja);
     function EsSinVerifactu: Boolean;
     procedure ValidarCabecera(ADatos: TDatosSubsanacionCaja);
     procedure ValidarOperaciones(ADatos: TDatosSubsanacionCaja;
@@ -854,36 +853,6 @@ begin
   end;
 end;
 
-procedure TServicioSubsanacionCajaUniDAC.ValidarArqueo(
-  ADatos: TDatosSubsanacionCaja;
-  const AClave: TClaveOperacionSubsanacionCaja);
-var
-  oConsulta: TUniQuery;
-  sBloqueo: string;
-begin
-  if ADatos.Operacion.FieldByName(
-       'CODIGO_ARQUEO_OPCAJA').AsString <> '' then
-    raise EInvalidOpException.Create(SSubsanacionArqueoCerrado);
-  sBloqueo := '';
-  if FConexion.InTransaction then
-    sBloqueo := ' FOR UPDATE';
-  oConsulta := Consulta(
-    'SELECT CODIGO_ARQ FROM fza_caja_arqueos ' +
-    'WHERE CODIGO_EMP_ARQ = :EMP AND CODIGO_ALM_ARQ = :ALM ' +
-    'AND CODIGO_CAJA_ARQ = :CAJA AND FASE_ARQ = ''CERRADO'' ' +
-    'AND FECHA_DESDE_ARQ <= :FECHA AND FECHA_HASTA_ARQ >= :FECHA' +
-    sBloqueo, AClave);
-  try
-    oConsulta.ParamByName('FECHA').AsDateTime :=
-      ADatos.Operacion.FieldByName('FECHA_OPERACION_OPCAJA').AsDateTime;
-    oConsulta.Open;
-    if not oConsulta.IsEmpty then
-      raise EInvalidOpException.Create(SSubsanacionArqueoCerrado);
-  finally
-    FreeAndNil(oConsulta);
-  end;
-end;
-
 procedure TServicioSubsanacionCajaUniDAC.ValidarPago(
   ADatos: TDatosSubsanacionCaja);
 begin
@@ -1095,7 +1064,6 @@ begin
   if not EsSinVerifactu then
     ValidarFiscal(AClave);
   ValidarVinculos(AClave);
-  ValidarArqueo(ADatos, AClave);
   ValidarPago(ADatos);
   AnalizarLineas(ADatos);
   dTotal := ADatos.Cabecera.FieldByName(ftotal).AsCurrency;
@@ -1875,6 +1843,12 @@ begin
       ValidarSolicitud(ASolicitud, oActual, oDatos);
       ValidarMedio(ASolicitud);
       sAntes := oDatos.ComoJson;
+      InvalidarArqueosCambioVenta(FConexion,
+        ASolicitud.Original.Clave.SerieFactura,
+        ASolicitud.Original.Clave.NumeroFactura,
+        TotalSubsanacion(ASolicitud.Lineas), mcavSubsanacion,
+        EsRootParaCambiarArqueo(FDependencias.Permisos),
+        ASolicitud.ArqueosConfirmados);
       iMovimientos := 0;
       if HayImportesModificados(ASolicitud.Lineas) then
       begin

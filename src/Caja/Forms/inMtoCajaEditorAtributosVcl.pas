@@ -49,6 +49,9 @@ type
     FOrdenPendiente: Integer;
     FValorPendiente: string;
     FOpciones: array[1..5] of TArray<string>;
+    // Nombre original del atributo de cada columna; el rótulo va
+    // traducido (FZ-ISSUE-736).
+    FNombresAtributo: array[1..5] of string;
     // Cuadradito de color del editor en linea (boton-glifo).
     FGlifoSwatch: TGlifoSwatchCombo;
     function BuscarValorValido(AOrden: Integer;
@@ -81,7 +84,10 @@ type
     procedure ConfigurarBotonSwatch(APropiedades: TcxComboBoxProperties);
     procedure AjustarBotonSwatch(APropiedades: TcxComboBoxProperties;
       const ANombreAtributo: string);
-    procedure AjustarAnchoColumna(AColumna: TcxGridDBColumn);
+    procedure AjustarAnchoColumna(AColumna: TcxGridDBColumn;
+      const ANombreAtributo: string);
+    procedure FijarNombreAtributoColumna(AOrden: Integer;
+      const ANombreAtributo: string);
     procedure PrepararSwatchEditor(AEditor: TcxCustomEdit;
       const AValor: string);
     procedure ActualizarSwatchEditor(Sender: TObject);
@@ -223,8 +229,8 @@ begin
 end;
 
 // ID_VA (CO, TAL...) del atributo que edita AControl: por el nombre del
-// atributo de la linea en curso o, si aun no esta, por el caption de la
-// columna enfocada.
+// atributo de la linea en curso o, si aun no esta, por el de la columna
+// enfocada (el original, no su rotulo traducido).
 function TSelectorAtributosEditorLineasCajaVcl.ObtenerIdVaEditor(
   AControl: TcxControl): string;
 var
@@ -244,7 +250,7 @@ begin
   begin
     Columna := FContexto.VistaLineas.Controller.FocusedColumn;
     if (Columna <> nil) and (Columna.Tag = Orden) then
-      NombreAtributo := Columna.Caption;
+      NombreAtributo := FNombresAtributo[Orden];
   end;
   Result := IdVaDeNombreAtributo(FContexto.Conexion, NombreAtributo);
 end;
@@ -352,7 +358,7 @@ begin
 end;
 
 procedure TSelectorAtributosEditorLineasCajaVcl.AjustarAnchoColumna(
-  AColumna: TcxGridDBColumn);
+  AColumna: TcxGridDBColumn; const ANombreAtributo: string);
 const
   // A 96 ppp. Con paleta, el editor lleva el boton-glifo (22) a la
   // izquierda y la flecha del desplegable a la derecha: pide mas que la
@@ -378,7 +384,8 @@ begin
   begin
     Fuente := TcxGrid(FContexto.VistaLineas.Control).Font;
     Escala := dxGetScaleFactor(FContexto.VistaLineas);
-    if EsAtributoConPaleta(FContexto.Conexion, AColumna.Caption) then
+    // Por el nombre original: el rótulo va traducido (FZ-ISSUE-736).
+    if EsAtributoConPaleta(FContexto.Conexion, ANombreAtributo) then
       iReserva := RESERVA_CON_PALETA
     else
       iReserva := RESERVA_SIN_PALETA;
@@ -390,6 +397,14 @@ begin
       Escala.Apply(ANCHO_MINIMO), Escala.Apply(ANCHO_MAXIMO));
     AColumna.MinWidth := iAncho;
   end;
+end;
+
+procedure TSelectorAtributosEditorLineasCajaVcl.FijarNombreAtributoColumna(
+  AOrden: Integer; const ANombreAtributo: string);
+begin
+  if (AOrden >= Low(FNombresAtributo)) and
+     (AOrden <= High(FNombresAtributo)) then
+    FNombresAtributo[AOrden] := ANombreAtributo;
 end;
 
 procedure TSelectorAtributosEditorLineasCajaVcl.PrepararSwatchEditor(

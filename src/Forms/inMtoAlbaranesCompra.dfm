@@ -413,6 +413,7 @@
                 Properties.ValueChecked = 'S'
                 Properties.ValueUnchecked = 'N'
                 TabOrder = 16
+                Transparent = True
               end
               object lblProveedorNombreAlbc: TcxLabel
                 Left = 168

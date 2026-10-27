@@ -324,7 +324,9 @@ type
                                      const AEmpresaOrigenDevolucion:
                                        string = '';
                                      const AAlmacenOrigenDevolucion:
-                                       string = ''):
+                                       string = '';
+                                     const AArqueosConfirmados:
+                                       TArray<string> = nil):
                                        Boolean;
     property OnUpdateTotal: TOnUpdateTotalEvent read FOnUpdateTotal
                                                 write FOnUpdateTotal;
@@ -390,7 +392,8 @@ uses
      UniDataInformesCajaRepositorio, inLibTarifasPeriodicidad,
      UniDataTarifasPeriodicidadRepositorio,
      inLibRectificativas,
-     UniDataRectificativasSql,
+     UniDataRectificativasSql, UniDataArqueoPersistencia,
+     inLibArqueoPersistencia,
      System.Generics.Collections,
      inLibEAN13,
      inLibMsgCaja, inLibMsgFacturas, inLibCajaVentaIntf;
@@ -425,6 +428,7 @@ type
   end;
   TGrabacionFacturaCaja = class
   private
+    FArqueosConfirmados: TArray<string>;
     FDataModule: TdmCajaOpe;
     FServicioEmisionFiscal: IServicioEmisionFiscal;
     FDatosCobro: TDatosFaseCobro;
@@ -545,7 +549,8 @@ type
       const ASerieOrigenDevolucion: string = '';
       const ANumeroOrigenDevolucion: string = '';
       const AEmpresaOrigenDevolucion: string = '';
-      const AAlmacenOrigenDevolucion: string = '');
+      const AAlmacenOrigenDevolucion: string = '';
+      const AArqueosConfirmados: TArray<string> = nil);
     destructor Destroy; override;
     function Ejecutar(
       out ANumeroGenerado, AValeGenerado: string): Boolean;
@@ -1687,9 +1692,11 @@ constructor TGrabacionFacturaCaja.Create(
   const ASerieOrigenDevolucion: string = '';
   const ANumeroOrigenDevolucion: string = '';
   const AEmpresaOrigenDevolucion: string = '';
-  const AAlmacenOrigenDevolucion: string = '');
+  const AAlmacenOrigenDevolucion: string = '';
+  const AArqueosConfirmados: TArray<string> = nil);
 begin
   inherited Create;
+  FArqueosConfirmados := AArqueosConfirmados;
   FDataModule := ADataModule;
   FServicioEmisionFiscal := CrearServicioEmisionFiscal(
     FDataModule.FParametrosApp,
@@ -2030,8 +2037,21 @@ begin
 end;
 
 procedure TGrabacionFacturaCaja.IniciarTransaccion;
+var
+  ModoArqueo: TModoCambioArqueoVenta;
 begin
   FPersistencia.IniciarUnidadTrabajo;
+  if FNumeroRectificado <> '' then
+  begin
+    ModoArqueo := mcavDiferencias;
+    if FTipoRectificativa = trcSustitutiva then
+      ModoArqueo := mcavSustitutiva;
+    InvalidarArqueosCambioVenta(FDataModule.FConexion,
+      FSerieRectificada, FNumeroRectificado,
+      FDataModule.cdsCabecera.FieldByName('TOTAL_LIQUIDO_FAC').AsCurrency,
+      ModoArqueo, FDataModule.IdentidadSesion.EsAdministrador,
+      FArqueosConfirmados);
+  end;
   FNumeroOperacion := FPersistencia.SiguienteOperacion(
     FEmpresa, FAlmacen, FCaja, FUsuario);
   FQuery := FPersistencia.CrearConsulta;
@@ -3251,7 +3271,8 @@ function TdmCajaOpe.GrabarFacturaSimplificada(
   const ASerieOrigenDevolucion: string = '';
   const ANumeroOrigenDevolucion: string = '';
   const AEmpresaOrigenDevolucion: string = '';
-  const AAlmacenOrigenDevolucion: string = ''): Boolean;
+  const AAlmacenOrigenDevolucion: string = '';
+  const AArqueosConfirmados: TArray<string> = nil): Boolean;
 var
   Grabacion: TGrabacionFacturaCaja;
 begin
@@ -3263,7 +3284,7 @@ begin
     ANumeroRectificado, ATratamientoMovimientos,
     AMotivoDevolucion, ASerieOrigenDevolucion,
     ANumeroOrigenDevolucion, AEmpresaOrigenDevolucion,
-    AAlmacenOrigenDevolucion);
+    AAlmacenOrigenDevolucion, AArqueosConfirmados);
   try
     Result := Grabacion.Ejecutar(
       NumeroGenerado, ValeGenerado);

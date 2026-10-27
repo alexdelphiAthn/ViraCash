@@ -2285,11 +2285,14 @@ begin
   iApp := Length(FTraspasosApp);
   bAtender := (iAtender > 0) or (FModo = mtAtender);
   btnRecepcionarTransito.Caption := TextoBotonConAtajo(
-    Format(SCaptionRecepcionarTransito, [iPendientes]), 'May+F6');
+    Format(SCaptionRecepcionarTransito, [iPendientes]),
+    SCaptionAtajoRecepcionarTransito);
   btnCargasEnviadasTransito.Caption := TextoBotonConAtajo(
-    Format(SCaptionCargasEnviadasTransito, [iEnviadas]), 'May+F5');
+    Format(SCaptionCargasEnviadasTransito, [iEnviadas]),
+    SCaptionAtajoCargasEnviadasTransito);
   btnRecogerTraspasoApp.Caption := TextoBotonConAtajo(
-    Format(SCaptionRecogerTraspasoApp, [iApp]), 'May+F4');
+    Format(SCaptionRecogerTraspasoApp, [iApp]),
+    SCaptionAtajoRecogerTraspasoApp);
   bRecolocar := (btnRecepcionarTransito.Visible <> (iPendientes > 0)) or
     (btnCargasEnviadasTransito.Visible <> (iEnviadas > 0)) or
     (btnConfirmarPropuesta.Visible <> (iPropuestas > 0)) or
@@ -3544,7 +3547,8 @@ function TfrmMtoOpeTraspaso.CrearBotonIncidenciasTransito(ADialogo: TForm;
   APanel: TPanel): TcxButton;
 begin
   Result := CrearBotonModal(ADialogo, APanel,
-    TextoBotonConAtajo(SCaptionIncidenciasTransito, 'May+F8'));
+    TextoBotonConAtajo(SCaptionIncidenciasTransito,
+      SCaptionAtajoIncidenciasTransito));
   Result.OnClick := IncidenciasTransitoClick;
 end;
 

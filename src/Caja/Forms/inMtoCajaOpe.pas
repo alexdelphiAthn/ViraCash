@@ -522,6 +522,7 @@ type
     FVentaAppCargada: string;
     // FZ-ISSUE-352: reserva de la venta de la app cargada sin grabar.
     FReservaVentaApp: string;
+    procedure AlternarFotoArticulo;
     procedure CapturarVentaApp(Sender: TObject);
     function CrearClienteVentasApp: TClienteVentasApp;
     function CargarLineasVentaApp(AVenta: TJSONObject;
@@ -636,6 +637,7 @@ type
     FLecturaCeldaPendiente: string;
     const MAX_CAJAS = 5;
   public
+    function IsShortCut(var Message: TWMKey): Boolean; override;
     constructor Create(
       AOwner: TComponent;
       const AContexto: TContextoAutorizacionPantalla;
@@ -676,6 +678,8 @@ implementation
 {$R *.dfm}
 
 uses
+  inMtoFotoArticulo,
+  inLibArqueoPersistencia,
   inLibFormatoDocumento, UniDataFormatoDocumentoRepositorio,
   Vcl.Graphics,
   inLibMensajesVcl, inLibErroresBBDD,
@@ -1197,6 +1201,7 @@ begin
   Result := Default(TContextoCierreVentaCajaVcl);
   Result.Propietario := AFormulario;
   Result.Conexion := AFormulario.ConexionPrincipal;
+  Result.Permisos := AFormulario.Permisos;
   Result.RepositorioFacturas :=
     AFormulario.FLecturas.RepositorioFacturas;
   Result.Cabecera := AFormulario.DatosCaja.cdsCabecera;
@@ -3180,11 +3185,13 @@ begin
               Clon.Next;
             end;
             Col.Options.Editing := False;
+            FRender.FijarNombreAtributoColumna(i, Nombre);
+            FSelectorAtributos.FijarNombreAtributoColumna(i, Nombre);
             if Nombre <> '' then
             begin
-              Col.Caption := Nombre;
+              Col.Caption := TraducirRotuloAtributoVariacion(Nombre);
               Col.Visible := True;
-              FSelectorAtributos.AjustarAnchoColumna(Col);
+              FSelectorAtributos.AjustarAnchoColumna(Col, Nombre);
             end
             else
             begin
@@ -3839,6 +3846,7 @@ var
   Propiedades: TcxComboBoxProperties;
   Clon: TClientDataSet;
   NombreOtro: string;
+  NombreColumna: string;
 begin
   // --- OPTIMIZACIÓN: Si es el mismo tipo de artículo, no repintamos ---
   Cacheado := SameText(AArticulo, FUltimoArticuloPadre);
@@ -3864,8 +3872,12 @@ begin
           Propiedades := nil;
           if Columna.Properties is TcxComboBoxProperties then
             Propiedades := TcxComboBoxProperties(Columna.Properties);
+          // Nombre original del atributo: la paleta no se decide por el
+          // rótulo traducido de la columna (FZ-ISSUE-736).
+          NombreColumna := '';
           if I <= Length(NombresAtributos) then
           begin
+            NombreColumna := NombresAtributos[I - 1];
             FSelectorAtributos.CargarOpciones(
               I,
               AArticulo,
@@ -3876,7 +3888,8 @@ begin
             FSelectorAtributos.AjustarBotonSwatch(
               Propiedades, NombresAtributos[I - 1]);
             Columna.Visible := True;
-            FSelectorAtributos.AjustarAnchoColumna(Columna);
+            FSelectorAtributos.AjustarAnchoColumna(
+              Columna, NombresAtributos[I - 1]);
             Columna.Options.Editing := True;
             if DatosCaja.cdsLineas.Active and
                (DatosCaja.cdsLineas.State in [dsEdit, dsInsert]) then
@@ -3903,20 +3916,29 @@ begin
             Clon.First;
             while not Clon.Eof do
             begin
-              NombreOtro := TraducirRotuloAtributoVariacion(Trim(
-                Clon.FieldByName(
-                'ATTR' + IntToStr(I) + '_NOMBRE').AsString));
+              NombreOtro := Trim(Clon.FieldByName(
+                'ATTR' + IntToStr(I) + '_NOMBRE').AsString);
               if NombreOtro <> '' then
               begin
                 if not Columna.Visible then
-                  Columna.Caption := NombreOtro
-                else if not SameText(Columna.Caption, NombreOtro) then
+                begin
+                  NombreColumna := NombreOtro;
+                  Columna.Caption :=
+                    TraducirRotuloAtributoVariacion(NombreOtro);
+                end
+                else if not SameText(NombreColumna, NombreOtro) then
+                begin
+                  NombreColumna := '';
                   Columna.Caption := Format(SCaptionAtributoN, [I]);
+                end;
                 Columna.Visible := True;
               end;
               Clon.Next;
             end;
           end;
+          FRender.FijarNombreAtributoColumna(I, NombreColumna);
+          FSelectorAtributos.FijarNombreAtributoColumna(
+            I, NombreColumna);
         end;
       end;
     finally
@@ -4451,6 +4473,12 @@ begin
         TotalSubsanacion(oLineas) - dDescuento);
     oSolicitud.Lineas := oLineas;
     Result := FSubsanacion.PedirMotivo(oSolicitud.Motivo);
+    if Result then
+      Result := ConfirmarCambioArqueoVentaVcl(ConexionPrincipal, Permisos,
+        FOperacionSubsanacion.Clave.SerieFactura,
+        FOperacionSubsanacion.Clave.NumeroFactura,
+        TotalSubsanacion(oSolicitud.Lineas), mcavSubsanacion,
+        oSolicitud.ArqueosConfirmados);
   end;
   if not Result then
     Exit;
@@ -4814,7 +4842,12 @@ begin
 end;
 
 procedure TfrmMtoOpeCaja.FormDestroy(Sender: TObject);
+var
+  FormularioFoto: TfrmFotoArticulo;
 begin
+  FormularioFoto := FotoFlotanteActual;
+  if Assigned(FormularioFoto) then
+    FormularioFoto.DesvincularPadre(Self);
   FreeAndNil(FIndicadoresColas);
   FreeAndNil(FSubsanacion);
   FServicioSubsanacion := nil;
@@ -5123,6 +5156,39 @@ begin
     tvImportePropertiesValidate;
   TcxCurrencyEditProperties(tvTotal.Properties).OnValidate :=
     tvImportePropertiesValidate;
+end;
+
+function TfrmMtoOpeCaja.IsShortCut(var Message: TWMKey): Boolean;
+begin
+  if ShortCutFromMessage(Message) = ShortCut(Ord('F'), [ssCtrl]) then
+  begin
+    AlternarFotoArticulo;
+    Result := True;
+  end
+  else
+    Result := inherited IsShortCut(Message);
+end;
+
+procedure TfrmMtoOpeCaja.AlternarFotoArticulo;
+var
+  FormularioFoto: TfrmFotoArticulo;
+  sArticulo: string;
+  sSku: string;
+begin
+  FormularioFoto := FotoFlotanteActual;
+  if Assigned(FormularioFoto) and FormularioFoto.Visible then
+    FormularioFoto.Hide
+  else
+  begin
+    ResolverArtSkuStock(sArticulo, sSku);
+    if sArticulo <> '' then
+    begin
+      MostrarFotoFlotante(Self, sArticulo, sSku);
+      FormularioFoto := FotoFlotanteActual;
+      if Assigned(FormularioFoto) then
+        FormularioFoto.VincularMtoPadre(dsLineas, ResolverArtSkuStock);
+    end;
+  end;
 end;
 
 procedure TfrmMtoOpeCaja.FormKeyDown(Sender: TObject; var Key: Word;

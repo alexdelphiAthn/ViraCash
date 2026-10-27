@@ -191,6 +191,7 @@ type
     /// Para pantallas en las que depende de la pestaña activa, que
     /// cambia sin mover ningún DataSource.
     procedure RefrescarDesdePadre(AMto: TObject);
+    procedure DesvincularPadre(AMto: TObject);
     procedure SetSesion(const ASerieSesion, ANumeroSesion: string;
       ALinea: Integer; const ACodArtTentativo,
       ACodUnidad: string);
@@ -1967,6 +1968,13 @@ begin
     if (sArt <> FCodigoArt) or (sSku <> FCodigoSku) then
       SetArticuloSku(sArt, sSku);
   end;
+end;
+
+procedure TfrmFotoArticulo.DesvincularPadre(AMto: TObject);
+begin
+  if Assigned(FPadreResolver) and
+     (TMethod(FPadreResolver).Data = Pointer(AMto)) then
+    DesengancharDataChange;
 end;
 
 procedure TfrmFotoArticulo.VincularMtoPadre(

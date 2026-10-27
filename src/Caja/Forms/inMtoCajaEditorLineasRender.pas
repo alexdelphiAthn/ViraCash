@@ -19,9 +19,14 @@ type
   TRenderEditorLineasCajaVcl = class
   private
     FContexto: TContextoRenderEditorLineasCajaVcl;
+    // Nombre original del atributo de cada columna (Tag 1..5); el
+    // rótulo de la columna va traducido (FZ-ISSUE-736).
+    FNombresAtributo: array[1..5] of string;
   public
     constructor Create(
       const AContexto: TContextoRenderEditorLineasCajaVcl);
+    procedure FijarNombreAtributoColumna(AOrden: Integer;
+      const ANombreAtributo: string);
     procedure DibujarCeldaLinea(
       Sender: TcxCustomGridTableView;
       ACanvas: TcxCanvas;
@@ -47,6 +52,14 @@ begin
   FContexto := AContexto;
 end;
 
+procedure TRenderEditorLineasCajaVcl.FijarNombreAtributoColumna(
+  AOrden: Integer; const ANombreAtributo: string);
+begin
+  if (AOrden >= Low(FNombresAtributo)) and
+     (AOrden <= High(FNombresAtributo)) then
+    FNombresAtributo[AOrden] := ANombreAtributo;
+end;
+
 procedure TRenderEditorLineasCajaVcl.DibujarCeldaLinea(
   Sender: TcxCustomGridTableView;
   ACanvas: TcxCanvas;
@@ -66,10 +79,9 @@ begin
       FContexto.ColumnaArticulo.Index]);
     Mapa := ObtenerMapaAtributosGlobal(FContexto.Conexion);
     IdValorAtributo := '';
-    if Assigned(Mapa) and
-       (AViewInfo.Item is TcxGridColumn) then
+    if Assigned(Mapa) then
       Mapa.TryGetValue(
-        UpperCase(Trim(TcxGridColumn(AViewInfo.Item).Caption)),
+        UpperCase(Trim(FNombresAtributo[AViewInfo.Item.Tag])),
         IdValorAtributo);
     // Solo con el atributo de la columna (articulo y luego paleta global
     // de ese atributo): el antiguo fallback generico probaba el texto

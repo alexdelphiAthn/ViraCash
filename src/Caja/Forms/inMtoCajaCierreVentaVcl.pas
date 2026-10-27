@@ -21,7 +21,7 @@ uses
   inLibLogIntf,
   inLibCajaTipos, inLibCajaVentaIntf,
   inLibCajaPantallaInyeccion, inLibCajaSubsanacionIntf,
-  inMtoCajaFaseCobro;
+  inMtoCajaFaseCobro, inLibPermisosIntf, inLibArqueoPersistencia;
 
 type
   TConfirmarMotivoDevolucionCaja = function: Boolean of object;
@@ -36,6 +36,7 @@ type
   TContextoCierreVentaCajaVcl = record
     Propietario: TComponent;
     Conexion: TUniConnection;
+    Permisos: IPermisosAplicacion;
     RepositorioFacturas: IRepositorioLecturasFactura;
     Cabecera: TDataSet;
     Lineas: TDataSet;
@@ -114,6 +115,11 @@ function PedirMotivoDevolucionCajaVcl(
   AOwner: TComponent;
   ALineas: TDataSet;
   var AMotivo: string): Boolean;
+function ConfirmarCambioArqueoVentaVcl(AConexion: TUniConnection;
+  const APermisos: IPermisosAplicacion;
+  const ASerie, ANumero: string; ANuevoTotal: Currency;
+  AModo: TModoCambioArqueoVenta;
+  out AConfirmados: TArray<string>): Boolean;
 function SeleccionarTicketDevolucionCajaVcl(
   AOwner: TComponent;
   const ARepositorio: IRepositorioConsultasCaja;
@@ -136,7 +142,29 @@ uses
   inLibErroresBBDD, inLibMensajesVcl, inLibMsgCaja,
   inLibCajaVentaOperacion, inLibCajaDescuentos,
   inMtoModalMotivoDevolucion, inMtoModalDevolucionTicket,
-  inMtoModalSeleccionVentaOrigen;
+  inMtoModalSeleccionVentaOrigen, UniDataArqueoPersistencia;
+
+function ConfirmarCambioArqueoVentaVcl(AConexion: TUniConnection;
+  const APermisos: IPermisosAplicacion;
+  const ASerie, ANumero: string; ANuevoTotal: Currency;
+  AModo: TModoCambioArqueoVenta;
+  out AConfirmados: TArray<string>): Boolean;
+begin
+  AConfirmados := ConsultarArqueosCambioVenta(AConexion,
+    ASerie, ANumero, ANuevoTotal, AModo);
+  Result := Length(AConfirmados) = 0;
+  if not Result then
+  begin
+    if not EsRootParaCambiarArqueo(APermisos) then
+      ShowMessage_fza(SArqueoVentaRequiereRoot)
+    else
+      Result := MessageDlg_fza(Format(SArqueoVentaConfirmar,
+        [string.Join(', ', AConfirmados)]), mtWarning,
+        [mbYes, mbNo], 0, mbNo) = mrYes;
+  end;
+  if not Result then
+    AConfirmados := nil;
+end;
 
 function SeleccionarTicketDevolucionCajaVcl(
   AOwner: TComponent;
@@ -458,6 +486,8 @@ var
   oSolicitud: TSolicitudCierreVenta;
   oTotales: TFacturaTotales;
   oApartadas: TClientDataSet;
+  ModoArqueo: TModoCambioArqueoVenta;
+  bArqueoConfirmado: Boolean;
   bGrabada: Boolean;
   Pendiente: Integer;
 begin
@@ -483,7 +513,20 @@ begin
       AplicarDescuento(AContexto, frmFaseCobro, oTotales);
       oSolicitud := ConstruirSolicitud(AContexto, frmFaseCobro);
       oResultado := Default(TResultadoCierreVenta);
-      Result := GrabarVenta(AContexto, oSolicitud, oResultado);
+      bArqueoConfirmado := True;
+      if AContexto.NumeroRectificado <> '' then
+      begin
+        ModoArqueo := mcavDiferencias;
+        if AContexto.TipoRectificativa = trcSustitutiva then
+          ModoArqueo := mcavSustitutiva;
+        bArqueoConfirmado := ConfirmarCambioArqueoVentaVcl(
+          AContexto.Conexion, AContexto.Permisos,
+          AContexto.SerieRectificada, AContexto.NumeroRectificado,
+          AContexto.Cabecera.FieldByName('TOTAL_LIQUIDO_FAC').AsCurrency,
+          ModoArqueo, oSolicitud.Grabacion.ArqueosConfirmados);
+      end;
+      if bArqueoConfirmado then
+        Result := GrabarVenta(AContexto, oSolicitud, oResultado);
       bGrabada := oResultado.Grabada;
       if bGrabada then
         AContexto.PresentarResultado(

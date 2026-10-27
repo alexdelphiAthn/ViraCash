@@ -22,6 +22,15 @@ uses
   inLibArqueoPersistencia,
   inLibVentasWsColaIntf;
 
+function ConsultarArqueosCambioVenta(AConexion: TUniConnection;
+  const ASerie, ANumero: string; ANuevoTotal: Currency;
+  AModo: TModoCambioArqueoVenta): TArray<string>;
+// Participa en la transacción del guardado; no confirma por su cuenta.
+procedure InvalidarArqueosCambioVenta(AConexion: TUniConnection;
+  const ASerie, ANumero: string; ANuevoTotal: Currency;
+  AModo: TModoCambioArqueoVenta; AEsRoot: Boolean;
+  const AConfirmados: TArray<string>);
+
 function CrearPersistenciaArqueo(
   AConexion: TUniConnection;
   const ARepositorioVentasWs: IAltaVentasWsCola = nil;
@@ -33,6 +42,110 @@ uses
   System.SysUtils, System.Classes, System.Generics.Collections,
   System.DateUtils, Data.DB, DBAccess,
   inLibArqueo, inLibMsgCaja;
+
+function ConsultarArqueosCambioVenta(AConexion: TUniConnection;
+  const ASerie, ANumero: string; ANuevoTotal: Currency;
+  AModo: TModoCambioArqueoVenta): TArray<string>;
+var
+  oConsulta: TUniQuery;
+  oCodigos: TList<string>;
+  sBloqueo: string;
+begin
+  Result := nil;
+  oConsulta := TUniQuery.Create(nil);
+  oCodigos := TList<string>.Create;
+  try
+    oConsulta.Connection := AConexion;
+    sBloqueo := '';
+    if AConexion.InTransaction then
+      sBloqueo := ' FOR UPDATE';
+    oConsulta.SQL.Text :=
+      'SELECT TOTAL_LIQUIDO_FAC FROM fza_facturas ' +
+      'WHERE SERIE_FAC = :SERIE AND NUMERO_FAC = :NUMERO' + sBloqueo;
+    oConsulta.ParamByName('SERIE').AsString := ASerie;
+    oConsulta.ParamByName('NUMERO').AsString := ANumero;
+    oConsulta.Open;
+    if not oConsulta.IsEmpty and CambiaDineroArqueoVenta(
+      oConsulta.Fields[0].AsCurrency, ANuevoTotal, AModo) then
+    begin
+      oConsulta.Close;
+      oConsulta.SQL.Text :=
+        'SELECT A.CODIGO_ARQ FROM fza_caja_arqueos A ' +
+        'WHERE A.FASE_ARQ = ''CERRADO'' AND EXISTS (' +
+        'SELECT 1 FROM fza_caja_operaciones O ' +
+        'WHERE O.SERIE_FAC_OPCAJA = :SERIE ' +
+        'AND O.NUMERO_FAC_OPCAJA = :NUMERO ' +
+        'AND O.CODIGO_EMP_OPCAJA = A.CODIGO_EMP_ARQ ' +
+        'AND O.CODIGO_ALM_OPCAJA = A.CODIGO_ALM_ARQ ' +
+        'AND O.CODIGO_CAJA_OPCAJA = A.CODIGO_CAJA_ARQ ' +
+        'AND (O.CODIGO_ARQUEO_OPCAJA = A.CODIGO_ARQ OR (' +
+        'O.FECHA_OPERACION_OPCAJA >= A.FECHA_DESDE_ARQ ' +
+        'AND O.FECHA_OPERACION_OPCAJA <= A.FECHA_HASTA_ARQ))) ' +
+        'ORDER BY A.CODIGO_ARQ' + sBloqueo;
+      oConsulta.ParamByName('SERIE').AsString := ASerie;
+      oConsulta.ParamByName('NUMERO').AsString := ANumero;
+      oConsulta.Open;
+      while not oConsulta.Eof do
+      begin
+        oCodigos.Add(oConsulta.Fields[0].AsString);
+        oConsulta.Next;
+      end;
+      Result := oCodigos.ToArray;
+    end;
+  finally
+    oCodigos.Free;
+    oConsulta.Free;
+  end;
+end;
+
+procedure InvalidarArqueosCambioVenta(AConexion: TUniConnection;
+  const ASerie, ANumero: string; ANuevoTotal: Currency;
+  AModo: TModoCambioArqueoVenta; AEsRoot: Boolean;
+  const AConfirmados: TArray<string>);
+var
+  aCodigos: TArray<string>;
+  sCodigo, sConfirmado: string;
+  bConfirmado: Boolean;
+  oConsulta: TUniQuery;
+begin
+  if not AConexion.InTransaction then
+    raise EInvalidOpException.Create('Falta la transacción de la venta.');
+  aCodigos := ConsultarArqueosCambioVenta(AConexion,
+    ASerie, ANumero, ANuevoTotal, AModo);
+  if (Length(aCodigos) > 0) and not AEsRoot then
+    raise EInvalidOpException.Create(SArqueoVentaRequiereRoot);
+  for sCodigo in aCodigos do
+  begin
+    bConfirmado := False;
+    for sConfirmado in AConfirmados do
+      bConfirmado := bConfirmado or SameText(sCodigo, sConfirmado);
+    if not bConfirmado then
+      raise EInvalidOpException.Create(SArqueoVentaSinConfirmar);
+  end;
+  oConsulta := TUniQuery.Create(nil);
+  try
+    oConsulta.Connection := AConexion;
+    for sCodigo in aCodigos do
+    begin
+      oConsulta.SQL.Text :=
+        'UPDATE fza_caja_operaciones SET CODIGO_ARQUEO_OPCAJA = NULL ' +
+        'WHERE CODIGO_ARQUEO_OPCAJA = :ARQUEO';
+      oConsulta.ParamByName('ARQUEO').AsString := sCodigo;
+      oConsulta.Execute;
+      oConsulta.SQL.Text :=
+        'DELETE FROM fza_caja_arqueos_recuento ' +
+        'WHERE CODIGO_ARQ_ARQR = :ARQUEO';
+      oConsulta.ParamByName('ARQUEO').AsString := sCodigo;
+      oConsulta.Execute;
+      oConsulta.SQL.Text :=
+        'DELETE FROM fza_caja_arqueos WHERE CODIGO_ARQ = :ARQUEO';
+      oConsulta.ParamByName('ARQUEO').AsString := sCodigo;
+      oConsulta.Execute;
+    end;
+  finally
+    oConsulta.Free;
+  end;
+end;
 
 const
   SQL_INSERTAR_ARQUEO =

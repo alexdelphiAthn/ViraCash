@@ -189,6 +189,7 @@ type
       ARutasPdf: TStrings);
   end;
   TSolicitudGrabacionVenta = record
+    ArqueosConfirmados: TArray<string>;
     CodigoEmpresa: string;
     CodigoAlmacen: string;
     CodigoCaja: string;

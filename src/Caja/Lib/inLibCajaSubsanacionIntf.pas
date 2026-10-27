@@ -61,6 +61,7 @@ type
     // alta estos, como en la corrección de forma de pago.
     Pagos: TPagosSubsanacionCaja;
     Motivo: string;
+    ArqueosConfirmados: TArray<string>;
   end;
 
   TResultadoSubsanacionCaja = record
