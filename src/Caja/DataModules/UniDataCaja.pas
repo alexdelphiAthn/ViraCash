@@ -288,9 +288,12 @@ type
                                   var LabelDestino: String):Boolean;
     function GetTarifaDefault : string;
     function TarifaInicialCliente(const ATarifa: string): string;
-    // Tarifa con la que se cobra lo que no está en ATarifa: la de caja si
-    // ATarifa es la periódica automática; si no, vacío (FZ-ISSUE-727).
+    // Tarifa con la que se cobra lo que no tiene precio en ATarifa: la
+    // tarifa por defecto de caja (vacío si ATarifa ya es esa).
     function TarifaRespaldo(const ATarifa: string): string;
+    // La periódica automática es una capa sobre la de caja: caer a la de
+    // caja es lo previsto y no se avisa (FZ-ISSUE-727).
+    function EsTarifaPeriodicaAutomatica(const ATarifa: string): Boolean;
     // ATipoFactura: 'SIMPLIFICADA' (ticket) o 'NORMAL' (factura A4 del
     // botón F8). AFechaFactura > 0 sustituye la fecha del documento.
     function GrabarFacturaSimplificada(const AEmpresa,
@@ -3376,15 +3379,20 @@ begin
 end;
 
 function TdmCajaOpe.TarifaRespaldo(const ATarifa: string): string;
+begin
+  Result := Trim(FParametrosCaja.TarifaDefecto);
+  if SameText(Result, Trim(ATarifa)) then
+    Result := '';
+end;
+
+function TdmCajaOpe.EsTarifaPeriodicaAutomatica(
+  const ATarifa: string): Boolean;
 var
   Periodica: string;
 begin
-  Result := '';
   Periodica := Trim(FParametrosCaja.GetString(
     'vgerTarifaPeriodicaAutomatica', ''));
-  if (Periodica <> '') and SameText(Periodica, Trim(ATarifa)) and
-     not SameText(Periodica, Trim(FParametrosCaja.TarifaDefecto)) then
-    Result := Trim(FParametrosCaja.TarifaDefecto);
+  Result := (Periodica <> '') and SameText(Periodica, Trim(ATarifa));
 end;
 
 function TdmCajaOpe.GetTarifaDefault: string;

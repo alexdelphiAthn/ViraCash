@@ -30213,6 +30213,18 @@ begin
     'src/Lib/inLibMsgCaja.pas',
     @inLibMsgCaja.
       SErrorImporteReclamacionTransito);
+  ARegistrar(
+    'inLibMsgCaja.' +
+    'SAvisoPrecioTarifaDefectoCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      SAvisoPrecioTarifaDefectoCaja);
+  ARegistrar(
+    'inLibMsgCaja.' +
+    'SAvisoPreciosTarifaDefectoCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      SAvisoPreciosTarifaDefectoCaja);
 end;
 {$WARN SYMBOL_DEPRECATED ON}
 

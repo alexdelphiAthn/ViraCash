@@ -34,18 +34,18 @@ function ResolverTarifaVentaCaja(ATarifas: TDataSet;
   const ASolicitada, AActual, ADefecto: string;
   out AAviso: string): string;
 
-// Precio de una línea en ATarifa. Si ATarifa es la tarifa periódica, es una
-// capa sobre la habitual: lo que no tiene precio en ella se cobra con
-// ARespaldo (vacío: sin respaldo). ATarifaAplicada dice de cuál salió
-// (FZ-ISSUE-727).
+// Precio de una línea en ATarifa. Lo que no tiene precio en ella se cobra
+// con ARespaldo, la tarifa por defecto de caja (vacío: sin respaldo).
+// ATarifaAplicada dice de cuál salió (FZ-ISSUE-727).
 function ResolverPrecioVentaCaja(const AResolver: IArticulosResolver;
   const AArticulo, ASku, ATarifa, ARespaldo: string; AFecha: TDateTime;
   out ATarifaAplicada: string): TArticuloPrecio;
 
-// Comprueba todos los precios antes de cambiar ninguna línea.
+// Comprueba todos los precios antes de cambiar ninguna línea. ARespaldadas
+// son los SKU que se cobran con ARespaldo por no tener precio en ATarifa.
 function CambiarTarifaVentaCaja(ALineas, ACabecera: TDataSet;
   const ATarifa, ARespaldo: string; const AResolver: IArticulosResolver;
-  out AError: string): Boolean;
+  out AError: string; out ARespaldadas: TArray<string>): Boolean;
 
 // Una linea vino de deposito cuando VIENE_DE_DEPOSITO es 'S', 'A' o 'H'
 // (historico). La misma regla protege el borrado por atajo en la ventana
@@ -141,7 +141,7 @@ end;
 
 function CambiarTarifaVentaCaja(ALineas, ACabecera: TDataSet;
   const ATarifa, ARespaldo: string; const AResolver: IArticulosResolver;
-  out AError: string): Boolean;
+  out AError: string; out ARespaldadas: TArray<string>): Boolean;
 type
   TCambioPrecio = record
     Posicion: TBookmark;
@@ -155,6 +155,7 @@ var
   Articulo, Sku: string;
 begin
   AError := '';
+  ARespaldadas := nil;
   Result := True;
   Cambios := TList<TCambioPrecio>.Create;
   ALineas.DisableControls;
@@ -179,7 +180,11 @@ begin
           Cambio.Tarifa);
         Result := PrecioVentaCajaValido(Cambio.Precio);
         if Result then
-          Cambios.Add(Cambio)
+        begin
+          Cambios.Add(Cambio);
+          if not SameText(Cambio.Tarifa, Trim(ATarifa)) then
+            ARespaldadas := ARespaldadas + [Sku];
+        end
         else
           AError := Format(SErrorPrecioTarifaCajaNoDisponible,
             [Sku, ATarifa]);

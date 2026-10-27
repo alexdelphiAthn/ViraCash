@@ -90,6 +90,12 @@ resourcestring
   SErrorPrecioTarifaCajaNoDisponible =
     'El artículo "%s" no tiene precio vigente con IVA incluido ' +
     'en la tarifa "%s". Se conserva la tarifa anterior.';
+  SAvisoPrecioTarifaDefectoCaja =
+    'El artículo "%s" no tiene precio en la tarifa "%s". Se cobra con ' +
+    'la tarifa por defecto "%s".';
+  SAvisoPreciosTarifaDefectoCaja =
+    'Sin precio en la tarifa "%s": %s. Se cobran con la tarifa por ' +
+    'defecto "%s".';
   SErrorArticuloCajaSinPrecio =
     'El artículo "%s" no tiene precio vigente con IVA incluido ' +
     'en la tarifa "%s". No se puede añadir a la venta.';

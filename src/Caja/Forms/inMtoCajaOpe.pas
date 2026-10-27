@@ -86,6 +86,9 @@ const
   // FZ-ISSUE-618: el código de barras tecleado en una celda numérica se
   // procesa como lectura cuando el editor ya ha validado la celda.
   WM_LECTURA_CELDA_NUMERICA_CAJA = WM_APP + 110;
+  // Aviso de precio tomado de la tarifa por defecto: se muestra cuando la
+  // línea ya está grabada, nunca dentro de la edición de la rejilla.
+  WM_AVISO_TARIFA_DEFECTO_CAJA = WM_APP + 111;
 type
   TServiciosLecturaOperacionCaja = record
     ConsultaStock: IResultadoConsultaCaja;
@@ -178,6 +181,7 @@ type
     FActualizandoDepositos: Boolean;
     FVigilanteStock: IVigilanteStockVentaCaja;
     FMotivoRechazoArticulo: string;
+    FAvisoTarifaDefecto: string;
     FArticuloResueltoEdicion: string;
     FConservoImportesUltimaPreparacion: Boolean;
     FUltimaEntradaCodigoBarras: Boolean;
@@ -550,6 +554,8 @@ type
     function AsignarClienteApartado(const ACodigoCliente: string): Boolean;
     procedure WMPreguntarVentaOrigen(var Msg: TMessage);
                                        message WM_PREGUNTAR_VENTA_ORIGEN;
+    procedure WMAvisoTarifaDefecto(var Msg: TMessage);
+                                       message WM_AVISO_TARIFA_DEFECTO_CAJA;
     function PedirMotivoDevolucionSiProcede: Boolean;
     procedure CargarDepositosF2;
     procedure CancelarEdicionLineas;
@@ -703,6 +709,7 @@ procedure TfrmMtoOpeCaja.AplicarTarifaCaja(const ASolicitada: string);
 var
   Consulta: IResultadoConsultaCaja;
   Tarifa, Aviso, ErrorPrecio: string;
+  Respaldadas: TArray<string>;
 begin
   Consulta := FDependencias.RepositorioConsultas.ConsultarTarifas;
   Tarifa := ResolverTarifaVentaCaja(Consulta.DataSet, ASolicitada,
@@ -721,10 +728,15 @@ begin
   end
   else if CambiarTarifaVentaCaja(DatosCaja.cdsLineas,
        DatosCaja.cdsCabecera, Tarifa, DatosCaja.TarifaRespaldo(Tarifa),
-       FEditorLineas.FResolverArticulos, ErrorPrecio) then
+       FEditorLineas.FResolverArticulos, ErrorPrecio, Respaldadas) then
   begin
     lblTarifa.Caption := Tarifa;
     FEditorLineas.RecalcularLineas;
+    if (Length(Respaldadas) > 0) and
+       not DatosCaja.EsTarifaPeriodicaAutomatica(Tarifa) then
+      ShowMessage_fza(Format(SAvisoPreciosTarifaDefectoCaja,
+        [Tarifa, String.Join(', ', Respaldadas),
+         DatosCaja.TarifaRespaldo(Tarifa)]));
   end
   else
     ShowMessage_fza(ErrorPrecio);
@@ -2893,6 +2905,11 @@ begin
   end;
 end;
 
+function PrecioValidoLinea(const APrecio: TArticuloPrecio): Boolean;
+begin
+  Result := APrecio.TieneRegistro and APrecio.EsImpIncl;
+end;
+
 procedure TEditorLineasCajaVcl.RecalcularPrecioDesdeSku(
   const ASku: string);
 var
@@ -2910,11 +2927,20 @@ begin
       'FECHA_FAC').AsDateTime;
     CodArt := DatosCaja.cdsLineas.FieldByName(
       'CODIGO_ART_FACLIN').AsString;
-    // FZ-ISSUE-727: lo que no está en la tarifa periódica va a la habitual.
+    // Lo que no tiene precio en la tarifa del ticket se cobra con la
+    // tarifa por defecto de caja (FZ-ISSUE-727).
     Precio := ResolverPrecioVentaCaja(FResolverArticulos, CodArt, ASku,
       CodTarifa, DatosCaja.TarifaRespaldo(CodTarifa), FechaFactura,
       TarifaLinea);
-    if not Precio.TieneRegistro or not Precio.EsImpIncl then
+    if PrecioValidoLinea(Precio) and
+       not SameText(TarifaLinea, Trim(CodTarifa)) and
+       not DatosCaja.EsTarifaPeriodicaAutomatica(CodTarifa) then
+    begin
+      FAvisoTarifaDefecto := Format(SAvisoPrecioTarifaDefectoCaja,
+        [ASku, CodTarifa, TarifaLinea]);
+      PostMessage(GetFormulario.Handle, WM_AVISO_TARIFA_DEFECTO_CAJA, 0, 0);
+    end;
+    if not PrecioValidoLinea(Precio) then
     begin
       DatosCaja.cdsLineas.Cancel;
       // FZ-ISSUE-338: dato de maestro incompleto, no un fallo del programa.
@@ -3667,6 +3693,16 @@ begin
     DatosCaja.cdsCabecera,
     ActualizarLabelTotal);
   FEditorLineas.AsegurarLineaNueva;
+end;
+
+procedure TfrmMtoOpeCaja.WMAvisoTarifaDefecto(var Msg: TMessage);
+var
+  sAviso: string;
+begin
+  sAviso := FEditorLineas.FAvisoTarifaDefecto;
+  FEditorLineas.FAvisoTarifaDefecto := '';
+  if sAviso <> '' then
+    ShowMessage_fza(sAviso);
 end;
 
 procedure TfrmMtoOpeCaja.WMPreguntarVentaOrigen(var Msg: TMessage);
