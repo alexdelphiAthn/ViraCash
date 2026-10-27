@@ -289,6 +289,10 @@ uses
   inMtoIvasGrupos in 'src\Forms\inMtoIvasGrupos.pas' {frmMtoIvasGrupos},
   inMtoProveedores in 'src\Forms\inMtoProveedores.pas' {frmMtoProveedores},
   inMtoTarifas in 'src\Forms\inMtoTarifas.pas' {frmMtoTarifas},
+  inLibTarifasPeriodicidad in 'src\Lib\inLibTarifasPeriodicidad.pas',
+  UniDataTarifasPeriodicidadRepositorio in
+    'src\DataModules\UniDataTarifasPeriodicidadRepositorio.pas',
+  inMtoTarifasPeriodicidadVcl in 'src\Forms\inMtoTarifasPeriodicidadVcl.pas',
   inLibTarifasDescuentoCondicionesPersistenciaIntf in 'src\Lib\inLibTarifasDescuentoCondicionesPersistenciaIntf.pas',
   inMtoUsuarios in 'src\Forms\inMtoUsuarios.pas' {frmMtoUsuarios},
   inMtoUsuariosPerfiles in 'src\Forms\inMtoUsuariosPerfiles.pas' {frmMtoUsuariosPerfiles},

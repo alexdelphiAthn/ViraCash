@@ -30123,6 +30123,96 @@ begin
   ARegistrar('inLibMsgArticulos.SErrorSesionTarifaAplicadaNoBorrarLineas',
     'src/Lib/inLibMsgArticulos.pas',
     @inLibMsgArticulos.SErrorSesionTarifaAplicadaNoBorrarLineas);
+  ARegistrar(
+    'inLibMsgCaja.' +
+    'SCaptionColReclamadoIncidenciaTransito',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      SCaptionColReclamadoIncidenciaTransito);
+  ARegistrar(
+    'inLibMsgCaja.' +
+    'SCaptionColIndemnizadoIncidenciaTransito',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      SCaptionColIndemnizadoIncidenciaTransito);
+  ARegistrar(
+    'inLibMsgCaja.' +
+    'SCaptionFiltroReferenciaReclamacion',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      SCaptionFiltroReferenciaReclamacion);
+  ARegistrar(
+    'inLibMsgCaja.' +
+    'SEtiquetaEstadoReclamacionTransito',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      SEtiquetaEstadoReclamacionTransito);
+  ARegistrar(
+    'inLibMsgCaja.' +
+    'SEtiquetaImporteReclamadoTransito',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      SEtiquetaImporteReclamadoTransito);
+  ARegistrar(
+    'inLibMsgCaja.' +
+    'SEtiquetaImporteIndemnizadoTransito',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      SEtiquetaImporteIndemnizadoTransito);
+  ARegistrar(
+    'inLibMsgCaja.' +
+    'SInfoAlcanceReclamacionTransito',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      SInfoAlcanceReclamacionTransito);
+  ARegistrar(
+    'inLibMsgCaja.' +
+    'SPreguntaReclamacionCargaCompleta',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      SPreguntaReclamacionCargaCompleta);
+  ARegistrar(
+    'inLibMsgCaja.' +
+    'SEstadoReclamacionPendiente',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      SEstadoReclamacionPendiente);
+  ARegistrar(
+    'inLibMsgCaja.' +
+    'SEstadoReclamacionEnviada',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      SEstadoReclamacionEnviada);
+  ARegistrar(
+    'inLibMsgCaja.' +
+    'SEstadoReclamacionAceptada',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      SEstadoReclamacionAceptada);
+  ARegistrar(
+    'inLibMsgCaja.' +
+    'SEstadoReclamacionCobrada',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      SEstadoReclamacionCobrada);
+  ARegistrar(
+    'inLibMsgCaja.' +
+    'SEstadoReclamacionRechazada',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      SEstadoReclamacionRechazada);
+  ARegistrar(
+    'inLibMsgCaja.' +
+    'SErrorEstadoReclamacionTransito',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      SErrorEstadoReclamacionTransito);
+  ARegistrar(
+    'inLibMsgCaja.' +
+    'SErrorImporteReclamacionTransito',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      SErrorImporteReclamacionTransito);
 end;
 {$WARN SYMBOL_DEPRECATED ON}
 

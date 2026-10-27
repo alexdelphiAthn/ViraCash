@@ -63,6 +63,7 @@ interface
 uses
   System.SysUtils, System.Classes, System.Generics.Collections,
   Data.DB, DBAccess, Uni, inLibParametrosIntf,
+  inLibTarifasPeriodicidad,
   inLibArticulosResolverIntf, inLibCatalogoSqlIntf;
 
 type
@@ -70,6 +71,7 @@ type
     TInterfacedObject,
     IArticulosResolver)
   private
+    FPeriodicidad: IRepositorioPeriodicidadTarifa;
     FConexion: TUniConnection;
     FParametrosCaja: IParametrosCaja;
     FCatalogoSql: ICatalogoSql;
@@ -120,7 +122,7 @@ type
 implementation
 
 uses
-  UniDataTarifasPrecioSql,
+  UniDataTarifasPrecioSql, UniDataTarifasPeriodicidadRepositorio,
   inLibMsgArticulos,
   inLibCatalogoSqlEjecucion,
   UniDataCatalogoSqlValidacion;
@@ -294,6 +296,8 @@ begin
     raise EArgumentNilException.Create('AParametrosCaja');
   inherited Create;
   FConexion := AConexion;
+  if Assigned(AConexion) then
+    FPeriodicidad := CrearRepositorioPeriodicidadTarifa(AConexion);
   FParametrosCaja := AParametrosCaja;
   FCatalogoSql := ACatalogoSql;
   FIncidenciasSql := AIncidenciasSql;
@@ -428,7 +432,8 @@ begin
           Result := DescuentoEnVentana(
             AFecha,
             dDesde,
-            dHasta);
+            dHasta) and CumplePeriodicidadTarifa(
+              FPeriodicidad.Cargar(ACodigoTarifa), AFecha);
         end;
       except
         on E: Exception do

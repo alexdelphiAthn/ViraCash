@@ -37,7 +37,8 @@ uses
   System.Actions, Vcl.ActnList, Vcl.PlatformDefaultStyleActnCtrls, Vcl.ActnMan,
   cxSplitter, JvComponentBase, JvEnterTab, dxShellDialogs, System.UITypes,
   Vcl.CheckLst, inLibCargaMasivaArticulosPersistenciaIntf,
-  inLibTarifasDescuentoCondicionesPersistenciaIntf, inLibPermisosIntf;
+  inLibTarifasDescuentoCondicionesPersistenciaIntf, inLibPermisosIntf,
+  inMtoTarifasPeriodicidadVcl;
 
 type
   TfrmMtoTarifas = class(TfrmMtoGen)
@@ -150,6 +151,7 @@ type
     procedure btnAddBlockClick(Sender: TObject);
     procedure dsTablaGStateChange(Sender: TObject);
   private
+    FPeriodicidad: TEditorPeriodicidadTarifa;
     FBtnSesionesCambios: TcxButton;
     FBtnEditarDescuento: TcxButton;
     FCargaMasiva: TServiciosCargaMasivaArticulos;
@@ -211,7 +213,8 @@ uses
   inLibDevExp,
   inLibFotos,
   inMtoModalAddBlockTarifa, inLibMsgArticulos,
-  UniDataTarifasDescuentoCondicionesRepositorio;
+  UniDataTarifasDescuentoCondicionesRepositorio,
+  UniDataTarifasPeriodicidadRepositorio;
 
 {$R *.dfm}
 
@@ -349,6 +352,9 @@ begin
   FRepositorioCondicionesDto :=
     CrearRepositorioCondicionesDescuentoTarifaUniDAC(
       dmmTarifas.unqryTablaG.Connection);
+  FPeriodicidad := TEditorPeriodicidadTarifa.Create(Self, pcPestana,
+    CrearRepositorioPeriodicidadTarifa(dmmTarifas.unqryTablaG.Connection),
+    IdentidadSesion.Usuario);
   CrearControlesCondicionDto;
   CargarPropiedadesCondicionDto;
   FOnDataChangeTablaGAnterior := dsTablaG.OnDataChange;
@@ -579,6 +585,9 @@ var
   bHayTarifa: Boolean;
   bPuedeEditar: Boolean;
 begin
+  if Assigned(FPeriodicidad) then
+    FPeriodicidad.Cargar(CodigoTarifaActual,
+      (dsTablaG.State = dsBrowse) and PuedeAccionMto(apmModificar));
   if Assigned(FCmbModoCondicionDto) then
   begin
     bHayTarifa := CodigoTarifaActual <> '';

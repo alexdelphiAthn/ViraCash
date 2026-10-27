@@ -18,6 +18,10 @@ procedure EnumerarParametrosTraduccion(
   const ARegistrar: TRegistrarParametroTraduccion);
 begin
   ARegistrar(
+    'inMtoCajaParam.Parametros.vgerTarifaPeriodicaAutomatica.Descripcion',
+    'Tarifa periódica automática (código, vacío: no usar)',
+    'src/Caja/Lib/inLibCajaParam.pas');
+  ARegistrar(
     'inMtoCajaParam.Parametros.vgerUsarAlmacenesTransito.Descripcion',
     'Usar almacenes de tránsito',
     'src/Caja/Lib/inLibCajaParam.pas');

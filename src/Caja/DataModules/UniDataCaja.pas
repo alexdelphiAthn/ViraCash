@@ -287,6 +287,10 @@ type
     function BuscarYMostrarNombre(TipoEntidad, Codigo: string;
                                   var LabelDestino: String):Boolean;
     function GetTarifaDefault : string;
+    function TarifaInicialCliente(const ATarifa: string): string;
+    // Tarifa con la que se cobra lo que no está en ATarifa: la de caja si
+    // ATarifa es la periódica automática; si no, vacío (FZ-ISSUE-727).
+    function TarifaRespaldo(const ATarifa: string): string;
     // ATipoFactura: 'SIMPLIFICADA' (ticket) o 'NORMAL' (factura A4 del
     // botón F8). AFechaFactura > 0 sustituye la fecha del documento.
     function GrabarFacturaSimplificada(const AEmpresa,
@@ -380,7 +384,8 @@ uses
      UniDataTraspaso,
      inLibPrestaShopColaSenal,
      inLibCajaDepositos, inLibInformesCajaPersistenciaIntf,
-     UniDataInformesCajaRepositorio,
+     UniDataInformesCajaRepositorio, inLibTarifasPeriodicidad,
+     UniDataTarifasPeriodicidadRepositorio,
      inLibRectificativas,
      UniDataRectificativasSql,
      System.Generics.Collections,
@@ -3364,9 +3369,42 @@ begin
   Result := SkuBuilder;
 end;
 
+function TdmCajaOpe.TarifaInicialCliente(const ATarifa: string): string;
+begin
+  Result := TarifaClienteConPeriodicidad(ATarifa,
+    FParametrosCaja.TarifaDefecto, GetTarifaDefault);
+end;
+
+function TdmCajaOpe.TarifaRespaldo(const ATarifa: string): string;
+var
+  Periodica: string;
+begin
+  Result := '';
+  Periodica := Trim(FParametrosCaja.GetString(
+    'vgerTarifaPeriodicaAutomatica', ''));
+  if (Periodica <> '') and SameText(Periodica, Trim(ATarifa)) and
+     not SameText(Periodica, Trim(FParametrosCaja.TarifaDefecto)) then
+    Result := Trim(FParametrosCaja.TarifaDefecto);
+end;
+
 function TdmCajaOpe.GetTarifaDefault: string;
+var
+  Promocional: string;
+  Periodicidad: IRepositorioPeriodicidadTarifa;
+  Fecha: TDateTime;
 begin
   Result := FParametrosCaja.TarifaDefecto;
+  Promocional := Trim(FParametrosCaja.GetString(
+    'vgerTarifaPeriodicaAutomatica', ''));
+  if Promocional <> '' then
+  begin
+    Fecha := Date;
+    if cdsCabecera.Active and not cdsCabecera.IsEmpty then
+      Fecha := cdsCabecera.FieldByName('FECHA_FAC').AsDateTime;
+    Periodicidad := CrearRepositorioPeriodicidadTarifa(FConexion);
+    Result := TarifaInicialConPeriodicidad(Result, Promocional,
+      Periodicidad, Fecha);
+  end;
 end;
 
 procedure TdmCajaOpe.cdsCabeceraAfterInsert(DataSet: TDataSet);

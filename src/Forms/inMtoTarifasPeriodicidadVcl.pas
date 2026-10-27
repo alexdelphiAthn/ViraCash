@@ -1,4 +1,4 @@
-{ Editor de rangos periódicos de descuento. FZ-ISSUE-727. }
+﻿{ Editor de rangos periódicos de descuento. FZ-ISSUE-727. }
 unit inMtoTarifasPeriodicidadVcl;
 
 interface
@@ -36,9 +36,15 @@ type
 implementation
 
 uses
-  System.SysUtils, System.Variants, Vcl.Controls, Vcl.ExtCtrls,
-  cxGridLevel, cxGridCustomTableView, cxTextEdit,
-  inLibMensajesVcl;
+  System.SysUtils, System.Variants, Winapi.Windows,
+  Vcl.Controls, Vcl.ExtCtrls, Vcl.Forms,
+  cxGridLevel, cxGridCustomTableView, cxTextEdit;
+
+procedure Limites(AControl: TControl; X, Y, Ancho, Alto, Ppi: Integer);
+begin
+  AControl.SetBounds(MulDiv(X, Ppi, 96), MulDiv(Y, Ppi, 96),
+    MulDiv(Ancho, Ppi, 96), MulDiv(Alto, Ppi, 96));
+end;
 
 constructor TEditorPeriodicidadTarifa.Create(AOwner: TComponent;
   APestanas: TcxPageControl;
@@ -49,9 +55,13 @@ var
   Rejilla: TcxGrid;
   Nivel: TcxGridLevel;
   Columna: TcxGridColumn;
+  Ppi: Integer;
   Etiqueta: TcxLabel;
 begin
   inherited Create(AOwner);
+  Ppi := 96;
+  if Assigned(GetParentForm(APestanas)) then
+    Ppi := GetParentForm(APestanas).CurrentPPI;
   FRepositorio := ARepositorio;
   FUsuario := AUsuario;
   FTab := TcxTabSheet.Create(Self);
@@ -61,24 +71,25 @@ begin
   Cabecera := TPanel.Create(Self);
   Cabecera.Parent := FTab;
   Cabecera.Align := alTop;
-  Cabecera.Height := 145;
+  Cabecera.Height := MulDiv(196, Ppi, 96);
   Cabecera.BevelOuter := bvNone;
   FAyuda := TcxLabel.Create(Self);
   FAyuda.Parent := Cabecera;
   FAyuda.Align := alTop;
   FAyuda.AutoSize := False;
-  FAyuda.Height := 58;
+  FAyuda.Height := MulDiv(80, Ppi, 96);
   FAyuda.Properties.WordWrap := True;
   FAyuda.Caption := 'Sin rangos: todos los días. Cada fila es una ' +
     'alternativa. Desde = hasta: un día. Desde > hasta: cruza el final ' +
     'de semana, mes o año. Las fechas generales también se respetan.';
   Etiqueta := TcxLabel.Create(Self);
   Etiqueta.Parent := Cabecera;
-  Etiqueta.SetBounds(12, 62, 200, 22);
+  Limites(Etiqueta, 12, 86, 200, 22, Ppi);
   Etiqueta.Caption := 'Repetir';
   FTipo := TcxComboBox.Create(Self);
+  FTipo.Name := 'cmbPeriodoTipo';
   FTipo.Parent := Cabecera;
-  FTipo.SetBounds(12, 90, 175, 28);
+  Limites(FTipo, 12, 112, 175, 28, Ppi);
   FTipo.Properties.DropDownListStyle := lsFixedList;
   FTipo.Properties.Items.Add('Por día de semana');
   FTipo.Properties.Items.Add('Por día de mes');
@@ -87,39 +98,45 @@ begin
   FTipo.Properties.OnChange := CambiarTipo;
   Etiqueta := TcxLabel.Create(Self);
   Etiqueta.Parent := Cabecera;
-  Etiqueta.SetBounds(204, 62, 160, 22);
+  Limites(Etiqueta, 204, 86, 160, 22, Ppi);
   Etiqueta.Caption := 'Desde (año: día/mes)';
   FDesde := TcxComboBox.Create(Self);
+  FDesde.Name := 'cmbPeriodoDesde';
   FDesde.Parent := Cabecera;
-  FDesde.SetBounds(204, 90, 160, 28);
+  Limites(FDesde, 204, 112, 160, 28, Ppi);
   Etiqueta := TcxLabel.Create(Self);
   Etiqueta.Parent := Cabecera;
-  Etiqueta.SetBounds(380, 62, 160, 22);
+  Limites(Etiqueta, 380, 86, 160, 22, Ppi);
   Etiqueta.Caption := 'Hasta (incluido)';
   FHasta := TcxComboBox.Create(Self);
+  FHasta.Name := 'cmbPeriodoHasta';
   FHasta.Parent := Cabecera;
-  FHasta.SetBounds(380, 90, 160, 28);
+  Limites(FHasta, 380, 112, 160, 28, Ppi);
   FAnadir := TcxButton.Create(Self);
+  FAnadir.Name := 'btnPeriodoAnadir';
   FAnadir.Parent := Cabecera;
-  FAnadir.SetBounds(556, 88, 120, 32);
+  Limites(FAnadir, 12, 152, 160, 32, Ppi);
   FAnadir.Caption := 'Añadir rango';
   FAnadir.OnClick := Anadir;
   Pie := TPanel.Create(Self);
   Pie.Parent := FTab;
   Pie.Align := alBottom;
-  Pie.Height := 52;
+  Pie.Height := MulDiv(52, Ppi, 96);
   Pie.BevelOuter := bvNone;
   FQuitar := TcxButton.Create(Self);
+  FQuitar.Name := 'btnPeriodoQuitar';
   FQuitar.Parent := Pie;
-  FQuitar.SetBounds(12, 8, 165, 34);
+  Limites(FQuitar, 12, 8, 165, 34, Ppi);
   FQuitar.Caption := 'Quitar rango';
   FQuitar.OnClick := Quitar;
   FGuardar := TcxButton.Create(Self);
+  FGuardar.Name := 'btnPeriodoGuardar';
   FGuardar.Parent := Pie;
-  FGuardar.SetBounds(204, 8, 220, 34);
+  Limites(FGuardar, 204, 8, 220, 34, Ppi);
   FGuardar.Caption := 'Guardar periodicidad';
   FGuardar.OnClick := Guardar;
   Rejilla := TcxGrid.Create(Self);
+  Rejilla.Name := 'grdPeriodicidad';
   Rejilla.Parent := FTab;
   Rejilla.Align := alClient;
   FLista := Rejilla.CreateView(TcxGridTableView) as TcxGridTableView;
@@ -214,7 +231,8 @@ begin
   if FPuedeEditar then
   begin
     FRepositorio.Guardar(FCodigo, FPeriodos, FUsuario);
-    ShowMessage_fza('Periodicidad guardada.');
+    FAyuda.Caption := 'Periodicidad guardada. ' +
+      'Todos los rangos son alternativas y respetan las fechas generales.';
   end;
 end;
 

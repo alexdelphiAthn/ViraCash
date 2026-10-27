@@ -225,6 +225,11 @@ begin
                      tpString,
                      'PVP');
   RegistrarParametro('Configuración de Caja',
+                     'vgerTarifaPeriodicaAutomatica',
+                     'Tarifa periódica automática (código, vacío: no usar)',
+                     tpString,
+                     '');
+  RegistrarParametro('Configuración de Caja',
                      'vgerMaxOpPending',
                      'Número de operaciones pendientes',
                      tpInteger,

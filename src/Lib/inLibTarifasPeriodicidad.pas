@@ -1,4 +1,4 @@
-{ Periodicidad de descuentos de tarifa. FZ-ISSUE-727. }
+﻿{ Periodicidad de descuentos de tarifa. FZ-ISSUE-727. }
 unit inLibTarifasPeriodicidad;
 
 interface
@@ -21,6 +21,13 @@ type
     function Vigente(const ATarifa: string; AFecha: TDateTime): Boolean;
   end;
 
+function TarifaInicialConPeriodicidad(const ABase, APromocional: string;
+  const ARepositorio: IRepositorioPeriodicidadTarifa;
+  AFecha: TDateTime): string;
+
+function TarifaClienteConPeriodicidad(const ACliente, ABase,
+  AAutomatica: string): string;
+
 function TextoTipoPeriodoTarifa(ATipo: TTipoPeriodoTarifa): string;
 function TipoPeriodoTarifa(const ATexto: string): TTipoPeriodoTarifa;
 function ValorDiaPeriodo(ATipo: TTipoPeriodoTarifa;
@@ -34,6 +41,24 @@ implementation
 
 uses
   System.SysUtils, System.DateUtils;
+
+function TarifaInicialConPeriodicidad(const ABase, APromocional: string;
+  const ARepositorio: IRepositorioPeriodicidadTarifa;
+  AFecha: TDateTime): string;
+begin
+  Result := ABase;
+  if (Trim(APromocional) <> '') and Assigned(ARepositorio) then
+    if ARepositorio.Vigente(Trim(APromocional), AFecha) then
+      Result := Trim(APromocional);
+end;
+
+function TarifaClienteConPeriodicidad(const ACliente, ABase,
+  AAutomatica: string): string;
+begin
+  Result := ACliente;
+  if (Trim(ACliente) = '') or SameText(Trim(ACliente), Trim(ABase)) then
+    Result := AAutomatica;
+end;
 
 const
   DIAS_SEMANA: array[1..7] of string = ('Lunes', 'Martes', 'Miércoles',

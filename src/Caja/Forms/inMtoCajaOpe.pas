@@ -720,7 +720,7 @@ begin
     lblTarifa.Caption := Tarifa;
   end
   else if CambiarTarifaVentaCaja(DatosCaja.cdsLineas,
-       DatosCaja.cdsCabecera, Tarifa,
+       DatosCaja.cdsCabecera, Tarifa, DatosCaja.TarifaRespaldo(Tarifa),
        FEditorLineas.FResolverArticulos, ErrorPrecio) then
   begin
     lblTarifa.Caption := Tarifa;
@@ -1938,7 +1938,7 @@ begin
     EscribirCabeceraBaseOperacionVenta(
       DatosCaja.cdsCabecera,
       FCodigoEmpresa,
-      ParametrosCaja.GetString('vgerDefTarifa', 'PVP'),
+      DatosCaja.GetTarifaDefault,
       FFecha);
     lblTarifa.Caption := DatosCaja.cdsCabecera.FieldByName(
                                     'TARIFA_ARTICULO_CLIENTE_FAC').AsString;
@@ -2898,6 +2898,7 @@ procedure TEditorLineasCajaVcl.RecalcularPrecioDesdeSku(
 var
   Precio       : TArticuloPrecio;
   CodTarifa    : string;
+  TarifaLinea  : string;
   CodArt       : string;
   FechaFactura : TDateTime;
 begin
@@ -2909,8 +2910,10 @@ begin
       'FECHA_FAC').AsDateTime;
     CodArt := DatosCaja.cdsLineas.FieldByName(
       'CODIGO_ART_FACLIN').AsString;
-    Precio := FResolverArticulos.ResolverPrecio(
-      CodArt, ASku, CodTarifa, FechaFactura);
+    // FZ-ISSUE-727: lo que no está en la tarifa periódica va a la habitual.
+    Precio := ResolverPrecioVentaCaja(FResolverArticulos, CodArt, ASku,
+      CodTarifa, DatosCaja.TarifaRespaldo(CodTarifa), FechaFactura,
+      TarifaLinea);
     if not Precio.TieneRegistro or not Precio.EsImpIncl then
     begin
       DatosCaja.cdsLineas.Cancel;
@@ -2923,7 +2926,7 @@ begin
     if Precio.TieneRegistro then
     begin
       DatosCaja.cdsLineas.FieldByName('CODIGO_TAR_FACLIN').AsString :=
-        CodTarifa;
+        TarifaLinea;
       DatosCaja.cdsLineas.FieldByName(
         'ESIMP_INCL_TARIFA_FACLIN').AsString :=
           IfThen(Precio.EsImpIncl, 'S', 'N');
@@ -3584,7 +3587,8 @@ begin
     Cliente);
   if Result then
   begin
-    AplicarTarifaCaja(Cliente.TarifaArticulo);
+    AplicarTarifaCaja(DatosCaja.TarifaInicialCliente(
+            Cliente.TarifaArticulo));
     Cliente.TarifaArticulo := DatosCaja.cdsCabecera.FieldByName(
       'TARIFA_ARTICULO_CLIENTE_FAC').AsString;
     EscribirCabeceraClienteVenta(DatosCaja.cdsCabecera, Cliente);
@@ -3958,7 +3962,8 @@ begin
         begin
           sNomCliente := Cliente.RazonSocial;
           DisplayValue := Cliente.Codigo;
-          AplicarTarifaCaja(Cliente.TarifaArticulo);
+          AplicarTarifaCaja(DatosCaja.TarifaInicialCliente(
+            Cliente.TarifaArticulo));
           Cliente.TarifaArticulo := DatosCaja.cdsCabecera.FieldByName(
             'TARIFA_ARTICULO_CLIENTE_FAC').AsString;
           EscribirCabeceraClienteVenta(DatosCaja.cdsCabecera, Cliente);

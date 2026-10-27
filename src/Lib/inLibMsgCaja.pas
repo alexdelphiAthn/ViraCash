@@ -609,6 +609,38 @@ resourcestring
     'Empresa';
   SCaptionColEstadoReclamacionIncidencia =
     'Estado reclamación';
+  SCaptionColReclamadoIncidenciaTransito =
+    'Reclamado';
+  SCaptionColIndemnizadoIncidenciaTransito =
+    'Indemnizado';
+  SCaptionFiltroReferenciaReclamacion =
+    'Referencia:';
+  SEtiquetaEstadoReclamacionTransito =
+    'Estado de la reclamación:';
+  SEtiquetaImporteReclamadoTransito =
+    'Importe reclamado:';
+  SEtiquetaImporteIndemnizadoTransito =
+    'Importe indemnizado (vacío si aún no se sabe):';
+  SInfoAlcanceReclamacionTransito =
+    'Se anota en %d incidencias. Los importes son el total de la ' +
+    'reclamación y se reparten según el coste de cada una.';
+  SPreguntaReclamacionCargaCompleta =
+    'La carga %s tiene %d incidencias. ' + sLineBreak +
+    '¿Anotar la reclamación en todas?';
+  SEstadoReclamacionPendiente =
+    'Pendiente';
+  SEstadoReclamacionEnviada =
+    'Enviada';
+  SEstadoReclamacionAceptada =
+    'Aceptada';
+  SEstadoReclamacionCobrada =
+    'Cobrada';
+  SEstadoReclamacionRechazada =
+    'Rechazada';
+  SErrorEstadoReclamacionTransito =
+    'Elija el estado de la reclamación.';
+  SErrorImporteReclamacionTransito =
+    'Los importes de la reclamación no pueden ser negativos.';
   SInfoVentasReposicionNoEncontradas =
     'No hay ventas en el intervalo indicado.';
   SInfoReposicionAutoEmitida =

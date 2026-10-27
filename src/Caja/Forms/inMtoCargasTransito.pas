@@ -13,8 +13,9 @@
 {    furgoneta o agencia (pendientes, recibidas, devueltas, perdidas), con su  }
 {    antigüedad y filtros por tránsito, origen, destino y estado, y debajo     }
 {    los apuntes de pérdida y deterioro en transporte, exportables a Excel y   }
-{    con la referencia de la reclamación. Recibir y desbloquear se hace desde  }
-{    la caja (FZ-ISSUE-256).                                                   }
+{    con la reclamación (referencia, estado e importes) anotada de una vez en  }
+{    varios apuntes o en toda la carga (FZ-ISSUE-728). Recibir y desbloquear   }
+{    se hace desde la caja (FZ-ISSUE-256).                                     }
 {******************************************************************************}
 unit inMtoCargasTransito;
 
@@ -34,7 +35,7 @@ uses
   cxMaskEdit, cxDropDownEdit, cxButtons, cxCalendar, cxCurrencyEdit,
   cxSplitter, cxPC, dxSkinsCore, dxSkinscxPCPainter,
   dxScrollbarAnnotations, dxDateRanges, dxCore,
-  UniDataCargasTransito, UniDataTraspaso,
+  UniDataCargasTransito,
   inLibTraspasoOpePersistenciaIntf, inLibPermisosIntf, inMtoGen;
 
 type
@@ -48,8 +49,6 @@ type
     FCodigosDestino: TArray<string>;
     FCodigosEstado: TArray<string>;
     dmmCargas: TdmCargasTransito;
-    // Solo para anotar la referencia de la reclamación de un apunte.
-    dmmTraspaso: TdmTraspaso;
     pnlFiltros: TPanel;
     cbbTransito: TcxComboBox;
     cbbOrigen: TcxComboBox;
@@ -58,6 +57,7 @@ type
     pnlIncidencias: TPanel;
     pnlBotonesIncidencias: TPanel;
     splIncidencias: TcxSplitter;
+    edtReferencia: TcxTextEdit;
     grdIncidencias: TcxGrid;
     tvIncidencias: TcxGridDBTableView;
     function EscalarDpi(AValor: Integer): Integer;
@@ -80,7 +80,14 @@ type
       const ACampo, ATitulo: string; AAncho: Integer): TcxGridDBColumn;
     procedure CrearColumnas;
     procedure CrearColumnasIncidencias;
+    function CrearColumnaImporte(const ACampo, ATitulo: string;
+      AVisible: Boolean): TcxGridDBColumn;
+    function IncidenciasSeleccionadas: TArray<Int64>;
+    function IncidenciasAReclamar: TArray<Int64>;
+    function PedirReclamacion(ANumIncidencias: Integer;
+      var AReclamacion: TReclamacionTransito): Boolean;
     procedure FiltroCambiado(Sender: TObject);
+    procedure ReferenciaCambiada(Sender: TObject);
     procedure btnRefrescarClick(Sender: TObject);
     procedure btnHojaRutaClick(Sender: TObject);
     procedure btnExcelIncidenciasClick(Sender: TObject);
@@ -95,8 +102,9 @@ type
 implementation
 
 uses
+  System.Math, System.StrUtils,
   inLibMensajesVcl,
-  inLibMsgCaja,
+  inLibMsgCaja, inLibMsgComun,
   inLibDevExp, inMtoModalImpHojaRutaTransito;
 
 {$R *.dfm}
@@ -104,6 +112,8 @@ uses
 const
   CAMPO_ID_CARGA = 'ID_TRTRA';
   CAMPO_ID_INCIDENCIA = 'ID_TRTINC';
+  CAMPO_CARGA_INCIDENCIA = 'ID_TRTRA_TRTINC';
+  FORMATO_IMPORTE = ',0.00';
   FORMATO_UNIDADES = '#,##0.###';
   FORMATO_FECHA = 'dd/mm/yyyy hh:nn';
 
@@ -225,6 +235,15 @@ begin
   CrearBoton(pnlBotonesIncidencias,
     SCaptionReclamacionIncidenciaTransito, 560, 6, 150,
     btnReclamacionClick);
+  // Por referencia, para ver el total de una reclamación (FZ-ISSUE-728).
+  CrearEtiqueta(pnlBotonesIncidencias, SCaptionFiltroReferenciaReclamacion,
+    730, 12);
+  edtReferencia := TcxTextEdit.Create(Self);
+  edtReferencia.Parent := pnlBotonesIncidencias;
+  edtReferencia.Left := EscalarDpi(820);
+  edtReferencia.Top := EscalarDpi(8);
+  edtReferencia.Width := EscalarDpi(200);
+  edtReferencia.Properties.OnEditValueChanged := ReferenciaCambiada;
   grdIncidencias := TcxGrid.Create(Self);
   grdIncidencias.Parent := pnlIncidencias;
   grdIncidencias.Align := alClient;
@@ -235,8 +254,10 @@ begin
   tvIncidencias.OptionsData.Inserting := False;
   tvIncidencias.OptionsData.Deleting := False;
   tvIncidencias.OptionsSelection.CellSelect := False;
+  tvIncidencias.OptionsSelection.MultiSelect := True;
   tvIncidencias.OptionsView.GroupByBox := False;
   tvIncidencias.OptionsView.ColumnAutoWidth := False;
+  tvIncidencias.OptionsView.Footer := True;
 end;
 
 function TfrmMtoCargasTransito.CrearColumna(AVista: TcxGridDBTableView;
@@ -307,6 +328,22 @@ begin
   end;
 end;
 
+// Columna de importe con su total al pie.
+function TfrmMtoCargasTransito.CrearColumnaImporte(
+  const ACampo, ATitulo: string; AVisible: Boolean): TcxGridDBColumn;
+var
+  oSuma: TcxGridDBTableSummaryItem;
+begin
+  Result := CrearColumna(tvIncidencias, ACampo, ATitulo, 90);
+  Result.PropertiesClass := TcxCurrencyEditProperties;
+  Result.Visible := AVisible;
+  oSuma := tvIncidencias.DataController.Summary.FooterSummaryItems.Add
+    as TcxGridDBTableSummaryItem;
+  oSuma.Column := Result;
+  oSuma.Kind := skSum;
+  oSuma.Format := FORMATO_IMPORTE;
+end;
+
 // El coste y el importe solo los ve quien tiene permiso para ver costes.
 procedure TfrmMtoCargasTransito.CrearColumnasIncidencias;
 var
@@ -314,6 +351,11 @@ var
 begin
   if tvIncidencias.ColumnCount = 0 then
   begin
+    // Ocultas: identifican lo seleccionado para la reclamación.
+    CrearColumna(tvIncidencias, CAMPO_ID_INCIDENCIA, CAMPO_ID_INCIDENCIA,
+      60).Visible := False;
+    CrearColumna(tvIncidencias, CAMPO_CARGA_INCIDENCIA,
+      CAMPO_CARGA_INCIDENCIA, 60).Visible := False;
     oColumna := CrearColumna(tvIncidencias, 'FECHA_TRTINC',
       SCaptionColFechaIncidenciaTransito, 130);
     oColumna.PropertiesClass := TcxDateEditProperties;
@@ -342,10 +384,8 @@ begin
       SCaptionColCosteIncidenciaTransito, 90);
     oColumna.PropertiesClass := TcxCurrencyEditProperties;
     oColumna.Visible := FVerCoste;
-    oColumna := CrearColumna(tvIncidencias, 'TOTAL_COSTE_TRTINC',
-      SCaptionColImporteIncidenciaTransito, 90);
-    oColumna.PropertiesClass := TcxCurrencyEditProperties;
-    oColumna.Visible := FVerCoste;
+    CrearColumnaImporte('TOTAL_COSTE_TRTINC',
+      SCaptionColImporteIncidenciaTransito, FVerCoste);
     CrearColumna(tvIncidencias, 'CODIGO_ALM_TARAS_TRTINC',
       SCaptionColTarasIncidenciaTransito, 80);
     CrearColumna(tvIncidencias, 'MOTIVO_TRTINC',
@@ -354,6 +394,11 @@ begin
       SCaptionReclamacionIncidenciaTransito, 140);
     CrearColumna(tvIncidencias, 'ESTADO_RECLAMACION_TRTINC',
       SCaptionColEstadoReclamacionIncidencia, 120);
+    CrearColumnaImporte('IMPORTE_RECLAMADO_TRTINC',
+      SCaptionColReclamadoIncidenciaTransito, FVerCoste);
+    CrearColumnaImporte('IMPORTE_INDEMNIZADO_TRTINC',
+      SCaptionColIndemnizadoIncidenciaTransito,
+      FVerCoste and dmmCargas.ConImportes);
     CrearColumna(tvIncidencias, 'DOCUMENTO',
       SCaptionColDocumentoCargaTransito, 130);
     CrearColumna(tvIncidencias, 'USUARIO_ALTA',
@@ -437,7 +482,6 @@ procedure TfrmMtoCargasTransito.CrearTablaPrincipal;
 begin
   inherited;
   dmmCargas := tdmDataModule as TdmCargasTransito;
-  dmmTraspaso := TdmTraspaso.Create(Self, ConexionPrincipal);
   FVerCoste := Assigned(Permisos) and
     Permisos.TienePermiso(PERMISO_CAJA_VER_COSTE, paDenegar);
   pkFieldName := CAMPO_ID_CARGA;
@@ -468,6 +512,12 @@ begin
       CodigoCombo(cbbEstado, FCodigosEstado));
 end;
 
+procedure TfrmMtoCargasTransito.ReferenciaCambiada(Sender: TObject);
+begin
+  if Assigned(dmmCargas) then
+    dmmCargas.FiltrarReferencia(VarToStr(edtReferencia.EditValue));
+end;
+
 procedure TfrmMtoCargasTransito.btnRefrescarClick(Sender: TObject);
 begin
   FiltroCambiado(Sender);
@@ -496,10 +546,153 @@ begin
         [FormatDateTime('yyyymmdd', Date)]));
 end;
 
+function TfrmMtoCargasTransito.IncidenciasSeleccionadas: TArray<Int64>;
+var
+  oColumnaId: TcxGridDBColumn;
+  i: Integer;
+begin
+  Result := nil;
+  oColumnaId := tvIncidencias.GetColumnByFieldName(CAMPO_ID_INCIDENCIA);
+  if Assigned(oColumnaId) then
+    for i := 0 to tvIncidencias.Controller.SelectedRecordCount - 1 do
+      Result := Result + [Int64(tvIncidencias.Controller.
+        SelectedRecords[i].Values[oColumnaId.Index])];
+end;
+
+// Varias seleccionadas: esas. Una sola de una carga con más incidencias:
+// se ofrece anotar la reclamación en toda la carga (FZ-ISSUE-728).
+function TfrmMtoCargasTransito.IncidenciasAReclamar: TArray<Int64>;
+var
+  oApuntes: TDataSet;
+  aCarga: TArray<Int64>;
+begin
+  Result := IncidenciasSeleccionadas;
+  oApuntes := dmmCargas.dsIncidencias.DataSet;
+  if Length(Result) = 0 then
+    Result := [oApuntes.FieldByName(CAMPO_ID_INCIDENCIA).AsLargeInt];
+  if Length(Result) = 1 then
+  begin
+    aCarga := dmmCargas.IncidenciasCarga(
+      oApuntes.FieldByName(CAMPO_CARGA_INCIDENCIA).AsLargeInt);
+    if (Length(aCarga) > 1) and (MessageBox_fza(
+         Format(SPreguntaReclamacionCargaCompleta,
+           [oApuntes.FieldByName('CARGA').AsString, Length(aCarga)]),
+         STituloReclamacionIncidenciaTransito,
+         MB_YESNO or MB_ICONQUESTION) = IDYES) then
+      Result := aCarga;
+  end;
+end;
+
+function TfrmMtoCargasTransito.PedirReclamacion(ANumIncidencias: Integer;
+  var AReclamacion: TReclamacionTransito): Boolean;
+var
+  oDialogo: TForm;
+  oInfo: TcxLabel;
+  edtReferenciaRec: TcxTextEdit;
+  cbbEstadoRec: TcxComboBox;
+  edtReclamado: TcxCurrencyEdit;
+  edtIndemnizado: TcxCurrencyEdit;
+  oAceptar, oCancelar: TcxButton;
+  bImportes: Boolean;
+  iTopBotones: Integer;
+begin
+  bImportes := FVerCoste and dmmCargas.ConImportes;
+  oDialogo := TForm.CreateNew(Self);
+  try
+    oDialogo.Caption := STituloReclamacionIncidenciaTransito;
+    oDialogo.BorderStyle := bsDialog;
+    oDialogo.Position := poOwnerFormCenter;
+    oDialogo.Font.Assign(Font);
+    oDialogo.ClientWidth := EscalarDpi(480);
+    oInfo := CrearEtiqueta(oDialogo,
+      Format(SInfoAlcanceReclamacionTransito, [ANumIncidencias]), 16, 12);
+    oInfo.Properties.WordWrap := True;
+    oInfo.AutoSize := False;
+    oInfo.Width := EscalarDpi(448);
+    oInfo.Height := EscalarDpi(44);
+    CrearEtiqueta(oDialogo, SPreguntaReclamacionIncidenciaTransito, 16, 62);
+    edtReferenciaRec := TcxTextEdit.Create(oDialogo);
+    edtReferenciaRec.Parent := oDialogo;
+    edtReferenciaRec.Left := EscalarDpi(16);
+    edtReferenciaRec.Top := EscalarDpi(84);
+    edtReferenciaRec.Width := EscalarDpi(448);
+    edtReferenciaRec.Properties.MaxLength := 100;
+    edtReferenciaRec.Text := AReclamacion.Referencia;
+    CrearEtiqueta(oDialogo, SEtiquetaEstadoReclamacionTransito, 16, 120);
+    cbbEstadoRec := TcxComboBox.Create(oDialogo);
+    cbbEstadoRec.Parent := oDialogo;
+    cbbEstadoRec.Left := EscalarDpi(16);
+    cbbEstadoRec.Top := EscalarDpi(142);
+    cbbEstadoRec.Width := EscalarDpi(220);
+    cbbEstadoRec.Properties.DropDownListStyle := lsFixedList;
+    cbbEstadoRec.Properties.Items.AddStrings([SEstadoReclamacionPendiente,
+      SEstadoReclamacionEnviada, SEstadoReclamacionAceptada,
+      SEstadoReclamacionCobrada, SEstadoReclamacionRechazada]);
+    cbbEstadoRec.ItemIndex := Max(0, IndexStr(AReclamacion.Estado,
+      ESTADOS_RECLAMACION_TRANSITO));
+    CrearEtiqueta(oDialogo, SEtiquetaImporteReclamadoTransito, 16, 178)
+      .Visible := bImportes;
+    edtReclamado := TcxCurrencyEdit.Create(oDialogo);
+    edtReclamado.Parent := oDialogo;
+    edtReclamado.Left := EscalarDpi(16);
+    edtReclamado.Top := EscalarDpi(200);
+    edtReclamado.Width := EscalarDpi(160);
+    edtReclamado.Value := AReclamacion.ImporteReclamado;
+    edtReclamado.Visible := bImportes;
+    CrearEtiqueta(oDialogo, SEtiquetaImporteIndemnizadoTransito, 16, 236)
+      .Visible := bImportes;
+    edtIndemnizado := TcxCurrencyEdit.Create(oDialogo);
+    edtIndemnizado.Parent := oDialogo;
+    edtIndemnizado.Left := EscalarDpi(16);
+    edtIndemnizado.Top := EscalarDpi(258);
+    edtIndemnizado.Width := EscalarDpi(160);
+    if AReclamacion.ConIndemnizado then
+      edtIndemnizado.Value := AReclamacion.ImporteIndemnizado
+    else
+      edtIndemnizado.EditValue := Null;
+    edtIndemnizado.Visible := bImportes;
+    iTopBotones := 186;
+    if bImportes then
+      iTopBotones := 304;
+    oAceptar := CrearBoton(oDialogo, SCaptionAceptar, 234, iTopBotones,
+      110, nil);
+    oAceptar.ModalResult := mrOk;
+    oAceptar.Default := True;
+    oCancelar := CrearBoton(oDialogo, SCaptionCancelar, 354, iTopBotones,
+      110, nil);
+    oCancelar.ModalResult := mrCancel;
+    oCancelar.Cancel := True;
+    oDialogo.ClientHeight := EscalarDpi(iTopBotones + 50);
+    oDialogo.ActiveControl := edtReferenciaRec;
+    Result := oDialogo.ShowModal = mrOk;
+    if Result then
+    begin
+      AReclamacion.Referencia := Trim(edtReferenciaRec.Text);
+      AReclamacion.Estado :=
+        ESTADOS_RECLAMACION_TRANSITO[cbbEstadoRec.ItemIndex];
+      if bImportes then
+      begin
+        AReclamacion.ImporteReclamado := edtReclamado.Value;
+        AReclamacion.ConIndemnizado :=
+          not VarIsNull(edtIndemnizado.EditValue) and
+          (Trim(edtIndemnizado.Text) <> '');
+        AReclamacion.ImporteIndemnizado := 0;
+        if AReclamacion.ConIndemnizado then
+          AReclamacion.ImporteIndemnizado := edtIndemnizado.Value;
+      end;
+    end;
+  finally
+    FreeAndNil(oDialogo);
+  end;
+end;
+
+// La reclamación al transportista o al seguro es una para toda la carga:
+// referencia, estado e importes se anotan de una vez (FZ-ISSUE-728).
 procedure TfrmMtoCargasTransito.btnReclamacionClick(Sender: TObject);
 var
   oApuntes: TDataSet;
-  sReferencia: string;
+  aIds: TArray<Int64>;
+  Reclamacion: TReclamacionTransito;
   iId: Int64;
 begin
   oApuntes := dmmCargas.dsIncidencias.DataSet;
@@ -509,12 +702,16 @@ begin
   else
   begin
     iId := oApuntes.FieldByName(CAMPO_ID_INCIDENCIA).AsLargeInt;
-    sReferencia := oApuntes.FieldByName(
-      'REFERENCIA_RECLAMACION_TRTINC').AsString;
-    if InputQuery_fza(STituloReclamacionIncidenciaTransito,
-         SPreguntaReclamacionIncidenciaTransito, sReferencia) then
+    aIds := IncidenciasAReclamar;
+    Reclamacion := dmmCargas.LeerReclamacion(aIds);
+    if PedirReclamacion(Length(aIds), Reclamacion) then
     begin
-      dmmTraspaso.AnotarReclamacionIncidenciaTransito(iId, sReferencia);
+      try
+        dmmCargas.GrabarReclamacion(aIds, Reclamacion);
+      except
+        on E: EArgumentException do
+          ShowMessage_fza(E.Message);
+      end;
       dmmCargas.RefrescarIncidencias;
       oApuntes.Locate(CAMPO_ID_INCIDENCIA, iId, []);
     end;

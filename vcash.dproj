@@ -488,6 +488,9 @@
         <DCCReference Include="src\Forms\inMtoTarifas.pas">
             <Form>frmMtoTarifas</Form>
         </DCCReference>
+        <DCCReference Include="src\Lib\inLibTarifasPeriodicidad.pas"/>
+        <DCCReference Include="src\DataModules\UniDataTarifasPeriodicidadRepositorio.pas"/>
+        <DCCReference Include="src\Forms\inMtoTarifasPeriodicidadVcl.pas"/>
         <DCCReference Include="src\Lib\inLibTarifasDescuentoCondicionesPersistenciaIntf.pas"/>
         <DCCReference Include="src\Forms\inMtoUsuarios.pas">
             <Form>frmMtoUsuarios</Form>

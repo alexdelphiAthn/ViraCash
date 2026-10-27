@@ -34,9 +34,17 @@ function ResolverTarifaVentaCaja(ATarifas: TDataSet;
   const ASolicitada, AActual, ADefecto: string;
   out AAviso: string): string;
 
+// Precio de una línea en ATarifa. Si ATarifa es la tarifa periódica, es una
+// capa sobre la habitual: lo que no tiene precio en ella se cobra con
+// ARespaldo (vacío: sin respaldo). ATarifaAplicada dice de cuál salió
+// (FZ-ISSUE-727).
+function ResolverPrecioVentaCaja(const AResolver: IArticulosResolver;
+  const AArticulo, ASku, ATarifa, ARespaldo: string; AFecha: TDateTime;
+  out ATarifaAplicada: string): TArticuloPrecio;
+
 // Comprueba todos los precios antes de cambiar ninguna línea.
 function CambiarTarifaVentaCaja(ALineas, ACabecera: TDataSet;
-  const ATarifa: string; const AResolver: IArticulosResolver;
+  const ATarifa, ARespaldo: string; const AResolver: IArticulosResolver;
   out AError: string): Boolean;
 
 // Una linea vino de deposito cuando VIENE_DE_DEPOSITO es 'S', 'A' o 'H'
@@ -111,13 +119,34 @@ begin
   end;
 end;
 
+function PrecioVentaCajaValido(const APrecio: TArticuloPrecio): Boolean;
+begin
+  Result := APrecio.TieneRegistro and APrecio.EsImpIncl;
+end;
+
+function ResolverPrecioVentaCaja(const AResolver: IArticulosResolver;
+  const AArticulo, ASku, ATarifa, ARespaldo: string; AFecha: TDateTime;
+  out ATarifaAplicada: string): TArticuloPrecio;
+begin
+  ATarifaAplicada := ATarifa;
+  Result := AResolver.ResolverPrecio(AArticulo, ASku, ATarifa, AFecha);
+  if not PrecioVentaCajaValido(Result) and (Trim(ARespaldo) <> '') and
+     not SameText(Trim(ARespaldo), Trim(ATarifa)) then
+  begin
+    ATarifaAplicada := Trim(ARespaldo);
+    Result := AResolver.ResolverPrecio(AArticulo, ASku, ATarifaAplicada,
+      AFecha);
+  end;
+end;
+
 function CambiarTarifaVentaCaja(ALineas, ACabecera: TDataSet;
-  const ATarifa: string; const AResolver: IArticulosResolver;
+  const ATarifa, ARespaldo: string; const AResolver: IArticulosResolver;
   out AError: string): Boolean;
 type
   TCambioPrecio = record
     Posicion: TBookmark;
     Precio: TArticuloPrecio;
+    Tarifa: string;
   end;
 var
   Cambios: TList<TCambioPrecio>;
@@ -145,10 +174,10 @@ begin
            'TIPO_ARTICULO_FACLIN').AsString, 'ABONO') then
       begin
         Cambio.Posicion := ALineas.Bookmark;
-        Cambio.Precio := AResolver.ResolverPrecio(Articulo, Sku,
-          ATarifa, ACabecera.FieldByName('FECHA_FAC').AsDateTime);
-        Result := Cambio.Precio.TieneRegistro and
-          Cambio.Precio.EsImpIncl;
+        Cambio.Precio := ResolverPrecioVentaCaja(AResolver, Articulo, Sku,
+          ATarifa, ARespaldo, ACabecera.FieldByName('FECHA_FAC').AsDateTime,
+          Cambio.Tarifa);
+        Result := PrecioVentaCajaValido(Cambio.Precio);
         if Result then
           Cambios.Add(Cambio)
         else
@@ -163,7 +192,7 @@ begin
       begin
         ALineas.Bookmark := Cambio.Posicion;
         ALineas.Edit;
-        ALineas.FieldByName('CODIGO_TAR_FACLIN').AsString := ATarifa;
+        ALineas.FieldByName('CODIGO_TAR_FACLIN').AsString := Cambio.Tarifa;
         ALineas.FieldByName('ESIMP_INCL_TARIFA_FACLIN').AsString := 'S';
         ALineas.FieldByName('PRECIO_SALIDA_FACLIN').AsFloat :=
           Cambio.Precio.PrecioSalida;

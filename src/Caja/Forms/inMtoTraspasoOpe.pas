@@ -302,6 +302,7 @@ type
     function ObtenerRangoReposicion(
       out ADesde, AHasta: TDateTime): Boolean;
     procedure CargarVentasReposicion;
+    procedure TitularAtributosLineasCargadas;
     procedure EmitirReposicion;
     procedure EmitirReposicionInterna;
     procedure CargarCombo;
@@ -1912,12 +1913,51 @@ begin
       finally
         FDatos.cdsLineas.EnableControls;
       end;
+      TitularAtributosLineasCargadas;
     finally
       FCargandoVentasReposicion := False;
     end;
     ActualizarStockYFoto;
     if not FReposicionCargada then
       ShowMessage_fza(SInfoVentasReposicionNoEncontradas);
+  end;
+end;
+
+// Las líneas cargadas en bloque no pasan por la edición, que es la que
+// titula las columnas de atributo: se titulan con el artículo que más
+// atributos usa («Color», «Talla») en vez de dejarlas en «-»
+// (FZ-ISSUE-730).
+procedure TfrmMtoOpeTraspaso.TitularAtributosLineasCargadas;
+var
+  oLineas: TDataSet;
+  oPosicion: TBookmark;
+  sArticulo: string;
+  iAtributos: Integer;
+begin
+  oLineas := FDatos.cdsLineas;
+  if Assigned(FGridCtrl) and oLineas.Active and not oLineas.IsEmpty then
+  begin
+    sArticulo := '';
+    iAtributos := -1;
+    oLineas.DisableControls;
+    oPosicion := oLineas.Bookmark;
+    try
+      oLineas.First;
+      while not oLineas.Eof do
+      begin
+        if oLineas.FieldByName('NUM_ATRIBUTOS').AsInteger > iAtributos then
+        begin
+          iAtributos := oLineas.FieldByName('NUM_ATRIBUTOS').AsInteger;
+          sArticulo := oLineas.FieldByName('CODIGO_ART').AsString;
+        end;
+        oLineas.Next;
+      end;
+    finally
+      if oLineas.BookmarkValid(oPosicion) then
+        oLineas.Bookmark := oPosicion;
+      oLineas.EnableControls;
+    end;
+    FGridCtrl.MostrarColumnasAtributosArticulo(sArticulo);
   end;
 end;
 
@@ -4365,6 +4405,7 @@ begin
       if AResultadoModal = mrNo then
         PonerCantidadesSolicitudACero;
       ActualizarTotal;
+      TitularAtributosLineasCargadas;
     end
     else
       ShowMessage_fza(SErrorCargarSolicitudTraspaso);

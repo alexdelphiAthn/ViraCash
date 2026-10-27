@@ -281,6 +281,7 @@ uses
   inLibMsgCompras,
   inLibTrazabilidadAlta, UniDataFamilias,
   UniDataTarifasPrecioSql, UniDataPrecioUnidad,
+  UniDataTarifasPeriodicidadRepositorio, inLibTarifasPeriodicidad,
 
   System.Diagnostics,
   UniDataAperturaConsultas,
@@ -2763,7 +2764,8 @@ procedure TdmArticulos.CrearDataSetEtiquetasArt(const aCodigoArt,
                                                       aFechaTarifa: TDateTime;
                                                       const aSkusCsv: string);
 var
-  sSql, sFiltroAlm: string;
+  sSql, sFiltroAlm, FiltroPeriodicidad: string;
+  Periodicidad: IRepositorioPeriodicidadTarifa;
   i: Integer;
   lstCod: TStringList;
 begin
@@ -2804,8 +2806,15 @@ begin
       ':FECHA_APLICACION'), [rfReplaceAll]);
   sSql := StringReplace(sSql, '{CAMPOS_PRECIO_UNIDAD}',
     SqlCamposPrecioUnidadEtiqueta, [rfReplaceAll]);
+  FiltroPeriodicidad := '1 = 1';
+  Periodicidad := CrearRepositorioPeriodicidadTarifa(
+    unqryArtPrint.Connection);
+  if Periodicidad.Disponible then
+    FiltroPeriodicidad := SqlPeriodicidadTarifa(
+      'tar.CODIGO_TAR_ARTTAR', ':FECHA_APLICACION');
   sSql := StringReplace(sSql, '{DESCUENTO_VIGENTE}',
-    cSqlDescuentoVigenteEtiquetas, [rfReplaceAll]);
+    '(' + cSqlDescuentoVigenteEtiquetas + ' AND ' +
+    FiltroPeriodicidad + ')', [rfReplaceAll]);
   sSql := StringReplace(sSql,
                         '%ALMACEN_FILTER%',
                         sFiltroAlm,

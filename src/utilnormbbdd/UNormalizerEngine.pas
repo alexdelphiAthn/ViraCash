@@ -309,6 +309,8 @@ begin
   AddSuf('fza_remesas_compra',                  'REMC');
   AddSuf('fza_remesas_venta',                   'REMV');
   AddSuf('fza_stock_bloqueos',                  'STKBLQ');
+  AddSuf('fza_tarifas_periodos', 'TPER');
+  AddOwn('fza_tarifas_periodos', ['TARIFA', 'PERIODO']);
   AddSuf('fza_tarifas',                         'TAR');
   AddSuf('fza_tarifas_cambios',                 'TARC');
   AddSuf('fza_tarifas_cambios_lineas',          'TARCLIN');

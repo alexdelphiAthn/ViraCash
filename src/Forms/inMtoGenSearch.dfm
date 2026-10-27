@@ -1,6 +1,8 @@
 ﻿inherited frmMtoSearch: TfrmMtoSearch
   BorderStyle = bsSizeable
   Caption = 'Búsqueda'
+  KeyPreview = True
+  OnKeyDown = FormKeyDown
   ClientHeight = 501
   ClientWidth = 929
   Visible = False

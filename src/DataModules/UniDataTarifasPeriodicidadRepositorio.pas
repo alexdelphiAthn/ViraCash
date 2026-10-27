@@ -1,4 +1,4 @@
-{ Persistencia de periodicidad de tarifas. FZ-ISSUE-727. }
+﻿{ Persistencia de periodicidad de tarifas. FZ-ISSUE-727. }
 unit UniDataTarifasPeriodicidadRepositorio;
 
 interface
@@ -111,9 +111,9 @@ begin
   if Trim(ATarifa) = '' then
     raise EArgumentException.Create('Guarde primero la tarifa.');
   if not Disponible then
-    raise EInvalidOpException.Create('Instale la actualización 727.');
+    raise EInvalidOp.Create('Instale la actualización 727.');
   if FConexion.InTransaction then
-    raise EInvalidOpException.Create('Hay una transacción en curso.');
+    raise EInvalidOp.Create('Hay una transacción en curso.');
   Consulta := TUniQuery.Create(nil);
   try
     Consulta.Connection := FConexion;
