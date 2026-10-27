@@ -30225,6 +30225,54 @@ begin
     'src/Lib/inLibMsgCaja.pas',
     @inLibMsgCaja.
       SAvisoPreciosTarifaDefectoCaja);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SErrorCerrarFacturaCompraSinRefProveedor',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SErrorCerrarFacturaCompraSinRefProveedor);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SCaptionCerrarFacturaCompra',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SCaptionCerrarFacturaCompra);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SCaptionReabrirFacturaCompra',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SCaptionReabrirFacturaCompra);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SPreguntaCerrarFacturaCompra',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SPreguntaCerrarFacturaCompra);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SPreguntaReabrirFacturaCompra',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SPreguntaReabrirFacturaCompra);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SAvisoFacturasAbiertasLibrosIva',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SAvisoFacturasAbiertasLibrosIva);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SRotuloSaborVariacionSesion',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SRotuloSaborVariacionSesion);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SRotuloAromaVariacionSesion',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SRotuloAromaVariacionSesion);
 end;
 {$WARN SYMBOL_DEPRECATED ON}
 

@@ -211,8 +211,12 @@ begin
     Agregar('         COALESCE(NULLIF(P.CODIGO_ALM_PEDC, ''''), '''') ' +
             'AS CODIGO_ALM,');
     Agregar('         COALESCE(TP.PV, SDT.TEMPORADA, '''') AS TEMPORADA,');
-    Agregar('         COALESCE(CAST(NULLIF(P.CONTADOR_LINEAS_PEDC, '''')');
-    Agregar('                  AS DECIMAL(18,6)), 0) / 10 AS CANTIDAD_DOC,');
+    // FZ-ISSUE-732: líneas reales; el contador no siempre va de 10 en 10.
+    Agregar('         (SELECT COUNT(*)');
+    Agregar('            FROM fza_pedidos_compra_lineas L');
+    Agregar('           WHERE L.NUMERO_PEDC_PEDCLIN = P.NUMERO_PEDC');
+    Agregar('             AND L.SERIE_PEDC_PEDCLIN = P.SERIE_PEDC)');
+    Agregar('           AS CANTIDAD_DOC,');
     // FZ-ISSUE-254: suma de las cantidades de las lineas y su unidad
     // ('Varias' si las mezcla; NULL si no hay lineas).
     Agregar('         (SELECT SUM(L.CANTIDAD_PEDCLIN)');
@@ -294,8 +298,12 @@ begin
     Agregar('         COALESCE(NULLIF(A.CODIGO_ALM_ALBC, ''''), '''') ' +
             'AS CODIGO_ALM,');
     Agregar('         COALESCE(TP.PV, SDT.TEMPORADA, '''') AS TEMPORADA,');
-    Agregar('         COALESCE(CAST(NULLIF(A.CONTADOR_LINEAS_ALBC, '''')');
-    Agregar('                  AS DECIMAL(18,6)), 0) / 10 AS CANTIDAD_DOC,');
+    // FZ-ISSUE-732: líneas reales; el contador no siempre va de 10 en 10.
+    Agregar('         (SELECT COUNT(*)');
+    Agregar('            FROM fza_albaranes_compra_lineas L');
+    Agregar('           WHERE L.NUMERO_ALBC_ALBCLIN = A.NUMERO_ALBC');
+    Agregar('             AND L.SERIE_ALBC_ALBCLIN = A.SERIE_ALBC)');
+    Agregar('           AS CANTIDAD_DOC,');
     Agregar('         (SELECT SUM(L.CANTIDAD_ALBCLIN)');
     Agregar('            FROM fza_albaranes_compra_lineas L');
     Agregar('           WHERE L.NUMERO_ALBC_ALBCLIN = A.NUMERO_ALBC');
@@ -379,8 +387,12 @@ begin
     Agregar('         COALESCE(NULLIF(F.CODIGO_ALM_FACC, ''''), '''') ' +
             'AS CODIGO_ALM,');
     Agregar('         COALESCE(TF.PV, FT.TEMPORADA, '''') AS TEMPORADA,');
-    Agregar('         COALESCE(CAST(NULLIF(F.CONTADOR_LINEAS_FACC, '''')');
-    Agregar('                  AS DECIMAL(18,6)), 0) / 10 AS CANTIDAD_DOC,');
+    // FZ-ISSUE-732: líneas reales; el contador no siempre va de 10 en 10.
+    Agregar('         (SELECT COUNT(*)');
+    Agregar('            FROM fza_facturas_compra_lineas L');
+    Agregar('           WHERE L.NUMERO_FACC_FACCLIN = F.NUMERO_FACC');
+    Agregar('             AND L.SERIE_FACC_FACCLIN = F.SERIE_FACC)');
+    Agregar('           AS CANTIDAD_DOC,');
     Agregar('         (SELECT SUM(L.CANTIDAD_FACCLIN)');
     Agregar('            FROM fza_facturas_compra_lineas L');
     Agregar('           WHERE L.NUMERO_FACC_FACCLIN = F.NUMERO_FACC');
@@ -475,9 +487,12 @@ begin
     Agregar('         COALESCE(NULLIF(V.CODIGO_ALM_DEVC, ''''), '''') ' +
             'AS CODIGO_ALM,');
     Agregar('         COALESCE(TP.PV, FT.TEMPORADA, '''') AS TEMPORADA,');
-    Agregar('         -COALESCE(CAST(NULLIF(V.CONTADOR_LINEAS_DEVC, '''')');
-    Agregar('                   AS DECIMAL(18,6)), 0) / 10 ' +
-            'AS CANTIDAD_DOC,');
+    // FZ-ISSUE-732: líneas reales; el contador no siempre va de 10 en 10.
+    Agregar('         -(SELECT COUNT(*)');
+    Agregar('            FROM fza_devoluciones_compra_lineas L');
+    Agregar('           WHERE L.NUMERO_DEVC_DEVCLIN = V.NUMERO_DEVC');
+    Agregar('             AND L.SERIE_DEVC_DEVCLIN = V.SERIE_DEVC)');
+    Agregar('           AS CANTIDAD_DOC,');
     Agregar('         -(SELECT SUM(L.CANTIDAD_DEVCLIN)');
     Agregar('            FROM fza_devoluciones_compra_lineas L');
     Agregar('           WHERE L.NUMERO_DEVC_DEVCLIN = V.NUMERO_DEVC');

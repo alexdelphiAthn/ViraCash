@@ -95,7 +95,10 @@ uses
   inLibEjesVariacion,
   inLibMsgCompras;
 
-function TraducirRotuloAtributoVariacion(const ATexto: string): string;
+const
+  SEPARADOR_ROTULOS = ' / ';
+
+function TraducirNombreAtributo(const ATexto: string): string;
 begin
   Result := ATexto;
   if SameText(Trim(ATexto), 'Color') then
@@ -107,7 +110,29 @@ begin
   else if SameText(Trim(ATexto), 'Contorno') then
     Result := SRotuloContornoVariacionSesion
   else if SameText(Trim(ATexto), 'Medida') then
-    Result := SRotuloMedidaVariacionSesion;
+    Result := SRotuloMedidaVariacionSesion
+  else if SameText(Trim(ATexto), 'Sabor') then
+    Result := SRotuloSaborVariacionSesion
+  else if SameText(Trim(ATexto), 'Aroma') then
+    Result := SRotuloAromaVariacionSesion;
+end;
+
+// Un rótulo compuesto («Color / Sabor», FZ-ISSUE-436) se traduce por
+// partes (FZ-ISSUE-734). Los nombres que no son de serie se dejan tal cual.
+function TraducirRotuloAtributoVariacion(const ATexto: string): string;
+var
+  aPartes: TArray<string>;
+  i: Integer;
+begin
+  aPartes := ATexto.Split([SEPARADOR_ROTULOS]);
+  if Length(aPartes) <= 1 then
+    Result := TraducirNombreAtributo(ATexto)
+  else
+  begin
+    for i := 0 to High(aPartes) do
+      aPartes[i] := TraducirNombreAtributo(aPartes[i]);
+    Result := string.Join(SEPARADOR_ROTULOS, aPartes);
+  end;
 end;
 
 function RotulosVariacionPorDefecto: TRotulosVariacion;
@@ -159,7 +184,7 @@ end;
 function ComponerRotulosEjesGlobales(const APosiciones: TArray<Integer>;
   const ANombres: TArray<string>; AMaximo: Integer): TArray<string>;
 const
-  SEPARADOR = ' / ';
+  SEPARADOR = SEPARADOR_ROTULOS;
 var
   iFila: Integer;
   iPosicion: Integer;
@@ -171,7 +196,7 @@ begin
     iPosicion := APosiciones[iFila];
     sNombre := '';
     if iFila <= High(ANombres) then
-      sNombre := Trim(ANombres[iFila]);
+      sNombre := Trim(TraducirNombreAtributo(ANombres[iFila]));
     if (iPosicion >= 1) and (iPosicion <= AMaximo) and (sNombre <> '') then
     begin
       if Length(Result) < iPosicion then

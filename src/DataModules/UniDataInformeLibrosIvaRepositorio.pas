@@ -57,6 +57,12 @@ type
     function ListarFacturasSinNumeroProveedor(
       const ACriterios: TCriteriosInformeLibrosIva
     ): TFacturasSinNumeroProveedorLibrosIva;
+    function ListarFacturasAbiertas(
+      const ACriterios: TCriteriosInformeLibrosIva
+    ): TFacturasAbiertasLibrosIva;
+    function ListarFacturas(const ASql: string;
+      const ACriterios: TCriteriosInformeLibrosIva
+    ): TFacturasSinNumeroProveedorLibrosIva;
   end;
 
 constructor TResultadoInformeLibrosIvaUniDAC.Create(
@@ -172,12 +178,27 @@ end;
 function TRepositorioInformeLibrosIvaUniDAC.ListarFacturasSinNumeroProveedor(
   const ACriterios: TCriteriosInformeLibrosIva
 ): TFacturasSinNumeroProveedorLibrosIva;
+begin
+  Result := ListarFacturas(SqlSoportadoSinNumeroProveedorLibrosIva,
+    ACriterios);
+end;
+
+function TRepositorioInformeLibrosIvaUniDAC.ListarFacturasAbiertas(
+  const ACriterios: TCriteriosInformeLibrosIva
+): TFacturasAbiertasLibrosIva;
+begin
+  Result := ListarFacturas(SqlSoportadoAbiertasLibrosIva, ACriterios);
+end;
+
+function TRepositorioInformeLibrosIvaUniDAC.ListarFacturas(
+  const ASql: string; const ACriterios: TCriteriosInformeLibrosIva
+): TFacturasSinNumeroProveedorLibrosIva;
 var
   iFactura: Integer;
   oConsulta: TUniQuery;
 begin
   SetLength(Result, 0);
-  oConsulta := Abrir(SqlSoportadoSinNumeroProveedorLibrosIva, ACriterios);
+  oConsulta := Abrir(ASql, ACriterios);
   try
     while not oConsulta.Eof do
     begin

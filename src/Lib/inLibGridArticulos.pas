@@ -90,6 +90,8 @@ type
     FColArticulo: TcxGridDBColumn;
     FColNumeroAtributos: TcxGridDBColumn;
     FColAtributo: array[1..5] of TcxGridDBColumn;
+    // Nombre del atributo de cada columna; el Caption va traducido.
+    FNombreAtributoColumna: array[1..5] of string;
     FUsarCombosAtributos: Boolean;
     FMostrarCodigoPadre: Boolean;
     FOpcionesAtributo: array[1..5] of TArray<string>;
@@ -333,7 +335,7 @@ uses
   cxGeometry, dxDPIAwareUtils,
   inLibMensajesVcl,
   inLibMsgArticulos,
-  inLibSelectorAtributoLinea, inLibLineaSku;
+  inLibSelectorAtributoLinea, inLibLineaSku, inLibVariacionesRotulos;
 
 const
   // Anchos a 96 ppp de las columnas de atributo. La de paleta (color) lleva
@@ -945,9 +947,12 @@ begin
     begin
       if FNombresAtributosGenericos then
         FColAtributo[i].Caption := Format(SCaptionAtributoN, [i]);
+      // La paleta se decide por el nombre del atributo, no por el rótulo
+      // traducido de la columna (FZ-ISSUE-734).
       AjustarAnchoColumnaAtributo(
         FColAtributo[i],
-        EsAtributoConPaleta(FConn, FColAtributo[i].Caption));
+        (not FNombresAtributosGenericos) and
+        EsAtributoConPaleta(FConn, FNombreAtributoColumna[i]));
     end;
 end;
 
@@ -1860,7 +1865,9 @@ begin
         begin
           if FUsarCombosAtributos then
             CargarOpcionesCombo(i, ACodArt);
-          Col.Caption := Atribs[i - 1].NombreAtributo;
+          FNombreAtributoColumna[i] := Atribs[i - 1].NombreAtributo;
+          Col.Caption := TraducirRotuloAtributoVariacion(
+            Atribs[i - 1].NombreAtributo);
           if FUsarCombosAtributos then
             FGlifoSwatch.MostrarBoton(
               Col.Properties,

@@ -127,6 +127,10 @@ type
     procedure GetCodigoAutoFacturaCompra;
     procedure CalcularTotalesFacturaCompra;
     procedure RefrescarAlmacenes(const ACodigoEmpresa: string);
+    // Cierra (CERRADA) o reabre (ABIERTA) la factura enfocada, que no debe
+    // estar en edición. Las validaciones del cierre están en BeforePost
+    // (FZ-ISSUE-733).
+    procedure CambiarEstadoFactura(ACerrar: Boolean);
     // Numero total de prendas (suma CANTIDAD_FACCLIN de todas las lineas).
     // Se muestra en la pestana Totales; no se persiste en BBDD.
     function TotalPrendasFactura: Double;
@@ -198,7 +202,7 @@ uses
   UniDataArticulosValidadorRepositorio,
   inLibMsgCompras, inLibDocumento, inLibDocumentoIntf,
   UniDataDatosProveedorDocumento, UniDataComprasDirectas,
-  inLibComprasDirectas, UniDataComprasDirectasFiscal;
+  inLibComprasDirectas, UniDataComprasDirectasFiscal, inLibErroresBBDD;
 
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 
@@ -668,10 +672,20 @@ begin
               unqryTablaG.FieldByName('NUMERO_FACC').AsString;
             qChk.Open;
             if qChk.FieldByName('N').AsInteger = 0 then
-              raise Exception.Create(SErrorCerrarFacturaCompraSinLineas);
+              raise EValidacionBBDD.Create(
+                SErrorCerrarFacturaCompraSinLineas);
           finally
             FreeAndNil(qChk);
           end;
+          // El n.º de factura del proveedor es obligatorio en el libro
+          // registro de facturas recibidas (FZ-ISSUE-733).
+          if (Trim(unqryTablaG.FieldByName('REF_PROVEEDOR_FACC').AsString) =
+              '') and
+             ((unqryTablaG.FindField('DOC_EXTERNO_FACC') = nil) or
+              (Trim(unqryTablaG.FieldByName('DOC_EXTERNO_FACC').AsString) =
+               '')) then
+            raise EValidacionBBDD.Create(
+              SErrorCerrarFacturaCompraSinRefProveedor);
         end;
       end;
     end;
@@ -797,6 +811,21 @@ end;
 // usuario (el Post original ya quedo aplicado, por lo que la factura
 // guardara su nuevo estado aunque los movimientos fallen — el usuario
 // debe revisar y reintentar o revertir manualmente).
+procedure TdmFacturasCompra.CambiarEstadoFactura(ACerrar: Boolean);
+begin
+  unqryTablaG.Edit;
+  if ACerrar then
+    unqryTablaG.FieldByName('ESTADO_FACC').AsString := 'CERRADA'
+  else
+    unqryTablaG.FieldByName('ESTADO_FACC').AsString := 'ABIERTA';
+  try
+    unqryTablaG.Post;
+  except
+    unqryTablaG.Cancel;
+    raise;
+  end;
+end;
+
 procedure TdmFacturasCompra.unqryTablaGAfterPost(DataSet: TDataSet);
 begin
   inherited;

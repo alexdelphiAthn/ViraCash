@@ -88,6 +88,7 @@ type
     dteFECHA_FACC:    TcxDBDateEdit;
     lblEstadoFactura: TcxLabel;
     txtESTADO_FACC:   TcxDBTextEdit;
+    btnCerrarBorrador: TcxButton;
     lblCodigoEmpresa: TcxLabel;
     btnCODIGO_EMP_FACC: TcxDBButtonEdit;
     lblCodigoProveedor: TcxLabel;
@@ -196,6 +197,7 @@ type
     procedure cbbCODIGO_PRV_FACCKeyUp(Sender: TObject; var Key: Word;
                                       Shift: TShiftState);
     procedure btnGenerarEfectosClick(Sender: TObject);
+    procedure btnCerrarBorradorClick(Sender: TObject);
     procedure btnRegistrarPagoClick(Sender: TObject);
   private
     FGestorTallas    : TGestorGridTallas;
@@ -248,6 +250,8 @@ type
     procedure CargarCaptionsAtributosLineaActiva;
     procedure ActualizarCaptionEjeFila;
     procedure dsTablaGDataChangeHook(Sender: TObject; Field: TField);
+    function FacturaCerrada: Boolean;
+    procedure ActualizarBotonEstadoFactura;
     // Pinta lblProveedorNombreFacc con el nombre comercial del proveedor
     // (razon social entre parentesis si difiere). Ver UniDataFacturasCompra
     // .unqryPrvDataFacc (lookup completo de fza_proveedores).
@@ -330,7 +334,7 @@ uses
   inLibAsignacionLoteLectura, inLibLotesLineaDocumento,
   inLibTrazabilidadDocumento, UniDataLotesRepositorio,
   inMtoModalSeleccionLote,
-  inLibFiltroUsuario,
+  inLibFiltroUsuario, UniDataComprasDirectas, inLibErroresBBDD,
   UniDataAplicacionArticuloCompra,
   inLibGridCantidad,
   inLibColumnasDocumento, UniDataColumnasDocumentoRepositorio,
@@ -582,15 +586,11 @@ begin
   Result := False;
 end;
 
+// InyectarFiltroSql pega fragmentos « AND ...»: el heredado ya lo es y la
+// modalidad se añade igual (FZ-ISSUE-731).
 function TfrmMtoFacturasCompra.SqlRestriccionUsuario: string;
 begin
-  Result := inherited;
-  if Result <> '' then
-    Result := '(' + Result + ') AND ';
-  if EsPantallaCompraDirecta then
-    Result := Result + 'F.MODALIDAD_FACC IN (''AUTOFAC'', ''REAGP'')'
-  else
-    Result := Result + 'F.MODALIDAD_FACC = ''ORDINARIA''';
+  Result := inherited + FiltroModalidadListaCompras(EsPantallaCompraDirecta);
 end;
 
 procedure TfrmMtoFacturasCompra.AplicarEtiquetas;
@@ -1006,6 +1006,8 @@ begin
   // lineas cargadas son las de la factura recien enfocada.
   if Field = nil then
     ActualizarLabelPrendas;
+  if (Field = nil) or SameText(Field.FieldName, 'ESTADO_FACC') then
+    ActualizarBotonEstadoFactura;
   if Assigned(dmmFacturasCompra) then
   begin
     ReconstruirModoEntradaEnAltaDocumento(
@@ -1759,6 +1761,50 @@ begin
           ACodigoBancoEmpresa,
           AIban);
       end);
+end;
+
+function TfrmMtoFacturasCompra.FacturaCerrada: Boolean;
+begin
+  Result := Assigned(dsTablaG.DataSet) and dsTablaG.DataSet.Active and
+    not dsTablaG.DataSet.IsEmpty and SameText(Trim(
+      dsTablaG.DataSet.FieldByName('ESTADO_FACC').AsString), 'CERRADA');
+end;
+
+// Un solo botón: «Cerrar borrador» en las abiertas, «Reabrir» en las
+// cerradas (FZ-ISSUE-733).
+procedure TfrmMtoFacturasCompra.ActualizarBotonEstadoFactura;
+begin
+  if Assigned(btnCerrarBorrador) then
+  begin
+    btnCerrarBorrador.Caption := IfThen(FacturaCerrada,
+      SCaptionReabrirFacturaCompra, SCaptionCerrarFacturaCompra);
+    btnCerrarBorrador.Enabled := Assigned(dsTablaG.DataSet) and
+      dsTablaG.DataSet.Active and not dsTablaG.DataSet.IsEmpty and
+      (dsTablaG.DataSet.State <> dsInsert);
+  end;
+end;
+
+procedure TfrmMtoFacturasCompra.btnCerrarBorradorClick(Sender: TObject);
+var
+  bCerrar: Boolean;
+begin
+  inherited;
+  if Assigned(dmmFacturasCompra) and btnCerrarBorrador.Enabled then
+  begin
+    if dsTablaG.DataSet.State in dsEditModes then
+      dsTablaG.DataSet.Post;
+    bCerrar := not FacturaCerrada;
+    if MessageDlg_fza(IfThen(bCerrar, SPreguntaCerrarFacturaCompra,
+         SPreguntaReabrirFacturaCompra), mtConfirmation,
+         [mbYes, mbNo], 0) = mrYes then
+      try
+        dmmFacturasCompra.CambiarEstadoFactura(bCerrar);
+      except
+        on E: EValidacionBBDD do
+          ShowMessage_fza(E.Message);
+      end;
+    ActualizarBotonEstadoFactura;
+  end;
 end;
 
 procedure TfrmMtoFacturasCompra.btnRegistrarPagoClick(Sender: TObject);

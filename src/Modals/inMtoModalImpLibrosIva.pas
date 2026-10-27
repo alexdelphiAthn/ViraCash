@@ -246,46 +246,60 @@ begin
   Result.IncluirSinFase := SinVerifactuActivo(ParametrosApp);
 end;
 
+procedure AgregarFacturasAviso(AMensaje: TStrings;
+  const ACabecera: string;
+  const AFacturas: TFacturasSinNumeroProveedorLibrosIva);
+var
+  i: Integer;
+begin
+  if Length(AFacturas) > 0 then
+  begin
+    if AMensaje.Count > 0 then
+      AMensaje.Add('');
+    AMensaje.Add(Format(ACabecera, [Length(AFacturas)]));
+    AMensaje.Add('');
+    i := 0;
+    while (i < Length(AFacturas)) and
+          (i < CMaxFacturasSinNumeroProveedorAviso) do
+    begin
+      AMensaje.Add(Format(SLineaSinNumeroProveedorLibrosIva,
+        [AFacturas[i].Empresa, AFacturas[i].Serie, AFacturas[i].Numero,
+         FormatDateTime('dd/mm/yyyy', AFacturas[i].Fecha),
+         AFacturas[i].Proveedor]));
+      Inc(i);
+    end;
+    if Length(AFacturas) > CMaxFacturasSinNumeroProveedorAviso then
+      AMensaje.Add(Format(SRestoSinNumeroProveedorLibrosIva,
+        [Length(AFacturas) - CMaxFacturasSinNumeroProveedorAviso]));
+  end;
+end;
+
 // FZ-ISSUE-632: el n.º de factura del proveedor es obligatorio en el libro
-// registro de facturas recibidas. Aviso no bloqueante con las facturas del
-// periodo que saldrían sin él (p. ej. borradores creados desde albaranes),
-// para que el usuario las complete; el informe se emite igualmente.
+// registro de facturas recibidas. FZ-ISSUE-733: los borradores sin cerrar
+// también entran. Aviso no bloqueante con las facturas del periodo en cada
+// caso, para que el usuario las complete; el informe se emite igualmente.
 procedure TfrmPrintLibrosIva.AvisarAntesDeConsulta;
 var
-  aFacturas: TFacturasSinNumeroProveedorLibrosIva;
-  i: Integer;
   oMensaje: TStringList;
 begin
   inherited;
-  if (FclbEmpresas = nil) or (FclbLibros = nil) then
-    Exit;
-  aFacturas := Repositorio.ListarFacturasSinNumeroProveedor(
-    CriteriosActuales);
-  if Length(aFacturas) = 0 then
-    Exit;
-  oMensaje := TStringList.Create;
-  try
-    oMensaje.Add(Format(SAvisoSinNumeroProveedorLibrosIva,
-      [Length(aFacturas)]));
-    oMensaje.Add('');
-    for i := 0 to Length(aFacturas) - 1 do
-    begin
-      if i >= CMaxFacturasSinNumeroProveedorAviso then
+  if (FclbEmpresas <> nil) and (FclbLibros <> nil) then
+  begin
+    oMensaje := TStringList.Create;
+    try
+      AgregarFacturasAviso(oMensaje, SAvisoSinNumeroProveedorLibrosIva,
+        Repositorio.ListarFacturasSinNumeroProveedor(CriteriosActuales));
+      AgregarFacturasAviso(oMensaje, SAvisoFacturasAbiertasLibrosIva,
+        Repositorio.ListarFacturasAbiertas(CriteriosActuales));
+      if oMensaje.Count > 0 then
       begin
-        oMensaje.Add(Format(SRestoSinNumeroProveedorLibrosIva,
-          [Length(aFacturas) - CMaxFacturasSinNumeroProveedorAviso]));
-        Break;
+        // Ninguna ventana de progreso debe cubrir el aviso modal.
+        OcultarEspera;
+        ShowMessage_fza(TrimRight(oMensaje.Text));
       end;
-      oMensaje.Add(Format(SLineaSinNumeroProveedorLibrosIva,
-        [aFacturas[i].Empresa, aFacturas[i].Serie, aFacturas[i].Numero,
-         FormatDateTime('dd/mm/yyyy', aFacturas[i].Fecha),
-         aFacturas[i].Proveedor]));
+    finally
+      FreeAndNil(oMensaje);
     end;
-    // Ninguna ventana de progreso debe cubrir el aviso modal.
-    OcultarEspera;
-    ShowMessage_fza(TrimRight(oMensaje.Text));
-  finally
-    FreeAndNil(oMensaje);
   end;
 end;
 

@@ -27,6 +27,8 @@ function SqlResumenLibrosIva: string;
 function SqlLiquidacionLibrosIva: string;
 // FZ-ISSUE-632: facturas del libro soportado sin n.º de fra. proveedor.
 function SqlSoportadoSinNumeroProveedorLibrosIva: string;
+// FZ-ISSUE-733: facturas del libro soportado aún ABIERTAS.
+function SqlSoportadoAbiertasLibrosIva: string;
 
 implementation
 
@@ -218,6 +220,21 @@ begin
     'FROM (' + SqlTramos + ') L ' +
     'WHERE L.LIBRO = ''SOP'' ' +
     '  AND L.DOC_EXTERNO = '''' ' +
+    'GROUP BY L.EMPRESA, L.SERIE, L.NUMERO ' +
+    'ORDER BY L.EMPRESA, MAX(L.FECHA), L.SERIE, L.NUMERO';
+end;
+
+// FZ-ISSUE-733: facturas del libro soportado que siguen ABIERTAS.
+function SqlSoportadoAbiertasLibrosIva: string;
+begin
+  Result :=
+    'SELECT L.EMPRESA, L.SERIE, L.NUMERO, ' +
+    '  MAX(L.FECHA) AS FECHA, MAX(L.NOMBRE) AS NOMBRE ' +
+    'FROM (' + SqlTramos + ') L ' +
+    'JOIN fza_facturas_compra C ' +
+    '  ON C.SERIE_FACC = L.SERIE AND C.NUMERO_FACC = L.NUMERO ' +
+    'WHERE L.LIBRO = ''SOP'' ' +
+    '  AND COALESCE(C.ESTADO_FACC, '''') = ''ABIERTA'' ' +
     'GROUP BY L.EMPRESA, L.SERIE, L.NUMERO ' +
     'ORDER BY L.EMPRESA, MAX(L.FECHA), L.SERIE, L.NUMERO';
 end;

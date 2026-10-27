@@ -178,6 +178,15 @@
                 TabOrder = 7
                 Width = 110
               end
+              object btnCerrarBorrador: TcxButton
+                Left = 438
+                Top = 30
+                Width = 140
+                Height = 26
+                Caption = 'Cerrar borrador'
+                TabOrder = 30
+                OnClick = btnCerrarBorradorClick
+              end
               object lblCodigoEmpresa: TcxLabel
                 Left = 8
                 Top = 72

@@ -21,6 +21,10 @@ procedure ValidarCompraDirecta(AConexion: TUniConnection;
   ACabecera: TDataSet; const AEmpresaLocal: string;
   const AParametros: IParametrosAplicacion);
 procedure AplicarCompensacionCompraDirecta(ACabecera: TDataSet);
+// Fragmento « AND ...» de InyectarFiltroSql que separa la lista de compras
+// ordinarias de la de compras directas. Sin alias: vale en la consulta
+// propia (F) y envuelta en una guía de rejilla (M_GUIA) (FZ-ISSUE-731).
+function FiltroModalidadListaCompras(ACompraDirecta: Boolean): string;
 
 implementation
 
@@ -47,6 +51,14 @@ const
     'AND (:SUBTIPO <> ''AUTOFAC'' OR S.CODIGO_PRV_EMPSER = :PROVEEDOR) ' +
     'GROUP BY V.EMPSER ORDER BY MAX(V.ESDEFECTO_EMPSER) DESC, V.EMPSER';
 
+
+function FiltroModalidadListaCompras(ACompraDirecta: Boolean): string;
+begin
+  if ACompraDirecta then
+    Result := ' AND ' + fmodalidad + ' IN (''AUTOFAC'', ''REAGP'')'
+  else
+    Result := ' AND ' + fmodalidad + ' = ''ORDINARIA''';
+end;
 
 function SubtipoCompra(AModalidad: TModalidadCompraDirecta): string;
 begin

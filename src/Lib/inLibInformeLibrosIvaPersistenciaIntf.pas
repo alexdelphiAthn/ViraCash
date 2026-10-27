@@ -53,6 +53,8 @@ type
 
   TFacturasSinNumeroProveedorLibrosIva =
     TArray<TFacturaSinNumeroProveedorLibrosIva>;
+  // FZ-ISSUE-733: misma forma para las facturas aún ABIERTAS (borradores).
+  TFacturasAbiertasLibrosIva = TFacturasSinNumeroProveedorLibrosIva;
 
   IResultadoInformeLibrosIva = interface
     ['{3E0B7D52-61C4-4B8A-9C1F-8A2D5E7F4B10}']
@@ -73,6 +75,11 @@ type
     function ListarFacturasSinNumeroProveedor(
       const ACriterios: TCriteriosInformeLibrosIva
     ): TFacturasSinNumeroProveedorLibrosIva;
+    // FZ-ISSUE-733: facturas de compra del libro soportado que siguen
+    // ABIERTAS (borradores sin cerrar). Entran en el libro igualmente.
+    function ListarFacturasAbiertas(
+      const ACriterios: TCriteriosInformeLibrosIva
+    ): TFacturasAbiertasLibrosIva;
   end;
 
 implementation

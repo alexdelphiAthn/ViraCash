@@ -67,6 +67,9 @@ resourcestring
   SRotuloCopaVariacionSesion = 'Copa';
   SRotuloContornoVariacionSesion = 'Contorno';
   SRotuloMedidaVariacionSesion = 'Medida';
+  // FZ-ISSUE-734: otros nombres de atributo habituales.
+  SRotuloSaborVariacionSesion = 'Sabor';
+  SRotuloAromaVariacionSesion = 'Aroma';
   SErrorSkuSesionNoEncontrado =
     'No se encuentra el SKU de %s, color %s, talla %d. '
     + 'No se ha materializado la sesión.';
@@ -155,6 +158,18 @@ resourcestring
   SErrorCerrarFacturaCompraSinLineas =
     'No se puede cerrar la factura: no tiene líneas con cantidad mayor que ' +
     '0. Añade líneas antes de cerrar.';
+  // FZ-ISSUE-733: cierre y reapertura de borradores de compra.
+  SErrorCerrarFacturaCompraSinRefProveedor =
+    'No se puede cerrar la factura: falta la Ref. proveedor (el número ' +
+    'de la factura del proveedor).';
+  SCaptionCerrarFacturaCompra =
+    'Cerrar borrador';
+  SCaptionReabrirFacturaCompra =
+    'Reabrir';
+  SPreguntaCerrarFacturaCompra =
+    '¿Cerrar la factura? Quedará como definitiva para pagos y libros.';
+  SPreguntaReabrirFacturaCompra =
+    '¿Reabrir la factura? Volverá a ser un borrador.';
   // FZ-ISSUE-168: factura del proveedor ya registrada.
   SPreguntaFacturaCompraDocExternoRepetido =
     'La factura %s del proveedor %s ya está registrada como %s/%s ' +
@@ -849,6 +864,11 @@ resourcestring
     'Indíquelo en «Ref. proveedor» de cada factura:';
   SLineaSinNumeroProveedorLibrosIva = '%s  %s/%s  %s  %s';
   SRestoSinNumeroProveedorLibrosIva = '... y %d más.';
+  // FZ-ISSUE-733: borradores sin cerrar que entran en el libro.
+  SAvisoFacturasAbiertasLibrosIva =
+    'Hay %d factura(s) de compra ABIERTAS (borradores sin cerrar) en el ' +
+    'libro de IVA soportado. Entran en el libro igualmente; revíselas y ' +
+    'ciérrelas con «Cerrar borrador»:';
   // Listado de documentos proveedor (FZ-ISSUE-609): los textos de la
   // ventana de filtros y los nombres de tipo que viaja en la consulta.
   STituloTiposDocumentoInformeProveedor = 'Tipos doc.';
