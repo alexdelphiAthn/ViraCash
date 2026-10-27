@@ -33,12 +33,14 @@ type
     procedure AnadirPropiedad(Sender: TObject);
     function Contexto(out ASerie, ANumero: string;
       out ALinea: Integer): string;
+    procedure ActualizarAyuda(const AClave: string; ALinea: Integer);
   public
     constructor Create(AOwner: TComponent; APaginas: TcxPageControl;
       ACabecera, ALineas: TDataSet; const AUsuario: string;
       const ACrearServicios: TCrearPropiedadesLineaSesion);
     destructor Destroy; override;
     procedure Actualizar;
+    procedure AplicarTraduccion;
     procedure GuardarBorrador;
     procedure Abrir;
     property Pagina: TcxTabSheet read FPagina;
@@ -117,6 +119,29 @@ begin
   end;
 end;
 
+procedure TPropiedadesFamiliaSesion.ActualizarAyuda(const AClave: string;
+  ALinea: Integer);
+begin
+  if AClave = '' then
+    FAyuda.Caption := SAyudaPropiedadesSesionSinLinea
+  else
+    FAyuda.Caption := Format(SAyudaPropiedadesFamiliaSesion,
+      [ALinea, FLineas.FieldByName('DESCRIPCION_SESLIN').AsString]);
+end;
+
+procedure TPropiedadesFamiliaSesion.AplicarTraduccion;
+var
+  Serie, Numero: string;
+  Linea: Integer;
+begin
+  // Cambio de idioma con la pantalla abierta (FZ-ISSUE-739). La ayuda
+  // solo se rehace si sigue en la misma línea que la pintó.
+  FPagina.Caption := SCaptionPropiedadesFamiliaSesion;
+  FBoton.Caption := SCaptionAnadirPropiedad;
+  if (FClave <> '#') and (Contexto(Serie, Numero, Linea) = FClave) then
+    ActualizarAyuda(FClave, Linea);
+end;
+
 procedure TPropiedadesFamiliaSesion.Actualizar;
 var
   Serie, Numero, Clave: string;
@@ -136,16 +161,13 @@ begin
         FScroll.Enabled := (Clave <> '') and
           (FCabecera.FieldByName('ESTADO_SES').AsString <> 'CERRADA');
         FBoton.Enabled := FScroll.Enabled;
-        if Clave = '' then
-          FAyuda.Caption := SAyudaPropiedadesSesionSinLinea
-        else
+        if Clave <> '' then
         begin
           Servicios := FCrearServicios(Serie, Numero, Linea);
           FGestor := TGestorPropiedades.Create(FScroll, Servicios, FUsuario);
           FGestor.CargarPropiedades(IntToStr(Linea));
-          FAyuda.Caption := Format(SAyudaPropiedadesFamiliaSesion,
-            [Linea, FLineas.FieldByName('DESCRIPCION_SESLIN').AsString]);
         end;
+        ActualizarAyuda(Clave, Linea);
       end;
     finally
       FActualizando := False;

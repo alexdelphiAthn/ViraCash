@@ -1662,6 +1662,12 @@ begin
   if Assigned(Traducciones) then
     Traducciones.Aplicar(Self);
   lblVariacion.Caption := SCaptionSesionVariacionDefecto;
+  // Pestañas creadas en código: no las recoge Traducciones.Aplicar
+  // (FZ-ISSUE-739).
+  if Assigned(FTrazabilidadSesion) then
+    FTrazabilidadSesion.AplicarTraduccion;
+  if Assigned(FPropiedadesFamilia) then
+    FPropiedadesFamilia.AplicarTraduccion;
   // Los nombres de ejes y el botón Otro valor pertenecen a la variación.
   if Assigned(Dmm) then
     RefrescarRotulosVariacion(True);

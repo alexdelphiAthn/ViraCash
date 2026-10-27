@@ -13,7 +13,7 @@ interface
 uses
   System.Classes, System.SysUtils, Data.DB,
   cxPC, cxGrid, cxGridDBTableView, cxGridCustomTableView,
-  cxCheckBox, cxLabel,
+  cxCheckBox, cxLabel, cxButtons,
   inLibTrazabilidadAlta;
 
 type
@@ -33,6 +33,8 @@ type
     FMarcaLotes: TcxCheckBox;
     FActualizandoLotes: Boolean;
     FLineaActiva: TcxLabel;
+    FAyuda: TcxLabel;
+    FBotonOtroLote: TcxButton;
     FRecargarCeldas: TProc;
     FMarcarLotes: TProc<Boolean>;
     FOtroLote: TProc;
@@ -41,6 +43,7 @@ type
     procedure AgregarColumna(const ACampo, ATitulo: string;
       AEditable: Boolean; AAncho: Integer);
     procedure ConfigurarColumnas;
+    function TituloColumna(const ACampo: string): string;
     procedure CrearControlesLotes;
     procedure EntrarRejilla(Sender: TObject);
     procedure SalirRejilla(Sender: TObject);
@@ -57,6 +60,7 @@ type
       const AEntorno: TEntornoTrazabilidadSesion);
     destructor Destroy; override;
     procedure ActualizarPagina;
+    procedure AplicarTraduccion;
   end;
 
 implementation
@@ -64,7 +68,7 @@ implementation
 uses
   Vcl.Controls, Vcl.Forms, inLibGridTallasInline,
   cxGridLevel, cxGridTableView, cxBlobEdit, cxCalendar,
-  cxButtons, inLibTrazabilidad, inLibMsgTrazabilidad;
+  inLibTrazabilidad, inLibMsgTrazabilidad;
 
 constructor TFichaTrazabilidadSesion.Crear(AOwner: TComponent;
   APaginas: TcxPageControl; ADatos: TDataSource;
@@ -73,7 +77,6 @@ constructor TFichaTrazabilidadSesion.Crear(AOwner: TComponent;
 var
   oGrid: TcxGrid;
   oNivel: TcxGridLevel;
-  oAyuda: TcxLabel;
 begin
   inherited Create(AOwner);
   FDatos := ADatos;
@@ -89,10 +92,10 @@ begin
   FPagina.Name := 'tsTrazabilidadSesion';
   FPagina.PageControl := APaginas;
   FPagina.Caption := SCaptionSesionLotes;
-  oAyuda := TcxLabel.Create(Self);
-  oAyuda.Parent := FPagina;
-  oAyuda.Caption := SHintSesionLotes;
-  oAyuda.Align := alTop;
+  FAyuda := TcxLabel.Create(Self);
+  FAyuda.Parent := FPagina;
+  FAyuda.Caption := SHintSesionLotes;
+  FAyuda.Align := alTop;
   CrearControlesLotes;
   FLineas.OnDataChange := DatosLineasCambiados;
   ActualizarMarcaLotes;
@@ -113,8 +116,6 @@ begin
 end;
 
 procedure TFichaTrazabilidadSesion.CrearControlesLotes;
-var
-  oOtroLote: TcxButton;
 begin
   FLineaActiva := TcxLabel.Create(Self);
   FLineaActiva.Parent := FPagina;
@@ -128,11 +129,11 @@ begin
   FMarcaLotes.Properties.ValueChecked := 'S';
   FMarcaLotes.Properties.ValueUnchecked := 'N';
   FMarcaLotes.OnClick := LotesCambiados;
-  oOtroLote := TcxButton.Create(Self);
-  oOtroLote.Parent := FPagina;
-  oOtroLote.Align := alTop;
-  oOtroLote.Caption := SCaptionSesionOtroLote;
-  oOtroLote.OnClick := OtroLote;
+  FBotonOtroLote := TcxButton.Create(Self);
+  FBotonOtroLote.Parent := FPagina;
+  FBotonOtroLote.Align := alTop;
+  FBotonOtroLote.Caption := SCaptionSesionOtroLote;
+  FBotonOtroLote.OnClick := OtroLote;
 end;
 
 destructor TFichaTrazabilidadSesion.Destroy;
@@ -190,13 +191,53 @@ end;
 
 procedure TFichaTrazabilidadSesion.ConfigurarColumnas;
 begin
-  AgregarColumna('ALMACEN_DESTINO', SCaptionSesionAlmacen, False, 110);
-  AgregarColumna('VALOR_TALLA', SCaptionSesionTalla, False, 95);
-  AgregarColumna('VALOR_FILA', SCaptionSesionFila, False, 100);
-  AgregarColumna('CANTIDAD_SESCEL', SCaptionColumnaCantidadLote, False, 80);
-  AgregarColumna('LOTE_SESCEL', SCaptionColumnaLote, True, 140);
-  AgregarColumna('CADUCIDAD_SESCEL', SCaptionColumnaCaducidad, True, 110);
-  AgregarColumna('SERIES_SESCEL', SCaptionSesionSeries, True, 220);
+  AgregarColumna('ALMACEN_DESTINO', TituloColumna('ALMACEN_DESTINO'),
+    False, 110);
+  AgregarColumna('VALOR_TALLA', TituloColumna('VALOR_TALLA'), False, 95);
+  AgregarColumna('VALOR_FILA', TituloColumna('VALOR_FILA'), False, 100);
+  AgregarColumna('CANTIDAD_SESCEL', TituloColumna('CANTIDAD_SESCEL'),
+    False, 80);
+  AgregarColumna('LOTE_SESCEL', TituloColumna('LOTE_SESCEL'), True, 140);
+  AgregarColumna('CADUCIDAD_SESCEL', TituloColumna('CADUCIDAD_SESCEL'),
+    True, 110);
+  AgregarColumna('SERIES_SESCEL', TituloColumna('SERIES_SESCEL'),
+    True, 220);
+end;
+
+function TFichaTrazabilidadSesion.TituloColumna(
+  const ACampo: string): string;
+begin
+  if ACampo = 'ALMACEN_DESTINO' then
+    Result := SCaptionSesionAlmacen
+  else if ACampo = 'VALOR_TALLA' then
+    Result := SCaptionSesionTalla
+  else if ACampo = 'VALOR_FILA' then
+    Result := SCaptionSesionFila
+  else if ACampo = 'CANTIDAD_SESCEL' then
+    Result := SCaptionColumnaCantidadLote
+  else if ACampo = 'LOTE_SESCEL' then
+    Result := SCaptionColumnaLote
+  else if ACampo = 'CADUCIDAD_SESCEL' then
+    Result := SCaptionColumnaCaducidad
+  else if ACampo = 'SERIES_SESCEL' then
+    Result := SCaptionSesionSeries
+  else
+    Result := ACampo;
+end;
+
+procedure TFichaTrazabilidadSesion.AplicarTraduccion;
+var
+  I: Integer;
+begin
+  // Cambio de idioma con la pantalla abierta (FZ-ISSUE-739).
+  FPagina.Caption := SCaptionSesionLotes;
+  FAyuda.Caption := SHintSesionLotes;
+  FMarcaLotes.Caption := SCaptionSesionArticuloPorLotes;
+  FBotonOtroLote.Caption := SCaptionSesionOtroLote;
+  for I := 0 to FVista.ColumnCount - 1 do
+    FVista.Columns[I].Caption := TituloColumna(
+      FVista.Columns[I].DataBinding.FieldName);
+  ActualizarPagina;
 end;
 
 procedure TFichaTrazabilidadSesion.ActualizarPagina;

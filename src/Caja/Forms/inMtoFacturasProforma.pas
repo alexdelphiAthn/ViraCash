@@ -67,6 +67,7 @@ type
     procedure MostrarEstadoProforma(Sender: TcxCustomGridTableItem;
       ARecord: TcxCustomGridRecord; var ATexto: string);
     procedure ActualizarEstadoEmpresaDestino;
+    procedure AjustarDesplegablesEmpresa;
     procedure EmpresaOrigenCambiada(Sender: TObject);
     function CrearColumna(const ACampo, ATitulo: string;
       AAncho: Integer): TcxGridDBColumn;
@@ -216,7 +217,7 @@ uses
   inLibFacturasProforma, inMtoModalImpFacturasProforma,
   inMtoModalOpcionesDocumento, inLibMsgOpcionesDocumento,
   UniDataOpcionesDocumentoRepositorio,
-  inLibFormatoMonetario,
+  inLibFormatoMonetario, System.Math,
   inLibFacturasProformaValoracion,
   inLibInformeSimulacionValoracion,
   inMtoModalRevalorizacionInventario,
@@ -495,6 +496,35 @@ begin
     lblExplicacion.Caption :=
       SProformaAyuda;
   end;
+  AjustarDesplegablesEmpresa;
+end;
+
+procedure TfrmMtoFacturasProforma.AjustarDesplegablesEmpresa;
+const
+  // A 96 ppp: posición original de los desplegables y hueco tras el
+  // rótulo.
+  IZQUIERDA_DESPLEGABLE = 506;
+  HUECO_ROTULO = 8;
+var
+  iRotulo: Integer;
+  iIzquierda: Integer;
+  iDerecha: Integer;
+begin
+  // Un rótulo traducido largo (ca-ES «Empresa destinació») no debe quedar
+  // tapado: el desplegable se corre sin pasar del borde derecho
+  // (FZ-ISSUE-739).
+  iRotulo := Max(
+    cxTextWidth(lblEmpresaOrigen.Style.GetVisibleFont,
+      lblEmpresaOrigen.Caption),
+    cxTextWidth(lblEmpresaDestino.Style.GetVisibleFont,
+      lblEmpresaDestino.Caption));
+  iDerecha := cbbEmpresaOrigen.Left + cbbEmpresaOrigen.Width;
+  iIzquierda := Max(EscalarDpi(IZQUIERDA_DESPLEGABLE),
+    lblEmpresaOrigen.Left + iRotulo + EscalarDpi(HUECO_ROTULO));
+  cbbEmpresaOrigen.Left := iIzquierda;
+  cbbEmpresaOrigen.Width := iDerecha - iIzquierda;
+  cbbEmpresaDestino.Left := iIzquierda;
+  cbbEmpresaDestino.Width := iDerecha - iIzquierda;
 end;
 
 procedure TfrmMtoFacturasProforma.EmpresaOrigenCambiada(Sender: TObject);

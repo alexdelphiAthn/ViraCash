@@ -832,6 +832,10 @@ begin
       ANCHO_MIN_STOCK_ORIGEN_96_DPI,
       CurrentPPI,
       USER_DEFAULT_SCREEN_DPI);
+  // El rótulo traducido no debe salir cortado (en-GB «Source stock»,
+  // FZ-ISSUE-739).
+  Columna.MinWidth := Max(Columna.MinWidth,
+    cxTextWidth(Font, Columna.Caption) + EscalarCaja(Self, 24));
   Columna := FView.CreateColumn;
   Columna.Caption := SCaptionColPedidasTraspaso;
   Columna.DataBinding.FieldName := 'CANTIDAD_PEDIDA';
