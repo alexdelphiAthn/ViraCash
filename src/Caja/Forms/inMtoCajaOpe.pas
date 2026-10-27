@@ -700,7 +700,7 @@ uses
   inLibCajaSubsanacion, UniDataCajaSubsanacionImportes,
   inLibGenerarTicketBD, inLibCajaEstiloVcl,
   inLibTrazabilidad, UniDataLotesRepositorio, inMtoModalSeleccionLote,
-  inLibTrazabilidadDocumento;
+  inLibTrazabilidadDocumento, inLibVariacionesRotulos;
 
 type
   TColumnaLoteCajaAcceso = class(TcxGridDBColumn);
@@ -3870,7 +3870,9 @@ begin
               I,
               AArticulo,
               Propiedades);
-            Columna.Caption := NombresAtributos[I - 1];
+            // Rótulo traducido como en Traspasos (FZ-ISSUE-734/728).
+            Columna.Caption := TraducirRotuloAtributoVariacion(
+              NombresAtributos[I - 1]);
             FSelectorAtributos.AjustarBotonSwatch(
               Propiedades, NombresAtributos[I - 1]);
             Columna.Visible := True;
@@ -3901,8 +3903,9 @@ begin
             Clon.First;
             while not Clon.Eof do
             begin
-              NombreOtro := Trim(Clon.FieldByName(
-                'ATTR' + IntToStr(I) + '_NOMBRE').AsString);
+              NombreOtro := TraducirRotuloAtributoVariacion(Trim(
+                Clon.FieldByName(
+                'ATTR' + IntToStr(I) + '_NOMBRE').AsString));
               if NombreOtro <> '' then
               begin
                 if not Columna.Visible then

@@ -4411,6 +4411,13 @@ begin
   ARegistrar('inLibMsgCompras.SErrorVariacionSesionMaterializar',
     'src/Lib/inLibMsgCompras.pas',
     @inLibMsgCompras.SErrorVariacionSesionMaterializar);
+  ARegistrar('inLibMsgCompras.' +
+    'STituloIncidenciasMaterializacionSesionCompra',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.STituloIncidenciasMaterializacionSesionCompra);
+  ARegistrar('inLibMsgCompras.STituloErrorMaterializacionSesionCompra',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.STituloErrorMaterializacionSesionCompra);
   ARegistrar('inLibMsgCompras.SAvisoLineasSesionOtraVariacion',
     'src/Lib/inLibMsgCompras.pas',
     @inLibMsgCompras.SAvisoLineasSesionOtraVariacion);

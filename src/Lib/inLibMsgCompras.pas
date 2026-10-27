@@ -838,6 +838,12 @@ resourcestring
   SErrorVariacionSesionMaterializar =
     'La sesión %s/%s no tiene tipo de variación. Elígelo en Datos ' +
     'cabecera antes de crear los artículos.';
+  // Títulos de los modales de incidencias y error al materializar una
+  // sesión de compra (FZ-ISSUE-727).
+  STituloIncidenciasMaterializacionSesionCompra =
+    'Hay incidencias que impiden materializar la sesión:';
+  STituloErrorMaterializacionSesionCompra =
+    'No se pudo materializar la sesión:';
   SAvisoLineasSesionOtraVariacion =
     'La sesión tiene %d línea(s) con colecciones del tipo de variación ' +
     'anterior. Revisa su «%s».';

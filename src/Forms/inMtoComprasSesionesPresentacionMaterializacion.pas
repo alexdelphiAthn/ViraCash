@@ -76,10 +76,6 @@ uses
   System.Variants;
 
 resourcestring
-  STituloIncidenciasMaterializacionSesionCompra =
-    'Hay incidencias que impiden materializar la sesion:';
-  STituloErrorMaterializacionSesionCompra =
-    'No se pudo materializar la sesion:';
   SMensajeErrorMaterializacionSesionCompra = '[MATERIALIZAR] %s';
 
 // Los callbacks se construyen por bloques para que ninguno supere el
