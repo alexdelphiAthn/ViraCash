@@ -9668,6 +9668,11 @@ begin
       SInfoSinAlmacenTarasTransito);
   ARegistrar(
     'inLibMsgCaja.' +
+    'SCaptionMostrarIncidenciasReparto',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.SCaptionMostrarIncidenciasReparto);
+  ARegistrar(
+    'inLibMsgCaja.' +
     'SCaptionColSkuRepartoTransito',
     'src/Lib/inLibMsgCaja.pas',
     @inLibMsgCaja.
@@ -18970,6 +18975,12 @@ begin
     'src/Lib/inLibMsgTickets.pas',
     @inLibMsgTickets.
       STicketTotalTraspasoCoste);
+  ARegistrar(
+    'inLibMsgTickets.' +
+    'STicketTotalPerdidaCoste',
+    'src/Lib/inLibMsgTickets.pas',
+    @inLibMsgTickets.
+      STicketTotalPerdidaCoste);
   ARegistrar(
     'inLibMsgTickets.' +
     'STicketEntregadoCuenta',
@@ -29528,6 +29539,9 @@ begin
   ARegistrar('inLibMsgCaja.SFormatoNombreArchivoTiraCajaExcel',
     'src/Lib/inLibMsgCaja.pas',
     @inLibMsgCaja.SFormatoNombreArchivoTiraCajaExcel);
+  ARegistrar('inLibMsgCaja.SInfoDeudaOtraTienda',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.SInfoDeudaOtraTienda);
   ARegistrar('inLibMsgCaja.SInfoSinPeticionesTraspaso',
     'src/Lib/inLibMsgCaja.pas',
     @inLibMsgCaja.SInfoSinPeticionesTraspaso);

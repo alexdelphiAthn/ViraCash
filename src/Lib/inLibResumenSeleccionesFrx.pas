@@ -31,7 +31,8 @@ procedure QuitarResumenSeleccionesInforme(AInforme: TfrxReport);
 implementation
 
 uses
-  System.SysUtils, System.UITypes, Vcl.Graphics;
+  System.SysUtils, System.UITypes, Vcl.Graphics,
+  inLibTraduccionesInforme;
 
 const
   NOMBRE_BANDA_RESUMEN = 'BandaResumenSeleccionesFza';
@@ -132,6 +133,7 @@ begin
   oMemo.Frame.Typ := [ftBottom];
   oMemo.Frame.Color := COLOR_LINEA_RESUMEN;
   oMemo.Text := ATexto;
+  AjustarFuenteTextoInforme(oMemo);
 end;
 
 procedure InsertarResumenSeleccionesInforme(

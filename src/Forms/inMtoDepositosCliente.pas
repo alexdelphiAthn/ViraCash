@@ -58,12 +58,16 @@ type
     pnlFotoDep: TPanel;
     imgFotoDep: TImage;
     btnImprimirInforme: TcxButton;
+    btnDeudores: TcxButton;
+    btnExtracto: TcxButton;
     btnReimprimirResguardo: TcxButton;
     alDepositos: TActionList;
     actReimprimirResguardo: TAction;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure btnImprimirInformeClick(Sender: TObject);
+    procedure btnDeudoresClick(Sender: TObject);
+    procedure btnExtractoClick(Sender: TObject);
     procedure actReimprimirResguardoExecute(Sender: TObject);
     procedure actReimprimirResguardoUpdate(Sender: TObject);
   private
@@ -72,6 +76,7 @@ type
     FDependenciasInforme: TDependenciasInformeCaja;
     FDependenciasReimpresion: TDependenciasReimpresionCaja;
     function PuedeReimprimirResguardo: Boolean;
+    procedure AbrirCuenta(const ACliente: string; AResumen: Boolean);
   public
     constructor Create(
       AOwner: TComponent;
@@ -127,6 +132,8 @@ begin
   dmmDepositosCliente := tdmDataModule as TdmDepositosCliente;
   pkFieldName := 'ID_DEPOSITO_DEP';
   actReimprimirResguardo.Visible := PuedeImprimir;
+  btnDeudores.Visible := PuedeImprimir;
+  btnExtracto.Visible := PuedeImprimir;
 end;
 
 procedure TfrmMtoDepositosCliente.ResetForm;
@@ -151,6 +158,39 @@ begin
   finally
     FreeAndNil(frm);
   end;
+end;
+
+procedure TfrmMtoDepositosCliente.AbrirCuenta(
+  const ACliente: string; AResumen: Boolean);
+var
+  Formulario: TfrmPrintDepositos;
+begin
+  if not PuedeImprimir then
+    Abort;
+  Formulario := TfrmPrintDepositos.Create(Self, FDependenciasInforme);
+  try
+    Formulario.ConfigurarCuenta(ACliente, AResumen);
+    Formulario.ShowModal;
+  finally
+    Formulario.Free;
+  end;
+end;
+
+procedure TfrmMtoDepositosCliente.btnDeudoresClick(Sender: TObject);
+begin
+  AbrirCuenta('', True);
+end;
+
+procedure TfrmMtoDepositosCliente.btnExtractoClick(Sender: TObject);
+var
+  Codigo: string;
+begin
+  Codigo := '';
+  if dsTablaG.DataSet.Active and not dsTablaG.DataSet.IsEmpty then
+    Codigo := dsTablaG.DataSet.FieldByName('CODIGO_CLI_DEP').AsString;
+  if InputQuery('Extracto de cuenta', 'Código de cliente:', Codigo) then
+    if Trim(Codigo) <> '' then
+      AbrirCuenta(Codigo, False);
 end;
 
 // Resguardo de la operacion de caja que creo el deposito, en vista

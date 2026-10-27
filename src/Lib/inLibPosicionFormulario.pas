@@ -23,7 +23,7 @@ unit inLibPosicionFormulario;
 interface
 
 uses
-  System.Classes, Vcl.Forms;
+  System.Classes, System.Types, Vcl.Forms;
 
 /// Cambia la posición inicial sin recrear la ventana (válido en OnShow).
 procedure FijarPosicionFormulario(AForm: TCustomForm; APosicion: TPosition);
@@ -38,10 +38,48 @@ procedure CentrarFormularioPorDefecto(AForm: TForm);
 /// propio en la barra de tareas) puede taparla.
 procedure AsociarVentanaPropietaria(AForm: TCustomForm; AOwner: TComponent);
 
+// Limita el tamaño exterior y centra en el área útil del monitor propietario.
+function RectanguloVentanaEnArea(const AVentana, AArea: TRect): TRect;
+procedure AjustarFormularioAreaTrabajo(AForm: TCustomForm;
+  AOwner: TComponent);
+
 implementation
 
 uses
-  System.Rtti;
+  System.Rtti, System.Math;
+
+function RectanguloVentanaEnArea(const AVentana, AArea: TRect): TRect;
+var
+  Ancho, Alto: Integer;
+begin
+  Ancho := Min(Max(1, AVentana.Width), Max(1, AArea.Width - 16));
+  Alto := Min(Max(1, AVentana.Height), Max(1, AArea.Height - 16));
+  Result := Rect(0, 0, Ancho, Alto);
+  OffsetRect(Result, AArea.Left + (AArea.Width - Ancho) div 2,
+    AArea.Top + (AArea.Height - Alto) div 2);
+end;
+
+procedure AjustarFormularioAreaTrabajo(AForm: TCustomForm;
+  AOwner: TComponent);
+var
+  Propietario: TComponent;
+  Area, Limites: TRect;
+begin
+  if AForm <> nil then
+  begin
+    Propietario := AOwner;
+    while (Propietario <> nil) and not (Propietario is TCustomForm) do
+      Propietario := Propietario.Owner;
+    if Propietario is TCustomForm then
+      Area := TCustomForm(Propietario).Monitor.WorkareaRect
+    else
+      Area := AForm.Monitor.WorkareaRect;
+    Limites := RectanguloVentanaEnArea(AForm.BoundsRect, Area);
+    FijarPosicionFormulario(AForm, poDesigned);
+    AForm.SetBounds(Limites.Left, Limites.Top,
+      Limites.Width, Limites.Height);
+  end;
+end;
 
 procedure FijarPosicionFormulario(AForm: TCustomForm; APosicion: TPosition);
 var

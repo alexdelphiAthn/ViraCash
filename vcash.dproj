@@ -2046,6 +2046,7 @@
         <DCCReference Include="src\Caja\Forms\inMtoCajaOpeEntradaVcl.pas"/>
         <DCCReference Include="src\Caja\Forms\inMtoCajaEditorAtributosVcl.pas"/>
         <DCCReference Include="src\Caja\Forms\inMtoCajaOpeVentanaVcl.pas"/>
+        <DCCReference Include="src\Lib\inLibCuentaClientesInforme.pas"/>
         <DCCReference Include="src\Caja\Lib\inLibCajaDepositos.pas"/>
         <DCCReference Include="src\Forms\inMtoPedidosPresentacionArticuloVcl.pas"/>
         <DCCReference Include="src\Lib\inLibTicketRecordatorio.pas"/>

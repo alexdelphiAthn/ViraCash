@@ -223,6 +223,7 @@ resourcestring
   STicketOperacionCorta = 'Op.%s';
   STicketClienteCorto = 'Cli: %s';
   STicketTotalTraspasoCoste = 'TOTAL TRASPASO (coste)';
+  STicketTotalPerdidaCoste = 'TOTAL PÉRDIDA (coste)';
   STicketEntregadoCuenta = '  Entregado a cuenta';
   STicketPendienteSangrado = '  Pendiente';
   STicketRotuloTraspaso = 'TRASPASO';

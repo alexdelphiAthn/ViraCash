@@ -155,6 +155,18 @@ const
     'SELECT o.SERIE_FAC_OPCAJA, o.NUMERO_FAC_OPCAJA, ' +
     'o.CODIGO_ALM_OPCAJA, o.CODIGO_ALM_CONTRA_OPCAJA, ' +
     'o.CODIGO_EMPLEADO_OPCAJA, o.TIPO_OPERACION_OPCAJA, ' +
+    'CASE WHEN o.TIPO_OPERACION_OPCAJA = ''TA'' AND EXISTS (' +
+    'SELECT 1 FROM fza_movimientos_almacen m ' +
+    'WHERE m.TIPO_MOV = ''S'' ' +
+    'AND m.CODIGO_ALM_MOV = o.CODIGO_ALM_CONTRA_OPCAJA ' +
+    'AND m.CODIGO_ALM_CONTRA_MOV = o.CODIGO_ALM_OPCAJA ' +
+    'AND m.CODIGO_ALM_DOC_MOV = o.CODIGO_ALM_OPCAJA ' +
+    'AND m.CODIGO_CAJA_DOC_MOV = o.CODIGO_CAJA_OPCAJA ' +
+    'AND m.NUMERO_OPERACION_DOC_MOV = o.NUMERO_OPERACION_OPCAJA ' +
+    'AND m.TIPO_DOC_MOV = o.TIPO_OPERACION_OPCAJA ' +
+    'AND m.SERIE_DOC_MOV = o.SERIE_FAC_OPCAJA ' +
+    'AND m.NUMERO_DOC_MOV = o.NUMERO_FAC_OPCAJA) ' +
+    'THEN ''S'' ELSE ''N'' END AS ESRECEPCION, ' +
     'COALESCE(e.FORMATO_DOCUMENTO_EMP, ''Serie.NroDocumento'') ' +
     'AS FORMATO_DOCUMENTO_EMP FROM fza_caja_operaciones o ' +
     'LEFT JOIN fza_empresas e ' +
@@ -165,8 +177,10 @@ const
     'AND o.NUMERO_OPERACION_OPCAJA = :NUMOP';
   SQL_LINEAS_TRASPASO =
     'SELECT m.CODIGO_UNIDAD_MOV, m.CANTIDAD_MOV, ' +
-    'COALESCE(m.DESCRIPCION_ARTICULO_MOV, '''') AS DESCRIPCION ' +
+    'COALESCE(NULLIF(TRIM(m.DESCRIPCION_ARTICULO_MOV), ''''), ' +
+    'a.DESCRIPCION_ART, '''') AS DESCRIPCION ' +
     'FROM fza_movimientos_almacen m ' +
+    'LEFT JOIN fza_articulos a ON a.CODIGO_ART_ART = m.CODIGO_ART_MOV ' +
     'WHERE m.CODIGO_ALM_DOC_MOV = :ALM ' +
     'AND m.CODIGO_CAJA_DOC_MOV = :CAJA ' +
     'AND m.NUMERO_OPERACION_DOC_MOV = :NUMOP AND m.TIPO_MOV = ''S'' ' +
@@ -253,7 +267,7 @@ begin
     'EMP,ALM,CAJA,NUMOP',
     'SERIE_FAC_OPCAJA,NUMERO_FAC_OPCAJA,CODIGO_ALM_OPCAJA,' +
     'CODIGO_ALM_CONTRA_OPCAJA,CODIGO_EMPLEADO_OPCAJA,' +
-    'FORMATO_DOCUMENTO_EMP,TIPO_OPERACION_OPCAJA');
+    'FORMATO_DOCUMENTO_EMP,TIPO_OPERACION_OPCAJA,ESRECEPCION');
   Result[4] := DefinicionSql(
     'ListarLineasTraspaso',
     SQL_LINEAS_TRASPASO,
@@ -450,10 +464,20 @@ begin
         oQuery.FieldByName('NUMERO_FAC_OPCAJA').AsString;
       Result.FormatoDocumento :=
         oQuery.FieldByName('FORMATO_DOCUMENTO_EMP').AsString;
-      Result.Origen :=
-        oQuery.FieldByName('CODIGO_ALM_OPCAJA').AsString;
-      Result.Destino :=
-        oQuery.FieldByName('CODIGO_ALM_CONTRA_OPCAJA').AsString;
+      if oQuery.FieldByName('ESRECEPCION').AsString = 'S' then
+      begin
+        Result.Origen :=
+          oQuery.FieldByName('CODIGO_ALM_CONTRA_OPCAJA').AsString;
+        Result.Destino :=
+          oQuery.FieldByName('CODIGO_ALM_OPCAJA').AsString;
+      end
+      else
+      begin
+        Result.Origen :=
+          oQuery.FieldByName('CODIGO_ALM_OPCAJA').AsString;
+        Result.Destino :=
+          oQuery.FieldByName('CODIGO_ALM_CONTRA_OPCAJA').AsString;
+      end;
       Result.Empleado :=
         oQuery.FieldByName('CODIGO_EMPLEADO_OPCAJA').AsString;
     end;

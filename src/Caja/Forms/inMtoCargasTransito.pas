@@ -478,8 +478,14 @@ var
   Transito: string;
 begin
   Transito := CodigoCombo(cbbTransito, FCodigosTransito);
-  TfrmPrintHojaRutaTransito.Ejecutar(Self, ConexionPrincipal, Transito,
-    PuedeImprimir, PuedeExportar);
+  if Trim(Transito) = '' then
+  begin
+    cbbTransito.SetFocus;
+    ShowMessage_fza(Self, SErrorHojaRutaSinTransito);
+  end
+  else
+    TfrmPrintHojaRutaTransito.Ejecutar(Self, ConexionPrincipal, Transito,
+      PuedeImprimir, PuedeExportar);
 end;
 
 procedure TfrmMtoCargasTransito.btnExcelIncidenciasClick(Sender: TObject);

@@ -63,6 +63,9 @@ type
     // del usuario) una sola vez al abrir; evita pisarlos en el ciclo
     // Hide/Show que hacen los botones del padre (Imprimir / PDF / etc.).
     FInicializado: Boolean;
+    FEsCuenta: Boolean;
+    FResumenCuenta: Boolean;
+    FClienteCuenta: string;
     FRepositorioPersistencia: IRepositorioInformesCaja;
     FRepositorioCajasDefecto: IRepositorioCajasDefecto;
     FResultado: IResultadoInformeCaja;
@@ -81,6 +84,7 @@ type
       AOwner: TComponent;
       const ADependencias: TDependenciasInformeCaja); reintroduce;
       overload;
+    procedure ConfigurarCuenta(const ACliente: string; AResumen: Boolean);
     procedure preparar_consulta; override;
   end;
 
@@ -89,7 +93,7 @@ implementation
 {$R *.dfm}
 
 uses
-  inMtoModalCajDef;
+  inMtoModalCajDef, inLibCuentaClientesInforme;
 
 { TfrmPrintDepositos }
 
@@ -101,6 +105,42 @@ begin
   FRepositorioPersistencia := ADependencias.Repositorio;
   FRepositorioCajasDefecto := ADependencias.CajasDefecto;
   inherited Create(AOwner);
+end;
+
+procedure TfrmPrintDepositos.ConfigurarCuenta(
+  const ACliente: string; AResumen: Boolean);
+begin
+  FEsCuenta := True;
+  fxdsDepositos.UserName := 'Cuenta';
+  FResumenCuenta := AResumen;
+  FClienteCuenta := Trim(ACliente);
+  if AResumen then
+  begin
+    Name := 'frmPrintDeudoresClientes';
+    Caption := 'Deudores por empresa y tienda';
+  end
+  else
+  begin
+    if FClienteCuenta = '' then
+      raise EArgumentException.Create('Seleccione un cliente.');
+    Name := 'frmPrintExtractoCliente';
+    Caption := 'Extracto de cuenta del cliente';
+  end;
+  lblFechas.Caption := 'Todas las empresas y tiendas';
+  lblFechas.Width := 260;
+  lblDesde.Visible := False;
+  lblHasta.Visible := False;
+  dteDesde.Visible := False;
+  dteHasta.Visible := False;
+  lblCajaTit.Visible := False;
+  lblEmpresa.Visible := False;
+  edtEmpresa.Visible := False;
+  lblAlmacen.Visible := False;
+  bedAlmacen.Visible := False;
+  lblCaja.Visible := False;
+  bedCaja.Visible := False;
+  ConstruirInformeCuentaClientes(frxReportOrigen, fxdsDepositos,
+    FResumenCuenta);
 end;
 
 procedure TfrmPrintDepositos.DoShow;
@@ -170,14 +210,25 @@ begin
 end;
 
 procedure TfrmPrintDepositos.preparar_consulta;
+var
+  Cuenta: IRepositorioCuentaClientes;
 begin
   inherited;
   // Filtro por empresa / almacen / caja (los tres exactos) y por la fecha de
   // creacion del deposito. FECHA_CREACION_DEP es datetime, por eso el rango
   // se aplica sobre DATE(...) para que el BETWEEN sea inclusivo por dia.
   dsDepositosPrint.DataSet := nil;
-  FResultado := FRepositorioPersistencia.ConsultarDepositos(
-    ConstruirSolicitud);
+  if FEsCuenta then
+  begin
+    if not Supports(FRepositorioPersistencia,
+      IRepositorioCuentaClientes, Cuenta) then
+      raise EIntfCastError.Create('Repositorio de cuenta no disponible.');
+    FResultado := Cuenta.ConsultarCuentaClientes(
+      FClienteCuenta, FResumenCuenta);
+  end
+  else
+    FResultado := FRepositorioPersistencia.ConsultarDepositos(
+      ConstruirSolicitud);
   dsDepositosPrint.DataSet := FResultado.DataSet;
   fxdsDepositos.UpdateBounds;
 end;
@@ -186,11 +237,20 @@ procedure TfrmPrintDepositos.DescribirSelecciones(
   AResumen: TResumenSeleccionesInforme);
 begin
   inherited;
-  AResumen.AnadirRangoFechas(
-    lblFechas.Caption, dteDesde.Date, dteHasta.Date);
-  AResumen.Anadir(lblEmpresa.Caption, edtEmpresa.Text);
-  AResumen.Anadir(lblAlmacen.Caption, bedAlmacen.Text);
-  AResumen.Anadir(lblCaja.Caption, bedCaja.Text);
+  if FEsCuenta then
+  begin
+    AResumen.Anadir('Ámbito', 'Todas las empresas y tiendas');
+    AResumen.Anadir('Cliente', FClienteCuenta);
+    AResumen.Anadir('Situación', 'Saldo actual, no saldo a fecha histórica');
+  end
+  else
+  begin
+    AResumen.AnadirRangoFechas(
+      lblFechas.Caption, dteDesde.Date, dteHasta.Date);
+    AResumen.Anadir(lblEmpresa.Caption, edtEmpresa.Text);
+    AResumen.Anadir(lblAlmacen.Caption, bedAlmacen.Text);
+    AResumen.Anadir(lblCaja.Caption, bedCaja.Text);
+  end;
 end;
 
 function TfrmPrintDepositos.ConstruirSolicitud: TSolicitudInformeCaja;

@@ -182,16 +182,16 @@ type
     procedure CasillaCorreoDocumentoCambiada(Sender: TObject);
     procedure DesmarcarCasillaCorreoDocumento;
     procedure IniciarEnvioCorreoDocumento;
+    procedure WMIniciarEnvioCorreoDocumento(
+      var Message: TMessage); message WM_INICIAR_ENVIO_CORREO_DOCUMENTO;
+  protected
     procedure EnviarCorreoDocumento(
       ATipo: TTipoDocumentoCorreo;
-      const ASerie, ANumero: string);
+      const ASerie, ANumero: string); virtual;
     procedure EnviarCorreoDocumentoPreparado(
       ATipo: TTipoDocumentoCorreo;
       const ASerie, ANumero, ANombreDocumento, AEmail: string;
       const ADatos: TDatosCorreoDocumento);
-    procedure WMIniciarEnvioCorreoDocumento(
-      var Message: TMessage); message WM_INICIAR_ENVIO_CORREO_DOCUMENTO;
-  protected
     procedure PrepararSelectorFormato(
       ASelector: TfrmMtoModalGenImpEle;
       const AFormatoPredeterminado: string); virtual;
@@ -244,6 +244,7 @@ type
     // (foto300/foto600/fotoReal) con la del QR tributario Verifactu
     // ('qrverifactu') en cada iteración del informe
     procedure ReportBeforePrintConQR(Component: TfrxReportComponent);
+    procedure VistaPreviaCreada(Sender: TObject);
     procedure ReportInicioDocumento(Sender: TObject);
     procedure Consultar_Formularios(bForzarSeleccion: Boolean = False);
     // Selecciona un formato sin mostrar el modal. Se usa en procesos
@@ -308,7 +309,7 @@ procedure AjustarFormatoHorizontalTallas(AInforme: TfrxReport);
 implementation
 
 uses
-  inLibFormatoDocumento,
+  inLibFormatoDocumento, inLibPosicionFormulario,
   inLibMensajesVcl,
   inLibPivoteVentaCalculo,
   inMtoModalGenImpSave, inLibUser, inLibPathTokens,
@@ -378,7 +379,7 @@ begin
     FCasillaCorreoDocumento.Width := pnl1.Left - ScaleValue(24);
     FCasillaCorreoDocumento.Top := ClientHeight -
       FCasillaCorreoDocumento.Height - ScaleValue(12);
-    FCasillaCorreoDocumento.Anchors := [akLeft, akBottom];
+    FCasillaCorreoDocumento.Anchors := [akLeft, akRight, akBottom];
     FCasillaCorreoDocumento.Properties.OnEditValueChanged :=
       CasillaCorreoDocumentoCambiada;
   end;
@@ -825,6 +826,16 @@ begin
   AjustarFormatoHorizontalTallas(frxrprt1);
 end;
 
+procedure TfrmPrint.VistaPreviaCreada(Sender: TObject);
+begin
+  if frxrprt1.PreviewForm <> nil then
+  begin
+    AsociarVentanaPropietaria(frxrprt1.PreviewForm, Self);
+    frxrprt1.PreviewForm.ScaleForPPI(CurrentPPI);
+    AjustarFormularioAreaTrabajo(frxrprt1.PreviewForm, Self);
+  end;
+end;
+
 procedure TfrmPrint.ReportInicioDocumento(Sender: TObject);
 begin
   AjustarFormatoCantidadesInforme(frxrprt1, UnidadesMedida);
@@ -857,6 +868,7 @@ begin
   if not Assigned(FRestauracionesGuias) then
   begin
     FRestauracionesGuias := TInterfaceList.Create;
+  frxrprt1.OnPreview := VistaPreviaCreada;
   end;
   CerrarGuiasRuntime;
   if Assigned(InformesGuiasCache) and
@@ -1999,6 +2011,7 @@ begin
     oContexto);
   FServiciosPersistencia := oContexto.Persistencia;
   FRestauracionesGuias := TInterfaceList.Create;
+  frxrprt1.OnPreview := VistaPreviaCreada;
 end;
 
 function TfrmPrint.frxdsgnr1SaveReport(Report: TfrxReport;

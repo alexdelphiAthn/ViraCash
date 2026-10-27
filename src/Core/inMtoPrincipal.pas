@@ -303,6 +303,7 @@ type
 //      var Action: TErrorAction);
     procedure mnuLisVentasClick(Sender: TObject);
     procedure FormActivate(Sender: TObject);
+    procedure mnuAlmacenClick(Sender: TObject);
     procedure WMFreeControl(var Msg: TMessage); message WM_FREECONTROL;
   private
     FException: Boolean;
@@ -371,6 +372,7 @@ type
     procedure AppException(Sender: TObject; E: Exception);
     procedure AplicarPermisosMenu;
     procedure AplicarInterruptoresTrazabilidad;
+    procedure AplicarInterruptorTransito;
     procedure MostrarAvisoCaducidadesLotes;
     function ComprobarUbicacionSesionArranque: Boolean;
     function PuedeAbrirMenu(AItem: TMenuItem): Boolean;
@@ -448,7 +450,7 @@ implementation
 
 uses
   inLibMensajesVcl,
-  inLibTrazabilidad,
+  inLibTrazabilidad, inLibCajaParam,
   inLibMsgLotesConsultas,
   UniDataLotesConsultas,
   inLibMsgLogon,
@@ -894,6 +896,7 @@ procedure TfrmMtoPrincipal.ConfigurarPresentacionPrincipal;
 begin
   AplicarPermisosMenu;
   AplicarInterruptoresTrazabilidad;
+  AplicarInterruptorTransito;
   ActualizarVisibilidadActualizaciones;
   if not ContextoSesion.Identidad.EsAdministrador then
   begin
@@ -1136,6 +1139,18 @@ begin
   if Assigned(Permisos) and (Menu <> nil) then
     for i := 0 to Menu.Items.Count - 1 do
       ProcesarItem(Menu.Items[i]);
+end;
+
+procedure TfrmMtoPrincipal.AplicarInterruptorTransito;
+begin
+  mnuCargasTransito.Visible := UsarAlmacenesTransito(ParametrosCaja);
+  mnuCargasTransito.Enabled := mnuCargasTransito.Visible and
+    PuedeAbrirMenu(mnuCargasTransito);
+end;
+
+procedure TfrmMtoPrincipal.mnuAlmacenClick(Sender: TObject);
+begin
+  AplicarInterruptorTransito;
 end;
 
 // F-LOTEC: los menús de trazabilidad solo existen con su interruptor
@@ -1471,7 +1486,7 @@ end;
 procedure TfrmMtoPrincipal.FormActivate(Sender: TObject);
 begin
   inherited;
-  // FormPaint(Sender);
+  AplicarInterruptorTransito;
 end;
 
 procedure TfrmMtoPrincipal.AplicarDegradadoBordes;
@@ -2534,7 +2549,10 @@ procedure TfrmMtoPrincipal.mnuCajaParamClick(Sender: TObject);
 begin
   inherited;
   if mnuMenuCaja.Visible then
+  begin
     FInyeccionCaja.MostrarParametros;
+    AplicarInterruptorTransito;
+  end;
 end;
 
 procedure TfrmMtoPrincipal.mnuListadoOperacionesVentaClick(

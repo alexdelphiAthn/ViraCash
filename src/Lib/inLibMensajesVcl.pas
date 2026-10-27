@@ -21,7 +21,7 @@ unit inLibMensajesVcl;
 interface
 
 uses
-  Winapi.Windows, System.UITypes, Vcl.Dialogs;
+  Winapi.Windows, System.UITypes, System.Classes, Vcl.Dialogs;
 
 const
   NOMBRE_FUENTE_MENSAJES = 'Source Sans 3';
@@ -35,7 +35,9 @@ function CargarFuentesInterfaz(const ADirectorio: string): Integer;
 procedure LiberarFuentesInterfaz(const ADirectorio: string);
 
 // Sustituto de ShowMessage: sin icono y con el título de la aplicación.
-procedure ShowMessage_fza(const AMensaje: string);
+procedure ShowMessage_fza(const AMensaje: string); overload;
+procedure ShowMessage_fza(AOwner: TComponent;
+  const AMensaje: string); overload;
 procedure ShowMessageFmt_fza(const AFormato: string;
   const AArgumentos: array of const);
 // Sustitutos de MessageDlg: mismos parámetros y resultados (mrYes, mrNo...).
@@ -75,8 +77,8 @@ function ResultadoDeMessageBox(AResultadoModal: Integer;
 implementation
 
 uses
-  System.SysUtils, System.Classes, System.Math, Vcl.Forms, Vcl.StdCtrls,
-  Vcl.Menus, Vcl.Controls;
+  System.SysUtils, System.Math, Vcl.Forms, Vcl.StdCtrls,
+  Vcl.Menus, Vcl.Controls, inLibPosicionFormulario;
 
 type
   TOrdenBotones = array of TMsgDlgBtn;
@@ -358,6 +360,16 @@ end;
 procedure ShowMessage_fza(const AMensaje: string);
 begin
   MostrarDialogo(CrearDialogo(AMensaje, mtCustom, [mbOK], mbOK, 0));
+end;
+
+procedure ShowMessage_fza(AOwner: TComponent; const AMensaje: string);
+var
+  Dialogo: TForm;
+begin
+  Dialogo := CrearDialogo(AMensaje, mtCustom, [mbOK], mbOK, 0);
+  AsociarVentanaPropietaria(Dialogo, AOwner);
+  AjustarFormularioAreaTrabajo(Dialogo, AOwner);
+  MostrarDialogo(Dialogo);
 end;
 
 procedure ShowMessageFmt_fza(const AFormato: string;

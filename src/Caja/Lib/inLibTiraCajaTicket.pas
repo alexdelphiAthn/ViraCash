@@ -520,7 +520,10 @@ begin
   if AValorar then
   begin
     ATicket.Negrita(True);
-    ATicket.TextoColumnas(STicketTotalTraspasoCoste, FmtImp(Result));
+    if AOperacion.Grupo = 'PER' then
+      ATicket.TextoColumnas(STicketTotalPerdidaCoste, FmtImp(Result))
+    else
+      ATicket.TextoColumnas(STicketTotalTraspasoCoste, FmtImp(Result));
     ATicket.Negrita(False);
   end;
 end;

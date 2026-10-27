@@ -1768,13 +1768,7 @@ begin
       begin
         FEmailEnvio := Trim(Cliente.Email);
       end;
-      FDatosCobro.EstablecerCliente(
-        FCodigoCliente,
-        Cliente.Nombre,
-        Cliente.PermiteDeuda,
-        Cliente.EsClienteVarios,
-        Cliente.LimiteCredito,
-        0);
+      FDatosCobro.EstablecerCliente(FCodigoCliente, Cliente);
     end;
   end;
   CargarComboSeries;

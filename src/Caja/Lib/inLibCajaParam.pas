@@ -21,6 +21,7 @@ uses
   inLibContextoSesionIntf, inLibDeteccionImpresora;
 
 const
+  PARAMETRO_USAR_ALMACENES_TRANSITO = 'vgerUsarAlmacenesTransito';
   // Ticket de caja con formato FastReport (impreso como imagen): el
   // parámetro guarda el nombre de un formato de factura (frmPrintFac) que
   // empieza por cPrefijoFormatoTicket. Vacío = ticket ESC/POS de texto.
@@ -59,6 +60,9 @@ type
     function TarifaDefecto: string;
   end;
 
+function UsarAlmacenesTransito(
+  const AParametros: IParametrosCaja): Boolean;
+
 function CrearParametrosCaja(
   const APerfilesLectura: ILectorPerfilesUsuario;
   const ACachePerfiles: ICachePerfilesUsuario;
@@ -76,6 +80,13 @@ uses
 const
   cParametroEsperaDeteccionImpresora =
     'vgerImpresoraEsperaSegundos';
+
+function UsarAlmacenesTransito(
+  const AParametros: IParametrosCaja): Boolean;
+begin
+  Result := Assigned(AParametros) and
+    AParametros.GetBool(PARAMETRO_USAR_ALMACENES_TRANSITO, False);
+end;
 
 { TParametrosCaja }
 
@@ -193,6 +204,11 @@ end;
 
 procedure TParametrosCaja.RegistrarConfiguracionCaja;
 begin
+  RegistrarParametro('Configuración de Caja',
+                     PARAMETRO_USAR_ALMACENES_TRANSITO,
+                     'Usar almacenes de tránsito',
+                     tpBoolean,
+                     'False');
   RegistrarParametro('Configuración de Caja',
                      'vgerShowCajaSelection',
                      'Presentar selección de caja',

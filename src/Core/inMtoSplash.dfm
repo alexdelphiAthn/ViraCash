@@ -102,11 +102,58 @@
         OnClick = btnAceptarClick
       end
     end
+    object pnlDatosAutor: TPanel
+      Left = 2
+      Top = 272
+      Width = 511
+      Height = 64
+      Align = alBottom
+      BevelOuter = bvNone
+      TabOrder = 2
+      object lblNombreAutor: TcxLabel
+        Left = 0
+        Top = 0
+        Align = alTop
+        AutoSize = False
+        ParentFont = False
+        Style.Font.Charset = DEFAULT_CHARSET
+        Style.Font.Color = clWindowText
+        Style.Font.Height = -16
+        Style.Font.Name = 'Source Sans 3'
+        Style.Font.Style = [fsBold]
+        Style.IsFontAssigned = True
+        Properties.Alignment.Horz = taCenter
+        Properties.Alignment.Vert = taVCenter
+        TabOrder = 0
+        Transparent = True
+        Height = 32
+        Width = 511
+      end
+      object lblVersion: TcxLabel
+        Left = 0
+        Top = 32
+        Align = alClient
+        AutoSize = False
+        ParentFont = False
+        Style.Font.Charset = DEFAULT_CHARSET
+        Style.Font.Color = clWindowText
+        Style.Font.Height = -12
+        Style.Font.Name = 'Source Sans 3'
+        Style.Font.Style = []
+        Style.IsFontAssigned = True
+        Properties.Alignment.Horz = taCenter
+        Properties.Alignment.Vert = taVCenter
+        TabOrder = 1
+        Transparent = True
+        Height = 32
+        Width = 511
+      end
+    end
     object Panel2: TPanel
       Left = 26
       Top = 40
       Width = 457
-      Height = 241
+      Height = 220
       TabOrder = 1
     end
   end

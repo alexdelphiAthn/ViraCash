@@ -42,29 +42,49 @@ procedure ExplicarAvisosBalance(AInforme: TfrxReport);
 implementation
 
 uses
-  System.SysUtils, System.Classes, System.UITypes, Vcl.Graphics, inLibMsgArticulos;
+  System.SysUtils, System.Classes, System.UITypes, Vcl.Graphics,
+  inLibMsgArticulos, inLibTraduccionesInforme;
 
 procedure ExplicarAvisosBalance(AInforme: TfrxReport);
 var
-  oCabecera: TfrxComponent;
+  oCabecera, oExistente: TfrxComponent;
   oLeyenda: TfrxMemoView;
 begin
-  if (AInforme <> nil) and
-     (AInforme.FindObject('LeyendaAvisosBalance') = nil) then
+  if AInforme <> nil then
   begin
     oCabecera := AInforme.FindObject('ReportTitle1');
+    oExistente := AInforme.FindObject('LeyendaAvisosBalance');
     if oCabecera is TfrxReportTitle then
     begin
-      oLeyenda := TfrxMemoView.Create(oCabecera);
-      oLeyenda.Name := 'LeyendaAvisosBalance';
-      oLeyenda.Left := 0;
-      oLeyenda.Top := TfrxReportTitle(oCabecera).Height;
-      oLeyenda.Width := TfrxReportTitle(oCabecera).Width;
-      oLeyenda.Height := 30;
-      oLeyenda.Font.Name := 'Arial';
-      oLeyenda.Font.Size := 8;
-      oLeyenda.Text := SLeyendaAvisosBalance;
-      TfrxReportTitle(oCabecera).Height := oLeyenda.Top + oLeyenda.Height;
+      oLeyenda := nil;
+      if oExistente = nil then
+      begin
+        oLeyenda := TfrxMemoView.Create(oCabecera);
+        oLeyenda.Name := 'LeyendaAvisosBalance';
+        oLeyenda.Left := 0;
+        oLeyenda.Top := TfrxReportTitle(oCabecera).Height;
+        oLeyenda.Width := TfrxReportTitle(oCabecera).Width;
+        oLeyenda.Height := 30;
+        oLeyenda.Font.Name := 'Arial';
+        oLeyenda.Font.Size := 8;
+        oLeyenda.Text := SLeyendaAvisosBalance;
+      end
+      else if oExistente is TfrxMemoView then
+        oLeyenda := TfrxMemoView(oExistente);
+      if (oLeyenda <> nil) and (oLeyenda.Parent = oCabecera) then
+      begin
+        // También adapta leyendas ya guardadas con la fuente latina.
+        AjustarFuenteTextoInforme(oLeyenda);
+        oLeyenda.WordWrap := True;
+        oLeyenda.StretchMode := smActualHeight;
+        if oLeyenda.CalcHeight > oLeyenda.Height then
+          oLeyenda.Height := oLeyenda.CalcHeight;
+        TfrxReportTitle(oCabecera).Stretched := True;
+        if TfrxReportTitle(oCabecera).Height <
+           oLeyenda.Top + oLeyenda.Height then
+          TfrxReportTitle(oCabecera).Height :=
+            oLeyenda.Top + oLeyenda.Height;
+      end;
     end;
   end;
 end;

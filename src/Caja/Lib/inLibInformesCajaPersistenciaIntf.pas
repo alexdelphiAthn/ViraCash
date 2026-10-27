@@ -64,6 +64,12 @@ type
     function DataSet: TDataSet;
   end;
 
+  IRepositorioCuentaClientes = interface
+    ['{5833951C-B4D3-4E2C-8D54-6E8C6BEAF726}']
+    function ConsultarCuentaClientes(const ACliente: string;
+      AResumen: Boolean): IResultadoInformeCaja;
+  end;
+
   IRepositorioValesCaja = interface
     ['{9C40657A-CC5F-45F8-A066-A2C81A04736E}']
     function ConsultarValesPendientes(

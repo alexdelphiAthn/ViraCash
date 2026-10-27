@@ -15,10 +15,42 @@ unit inLibCajaDepositos;
 
 interface
 
+uses
+  Data.DB;
+
+function DescribirDeudaOtrasTiendas(ADatos: TDataSet;
+  const AEmpresa, AAlmacen: string): string;
+
 function CalcularImporteSinIvaDeposito(
   AImporte, APorcentajeIva: Currency): Currency;
 
 implementation
+
+uses
+  System.SysUtils, inLibMsgCaja;
+
+function DescribirDeudaOtrasTiendas(ADatos: TDataSet;
+  const AEmpresa, AAlmacen: string): string;
+begin
+  Result := '';
+  while not ADatos.Eof do
+  begin
+    if (ADatos.FieldByName('EMPRESA').AsString <> AEmpresa) or
+       (ADatos.FieldByName('ALMACEN').AsString <> AAlmacen) then
+    begin
+      if Result <> '' then
+        Result := Result + sLineBreak;
+      Result := Result + Format(SInfoDeudaOtraTienda, [
+        FormatFloat('#,##0.00',
+          ADatos.FieldByName('PENDIENTE').AsCurrency),
+        ADatos.FieldByName('ALMACEN').AsString + ' - ' +
+          ADatos.FieldByName('TIENDA').AsString,
+        ADatos.FieldByName('EMPRESA').AsString]);
+    end;
+    ADatos.Next;
+  end;
+end;
+
 
 function CalcularImporteSinIvaDeposito(
   AImporte, APorcentajeIva: Currency): Currency;

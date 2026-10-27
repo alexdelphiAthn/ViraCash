@@ -7,13 +7,20 @@ unit inMtoModalImpHojaRutaTransito;
 interface
 
 uses
-  System.SysUtils, System.Classes, Data.DB, Uni,
-  frxClass, frxDBSet, cxTextEdit, cxCheckListBox, inMtoModalGenImp;
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Classes,
+  System.Types,
+  Vcl.Controls, cxCheckBox, cxLabel, Data.DB, Uni,
+  frxClass, frxDBSet, cxTextEdit, cxCheckListBox, inMtoModalGenImp,
+  inLibCorreoTickets;
 
 type
   TfrmPrintHojaRutaTransito = class(TfrmPrint)
   private
     FTransito: string;
+    FIndiceClicCarga: Integer;
+    FEstadoClicCarga: Integer;
+    FProcedimientoLista: TWndMethod;
+    FEtiquetaAyuda: TcxLabel;
     FConexion: TUniConnection;
     FDatos: TUniQuery;
     FDataset: TfrxDBDataset;
@@ -24,13 +31,19 @@ type
     edtViaje: TcxTextEdit;
     clbCargas: TcxCheckListBox;
     procedure CrearSeleccionViaje;
+    procedure MensajesListaCargas(var Mensaje: TMessage);
     procedure CargarCargasViaje;
     function CargasSeleccionadas: TArray<Int64>;
   protected
     procedure DoCreate; override;
     procedure DoShow; override;
+    procedure Resize; override;
     procedure AvisarAntesDeConsulta; override;
+    procedure EnviarCorreoDocumento(
+      ATipo: TTipoDocumentoCorreo;
+      const ASerie, ANumero: string); override;
   public
+    destructor Destroy; override;
     class procedure Ejecutar(AOwner: TComponent;
       AConexion: TUniConnection; const ATransito: string;
       APuedeImprimir, APuedeExportar: Boolean); static;
@@ -45,10 +58,10 @@ procedure AsignarTextosHojaRuta(AInforme: TfrxReport);
 implementation
 
 uses
-  Vcl.Graphics, Vcl.Forms, Vcl.Controls, cxCheckBox, cxLabel,
+  Vcl.Graphics, Vcl.Forms,
   cxLookAndFeelPainters, frBaseGraphicsTypes, inLibMsgCaja,
-  inLibMensajesVcl,
-  UniDataCargasTransito;
+  inLibMensajesVcl, inLibCorreoDocumentoIntf, inLibCorreoDocumentoVcl,
+  UniDataCargasTransito, inLibPosicionFormulario;
 
 {$R *.dfm}
 
@@ -453,6 +466,7 @@ begin
   Etiqueta.Transparent := True;
   Etiqueta.Properties.WordWrap := True;
   Etiqueta.Caption := STextoAyudaHojaRuta;
+  FEtiquetaAyuda := Etiqueta;
   Etiqueta := TcxLabel.Create(Self);
   Etiqueta.Parent := Self;
   Etiqueta.SetBounds(ScaleValue(12), ScaleValue(58),
@@ -466,8 +480,68 @@ begin
   edtViaje.Properties.MaxLength := 100;
   clbCargas := TcxCheckListBox.Create(Self);
   clbCargas.Parent := Self;
+  clbCargas.Name := 'clbCargasViaje';
+  clbCargas.AllowDblClickToggle := False;
+  FProcedimientoLista := clbCargas.InnerCheckListBox.WindowProc;
+  clbCargas.InnerCheckListBox.WindowProc := MensajesListaCargas;
+  FIndiceClicCarga := -1;
   clbCargas.SetBounds(ScaleValue(12), ScaleValue(100),
-    ScaleValue(700), ScaleValue(310));
+    ScaleValue(700), ScaleValue(286));
+end;
+
+procedure TfrmPrintHojaRutaTransito.MensajesListaCargas(
+  var Mensaje: TMessage);
+var
+  Indice: Integer;
+  Punto: TPoint;
+begin
+  Punto := Point(SmallInt(LoWord(Mensaje.LParam)),
+    SmallInt(HiWord(Mensaje.LParam)));
+  if (Mensaje.Msg = WM_LBUTTONDOWN) or
+     (Mensaje.Msg = WM_LBUTTONDBLCLK) then
+  begin
+    FIndiceClicCarga :=
+      clbCargas.InnerCheckListBox.ItemAtPos(Punto, True);
+    if FIndiceClicCarga >= 0 then
+      FEstadoClicCarga := Ord(clbCargas.Items[FIndiceClicCarga].State);
+  end;
+  FProcedimientoLista(Mensaje);
+  if Mensaje.Msg = WM_LBUTTONUP then
+  begin
+    Indice := clbCargas.InnerCheckListBox.ItemAtPos(Punto, True);
+    // Si el control nativo ya marcó la casilla, no repetir el cambio.
+    if (Indice >= 0) and (Indice = FIndiceClicCarga) and
+       clbCargas.Items[Indice].Enabled and not clbCargas.ReadOnly and
+       (Ord(clbCargas.Items[Indice].State) = FEstadoClicCarga) then
+      if clbCargas.Items[Indice].State = cbsChecked then
+        clbCargas.Items[Indice].State := cbsUnchecked
+      else
+        clbCargas.Items[Indice].State := cbsChecked;
+    FIndiceClicCarga := -1;
+  end;
+end;
+
+destructor TfrmPrintHojaRutaTransito.Destroy;
+begin
+  if (clbCargas <> nil) and Assigned(FProcedimientoLista) then
+    clbCargas.InnerCheckListBox.WindowProc := FProcedimientoLista;
+  inherited;
+end;
+
+procedure TfrmPrintHojaRutaTransito.Resize;
+var
+  Margen, Ancho: Integer;
+begin
+  inherited;
+  if (clbCargas <> nil) and (edtViaje <> nil) then
+  begin
+    Margen := ScaleValue(12);
+    Ancho := ClientWidth - pnl1.Width - Margen * 2;
+    clbCargas.SetBounds(Margen, ScaleValue(100), Ancho,
+      ClientHeight - ScaleValue(148));
+    edtViaje.Width := Ancho - ScaleValue(78);
+    FEtiquetaAyuda.Width := Ancho;
+  end;
 end;
 
 procedure TfrmPrintHojaRutaTransito.DoCreate;
@@ -539,6 +613,8 @@ begin
     CargarCargasViaje;
     FInicializado := True;
   end;
+  AjustarFormularioAreaTrabajo(Self, Owner);
+  Resize;
   btnImprimir.Enabled := FImprimir;
   btnVistaPreliminar.Enabled := FImprimir or FExportar;
   btnPDF.Enabled := FExportar;
@@ -552,19 +628,49 @@ var
   Formulario: TfrmPrintHojaRutaTransito;
 begin
   if Trim(ATransito) = '' then
-    ShowMessage_fza(SErrorHojaRutaSinTransito)
+    ShowMessage_fza(AOwner, SErrorHojaRutaSinTransito)
   else if APuedeImprimir or APuedeExportar then
   begin
     Formulario := TfrmPrintHojaRutaTransito.Create(AOwner);
     try
+      AsociarVentanaPropietaria(Formulario, AOwner);
+      if AOwner is TCustomForm then
+        Formulario.ScaleForPPI(TCustomForm(AOwner).CurrentPPI);
+      // ScaleForPPI puede recuperar el tamaño de diseño del formulario base.
+      Formulario.ClientWidth := Formulario.ScaleValue(900);
+      Formulario.ClientHeight := Formulario.ScaleValue(440);
       Formulario.FConexion := AConexion;
       Formulario.FTransito := ATransito;
       Formulario.FImprimir := APuedeImprimir;
       Formulario.FExportar := APuedeExportar;
+      if APuedeExportar then
+        Formulario.ConfigurarDocumentoCorreo(tdcAlbaran, '', ATransito);
       Formulario.ShowModal;
     finally
       FreeAndNil(Formulario);
     end;
+  end;
+end;
+
+procedure TfrmPrintHojaRutaTransito.EnviarCorreoDocumento(
+  ATipo: TTipoDocumentoCorreo;
+  const ASerie, ANumero: string);
+var
+  Datos: TDatosCorreoDocumento;
+  Email: string;
+begin
+  AvisarAntesDeConsulta;
+  PrepararConsultaInforme;
+  Consultar_Formularios;
+  if (FormatoElegido <> '') and SolicitarEmailDocumento(Self,
+    TituloEnvioDocumentoCorreo(SCaptionHojaRutaTransito), '', Email) then
+  begin
+    Datos := Default(TDatosCorreoDocumento);
+    Datos.Encontrado := True;
+    Datos.NombreDocumento := SCaptionHojaRutaTransito;
+    Datos.NombreEmpresa := FDatos.FieldByName('ENTREGA').AsString;
+    EnviarCorreoDocumentoPreparado(ATipo, '', Trim(edtViaje.Text),
+      Datos.NombreDocumento, Email, Datos);
   end;
 end;
 

@@ -1348,6 +1348,7 @@ uses
   inMtoCajaOpeEntradaVcl in 'src\Caja\Forms\inMtoCajaOpeEntradaVcl.pas',
   inMtoCajaEditorAtributosVcl in 'src\Caja\Forms\inMtoCajaEditorAtributosVcl.pas',
   inMtoCajaOpeVentanaVcl in 'src\Caja\Forms\inMtoCajaOpeVentanaVcl.pas',
+  inLibCuentaClientesInforme in 'src\Lib\inLibCuentaClientesInforme.pas',
   inLibCajaDepositos in 'src\Caja\Lib\inLibCajaDepositos.pas',
   inMtoPedidosPresentacionArticuloVcl in 'src\Forms\inMtoPedidosPresentacionArticuloVcl.pas',
   inLibTicketRecordatorio in 'src\Lib\inLibTicketRecordatorio.pas',

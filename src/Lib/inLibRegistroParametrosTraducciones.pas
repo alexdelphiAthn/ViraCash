@@ -18,6 +18,10 @@ procedure EnumerarParametrosTraduccion(
   const ARegistrar: TRegistrarParametroTraduccion);
 begin
   ARegistrar(
+    'inMtoCajaParam.Parametros.vgerUsarAlmacenesTransito.Descripcion',
+    'Usar almacenes de tránsito',
+    'src/Caja/Lib/inLibCajaParam.pas');
+  ARegistrar(
     'inMtoAppParam.Parametros.appMargenMinimoTraspasos.Descripcion',
     'Margen mínimo (%) al facturar traspasos a empresas vinculadas',
     'src/Lib/inLibAppParam.pas');

@@ -453,6 +453,8 @@ resourcestring
     'Con incidencias';
   STituloRepartoCargaTransito =
     'Recepción con incidencias: carga %s de %s';
+  SCaptionMostrarIncidenciasReparto =
+    'Mostrar incidencias';
   SEtiquetaAlmacenTarasTransito =
     'Almacén de taras para lo deteriorado:';
   SInfoSinAlmacenTarasTransito =
@@ -994,6 +996,9 @@ resourcestring
 
   SCabeceraPedidoReposicionTicket = 'PED';
   SCabeceraStockReposicionTicket = 'STK';
+
+  SInfoDeudaOtraTienda =
+    'Tiene %s € pendientes en %s (empresa %s).';
 
 implementation
 

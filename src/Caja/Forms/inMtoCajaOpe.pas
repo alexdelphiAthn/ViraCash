@@ -4512,6 +4512,7 @@ end;
 procedure TfrmMtoOpeCaja.CargarDepositosF2;
 var
   sCodigoCliente: string;
+  Aviso: string;
 begin
   sCodigoCliente :=
     DatosCaja.cdsCabecera.FieldByName('CODIGO_CLI_FAC').AsString;
@@ -4545,6 +4546,9 @@ begin
       FEditorLineas.ActualizandoDepositos := False;
     end;
     MostrarLineasCuentaCliente;
+    Aviso := DatosCaja.DeudaClienteOtrasTiendas(sCodigoCliente);
+    if Aviso <> '' then
+      ShowMessage_fza(Aviso);
   end;
 end;
 

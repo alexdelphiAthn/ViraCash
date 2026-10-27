@@ -704,6 +704,7 @@
     end
     object mnuAlmacen: TMenuItem
       Caption = 'Almac'#233'n'
+      OnClick = mnuAlmacenClick
       object Movimientosdealmacn1: TMenuItem
         Caption = 'Movimientos de almac'#233'n'
         ShortCut = 16461
@@ -726,6 +727,7 @@
       end
       object mnuCargasTransito: TMenuItem
         Caption = 'Cargas en tr'#225'nsito'
+        Visible = False
         ShortCut = 57426
         OnClick = MenuGenericoClick
       end

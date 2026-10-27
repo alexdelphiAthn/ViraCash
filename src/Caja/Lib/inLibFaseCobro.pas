@@ -168,6 +168,9 @@ type
     procedure EstablecerCliente(const ACodigo, ANombre: string;
                                 APermiteDeuda, AEsClienteVarios: Boolean;
                                 ALimiteCredito, ADeudaActual: Currency);
+                                overload;
+    procedure EstablecerCliente(const ACodigo: string;
+      const ACliente: TClienteFaseCobro); overload;
     procedure QuitarCliente;
     procedure EstablecerContactoApartado(const AContacto: TContactoApartado);
     function EsApartado: Boolean;
@@ -400,6 +403,13 @@ begin
     FImporteAntesDescuento := 0;
   end;
   Recalcular;
+end;
+
+procedure TDatosFaseCobro.EstablecerCliente(const ACodigo: string;
+  const ACliente: TClienteFaseCobro);
+begin
+  EstablecerCliente(ACodigo, ACliente.Nombre, ACliente.PermiteDeuda,
+    ACliente.EsClienteVarios, ACliente.LimiteCredito, ACliente.DeudaActual);
 end;
 
 procedure TDatosFaseCobro.EstablecerCliente(const ACodigo, ANombre: string;

@@ -292,10 +292,6 @@ type
     procedure AsignarStringLinea(
       ADataSet: TDataSet;
       const ACampo, AValor: string);
-    procedure AsignarNumeroLinea(
-      ADataSet: TDataSet;
-      const ACampo: string;
-      AValor: Double);
     procedure LimpiarCampoLinea(
       ADataSet: TDataSet;
       const ACampo: string);
@@ -553,18 +549,6 @@ begin
   Campo := ADataSet.FindField(ACampo);
   if Campo <> nil then
     Campo.AsString := AValor;
-end;
-
-procedure TfrmMtoAlbaranes.AsignarNumeroLinea(
-  ADataSet: TDataSet;
-  const ACampo: string;
-  AValor: Double);
-var
-  Campo: TField;
-begin
-  Campo := ADataSet.FindField(ACampo);
-  if Campo <> nil then
-    Campo.AsFloat := AValor;
 end;
 
 procedure TfrmMtoAlbaranes.LimpiarCampoLinea(

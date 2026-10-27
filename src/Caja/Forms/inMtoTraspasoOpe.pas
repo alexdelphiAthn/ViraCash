@@ -35,7 +35,7 @@ uses
   inLibPermisosIntf, inLibGenBusq, inLibFotos, inLibAtributosPaleta,
   Vcl.Menus, dxCoreGraphics, JvComponentBase, JvEnterTab,
   cxLocalization, inLibLectorDocumento, cxStyles, cxDBData, cxCustomData,
-  inLibTrazabilidad, inLibLotesPersistenciaIntf,
+  inLibTrazabilidad, inLibCajaParam, inLibLotesPersistenciaIntf,
   cxFilter, cxData, cxDataStorage, cxNavigator, dxDateRanges, cxCalendar,
   dxScrollbarAnnotations, inLibCajaVentaIntf, inLibCajaVentanasIntf,
   inLibTraspasoOpePersistenciaIntf, inLibArticulosAtributosIntf,
@@ -102,6 +102,7 @@ type
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormShow(Sender: TObject);
+    procedure FormActivate(Sender: TObject);
     procedure btnModoClick(Sender: TObject);
     procedure btnF8Click(Sender: TObject);
     procedure btnF11Click(Sender: TObject);
@@ -147,6 +148,8 @@ type
     FRepartoTransito: TClientDataSet;
     FVistaRepartoTransito: TcxGridDBTableView;
     FComboTarasTransito: TcxComboBox;
+    FCasillaIncidenciasReparto: TcxCheckBox;
+    FPanelTarasTransito: TPanel;
     FCodigosTarasTransito: TArray<string>;
     // Lista de perdidas y deterioros mientras esta abierta.
     FRejillaIncidenciasTransito: TcxGrid;
@@ -365,6 +368,7 @@ type
       out AReparto: TLineasRecepcionTransito;
       out AAlmacenTaras: string): Boolean;
     procedure CrearSelectorTarasTransito(ADialogo: TForm);
+    procedure IncidenciasRepartoCambiadas(Sender: TObject);
     function AlmacenTarasElegido: string;
     procedure CrearDatosRepartoTransito(ADialogo: TForm;
       const ALineas: TLineasRecepcionTransito);
@@ -652,6 +656,19 @@ begin
   EnfocarSegunModo;
 end;
 
+procedure TfrmMtoOpeTraspaso.FormActivate(Sender: TObject);
+var
+  Mostrar: Boolean;
+begin
+  if Assigned(chkUsarTransito) and Assigned(FAlmacenesTransito) then
+  begin
+    Mostrar := UsarAlmacenesTransito(ParametrosCaja) and
+      (FModo = mtTraspaso) and (FAlmacenesTransito.Count > 0);
+    if chkUsarTransito.Visible <> Mostrar then
+      ConfigurarControlesTransito;
+  end;
+end;
+
 function TfrmMtoOpeTraspaso.CrearCamposGrid: TCamposGridArt;
 var
   Indice: Integer;
@@ -758,7 +775,8 @@ begin
   // Selector de atributos en combo fijo con filtrado, en vez de la
   // paleta emergente.
   FGridCtrl.UsarCombosAtributos := True;
-  FGridCtrl.NombresAtributosGenericos := True;
+  // Cabeceras con los nombres configurados: Color, Talla, etc.
+  FGridCtrl.NombresAtributosGenericos := False;
   FGridCtrl.OnEntrarEdicion := DesactivarEnterAsTabTemporal;
   FGridCtrl.OnSalirEdicion := SalirEdicionModoEntrada;
   if FModo = mtReposicion then
@@ -2651,7 +2669,8 @@ begin
   FDatos.EstablecerDestinoFinalTransito('');
   AAlmacenCarga := ADestino;
   Result := True;
-  if chkUsarTransito.Visible and chkUsarTransito.Checked then
+  if UsarAlmacenesTransito(ParametrosCaja) and
+     chkUsarTransito.Visible and chkUsarTransito.Checked then
   begin
     AAlmacenCarga := TransitoSeleccionado;
     Result := AAlmacenCarga <> '';
@@ -2716,7 +2735,8 @@ var
 begin
   if not Assigned(chkUsarTransito) then
     Exit;
-  bVisible := (FModo = mtTraspaso) and (FAlmacenesTransito.Count > 0);
+  bVisible := UsarAlmacenesTransito(ParametrosCaja) and
+    (FModo = mtTraspaso) and (FAlmacenesTransito.Count > 0);
   chkUsarTransito.Properties.ReadOnly := False;
   cboTransito.Properties.ReadOnly := False;
   chkUsarTransito.Checked := False;
@@ -2883,6 +2903,7 @@ begin
     oDialogo.ActiveControl := CrearRejillaDatos(oDialogo, oDialogo,
       FRepartoTransito, oFuente, FVistaRepartoTransito);
     ConfigurarRejillaRepartoTransito(FVistaRepartoTransito);
+    IncidenciasRepartoCambiadas(FCasillaIncidenciasReparto);
     oRecibir := CrearBotonModal(oDialogo, oPanelBotones,
       TextoBotonConAtajo(SCaptionRecibirCargasTransito, 'F12'));
     oRecibir.ModalResult := mrOk;
@@ -2901,6 +2922,8 @@ begin
     FVistaRepartoTransito := nil;
     FRepartoTransito := nil;
     FComboTarasTransito := nil;
+    FCasillaIncidenciasReparto := nil;
+    FPanelTarasTransito := nil;
     FreeAndNil(oDialogo);
   end;
 end;
@@ -2917,8 +2940,24 @@ begin
   oPanel := TPanel.Create(ADialogo);
   oPanel.Parent := ADialogo;
   oPanel.Align := alTop;
-  oPanel.Height := EscalarCaja(Self, 84);
+  oPanel.Height := EscalarCaja(Self, 40);
   oPanel.BevelOuter := bvNone;
+  FCasillaIncidenciasReparto := TcxCheckBox.Create(ADialogo);
+  FCasillaIncidenciasReparto.Parent := oPanel;
+  FCasillaIncidenciasReparto.SetBounds(EscalarCaja(Self, 16),
+    EscalarCaja(Self, 8), EscalarCaja(Self, 300), EscalarCaja(Self, 24));
+  FCasillaIncidenciasReparto.Caption := SCaptionMostrarIncidenciasReparto;
+  FCasillaIncidenciasReparto.Transparent := True;
+  FCasillaIncidenciasReparto.Checked := False;
+  FCasillaIncidenciasReparto.Properties.OnEditValueChanged :=
+    IncidenciasRepartoCambiadas;
+  FPanelTarasTransito := TPanel.Create(ADialogo);
+  FPanelTarasTransito.Parent := oPanel;
+  FPanelTarasTransito.Align := alBottom;
+  FPanelTarasTransito.Height := EscalarCaja(Self, 84);
+  FPanelTarasTransito.BevelOuter := bvNone;
+  FPanelTarasTransito.Visible := False;
+  oPanel := FPanelTarasTransito;
   oEtiqueta := TcxLabel.Create(ADialogo);
   oEtiqueta.Parent := oPanel;
   oEtiqueta.Left := EscalarCaja(Self, 16);
@@ -2951,6 +2990,41 @@ begin
     oEtiqueta.Caption := SInfoSinAlmacenTarasTransito;
     FComboTarasTransito.Visible := False;
   end;
+end;
+
+// Mostrar u ocultar conserva los valores ya introducidos.
+procedure TfrmMtoOpeTraspaso.IncidenciasRepartoCambiadas(Sender: TObject);
+const
+  CAMPOS: array[0..2] of string = ('DETERIORADA', 'PERDIDA', 'MOTIVO');
+var
+  Mostrar: Boolean;
+  Campo: string;
+  Columna: TcxGridDBColumn;
+begin
+  Mostrar := FCasillaIncidenciasReparto.Checked;
+  if Assigned(FVistaRepartoTransito) then
+  begin
+    FVistaRepartoTransito.Controller.EditingController.HideEdit(True);
+    FVistaRepartoTransito.BeginUpdate;
+    try
+      for Campo in CAMPOS do
+      begin
+        Columna := FVistaRepartoTransito.GetColumnByFieldName(Campo);
+        if Assigned(Columna) then
+          Columna.Visible := Mostrar;
+      end;
+      Columna := FVistaRepartoTransito.GetColumnByFieldName('RECIBIDA');
+      if Assigned(Columna) then
+        Columna.Focused := True;
+    finally
+      FVistaRepartoTransito.EndUpdate;
+    end;
+  end;
+  FPanelTarasTransito.Visible := Mostrar;
+  if Mostrar then
+    FPanelTarasTransito.Parent.Height := EscalarCaja(Self, 124)
+  else
+    FPanelTarasTransito.Parent.Height := EscalarCaja(Self, 40);
 end;
 
 function TfrmMtoOpeTraspaso.AlmacenTarasElegido: string;
@@ -3089,8 +3163,8 @@ begin
     oMotivo.MinWidth := EscalarCaja(Self, 280);
   VincularCantidadesGrid([oCargada, oRecibida, oDeteriorada, oPerdida],
     AVista.GetColumnByFieldName('UNIDAD'), UnidadesMedida, False);
-  if Assigned(oDeteriorada) then
-    oDeteriorada.Focused := True;
+  if Assigned(oRecibida) then
+    oRecibida.Focused := True;
 end;
 
 // ESC con una celda en edicion solo cancela esa celda.
@@ -3829,8 +3903,9 @@ procedure TfrmMtoOpeTraspaso.DimensionarModal(ADialogo: TForm;
 var
   rArea: TRect;
 begin
+  ADialogo.ScaleForPPI(CurrentPPI);
   ADialogo.Font.Assign(Font);
-  ADialogo.Position := poScreenCenter;
+  ADialogo.Position := poDesigned;
   ADialogo.BorderStyle := bsDialog;
   ADialogo.KeyPreview := True;
   rArea := Monitor.WorkareaRect;
@@ -3852,6 +3927,7 @@ var
   I, J: Integer;
 begin
   oDialogo := Sender as TComponent;
+  AjustarFormularioAreaTrabajo(oDialogo as TForm, Self);
   for I := 0 to oDialogo.ComponentCount - 1 do
     if oDialogo.Components[I] is TcxGrid then
     begin
@@ -3875,14 +3951,18 @@ end;
 procedure TfrmMtoOpeTraspaso.ColocarBotonesModal(APanel: TPanel;
   const AIzquierda: array of TcxButton; ASalir: TcxButton);
 var
-  iMargen, iAlto, iTop: Integer;
+  iMargen, iAlto, I: Integer;
+  Botones: TArray<TcxButton>;
 begin
   iMargen := EscalarCaja(Self, 12);
   iAlto := EscalarCaja(Self, ALTO_BOTON_CAJA_96_DPI);
-  iTop := (APanel.ClientHeight - iAlto) div 2;
-  ColocarFilaBotonesCaja(AIzquierda, iMargen, iTop, iAlto,
-    ALTO_FUENTE_BOTON_CAJA);
-  ColocarFilaBotonesCaja([ASalir], 0, iTop, iAlto, ALTO_FUENTE_BOTON_CAJA);
+  SetLength(Botones, Length(AIzquierda) + 1);
+  for I := 0 to High(AIzquierda) do
+    Botones[I] := AIzquierda[I];
+  Botones[High(Botones)] := ASalir;
+  APanel.Height := ColocarFilasBotonesCaja(Botones,
+    iMargen, iMargen, iAlto, ALTO_FUENTE_BOTON_CAJA,
+    APanel.ClientWidth - iMargen) + iMargen;
   ASalir.Left := APanel.ClientWidth - iMargen - ASalir.Width;
   ASalir.Anchors := [akTop, akRight];
 end;

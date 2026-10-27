@@ -169,6 +169,26 @@
       TabOrder = 2
       WordWrap = True
     end
+    object btnDeudores: TcxButton
+      Left = 1
+      Top = 224
+      Width = 138
+      Height = 48
+      Caption = 'Deudores por tienda'
+      TabOrder = 4
+      WordWrap = True
+      OnClick = btnDeudoresClick
+    end
+    object btnExtracto: TcxButton
+      Left = 1
+      Top = 276
+      Width = 138
+      Height = 48
+      Caption = 'Extracto de cliente'
+      TabOrder = 5
+      WordWrap = True
+      OnClick = btnExtractoClick
+    end
     object btnImprimirInforme: TcxButton
       Left = 1
       Top = 172

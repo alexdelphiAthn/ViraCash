@@ -842,8 +842,9 @@ begin
             Ticket.Negrita(True);
             Ticket.EscribirLinea(Lineas[iLinea].Sku);
             Ticket.Negrita(False);
-            Ticket.EscribirLinea(Copy(Lineas[iLinea].Descripcion,
-              1, N_CHAR_LIN));
+            if Trim(Lineas[iLinea].Descripcion) <> '' then
+              Ticket.EscribirLinea(Copy(Lineas[iLinea].Descripcion,
+                1, N_CHAR_LIN));
             Ticket.TextoColumnas(STicketUnidades,
               FormatFloat('0.###', dPed));
           end

@@ -47,7 +47,7 @@ type
 
   TRepositorioInformesCajaUniDAC = class(
     TInterfacedObject,
-    IRepositorioInformesCaja)
+    IRepositorioInformesCaja, IRepositorioCuentaClientes)
   private
     FConexion: TUniConnection;
     function EjecutarInforme(
@@ -84,6 +84,8 @@ type
     ): IResultadoInformeCaja;
   public
     constructor Create(AConexion: TUniConnection);
+    function ConsultarCuentaClientes(const ACliente: string;
+      AResumen: Boolean): IResultadoInformeCaja;
     function ConsultarArqueos(
       const ASolicitud: TSolicitudInformeCaja
     ): IResultadoInformeCaja;
@@ -169,6 +171,66 @@ begin
     oConsulta := nil;
   finally
     FreeAndNil(oConsulta);
+  end;
+end;
+
+function TRepositorioInformesCajaUniDAC.ConsultarCuentaClientes(
+  const ACliente: string; AResumen: Boolean): IResultadoInformeCaja;
+const
+  Origen =
+    ' FROM fza_depositos_cliente D ' +
+    ' LEFT JOIN fza_clientes C ON C.CODIGO_CLI_CLI = D.CODIGO_CLI_DEP ' +
+    ' LEFT JOIN fza_empresas E ON E.CODIGO_EMP_EMP = D.CODIGO_EMP_DEP ' +
+    ' LEFT JOIN fza_almacenes A ON A.CODIGO_ALM_ALM = D.CODIGO_ALM_DEP ' +
+    ' WHERE COALESCE(D.ESAPARTADO_DEP, ''N'') <> ''S'' ' +
+    ' AND (:CLIENTE = '''' OR D.CODIGO_CLI_DEP = :CLIENTE) ';
+  Pendiente =
+    'CASE WHEN D.ESTADO_DEP = ''PENDIENTE'' THEN GREATEST(0, ' +
+    'COALESCE(D.PRECIO_VENTA_DEP, 0) * ' +
+    'COALESCE(D.CANTIDAD_PENDIENTE_DEP, 1) - ' +
+    'COALESCE(D.IMPORTE_ANTICIPO_DEP, 0)) ELSE 0 END';
+  Cabecera =
+    'D.CODIGO_CLI_DEP AS CLIENTE, ' +
+    'COALESCE(C.RAZON_SOCIAL_CLI, D.CODIGO_CLI_DEP) AS NOMBRE, ' +
+    'D.CODIGO_EMP_DEP AS EMPRESA, ' +
+    'COALESCE(E.RAZON_SOCIAL_EMP, D.CODIGO_EMP_DEP) AS NOMBRE_EMPRESA, ' +
+    'D.CODIGO_ALM_DEP AS ALMACEN, ' +
+    'COALESCE(A.NOMBRE_ALM_ALM, D.CODIGO_ALM_DEP) AS TIENDA, ' +
+    'COALESCE(C.TOTAL_LIMITE_CREDITO_CLI, 0) AS LIMITE, ';
+var
+  Consulta: TUniQuery;
+  Sql: string;
+begin
+  if AResumen then
+    Sql := 'SELECT ' + Cabecera +
+      'SUM(' + Pendiente + ') AS PENDIENTE, ' +
+      'MIN(D.FECHA_CREACION_DEP) AS FECHA, ' +
+      'MAX(GREATEST(0, DATEDIFF(CURRENT_DATE, ' +
+      'D.FECHA_CREACION_DEP))) AS DIAS ' + Origen +
+      ' AND (' + Pendiente + ') > 0 ' +
+      ' GROUP BY D.CODIGO_CLI_DEP, C.RAZON_SOCIAL_CLI, ' +
+      'D.CODIGO_EMP_DEP, E.RAZON_SOCIAL_EMP, D.CODIGO_ALM_DEP, ' +
+      'A.NOMBRE_ALM_ALM, C.TOTAL_LIMITE_CREDITO_CLI ' +
+      ' ORDER BY CLIENTE, EMPRESA, ALMACEN'
+  else
+    Sql := 'SELECT ' + Cabecera +
+      'D.ID_DEPOSITO_DEP AS DEPOSITO, ' +
+      'D.FECHA_CREACION_DEP AS FECHA, D.ESTADO_DEP AS ESTADO, ' +
+      'COALESCE(D.PRECIO_VENTA_DEP, 0) * ' +
+      'COALESCE(D.CANTIDAD_PENDIENTE_DEP, 1) AS IMPORTE, ' +
+      'COALESCE(D.IMPORTE_ANTICIPO_DEP, 0) AS ENTREGADO, ' +
+      Pendiente + ' AS PENDIENTE ' + Origen +
+      ' ORDER BY CLIENTE, FECHA, DEPOSITO';
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := FConexion;
+    Consulta.SQL.Text := Sql;
+    Consulta.ParamByName('CLIENTE').AsString := Trim(ACliente);
+    Consulta.Open;
+    Result := TResultadoInformeCajaUniDAC.Create(Consulta);
+    Consulta := nil;
+  finally
+    Consulta.Free;
   end;
 end;
 

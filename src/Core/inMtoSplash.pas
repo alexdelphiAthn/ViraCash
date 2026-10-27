@@ -33,13 +33,14 @@ type
     cxLabel2: TcxLabel;
     btnAceptar: TcxButton;
     Panel2: TPanel;
+    pnlDatosAutor: TPanel;
+    lblNombreAutor: TcxLabel;
+    lblVersion: TcxLabel;
     procedure JvGIFAnimator1Click(Sender: TObject);
     procedure cxLabel1Click(Sender: TObject);
     procedure btnAceptarClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
   private
-    FlblNombre:  TcxLabel;
-    FlblVersion: TcxLabel;
     FimgLogo:    TImage;
     FRegistroLog: IRegistroLog;
   public
@@ -112,9 +113,9 @@ begin
   // el TImage lo estire con StretchBlt, que es lo que lo dejaba pixelado.
   bCargado := False;
   FimgLogo := TImage.Create(Self);
-  FimgLogo.Parent := Panel1;
-  FimgLogo.SetBounds(Panel2.Left+10, Panel2.Top,
-                     Panel2.Width, Panel2.Height);
+  FimgLogo.Parent := Panel2;
+  FimgLogo.SetBounds(0, 0, Panel2.ClientWidth, Panel2.ClientHeight);
+  FimgLogo.Align := alClient;
   FimgLogo.Proportional := False;
   FimgLogo.Stretch      := False;
   FimgLogo.Center       := True;
@@ -156,8 +157,8 @@ begin
     if bCargado then
     begin
       // Escalado suavizado al area de imagen del splash, alfa preservado.
-      oEscalado := inLibImagen.EscalarSuavizado(oPng, Panel2.Width,
-                                                Panel2.Height);
+      oEscalado := inLibImagen.EscalarSuavizado(oPng,
+        Panel2.ClientWidth, Panel2.ClientHeight);
       if oEscalado <> nil then
       try
         FimgLogo.Picture.Assign(oEscalado);
@@ -176,32 +177,10 @@ begin
   finally
     oPng.Free;
   end;
-  // Nombre del autor superpuesto a la imagen (banda inferior del area de
-  // imagen, justo encima del panel de creditos).
-  FlblNombre := TcxLabel.Create(Self);
-  FlblNombre.Parent  := Panel1;
-  FlblNombre.Caption := CNombre;
-  FlblNombre.AutoSize := False;
-  FlblNombre.SetBounds(0, 295, Panel1.Width, 22);
-  FlblNombre.Properties.Alignment.Horz := taCenter;
-  // Asignar cualquier propiedad de Style.Font activa IsFontAssigned
-  // automaticamente; no hay que tocarla en runtime (es read-only).
-  FlblNombre.Style.Font.Name   := 'Source Sans 3';
-  FlblNombre.Style.Font.Height := -16;
-  FlblNombre.Style.Font.Style  := [fsBold];
-  FlblNombre.Transparent := True;
-  // Version dinamica, leida de inLibGlobalVar para evitar drift entre
-  // splash y about.
-  FlblVersion := TcxLabel.Create(Self);
-  FlblVersion.Parent  := Panel1;
-  FlblVersion.Caption := Format(SCaptionVersion, [oVersion]);
-  FlblVersion.AutoSize := False;
-  FlblVersion.SetBounds(0, 316, Panel1.Width, 18);
-  FlblVersion.Properties.Alignment.Horz := taCenter;
-  FlblVersion.Style.Font.Name   := 'Source Sans 3';
-  FlblVersion.Style.Font.Height := -12;
-  FlblVersion.Style.Font.Style  := [];
-  FlblVersion.Transparent := True;
+  // Los textos viven en su propia franja del DFM. VCL escala tanto
+  // sus fuentes como sus alturas, sin superponerlos al panel del logo.
+  lblNombreAutor.Caption := CNombre;
+  lblVersion.Caption := Format(SCaptionVersion, [oVersion]);
   AplicarTraducciones(Self, Owner);
 end;
 

@@ -277,6 +277,7 @@ type
     // Cuenta del cliente por fecha de operacion (lo mas antiguo arriba).
     // AIncluirCerrados anade el historico: depositos ya cerrados, solo
     // para consulta (VIENE_DE_DEPOSITO = 'H', no suman ni se cobran).
+    function DeudaClienteOtrasTiendas(const ACliente: string): string;
     procedure CargarDepositosCliente(const ACodigoCliente: string;
       AIncluirCerrados: Boolean = False);
     function BuscarApartadoTicket(
@@ -378,7 +379,8 @@ uses
      UniDataCajaCierreVenta, UniDataNumeracionDocumentos,
      UniDataTraspaso,
      inLibPrestaShopColaSenal,
-     inLibCajaDepositos,
+     inLibCajaDepositos, inLibInformesCajaPersistenciaIntf,
+     UniDataInformesCajaRepositorio,
      inLibRectificativas,
      UniDataRectificativasSql,
      System.Generics.Collections,
@@ -973,6 +975,27 @@ begin
   end;
   if Assigned(ARecalcularLineas) then
     ARecalcularLineas;
+end;
+
+function TdmCajaOpe.DeudaClienteOtrasTiendas(
+  const ACliente: string): string;
+var
+  Repositorio: IRepositorioInformesCaja;
+  Cuenta: IRepositorioCuentaClientes;
+  Resultado: IResultadoInformeCaja;
+  Datos: TDataSet;
+  Ubicacion: TUbicacionSesion;
+begin
+  Result := '';
+  Ubicacion := FContextoSesion.Ubicacion;
+  Repositorio := CrearRepositorioInformesCajaUniDAC(FConexion);
+  if Supports(Repositorio, IRepositorioCuentaClientes, Cuenta) then
+  begin
+    Resultado := Cuenta.ConsultarCuentaClientes(ACliente, True);
+    Datos := Resultado.DataSet;
+    Result := DescribirDeudaOtrasTiendas(Datos,
+      Ubicacion.Empresa, Ubicacion.Almacen);
+  end;
 end;
 
 procedure TdmCajaOpe.CargarDepositosCliente(

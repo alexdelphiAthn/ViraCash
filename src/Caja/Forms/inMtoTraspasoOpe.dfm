@@ -5,6 +5,7 @@
   StyleElements = [seFont, seClient, seBorder]
   OnDestroy = FormDestroy
   OnShow = FormShow
+  OnActivate = FormActivate
   ExplicitLeft = 3
   ExplicitTop = 3
   ExplicitWidth = 912

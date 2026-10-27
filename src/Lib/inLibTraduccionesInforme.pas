@@ -25,6 +25,9 @@ uses
 function ExpresionesInformeConservadas(
   const AOriginal, ATraduccion: string): Boolean;
 
+// Los memos añadidos en ejecución también necesitan una fuente con CJK.
+procedure AjustarFuenteTextoInforme(AMemo: TfrxCustomMemoView);
+
 procedure TraducirInformeFastReport(
   AInforme: TfrxReport;
   AInstancia: TComponent;
@@ -53,6 +56,12 @@ begin
        ((Caracter >= #$F900) and (Caracter <= #$FAFF)) or
        ((Caracter >= #$FF00) and (Caracter <= #$FFEF)) then
       Exit(True);
+end;
+
+procedure AjustarFuenteTextoInforme(AMemo: TfrxCustomMemoView);
+begin
+  if (AMemo <> nil) and ContieneCaracteresCjk(AMemo.Text) then
+    AMemo.Font.Name := FUENTE_CJK;
 end;
 
 function ExpresionSinCambiosDeCalculo(const AOriginal,
@@ -192,8 +201,7 @@ begin
                 Memo.Text := Traducido + SALTO_FINAL
               else
                 Memo.Text := Traducido;
-              if ContieneCaracteresCjk(Traducido) then
-                Memo.Font.Name := FUENTE_CJK;
+              AjustarFuenteTextoInforme(Memo);
               // Las cabeceras predeterminadas conservan su ancho de columna.
               // Reducir solo su fuente evita invadir la celda contigua.
               if (not AEsPersonalizado) and

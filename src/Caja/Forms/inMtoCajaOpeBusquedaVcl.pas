@@ -74,7 +74,53 @@ uses
   inLibCajaVentaOperacion,
   inLibMsgCaja,
   inLibMsgVentas,
-  inMtoGenSearch;
+  inMtoGenSearch, cxCurrencyEdit, System.Math, Winapi.Windows,
+  inLibPosicionFormulario;
+
+type
+  TfrmBusquedaCuentaCliente = class(TfrmMtoSearch)
+  protected
+    procedure DoShow; override;
+  end;
+
+procedure TfrmBusquedaCuentaCliente.DoShow;
+const
+  Campos: array[0..6] of string = ('Código', 'Razón Social',
+    'Deuda Usada', 'Límite Crédito', 'Cuenta Crédito',
+    'NIF Cliente', 'Teléfono Cliente');
+  Anchos: array[0..6] of Integer = (70, 260, 110, 110, 100, 110, 120);
+var
+  I: Integer;
+  Columna: TcxGridDBColumn;
+begin
+  inherited;
+  cxGrdDBTabPrin.BeginUpdate;
+  try
+    for I := Low(Campos) to High(Campos) do
+    begin
+      Columna := cxGrdDBTabPrin.GetColumnByFieldName(Campos[I]);
+      if Assigned(Columna) then
+      begin
+        Columna.Visible := True;
+        Columna.Index := I;
+        Columna.Width := MulDiv(Anchos[I], CurrentPPI, 96);
+        Columna.MinWidth := MulDiv(60, CurrentPPI, 96);
+        if I in [2, 3] then
+        begin
+          Columna.PropertiesClass := TcxCurrencyEditProperties;
+          TcxCurrencyEditProperties(Columna.Properties).DisplayFormat :=
+            '#,##0.00 €';
+        end;
+      end;
+    end;
+    cxGrdDBTabPrin.OptionsView.ColumnAutoWidth := True;
+    Width := Min(MulDiv(1150, CurrentPPI, 96),
+      Monitor.WorkareaRect.Width);
+    AjustarFormularioAreaTrabajo(Self, Owner);
+  finally
+    cxGrdDBTabPrin.EndUpdate;
+  end;
+end;
 
 procedure TContextoBusquedaCajaVcl.Validar;
 begin
@@ -121,7 +167,7 @@ var
 begin
   AContexto.Validar;
   oConsulta := AContexto.RepositorioConsultas.ConsultarClientes;
-  oFormulario := TfrmMtoSearch.Create(nil);
+  oFormulario := TfrmBusquedaCuentaCliente.Create(nil);
   try
     oFormulario.Name := 'frmMtoCliSearch';
     oFormulario.Caption := STituloBusquedaClientes;
