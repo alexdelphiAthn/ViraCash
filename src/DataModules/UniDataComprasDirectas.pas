@@ -29,7 +29,7 @@ function FiltroModalidadListaCompras(ACompraDirecta: Boolean): string;
 implementation
 
 uses
-  inLibMsgCompras, System.SysUtils, System.Variants,
+  inLibMsgCompras, inLibErroresBBDD, System.SysUtils, System.Variants,
   UniDataSeriesEmpresaRepositorio, inLibSeriesEmpresaPersistenciaIntf;
 
 const
@@ -119,7 +119,7 @@ begin
         sSerie := SerieCompraDirectaDefecto(sEmpresa, sProveedor, oModalidad);
         oRepositorio := CrearRepositorioSeriesEmpresaUniDAC(AConexion);
         if oRepositorio.EmpresaQueUsaSerie(sEmpresa, sSerie, '') <> '' then
-          raise Exception.CreateFmt(SSerieCompraCompartida, [sSerie]);
+          raise EValidacionBBDD.CreateFmt(SSerieCompraCompartida, [sSerie]);
         oRepositorio.CrearSerieSiFalta(sEmpresa, '', '', sSerie, 'FP',
           SubtipoCompra(oModalidad), AUsuario);
         if oModalidad = mcdAutofactura then
@@ -133,7 +133,7 @@ begin
         oSeries, sProveedor);
       end;
       if oSeries.Count = 0 then
-        raise Exception.CreateFmt(SSerieCompraDirectaInvalida,
+        raise EValidacionBBDD.CreateFmt(SSerieCompraDirectaInvalida,
           [SubtipoCompra(oModalidad)]);
       if oSeries.IndexOf(ACabecera.FieldByName(fserie).AsString) < 0 then
         ACabecera.FieldByName(fserie).AsString := oSeries[0];
@@ -156,7 +156,7 @@ begin
     begin
       oCampo := ACabecera.FieldByName(sCampo);
       if VarToStr(oCampo.OldValue) <> oCampo.AsString then
-        raise Exception.Create(SModalidadNumerada);
+        raise EValidacionBBDD.Create(SModalidadNumerada);
     end;
 end;
 
@@ -187,7 +187,7 @@ begin
       ACabecera.FieldByName('CODIGO_PRV_FACC').AsString;
     oConsulta.Open;
     if not oConsulta.IsEmpty then
-      raise Exception.CreateFmt(SSerieCompraCompartida,
+      raise EValidacionBBDD.CreateFmt(SSerieCompraCompartida,
         [ACabecera.FieldByName(fserie).AsString]);
   finally
     FreeAndNil(oConsulta);
@@ -215,7 +215,7 @@ begin
         ACabecera.FieldByName(fempresa).AsString, AModalidad, oSeries,
         ACabecera.FieldByName('CODIGO_PRV_FACC').AsString);
       if oSeries.IndexOf(ACabecera.FieldByName(fserie).AsString) < 0 then
-        raise Exception.CreateFmt(SSerieCompraDirectaInvalida,
+        raise EValidacionBBDD.CreateFmt(SSerieCompraDirectaInvalida,
           [SubtipoCompra(AModalidad)]);
     end;
     oConsulta.Connection := AConexion;
@@ -234,7 +234,7 @@ begin
       ACabecera.FieldByName('CODIGO_PRV_FACC').AsString;
     oConsulta.Open;
     if not oConsulta.IsEmpty then
-      raise Exception.CreateFmt(SSerieCompraCompartida,
+      raise EValidacionBBDD.CreateFmt(SSerieCompraCompartida,
         [ACabecera.FieldByName(fserie).AsString]);
   finally
     FreeAndNil(oConsulta);
@@ -259,7 +259,7 @@ begin
       if oProveedor.IsEmpty or
          (oProveedor.FieldByName('ESFACTURACION_DIRECTA_PRV').AsString <> 'S')
       then
-        raise Exception.Create(SProveedorNoDirecto);
+        raise EValidacionBBDD.Create(SProveedorNoDirecto);
     finally
       FreeAndNil(oProveedor);
     end;
@@ -278,22 +278,26 @@ begin
     ValidarIdentidadNumerada(ACabecera);
     ValidarProveedorHabilitado(AConexion, ACabecera);
     if ACabecera.FieldByName(fempresa).AsString <> AEmpresaLocal then
-      raise Exception.Create(SEmpresaCompraDirecta);
+      raise EValidacionBBDD.Create(SEmpresaCompraDirecta);
     bNuevoTratamiento := (ACabecera.State = dsInsert) or
       (VarToStr(ACabecera.FieldByName(fmodalidad).OldValue) <> 'REAGP');
     if (oModalidad = mcdReagp) and bNuevoTratamiento and
        ((not Assigned(AParametros)) or
         (not AParametros.GetBool('appUsarReagp', False))) then
-      raise Exception.Create(SReagpNoHabilitado);
+      raise EValidacionBBDD.Create(SReagpNoHabilitado);
     if (oModalidad = mcdAutofactura) and
        (ACabecera.FieldByName('ESACUERDO_AUTOFAC_FACC').AsString <> 'S') then
-      raise Exception.Create(SAcuerdoAutofactura);
+      // Aviso con el foco en la casilla y su pestaña (FZ-ISSUE-742).
+      raise ECampoObligatorioBBDD.Create('ESACUERDO_AUTOFAC_FACC',
+        SAcuerdoAutofactura + sLineBreak +
+        Format(SUbicacionCasillaCompraDirecta,
+          [SAcuerdoFacturacion, SDatosFiscales]));
     if (Trim(ACabecera.FieldByName('CODIGO_PRV_FACC').AsString) = '') or
        (ACabecera.FieldByName('CODIGO_PRV_FACC').AsString = '0') then
-      raise Exception.Create(SDatosFiscalesCompra);
+      raise EValidacionBBDD.Create(SDatosFiscalesCompra);
     if (oModalidad = mcdReagp) and
        (ACabecera.FieldByName(fporcentaje).AsCurrency <= 0) then
-      raise Exception.Create(SCompensacionObligatoria);
+      raise EValidacionBBDD.Create(SCompensacionObligatoria);
   end;
   ValidarSerieCompra(AConexion, ACabecera, oModalidad);
 end;

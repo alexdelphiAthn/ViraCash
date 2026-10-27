@@ -554,6 +554,7 @@
       end
       object mnuComprasDirectasTerceros: TMenuItem
         Caption = 'Compras directas a terceros'
+        ShortCut = 24660
         OnClick = MenuGenericoClick
       end
       object EfectosCompra1: TMenuItem

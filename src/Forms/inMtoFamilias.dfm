@@ -295,6 +295,7 @@
                   Properties.ValueChecked = 'S'
                   Properties.ValueUnchecked = 'N'
                   TabOrder = 0
+                  Transparent = True
                 end
                 object lblContadorArt: TcxLabel
                   Left = 16

@@ -1963,6 +1963,10 @@ end;
 procedure TfrmMtoAlbaranesCompra.btnAnadirLineaClick(Sender: TObject);
 begin
   inherited;
+  // Graba antes la línea en edición (con lo tecleado en la celda): si no,
+  // la nueva heredaba lo que se tecleaba y la anterior se grababa con otro
+  // artículo y precio 0 (FZ-ISSUE-743).
+  ConfirmarLineaDocumento(tvLineasAlbaran);
   AsegurarCabeceraPersistidaParaLineas;
   // El OnEnter de la rejilla abre las lineas y construye el modo de
   // entrada: sin el, el alta se haria sobre las columnas del dfm.

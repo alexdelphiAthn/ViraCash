@@ -10926,6 +10926,18 @@ begin
       SErrorNombreKitProveedorObligatorio);
   ARegistrar(
     'inLibMsgCompras.' +
+    'SErrorRazonSocialProveedorObligatoria',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SErrorRazonSocialProveedorObligatoria);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SErrorNifProveedorFacturacionDirecta',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SErrorNifProveedorFacturacionDirecta);
+  ARegistrar(
+    'inLibMsgCompras.' +
     'SErrorKitProveedorNoSeleccionadoParaTallas',
     'src/Lib/inLibMsgCompras.pas',
     @inLibMsgCompras.
@@ -30077,6 +30089,9 @@ begin
   ARegistrar('inLibMsgCompras.SAcuerdoAutofactura',
     'src/Lib/inLibMsgCompras.pas',
     @inLibMsgCompras.SAcuerdoAutofactura);
+  ARegistrar('inLibMsgCompras.SUbicacionCasillaCompraDirecta',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SUbicacionCasillaCompraDirecta);
   ARegistrar('inLibMsgCompras.SModalidadNumerada',
     'src/Lib/inLibMsgCompras.pas',
     @inLibMsgCompras.SModalidadNumerada);

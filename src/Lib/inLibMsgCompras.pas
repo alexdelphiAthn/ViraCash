@@ -50,6 +50,8 @@ resourcestring
   SReagpNoHabilitado = 'El tratamiento agrícola requiere appUsarReagp.';
   SAcuerdoAutofactura =
     'Confirme el acuerdo previo de facturación por el destinatario.';
+  SUbicacionCasillaCompraDirecta =
+    'Marque la casilla «%s» de la pestaña «%s».';
   SModalidadNumerada =
     'La modalidad, la empresa, el proveedor y la serie de una compra ' +
     'directa numerada no se pueden cambiar. Cree un documento nuevo.';
@@ -205,6 +207,11 @@ resourcestring
     'El kit necesita un código (p. ej. CURVA-STD).';
   SErrorNombreKitProveedorObligatorio =
     'El kit necesita un nombre.';
+  SErrorRazonSocialProveedorObligatoria =
+    'Introduzca la razón social del proveedor antes de grabar.';
+  SErrorNifProveedorFacturacionDirecta =
+    'Introduzca el NIF del proveedor: es obligatorio con «Facturación ' +
+    'directa».';
   SErrorKitProveedorNoSeleccionadoParaTallas =
     'Crea o selecciona un kit antes de añadir tallas.';
   SErrorTallaDestinoKitProveedorObligatoria =
@@ -316,8 +323,10 @@ resourcestring
     'Código %s repetido dentro de la sesión (primera vez en línea %d). ' +
     'Marca esta línea como REUSAR o cambia el código.';
   STipoIncidenciaDuplicado = 'DUPLICADO';
+  // Habla de artículos, no de la tabla (FZ-ISSUE-740).
   SErrorCodigoDuplicadoSesion =
-    'Código %s ya existe en fza_articulos%s. Decide REUSAR o RENOMBRAR.';
+    'El artículo %s%s ya existe. Decida si reutilizarlo o cambiar el ' +
+    'código.';
   SCaptionCodigoPropuestoEnLinea =
     'El código propuesto %s ya está utilizado en la línea %d';
   SCaptionCodigoPropuestoExistente =

@@ -2259,6 +2259,10 @@ end;
 procedure TfrmMtoDevolucionesCompra.btnAnadirLineaClick(Sender: TObject);
 begin
   inherited;
+  // Graba antes la línea en edición (con lo tecleado en la celda): si no,
+  // la nueva heredaba lo que se tecleaba y la anterior se grababa con otro
+  // artículo y precio 0 (FZ-ISSUE-743).
+  ConfirmarLineaDocumento(tvLineasDevolucion);
   AsegurarCabeceraPersistidaParaLineas;
   // FZ-ISSUE-422: el foco debe acabar en la celda Articulo. ShowEdit no
   // quita el foco al boton: hay que activar la pestaña y enfocar antes

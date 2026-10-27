@@ -59,7 +59,7 @@ type
     procedure unqryKitsDetAfterInsert(DataSet: TDataSet);
     procedure unqryKitsDetBeforePost(DataSet: TDataSet);
   private
-    { Private declarations }
+    procedure ValidarDatosObligatorios;
   public
     // Enlaza los detalles con el dsTablaG de SU ventana. Antes el DFM los
     // colgaba de "frmMtoProveedores.dsTablaG": con dos ventanas de
@@ -255,9 +255,9 @@ begin
   unqryKits.FieldByName('INSTANTE_ALTA').AsDateTime := Now;
 end;
 
-// Campo del kit vacío: aviso con el cursor en su celda; si se graba desde
+// Campo vacío: aviso con el cursor en su control o celda; si se graba desde
 // el botón Grabar, la pantalla también le da el foco (FZ-ISSUE-623).
-procedure ExigirCampoKit(ACampo: TField; const AMensaje: string);
+procedure ExigirCampoObligatorio(ACampo: TField; const AMensaje: string);
 begin
   if Trim(ACampo.AsString) = '' then
   begin
@@ -269,9 +269,9 @@ end;
 procedure TdmProveedores.unqryKitsBeforePost(DataSet: TDataSet);
 begin
   inherited;
-  ExigirCampoKit(unqryKits.FieldByName('CODIGO_PRVKIT'),
+  ExigirCampoObligatorio(unqryKits.FieldByName('CODIGO_PRVKIT'),
     SErrorCodigoKitProveedorObligatorio);
-  ExigirCampoKit(unqryKits.FieldByName('NOMBRE_PRVKIT'),
+  ExigirCampoObligatorio(unqryKits.FieldByName('NOMBRE_PRVKIT'),
     SErrorNombreKitProveedorObligatorio);
   unqryKits.FieldByName('USUARIO_MODIF').AsString    := IdentidadSesion.Usuario;
   unqryKits.FieldByName('INSTANTE_MODIF').AsDateTime := Now;
@@ -347,7 +347,7 @@ end;
 procedure TdmProveedores.unqryKitsDetBeforePost(DataSet: TDataSet);
 begin
   inherited;
-  ExigirCampoKit(unqryKitsDet.FieldByName('VALOR_DESTINO_PRVKITD'),
+  ExigirCampoObligatorio(unqryKitsDet.FieldByName('VALOR_DESTINO_PRVKITD'),
     SErrorTallaDestinoKitProveedorObligatoria);
   unqryKitsDet.FieldByName('USUARIO_MODIF').AsString := IdentidadSesion.Usuario;
   unqryKitsDet.FieldByName('INSTANTE_MODIF').AsDateTime := Now;
@@ -491,11 +491,27 @@ begin
       'ESIVA_EXENTO_INTRACOMUNITARIO_PRV').AsString := 'N';
 end;
 
+// Sin razón social, o sin NIF con facturación directa, el proveedor no
+// identifica a nadie: aviso con el foco en el campo, antes de pedir el
+// código automático (FZ-ISSUE-741).
+procedure TdmProveedores.ValidarDatosObligatorios;
+var
+  fldDirecta: TField;
+begin
+  ExigirCampoObligatorio(unqryTablaG.FieldByName('RAZON_SOCIAL_PRV'),
+    SErrorRazonSocialProveedorObligatoria);
+  fldDirecta := unqryTablaG.FindField('ESFACTURACION_DIRECTA_PRV');
+  if (fldDirecta <> nil) and (fldDirecta.AsString = 'S') then
+    ExigirCampoObligatorio(unqryTablaG.FieldByName('NIF_PRV'),
+      SErrorNifProveedorFacturacionDirecta);
+end;
+
 procedure TdmProveedores.unqryTablaGBeforePost(DataSet: TDataSet);
 var
   sPais: string;
 begin
   inherited;
+  ValidarDatosObligatorios;
   if unqryTablaG.FindField('PAIS_PRV') <> nil then
   begin
     // Preferimos el codigo exacto del combo (CODIGO_PAI_PRV) sobre el
