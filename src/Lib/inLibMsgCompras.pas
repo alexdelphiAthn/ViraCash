@@ -16,6 +16,50 @@ unit inLibMsgCompras;
 interface
 
 resourcestring
+  SRegistrarPagoAntesDeRecibo =
+    'Registre primero el pago al proveedor o agricultor.';
+  STituloRegistrarPagoEfectoFacturaCompra =
+    'Efecto %d - vto %s - pendiente %.2f';
+
+  STituloComprasDirectas = 'Compras directas a terceros';
+  STratamientoAgricola = 'Tratamiento a agricultores (REAGP)';
+  SAcuerdoFacturacion =
+    'Existe acuerdo previo de facturación por el destinatario';
+  SPorcentajeCompensacion = 'Compensación agrícola (%)';
+  STotalCompensacion = 'Importe de la compensación';
+  SDatosFiscales = 'Tratamiento fiscal';
+  SImprimirReciboPago = 'Imprimir recibo de pago';
+  SRecibosPago = '&4_Recibos de pago';
+  SGenerarRecibos = 'Generar recibos';
+  SRegistrarPago = 'Registrar pago';
+  SRepresentacionFiscal =
+    'La empresa está autorizada a remitir registros por el proveedor';
+  SFechaContable = 'Fecha de registro contable (SII)';
+  SCuotaDeducible = 'Cuota deducible (SII)';
+  SGenerarEnviarFiscal = 'Generar / enviar registro fiscal';
+  SProveedorEmisor = 'Proveedor / profesional (emisor)';
+  SEmpresaDestinataria = 'Empresa destinataria';
+
+  SSerieCompraDirectaInvalida =
+    'Seleccione una serie específica de tipo FP y subtipo %s en Empresas.';
+  SSerieCompraCompartida =
+    'La serie %s ya pertenece a otra modalidad, empresa o proveedor. ' +
+    'Configure una serie independiente.';
+  SEmpresaCompraDirecta =
+    'El destinatario de la compra directa debe ser la empresa local.';
+  SReagpNoHabilitado = 'El tratamiento agrícola requiere appUsarReagp.';
+  SAcuerdoAutofactura =
+    'Confirme el acuerdo previo de facturación por el destinatario.';
+  SModalidadNumerada =
+    'La modalidad, la empresa, el proveedor y la serie de una compra ' +
+    'directa numerada no se pueden cambiar. Cree un documento nuevo.';
+  SDatosFiscalesCompra =
+    'Indique el proveedor y los datos fiscales de emisor y destinatario.';
+  SProveedorNoDirecto =
+    'Marque Facturación directa en la ficha del proveedor.';
+  SCompensacionObligatoria =
+    'Indique un porcentaje de compensación agrícola mayor que cero.';
+
   SAsignacionFotoArticulo = 'Artículo';
   SAsignacionFotoSku = 'SKU %s';
   SCaptionVariacionLineaSesion = 'Variación';

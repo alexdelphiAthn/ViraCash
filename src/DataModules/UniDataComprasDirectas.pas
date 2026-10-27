@@ -25,7 +25,7 @@ procedure AplicarCompensacionCompraDirecta(ACabecera: TDataSet);
 implementation
 
 uses
-  System.SysUtils, System.Variants,
+  inLibMsgCompras, System.SysUtils, System.Variants,
   UniDataSeriesEmpresaRepositorio, inLibSeriesEmpresaPersistenciaIntf;
 
 const
@@ -40,30 +40,13 @@ const
     'JOIN fza_empresas_series S ' +
     'ON S.CODIGO_SERIE_EMPSER = V.CODIGO_SERIE_EMPSER ' +
     'WHERE V.CODIGO_EMP_EMPSER = :EMPRESA AND V.TIPO_DOC_EMPSER = ''FP'' ' +
-    'AND COALESCE(V.SUBTIPO_EMPSER, '''') = :SUBTIPO ' +
+    'AND ((:SUBTIPO = '''' AND COALESCE(V.SUBTIPO_EMPSER, '''') ' +
+    'NOT IN (''AUTOFAC'', ''REAGP'')) OR V.SUBTIPO_EMPSER = :SUBTIPO) ' +
     'AND (V.FECHA_DESDE_EMPSER IS NULL OR V.FECHA_DESDE_EMPSER <= :FECHA) ' +
     'AND (V.FECHA_HASTA_EMPSER IS NULL OR V.FECHA_HASTA_EMPSER >= :FECHA) ' +
     'AND (:SUBTIPO <> ''AUTOFAC'' OR S.CODIGO_PRV_EMPSER = :PROVEEDOR) ' +
     'GROUP BY V.EMPSER ORDER BY MAX(V.ESDEFECTO_EMPSER) DESC, V.EMPSER';
 
-resourcestring
-  SSerieCompraDirectaInvalida =
-    'Seleccione una serie específica de tipo FP y subtipo %s en Empresas.';
-  SSerieCompraCompartida =
-    'La serie %s ya pertenece a otra modalidad, empresa o proveedor. ' +
-    'Configure una serie independiente.';
-  SEmpresaCompraDirecta =
-    'El destinatario de la compra directa debe ser la empresa local.';
-  SReagpNoHabilitado = 'El tratamiento agrícola requiere appUsarReagp.';
-  SAcuerdoAutofactura =
-    'Confirme el acuerdo previo de facturación por el destinatario.';
-  SModalidadNumerada =
-    'La modalidad, la empresa, el proveedor y la serie de una compra ' +
-    'directa numerada no se pueden cambiar. Cree un documento nuevo.';
-  SDatosFiscalesCompra =
-    'Indique el proveedor y los datos fiscales de emisor y destinatario.';
-  SCompensacionObligatoria =
-    'Indique un porcentaje de compensación agrícola mayor que cero.';
 
 function SubtipoCompra(AModalidad: TModalidadCompraDirecta): string;
 begin
@@ -174,13 +157,15 @@ begin
   try
     oConsulta.Connection := AConexion;
     oConsulta.SQL.Text :=
-      'SELECT 1 FROM fza_empresas_series WHERE EMPSER = :SERIE ' +
-      'AND TIPO_DOC_EMPSER = ''FP'' AND ' +
-      '(CODIGO_EMP_EMPSER <> :EMPRESA OR ' +
-      '(CASE WHEN SUBTIPO_EMPSER IN (''AUTOFAC'', ''REAGP'') ' +
-      'THEN SUBTIPO_EMPSER ELSE '''' END) <> :SUBTIPO OR ' +
+      'SELECT 1 FROM vi_empresas_series V JOIN fza_empresas_series S ' +
+      'ON S.CODIGO_SERIE_EMPSER = V.CODIGO_SERIE_EMPSER ' +
+      'WHERE V.EMPSER = :SERIE ' +
+      'AND V.TIPO_DOC_EMPSER = ''FP'' AND ' +
+      '(V.CODIGO_EMP_EMPSER <> :EMPRESA OR ' +
+      '(CASE WHEN V.SUBTIPO_EMPSER IN (''AUTOFAC'', ''REAGP'') ' +
+      'THEN V.SUBTIPO_EMPSER ELSE '''' END) <> :SUBTIPO OR ' +
       '(:SUBTIPO = ''AUTOFAC'' AND ' +
-      'COALESCE(CODIGO_PRV_EMPSER, '''') <> :PROVEEDOR)) LIMIT 1';
+      'COALESCE(S.CODIGO_PRV_EMPSER, '''') <> :PROVEEDOR)) LIMIT 1';
     oConsulta.ParamByName('SERIE').AsString :=
       ACabecera.FieldByName(fserie).AsString;
     oConsulta.ParamByName('EMPRESA').AsString :=
@@ -245,18 +230,11 @@ begin
   end;
 end;
 
-procedure ValidarCompraDirecta(AConexion: TUniConnection;
-  ACabecera: TDataSet; const AEmpresaLocal: string;
-  const AParametros: IParametrosAplicacion);
+procedure ValidarProveedorHabilitado(AConexion: TUniConnection;
+  ACabecera: TDataSet);
 var
-  oModalidad: TModalidadCompraDirecta;
-  bNuevoTratamiento: Boolean;
   oProveedor: TUniQuery;
 begin
-  oModalidad := ModalidadCompra(ACabecera.FieldByName(fmodalidad).AsString);
-  if oModalidad <> mcdOrdinaria then
-  begin
-    ValidarIdentidadNumerada(ACabecera);
     oProveedor := TUniQuery.Create(nil);
     try
       oProveedor.Connection := AConexion;
@@ -269,11 +247,24 @@ begin
       if oProveedor.IsEmpty or
          (oProveedor.FieldByName('ESFACTURACION_DIRECTA_PRV').AsString <> 'S')
       then
-        raise Exception.Create(
-          'Marque Facturación directa en la ficha del proveedor.');
+        raise Exception.Create(SProveedorNoDirecto);
     finally
       FreeAndNil(oProveedor);
     end;
+end;
+
+procedure ValidarCompraDirecta(AConexion: TUniConnection;
+  ACabecera: TDataSet; const AEmpresaLocal: string;
+  const AParametros: IParametrosAplicacion);
+var
+  oModalidad: TModalidadCompraDirecta;
+  bNuevoTratamiento: Boolean;
+begin
+  oModalidad := ModalidadCompra(ACabecera.FieldByName(fmodalidad).AsString);
+  if oModalidad <> mcdOrdinaria then
+  begin
+    ValidarIdentidadNumerada(ACabecera);
+    ValidarProveedorHabilitado(AConexion, ACabecera);
     if ACabecera.FieldByName(fempresa).AsString <> AEmpresaLocal then
       raise Exception.Create(SEmpresaCompraDirecta);
     bNuevoTratamiento := (ACabecera.State = dsInsert) or
@@ -308,10 +299,16 @@ begin
         ACabecera.FieldByName('TOTAL_BASES_FACC').AsCurrency,
         ACabecera.FieldByName(fporcentaje).AsCurrency);
     ACabecera.FieldByName(fcompensacion).AsCurrency := dImporte;
-    ACabecera.FieldByName('TOTAL_FACC').AsCurrency :=
-      ACabecera.FieldByName('TOTAL_FACC').AsCurrency + dImporte;
-    ACabecera.FieldByName('TOTAL_LIQUIDO_FACC').AsCurrency :=
-      ACabecera.FieldByName('TOTAL_LIQUIDO_FACC').AsCurrency + dImporte;
+    if ModalidadCompra(ACabecera.FieldByName(fmodalidad).AsString) =
+       mcdReagp then
+    begin
+      ACabecera.FieldByName('TOTAL_FACC').AsCurrency :=
+        ACabecera.FieldByName('TOTAL_BASES_FACC').AsCurrency + dImporte;
+      ACabecera.FieldByName('TOTAL_LIQUIDO_FACC').AsCurrency :=
+        ACabecera.FieldByName('TOTAL_FACC').AsCurrency -
+        ACabecera.FieldByName('TOTAL_RETENCION_FACC').AsCurrency -
+        ACabecera.FieldByName('TOTAL_DTO_FINANCIERO_FACC').AsCurrency;
+    end;
   end;
 end;
 

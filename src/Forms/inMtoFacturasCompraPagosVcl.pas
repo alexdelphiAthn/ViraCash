@@ -44,9 +44,6 @@ uses
   inLibMsgCompras,
   inMtoModalRegistrarPago, inMtoModalSeleccionarBanco, inMtoModalImpRecFac;
 
-resourcestring
-  STituloRegistrarPagoEfectoFacturaCompra =
-    'Efecto %d - vto %s - pendiente %.2f';
 
 procedure GenerarEfectosFacturaCompraVcl(
   AOwner: TComponent;
@@ -144,7 +141,7 @@ begin
   if (not oEfectos.Active) or oEfectos.IsEmpty then
     ShowMessage_fza(SErrorEfectoCompraNoSeleccionado)
   else if oEfectos.FieldByName('IMPORTE_PAGADO_EFEC').AsCurrency <= 0 then
-    ShowMessage_fza('Registre primero el pago al proveedor o agricultor.')
+    ShowMessage_fza(SRegistrarPagoAntesDeRecibo)
   else
   begin
     oFormulario := TfrmPrintRecFac.Create(AOwner);

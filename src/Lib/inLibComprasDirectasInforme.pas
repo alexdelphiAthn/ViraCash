@@ -171,6 +171,10 @@ begin
            mcdReagp then
           AdaptarTextosReagp(oMemo);
         oMemo.Text := SustituirCampos(string(oMemo.Text));
+        if ACabecera.FieldByName('DOCUMENTO_FISCAL_FACC').AsString <> '' then
+          oMemo.Text := StringReplace(string(oMemo.Text),
+            'Factura."DOCUMENTO_FORMATO"', 'Factura."DOCUMENTO_FISCAL_FACC"',
+            [rfReplaceAll]);
         if SameText(oMemo.Name, 'MemoEmpCif') or
            SameText(oMemo.Name, 'MemoEmpCifV') then
           oMemo.Text := 'NIF: [Factura."NIF_EMPRESA_FACC"]';

@@ -30025,6 +30025,90 @@ begin
   ARegistrar('inLibMsgCompras.SAsignacionFotoSku',
     'src/Lib/inLibMsgCompras.pas',
     @inLibMsgCompras.SAsignacionFotoSku);
+  ARegistrar('inLibMsgCompras.SSerieCompraDirectaInvalida',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SSerieCompraDirectaInvalida);
+  ARegistrar('inLibMsgCompras.SSerieCompraCompartida',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SSerieCompraCompartida);
+  ARegistrar('inLibMsgCompras.SEmpresaCompraDirecta',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SEmpresaCompraDirecta);
+  ARegistrar('inLibMsgCompras.SReagpNoHabilitado',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SReagpNoHabilitado);
+  ARegistrar('inLibMsgCompras.SAcuerdoAutofactura',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SAcuerdoAutofactura);
+  ARegistrar('inLibMsgCompras.SModalidadNumerada',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SModalidadNumerada);
+  ARegistrar('inLibMsgCompras.SDatosFiscalesCompra',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SDatosFiscalesCompra);
+  ARegistrar('inLibMsgCompras.SProveedorNoDirecto',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SProveedorNoDirecto);
+  ARegistrar('inLibMsgCompras.SCompensacionObligatoria',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SCompensacionObligatoria);
+  ARegistrar('inLibMsgCompras.STituloComprasDirectas',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.STituloComprasDirectas);
+  ARegistrar('inLibMsgCompras.STratamientoAgricola',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.STratamientoAgricola);
+  ARegistrar('inLibMsgCompras.SAcuerdoFacturacion',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SAcuerdoFacturacion);
+  ARegistrar('inLibMsgCompras.SPorcentajeCompensacion',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SPorcentajeCompensacion);
+  ARegistrar('inLibMsgCompras.STotalCompensacion',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.STotalCompensacion);
+  ARegistrar('inLibMsgCompras.SDatosFiscales',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SDatosFiscales);
+  ARegistrar('inLibMsgCompras.SImprimirReciboPago',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SImprimirReciboPago);
+  ARegistrar('inLibMsgCompras.SRecibosPago',
+    'src/Lib/inLibMsgCompras.pas', @inLibMsgCompras.SRecibosPago);
+  ARegistrar('inLibMsgCompras.SGenerarRecibos',
+    'src/Lib/inLibMsgCompras.pas', @inLibMsgCompras.SGenerarRecibos);
+  ARegistrar('inLibMsgCompras.SRegistrarPago',
+    'src/Lib/inLibMsgCompras.pas', @inLibMsgCompras.SRegistrarPago);
+  ARegistrar('inLibMsgCompras.SRepresentacionFiscal',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SRepresentacionFiscal);
+  ARegistrar('inLibMsgCompras.SFechaContable',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SFechaContable);
+  ARegistrar('inLibMsgCompras.SCuotaDeducible',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SCuotaDeducible);
+  ARegistrar('inLibMsgCompras.SGenerarEnviarFiscal',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SGenerarEnviarFiscal);
+  ARegistrar('inLibMsgCompras.SProveedorEmisor',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SProveedorEmisor);
+  ARegistrar('inLibMsgCompras.SEmpresaDestinataria',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SEmpresaDestinataria);
+  ARegistrar('inLibMsgCompras.SRegistrarPagoAntesDeRecibo',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SRegistrarPagoAntesDeRecibo);
+  ARegistrar('inLibMsgCompras.STituloRegistrarPagoEfectoFacturaCompra',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.STituloRegistrarPagoEfectoFacturaCompra);
+  ARegistrar('inLibMsgCaja.SErrorCreditoSinAlmacenDeposito',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.SErrorCreditoSinAlmacenDeposito);
+  ARegistrar('inLibMsgArticulos.SErrorSesionTarifaAplicadaNoBorrarLineas',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SErrorSesionTarifaAplicadaNoBorrarLineas);
 end;
 {$WARN SYMBOL_DEPRECATED ON}
 

@@ -25,6 +25,7 @@
       '  F.ENTORNO_FISCAL_FACC,'
       '  F.FECHA_REGISTRO_CONTABLE_FACC,'
       '  F.CUOTA_DEDUCIBLE_FACC,'
+      '  F.DOCUMENTO_FISCAL_FACC,'
       '  F.MODALIDAD_FACC,'
       '  F.PORCENTAJE_COMPENSACION_FACC,'
       '  F.TOTAL_COMPENSACION_FACC,'
@@ -264,6 +265,7 @@
     Connection = dmConn.conUni
     SQL.Strings = (
       'SELECT V.*,'
+      '       F.DOCUMENTO_FISCAL_FACC,'
       '       F.MODALIDAD_FACC,'
       '       F.PORCENTAJE_COMPENSACION_FACC,'
       '       F.TOTAL_COMPENSACION_FACC,'

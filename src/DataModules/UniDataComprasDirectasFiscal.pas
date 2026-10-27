@@ -68,7 +68,7 @@ type
     FConsulta: TUniQuery;
     FPeticion, FRespuesta, FSistema, FEntorno, FUrl: string;
     FCertificado, FTitularCertificado: string;
-    FHuella, FQr, FFechaHora: string;
+    FHuella, FQr, FFechaHora, FDocumento: string;
     FEstado, FError, FCsv: string;
     function EjecutarBloqueado: string;
     function CrearConsulta: TUniQuery;
@@ -84,6 +84,8 @@ type
     procedure PrepararVerifactu;
     procedure Encadenar(var AEntrada: TEntradaConstruccionRegistroAlta);
     procedure GuardarCadena;
+    function DocumentoAnterior(const ASerie, ANumero, AHuella: string;
+      const AFormatoDefecto: string): string;
     procedure GuardarPreparado;
     procedure GuardarRespuesta;
     procedure Enviar;
@@ -159,6 +161,7 @@ begin
     'F.SISTEMA_FISCAL_FACC, F.XML_PETICION_FISCAL_FACC, ' +
     'F.XML_RESPUESTA_FISCAL_FACC, F.ENTORNO_FISCAL_FACC, ' +
     'F.URL_QR_FISCAL_FACC, F.ERROR_FISCAL_FACC, F.CSV_FISCAL_FACC, ' +
+    'F.DOCUMENTO_FISCAL_FACC, ' +
     'F.FECHA_REGISTRO_CONTABLE_FACC, F.CUOTA_DEDUCIBLE_FACC, ' +
     'E.CODIGO_CERTIFICADO_EMP, E.TITULAR_CERTIFICADO_EMP, ' +
     'E.NUMERO_INSTALACION_EMP, E.VERSION_INSTALACION_EMP, ' +
@@ -179,6 +182,7 @@ begin
   if LeerTexto('CODIGO_EMP_FACC') <> FEmpresa then
     raise Exception.Create(SCompraFiscalNoLocal);
   FEstado := LeerTexto('ESTADO_FISCAL_FACC');
+  FDocumento := LeerTexto('DOCUMENTO_FISCAL_FACC');
   FPeticion := FConsulta.FieldByName('XML_PETICION_FISCAL_FACC').AsString;
   FRespuesta := FConsulta.FieldByName('XML_RESPUESTA_FISCAL_FACC').AsString;
   FSistema := LeerTexto('SISTEMA_FISCAL_FACC');
@@ -260,8 +264,7 @@ begin
   oEntrada.NombreEmpresa := LeerTexto('RAZON_SOCIAL_EMPRESA_FACC');
   oEntrada.NifProveedor := NormalizarNifVerifactu(LeerTexto('NIF_PRV_FACC'));
   oEntrada.NombreProveedor := LeerTexto('RAZON_SOCIAL_PRV_FACC');
-  oEntrada.Documento := ComponerNumSerieFactura(
-    LeerTexto('FORMATO_DOCUMENTO_EMP'), FSerie, FNumero);
+  oEntrada.Documento := FDocumento;
   oEntrada.Fecha := FConsulta.FieldByName('FECHA_FACC').AsDateTime;
   if FConsulta.FieldByName('FECHA_REGISTRO_CONTABLE_FACC').IsNull or
      FConsulta.FieldByName('CUOTA_DEDUCIBLE_FACC').IsNull then
@@ -275,7 +278,9 @@ begin
     LeerImporte('PORCENTAJE_COMPENSACION_FACC');
   oEntrada.ImporteCompensacion := LeerImporte('TOTAL_COMPENSACION_FACC');
   oEntrada.CuotaDeducible := LeerImporte('CUOTA_DEDUCIBLE_FACC');
-  dCuota := LeerImporte('TOTAL_IMPUESTOS_FACC');
+  dCuota := LeerImporte('TOTAL_IVAN_FACC') +
+    LeerImporte('TOTAL_IVAR_FACC') + LeerImporte('TOTAL_IVAS_FACC') +
+    LeerImporte('TOTAL_IVAE_FACC');
   if oEntrada.Modalidad = mcdReagp then
     dCuota := oEntrada.ImporteCompensacion;
   if (oEntrada.CuotaDeducible < 0) or (oEntrada.CuotaDeducible > dCuota) then
@@ -317,6 +322,31 @@ begin
     '</sum1:IndicadorMultiplesOT></sum1:SistemaInformatico>';
 end;
 
+function TEmisionCompraDirecta.DocumentoAnterior(
+  const ASerie, ANumero, AHuella, AFormatoDefecto: string): string;
+var
+  oAnterior: TUniQuery;
+begin
+  Result := ComponerNumSerieFactura(AFormatoDefecto, ASerie, ANumero);
+  oAnterior := CrearConsulta;
+  try
+    oAnterior.SQL.Text :=
+      'SELECT DOCUMENTO_FISCAL_FACC FROM fza_facturas_compra ' +
+      'WHERE SERIE_FACC = :SERIE AND NUMERO_FACC = :NUMERO ' +
+      'AND HUELLA_FISCAL_FACC = :HUELLA LIMIT 1';
+    oAnterior.ParamByName('SERIE').AsString := ASerie;
+    oAnterior.ParamByName('NUMERO').AsString := ANumero;
+    oAnterior.ParamByName('HUELLA').AsString := AHuella;
+    oAnterior.Open;
+    if (not oAnterior.IsEmpty) and
+       (Trim(oAnterior.FieldByName(
+         'DOCUMENTO_FISCAL_FACC').AsString) <> '') then
+      Result := oAnterior.FieldByName('DOCUMENTO_FISCAL_FACC').AsString;
+  finally
+    FreeAndNil(oAnterior);
+  end;
+end;
+
 procedure TEmisionCompraDirecta.Encadenar(
   var AEntrada: TEntradaConstruccionRegistroAlta);
 var
@@ -334,10 +364,10 @@ begin
     oCadena.ParamByName('NIF').AsString := AEntrada.NifEmisor;
     oCadena.Open;
     AEntrada.HuellaAnterior := oCadena.FieldByName('HUELLA_VFCAD').AsString;
-    AEntrada.CadenaNumSerieFactura := ComponerNumSerieFactura(
-      AEntrada.FormatoDocumento,
+    AEntrada.CadenaNumSerieFactura := DocumentoAnterior(
       oCadena.FieldByName('SERIE_FAC_VFCAD').AsString,
-      oCadena.FieldByName('NUMERO_FAC_VFCAD').AsString);
+      oCadena.FieldByName('NUMERO_FAC_VFCAD').AsString,
+      AEntrada.HuellaAnterior, AEntrada.FormatoDocumento);
     AEntrada.CadenaFecha := FormatDateTime('dd-mm-yyyy',
       oCadena.FieldByName('FECHA_FAC_VFCAD').AsDateTime);
   finally
@@ -373,8 +403,7 @@ begin
   oEntrada.FormatoDocumento := LeerTexto('FORMATO_DOCUMENTO_EMP');
   oEntrada.Serie := FSerie;
   oEntrada.Numero := FNumero;
-  oEntrada.NumSerieFactura := ComponerNumSerieFactura(
-    oEntrada.FormatoDocumento, FSerie, FNumero);
+  oEntrada.NumSerieFactura := FDocumento;
   oEntrada.FechaExpedicion := FormatDateTime('dd-mm-yyyy',
     FConsulta.FieldByName('FECHA_FACC').AsDateTime);
   oEntrada.TipoFactura := 'F1';
@@ -416,12 +445,14 @@ end;
 procedure TEmisionCompraDirecta.GuardarPreparado;
 begin
   FConexion.ExecSQL('UPDATE fza_facturas_compra ' +
-    'SET SISTEMA_FISCAL_FACC = :SISTEMA, ESTADO_FISCAL_FACC = :ESTADO, ' +
+    'SET DOCUMENTO_FISCAL_FACC = :DOCUMENTO, ' +
+    'SISTEMA_FISCAL_FACC = :SISTEMA, ESTADO_FISCAL_FACC = :ESTADO, ' +
     'XML_PETICION_FISCAL_FACC = :XML, HUELLA_FISCAL_FACC = :HUELLA, ' +
     'URL_QR_FISCAL_FACC = :QR, FECHA_HORA_FISCAL_FACC = :FECHA_HORA, ' +
     'ENTORNO_FISCAL_FACC = :ENTORNO, INSTANTE_MODIF = NOW(), ' +
     'USUARIO_MODIF = :USUARIO WHERE SERIE_FACC = :SERIE ' +
-    'AND NUMERO_FACC = :NUMERO', [FSistema, FEstado, FPeticion, FHuella,
+    'AND NUMERO_FACC = :NUMERO',
+    [FDocumento, FSistema, FEstado, FPeticion, FHuella,
      FQr, FFechaHora, FEntorno, FUsuario, FSerie, FNumero]);
 end;
 
@@ -430,6 +461,8 @@ var
   oModo: TModoVerifactu;
 begin
   ValidarDatos;
+  FDocumento := ComponerNumSerieFactura(
+    LeerTexto('FORMATO_DOCUMENTO_EMP'), FSerie, FNumero);
   oModo := ModoVerifactu(FParametros);
   FEntorno := VerifactuEntorno(FParametros);
   if (oModo = mvSinVerifactu) or

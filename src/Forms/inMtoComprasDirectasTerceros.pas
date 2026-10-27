@@ -30,6 +30,8 @@ type
     FContenedorFiscal: TcxScrollBox;
     FActualizandoTratamiento: Boolean;
     procedure CrearControlesFiscales;
+    procedure CrearControlesCompensacion;
+    function EnviarRegistroFiscalActual: string;
     procedure CambiarTratamientoAgricola(Sender: TObject);
     procedure ImprimirReciboPago(Sender: TObject);
     procedure EmitirFiscal(Sender: TObject);
@@ -52,6 +54,7 @@ implementation
 
 uses
   System.SysUtils, Vcl.Controls, cxLabel, cxButtons, cxCurrencyEdit,
+  inLibMsgCompras,
   cxDBLabel,
   inLibRegistroPantallas, inLibReagpVcl, inLibComprasDirectas,
   inMtoFacturasCompraPagosVcl, UniDataComprasDirectasFiscal,
@@ -59,17 +62,6 @@ uses
 
 {$R *.dfm}
 
-resourcestring
-  STituloComprasDirectas = 'Compras directas a terceros';
-  STratamientoAgricola = 'Tratamiento a agricultores (REAGP)';
-  SAcuerdoFacturacion =
-    'Existe acuerdo previo de facturación por el destinatario';
-  SPorcentajeCompensacion = 'Compensación agrícola (%)';
-  STotalCompensacion = 'Importe de la compensación';
-  SDatosFiscales = 'Tratamiento fiscal';
-  SImprimirReciboPago = 'Imprimir recibo de pago';
-  SProveedorEmisor = 'Proveedor / profesional (emisor)';
-  SEmpresaDestinataria = 'Empresa destinataria';
 
 constructor TfrmMtoComprasDirectasTerceros.Create(AOwner: TComponent;
   const AContexto: TContextoAutorizacionPantalla;
@@ -175,6 +167,11 @@ begin
   FAcuerdo.DataBinding.DataField := 'ESACUERDO_AUTOFAC_FACC';
   FAcuerdo.Properties.ValueChecked := 'S';
   FAcuerdo.Properties.ValueUnchecked := 'N';
+  CrearControlesCompensacion;
+end;
+
+procedure TfrmMtoComprasDirectasTerceros.CrearControlesCompensacion;
+begin
   CrearRotulo(Self, FContenedorFiscal, SPorcentajeCompensacion, 96).
     Visible := FTratamientoAgricola.Visible;
   FPorcentajeCompensacion := TcxDBCurrencyEdit.Create(Self);
@@ -207,20 +204,19 @@ begin
   FRepresentacion.Name := 'chkRepresentacionFiscal';
   FRepresentacion.Parent := FContenedorFiscal;
   FRepresentacion.SetBounds(16, 176, 660, 26);
-  FRepresentacion.Caption :=
-    'La empresa está autorizada a remitir registros por el proveedor';
+  FRepresentacion.Caption := SRepresentacionFiscal;
   FRepresentacion.DataBinding.DataSource := dsTablaG;
   FRepresentacion.DataBinding.DataField := 'ESREPRESENTACION_FISCAL_FACC';
   FRepresentacion.Properties.ValueChecked := 'S';
   FRepresentacion.Properties.ValueUnchecked := 'N';
-  CrearRotulo(Self, FContenedorFiscal, 'Fecha de registro contable (SII)', 216);
+  CrearRotulo(Self, FContenedorFiscal, SFechaContable, 216);
   FFechaContable := TcxDBDateEdit.Create(Self);
   FFechaContable.Name := 'dteRegistroContable';
   FFechaContable.Parent := FContenedorFiscal;
   FFechaContable.SetBounds(270, 216, 160, 26);
   FFechaContable.DataBinding.DataSource := dsTablaG;
   FFechaContable.DataBinding.DataField := 'FECHA_REGISTRO_CONTABLE_FACC';
-  CrearRotulo(Self, FContenedorFiscal, 'Cuota deducible (SII)', 256);
+  CrearRotulo(Self, FContenedorFiscal, SCuotaDeducible, 256);
   FCuotaDeducible := TcxDBCurrencyEdit.Create(Self);
   FCuotaDeducible.Name := 'txtCuotaDeducible';
   FCuotaDeducible.Parent := FContenedorFiscal;
@@ -230,7 +226,7 @@ begin
   oBoton := TcxButton.Create(Self);
   oBoton.Parent := FContenedorFiscal;
   oBoton.SetBounds(16, 300, 240, 30);
-  oBoton.Caption := 'Generar / enviar registro fiscal';
+  oBoton.Caption := SGenerarEnviarFiscal;
   oBoton.OnClick := EmitirFiscal;
   oEstado := TcxDBLabel.Create(Self);
   oEstado.Parent := FContenedorFiscal;
@@ -240,21 +236,23 @@ begin
 end;
 
 procedure TfrmMtoComprasDirectasTerceros.EmitirFiscal(Sender: TObject);
-var
-  sResultado: string;
 begin
   if not Permisos.TienePermiso(
     'ComprasDirectasTerceros.modificar', paPermitir) then
     Abort;
+  ShowMessage_fza(EnviarRegistroFiscalActual);
+end;
+
+function TfrmMtoComprasDirectasTerceros.EnviarRegistroFiscalActual: string;
+begin
   if dsTablaG.DataSet.State in dsEditModes then
     dsTablaG.DataSet.Post;
-  sResultado := ProcesarFiscalCompraDirecta(
+  Result := ProcesarFiscalCompraDirecta(
     dmmFacturasCompra.unqryTablaG.Connection, ParametrosApp,
     dsTablaG.DataSet.FieldByName('SERIE_FACC').AsString,
     dsTablaG.DataSet.FieldByName('NUMERO_FACC').AsString,
     IdentidadSesion.Usuario, UbicacionSesion.Empresa);
   dsTablaG.DataSet.Refresh;
-  ShowMessage_fza(sResultado);
 end;
 
 procedure TfrmMtoComprasDirectasTerceros.CambiarTratamientoAgricola(
@@ -287,6 +285,9 @@ begin
   Caption := STituloComprasDirectas;
   lblCodigoProveedor.Caption := SProveedorEmisor;
   lblCodigoEmpresa.Caption := SEmpresaDestinataria;
+  tsEfectos.Caption := SRecibosPago;
+  btnGenerarEfectos.Caption := SGenerarRecibos;
+  btnRegistrarPago.Caption := SRegistrarPago;
 end;
 
 initialization
