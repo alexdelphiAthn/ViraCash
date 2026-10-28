@@ -415,6 +415,7 @@ uses
   inLibGridCantidad,
   inLibColumnasDocumento, UniDataColumnasDocumentoRepositorio,
   inLibFormatoMonetario,
+  inLibDevExp,
   UniDataGen,
   inLibBusquedasCompra,
   inLibValidacionDocumento, UniDataValidacionDocumentoRepositorio,
@@ -1123,6 +1124,8 @@ begin
     SCaptionLineasPedidoCompra, SCaptionLineasPedidoCompra,
     FColsModoConstruido,
     FModoEntradaSel, True);
+  // El rótulo cambia con el modo: se renumera para Alt+1..Alt+4.
+  NumerarPestanasAtajo(pcPedido);
 end;
 
 procedure TfrmMtoPedidosCompra.KeyDown(var Key: Word; Shift: TShiftState);
@@ -2101,6 +2104,7 @@ begin
     tsLineasPedido.Caption := CaptionModoLineasDocumento(
       SCaptionLineasPedidoCompra, SCaptionLineasPedidoCompra,
       True, ModoEfectivo, True);
+    NumerarPestanasAtajo(pcPedido);
     if not (ModoEfectivo in
       [mcsSku, mcsTallasInline, mcsTallasHorPed]) then
       MostrarColumnasAtributoGlobalesPedc;

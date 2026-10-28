@@ -243,6 +243,7 @@ type
     procedure DesactivarEnterAsTabEnCombo(AComp: TcxDBLookupComboBox);
   public
     procedure CrearTablaPrincipal; override;
+    procedure AplicarEtiquetas; override;
     procedure ResetForm; override;
     procedure ResolverArtSkuActivo(out ACodArt, ACodSku: string); override;
     function  DataSourcesParaFoto: TArray<TDataSource>; override;
@@ -451,6 +452,13 @@ begin
   inherited;
 end;
 
+procedure TfrmMtoProveedores.AplicarEtiquetas;
+begin
+  inherited;
+  // La traducción repone el título del DFM (&5_Otros).
+  NumerarPestanasAtajo(pcPestanas);
+end;
+
 procedure TfrmMtoProveedores.CrearTablaPrincipal;
 begin
   inherited;
@@ -488,6 +496,8 @@ begin
   DesactivarEnterAsTabEnCombo(cbbFormaPagoPrv);
   DesactivarEnterAsTabEnCombo(cbbEmpBanPrv);
   DesactivarEnterAsTabEnCombo(cbbPaisPrv);
+  // Otros, la menos usada, va la última.
+  tsOtros.PageIndex := pcPestanas.PageCount - 1;
   pcPestanas.ActivePage := tsDomicilioFiscal;
   pkFieldName := 'CODIGO_PRV_PRV';
   // Carga perezosa de sub-pestañas detail (default = tsDomicilioFiscal,

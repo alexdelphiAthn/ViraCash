@@ -345,6 +345,7 @@ type
       const ARepositorio: IRepositorioSeriesEmpresa); reintroduce;
       overload;
     procedure CrearTablaPrincipal; override;
+    procedure AplicarEtiquetas; override;
     procedure ResetForm; override;
     procedure ResolverArtSkuActivo(out ACodArt, ACodSku: string); override;
     function  DataSourcesParaFoto: TArray<TDataSource>; override;
@@ -799,11 +800,20 @@ begin
     tsRetenciones.TabVisible := False;
 end;
 
+procedure TfrmMtoEmpresas.AplicarEtiquetas;
+begin
+  inherited;
+  // La traducción repone el título del DFM (&6_Otros, &7_Bancos...).
+  NumerarPestanasAtajo(pcPestana);
+end;
+
 procedure TfrmMtoEmpresas.CrearTablaPrincipal;
 begin
   inherited;
   dmmEmpresas := tdmDataModule as TdmEmpresas;
   tvRetenciones.DataController.DataSource := dmmEmpresas.dsRetenciones;
+  // Otros, la menos usada, va la última.
+  tsOtros.PageIndex := pcPestana.PageCount - 1;
   pcPestana.ActivePage := tsMasDatos;
   tvSeries.DataController.DataSource := dmmEmpresas.dsSeries;
   tvBancos.DataController.DataSource := dmmEmpresas.dsBancos;

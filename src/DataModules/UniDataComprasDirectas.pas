@@ -21,6 +21,9 @@ procedure ValidarCompraDirecta(AConexion: TUniConnection;
   ACabecera: TDataSet; const AEmpresaLocal: string;
   const AParametros: IParametrosAplicacion);
 procedure AplicarCompensacionCompraDirecta(ACabecera: TDataSet);
+// FZ-ISSUE-747: 0 < % <= 100 en un recibo REAGP, como aviso normal y antes
+// de proponer serie o contador.
+procedure ValidarCompensacionCompraDirecta(ACabecera: TDataSet);
 // Fragmento « AND ...» de InyectarFiltroSql que separa la lista de compras
 // ordinarias de la de compras directas. Sin alias: vale en la consulta
 // propia (F) y envuelta en una guía de rejilla (M_GUIA) (FZ-ISSUE-731).
@@ -93,6 +96,33 @@ begin
   end;
 end;
 
+// FZ-ISSUE-745: la serie la crea el programa, así que también su contador
+// (activo, desde 1). Un contador ya existente no se toca: si un
+// administrador lo desactivó, la grabación sigue preguntando.
+procedure AsegurarContadorSerieCompra(AConexion: TUniConnection;
+  const AEmpresa, ASerie, AUsuario: string);
+var
+  oConsulta: TUniQuery;
+begin
+  oConsulta := TUniQuery.Create(nil);
+  try
+    oConsulta.Connection := AConexion;
+    oConsulta.SQL.Text :=
+      'INSERT INTO fza_contadores (TIPO_DOC_CON, EMPRESA_CON, SERIE_CON, ' +
+      'CON, NUM_DIGITOS_CON, ESACTIVO_CON, DEFAULT_CON, INSTANTE_ALTA, ' +
+      'USUARIO_ALTA, USUARIO_MODIF) ' +
+      'VALUES (''FP'', :EMPRESA, :SERIE, 1, 6, ''S'', ''N'', NOW(), ' +
+      ':USUARIO, :USUARIO) ' +
+      'ON DUPLICATE KEY UPDATE CON = fza_contadores.CON';
+    oConsulta.ParamByName('EMPRESA').AsString := Trim(AEmpresa);
+    oConsulta.ParamByName('SERIE').AsString := Trim(ASerie);
+    oConsulta.ParamByName('USUARIO').AsString := AUsuario;
+    oConsulta.ExecSQL;
+  finally
+    FreeAndNil(oConsulta);
+  end;
+end;
+
 procedure ProponerSerieCompraDirecta(AConexion: TUniConnection;
   ACabecera: TDataSet; const AUsuario: string);
 var
@@ -137,6 +167,8 @@ begin
           [SubtipoCompra(oModalidad)]);
       if oSeries.IndexOf(ACabecera.FieldByName(fserie).AsString) < 0 then
         ACabecera.FieldByName(fserie).AsString := oSeries[0];
+      AsegurarContadorSerieCompra(AConexion, sEmpresa,
+        ACabecera.FieldByName(fserie).AsString, AUsuario);
     finally
       FreeAndNil(oSeries);
     end;
@@ -295,11 +327,24 @@ begin
     if (Trim(ACabecera.FieldByName('CODIGO_PRV_FACC').AsString) = '') or
        (ACabecera.FieldByName('CODIGO_PRV_FACC').AsString = '0') then
       raise EValidacionBBDD.Create(SDatosFiscalesCompra);
-    if (oModalidad = mcdReagp) and
-       (ACabecera.FieldByName(fporcentaje).AsCurrency <= 0) then
-      raise EValidacionBBDD.Create(SCompensacionObligatoria);
+    ValidarCompensacionCompraDirecta(ACabecera);
   end;
   ValidarSerieCompra(AConexion, ACabecera, oModalidad);
+end;
+
+procedure ValidarCompensacionCompraDirecta(ACabecera: TDataSet);
+var
+  dPorcentaje: Currency;
+begin
+  if ModalidadCompra(ACabecera.FieldByName(fmodalidad).AsString) =
+     mcdReagp then
+  begin
+    dPorcentaje := ACabecera.FieldByName(fporcentaje).AsCurrency;
+    if dPorcentaje <= 0 then
+      raise EValidacionBBDD.Create(SCompensacionObligatoria);
+    if dPorcentaje > 100 then
+      raise EValidacionBBDD.Create(SCompensacionFueraDeRango);
+  end;
 end;
 
 procedure AplicarCompensacionCompraDirecta(ACabecera: TDataSet);
@@ -309,8 +354,12 @@ begin
   if ACabecera.State in dsEditModes then
   begin
     dImporte := 0;
-    if ModalidadCompra(ACabecera.FieldByName(fmodalidad).AsString) =
-       mcdReagp then
+    // Un porcentaje fuera de rango no se calcula mientras se edita: lo
+    // avisa ValidarCompensacionCompraDirecta al grabar (FZ-ISSUE-747).
+    if (ModalidadCompra(ACabecera.FieldByName(fmodalidad).AsString) =
+        mcdReagp) and
+       (ACabecera.FieldByName(fporcentaje).AsCurrency >= 0) and
+       (ACabecera.FieldByName(fporcentaje).AsCurrency <= 100) then
       dImporte := CalcularCompensacionAgricola(
         ACabecera.FieldByName('TOTAL_BASES_FACC').AsCurrency,
         ACabecera.FieldByName(fporcentaje).AsCurrency);

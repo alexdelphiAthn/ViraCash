@@ -98,13 +98,25 @@ type
     // puramente descriptivo que NO debe disparar la logica fiscal ni
     // la sincronizacion de movimientos (cascada por linea al navegar).
     FDesempaquetandoAtributos: Boolean;
+    // True mientras se graba la cabecera tras grabar una línea.
+    FGrabandoTotalesTrasLinea: Boolean;
     // F-LOTEC-013: lote de las líneas (nil = como siempre).
     FLotesLineas: TLotesLineasDocumento;
+    // FZ-ISSUE-752: pestaña «Movimientos» (se crea al pedirla).
+    FCabeceraMaestra: TDataSource;
+    FMovimientosFacc: TUniQuery;
+    FDsMovimientosFacc: TDataSource;
     procedure AsignarCompraDirecta(AValor: Boolean);
+    function MueveStockAlCerrar(DataSet: TDataSet): Boolean;
+    procedure ValidarCierreConStock(DataSet: TDataSet);
+    procedure AplicarTransicionStock(DataSet: TDataSet);
     procedure CancelarLineaVaciaDiferida;
     procedure AsignarNumeroLineaFacturaCompra(DataSet: TDataSet);
     function ObtenerSkusFacturaCsv(const ASerie, ANumero: string): string;
     procedure ComprobarDocumentoExternoRepetido(DataSet: TDataSet);
+    procedure LineasDataChangeTotal(Sender: TObject; Field: TField);
+    procedure GrabarTotalesCabeceraTrasLinea;
+    procedure ExigirFacturaCompraAbiertaParaCambios(DataSet: TDataSet);
   public
     // FZ-ISSUE-168: la pantalla pregunta si la factura del proveedor ya
     // estaba registrada. Si decide abrir la existente, el Post se aborta y
@@ -122,6 +134,13 @@ type
     function DatosBusquedaProveedoresDirectos: TDataSet;
     procedure CargarSeriesCompra(AElementos: TStrings);
     procedure ActualizarModalidadCompra;
+    // FZ-ISSUE-745: en compras directas, la serie del proveedor se ve
+    // desde que se elige, no solo al grabar.
+    procedure ProponerSerieAlElegirProveedor;
+    // Rótulo de un proveedor que existe pero no tiene facturación directa
+    // (la lista de la pantalla solo trae los que sí); '' en otro caso.
+    function TextoProveedorSinFacturacionDirecta(
+      const ACodigo: string): string;
     property EsCompraDirecta: Boolean read FEsCompraDirecta
       write AsignarCompraDirecta;
     procedure GetCodigoAutoFacturaCompra;
@@ -131,6 +150,9 @@ type
     // estar en edición. Las validaciones del cierre están en BeforePost
     // (FZ-ISSUE-733).
     procedure CambiarEstadoFactura(ACerrar: Boolean);
+    // FZ-ISSUE-752: movimientos FP de la factura enfocada, abiertos.
+    function FuenteMovimientosFactura: TDataSource;
+    procedure RefrescarMovimientosFactura;
     // Numero total de prendas (suma CANTIDAD_FACCLIN de todas las lineas).
     // Se muestra en la pestana Totales; no se persiste en BBDD.
     function TotalPrendasFactura: Double;
@@ -202,7 +224,9 @@ uses
   UniDataArticulosValidadorRepositorio,
   inLibMsgCompras, inLibDocumento, inLibDocumentoIntf,
   UniDataDatosProveedorDocumento, UniDataComprasDirectas,
-  inLibComprasDirectas, UniDataComprasDirectasFiscal, inLibErroresBBDD;
+  inLibComprasDirectas, UniDataComprasDirectasFiscal, inLibErroresBBDD,
+  inLibRedondeo, inLibVerifactu, inLibTrazabilidad,
+  UniDataFacturasCompraMovimientos;
 
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 
@@ -254,6 +278,28 @@ begin
   unqryFacturasCompraLineas.BeforeDelete :=
     unqryFacturasCompraLineasBeforeDelete;
   VigilarTotalMaximoLinea(unqryFacturasCompraLineas, 'TOTAL_FACCLIN');
+  dsFacturasCompraLineas.OnDataChange := LineasDataChangeTotal;
+end;
+
+// FZ-ISSUE-745: el total de la línea se ve al cambiar cantidad o precio,
+// no solo al grabarla. El BeforePost lo vuelve a calcular igual.
+procedure TdmFacturasCompra.LineasDataChangeTotal(Sender: TObject;
+  Field: TField);
+var
+  oTotal: TField;
+begin
+  if Assigned(Field) and
+     (unqryFacturasCompraLineas.State in dsEditModes) and
+     (SameText(Field.FieldName, 'CANTIDAD_FACCLIN') or
+      SameText(Field.FieldName, 'PRECIO_COMPRA_SIVA_ARTICULO_FACCLIN')) then
+  begin
+    oTotal := unqryFacturasCompraLineas.FindField('TOTAL_FACCLIN');
+    if Assigned(oTotal) then
+      oTotal.AsFloat := RedondearACentimos(
+        unqryFacturasCompraLineas.FieldByName('CANTIDAD_FACCLIN').AsFloat *
+        unqryFacturasCompraLineas.FieldByName(
+          'PRECIO_COMPRA_SIVA_ARTICULO_FACCLIN').AsFloat);
+  end;
 end;
 
 // Master-detail server-side: el WHERE del SQL toma los valores de
@@ -265,6 +311,39 @@ begin
   inherited;
   unqryFacturasCompraLineas.MasterSource := ADataSource;
   unqryEfectos.MasterSource := ADataSource;
+  FCabeceraMaestra := ADataSource;
+  if Assigned(FMovimientosFacc) then
+    FMovimientosFacc.MasterSource := ADataSource;
+end;
+
+function TdmFacturasCompra.FuenteMovimientosFactura: TDataSource;
+begin
+  if not Assigned(FMovimientosFacc) then
+  begin
+    FMovimientosFacc := TUniQuery.Create(Self);
+    FMovimientosFacc.ReadOnly := True;
+    FMovimientosFacc.SQL.Text := SqlMovimientosFacturaCompra;
+    // Parámetros con el nombre de los campos de la cabecera: UniDAC los
+    // rellena desde el maestro al cambiar de factura.
+    FMovimientosFacc.MasterFields := 'SERIE_FACC;NUMERO_FACC';
+    FMovimientosFacc.DetailFields := 'SERIE;NUMERO';
+    FDsMovimientosFacc := TDataSource.Create(Self);
+    FDsMovimientosFacc.DataSet := FMovimientosFacc;
+  end;
+  FMovimientosFacc.Connection := ConexionEscritura;
+  FMovimientosFacc.MasterSource := FCabeceraMaestra;
+  if not FMovimientosFacc.Active then
+    FMovimientosFacc.Open;
+  Result := FDsMovimientosFacc;
+end;
+
+procedure TdmFacturasCompra.RefrescarMovimientosFactura;
+begin
+  if Assigned(FMovimientosFacc) and FMovimientosFacc.Active then
+  begin
+    FMovimientosFacc.Close;
+    FMovimientosFacc.Open;
+  end;
 end;
 
 procedure TdmFacturasCompra.DataModuleDestroy(Sender: TObject);
@@ -548,11 +627,16 @@ var
 begin
   inherited;
   FieldByName('ESREPRESENTACION_FISCAL_FACC').AsString := 'N';
-  FieldByName('FECHA_REGISTRO_CONTABLE_FACC').AsDateTime := Date;
+  // FZ-ISSUE-745: la fecha de registro contable solo la pide el SII.
+  if SiiActivo(ParametrosApp) then
+    FieldByName('FECHA_REGISTRO_CONTABLE_FACC').AsDateTime := Date;
   FieldByName('MODALIDAD_FACC').AsString := 'ORDINARIA';
   FieldByName('PORCENTAJE_COMPENSACION_FACC').AsCurrency := 0;
   FieldByName('TOTAL_COMPENSACION_FACC').AsCurrency := 0;
   FieldByName('ESACUERDO_AUTOFAC_FACC').AsString := 'N';
+  // FZ-ISSUE-752: opcional; la ordinaria entra en stock por el albarán.
+  if FindField('ESMUEVE_STOCK_FACC') <> nil then
+    FieldByName('ESMUEVE_STOCK_FACC').AsString := 'N';
   if FEsCompraDirecta then
     FieldByName('MODALIDAD_FACC').AsString := 'AUTOFAC';
   FieldByName('NUMERO_FACC').AsString := '0';
@@ -577,6 +661,10 @@ begin
     else
       FieldByName('CODIGO_EMP_FACC').AsString := '0';
     FieldByName('CODIGO_PRV_FACC').AsString := '0';
+    // FZ-ISSUE-745: el almacén de la ubicación, como los albaranes de
+    // compra; sin él se tomaba el primero de la empresa (el de depósitos).
+    if FindField('CODIGO_ALM_FACC') <> nil then
+      FieldByName('CODIGO_ALM_FACC').AsString := UbicacionSesion.Almacen;
     if FindField('ESPIVOTE_HORIZONTAL_FACC') <> nil then
       FieldByName('ESPIVOTE_HORIZONTAL_FACC').AsString := 'N';
     if FindField('ESIVA_EXENTO_INTRACOMUNITARIO_FACC') <> nil then
@@ -592,6 +680,50 @@ begin
       IdentidadSesion.Usuario);
   RefrescarAlmacenes(FieldByName('CODIGO_EMP_FACC').AsString);
   FTransicionEstadoFacc := '';
+end;
+
+procedure TdmFacturasCompra.ProponerSerieAlElegirProveedor;
+var
+  sProveedor: string;
+begin
+  sProveedor := Trim(unqryTablaG.FieldByName('CODIGO_PRV_FACC').AsString);
+  // Solo proveedores con facturación directa: la lista de la pantalla
+  // directa viene filtrada. A otro no se le crea serie.
+  if FEsCompraDirecta and
+     (unqryTablaG.State in dsEditModes) and
+     (sProveedor <> '') and (sProveedor <> '0') and
+     unqryPrvDataFacc.Active and
+     unqryPrvDataFacc.Locate('CODIGO_PRV_PRV', sProveedor, []) then
+    ProponerSerieCompraDirecta(ConexionEscritura, unqryTablaG,
+      IdentidadSesion.Usuario);
+end;
+
+function TdmFacturasCompra.TextoProveedorSinFacturacionDirecta(
+  const ACodigo: string): string;
+var
+  oConsulta: TUniQuery;
+begin
+  Result := '';
+  if FEsCompraDirecta and (Trim(ACodigo) <> '') and
+     (Trim(ACodigo) <> '0') then
+  begin
+    oConsulta := TUniQuery.Create(nil);
+    try
+      oConsulta.Connection := ConexionEscritura;
+      oConsulta.SQL.Text :=
+        'SELECT RAZON_SOCIAL_PRV FROM fza_proveedores ' +
+        'WHERE CODIGO_PRV_PRV = :PROVEEDOR ' +
+        'AND COALESCE(ESFACTURACION_DIRECTA_PRV, ''N'') <> ''S''';
+      oConsulta.ParamByName('PROVEEDOR').AsString := Trim(ACodigo);
+      oConsulta.Open;
+      if not oConsulta.IsEmpty then
+        Result := Format(SProveedorSinFacturacionDirecta,
+          [Trim(ACodigo),
+           oConsulta.FieldByName('RAZON_SOCIAL_PRV').AsString]);
+    finally
+      FreeAndNil(oConsulta);
+    end;
+  end;
 end;
 
 procedure TdmFacturasCompra.unqryTablaGBeforePost(DataSet: TDataSet);
@@ -613,6 +745,9 @@ begin
   ExigirCompraSinRegistroFiscal(ConexionEscritura,
     DataSet.FieldByName('SERIE_FACC').AsString,
     DataSet.FieldByName('NUMERO_FACC').AsString);
+  ExigirFacturaCompraAbiertaParaCambios(DataSet);
+  if FEsCompraDirecta then
+    ValidarCompensacionCompraDirecta(DataSet);
   // Antes de numerar: si se cancela no se consume el contador.
   ComprobarDocumentoExternoRepetido(DataSet);
   if (DataSet.FindField('ESPIVOTE_HORIZONTAL_FACC') <> nil) and
@@ -621,6 +756,7 @@ begin
     DataSet.FieldByName('ESPIVOTE_HORIZONTAL_FACC').AsString := 'N';
   // FZ-ISSUE-249: datos del proveedor en la cabecera, como los de empresa.
   CopiarDatosProveedorDocumento(DataSet, 'FACC');
+  CopiarDatosEmpresaDocumento(DataSet, 'FACC');
   if FEsCompraDirecta then
     ProponerSerieCompraDirecta(ConexionEscritura, DataSet,
       IdentidadSesion.Usuario);
@@ -678,14 +814,18 @@ begin
             FreeAndNil(qChk);
           end;
           // El n.º de factura del proveedor es obligatorio en el libro
-          // registro de facturas recibidas (FZ-ISSUE-733).
-          if (Trim(unqryTablaG.FieldByName('REF_PROVEEDOR_FACC').AsString) =
+          // registro de facturas recibidas (FZ-ISSUE-733). En una compra
+          // directa el documento lo emite la empresa: no lo hay (750).
+          if (ModalidadCompra(unqryTablaG.FieldByName(
+                'MODALIDAD_FACC').AsString) = mcdOrdinaria) and
+             (Trim(unqryTablaG.FieldByName('REF_PROVEEDOR_FACC').AsString) =
               '') and
              ((unqryTablaG.FindField('DOC_EXTERNO_FACC') = nil) or
               (Trim(unqryTablaG.FieldByName('DOC_EXTERNO_FACC').AsString) =
                '')) then
             raise EValidacionBBDD.Create(
               SErrorCerrarFacturaCompraSinRefProveedor);
+          ValidarCierreConStock(DataSet);
         end;
       end;
     end;
@@ -811,27 +951,96 @@ end;
 // usuario (el Post original ya quedo aplicado, por lo que la factura
 // guardara su nuevo estado aunque los movimientos fallen — el usuario
 // debe revisar y reintentar o revertir manualmente).
+// FZ-ISSUE-752: el cambio de estado y los movimientos de stock van en la
+// misma transacción; si los movimientos fallan, la factura sigue como
+// estaba.
 procedure TdmFacturasCompra.CambiarEstadoFactura(ACerrar: Boolean);
+var
+  oConexion: TUniConnection;
+  bTransaccionPropia: Boolean;
 begin
-  unqryTablaG.Edit;
-  if ACerrar then
-    unqryTablaG.FieldByName('ESTADO_FACC').AsString := 'CERRADA'
-  else
-    unqryTablaG.FieldByName('ESTADO_FACC').AsString := 'ABIERTA';
+  oConexion := ConexionEscritura;
+  bTransaccionPropia := not oConexion.InTransaction;
+  if bTransaccionPropia then
+    oConexion.StartTransaction;
   try
+    unqryTablaG.Edit;
+    if ACerrar then
+      unqryTablaG.FieldByName('ESTADO_FACC').AsString := 'CERRADA'
+    else
+      unqryTablaG.FieldByName('ESTADO_FACC').AsString := 'ABIERTA';
     unqryTablaG.Post;
+    if bTransaccionPropia then
+      oConexion.Commit;
   except
-    unqryTablaG.Cancel;
+    if unqryTablaG.State in dsEditModes then
+      unqryTablaG.Cancel;
+    if bTransaccionPropia and oConexion.InTransaction then
+    begin
+      oConexion.Rollback;
+      unqryTablaG.RefreshRecord;
+    end;
     raise;
   end;
+  RefrescarMovimientosFactura;
+end;
+
+function TdmFacturasCompra.MueveStockAlCerrar(DataSet: TDataSet): Boolean;
+begin
+  Result := (DataSet.FindField('ESMUEVE_STOCK_FACC') <> nil) and
+    SameText(Trim(DataSet.FieldByName('ESMUEVE_STOCK_FACC').AsString),
+      'S');
+end;
+
+// FZ-ISSUE-752: antes de cerrar, la mercancía tiene que poder entrar.
+procedure TdmFacturasCompra.ValidarCierreConStock(DataSet: TDataSet);
+var
+  iLineasStock, iSinAlmacen: Integer;
+begin
+  if MueveStockAlCerrar(DataSet) then
+  begin
+    ContarLineasStockFacturaCompra(ConexionEscritura,
+      DataSet.FieldByName('SERIE_FACC').AsString,
+      DataSet.FieldByName('NUMERO_FACC').AsString,
+      DataSet.FieldByName('CODIGO_ALM_FACC').AsString,
+      iLineasStock, iSinAlmacen);
+    if iLineasStock = 0 then
+      raise EValidacionBBDD.CreateFmt(SErrorCompraDirectaSinLineasStock,
+        [DataSet.FieldByName('SERIE_FACC').AsString,
+         DataSet.FieldByName('NUMERO_FACC').AsString]);
+    if iSinAlmacen > 0 then
+      raise EValidacionBBDD.CreateFmt(SErrorCompraDirectaLineasSinAlmacen,
+        [iSinAlmacen]);
+  end;
+end;
+
+// Al cerrar con la casilla, entradas de stock; al reabrir se borran las
+// que hubiera, aunque la casilla se haya desmarcado después.
+procedure TdmFacturasCompra.AplicarTransicionStock(DataSet: TDataSet);
+var
+  sSerie, sNumero: string;
+begin
+  sSerie := DataSet.FieldByName('SERIE_FACC').AsString;
+  sNumero := DataSet.FieldByName('NUMERO_FACC').AsString;
+  if (FTransicionEstadoFacc = 'CERRAR') and MueveStockAlCerrar(DataSet) then
+    GenerarMovimientosFacturaCompra(ConexionEscritura, sSerie, sNumero,
+      IdentidadSesion.Usuario, ActivacionVigente)
+  else if (FTransicionEstadoFacc = 'ABRIR') and
+          FacturaCompraTieneMovimientos(ConexionEscritura, sSerie,
+            sNumero) then
+    RevertirMovimientosFacturaCompra(ConexionEscritura, sSerie, sNumero);
 end;
 
 procedure TdmFacturasCompra.unqryTablaGAfterPost(DataSet: TDataSet);
 begin
   inherited;
-  // La factura de compra NO mueve stock (lo hizo el albaran). El cambio de
-  // estado solo refleja el ciclo administrativo de la factura.
-  FTransicionEstadoFacc := '';
+  // La factura ordinaria NO mueve stock (lo hizo el albarán). La compra
+  // directa sí, si lo pide ESMUEVE_STOCK_FACC (FZ-ISSUE-752).
+  try
+    AplicarTransicionStock(DataSet);
+  finally
+    FTransicionEstadoFacc := '';
+  end;
 end;
 
 procedure TdmFacturasCompra.unqryTablaGBeforeDelete(DataSet: TDataSet);
@@ -885,6 +1094,11 @@ begin
       end;
       IniciarBorradoTransaccional;
       try
+        // FZ-ISSUE-752: la mercancía de una compra directa sale con ella.
+        if FacturaCompraTieneMovimientos(ConexionEscritura, sSerie,
+             sNumero) then
+          RevertirMovimientosFacturaCompra(ConexionEscritura, sSerie,
+            sNumero);
         q.SQL.Text :=
           'UPDATE fza_albaranes_compra_lineas ' +
           '   SET ESFACTURADA_ALBCLIN = ''N'', ' +
@@ -1145,6 +1359,63 @@ begin
   if Assigned(FLotesLineas) then
     FLotesLineas.DespuesDePostLinea;
   CalcularTotalesFacturaCompra;
+  GrabarTotalesCabeceraTrasLinea;
+end;
+
+// FZ-ISSUE-748: el recálculo deja la cabecera editando con los totales
+// nuevos. Si ya está numerada se graba, o la lista y el recibo seguirían
+// con los importes anteriores hasta otro «Grabar» desde la ficha.
+// FZ-ISSUE-751: una factura o recibo CERRADO es definitivo; solo cabe
+// «Reabrir». Los totales y la auditoría no cuentan como cambio: se
+// recalculan solos.
+procedure TdmFacturasCompra.ExigirFacturaCompraAbiertaParaCambios(
+  DataSet: TDataSet);
+var
+  oCampo: TField;
+  sNombre: string;
+  bCambiado: Boolean;
+  iCampo: Integer;
+begin
+  if (DataSet.State = dsEdit) and
+     SameText(Trim(VarToStr(DataSet.FieldByName('ESTADO_FACC').OldValue)),
+       'CERRADA') and
+     SameText(Trim(DataSet.FieldByName('ESTADO_FACC').AsString),
+       'CERRADA') then
+  begin
+    bCambiado := False;
+    for iCampo := 0 to DataSet.FieldCount - 1 do
+    begin
+      oCampo := DataSet.Fields[iCampo];
+      sNombre := UpperCase(oCampo.FieldName);
+      if (oCampo.FieldKind = fkData) and
+         not sNombre.StartsWith('TOTAL_') and
+         not sNombre.StartsWith('PORCENTAJE_IVA') and
+         not sNombre.StartsWith('PORCENTAJE_RE') and
+         not sNombre.StartsWith('INSTANTE_') and
+         not sNombre.StartsWith('USUARIO_') and
+         (sNombre <> 'CONTADOR_LINEAS_FACC') and
+         not VarSameValue(oCampo.OldValue, oCampo.Value) then
+        bCambiado := True;
+    end;
+    if bCambiado then
+      raise EValidacionBBDD.Create(SErrorFacturaCompraCerradaModificada);
+  end;
+end;
+
+procedure TdmFacturasCompra.GrabarTotalesCabeceraTrasLinea;
+begin
+  if (not FGrabandoTotalesTrasLinea) and
+     (unqryTablaG.State = dsEdit) and
+     (StrToInt64Def(unqryTablaG.FieldByName('NUMERO_FACC').AsString,
+       0) > 0) then
+  begin
+    FGrabandoTotalesTrasLinea := True;
+    try
+      unqryTablaG.Post;
+    finally
+      FGrabandoTotalesTrasLinea := False;
+    end;
+  end;
 end;
 
 procedure TdmFacturasCompra.GetCodigoAutoFacturaCompra;

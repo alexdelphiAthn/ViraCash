@@ -870,7 +870,7 @@ begin
       if i < Length(aPosiciones) then
         sRotulo := aPosiciones[i].Valor
       else if (i = 0) and oGrupo.SinTalla then
-        sRotulo := 'Cantidad'
+        sRotulo := SCaptionColCantidad
       else
         sRotulo := '·';
       if FColumnasTallas[i].Caption <> sRotulo then

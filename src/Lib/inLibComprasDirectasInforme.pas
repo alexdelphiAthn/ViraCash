@@ -28,7 +28,7 @@ resourcestring
   STituloReciboCompensacion = 'RECIBO DE COMPENSACIÓN REAGP';
   SDestinatario = 'DESTINATARIO';
   SEmisorBeneficiario = 'EMISOR / BENEFICIARIO';
-  SCompensacionImpresa = 'Compensación: %s %% de %s = %s EUR';
+  SCompensacionImpresa = 'Compensación REAGP %s%% de %s = %s EUR';
 
 function EsCompraDirecta(ACabecera: TDataSet): Boolean;
 begin
@@ -130,8 +130,8 @@ begin
   if SameText(AMemo.Name, 'MemoTotalesFiscales') then
     AMemo.Text := 'Base de compensación: ' +
       '[FormatFloat(''#,##0.00'', <Factura."TOTAL_BASES_FACC">)] EUR' +
-      sLineBreak + 'Compensación ' +
-      '[FormatFloat(''0.##'', <Factura."PORCENTAJE_COMPENSACION_FACC">)] %: ' +
+      sLineBreak + 'Compensación REAGP ' +
+      '[FormatFloat(''0.##'', <Factura."PORCENTAJE_COMPENSACION_FACC">)]%: ' +
       '[FormatFloat(''#,##0.00'', <Factura."TOTAL_COMPENSACION_FACC">)] EUR' +
       sLineBreak + 'Retención IRPF: ' +
       '[FormatFloat(''#,##0.00'', <Factura."TOTAL_RETENCION_FACC">)] EUR' +
@@ -139,7 +139,8 @@ begin
       '[FormatFloat(''#,##0.00'', <Factura."TOTAL_LIQUIDO_FACC">)] EUR';
   if SameText(AMemo.Name, 'MemoTotIvaLblV') or
      SameText(AMemo.Name, 'MemoTotIvaLbl') then
-    AMemo.Text := 'Compensación:';
+    AMemo.Text := 'Compensación REAGP ' +
+      '[FormatFloat(''0.##'', <Factura."PORCENTAJE_COMPENSACION_FACC">)]%:';
   if SameText(AMemo.Name, 'MemoTotIvaV') or
      SameText(AMemo.Name, 'MemoTotIva') then
   begin

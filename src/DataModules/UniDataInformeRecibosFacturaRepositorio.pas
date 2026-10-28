@@ -11,7 +11,7 @@ function CrearPreparadorInformeRecibosFacturaUniDAC(
 implementation
 
 uses
-  UniDataFormatoDocumentoRepositorio;
+  UniDataFormatoDocumentoRepositorio, inLibComprasDirectas;
 
 type
   TPreparadorInformeRecibosFacturaUniDAC = class(
@@ -110,7 +110,14 @@ begin
     'SELECT R.SERIE_FAC_REC, R.NUMERO_FAC_REC, R.NUMERO_PLAZO_REC, ' +
     'R.ESTADO_RECIBO_REC, R.EUROS_RECIBO_REC, ' +
     'R.FECHA_EXPEDICION_RECIBO_REC, R.FECHA_VENCIMIENTO_RECIBO_REC, ' +
-    'R.IBAN_CLI_REC, R.LOCALIDAD_EXPEDICION_RECIBO_REC, ' +
+    'R.IBAN_CLI_REC, ' +
+    // FZ-ISSUE-749: lugar de expedición = población de la empresa que paga;
+    // texto legal de la compra directa (autofactura o recibo REAGP).
+    'COALESCE(NULLIF(TRIM(R.LOCALIDAD_EXPEDICION_RECIBO_REC), ''''), ' +
+    'NULLIF(TRIM(F.POBLACION_EMPRESA_FACC), ''''), E.POBLACION_EMP) ' +
+    'AS LOCALIDAD_EXPEDICION_RECIBO_REC, ' +
+    'CASE F.MODALIDAD_FACC WHEN ''AUTOFAC'' THEN :LEGAL_AUTOFAC ' +
+    'WHEN ''REAGP'' THEN :LEGAL_REAGP ELSE '''' END AS TEXTO_LEGAL_REC, ' +
     'R.CODIGO_CLI_REC, R.RAZON_SOCIAL_CLI_REC, ' +
     'R.DIRECCION1_CLIENTE_RECIBO_REC, R.POBLACION_CLI_REC, ' +
     'R.PROVINCIA_CLI_REC, R.CODIGO_POSTAL_CLI_REC, ' +
@@ -123,6 +130,10 @@ begin
     'AND F.NUMERO_FACC = R.NUMERO_FAC_REC ' +
     'JOIN fza_empresas E ON E.CODIGO_EMP_EMP = F.CODIGO_EMP_FACC ' +
     'ORDER BY R.NUMERO_PLAZO_REC';
+  FConsultaRecibos.ParamByName('LEGAL_AUTOFAC').AsString :=
+    ClasificarCompraDirecta(mcdAutofactura).TextoLegal;
+  FConsultaRecibos.ParamByName('LEGAL_REAGP').AsString :=
+    ClasificarCompraDirecta(mcdReagp).TextoLegal;
 end;
 
 procedure TPreparadorInformeRecibosFacturaUniDAC.Preparar(

@@ -75,6 +75,7 @@ begin
   Cabecera.BevelOuter := bvNone;
   FAyuda := TcxLabel.Create(Self);
   FAyuda.Parent := Cabecera;
+  FAyuda.Transparent := True;
   FAyuda.Align := alTop;
   FAyuda.AutoSize := False;
   FAyuda.Height := MulDiv(80, Ppi, 96);
@@ -84,6 +85,7 @@ begin
     'de semana, mes o año. Las fechas generales también se respetan.';
   Etiqueta := TcxLabel.Create(Self);
   Etiqueta.Parent := Cabecera;
+  Etiqueta.Transparent := True;
   Limites(Etiqueta, 12, 86, 200, 22, Ppi);
   Etiqueta.Caption := 'Repetir';
   FTipo := TcxComboBox.Create(Self);
@@ -98,6 +100,7 @@ begin
   FTipo.Properties.OnChange := CambiarTipo;
   Etiqueta := TcxLabel.Create(Self);
   Etiqueta.Parent := Cabecera;
+  Etiqueta.Transparent := True;
   Limites(Etiqueta, 204, 86, 160, 22, Ppi);
   Etiqueta.Caption := 'Desde (año: día/mes)';
   FDesde := TcxComboBox.Create(Self);
@@ -106,6 +109,7 @@ begin
   Limites(FDesde, 204, 112, 160, 28, Ppi);
   Etiqueta := TcxLabel.Create(Self);
   Etiqueta.Parent := Cabecera;
+  Etiqueta.Transparent := True;
   Limites(Etiqueta, 380, 86, 160, 22, Ppi);
   Etiqueta.Caption := 'Hasta (incluido)';
   FHasta := TcxComboBox.Create(Self);

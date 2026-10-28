@@ -217,7 +217,7 @@ uses
   inLibFacturasProforma, inMtoModalImpFacturasProforma,
   inMtoModalOpcionesDocumento, inLibMsgOpcionesDocumento,
   UniDataOpcionesDocumentoRepositorio,
-  inLibFormatoMonetario, System.Math,
+  inLibFormatoMonetario, System.Math, dxCoreGraphics,
   inLibFacturasProformaValoracion,
   inLibInformeSimulacionValoracion,
   inMtoModalRevalorizacionInventario,

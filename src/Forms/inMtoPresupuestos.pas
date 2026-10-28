@@ -297,12 +297,14 @@ type
   public
     destructor Destroy; override;
     procedure CrearTablaPrincipal; override;
+    procedure AplicarEtiquetas; override;
   end;
 
 implementation
 
 uses
   inLibMensajesVcl,
+  inLibDevExp,
   inLibGridCantidad,
   inLibGenBusq, inLibShowMto, inLibFiltroUsuario,
   UniDataDestinoFacturaRepositorio,
@@ -954,6 +956,8 @@ begin
       MostrarColumnasAtributoGlobalesAlb;
     end;
   end;
+  // El rótulo de líneas cambia con el modo: se renumera para Alt+número.
+  NumerarPestanasAtajo(pcAlbaran);
     end;
   end;
 end;
@@ -1107,6 +1111,13 @@ begin
   Result := nil;
   if Assigned(dmmPresupuestos) then
     Result := dmmPresupuestos.unqryAlbaranesLineas;
+end;
+
+procedure TfrmMtoPresupuestos.AplicarEtiquetas;
+begin
+  inherited;
+  // La traducción repone el título del DFM (&5_Observaciones).
+  NumerarPestanasAtajo(pcAlbaran);
 end;
 
 procedure TfrmMtoPresupuestos.CrearTablaPrincipal;

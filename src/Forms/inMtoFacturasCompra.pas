@@ -252,6 +252,7 @@ type
     procedure dsTablaGDataChangeHook(Sender: TObject; Field: TField);
     function FacturaCerrada: Boolean;
     procedure ActualizarBotonEstadoFactura;
+    function PreguntaCambioEstadoFactura(ACerrar: Boolean): string;
     // Pinta lblProveedorNombreFacc con el nombre comercial del proveedor
     // (razon social entre parentesis si difiere). Ver UniDataFacturasCompra
     // .unqryPrvDataFacc (lookup completo de fza_proveedores).
@@ -1002,6 +1003,10 @@ begin
   // o al cambiar CODIGO_PRV_FACC tecleado directamente en el ButtonEdit.
   if (Field = nil) or SameText(Field.FieldName, 'CODIGO_PRV_FACC') then
     ActualizarLabelProveedor;
+  // FZ-ISSUE-745: en compras directas la serie sigue al proveedor.
+  if Assigned(Field) and SameText(Field.FieldName, 'CODIGO_PRV_FACC') and
+     Assigned(dmmFacturasCompra) then
+    dmmFacturasCompra.ProponerSerieAlElegirProveedor;
   // Al navegar entre facturas hay que recalcular el total de prendas: las
   // lineas cargadas son las de la factura recien enfocada.
   if Field = nil then
@@ -1023,12 +1028,30 @@ begin
 end;
 
 procedure TfrmMtoFacturasCompra.ActualizarLabelProveedor;
+var
+  sSinDirecta: string;
 begin
   if Assigned(dmmFacturasCompra) then
+  begin
     lblProveedorNombreFacc.Caption := TextoProveedorDocumento(
       dmmFacturasCompra.unqryTablaG,
       dmmFacturasCompra.unqryPrvDataFacc,
-      'CODIGO_PRV_FACC')
+      'CODIGO_PRV_FACC');
+    // FZ-ISSUE-745: en compras directas la lista solo trae proveedores con
+    // facturación directa; otro existente no es «no encontrado».
+    if EsPantallaCompraDirecta and dmmFacturasCompra.unqryTablaG.Active and
+       not dmmFacturasCompra.unqryTablaG.IsEmpty and
+       not dmmFacturasCompra.unqryPrvDataFacc.Locate('CODIGO_PRV_PRV',
+         Trim(dmmFacturasCompra.unqryTablaG.FieldByName(
+           'CODIGO_PRV_FACC').AsString), []) then
+    begin
+      sSinDirecta := dmmFacturasCompra.TextoProveedorSinFacturacionDirecta(
+        dmmFacturasCompra.unqryTablaG.FieldByName(
+          'CODIGO_PRV_FACC').AsString);
+      if sSinDirecta <> '' then
+        lblProveedorNombreFacc.Caption := sSinDirecta;
+    end;
+  end
   else
     lblProveedorNombreFacc.Caption := '';
 end;
@@ -1784,6 +1807,24 @@ begin
   end;
 end;
 
+// El recibo REAGP no es una factura (FZ-ISSUE-750).
+function TfrmMtoFacturasCompra.PreguntaCambioEstadoFactura(
+  ACerrar: Boolean): string;
+var
+  bRecibo: Boolean;
+begin
+  bRecibo := SameText(Trim(dsTablaG.DataSet.FieldByName(
+    'MODALIDAD_FACC').AsString), 'REAGP');
+  if ACerrar and bRecibo then
+    Result := SPreguntaCerrarReciboCompra
+  else if ACerrar then
+    Result := SPreguntaCerrarFacturaCompra
+  else if bRecibo then
+    Result := SPreguntaReabrirReciboCompra
+  else
+    Result := SPreguntaReabrirFacturaCompra;
+end;
+
 procedure TfrmMtoFacturasCompra.btnCerrarBorradorClick(Sender: TObject);
 var
   bCerrar: Boolean;
@@ -1794,8 +1835,7 @@ begin
     if dsTablaG.DataSet.State in dsEditModes then
       dsTablaG.DataSet.Post;
     bCerrar := not FacturaCerrada;
-    if MessageDlg_fza(IfThen(bCerrar, SPreguntaCerrarFacturaCompra,
-         SPreguntaReabrirFacturaCompra), mtConfirmation,
+    if MessageDlg_fza(PreguntaCambioEstadoFactura(bCerrar), mtConfirmation,
          [mbYes, mbNo], 0) = mrYes then
       try
         dmmFacturasCompra.CambiarEstadoFactura(bCerrar);

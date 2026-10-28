@@ -2057,6 +2057,8 @@ begin
     CrearConfiguracionDocumento(tdFactura, sdVenta));
   AsignarVistaLineasDocumento(tvLineasFactura);
   inherited;
+  // Otros, la menos usada, va la última.
+  tsOtros.PageIndex := pcDetail.PageCount - 1;
   dmmFacturas := TdmFacturas(AsegurarDataModuleDocumento(
     Self, tdmDataModule, TdmFacturas));
   dmmFacturas.ConfigurarServicios(
@@ -2505,6 +2507,8 @@ begin
   if Assigned(FPresentadorLineas) then
     FPresentadorLineas.ReaplicarVisibilidad;
   AplicarOrigenCobrosFacturaVcl(Self);
+  // La traducción repone los títulos del DFM (&4_Otros...).
+  NumerarPestanasAtajo(pcDetail);
 end;
 procedure TfrmMtoFacturasBase.chkDescripcion_ampliadaPropertiesChange(
   Sender: TObject);

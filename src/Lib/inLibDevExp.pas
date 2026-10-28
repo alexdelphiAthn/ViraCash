@@ -121,6 +121,9 @@ uses
   function CrearItemsFaltantes(
     AView: TcxCustomGridTableView;
     const ARegistroLog: IRegistroLog): Integer;
+  // Numera las pestañas visibles según su orden real (&1_, &2_...) para
+  // Alt+número. Quita antes el prefijo que traiga el DFM o la traducción.
+  procedure NumerarPestanasAtajo(APestanas: TcxPageControl);
 
 implementation
 
@@ -1540,6 +1543,26 @@ begin
         // TcxGridDBColumn).PropertiesClassName));
       end;
   end;
+end;
+
+procedure NumerarPestanasAtajo(APestanas: TcxPageControl);
+var
+  iPestana: Integer;
+  iNumero: Integer;
+  sTitulo: string;
+begin
+  iNumero := 0;
+  for iPestana := 0 to APestanas.PageCount - 1 do
+    if APestanas.Pages[iPestana].TabVisible then
+    begin
+      Inc(iNumero);
+      sTitulo := APestanas.Pages[iPestana].Caption;
+      if (Length(sTitulo) >= 3) and (sTitulo[1] = '&') and
+         CharInSet(sTitulo[2], ['0'..'9']) and (sTitulo[3] = '_') then
+        Delete(sTitulo, 1, 3);
+      APestanas.Pages[iPestana].Caption :=
+        '&' + IntToStr(iNumero) + '_' + sTitulo;
+    end;
 end;
 
 end.

@@ -198,6 +198,7 @@ type
       overload;
     destructor Destroy; override;
     procedure CrearTablaPrincipal; override;
+    procedure AplicarEtiquetas; override;
     procedure ResetForm; override;
     procedure ResolverArtSkuActivo(out ACodArt, ACodSku: string); override;
     function  DataSourcesParaFoto: TArray<TDataSource>; override;
@@ -356,10 +357,19 @@ begin
     CrearRepositorioPeriodicidadTarifa(dmmTarifas.unqryTablaG.Connection),
     IdentidadSesion.Usuario);
   CrearControlesCondicionDto;
+  // Otros, la menos usada, va detrás de las pestañas creadas en código.
+  tsOtros.PageIndex := pcPestana.PageCount - 1;
   CargarPropiedadesCondicionDto;
   FOnDataChangeTablaGAnterior := dsTablaG.OnDataChange;
   dsTablaG.OnDataChange := dsTablaGDataChangeCondicionDto;
   CargarCondicionDto;
+end;
+
+procedure TfrmMtoTarifas.AplicarEtiquetas;
+begin
+  inherited;
+  // La traducción repone el título del DFM (&2_Otros).
+  NumerarPestanasAtajo(pcPestana);
 end;
 
 procedure TfrmMtoTarifas.DobleClickArticulo(Sender: TObject);

@@ -30,16 +30,8 @@ function CalcularCompensacionAgricola(ABase, APorcentaje: Currency): Currency;
 implementation
 
 uses
-  System.SysUtils, System.Hash, inLibRedondeo;
+  System.SysUtils, System.Hash, inLibRedondeo, inLibMsgCompras;
 
-resourcestring
-  SModalidadCompraDesconocida = 'Modalidad de compra desconocida: %s.';
-  SCompensacionAgricolaInvalida =
-    'El porcentaje de compensación debe estar entre 0 y 100.';
-  STextoAutofactura = 'Facturación por el destinatario';
-  STextoReciboAgricola =
-    'Recibo de compensación del régimen especial de agricultura, ' +
-    'ganadería y pesca. Firma del proveedor: ____________________';
 
 function CodigoModalidadCompra(AModalidad: TModalidadCompraDirecta): string;
 begin

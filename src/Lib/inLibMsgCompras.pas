@@ -59,8 +59,12 @@ resourcestring
     'Indique el proveedor y los datos fiscales de emisor y destinatario.';
   SProveedorNoDirecto =
     'Marque Facturación directa en la ficha del proveedor.';
+  SProveedorSinFacturacionDirecta =
+    '%s - %s (sin facturación directa)';
   SCompensacionObligatoria =
     'Indique un porcentaje de compensación agrícola mayor que cero.';
+  SCompensacionFueraDeRango =
+    'El porcentaje de compensación agrícola no puede superar el 100 %.';
 
   SAsignacionFotoArticulo = 'Artículo';
   SAsignacionFotoSku = 'SKU %s';
@@ -172,6 +176,14 @@ resourcestring
     '¿Cerrar la factura? Quedará como definitiva para pagos y libros.';
   SPreguntaReabrirFacturaCompra =
     '¿Reabrir la factura? Volverá a ser un borrador.';
+  // FZ-ISSUE-750: el recibo REAGP no es una factura.
+  SPreguntaCerrarReciboCompra =
+    '¿Cerrar el recibo? Quedará como definitivo para pagos y libros.';
+  SPreguntaReabrirReciboCompra =
+    '¿Reabrir el recibo? Volverá a ser un borrador.';
+  // FZ-ISSUE-751: la cabecera de un documento cerrado es de solo lectura.
+  SErrorFacturaCompraCerradaModificada =
+    'El documento está cerrado. Pulse «Reabrir» para modificarlo.';
   // FZ-ISSUE-168: factura del proveedor ya registrada.
   SPreguntaFacturaCompraDocExternoRepetido =
     'La factura %s del proveedor %s ya está registrada como %s/%s ' +
@@ -960,6 +972,72 @@ resourcestring
   SErrorPropiedadesArticuloSesionDiferentes =
     'Línea %d: las filas del mismo artículo tienen valores distintos ' +
     'para la propiedad «%s». Revise las propiedades antes de crear.';
+
+resourcestring
+  // FZ-ISSUE-752: compras directas que meten la mercancía en stock.
+  // %s/%s = serie y número del documento.
+  SCaptionMueveStockCompraDirecta =
+    'Meter la mercancía en stock al cerrar';
+  SCaptionPestanaMovimientosCompraDirecta = 'Movimientos';
+  SErrorFacturaCompraMovimientosNoEncontrada =
+    'No se encuentra el documento de compra %s/%s para meter su ' +
+    'mercancía en stock.';
+  SErrorFacturaCompraMovimientosYaGenerados =
+    'La mercancía del documento %s/%s ya está en stock.';
+  SErrorCompraDirectaSinLineasStock =
+    'El documento %s/%s no tiene líneas con artículo y cantidad que ' +
+    'meter en stock. Desmarque «Meter la mercancía en stock al cerrar» ' +
+    'o revise las líneas.';
+  // %d = número de líneas.
+  SErrorCompraDirectaLineasSinAlmacen =
+    'Hay %d líneas con artículo y sin almacén. Indique el almacén en ' +
+    'la línea o en la cabecera.';
+  SCaptionColMovNumeroCompraDirecta = 'Nº movimiento';
+  SCaptionColMovFechaCompraDirecta = 'Fecha';
+  SCaptionColMovLineaCompraDirecta = 'Línea';
+  SCaptionColMovAlmacenCompraDirecta = 'Almacén';
+  SCaptionColMovArticuloCompraDirecta = 'Artículo';
+  SCaptionColMovSkuCompraDirecta = 'SKU';
+  SCaptionColMovDescripcionCompraDirecta = 'Descripción';
+  SCaptionColMovTipoCompraDirecta = 'Tipo';
+  SCaptionColMovCantidadCompraDirecta = 'Cantidad';
+  SCaptionColMovLoteCompraDirecta = 'Lote';
+  SCaptionColMovCaducidadCompraDirecta = 'Caducidad';
+  SCaptionColMovPmpCompraDirecta = 'PMP';
+  SCaptionColMovCosteCompraDirecta = 'Coste total';
+
+  // FZ-ISSUE-755: textos de compras directas que vivían fuera de inLibMsg*
+  // (sin traducir). Registro fiscal (UniDataComprasDirectasFiscal):
+  SCompraFiscalBloqueada =
+    'El documento ya tiene un registro fiscal. No se puede modificar ' +
+    'ni borrar; corresponde una rectificación.';
+  SCompraFiscalCerrar = 'Cierre la compra antes de generar su registro fiscal.';
+  SCompraFiscalDatos = 'Faltan datos fiscales del proveedor o de la empresa.';
+  SCompraFiscalCuota =
+    'Indique la fecha de registro contable y la cuota deducible del SII.';
+  SCompraFiscalCuotaInvalida = 'La cuota deducible supera la cuota soportada.';
+  SCompraFiscalCompensacionPendiente =
+    'La compensación agrícola solo es deducible cuando se haya pagado. ' +
+    'Indique cuota deducible cero si el pago está pendiente.';
+  SCompraFiscalRepresentacion =
+    'Confirme la autorización para remitir registros por el proveedor.';
+  SCompraFiscalNoLocal = 'La compra no pertenece a la empresa local.';
+  SCompraFiscalTransaccion = 'Finalice la operación anterior antes de emitir.';
+  SCompraFiscalInexistente = 'No se encuentra la compra directa.';
+  SCompraFiscalExcluida = 'Documento fuera de VeriFactu en el modo actual.';
+  SCompraFiscalEnCurso =
+    'Hay un envío en curso o de resultado incierto. Consulte su estado ' +
+    'antes de volver a remitirlo.';
+  SCompraFiscalSinModo =
+    'Seleccione VERIFACTU o SII para remitir una compra directa.';
+  // Modalidades y textos legales (inLibComprasDirectas):
+  SModalidadCompraDesconocida = 'Modalidad de compra desconocida: %s.';
+  SCompensacionAgricolaInvalida =
+    'El porcentaje de compensación debe estar entre 0 y 100.';
+  STextoAutofactura = 'Facturación por el destinatario';
+  STextoReciboAgricola =
+    'Recibo de compensación del régimen especial de agricultura, ' +
+    'ganadería y pesca. Firma del proveedor: ____________________';
 
 implementation
 

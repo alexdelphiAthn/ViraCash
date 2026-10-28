@@ -23,7 +23,7 @@ implementation
 
 uses
   System.SysUtils, Data.DB,
-  UniDataRectificativasSql;
+  UniDataRectificativasSql, inLibArqueoIntf;
 
 const
   // Rango pedido, ya formateado, para el subtitulo de los informes A4
@@ -177,13 +177,26 @@ end;
 function TRepositorioInformesCajaUniDAC.ConsultarCuentaClientes(
   const ACliente: string; AResumen: Boolean): IResultadoInformeCaja;
 const
-  Origen =
-    ' FROM fza_depositos_cliente D ' +
+  Enlaces =
     ' LEFT JOIN fza_clientes C ON C.CODIGO_CLI_CLI = D.CODIGO_CLI_DEP ' +
     ' LEFT JOIN fza_empresas E ON E.CODIGO_EMP_EMP = D.CODIGO_EMP_DEP ' +
-    ' LEFT JOIN fza_almacenes A ON A.CODIGO_ALM_ALM = D.CODIGO_ALM_DEP ' +
+    ' LEFT JOIN fza_almacenes A ON A.CODIGO_ALM_ALM = D.CODIGO_ALM_DEP ';
+  Filtro =
     ' WHERE COALESCE(D.ESAPARTADO_DEP, ''N'') <> ''S'' ' +
     ' AND (:CLIENTE = '''' OR D.CODIGO_CLI_DEP = :CLIENTE) ';
+  Origen = ' FROM fza_depositos_cliente D ' + Enlaces + Filtro;
+  // Cobros a cuenta del depósito: CB en positivo (el consumo del anticipo
+  // al vender va en negativo), sin las ventas anuladas, como el arqueo.
+  EnlaceCobro =
+    ' O.CODIGO_EMP_OPCAJA = D.CODIGO_EMP_DEP ' +
+    ' AND O.ID_DEPOSITO_OPCAJA = D.ID_DEPOSITO_DEP ';
+  CondicionCobro =
+    ' AND O.TIPO_OPERACION_OPCAJA = :TIPO_CB ' +
+    ' AND O.IMPORTE_TOTAL_OPCAJA > 0 ';
+  OrigenCobros =
+    ' FROM fza_depositos_cliente D ' +
+    ' JOIN fza_caja_operaciones O ON ' + EnlaceCobro +
+    Enlaces + Filtro + CondicionCobro;
   Pendiente =
     'CASE WHEN D.ESTADO_DEP = ''PENDIENTE'' THEN GREATEST(0, ' +
     'COALESCE(D.PRECIO_VENTA_DEP, 0) * ' +
@@ -200,7 +213,15 @@ const
 var
   Consulta: TUniQuery;
   Sql: string;
+  ExcluirAnuladas: string;
+  Cobros: string;
 begin
+  ExcluirAnuladas := SQLExcluirVentaRetirada(
+    'O.CODIGO_EMP_OPCAJA', 'O.SERIE_FAC_OPCAJA', 'O.NUMERO_FAC_OPCAJA');
+  Cobros :=
+    '(SELECT COALESCE(SUM(O.IMPORTE_TOTAL_OPCAJA), 0) ' +
+    ' FROM fza_caja_operaciones O WHERE ' + EnlaceCobro +
+    CondicionCobro + ExcluirAnuladas + ')';
   if AResumen then
     Sql := 'SELECT ' + Cabecera +
       'SUM(' + Pendiente + ') AS PENDIENTE, ' +
@@ -213,19 +234,37 @@ begin
       'A.NOMBRE_ALM_ALM, C.TOTAL_LIMITE_CREDITO_CLI ' +
       ' ORDER BY CLIENTE, EMPRESA, ALMACEN'
   else
-    Sql := 'SELECT ' + Cabecera +
+    // Extracto: el depósito con su entrega inicial y, debajo, una fila por
+    // cobro a cuenta. Cada cobro resta de lo pendiente, así que la suma de
+    // PENDIENTE sigue siendo el saldo del depósito.
+    Sql := 'SELECT * FROM (' +
+      'SELECT ' + Cabecera +
       'D.ID_DEPOSITO_DEP AS DEPOSITO, ' +
       'D.FECHA_CREACION_DEP AS FECHA, D.ESTADO_DEP AS ESTADO, ' +
       'COALESCE(D.PRECIO_VENTA_DEP, 0) * ' +
       'COALESCE(D.CANTIDAD_PENDIENTE_DEP, 1) AS IMPORTE, ' +
-      'COALESCE(D.IMPORTE_ANTICIPO_DEP, 0) AS ENTREGADO, ' +
-      Pendiente + ' AS PENDIENTE ' + Origen +
-      ' ORDER BY CLIENTE, FECHA, DEPOSITO';
+      'COALESCE(D.IMPORTE_ANTICIPO_DEP, 0) - ' + Cobros + ' AS ENTREGADO, ' +
+      Pendiente + ' + CASE WHEN D.ESTADO_DEP = ''PENDIENTE'' THEN ' +
+      Cobros + ' ELSE 0 END AS PENDIENTE, ' +
+      'D.FECHA_CREACION_DEP AS FECHA_DEPOSITO, 0 AS ORDEN ' + Origen +
+      ' UNION ALL ' +
+      'SELECT ' + Cabecera +
+      'D.ID_DEPOSITO_DEP AS DEPOSITO, O.FECHA_OPERACION_OPCAJA AS FECHA, ' +
+      '''COBRO PARCIAL'' AS ESTADO, ' +
+      'NULL AS IMPORTE, ' +
+      'O.IMPORTE_TOTAL_OPCAJA AS ENTREGADO, ' +
+      'CASE WHEN D.ESTADO_DEP = ''PENDIENTE'' THEN ' +
+      '-O.IMPORTE_TOTAL_OPCAJA ELSE 0 END AS PENDIENTE, ' +
+      'D.FECHA_CREACION_DEP AS FECHA_DEPOSITO, 1 AS ORDEN ' +
+      OrigenCobros + ExcluirAnuladas +
+      ') X ORDER BY CLIENTE, FECHA_DEPOSITO, DEPOSITO, ORDEN, FECHA';
   Consulta := TUniQuery.Create(nil);
   try
     Consulta.Connection := FConexion;
     Consulta.SQL.Text := Sql;
     Consulta.ParamByName('CLIENTE').AsString := Trim(ACliente);
+    if not AResumen then
+      Consulta.ParamByName('TIPO_CB').AsString := TipoOpCobroCuenta;
     Consulta.Open;
     Result := TResultadoInformeCajaUniDAC.Create(Consulta);
     Consulta := nil;

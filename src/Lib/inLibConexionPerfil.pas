@@ -95,7 +95,7 @@ begin
   Result.Habilitado := False;
   Result.Validar := True;
   Result.MinimoConexiones := 0;
-  Result.MaximoConexiones := 30;
+  Result.MaximoConexiones := 60;
   Result.TiempoEsperaSeg := 15;
   Result.TiempoVidaSeg := 300;
 end;

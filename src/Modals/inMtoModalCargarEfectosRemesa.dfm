@@ -14,7 +14,7 @@
     Left = 0
     Top = 0
     Width = 760
-    Height = 184
+    Height = 212
     Align = alTop
     BevelOuter = bvNone
     TabOrder = 0
@@ -25,7 +25,7 @@
       Transparent = True
     end
     object btnEmpresa: TcxButtonEdit
-      Left = 90
+      Left = 100
       Top = 14
       Properties.Buttons = <
         item
@@ -36,24 +36,24 @@
       Properties.MaxLength = 8
       Properties.OnButtonClick = btnEmpresaPropertiesButtonClick
       TabOrder = 0
-      Width = 110
+      Width = 130
     end
     object lblHasta: TcxLabel
-      Left = 224
+      Left = 256
       Top = 16
       Caption = 'Vto. hasta'
       Transparent = True
     end
     object dteHasta: TcxDateEdit
-      Left = 380
+      Left = 346
       Top = 14
       TabOrder = 1
-      Width = 110
+      Width = 130
     end
     object btnBuscar: TcxButton
-      Left = 500
+      Left = 496
       Top = 10
-      Width = 130
+      Width = 160
       Height = 30
       Caption = 'Buscar efectos'
       TabOrder = 2
@@ -61,7 +61,7 @@
     end
     object rgModo: TcxRadioGroup
       Left = 16
-      Top = 76
+      Top = 56
       Caption = ' Modo '
       Properties.Items = <
         item
@@ -73,28 +73,28 @@
       Properties.OnEditValueChanged = rgModoPropertiesEditValueChanged
       ItemIndex = 0
       TabOrder = 3
-      Height = 64
-      Width = 540
+      Height = 100
+      Width = 640
     end
     object lblRemExistente: TcxLabel
       Left = 16
-      Top = 150
+      Top = 174
       Caption = 'Remesa existente'
       Transparent = True
     end
     object cbbRemExistente: TcxComboBox
-      Left = 170
-      Top = 148
+      Left = 240
+      Top = 172
       Properties.DropDownListStyle = lsFixedList
       TabOrder = 4
-      Width = 400
+      Width = 416
     end
   end
   object pnlGrid: TPanel [1]
     Left = 0
-    Top = 184
+    Top = 212
     Width = 760
-    Height = 336
+    Height = 308
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 1
@@ -102,7 +102,7 @@
       Left = 0
       Top = 0
       Width = 760
-      Height = 336
+      Height = 308
       Align = alClient
       TabOrder = 0
       object tvEfe: TcxGridDBTableView

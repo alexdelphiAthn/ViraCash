@@ -221,7 +221,7 @@ begin
     Result.Perfil.Pool.MinimoConexiones := LeerEntero(
       oIni, 'ConnData', 'PoolMin', 3);
     Result.Perfil.Pool.MaximoConexiones := LeerEntero(
-      oIni, 'ConnData', 'PoolMax', 30);
+      oIni, 'ConnData', 'PoolMax', 60);
     Result.Perfil.Pool.TiempoEsperaSeg := LeerEntero(
       oIni, 'ConnData', 'PoolWaitTimeout', 15);
     Result.Perfil.Pool.TiempoVidaSeg := LeerEntero(

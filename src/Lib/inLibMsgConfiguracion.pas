@@ -269,8 +269,9 @@ resourcestring
     'No se ha configurado el proveedor de edición de parámetros.';
   SErrorParametrosAplicacionEditablesNoConfigurados =
     'No se han configurado los parámetros de aplicación editables.';
+  // FZ-ISSUE-755: sin plural que dependa del número («1 parámetros»).
   SInfoParametrosGuardados =
-    'Se guardaron %d parámetros para: %s';
+    'Parámetros guardados (%d) para: %s';
   SAvisoReiniciarMenusTrazabilidad =
     'Reinicie ViraCash para actualizar los menús de garantías, ' +
     'lotes y números de serie.';

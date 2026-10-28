@@ -30101,9 +30101,66 @@ begin
   ARegistrar('inLibMsgCompras.SProveedorNoDirecto',
     'src/Lib/inLibMsgCompras.pas',
     @inLibMsgCompras.SProveedorNoDirecto);
+  ARegistrar('inLibMsgCompras.SCompraFiscalBloqueada',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SCompraFiscalBloqueada);
+  ARegistrar('inLibMsgCompras.SCompraFiscalCerrar',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SCompraFiscalCerrar);
+  ARegistrar('inLibMsgCompras.SCompraFiscalDatos',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SCompraFiscalDatos);
+  ARegistrar('inLibMsgCompras.SCompraFiscalCuota',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SCompraFiscalCuota);
+  ARegistrar('inLibMsgCompras.SCompraFiscalCuotaInvalida',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SCompraFiscalCuotaInvalida);
+  ARegistrar('inLibMsgCompras.SCompraFiscalCompensacionPendiente',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SCompraFiscalCompensacionPendiente);
+  ARegistrar('inLibMsgCompras.SCompraFiscalRepresentacion',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SCompraFiscalRepresentacion);
+  ARegistrar('inLibMsgCompras.SCompraFiscalNoLocal',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SCompraFiscalNoLocal);
+  ARegistrar('inLibMsgCompras.SCompraFiscalTransaccion',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SCompraFiscalTransaccion);
+  ARegistrar('inLibMsgCompras.SCompraFiscalInexistente',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SCompraFiscalInexistente);
+  ARegistrar('inLibMsgCompras.SCompraFiscalExcluida',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SCompraFiscalExcluida);
+  ARegistrar('inLibMsgCompras.SCompraFiscalEnCurso',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SCompraFiscalEnCurso);
+  ARegistrar('inLibMsgCompras.SCompraFiscalSinModo',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SCompraFiscalSinModo);
+  ARegistrar('inLibMsgCompras.SModalidadCompraDesconocida',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SModalidadCompraDesconocida);
+  ARegistrar('inLibMsgCompras.SCompensacionAgricolaInvalida',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SCompensacionAgricolaInvalida);
+  ARegistrar('inLibMsgCompras.STextoAutofactura',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.STextoAutofactura);
+  ARegistrar('inLibMsgCompras.STextoReciboAgricola',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.STextoReciboAgricola);
+  ARegistrar('inLibMsgCompras.SProveedorSinFacturacionDirecta',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SProveedorSinFacturacionDirecta);
   ARegistrar('inLibMsgCompras.SCompensacionObligatoria',
     'src/Lib/inLibMsgCompras.pas',
     @inLibMsgCompras.SCompensacionObligatoria);
+  ARegistrar('inLibMsgCompras.SCompensacionFueraDeRango',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SCompensacionFueraDeRango);
   ARegistrar('inLibMsgCompras.STituloComprasDirectas',
     'src/Lib/inLibMsgCompras.pas',
     @inLibMsgCompras.STituloComprasDirectas);
@@ -30293,6 +30350,15 @@ begin
     'src/Lib/inLibMsgCompras.pas',
     @inLibMsgCompras.
       SPreguntaReabrirFacturaCompra);
+  ARegistrar('inLibMsgCompras.SPreguntaCerrarReciboCompra',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SPreguntaCerrarReciboCompra);
+  ARegistrar('inLibMsgCompras.SPreguntaReabrirReciboCompra',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SPreguntaReabrirReciboCompra);
+  ARegistrar('inLibMsgCompras.SErrorFacturaCompraCerradaModificada',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SErrorFacturaCompraCerradaModificada);
   ARegistrar(
     'inLibMsgCompras.' +
     'SAvisoFacturasAbiertasLibrosIva',
@@ -30311,6 +30377,120 @@ begin
     'src/Lib/inLibMsgCompras.pas',
     @inLibMsgCompras.
       SRotuloAromaVariacionSesion);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SCaptionMueveStockCompraDirecta',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SCaptionMueveStockCompraDirecta);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SCaptionPestanaMovimientosCompraDirecta',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SCaptionPestanaMovimientosCompraDirecta);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SErrorFacturaCompraMovimientosNoEncontrada',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SErrorFacturaCompraMovimientosNoEncontrada);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SErrorFacturaCompraMovimientosYaGenerados',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SErrorFacturaCompraMovimientosYaGenerados);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SErrorCompraDirectaSinLineasStock',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SErrorCompraDirectaSinLineasStock);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SErrorCompraDirectaLineasSinAlmacen',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SErrorCompraDirectaLineasSinAlmacen);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SCaptionColMovNumeroCompraDirecta',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SCaptionColMovNumeroCompraDirecta);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SCaptionColMovFechaCompraDirecta',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SCaptionColMovFechaCompraDirecta);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SCaptionColMovLineaCompraDirecta',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SCaptionColMovLineaCompraDirecta);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SCaptionColMovAlmacenCompraDirecta',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SCaptionColMovAlmacenCompraDirecta);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SCaptionColMovArticuloCompraDirecta',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SCaptionColMovArticuloCompraDirecta);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SCaptionColMovSkuCompraDirecta',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SCaptionColMovSkuCompraDirecta);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SCaptionColMovDescripcionCompraDirecta',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SCaptionColMovDescripcionCompraDirecta);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SCaptionColMovTipoCompraDirecta',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SCaptionColMovTipoCompraDirecta);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SCaptionColMovCantidadCompraDirecta',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SCaptionColMovCantidadCompraDirecta);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SCaptionColMovLoteCompraDirecta',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SCaptionColMovLoteCompraDirecta);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SCaptionColMovCaducidadCompraDirecta',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SCaptionColMovCaducidadCompraDirecta);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SCaptionColMovPmpCompraDirecta',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SCaptionColMovPmpCompraDirecta);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SCaptionColMovCosteCompraDirecta',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SCaptionColMovCosteCompraDirecta);
 end;
 {$WARN SYMBOL_DEPRECATED ON}
 

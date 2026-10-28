@@ -55,6 +55,7 @@ type
     // FZ-ISSUE-102.14: recibos de efectos de cobro de venta mayor.
     // AEfectos = CSV de NUMERO_EFV seleccionados (opción «actual»).
     procedure PrepararEfectosVenta(const AEfectos: string);
+    procedure AjustarReciboCompra;
     procedure PrepararEfectosCompra(AConexion: TUniConnection;
       const AEfectos: string);
     { Private declarations }
@@ -104,8 +105,13 @@ begin
           TfrxMemoView(Banda).Text := 'BENEFICIARIO DEL PAGO:';
         if Pos('CONFORME, EL LIBRADO', string(TfrxMemoView(Banda).Text)) > 0 then
           TfrxMemoView(Banda).Text := 'RECIBÍ, EL BENEFICIARIO';
+        // FZ-ISSUE-749: sin cuenta no hay «<IBAN>» que mostrar.
+        if Pos('<IBAN>', string(TfrxMemoView(Banda).Text)) > 0 then
+          TfrxMemoView(Banda).Text :=
+            '[IIF(<Recibos."IBAN_CLI_REC"> <> '''', ''PAGADERO EN:'', '''')]';
       end;
     end;
+    AjustarReciboCompra;
   end;
   AjustarRotulosReciboFactura(frxrprt1);
   // Efectos: un recibo por página (el diseño admite varios por hoja).
@@ -113,6 +119,47 @@ begin
   if (FEsEfectosVenta or Assigned(FDatasetPagos)) and
      (Banda is TfrxDataBand) then
     TfrxDataBand(Banda).StartNewPage := True;
+end;
+
+// FZ-ISSUE-749: series de compra directa de 12 caracteres y texto legal
+// (autofactura o recibo REAGP con la firma del proveedor).
+procedure TfrmPrintRecFac.AjustarReciboCompra;
+var
+  oBanda: TfrxComponent;
+  oNumero: TfrxComponent;
+  oCasilla: TfrxComponent;
+  oLegal: TfrxMemoView;
+  dAlto: Extended;
+begin
+  oNumero := frxrprt1.FindObject('Memo2');
+  oCasilla := frxrprt1.FindObject('Memo1');
+  if oNumero is TfrxMemoView then
+  begin
+    TfrxMemoView(oNumero).Font.Height := -11;
+    TfrxMemoView(oNumero).WordWrap := False;
+    // Todo el ancho interior de la casilla «RECIBO NRO»: centrado en su
+    // hueco original, «ADE09DCC1761.000001\1» se salía por los lados.
+    if oCasilla is TfrxView then
+    begin
+      TfrxMemoView(oNumero).Left := TfrxView(oCasilla).Left + 2;
+      TfrxMemoView(oNumero).Width := TfrxView(oCasilla).Width - 4;
+    end;
+  end;
+  oBanda := frxrprt1.FindObject('MasterData1');
+  if (oBanda is TfrxDataBand) and
+     (frxrprt1.FindObject('MemoTextoLegalCompra') = nil) then
+  begin
+    dAlto := TfrxDataBand(oBanda).Height;
+    TfrxDataBand(oBanda).Height := dAlto + 48;
+    oLegal := TfrxMemoView.Create(oBanda);
+    oLegal.Name := 'MemoTextoLegalCompra';
+    oLegal.DataSet := FDatasetPagos;
+    oLegal.SetBounds(27.8, dAlto + 4, TfrxDataBand(oBanda).Width - 56, 40);
+    oLegal.Font.Name := 'Arial';
+    oLegal.Font.Height := -11;
+    oLegal.WordWrap := True;
+    oLegal.Text := '[Recibos."TEXTO_LEGAL_REC"]';
+  end;
 end;
 
 procedure TfrmPrintRecFac.PrepararEfectosVenta(const AEfectos: string);

@@ -31,32 +31,12 @@ uses
   inLibComprasDirectas, inLibComprasDirectasFiscal,
   inLibVerifactu, inLibVerifactuTipos, inLibVerifactuEnvio,
   inLibVerifactuConstruccionEnvio, inLibSiiConstruccionEnvio,
-  inLibVerifactuDesgloseFiscal, inLibVerifactuInstalacion;
+  inLibVerifactuDesgloseFiscal, inLibVerifactuInstalacion,
+  inLibErroresBBDD, inLibMsgCompras;
 
 const
   TRAMOS: array[0..3] of string = ('N', 'R', 'S', 'E');
 
-resourcestring
-  SCompraFiscalBloqueada =
-    'El documento ya tiene un registro fiscal. No se puede modificar ' +
-    'ni borrar; corresponde una rectificación.';
-  SCompraFiscalCerrar = 'Cierre la compra antes de generar su registro fiscal.';
-  SCompraFiscalDatos = 'Faltan datos fiscales del proveedor o de la empresa.';
-  SCompraFiscalCuota =
-    'Indique la fecha de registro contable y la cuota deducible del SII.';
-  SCompraFiscalCuotaInvalida = 'La cuota deducible supera la cuota soportada.';
-  SCompraFiscalCompensacionPendiente =
-    'La compensación agrícola solo es deducible cuando se haya pagado. ' +
-    'Indique cuota deducible cero si el pago está pendiente.';
-  SCompraFiscalRepresentacion =
-    'Confirme la autorización para remitir registros por el proveedor.';
-  SCompraFiscalNoLocal = 'La compra no pertenece a la empresa local.';
-  SCompraFiscalTransaccion = 'Finalice la operación anterior antes de emitir.';
-  SCompraFiscalInexistente = 'No se encuentra la compra directa.';
-  SCompraFiscalExcluida = 'Documento fuera de VeriFactu en el modo actual.';
-  SCompraFiscalEnCurso =
-    'Hay un envío en curso o de resultado incierto. Consulte su estado ' +
-    'antes de volver a remitirlo.';
 
 type
   TEmisionCompraDirecta = class
@@ -75,6 +55,7 @@ type
     function LeerTexto(const ACampo: string): string;
     function LeerImporte(const ACampo: string): Currency;
     procedure Cargar;
+    procedure ValidarDocumentoEmitible;
     procedure ValidarDatos;
     procedure Preparar;
     procedure PrepararSii;
@@ -178,9 +159,9 @@ begin
   FConsulta.ParamByName('NUMERO').AsString := FNumero;
   FConsulta.Open;
   if FConsulta.IsEmpty then
-    raise Exception.Create(SCompraFiscalInexistente);
+    raise EValidacionBBDD.Create(SCompraFiscalInexistente);
   if LeerTexto('CODIGO_EMP_FACC') <> FEmpresa then
-    raise Exception.Create(SCompraFiscalNoLocal);
+    raise EValidacionBBDD.Create(SCompraFiscalNoLocal);
   FEstado := LeerTexto('ESTADO_FISCAL_FACC');
   FDocumento := LeerTexto('DOCUMENTO_FISCAL_FACC');
   FPeticion := FConsulta.FieldByName('XML_PETICION_FISCAL_FACC').AsString;
@@ -216,17 +197,21 @@ begin
   end;
 end;
 
-procedure TEmisionCompraDirecta.ValidarDatos;
+procedure TEmisionCompraDirecta.ValidarDocumentoEmitible;
 begin
   if LeerTexto('ESTADO_FACC') <> 'CERRADA' then
-    raise Exception.Create(SCompraFiscalCerrar);
+    raise EValidacionBBDD.Create(SCompraFiscalCerrar);
+  if ModalidadCompra(LeerTexto('MODALIDAD_FACC')) = mcdOrdinaria then
+    raise EValidacionBBDD.Create(SCompraFiscalInexistente);
+end;
+
+procedure TEmisionCompraDirecta.ValidarDatos;
+begin
   if (Length(NormalizarNifVerifactu(LeerTexto('NIF_PRV_FACC'))) <> 9) or
      (Length(NormalizarNifVerifactu(LeerTexto('NIF_EMPRESA_FACC'))) <> 9) or
      (LeerTexto('RAZON_SOCIAL_PRV_FACC') = '') or
      (LeerTexto('RAZON_SOCIAL_EMPRESA_FACC') = '') then
-    raise Exception.Create(SCompraFiscalDatos);
-  if ModalidadCompra(LeerTexto('MODALIDAD_FACC')) = mcdOrdinaria then
-    raise Exception.Create(SCompraFiscalInexistente);
+    raise EValidacionBBDD.Create(SCompraFiscalDatos);
 end;
 
 procedure TEmisionCompraDirecta.ValidarDeduccionAgricola(
@@ -246,7 +231,7 @@ begin
     if (AEntrada.Modalidad = mcdReagp) and (AEntrada.CuotaDeducible > 0) and
        (oPagos.FieldByName('PAGADO').AsCurrency <
         LeerImporte('TOTAL_LIQUIDO_FACC')) then
-      raise Exception.Create(SCompraFiscalCompensacionPendiente);
+      raise EValidacionBBDD.Create(SCompraFiscalCompensacionPendiente);
   finally
     FreeAndNil(oPagos);
   end;
@@ -268,7 +253,7 @@ begin
   oEntrada.Fecha := FConsulta.FieldByName('FECHA_FACC').AsDateTime;
   if FConsulta.FieldByName('FECHA_REGISTRO_CONTABLE_FACC').IsNull or
      FConsulta.FieldByName('CUOTA_DEDUCIBLE_FACC').IsNull then
-    raise Exception.Create(SCompraFiscalCuota);
+    raise EValidacionBBDD.Create(SCompraFiscalCuota);
   oEntrada.FechaContable := FConsulta.FieldByName(
     'FECHA_REGISTRO_CONTABLE_FACC').AsDateTime;
   oEntrada.Descripcion := DescripcionOperacion;
@@ -284,7 +269,7 @@ begin
   if oEntrada.Modalidad = mcdReagp then
     dCuota := oEntrada.ImporteCompensacion;
   if (oEntrada.CuotaDeducible < 0) or (oEntrada.CuotaDeducible > dCuota) then
-    raise Exception.Create(SCompraFiscalCuotaInvalida);
+    raise EValidacionBBDD.Create(SCompraFiscalCuotaInvalida);
   ValidarDeduccionAgricola(oEntrada);
   for iIndice := 0 to 3 do
   begin
@@ -394,7 +379,7 @@ var
   iIndice: Integer;
 begin
   if LeerTexto('ESREPRESENTACION_FISCAL_FACC') <> 'S' then
-    raise Exception.Create(SCompraFiscalRepresentacion);
+    raise EValidacionBBDD.Create(SCompraFiscalRepresentacion);
   oEntrada := Default(TEntradaConstruccionRegistroAlta);
   oEntrada.NifEmisor := NormalizarNifVerifactu(LeerTexto('NIF_PRV_FACC'));
   oEntrada.NombreEmisor := LeerTexto('RAZON_SOCIAL_PRV_FACC');
@@ -460,11 +445,14 @@ procedure TEmisionCompraDirecta.Preparar;
 var
   oModo: TModoVerifactu;
 begin
-  ValidarDatos;
   FDocumento := ComponerNumSerieFactura(
     LeerTexto('FORMATO_DOCUMENTO_EMP'), FSerie, FNumero);
+  // FZ-ISSUE-753: abierta no se emite nada, ni siquiera un NO_APLICA,
+  // que dejaría el borrador bloqueado.
+  ValidarDocumentoEmitible;
   oModo := ModoVerifactu(FParametros);
   FEntorno := VerifactuEntorno(FParametros);
+  // Sin registro que remitir no se exigen sus datos fiscales.
   if (oModo = mvSinVerifactu) or
      ((LeerTexto('MODALIDAD_FACC') = 'REAGP') and (oModo <> mvSii)) then
   begin
@@ -473,19 +461,20 @@ begin
   end
   else if oModo = mvSii then
   begin
+    ValidarDatos;
     FSistema := 'SII';
     PrepararSii;
     FEstado := 'PREPARADO';
   end
   else if oModo = mvVerifactu then
   begin
+    ValidarDatos;
     FSistema := 'VERIFACTU';
     PrepararVerifactu;
     FEstado := 'PREPARADO';
   end
   else
-    raise Exception.Create(
-      'Seleccione VERIFACTU o SII para remitir una compra directa.');
+    raise EValidacionBBDD.Create(SCompraFiscalSinModo);
   GuardarPreparado;
 end;
 
@@ -589,7 +578,7 @@ begin
     oBloqueo.ParamByName('CLAVE').AsString := sClave;
     oBloqueo.Open;
     if oBloqueo.FieldByName('BLOQUEADO').AsInteger <> 1 then
-      raise Exception.Create(SCompraFiscalEnCurso);
+      raise EValidacionBBDD.Create(SCompraFiscalEnCurso);
     try
       Result := EjecutarBloqueado;
     finally
@@ -603,10 +592,13 @@ end;
 function TEmisionCompraDirecta.EjecutarBloqueado: string;
 begin
   if FConexion.InTransaction then
-    raise Exception.Create(SCompraFiscalTransaccion);
+    raise EValidacionBBDD.Create(SCompraFiscalTransaccion);
   FConexion.StartTransaction;
   try
     Cargar;
+    // NO_APLICA no es un registro: se vuelve a decidir con el modo actual.
+    if FEstado = 'NO_APLICA' then
+      FEstado := '';
     if FEstado = '' then
       Preparar;
     // La petición inmutable y la cadena se confirman ANTES del transporte.
@@ -658,12 +650,14 @@ begin
       'SELECT 1 FROM fza_facturas_compra WHERE SERIE_FACC = :SERIE ' +
       'AND NUMERO_FACC = :NUMERO AND ' +
       '(COALESCE(XML_PETICION_FISCAL_FACC, '''') <> '''' OR ' +
-      'COALESCE(ESTADO_FISCAL_FACC, '''') <> '''') LIMIT 1';
+      // FZ-ISSUE-753: NO_APLICA (modo SIN) no es un registro fiscal.
+      'COALESCE(ESTADO_FISCAL_FACC, '''') NOT IN ('''', ''NO_APLICA'')) ' +
+      'LIMIT 1';
     oConsulta.ParamByName('SERIE').AsString := ASerie;
     oConsulta.ParamByName('NUMERO').AsString := ANumero;
     oConsulta.Open;
     if not oConsulta.IsEmpty then
-      raise Exception.Create(SCompraFiscalBloqueada);
+      raise EValidacionBBDD.Create(SCompraFiscalBloqueada);
   finally
     FreeAndNil(oConsulta);
   end;

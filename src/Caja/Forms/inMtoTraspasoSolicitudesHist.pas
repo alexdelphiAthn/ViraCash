@@ -212,6 +212,7 @@ type
         IRepositorioTraspasoTicket); reintroduce;
       overload;
     procedure CrearTablaPrincipal; override;
+    procedure AplicarEtiquetas; override;
     procedure AplicarTraduccionActual; override;
     procedure TrasErrorPrecargaAsync(const AError: string); override;
   end;
@@ -220,7 +221,7 @@ implementation
 
 uses
   inMtoModalImpTraspasoSolicitudes, inLibTraspasoTicket, inLibMensajesVcl,
-  inLibMsgCaja;
+  inLibMsgCaja, inLibDevExp;
 
 {$R *.dfm}
 
@@ -403,6 +404,12 @@ begin
   tsPerfil.TabVisible := False;
   ConfigurarFuentesDetalle;
   ConfigurarEdicion;
+end;
+
+procedure TfrmMtoTraspasoSolicitudesHist.AplicarEtiquetas;
+begin
+  inherited;
+  NumerarPestanasAtajo(pcDetalleSolicitud);
 end;
 
 procedure TfrmMtoTraspasoSolicitudesHist.AplicarTraduccionActual;

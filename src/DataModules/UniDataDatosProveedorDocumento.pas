@@ -26,6 +26,11 @@ uses
 // (se usa su conexion) en dsInsert o dsEdit.
 procedure CopiarDatosProveedorDocumento(ADataSet: TDataSet;
   const ASufijo: string);
+// Igual para la empresa compradora: RAZON_SOCIAL_EMPRESA_<ASufijo>...
+// desde CODIGO_EMP_<ASufijo>. La factura de compra no los copiaba y el
+// recibo REAGP salía sin los datos de quien compra (FZ-ISSUE-745).
+procedure CopiarDatosEmpresaDocumento(ADataSet: TDataSet;
+  const ASufijo: string);
 
 implementation
 
@@ -51,18 +56,41 @@ const
     '  LEFT JOIN fza_paises PA ON PA.CODIGO_PAI_PAI = P.CODIGO_PAI_PRV ' +
     ' WHERE P.CODIGO_PRV_PRV = :CODIGO';
 
-function DebeCopiar(ADataSet: TDataSet; const ASufijo: string): Boolean;
+  CAMPOS_EMPRESA: array[0..10] of string = (
+    'RAZON_SOCIAL', 'NIF', 'MOVIL', 'EMAIL', 'DIRECCION1', 'DIRECCION2',
+    'POBLACION', 'PROVINCIA', 'CODIGO_PAI', 'NOMBRE_PAI', 'CODIGO_POSTAL');
+  SQL_EMPRESA =
+    'SELECT E.RAZON_SOCIAL_EMP AS RAZON_SOCIAL, E.NIF_EMP AS NIF, ' +
+    '       E.MOVIL_EMP AS MOVIL, E.EMAIL_EMP AS EMAIL, ' +
+    '       E.DIRECCION1_EMP AS DIRECCION1, ' +
+    '       E.DIRECCION2_EMP AS DIRECCION2, ' +
+    '       E.POBLACION_EMP AS POBLACION, E.PROVINCIA_EMP AS PROVINCIA, ' +
+    '       E.CODIGO_PAI_EMP AS CODIGO_PAI, ' +
+    '       PA.NOMBRE_SPA_PAI AS NOMBRE_PAI, ' +
+    '       E.CODIGO_POSTAL_EMP AS CODIGO_POSTAL ' +
+    '  FROM fza_empresas E ' +
+    '  LEFT JOIN fza_paises PA ON PA.CODIGO_PAI_PAI = E.CODIGO_PAI_EMP ' +
+    ' WHERE E.CODIGO_EMP_EMP = :CODIGO';
+
+function DebeCopiarTercero(ADataSet: TDataSet;
+  const ACampoCodigo, ACampoRazon: string): Boolean;
 var
   CampoCodigo, CampoRazon: TField;
 begin
-  CampoCodigo := ADataSet.FindField('CODIGO_PRV_' + ASufijo);
-  CampoRazon := ADataSet.FindField('RAZON_SOCIAL_PRV_' + ASufijo);
+  CampoCodigo := ADataSet.FindField(ACampoCodigo);
+  CampoRazon := ADataSet.FindField(ACampoRazon);
   Result := (CampoCodigo <> nil) and (CampoRazon <> nil) and
     (Trim(CampoCodigo.AsString) <> '') and
     ((ADataSet.State = dsInsert) or
      (Trim(CampoRazon.AsString) = '') or
      not SameText(Trim(CampoCodigo.AsString),
        Trim(VarToStr(CampoCodigo.OldValue))));
+end;
+
+function DebeCopiar(ADataSet: TDataSet; const ASufijo: string): Boolean;
+begin
+  Result := DebeCopiarTercero(ADataSet, 'CODIGO_PRV_' + ASufijo,
+    'RAZON_SOCIAL_PRV_' + ASufijo);
 end;
 
 procedure CopiarDatosProveedorDocumento(ADataSet: TDataSet;
@@ -91,6 +119,39 @@ begin
           if Campo <> nil then
             Campo.Value := oConsulta.FieldByName(
               CAMPOS_PROVEEDOR[i]).Value;
+        end;
+      end;
+    finally
+      oConsulta.Free;
+    end;
+  end;
+end;
+
+procedure CopiarDatosEmpresaDocumento(ADataSet: TDataSet;
+  const ASufijo: string);
+var
+  oConsulta: TUniQuery;
+  Campo: TField;
+  i: Integer;
+begin
+  if DebeCopiarTercero(ADataSet, 'CODIGO_EMP_' + ASufijo,
+    'RAZON_SOCIAL_EMPRESA_' + ASufijo) then
+  begin
+    oConsulta := TUniQuery.Create(nil);
+    try
+      oConsulta.Connection := TUniQuery(ADataSet).Connection;
+      oConsulta.SQL.Text := SQL_EMPRESA;
+      oConsulta.ParamByName('CODIGO').AsString :=
+        Trim(ADataSet.FieldByName('CODIGO_EMP_' + ASufijo).AsString);
+      oConsulta.Open;
+      if not oConsulta.IsEmpty then
+      begin
+        for i := Low(CAMPOS_EMPRESA) to High(CAMPOS_EMPRESA) do
+        begin
+          Campo := ADataSet.FindField(
+            CAMPOS_EMPRESA[i] + '_EMPRESA_' + ASufijo);
+          if Campo <> nil then
+            Campo.Value := oConsulta.FieldByName(CAMPOS_EMPRESA[i]).Value;
         end;
       end;
     finally

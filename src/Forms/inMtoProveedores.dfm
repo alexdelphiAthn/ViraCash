@@ -1239,6 +1239,7 @@
                   Checked = True
                   TabStop = True
                   TabOrder = 20
+                  Transparent = True
                   Width = 165
                   OnClick = CambiarModoPrecio
                 end
@@ -1247,6 +1248,7 @@
                   Top = 54
                   Caption = 'Margen sobre venta %'
                   TabOrder = 21
+                  Transparent = True
                   Width = 165
                   OnClick = CambiarModoPrecio
                 end

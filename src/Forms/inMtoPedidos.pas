@@ -372,6 +372,7 @@ type
     dmmPedidos: TdmPedidos;
     destructor Destroy; override;
     procedure CrearTablaPrincipal; override;
+    procedure AplicarEtiquetas; override;
   end;
 
 implementation
@@ -379,6 +380,7 @@ implementation
 uses
   inMtoModalImpDocumento,
   inLibMensajesVcl,
+  inLibDevExp,
   inMtoModalImportarPedidosPS, inLibGridCantidad,
   inMtoModalOpcionesDocumento, inLibMsgOpcionesDocumento,
   UniDataOpcionesDocumentoRepositorio, inLibSeleccionAlmacenPersistenciaIntf,
@@ -637,6 +639,7 @@ procedure TfrmMtoPedidos.PivoteVentaBandaCambiada(
   ABanda: TBandaPivoteVenta);
 begin
   tsLineasPedido.Caption := SCaptionTabLineasPedidoTallas3Filas;
+  NumerarPestanasAtajo(pcPedido);
 end;
 
 procedure TfrmMtoPedidos.FormCreate(Sender: TObject);
@@ -687,6 +690,13 @@ begin
   Result := nil;
   if Assigned(dmmPedidos) then
     Result := dmmPedidos.unqryPedidosLineas;
+end;
+
+procedure TfrmMtoPedidos.AplicarEtiquetas;
+begin
+  inherited;
+  // La traducción repone los títulos del DFM, algunos sin número.
+  NumerarPestanasAtajo(pcPedido);
 end;
 
 procedure TfrmMtoPedidos.CrearTablaPrincipal;
@@ -1512,6 +1522,8 @@ begin
     PivoteVentaBandaCambiada(bpvPedida)
   else if oPlan.MostrarAtributos then
     MostrarColumnasAtributoGlobalesPed;
+  // El rótulo de líneas cambia con el modo: se renumera para Alt+número.
+  NumerarPestanasAtajo(pcPedido);
 end;
 
 {

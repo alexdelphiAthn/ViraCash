@@ -978,6 +978,7 @@ uses
   UniDataAlbaranesCompra in 'src\DataModules\UniDataAlbaranesCompra.pas' {dmAlbaranesCompra: TdmAlbaranesCompra},
   UniDataAlbaranesCompraMovimientos in 'src\DataModules\UniDataAlbaranesCompraMovimientos.pas',
   UniDataAlbaranesCompraMovimientosSql in 'src\DataModules\UniDataAlbaranesCompraMovimientosSql.pas',
+  UniDataFacturasCompraMovimientos in 'src\DataModules\UniDataFacturasCompraMovimientos.pas',
   UniDataDevolucionesCompraMovimientosSql in 'src\DataModules\UniDataDevolucionesCompraMovimientosSql.pas',
   UniDataDevolucionesCompraMovimientos in 'src\DataModules\UniDataDevolucionesCompraMovimientos.pas',
   inLibDevolucionesCompraPresentacionFlujo in 'src\Lib\inLibDevolucionesCompraPresentacionFlujo.pas',

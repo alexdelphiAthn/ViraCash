@@ -11,7 +11,7 @@ interface
 
 uses
   System.Classes, Vcl.Forms, Data.DB, cxPC, cxCheckBox, cxDBEdit,
-  cxCalendar, cxScrollBox,
+  cxCalendar, cxScrollBox, cxGridDBTableView,
   inMtoFacturasCompra, inLibPermisosIntf,
   UniDataComprasPantallaComposicion;
 
@@ -29,7 +29,15 @@ type
     FPaginaFiscal: TcxTabSheet;
     FContenedorFiscal: TcxScrollBox;
     FActualizandoTratamiento: Boolean;
+    // FZ-ISSUE-752: entrada en stock opcional y sus movimientos.
+    FMueveStock: TcxDBCheckBox;
+    FPaginaMovimientos: TcxTabSheet;
+    FVistaMovimientos: TcxGridDBTableView;
     procedure CrearControlesFiscales;
+    procedure CrearControlesStock;
+    procedure CrearPestanaMovimientos;
+    procedure CambiarPestanaFactura(Sender: TObject);
+    procedure IrAMovimiento;
     procedure CrearControlesCompensacion;
     function EnviarRegistroFiscalActual: string;
     procedure CambiarTratamientoAgricola(Sender: TObject);
@@ -37,6 +45,8 @@ type
     procedure EmitirFiscal(Sender: TObject);
     procedure CrearControlesEnvioFiscal;
     procedure ComponerServicios;
+  protected
+    procedure KeyDown(var Key: Word; Shift: TShiftState); override;
   public
     constructor Create(AOwner: TComponent;
       const AContexto: TContextoAutorizacionPantalla;
@@ -53,12 +63,14 @@ function CrearComprasDirectasTercerosInyectada(AOwner: TComponent;
 implementation
 
 uses
-  System.SysUtils, Vcl.Controls, cxLabel, cxButtons, cxCurrencyEdit,
+  System.SysUtils, Vcl.Controls, cxLabel, cxButtons,
+  cxCurrencyEdit, cxGrid, cxGridCustomView, inLibShowMto,
   inLibMsgCompras,
   cxDBLabel,
   inLibRegistroPantallas, inLibReagpVcl, inLibComprasDirectas,
   inMtoFacturasCompraPagosVcl, UniDataComprasDirectasFiscal,
-  inLibMensajesVcl;
+  inLibMensajesVcl, inLibDevExp, System.Math, Vcl.Graphics, cxGraphics,
+  dxCoreGraphics;
 
 {$R *.dfm}
 
@@ -113,11 +125,20 @@ begin
   ComponerServicios;
   CrearControlesFiscales;
   CrearControlesEnvioFiscal;
+  CrearControlesStock;
+  CrearPestanaMovimientos;
   oBoton := TcxButton.Create(Self);
   oBoton.Name := 'btnImprimirReciboPago';
   oBoton.Parent := pnlEfectosTop;
-  oBoton.SetBounds(344, 5, 190, 26);
+  // Junto a «Registrar pago», con sus medidas ya escaladas por el PPI.
   oBoton.Caption := SImprimirReciboPago;
+  // FZ-ISSUE-755: ancho según el texto traducido («Imprimeix el rebut…»).
+  oBoton.SetBounds(
+    btnRegistrarPago.Left + btnRegistrarPago.Width + ScaleValue(8),
+    btnRegistrarPago.Top,
+    Max(ScaleValue(190),
+      cxTextWidth(oBoton.Font, oBoton.Caption) + ScaleValue(24)),
+    btnRegistrarPago.Height);
   oBoton.OnClick := ImprimirReciboPago;
   btnCODIGO_EMP_FACC.Enabled := False;
 end;
@@ -140,6 +161,7 @@ begin
   FPaginaFiscal := TcxTabSheet.Create(Self);
   FPaginaFiscal.PageControl := pcFactura;
   FPaginaFiscal.Caption := SDatosFiscales;
+  NumerarPestanasAtajo(pcFactura);
   FContenedorFiscal := TcxScrollBox.Create(Self);
   FContenedorFiscal.Name := 'scrTratamientoFiscal';
   FContenedorFiscal.Parent := FPaginaFiscal;
@@ -149,6 +171,7 @@ begin
   FTratamientoAgricola.Parent := FContenedorFiscal;
   FTratamientoAgricola.Name := 'chkTratamientoAgricola';
   FTratamientoAgricola.SetBounds(16, 16, 430, 26);
+  FTratamientoAgricola.Transparent := True;
   FTratamientoAgricola.Caption := STratamientoAgricola;
   FTratamientoAgricola.DataBinding.DataSource := dsTablaG;
   FTratamientoAgricola.DataBinding.DataField := 'MODALIDAD_FACC';
@@ -162,6 +185,7 @@ begin
   FAcuerdo.Name := 'chkAcuerdoAutofactura';
   FAcuerdo.Parent := FContenedorFiscal;
   FAcuerdo.SetBounds(16, 54, 580, 26);
+  FAcuerdo.Transparent := True;
   FAcuerdo.Caption := SAcuerdoFacturacion;
   FAcuerdo.DataBinding.DataSource := dsTablaG;
   FAcuerdo.DataBinding.DataField := 'ESACUERDO_AUTOFAC_FACC';
@@ -204,6 +228,7 @@ begin
   FRepresentacion.Name := 'chkRepresentacionFiscal';
   FRepresentacion.Parent := FContenedorFiscal;
   FRepresentacion.SetBounds(16, 176, 660, 26);
+  FRepresentacion.Transparent := True;
   FRepresentacion.Caption := SRepresentacionFiscal;
   FRepresentacion.DataBinding.DataSource := dsTablaG;
   FRepresentacion.DataBinding.DataField := 'ESREPRESENTACION_FISCAL_FACC';
@@ -231,8 +256,118 @@ begin
   oEstado := TcxDBLabel.Create(Self);
   oEstado.Parent := FContenedorFiscal;
   oEstado.SetBounds(270, 300, 220, 28);
+  oEstado.Transparent := True;
   oEstado.DataBinding.DataSource := dsTablaG;
   oEstado.DataBinding.DataField := 'ESTADO_FISCAL_FACC';
+end;
+
+// FZ-ISSUE-752: como «Generar movimientos de stock» de las facturas de
+// venta. Con un documento cerrado la cabecera no admite cambios (751).
+procedure TfrmMtoComprasDirectasTerceros.CrearControlesStock;
+begin
+  FMueveStock := TcxDBCheckBox.Create(Self);
+  FMueveStock.Name := 'chkMueveStockCompraDirecta';
+  FMueveStock.Parent := FContenedorFiscal;
+  FMueveStock.SetBounds(16, 344, 580, 26);
+  FMueveStock.Transparent := True;
+  FMueveStock.Caption := SCaptionMueveStockCompraDirecta;
+  FMueveStock.DataBinding.DataSource := dsTablaG;
+  FMueveStock.DataBinding.DataField := 'ESMUEVE_STOCK_FACC';
+  FMueveStock.Properties.ValueChecked := 'S';
+  FMueveStock.Properties.ValueUnchecked := 'N';
+end;
+
+function CrearColumnaMovimiento(AVista: TcxGridDBTableView;
+  const ACampo, ATitulo: string; AAncho: Integer): TcxGridDBColumn;
+begin
+  Result := AVista.CreateColumn;
+  Result.DataBinding.FieldName := ACampo;
+  Result.Caption := ATitulo;
+  Result.Width := AAncho;
+end;
+
+procedure TfrmMtoComprasDirectasTerceros.CrearPestanaMovimientos;
+var
+  oRejilla: TcxGrid;
+begin
+  FPaginaMovimientos := TcxTabSheet.Create(Self);
+  FPaginaMovimientos.Name := 'tsMovimientosCompraDirecta';
+  FPaginaMovimientos.PageControl := pcFactura;
+  FPaginaMovimientos.Caption := SCaptionPestanaMovimientosCompraDirecta;
+  NumerarPestanasAtajo(pcFactura);
+  oRejilla := TcxGrid.Create(Self);
+  oRejilla.Name := 'grdMovimientosCompraDirecta';
+  oRejilla.Parent := FPaginaMovimientos;
+  oRejilla.Align := alClient;
+  FVistaMovimientos := oRejilla.CreateView(TcxGridDBTableView)
+    as TcxGridDBTableView;
+  oRejilla.Levels.Add.GridView := FVistaMovimientos;
+  FVistaMovimientos.OptionsData.Editing := False;
+  FVistaMovimientos.OptionsData.Inserting := False;
+  FVistaMovimientos.OptionsData.Deleting := False;
+  FVistaMovimientos.OptionsView.GroupByBox := False;
+  CrearColumnaMovimiento(FVistaMovimientos, 'NUMERO_MOV',
+    SCaptionColMovNumeroCompraDirecta, 110);
+  CrearColumnaMovimiento(FVistaMovimientos, 'FECHA_MOV',
+    SCaptionColMovFechaCompraDirecta, 120);
+  CrearColumnaMovimiento(FVistaMovimientos, 'LINEA_MOV',
+    SCaptionColMovLineaCompraDirecta, 60);
+  CrearColumnaMovimiento(FVistaMovimientos, 'NOMBRE_ALMACEN_ORIGEN',
+    SCaptionColMovAlmacenCompraDirecta, 140);
+  CrearColumnaMovimiento(FVistaMovimientos, 'CODIGO_ART_MOV',
+    SCaptionColMovArticuloCompraDirecta, 100);
+  CrearColumnaMovimiento(FVistaMovimientos, 'CODIGO_UNIDAD_MOV',
+    SCaptionColMovSkuCompraDirecta, 140);
+  CrearColumnaMovimiento(FVistaMovimientos, 'DESCRIPCION_ARTICULO_MOV',
+    SCaptionColMovDescripcionCompraDirecta, 200);
+  CrearColumnaMovimiento(FVistaMovimientos, 'TIPO_MOV',
+    SCaptionColMovTipoCompraDirecta, 50);
+  CrearColumnaMovimiento(FVistaMovimientos, 'CANTIDAD_MOV',
+    SCaptionColMovCantidadCompraDirecta, 90);
+  CrearColumnaMovimiento(FVistaMovimientos, 'LOTE_MOV',
+    SCaptionColMovLoteCompraDirecta, 120);
+  CrearColumnaMovimiento(FVistaMovimientos, 'FECHA_CADUCIDAD_MOV',
+    SCaptionColMovCaducidadCompraDirecta, 100);
+  CrearColumnaMovimiento(FVistaMovimientos, 'PRECIO_MEDIO_MOV',
+    SCaptionColMovPmpCompraDirecta, 90);
+  CrearColumnaMovimiento(FVistaMovimientos, 'TOTAL_COSTE_MOV',
+    SCaptionColMovCosteCompraDirecta, 100);
+  pcFactura.OnChange := CambiarPestanaFactura;
+end;
+
+// La consulta se abre la primera vez que se enseña la pestaña.
+procedure TfrmMtoComprasDirectasTerceros.CambiarPestanaFactura(
+  Sender: TObject);
+begin
+  if (pcFactura.ActivePage = FPaginaMovimientos) and
+     Assigned(dmmFacturasCompra) and
+     not Assigned(FVistaMovimientos.DataController.DataSource) then
+    FVistaMovimientos.DataController.DataSource :=
+      dmmFacturasCompra.FuenteMovimientosFactura;
+end;
+
+// Ctrl+M en la pestaña: el movimiento enfocado, como en las facturas.
+procedure TfrmMtoComprasDirectasTerceros.IrAMovimiento;
+var
+  oDatos: TDataSet;
+begin
+  oDatos := nil;
+  if Assigned(FVistaMovimientos.DataController.DataSource) then
+    oDatos := FVistaMovimientos.DataController.DataSet;
+  ShowMtoCodigoDataSet(Self.Owner, 'MovimientosAlmacen', oDatos,
+    'NUMERO_MOV');
+end;
+
+procedure TfrmMtoComprasDirectasTerceros.KeyDown(var Key: Word;
+  Shift: TShiftState);
+begin
+  if (Key = Ord('M')) and (Shift = [ssCtrl]) and
+     (pcFactura.ActivePage = FPaginaMovimientos) then
+  begin
+    Key := 0;
+    IrAMovimiento;
+  end;
+  inherited;
 end;
 
 procedure TfrmMtoComprasDirectasTerceros.EmitirFiscal(Sender: TObject);
@@ -284,6 +419,14 @@ begin
   inherited;
   Caption := STituloComprasDirectas;
   lblCodigoProveedor.Caption := SProveedorEmisor;
+  // El rótulo es más largo que su hueco: se corta antes de «Ref.
+  // proveedor» y el texto completo queda en la ayuda.
+  lblCodigoProveedor.AutoSize := False;
+  lblCodigoProveedor.Properties.ShowEndEllipsis := True;
+  lblCodigoProveedor.Width :=
+    lblRefProveedor.Left - lblCodigoProveedor.Left - ScaleValue(4);
+  lblCodigoProveedor.Hint := SProveedorEmisor;
+  lblCodigoProveedor.ShowHint := True;
   lblCodigoEmpresa.Caption := SEmpresaDestinataria;
   tsEfectos.Caption := SRecibosPago;
   btnGenerarEfectos.Caption := SGenerarRecibos;

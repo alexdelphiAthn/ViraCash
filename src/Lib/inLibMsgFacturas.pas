@@ -848,13 +848,26 @@ begin
     SameText(ACampo, 'FASE_FAC') or
     SameText(ACampo, 'TIPO_FAC') or
     SameText(ACampo, 'DESCRIPCION_TEFE_VIEW_EFV') or
-    SameText(ACampo, 'DESCRIPCION_TEFE_VIEW_EFEC');
+    SameText(ACampo, 'DESCRIPCION_TEFE_VIEW_EFEC') or
+    SameText(ACampo, 'CODIGO_TEFE_EFEC') or
+    SameText(ACampo, 'CODIGO_TEFE_EFV');
 end;
 
 function TextoValorDocumento(const ACampo, AValor: string): string;
 begin
   Result := AValor;
-  if SameText(ACampo, 'TIPO_DTR') then
+  // FZ-ISSUE-755: el código del tipo de efecto (RECIBO…) se muestra con
+  // su descripción traducida.
+  if SameText(ACampo, 'CODIGO_TEFE_EFEC') or
+     SameText(ACampo, 'CODIGO_TEFE_EFV') then
+  begin
+    if AValor = 'RECIBO' then Result := STipoEfectoRecibo
+    else if AValor = 'CONTADO' then Result := STipoEfectoContado
+    else if AValor = 'TRANSFERENCIA' then Result := STipoEfectoTransferencia
+    else if AValor = 'PAGARE' then Result := STipoEfectoPagare
+    else if AValor = 'CONFIRMING' then Result := STipoEfectoConfirming;
+  end
+  else if SameText(ACampo, 'TIPO_DTR') then
   begin
     if AValor = 'GENERAL' then Result := STipoDocumentoTrabajoGeneral;
   end

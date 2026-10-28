@@ -361,6 +361,7 @@ implementation
 uses
   inMtoModalImpDocumento,
   inLibMensajesVcl,
+  inLibDevExp,
   inMtoModalFacturarAlbaranesFechas, inLibGridCantidad,
   inMtoModalOpcionesDocumento,
   inLibMsgOpcionesDocumento, UniDataOpcionesDocumentoRepositorio,
@@ -881,6 +882,8 @@ begin
       MostrarColumnasAtributoGlobalesAlb;
     end;
   end;
+  // El rótulo de líneas cambia con el modo: se renumera para Alt+número.
+  NumerarPestanasAtajo(pcAlbaran);
     end;
   end;
 end;
@@ -946,6 +949,7 @@ begin
   Rotular('LOTE_ALBLIN', SCaptionColumnaAlbaranLote);
   Rotular('FECHA_CADUCIDAD_ALBLIN', SCaptionColumnaAlbaranCaducidad);
   Rotular('ESFACTURADA_ALBLIN', SCaptionColumnaAlbaranFacturada);
+  NumerarPestanasAtajo(pcAlbaran);
 end;
 
 procedure TfrmMtoAlbaranes.CrearColumnasHostAlbaran;

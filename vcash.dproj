@@ -1540,6 +1540,7 @@
         </DCCReference>
         <DCCReference Include="src\DataModules\UniDataAlbaranesCompraMovimientos.pas"/>
         <DCCReference Include="src\DataModules\UniDataAlbaranesCompraMovimientosSql.pas"/>
+        <DCCReference Include="src\DataModules\UniDataFacturasCompraMovimientos.pas"/>
         <DCCReference Include="src\DataModules\UniDataDevolucionesCompraMovimientosSql.pas"/>
         <DCCReference Include="src\DataModules\UniDataDevolucionesCompraMovimientos.pas"/>
         <DCCReference Include="src\Lib\inLibDevolucionesCompraPresentacionFlujo.pas"/>
