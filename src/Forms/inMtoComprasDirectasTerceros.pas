@@ -292,6 +292,14 @@ begin
   Result.Width := AAncho;
 end;
 
+// PMP y coste con formato de importe (salían «1,2» y «60»).
+procedure FormatoImporteMovimiento(AColumna: TcxGridDBColumn;
+  const AFormato: string);
+begin
+  AColumna.PropertiesClass := TcxCurrencyEditProperties;
+  TcxCurrencyEditProperties(AColumna.Properties).DisplayFormat := AFormato;
+end;
+
 procedure TfrmMtoComprasDirectasTerceros.CrearPestanaMovimientos;
 var
   oRejilla: TcxGrid;
@@ -334,10 +342,11 @@ begin
     SCaptionColMovLoteCompraDirecta, 120);
   CrearColumnaMovimiento(FVistaMovimientos, 'FECHA_CADUCIDAD_MOV',
     SCaptionColMovCaducidadCompraDirecta, 100);
-  CrearColumnaMovimiento(FVistaMovimientos, 'PRECIO_MEDIO_MOV',
-    SCaptionColMovPmpCompraDirecta, 90);
-  CrearColumnaMovimiento(FVistaMovimientos, 'TOTAL_COSTE_MOV',
-    SCaptionColMovCosteCompraDirecta, 100);
+  FormatoImporteMovimiento(CrearColumnaMovimiento(FVistaMovimientos,
+    'PRECIO_MEDIO_MOV', SCaptionColMovPmpCompraDirecta, 90), '#,##0.00## €');
+  FormatoImporteMovimiento(CrearColumnaMovimiento(FVistaMovimientos,
+    'TOTAL_COSTE_MOV', SCaptionColMovCosteCompraDirecta, 100),
+    '#,##0.00 €');
   pcFactura.OnChange := CambiarPestanaFactura;
 end;
 
