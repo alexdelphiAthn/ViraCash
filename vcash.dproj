@@ -277,6 +277,7 @@
         <DCCReference Include="src\Lib\inLibScriptDB.pas"/>
         <DCCReference Include="src\Lib\inLibIBAN.pas"/>
         <DCCReference Include="src\Lib\inLibSepaRemesasVenta.pas"/>
+        <DCCReference Include="src\Lib\inLibSepaRemesasCompra.pas"/>
         <DCCReference Include="src\Lib\inLibFacturasLecturasIntf.pas"/>
         <DCCReference Include="src\DataModules\UniDataFacturasLecturas.pas"/>
         <DCCReference Include="src\Lib\inLibFacturasPersistenciaIntf.pas"/>
@@ -1992,6 +1993,7 @@
         <DCCReference Include="src\DataModules\UniDataPermisosRepositorio.pas"/>
         <DCCReference Include="src\DataModules\UniDataRegistroPantallasRepositorio.pas"/>
         <DCCReference Include="src\DataModules\UniDataSepaRemesasVentaRepositorio.pas"/>
+        <DCCReference Include="src\DataModules\UniDataSepaRemesasCompraRepositorio.pas"/>
         <DCCReference Include="src\DataModules\UniDataTraduccionesDescargaRepositorio.pas"/>
         <DCCReference Include="src\DataModules\UniDataTraduccionesRepositorio.pas"/>
         <DCCReference Include="src\DataModules\UniDataUnidadesMedidaRepositorio.pas"/>
@@ -2019,6 +2021,7 @@
         <DCCReference Include="src\Lib\inLibPermisosPersistenciaIntf.pas"/>
         <DCCReference Include="src\Lib\inLibRegistroPantallasPersistenciaIntf.pas"/>
         <DCCReference Include="src\Lib\inLibSepaRemesasVentaLecturasIntf.pas"/>
+        <DCCReference Include="src\Lib\inLibSepaRemesasCompraLecturasIntf.pas"/>
         <DCCReference Include="src\Lib\inLibTraduccionesDescargaPersistenciaIntf.pas"/>
         <DCCReference Include="src\Lib\inLibTraduccionesPersistenciaIntf.pas"/>
         <DCCReference Include="src\Lib\inLibUnidadesMedidaPersistenciaIntf.pas"/>

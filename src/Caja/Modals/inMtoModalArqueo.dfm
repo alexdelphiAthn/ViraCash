@@ -31,7 +31,7 @@
       Top = 28
       Properties.DisplayFormat = 'dd/mm/yyyy hh:nn:ss'
       Properties.Kind = ckDateTime
-      Properties.OnChange = dteFechaDesdePropertiesChange
+      Properties.OnEditValueChanged = dteFechaDesdePropertiesEditValueChanged
       TabOrder = 0
       Width = 190
     end
@@ -48,7 +48,7 @@
       Top = 28
       Properties.DisplayFormat = 'dd/mm/yyyy hh:nn:ss'
       Properties.Kind = ckDateTime
-      Properties.OnChange = dteFechaHastaPropertiesChange
+      Properties.OnEditValueChanged = dteFechaHastaPropertiesEditValueChanged
       TabOrder = 1
       Width = 190
     end

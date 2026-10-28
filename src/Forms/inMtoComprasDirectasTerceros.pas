@@ -323,7 +323,7 @@ begin
   CrearColumnaMovimiento(FVistaMovimientos, 'NUMERO_MOV',
     SCaptionColMovNumeroCompraDirecta, 110);
   CrearColumnaMovimiento(FVistaMovimientos, 'FECHA_MOV',
-    SCaptionColMovFechaCompraDirecta, 120);
+    SCaptionColMovFechaCompraDirecta, 150);
   CrearColumnaMovimiento(FVistaMovimientos, 'LINEA_MOV',
     SCaptionColMovLineaCompraDirecta, 60);
   CrearColumnaMovimiento(FVistaMovimientos, 'NOMBRE_ALMACEN_ORIGEN',

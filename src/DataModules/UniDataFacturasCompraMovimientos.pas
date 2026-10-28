@@ -215,9 +215,13 @@ begin
   q := TUniQuery.Create(nil);
   try
     q.Connection := AConexion;
+    // Con fecha de hoy, el instante real del cierre (como el albaran de
+    // compra); con fecha anterior, el inicio de ese dia.
     q.SQL.Text :=
       'SELECT CODIGO_EMP_FACC, ' +
-      '       COALESCE(CAST(FECHA_FACC AS datetime), NOW()) AS FECHA ' +
+      '       CASE WHEN FECHA_FACC IS NULL OR FECHA_FACC = CURDATE() ' +
+      '            THEN NOW() ELSE CAST(FECHA_FACC AS datetime) END ' +
+      '         AS FECHA ' +
       '  FROM fza_facturas_compra ' +
       ' WHERE SERIE_FACC = :s AND NUMERO_FACC = :n';
     q.ParamByName('s').AsString := ASerie;

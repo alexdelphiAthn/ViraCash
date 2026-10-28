@@ -30491,6 +30491,174 @@ begin
     'src/Lib/inLibMsgCompras.pas',
     @inLibMsgCompras.
       SCaptionColMovCosteCompraDirecta);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SErrorRemesaCompraSepaSinEfectos',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SErrorRemesaCompraSepaSinEfectos);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SErrorRemesaCompraSepaIdMensaje',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SErrorRemesaCompraSepaIdMensaje);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SErrorRemesaCompraSepaSinOrdenante',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SErrorRemesaCompraSepaSinOrdenante);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SErrorRemesaCompraSepaSinBancoPago',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SErrorRemesaCompraSepaSinBancoPago);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SErrorRemesaCompraSepaSinFechaCargo',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SErrorRemesaCompraSepaSinFechaCargo);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SErrorRemesaCompraSepaFechaPasada',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SErrorRemesaCompraSepaFechaPasada);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SErrorRemesaCompraSepaImporte',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SErrorRemesaCompraSepaImporte);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SErrorRemesaCompraSepaSinBeneficiario',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SErrorRemesaCompraSepaSinBeneficiario);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SErrorRemesaCompraSepaSinIbanBeneficiario',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SErrorRemesaCompraSepaSinIbanBeneficiario);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SErrorRemesaCompraSepaIbanNoValido',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SErrorRemesaCompraSepaIbanNoValido);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SErrorRemesaCompraSepaSinArchivo',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SErrorRemesaCompraSepaSinArchivo);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'STextoBancoPagoRemesaSepa',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoBancoPagoRemesaSepa);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'STextoConceptoTransferenciaRemesaCompra',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoConceptoTransferenciaRemesaCompra);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SAvisoRemesaCompraSepaIbanDistinto',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SAvisoRemesaCompraSepaIbanDistinto);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SPreguntaRemesaCompraSepaAvisos',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SPreguntaRemesaCompraSepaAvisos);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SPreguntaFormatoSepaRemesaCompra',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SPreguntaFormatoSepaRemesaCompra);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SBotonFormatoSepa2009',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SBotonFormatoSepa2009);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SBotonFormatoSepa2019',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SBotonFormatoSepa2019);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SPreguntaRegenerarSepaRemesaCompra',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SPreguntaRegenerarSepaRemesaCompra);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SInfoSepaRemesaCompraGenerada',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SInfoSepaRemesaCompraGenerada);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SErrorGenerarSepaRemesaCompra',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SErrorGenerarSepaRemesaCompra);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SErrorRemesaCompraSepaConcurrente',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SErrorRemesaCompraSepaConcurrente);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SErrorRemesaCompraGenerada',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SErrorRemesaCompraGenerada);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SPreguntaReabrirRemesaCompra',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SPreguntaReabrirRemesaCompra);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SInfoRemesaCompraReabierta',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SInfoRemesaCompraReabierta);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SErrorRemesaCompraNoGenerada',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SErrorRemesaCompraNoGenerada);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SFiltroArchivoSepaRemesaCompra',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SFiltroArchivoSepaRemesaCompra);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SNombreArchivoSepaRemesaCompra',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SNombreArchivoSepaRemesaCompra);
 end;
 {$WARN SYMBOL_DEPRECATED ON}
 

@@ -32,7 +32,7 @@ uses
   cxDBEdit, cxMaskEdit, cxDropDownEdit, cxCalendar, cxCurrencyEdit, cxMemo,
   cxLookupEdit, cxDBLookupEdit, cxDBLookupComboBox,
   inLibPermisosIntf,
-  inLibCargaEfectosRemesaPersistenciaIntf;
+  inLibCargaEfectosRemesaPersistenciaIntf, inLibSepaRemesasCompra;
 
 type
   TfrmMtoRemesasCompra = class(TfrmMtoGen)
@@ -102,12 +102,16 @@ type
     btnFechaCargo: TcxButton;
     dbcGrdDBTabPrinTOTAL_CARGADO_REMC: TcxGridDBColumn;
     dbcGrdDBTabPrinTOTAL_PENDIENTE_REMC: TcxGridDBColumn;
+    btnGenerarSepa: TcxButton;
+    btnReabrirRemesa: TcxButton;
     procedure btnAnadirEfectoClick(Sender: TObject);
     procedure btnQuitarEfectoClick(Sender: TObject);
     procedure btnPagarEfectoClick(Sender: TObject);
     procedure btnPagarRemesaClick(Sender: TObject);
     procedure btnAsignarBancoClick(Sender: TObject);
     procedure btnFechaCargoClick(Sender: TObject);
+    procedure btnGenerarSepaClick(Sender: TObject);
+    procedure btnReabrirRemesaClick(Sender: TObject);
   private
     FRepositorioCargaEfectos: IRepositorioCargaEfectosRemesa;
     procedure ActualizarBancoPago;
@@ -116,7 +120,15 @@ type
     procedure nvNavegadorButtonsButtonClick(Sender: TObject;
       AButtonIndex: Integer; var ADone: Boolean);
     function BancoRemesaAsignado: Boolean;
+    function ConfirmarAvisosSepa(
+      const ARemesa: TRemesaSepaCompraValidada): Boolean;
+    function ConfirmarRegeneracionSepa(
+      const AFichero: TFicheroSepaRemesaCompra): Boolean;
     function EliminarRemesaActual: Boolean;
+    function ElegirFormatoSepa(const AFichero: TFicheroSepaRemesaCompra;
+      out AFormato: TFormatoSepaTransferencia): Boolean;
+    function ElegirArchivoSepa(out AArchivo: string): Boolean;
+    procedure GenerarSepaRemesa;
     function RemesaSeleccionada: Boolean;
   public
     dmmRemesasCompra: TdmRemesasCompra;
@@ -150,6 +162,19 @@ begin
 end;
 
 procedure ForceReferenceToClass(C: TClass); begin end;
+
+function LimpiarNombreArchivoSepa(const AValor: string): string;
+var
+  i: Integer;
+begin
+  Result := Trim(AValor);
+  for i := 1 to Length(Result) do
+  begin
+    if CharInSet(Result[i],
+       ['\', '/', ':', '*', '?', '"', '<', '>', '|']) then
+      Result[i] := '_';
+  end;
+end;
 
 procedure TfrmMtoRemesasCompra.CrearTablaPrincipal;
 begin
@@ -212,6 +237,8 @@ begin
     ShowMessage_fza(SErrorRemesaCompraNoSeleccionada)
   else if dmmRemesasCompra.RemesaTieneCargo then
     ShowMessage_fza(SErrorEliminarRemesaCompraConCargo)
+  else if dmmRemesasCompra.RemesaGenerada then
+    ShowMessage_fza(SErrorRemesaCompraGenerada)
   else if MessageDlg_fza(SPreguntaEliminarRemesaCompra,
           mtConfirmation, [mbYes, mbNo], 0) = mrYes then
   begin
@@ -269,6 +296,8 @@ begin
     ShowMessage_fza(SErrorRemesaCompraNoSeleccionada)
   else if dmmRemesasCompra.RemesaTieneCargo then
     ShowMessage_fza(SErrorAnadirEfectosRemesaCompraConCargo)
+  else if dmmRemesasCompra.RemesaGenerada then
+    ShowMessage_fza(SErrorRemesaCompraGenerada)
   else
   begin
     q := dmmRemesasCompra.unqryTablaG;
@@ -301,6 +330,8 @@ begin
     ShowMessage_fza(SErrorEfectoRemesaCompraNoSeleccionado)
   else if dmmRemesasCompra.RemesaTieneCargo then
     ShowMessage_fza(SErrorQuitarEfectosRemesaCompraConCargo)
+  else if dmmRemesasCompra.RemesaGenerada then
+    ShowMessage_fza(SErrorRemesaCompraGenerada)
   else if MessageDlg_fza(SPreguntaQuitarEfectoRemesaCompra,
           mtConfirmation, [mbYes, mbNo], 0) = mrYes then
   begin
@@ -403,6 +434,8 @@ begin
   inherited;
   if not RemesaSeleccionada then
     ShowMessage_fza(SErrorRemesaCompraNoSeleccionada)
+  else if dmmRemesasCompra.RemesaGenerada then
+    ShowMessage_fza(SErrorRemesaCompraGenerada)
   else
   begin
     sCodigo := VarToStr(cbbBancoPagoRemesa.EditValue);
@@ -426,6 +459,8 @@ begin
   inherited;
   if not RemesaSeleccionada then
     ShowMessage_fza(SErrorRemesaCompraNoSeleccionada)
+  else if dmmRemesasCompra.RemesaGenerada then
+    ShowMessage_fza(SErrorRemesaCompraGenerada)
   else
   begin
     sFecha := FormatDateTime('dd/mm/yyyy', Date);
@@ -448,6 +483,145 @@ begin
       else
         ShowMessage_fza(SErrorFechaCargoRemesaNoValida);
     end;
+  end;
+end;
+
+function TfrmMtoRemesasCompra.ConfirmarRegeneracionSepa(
+  const AFichero: TFicheroSepaRemesaCompra): Boolean;
+begin
+  Result := AFichero.IdMensaje = '';
+  if not Result then
+    Result := MessageDlg_fza(Format(SPreguntaRegenerarSepaRemesaCompra,
+      [DateTimeToStr(AFichero.Instante), AFichero.IdMensaje, sLineBreak,
+       AFichero.Archivo, sLineBreak + sLineBreak]),
+      mtWarning, [mbYes, mbNo], 0, mbNo) = mrYes;
+end;
+
+function TfrmMtoRemesasCompra.ElegirFormatoSepa(
+  const AFichero: TFicheroSepaRemesaCompra;
+  out AFormato: TFormatoSepaTransferencia): Boolean;
+var
+  eBotonDefecto: TMsgDlgBtn;
+  iRespuesta: Integer;
+begin
+  AFormato := FormatoSepaTransferenciaDesdeNombre(AFichero.Formato,
+    fstPain00100103);
+  eBotonDefecto := mbYes;
+  if AFormato = fstPain00100109 then
+    eBotonDefecto := mbNo;
+  iRespuesta := MessageDlgTextos_fza(SPreguntaFormatoSepaRemesaCompra,
+    mtConfirmation, [mbYes, mbNo, mbCancel],
+    [SBotonFormatoSepa2009, SBotonFormatoSepa2019, ''], eBotonDefecto);
+  Result := iRespuesta in [mrYes, mrNo];
+  if iRespuesta = mrYes then
+    AFormato := fstPain00100103
+  else if iRespuesta = mrNo then
+    AFormato := fstPain00100109;
+end;
+
+function TfrmMtoRemesasCompra.ConfirmarAvisosSepa(
+  const ARemesa: TRemesaSepaCompraValidada): Boolean;
+begin
+  Result := Length(ARemesa.Avisos) = 0;
+  if not Result then
+    Result := MessageDlg_fza(Format(SPreguntaRemesaCompraSepaAvisos,
+      [sLineBreak + sLineBreak,
+       string.Join(sLineBreak, ARemesa.Avisos),
+       sLineBreak + sLineBreak]),
+      mtWarning, [mbYes, mbNo], 0, mbNo) = mrYes;
+end;
+
+function TfrmMtoRemesasCompra.ElegirArchivoSepa(
+  out AArchivo: string): Boolean;
+var
+  dlg: TSaveDialog;
+  sNombre: string;
+begin
+  AArchivo := '';
+  sNombre := Format(SNombreArchivoSepaRemesaCompra,
+    [dmmRemesasCompra.unqryTablaG.FieldByName('SERIE_REMC').AsString,
+     dmmRemesasCompra.unqryTablaG.FieldByName('NUMERO_REMC').AsString]);
+  dlg := TSaveDialog.Create(nil);
+  try
+    dlg.DefaultExt := 'xml';
+    dlg.Filter := SFiltroArchivoSepaRemesaCompra;
+    dlg.Options := dlg.Options + [ofOverwritePrompt];
+    dlg.FileName := LimpiarNombreArchivoSepa(sNombre) + '.xml';
+    Result := dlg.Execute;
+    if Result then
+      AArchivo := dlg.FileName;
+  finally
+    dlg.Free;
+  end;
+end;
+
+// Nada se graba hasta escribir el fichero: cancelar cualquier paso deja
+// la remesa como estaba.
+procedure TfrmMtoRemesasCompra.GenerarSepaRemesa;
+var
+  eFormato: TFormatoSepaTransferencia;
+  rFichero: TFicheroSepaRemesaCompra;
+  rRemesa: TRemesaSepaCompraValidada;
+  rResultado: TResultadoSepaRemesaCompra;
+  sArchivo: string;
+begin
+  rFichero := dmmRemesasCompra.LeerFicheroSepa;
+  if ConfirmarRegeneracionSepa(rFichero) and
+     ElegirFormatoSepa(rFichero, eFormato) then
+  begin
+    rRemesa := dmmRemesasCompra.PrepararRemesaSepa(eFormato);
+    if ConfirmarAvisosSepa(rRemesa) and ElegirArchivoSepa(sArchivo) then
+    begin
+      Screen.Cursor := crHourGlass;
+      try
+        rResultado := dmmRemesasCompra.GenerarOrdenSepa(rRemesa, sArchivo);
+      finally
+        Screen.Cursor := crDefault;
+      end;
+      ActualizarBancoPago;
+      ShowMessage_fza(Format(SInfoSepaRemesaCompraGenerada,
+        [rResultado.NumPagos, CurrToStrF(rResultado.Total, ffCurrency, 2),
+         sLineBreak + sLineBreak]));
+    end;
+  end;
+end;
+
+procedure TfrmMtoRemesasCompra.btnGenerarSepaClick(Sender: TObject);
+begin
+  inherited;
+  if not RemesaSeleccionada then
+    ShowMessage_fza(SErrorRemesaCompraNoSeleccionada)
+  else if not BancoRemesaAsignado then
+    ShowMessage_fza(SErrorRemesaCompraSepaSinBancoPago)
+  else if dmmRemesasCompra.PendienteRemesa <= 0.0001 then
+    ShowMessage_fza(SErrorRemesaCompraSinImportePendiente)
+  else
+  begin
+    try
+      GenerarSepaRemesa;
+    except
+      on E: Exception do
+        ShowMessage_fza(Format(SErrorGenerarSepaRemesaCompra, [E.Message]));
+    end;
+  end;
+end;
+
+procedure TfrmMtoRemesasCompra.btnReabrirRemesaClick(Sender: TObject);
+begin
+  inherited;
+  if not RemesaSeleccionada then
+    ShowMessage_fza(SErrorRemesaCompraNoSeleccionada)
+  else if (not dmmRemesasCompra.RemesaGenerada) or
+          dmmRemesasCompra.RemesaTieneCargo then
+    ShowMessage_fza(SErrorRemesaCompraNoGenerada)
+  else if MessageDlg_fza(SPreguntaReabrirRemesaCompra, mtWarning,
+          [mbYes, mbNo], 0, mbNo) = mrYes then
+  begin
+    if dmmRemesasCompra.ReabrirRemesa then
+      ShowMessage_fza(SInfoRemesaCompraReabierta)
+    else
+      ShowMessage_fza(SErrorRemesaCompraNoGenerada);
+    ActualizarBancoPago;
   end;
 end;
 

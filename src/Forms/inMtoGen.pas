@@ -291,6 +291,7 @@ type
     procedure UpdateActions; override;
     procedure SimulateTabKey;
     procedure ProcesarPerfiles;
+    procedure CrearColumnasPerfilTrasAbrir;
     // inLibContratoMtoGenHerencia define el orden de todos estos hooks.
     procedure AplicarEtiquetas;     virtual;
     procedure AplicarTraduccionActual; override;
@@ -1323,6 +1324,7 @@ begin
       FGestorGuias.Aplicar(unqry);
       if (not yaActiva) and Assigned(dsTablaG) and Assigned(unqry) then
         dsTablaG.DataSet := unqry;
+      CrearColumnasPerfilTrasAbrir;
       if Assigned(dmDat) then
         try
           dmDat.ReactivarControlesTrasAbrir;
@@ -1383,6 +1385,7 @@ begin
       inLibDiag.DiagnosticarCamposBooleanos(
         unqry, Self.Name, RegistroLog);
       FGestorGuias.Aplicar(unqry);
+      CrearColumnasPerfilTrasAbrir;
       FGestorPerfiles.RestaurarFoco(cxGrdDBTabPrin);
       FGuardianBorrado.Instalar;
       RegistroLog.RegistrarRendimiento('Carga/sync', Self.Name + ' | OK',
@@ -2776,6 +2779,22 @@ begin
   // Permisos por pantalla: ocultan/deshabilitan los controles segun
   // consultar, insertar, modificar, borrar, excel e imprimir.
   AplicarPermisosPantalla;
+end;
+
+procedure TfrmMtoGen.CrearColumnasPerfilTrasAbrir;
+begin
+  // ProcesarPerfiles aplica las etiquetas con la tabla principal todavía
+  // cerrada: oCreateItems no veía los campos de la consulta del perfil
+  // (oGetSQLFromDB). Repetirlo tras abrir crea esas columnas y les aplica
+  // los anchos y títulos guardados. Las columnas creadas no traen
+  // Properties del DFM: se les da el formato por prefijo (TOTAL_, PRECIO_,
+  // IMPORTE_ en €; PORCENTAJE_; ESxxx como casilla), sin pisar las demás.
+  if SameText(Trim(FGestorPerfiles.Valor('oCreateItems', 'False')),
+              'True') then
+  begin
+    AplicarEtiquetas;
+    AplicarPropertiesPorPrefijo(cxGrdDBTabPrin);
+  end;
 end;
 
 procedure TfrmMtoGen.rbBBDDClick(Sender: TObject);

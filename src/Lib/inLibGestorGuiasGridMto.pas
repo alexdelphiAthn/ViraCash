@@ -91,7 +91,7 @@ type
 implementation
 
 uses
-  System.SysUtils, System.Generics.Collections, Vcl.Controls,
+  System.SysUtils, System.Math, System.Generics.Collections, Vcl.Controls,
   Vcl.StdCtrls, Vcl.ExtCtrls, Vcl.Graphics,
   inLibMsgComun, inLibRegistroLogNulo;
 
@@ -401,14 +401,24 @@ var
   oEtiqueta: TLabel;
   oEditor: TEdit;
   oEditores: TStringList;
+  oDesplazable: TScrollBox;
+  oAnfitrion: TCustomForm;
 begin
   oEditores := TStringList.Create;
   oFormulario := TForm.Create(FFormulario);
   try
     oFormulario.Caption := STituloRenombrarColumnas;
-    oFormulario.Width := 620;
-    oFormulario.Position := poScreenCenter;
+    oFormulario.Width := 640;
+    oFormulario.Position := poMainFormCenter;
     oFormulario.BorderStyle := bsDialog;
+    // Con muchas columnas (p. ej. las creadas por oCreateItems) el diálogo
+    // superaba la pantalla y los botones quedaban fuera: la lista se
+    // desplaza dentro de un TScrollBox.
+    oDesplazable := TScrollBox.Create(oFormulario);
+    oDesplazable.Parent := oFormulario;
+    oDesplazable.Align := alClient;
+    oDesplazable.BorderStyle := bsNone;
+    oDesplazable.VertScrollBar.Tracking := True;
     iTop := 12;
     for i := 0 to FVista.ColumnCount - 1 do
     begin
@@ -417,7 +427,7 @@ begin
          oColumna.Visible then
       begin
         oEtiqueta := TLabel.Create(oFormulario);
-        oEtiqueta.Parent := oFormulario;
+        oEtiqueta.Parent := oDesplazable;
         oEtiqueta.Left := 12;
         oEtiqueta.Top := iTop + 3;
         oEtiqueta.Width := 250;
@@ -425,7 +435,7 @@ begin
           oColumna.DataBinding.FieldName;
         oEtiqueta.Font.Color := clGray;
         oEditor := TEdit.Create(oFormulario);
-        oEditor.Parent := oFormulario;
+        oEditor.Parent := oDesplazable;
         oEditor.Left := 270;
         oEditor.Top := iTop;
         oEditor.Width := 320;
@@ -437,6 +447,14 @@ begin
       end;
     end;
     oFormulario.ClientHeight := iTop + 55;
+    // Nunca más alto que la ventana anfitriona ni que el área de trabajo
+    // de su monitor.
+    oAnfitrion := Application.MainForm;
+    if oAnfitrion = nil then
+      oAnfitrion := FFormulario;
+    if oAnfitrion <> nil then
+      oFormulario.Height := Min(oFormulario.Height,
+        Min(oAnfitrion.Height, oAnfitrion.Monitor.WorkareaRect.Height));
     oPanelBotones := TPanel.Create(oFormulario);
     oPanelBotones.Parent := oFormulario;
     oPanelBotones.Align := alBottom;

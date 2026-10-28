@@ -21,7 +21,7 @@ resourcestring
   STituloRegistrarPagoEfectoFacturaCompra =
     'Efecto %d - vto %s - pendiente %.2f';
 
-  STituloComprasDirectas = 'Compras directas a terceros';
+  STituloComprasDirectas = 'Autofacturas a terceros';
   STratamientoAgricola = 'Tratamiento a agricultores (REAGP)';
   SAcuerdoFacturacion =
     'Existe acuerdo previo de facturación por el destinatario';
@@ -718,6 +718,73 @@ resourcestring
     'No se pudo conciliar la remesa.';
   SErrorBancoPagoNoSeleccionado =
     'Selecciona un banco de pago.';
+  // Fichero de transferencias SEPA de remesas de pago
+  // (inLibSepaRemesasCompra, UniDataSepaRemesasCompraRepositorio):
+  SErrorRemesaCompraSepaSinEfectos =
+    'La remesa no tiene efectos pendientes de pago.';
+  SErrorRemesaCompraSepaIdMensaje =
+    'Identificador de mensaje SEPA no válido: «%s».';
+  SErrorRemesaCompraSepaSinOrdenante =
+    'La empresa de la remesa no tiene razón social.';
+  SErrorRemesaCompraSepaSinBancoPago =
+    'Asigne a la remesa el banco de pago antes de generar el fichero.';
+  SErrorRemesaCompraSepaSinFechaCargo =
+    'Indique la fecha de cargo de la remesa (botón «Fecha cargo»).';
+  SErrorRemesaCompraSepaFechaPasada =
+    'La fecha de cargo %s ya ha pasado y el banco rechazaría el ' +
+    'fichero. Cámbiela con «Fecha cargo»; si la remesa está generada, ' +
+    'reábrala antes.';
+  SErrorRemesaCompraSepaImporte =
+    'El pago %s no tiene un importe positivo.';
+  SErrorRemesaCompraSepaSinBeneficiario =
+    'El pago %s no tiene nombre de proveedor.';
+  SErrorRemesaCompraSepaSinIbanBeneficiario =
+    '%s no tiene IBAN ni en el efecto ni en la ficha del proveedor.';
+  SErrorRemesaCompraSepaIbanNoValido =
+    'El IBAN de %s no es válido: %s.';
+  SErrorRemesaCompraSepaSinArchivo =
+    'No se ha indicado el archivo de salida.';
+  STextoBancoPagoRemesaSepa = 'la cuenta de cargo de la remesa';
+  STextoConceptoTransferenciaRemesaCompra = 'Factura %s, efecto %d';
+  SAvisoRemesaCompraSepaIbanDistinto =
+    '%s (pago %s): se usará el IBAN del efecto %s, pero la ficha del ' +
+    'proveedor tiene %s.';
+  SPreguntaRemesaCompraSepaAvisos =
+    'Revise estos datos antes de continuar:%s%s%s¿Generar el fichero ' +
+    'con ellos?';
+  SPreguntaFormatoSepaRemesaCompra =
+    'Elija la versión del fichero de transferencias. La de 2009 ' +
+    '(cuaderno 34-14) la aceptan todos los bancos españoles; la de 2019 ' +
+    'es la de las guías EPC actuales. Si duda, pregunte a su banco.';
+  SBotonFormatoSepa2009 = 'pain.001.001.03 (2009)';
+  SBotonFormatoSepa2019 = 'pain.001.001.09 (2019)';
+  SPreguntaRegenerarSepaRemesaCompra =
+    'Esta remesa ya generó un fichero el %s con el identificador %s:%s' +
+    '%s%sSi ya lo subió al banco, no suba otro. El nuevo fichero llevará ' +
+    'el mismo identificador para que el banco rechace una segunda ' +
+    'presentación. ¿Generarlo de nuevo?';
+  SInfoSepaRemesaCompraGenerada =
+    'Fichero de transferencias generado: %d pago(s) por %s.%s' +
+    'La remesa queda GENERADA. Súbalo a la banca electrónica y concilie ' +
+    'los pagos cuando el banco los cargue.';
+  SErrorGenerarSepaRemesaCompra =
+    'No se pudo generar el fichero de transferencias: %s';
+  SErrorRemesaCompraSepaConcurrente =
+    'Otra sesión ha generado el fichero de esta remesa con otro ' +
+    'identificador. Se ha borrado el fichero recién escrito: vuelva a ' +
+    'intentarlo.';
+  SErrorRemesaCompraGenerada =
+    'La remesa tiene generado el fichero de transferencias. Reábrala ' +
+    'para cambiarla.';
+  SPreguntaReabrirRemesaCompra =
+    'Al reabrir la remesa, el fichero generado deja de valer y el ' +
+    'siguiente llevará otro identificador. Si ya lo subió al banco, ' +
+    'anúlelo allí antes. ¿Reabrir la remesa?';
+  SInfoRemesaCompraReabierta = 'Remesa reabierta.';
+  SErrorRemesaCompraNoGenerada =
+    'Solo se puede reabrir una remesa GENERADA sin pagos conciliados.';
+  SFiltroArchivoSepaRemesaCompra = 'Transferencias SEPA XML (*.xml)|*.xml';
+  SNombreArchivoSepaRemesaCompra = 'remesa_pago_%s_%s';
   SErrorTipoDocumentoSesionNoSeleccionado =
     'Marca al menos uno: Albarán y/o Pedido.';
   SErrorAlmacenDestinoSesionNoIndicado =

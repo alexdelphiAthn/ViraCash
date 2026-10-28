@@ -37,6 +37,8 @@ type
     cxLabel1: TcxLabel;
   private
     FDataModule: TdmClientes;
+  protected
+    procedure PrepararDatosEdicion; override;
   public
     procedure Preparar(ADataModule: TdmClientes);
     procedure preparar_consulta; override;
@@ -51,6 +53,13 @@ resourcestring
     'No se ha indicado el módulo de clientes';
   SErrorModuloClientesObligatorio =
     'El módulo de clientes es obligatorio';
+
+procedure TfrmPrintCliEti.PrepararDatosEdicion;
+begin
+  // cdsEtiquetas no tiene proveedor: sin cargarlo antes, el diseñador
+  // fallaba con «Missing data provider or data packet».
+  preparar_consulta;
+end;
 
 procedure TfrmPrintCliEti.preparar_consulta;
 begin

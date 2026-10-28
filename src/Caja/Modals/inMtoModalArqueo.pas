@@ -248,8 +248,8 @@ type
     procedure actGrabarExecute(Sender: TObject);
     procedure actDesplegarDesdeExecute(Sender: TObject);
     procedure actDesplegarHastaExecute(Sender: TObject);
-    procedure dteFechaDesdePropertiesChange(Sender: TObject);
-    procedure dteFechaHastaPropertiesChange(Sender: TObject);
+    procedure dteFechaDesdePropertiesEditValueChanged(Sender: TObject);
+    procedure dteFechaHastaPropertiesEditValueChanged(Sender: TObject);
     procedure tvRecuentoImportePropertiesEditValueChanged(
       Sender: TcxCustomGridTableView;
       AItem: TcxCustomGridTableItem);
@@ -1003,15 +1003,18 @@ begin
   Recalcular;
 end;
 
-procedure TfrmModalArqueo.dteFechaDesdePropertiesChange(Sender: TObject);
+procedure TfrmModalArqueo.dteFechaDesdePropertiesEditValueChanged(
+  Sender: TObject);
 begin
   inherited;
-  // Fuerza que "hasta" no quede antes que "desde"
+  // Fuerza que "hasta" no quede antes que "desde". Al confirmar la fecha,
+  // no con cada tecla: con OnChange se corregía la fecha a medio escribir.
   if FechaHastaSeleccionada < FechaDesdeSeleccionada then
     dteFechaHasta.EditValue := FechaDesdeSeleccionada;
 end;
 
-procedure TfrmModalArqueo.dteFechaHastaPropertiesChange(Sender: TObject);
+procedure TfrmModalArqueo.dteFechaHastaPropertiesEditValueChanged(
+  Sender: TObject);
 begin
   inherited;
   if FechaHastaSeleccionada < FechaDesdeSeleccionada then

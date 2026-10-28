@@ -1,3 +1,3 @@
 ﻿inherited frmMtoComprasDirectasTerceros: TfrmMtoComprasDirectasTerceros
-  Caption = 'Compras directas a terceros'
+  Caption = 'Autofacturas a terceros'
 end

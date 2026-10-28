@@ -522,7 +522,7 @@ type
     procedure chkESREGIMENESPECIALAGRICOLA_EMPRESA_FACTURAPropertiesChange(
       Sender: TObject);
     procedure btnCODIGO_EMPRESA_FACTURAPropertiesChange(Sender: TObject);
-    procedure dteFECHA_FACTURAPropertiesChange(Sender: TObject);
+    procedure dteFECHA_FACTURAPropertiesEditValueChanged(Sender: TObject);
     procedure btnCODIGO_CLIENTEPropertiesChange(Sender: TObject);
     procedure cbbCanalIVAPropertiesChange(Sender: TObject);
     procedure dsTablaGStateChange(Sender: TObject);
@@ -2636,19 +2636,24 @@ begin
     dteFECHA_FACTURA.DroppedDown := True;
 end;
 
-procedure TfrmMtoFacturasBase.dteFECHA_FACTURAPropertiesChange(Sender: TObject);
+procedure TfrmMtoFacturasBase.dteFECHA_FACTURAPropertiesEditValueChanged(
+  Sender: TObject);
 var
   e: TcxCustomEdit;
   NewValue : Variant;
 begin
   inherited;
+  // OnEditValueChanged y no OnChange: OnChange saltaba con cada tecla y
+  // grababa la fecha a medio escribir (02/1 -> 1900), que el editor
+  // enlazado volvía a pintar; también cerraba el calendario al cambiar
+  // de mes.
   if Assigned(dsTablaG.DataSet) then
   if ((dsTablaG.DataSet.State = dsInsert) or
       (dsTablaG.DataSet.State = dsEdit)
      ) then
   begin
     e := Sender as TcxCustomEdit;
-    NewValue := e.EditingValue;
+    NewValue := e.EditValue;
     if (NewValue <> null) then
     begin
       dmmFacturas.unqryTablaG.FindField('FECHA_FAC').AsDateTime :=

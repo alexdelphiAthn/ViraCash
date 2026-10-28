@@ -499,6 +499,24 @@
       TabOrder = 7
       OnClick = btnFechaCargoClick
     end
+    object btnGenerarSepa: TcxButton
+      Left = 0
+      Top = 426
+      Width = 137
+      Height = 40
+      Caption = 'Generar SEPA'
+      TabOrder = 8
+      OnClick = btnGenerarSepaClick
+    end
+    object btnReabrirRemesa: TcxButton
+      Left = 0
+      Top = 472
+      Width = 137
+      Height = 40
+      Caption = 'Reabrir remesa'
+      TabOrder = 9
+      OnClick = btnReabrirRemesaClick
+    end
   end
   inherited dsTablaG: TDataSource
     DataSet = dmRemesasCompra.unqryTablaG

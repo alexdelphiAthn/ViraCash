@@ -18,7 +18,7 @@ interface
 uses
   inLibRegistroPantallas,
   System.SysUtils, System.Classes, System.Variants, UniDataGen, Data.DB,
-  MemDS, DBAccess, Uni, inLibUser, UniDataConn;
+  MemDS, DBAccess, Uni, inLibUser, UniDataConn, inLibSepaRemesasCompra;
 
 type
   TdmRemesasCompra = class(TdmBase)
@@ -42,6 +42,8 @@ type
       ANumEfec: Integer; AFecha: TDateTime; AImporte: Double;
       const ATipo, AReferencia, AEntidad: string): Integer;
     procedure RecalcularRemesa(const ASerie, ANumero: string);
+    procedure RegistrarFicheroSepa(const ARemesa: TRemesaSepaCompraValidada;
+      const ASerie, ANumero, AArchivo: string);
   public
     // El form empuja su dsTablaG; el DM ya no usa GetOwnerForm.
     procedure AsignarMaestroCabecera(ADataSource: TDataSource); override;
@@ -58,10 +60,20 @@ type
     function RegistrarPagoRemesa(AFecha: TDateTime; AImporte: Double;
       const ATipo, AReferencia: string): Integer;
     function RemesaTieneCargo: Boolean;
+    // Fichero de transferencias SEPA (pain.001).
+    function GenerarOrdenSepa(const ARemesa: TRemesaSepaCompraValidada;
+      const AArchivo: string): TResultadoSepaRemesaCompra;
+    function LeerFicheroSepa: TFicheroSepaRemesaCompra;
+    function PrepararRemesaSepa(
+      AFormato: TFormatoSepaTransferencia): TRemesaSepaCompraValidada;
+    function ReabrirRemesa: Boolean;
+    function RemesaGenerada: Boolean;
   end;
 
 implementation
 
+uses
+  inLibMsgCompras, UniDataSepaRemesasCompraRepositorio;
 
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 
@@ -145,6 +157,13 @@ end;
 function TdmRemesasCompra.RemesaTieneCargo: Boolean;
 begin
   Result := CargoRealizadoRemesa > 0.0001;
+end;
+
+function TdmRemesasCompra.RemesaGenerada: Boolean;
+begin
+  Result := unqryTablaG.Active and (not unqryTablaG.IsEmpty) and
+    SameText(Trim(unqryTablaG.FieldByName('ESTADO_REMC').AsString),
+      CEstadoRemesaCompraGenerada);
 end;
 
 // Cada operación sobre la remesa (cobrar o pagar uno o todos sus efectos,
@@ -231,11 +250,15 @@ begin
         sEstado := 'PARCIAL';
     end;
     q.Close;
+    // Sin pagos, una remesa con fichero SEPA sigue GENERADA (no ABIERTA).
     if AFechaCargo > 0 then
     begin
       q.SQL.Text :=
         'UPDATE fza_remesas_compra ' +
-        '   SET ESTADO_REMC = :estado, ' +
+        '   SET ESTADO_REMC = CASE ' +
+        '         WHEN :estado = ''ABIERTA'' ' +
+        '          AND ESTADO_REMC = ''GENERADA'' THEN ''GENERADA'' ' +
+        '         ELSE :estado END, ' +
         '       FECHA_CARGO_REMC = :fecha, ' +
         '       INSTANTE_CONTABILIZACION_REMC = ' +
         '         CASE WHEN :estado = ''PAGADA'' THEN NOW() ' +
@@ -249,7 +272,10 @@ begin
     else
       q.SQL.Text :=
         'UPDATE fza_remesas_compra ' +
-        '   SET ESTADO_REMC = :estado, ' +
+        '   SET ESTADO_REMC = CASE ' +
+        '         WHEN :estado = ''ABIERTA'' ' +
+        '          AND ESTADO_REMC = ''GENERADA'' THEN ''GENERADA'' ' +
+        '         ELSE :estado END, ' +
         '       INSTANTE_CONTABILIZACION_REMC = ' +
         '         CASE WHEN :estado = ''PAGADA'' THEN NOW() ' +
         '              ELSE INSTANTE_CONTABILIZACION_REMC END, ' +
@@ -652,6 +678,136 @@ begin
         ' WHERE SERIE_REMC = :serie ' +
         '   AND NUMERO_REMC = :numero';
       q.ParamByName('fecha').AsDateTime := AFecha;
+      q.ParamByName('usuario').AsString := IdentidadSesion.Usuario;
+      q.ParamByName('serie').AsString :=
+        unqryTablaG.FieldByName('SERIE_REMC').AsString;
+      q.ParamByName('numero').AsString :=
+        unqryTablaG.FieldByName('NUMERO_REMC').AsString;
+      q.ExecSQL;
+      Result := q.RowsAffected > 0;
+    finally
+      FreeAndNil(q);
+    end;
+    if Result then
+      RefrescarDatos;
+  end;
+end;
+
+function TdmRemesasCompra.LeerFicheroSepa: TFicheroSepaRemesaCompra;
+begin
+  Result := Default(TFicheroSepaRemesaCompra);
+  if unqryTablaG.Active and (not unqryTablaG.IsEmpty) then
+    Result := CrearSepaRemesasCompraLecturas(ConexionPrincipal).
+      LeerFicheroGenerado(
+        unqryTablaG.FieldByName('SERIE_REMC').AsString,
+        unqryTablaG.FieldByName('NUMERO_REMC').AsString);
+end;
+
+// Lee y valida la remesa sin escribir nada: la UI puede mostrar avisos
+// y el usuario cancelar sin que quede rastro en la base.
+function TdmRemesasCompra.PrepararRemesaSepa(
+  AFormato: TFormatoSepaTransferencia): TRemesaSepaCompraValidada;
+begin
+  if not (unqryTablaG.Active and (not unqryTablaG.IsEmpty)) then
+    raise Exception.Create(SErrorRemesaCompraNoSeleccionada);
+  Result := CrearSepaRemesasCompraLecturas(ConexionPrincipal).
+    CargarRemesaValidada(
+      unqryTablaG.FieldByName('SERIE_REMC').AsString,
+      unqryTablaG.FieldByName('NUMERO_REMC').AsString,
+      AFormato, Now);
+  ValidarRemesaSepaCompra(Result, Date);
+end;
+
+procedure TdmRemesasCompra.RegistrarFicheroSepa(
+  const ARemesa: TRemesaSepaCompraValidada;
+  const ASerie, ANumero, AArchivo: string);
+var
+  q: TUniQuery;
+begin
+  q := TUniQuery.Create(nil);
+  try
+    q.Connection := ConexionPrincipal;
+    // El MsgId solo se fija si la remesa no tenía otro: protege de dos
+    // sesiones generando a la vez.
+    q.SQL.Text :=
+      'UPDATE fza_remesas_compra ' +
+      '   SET ID_MENSAJE_SEPA_REMC = :idmensaje, ' +
+      '       FORMATO_SEPA_REMC = :formato, ' +
+      '       INSTANTE_FICHERO_SEPA_REMC = :instante, ' +
+      '       ARCHIVO_REMC = :archivo, ' +
+      '       NORMA_REMC = :norma, ' +
+      '       ESTADO_REMC = CASE ' +
+      '         WHEN COALESCE(ESTADO_REMC, '''') IN ' +
+      '              ('''', ''ABIERTA'', ''CERRADA'') THEN ''GENERADA'' ' +
+      '         ELSE ESTADO_REMC END, ' +
+      '       INSTANTE_MODIF = NOW(), ' +
+      '       USUARIO_MODIF = :usuario ' +
+      ' WHERE SERIE_REMC = :serie ' +
+      '   AND NUMERO_REMC = :numero ' +
+      '   AND (ID_MENSAJE_SEPA_REMC IS NULL ' +
+      '        OR ID_MENSAJE_SEPA_REMC = '''' ' +
+      '        OR ID_MENSAJE_SEPA_REMC = :idmensaje)';
+    q.ParamByName('idmensaje').AsString := ARemesa.IdMensaje;
+    q.ParamByName('formato').AsString :=
+      NombreFormatoSepaTransferencia(ARemesa.Formato);
+    q.ParamByName('instante').AsDateTime := ARemesa.Instante;
+    q.ParamByName('archivo').AsString := Copy(AArchivo, 1, 200);
+    q.ParamByName('norma').AsString := CNormaSepaTransferencias;
+    q.ParamByName('usuario').AsString := IdentidadSesion.Usuario;
+    q.ParamByName('serie').AsString := ASerie;
+    q.ParamByName('numero').AsString := ANumero;
+    q.ExecSQL;
+    if q.RowsAffected = 0 then
+      raise Exception.Create(SErrorRemesaCompraSepaConcurrente);
+  finally
+    FreeAndNil(q);
+  end;
+end;
+
+// Escribe el fichero y después lo anota en la remesa; si la anotación
+// falla, borra el fichero para que no quede uno sin MsgId registrado.
+function TdmRemesasCompra.GenerarOrdenSepa(
+  const ARemesa: TRemesaSepaCompraValidada;
+  const AArchivo: string): TResultadoSepaRemesaCompra;
+var
+  sNumeroRem: string;
+  sSerieRem: string;
+begin
+  if not (unqryTablaG.Active and (not unqryTablaG.IsEmpty)) then
+    raise Exception.Create(SErrorRemesaCompraNoSeleccionada);
+  sSerieRem := unqryTablaG.FieldByName('SERIE_REMC').AsString;
+  sNumeroRem := unqryTablaG.FieldByName('NUMERO_REMC').AsString;
+  Result := GenerarSepaRemesaCompra(ARemesa, AArchivo);
+  try
+    RegistrarFicheroSepa(ARemesa, sSerieRem, sNumeroRem, Result.Archivo);
+  except
+    System.SysUtils.DeleteFile(Result.Archivo);
+    raise;
+  end;
+  RefrescarDatos;
+end;
+
+function TdmRemesasCompra.ReabrirRemesa: Boolean;
+var
+  q: TUniQuery;
+begin
+  Result := False;
+  if RemesaGenerada and (not RemesaTieneCargo) then
+  begin
+    q := TUniQuery.Create(nil);
+    try
+      q.Connection := ConexionPrincipal;
+      // FORMATO_SEPA_REMC se conserva como propuesta del siguiente fichero.
+      q.SQL.Text :=
+        'UPDATE fza_remesas_compra ' +
+        '   SET ESTADO_REMC = ''ABIERTA'', ' +
+        '       ID_MENSAJE_SEPA_REMC = NULL, ' +
+        '       INSTANTE_FICHERO_SEPA_REMC = NULL, ' +
+        '       INSTANTE_MODIF = NOW(), ' +
+        '       USUARIO_MODIF = :usuario ' +
+        ' WHERE SERIE_REMC = :serie ' +
+        '   AND NUMERO_REMC = :numero ' +
+        '   AND ESTADO_REMC = ''GENERADA''';
       q.ParamByName('usuario').AsString := IdentidadSesion.Usuario;
       q.ParamByName('serie').AsString :=
         unqryTablaG.FieldByName('SERIE_REMC').AsString;

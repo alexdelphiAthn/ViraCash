@@ -2978,7 +2978,7 @@
                   DataBinding.DataField = 'FECHA_FAC'
                   DataBinding.DataSource = dsTablaG
                   Properties.DateButtons = [btnClear, btnToday]
-                  Properties.OnChange = dteFECHA_FACTURAPropertiesChange
+                  Properties.OnEditValueChanged = dteFECHA_FACTURAPropertiesEditValueChanged
                   TabOrder = 10
                   OnKeyUp = dteFECHA_FACTURAKeyUp
                   Width = 143

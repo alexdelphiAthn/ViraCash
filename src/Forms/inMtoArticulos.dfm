@@ -2313,59 +2313,74 @@
                     Width = 100
                   end
                   object tvMovimientosINSTANTEMODIF: TcxGridDBColumn
+                    Caption = 'Instante Modif'
                     DataBinding.FieldName = 'INSTANTE_MODIF'
                     Visible = False
                   end
                   object tvMovimientosINSTANTEALTA: TcxGridDBColumn
+                    Caption = 'Instante Alta'
                     DataBinding.FieldName = 'INSTANTE_ALTA'
                     Visible = False
                   end
                   object tvMovimientosUSUARIOALTA: TcxGridDBColumn
+                    Caption = 'Usuario Alta'
                     DataBinding.FieldName = 'USUARIO_ALTA'
                     Visible = False
                   end
                   object tvMovimientosUSUARIOMODIF: TcxGridDBColumn
+                    Caption = 'Usuario Modif'
                     DataBinding.FieldName = 'USUARIO_MODIF'
                     Visible = False
                   end
                   object tvMovimientosTIPO_DOC_REF_MOV: TcxGridDBColumn
+                    Caption = 'Tipo Ref.'
                     DataBinding.FieldName = 'TIPO_DOC_REF_MOV'
                     Width = 183
                   end
                   object tvMovimientosSERIE_DOC_REF_MOV: TcxGridDBColumn
+                    Caption = 'Serie Ref.'
                     DataBinding.FieldName = 'SERIE_DOC_REF_MOV'
                   end
                   object tvMovimientosNRO_DOC_REF_MOV: TcxGridDBColumn
+                    Caption = 'Nro. Ref.'
                     DataBinding.FieldName = 'NUMERO_DOC_REF_MOV'
                   end
                   object tvMovimientosLINEA_REF_MOV: TcxGridDBColumn
+                    Caption = 'L'#237'nea Ref.'
                     DataBinding.FieldName = 'LINEA_REF_MOV'
                     Width = 148
                   end
                   object tvMovimientosLOTE_MOV: TcxGridDBColumn
+                    Caption = 'Lote'
                     DataBinding.FieldName = 'LOTE_MOV'
                     Width = 96
                   end
                   object tvMovimientosFECHA_CADUCIDAD_MOV: TcxGridDBColumn
+                    Caption = 'F. Caducidad'
                     DataBinding.FieldName = 'FECHA_CADUCIDAD_MOV'
                   end
                   object tvMovimientosNOMBRE_ALMACEN_ORIGEN: TcxGridDBColumn
+                    Caption = 'Nombre alm. origen'
                     DataBinding.FieldName = 'NOMBRE_ALMACEN_ORIGEN'
                     Width = 241
                   end
                   object tvMovimientosNOMBRE_ALMACEN_DESTINO: TcxGridDBColumn
+                    Caption = 'Nombre alm. destino'
                     DataBinding.FieldName = 'NOMBRE_ALMACEN_DESTINO'
                     Width = 250
                   end
                   object tvMovimientosDESCRIPCION_TIPODOCUMENTO: TcxGridDBColumn
+                    Caption = 'Tipo de documento'
                     DataBinding.FieldName = 'DESCRIPCION_TIPO_DOCUMENTO_TD'
                     Width = 278
                   end
                   object tvMovimientosRAZONSOCIAL_CLIENTE: TcxGridDBColumn
+                    Caption = 'Cliente'
                     DataBinding.FieldName = 'RAZON_SOCIAL_CLI'
                     Width = 223
                   end
                   object tvMovimientosRAZONSOCIAL_PROVEEDOR: TcxGridDBColumn
+                    Caption = 'Proveedor'
                     DataBinding.FieldName = 'RAZON_SOCIAL_PRV'
                     Width = 231
                   end
