@@ -35,7 +35,7 @@ implementation
 
 uses
   System.SysUtils, System.Classes,
-  inLibArticulosFiltro;
+  inLibArticulosFiltro, inLibFiltroUsuario;
 
 const
   SQL_LISTAR_SKUS_ARTICULO =
@@ -128,6 +128,7 @@ type
     IListaArticulosPantalla)
   private
     FConsulta: TUniQuery;
+    FSqlBase: string;
   public
     constructor Create(AConsulta: TUniQuery);
     procedure AplicarFiltro(const AFiltro: TFiltroArticulos);
@@ -320,10 +321,17 @@ begin
     aProveedores := SepararValoresFiltroArticulos(
       AFiltro.ProveedoresCsv);
     aFamilias := SepararValoresFiltroArticulos(AFiltro.FamiliasCsv);
+    // La consulta base es la que tenía la lista la primera vez: la del
+    // perfil si oGetSQLFromDB la cargó, o la del diseño. Los filtros se
+    // inyectan en ella en vez de sustituirla por SELECT * FROM vi_articulos,
+    // que descartaba las columnas de la consulta del perfil. Debe exponer
+    // vi_articulos con ese nombre.
+    if FSqlBase = '' then
+      FSqlBase := Trim(FConsulta.SQL.Text);
+    if FSqlBase = '' then
+      FSqlBase := 'SELECT * FROM vi_articulos';
     oSql := TStringBuilder.Create;
     try
-      oSql.AppendLine('SELECT * FROM vi_articulos');
-      oSql.AppendLine('WHERE 1 = 1');
       case AFiltro.Estado of
         efaActivos:
           oSql.AppendLine(
@@ -346,9 +354,10 @@ begin
         'PRV', aProveedores);
       AgregarLista(oSql, 'vi_articulos.CODIGO_FAM_ART',
         'FAM', aFamilias);
-      oSql.AppendLine('ORDER BY vi_articulos.ORDEN_ART');
       FConsulta.Close;
-      FConsulta.SQL.Text := oSql.ToString;
+      FConsulta.SQL.Text := InyectarFiltroSql(FSqlBase, ' ' + oSql.ToString);
+      if Pos('ORDER BY', UpperCase(FSqlBase)) = 0 then
+        FConsulta.SQL.Add('ORDER BY vi_articulos.ORDEN_ART');
       AplicarParametros('TEMP', aTemporadas);
       AplicarParametros('PRV', aProveedores);
       AplicarParametros('FAM', aFamilias);

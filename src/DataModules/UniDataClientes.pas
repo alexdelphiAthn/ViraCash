@@ -275,6 +275,17 @@ begin
     ParametrosCaja.TarifaDefecto;
 end;
 
+// Copia un campo de texto al parámetro conservando NULL: el UPDATE se
+// repite en cada grabación y no debe convertir en '' campos no rellenados.
+procedure AsignarTextoONulo(AParametro: TParam; ACampo: TField);
+begin
+  AParametro.DataType := ftString;
+  if ACampo.IsNull then
+    AParametro.Clear
+  else
+    AParametro.AsString := ACampo.AsString;
+end;
+
 procedure TdmClientes.GuardarParametrosEDocCliente(ADataSet: TDataSet);
 var
   Qry: TUniQuery;
@@ -295,7 +306,10 @@ begin
   begin
     Qry := TUniQuery.Create(nil);
     try
-      Qry.Connection := ConexionPrincipal;
+      // Misma conexión que la tabla: se ejecuta en AfterPost, con la fila
+      // aún bloqueada por su transacción; otra conexión esperaría al
+      // bloqueo hasta agotar el tiempo (error 1205).
+      Qry.Connection := unqryTablaG.Connection;
       if bCamposDir3Disponibles then
       begin
         Qry.SQL.Text :=
@@ -304,12 +318,12 @@ begin
           '     CODIGO_ORGANO_GESTOR_CLI = :ORGANO, ' +
           '     CODIGO_UNIDAD_TRAMITADORA_CLI = :UNIDAD ' +
           ' WHERE CODIGO_CLI_CLI = :CLIENTE ';
-        Qry.ParamByName('OFICINA').AsString :=
-          ADataSet.FieldByName('CODIGO_OFICINA_CONTABLE_CLI').AsString;
-        Qry.ParamByName('ORGANO').AsString :=
-          ADataSet.FieldByName('CODIGO_ORGANO_GESTOR_CLI').AsString;
-        Qry.ParamByName('UNIDAD').AsString :=
-          ADataSet.FieldByName('CODIGO_UNIDAD_TRAMITADORA_CLI').AsString;
+        AsignarTextoONulo(Qry.ParamByName('OFICINA'),
+          ADataSet.FieldByName('CODIGO_OFICINA_CONTABLE_CLI'));
+        AsignarTextoONulo(Qry.ParamByName('ORGANO'),
+          ADataSet.FieldByName('CODIGO_ORGANO_GESTOR_CLI'));
+        AsignarTextoONulo(Qry.ParamByName('UNIDAD'),
+          ADataSet.FieldByName('CODIGO_UNIDAD_TRAMITADORA_CLI'));
         Qry.ParamByName('CLIENTE').AsString := sCliente;
         Qry.ExecSQL;
       end;
@@ -320,10 +334,10 @@ begin
           ' SET NOMBRE_PERSONA_CLIENTE_CLI = :NOMBRE_PERSONA, ' +
           '     APELLIDOS_PERSONA_CLIENTE_CLI = :APELLIDOS_PERSONA ' +
           ' WHERE CODIGO_CLI_CLI = :CLIENTE ';
-        Qry.ParamByName('NOMBRE_PERSONA').AsString :=
-          ADataSet.FieldByName('NOMBRE_PERSONA_CLIENTE_CLI').AsString;
-        Qry.ParamByName('APELLIDOS_PERSONA').AsString :=
-          ADataSet.FieldByName('APELLIDOS_PERSONA_CLIENTE_CLI').AsString;
+        AsignarTextoONulo(Qry.ParamByName('NOMBRE_PERSONA'),
+          ADataSet.FieldByName('NOMBRE_PERSONA_CLIENTE_CLI'));
+        AsignarTextoONulo(Qry.ParamByName('APELLIDOS_PERSONA'),
+          ADataSet.FieldByName('APELLIDOS_PERSONA_CLIENTE_CLI'));
         Qry.ParamByName('CLIENTE').AsString := sCliente;
         Qry.ExecSQL;
       end;
@@ -350,7 +364,8 @@ begin
       sEsVarios := 'S';
     Qry := TUniQuery.Create(nil);
     try
-      Qry.Connection := ConexionPrincipal;
+      // Misma conexión que la tabla (ver GuardarParametrosEDocCliente).
+      Qry.Connection := unqryTablaG.Connection;
       Qry.SQL.Text :=
         ' UPDATE fza_clientes ' +
         ' SET ESVARIOS_CLI = :ESVARIOS ' +

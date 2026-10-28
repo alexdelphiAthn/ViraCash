@@ -29315,6 +29315,14 @@ begin
     'src/Lib/inLibMsgCaja.pas',
     @inLibMsgCaja.SCaptionAtajoRecogerTraspasoApp);
   ARegistrar(
+    'inLibMsgCaja.SPreguntaCambiarSerieFechaVenta',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.SPreguntaCambiarSerieFechaVenta);
+  ARegistrar(
+    'inLibMsgCaja.STituloCambiarSerieFechaVenta',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.STituloCambiarSerieFechaVenta);
+  ARegistrar(
     'inLibMsgCaja.SCaptionAtajoCargasEnviadasTransito',
     'src/Lib/inLibMsgCaja.pas',
     @inLibMsgCaja.SCaptionAtajoCargasEnviadasTransito);
