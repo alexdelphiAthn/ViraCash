@@ -324,9 +324,9 @@ begin
     FMovimientosFacc.ReadOnly := True;
     FMovimientosFacc.SQL.Text := SqlMovimientosFacturaCompra;
     // Parámetros con el nombre de los campos de la cabecera: UniDAC los
-    // rellena desde el maestro al cambiar de factura.
+    // rellena desde el maestro al cambiar de factura. Sin DetailFields:
+    // UniDAC los busca como campos del detalle («campo desconocido»).
     FMovimientosFacc.MasterFields := 'SERIE_FACC;NUMERO_FACC';
-    FMovimientosFacc.DetailFields := 'SERIE;NUMERO';
     FDsMovimientosFacc := TDataSource.Create(Self);
     FDsMovimientosFacc.DataSet := FMovimientosFacc;
   end;

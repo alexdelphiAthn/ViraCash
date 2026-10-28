@@ -268,7 +268,13 @@ begin
   FMueveStock := TcxDBCheckBox.Create(Self);
   FMueveStock.Name := 'chkMueveStockCompraDirecta';
   FMueveStock.Parent := FContenedorFiscal;
-  FMueveStock.SetBounds(16, 344, 580, 26);
+  // En la primera fila: debajo del botón fiscal quedaba fuera de la zona
+  // visible con el alto inicial de la ficha. Junto a la casilla REAGP si
+  // se usa; si no, en su sitio, que queda libre.
+  if FTratamientoAgricola.Visible then
+    FMueveStock.SetBounds(470, 16, 420, 26)
+  else
+    FMueveStock.SetBounds(16, 16, 580, 26);
   FMueveStock.Transparent := True;
   FMueveStock.Caption := SCaptionMueveStockCompraDirecta;
   FMueveStock.DataBinding.DataSource := dsTablaG;

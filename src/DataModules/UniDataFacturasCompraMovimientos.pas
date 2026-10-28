@@ -45,7 +45,8 @@ function FacturaCompraTieneMovimientos(AConexion: TUniConnection;
 procedure ContarLineasStockFacturaCompra(AConexion: TUniConnection;
   const ASerie, ANumero, AAlmacenCabecera: string;
   out ALineasStock, ALineasSinAlmacen: Integer);
-// Consulta de la pestaña «Movimientos»: parámetros SERIE y NUMERO.
+// Consulta de la pestaña «Movimientos»: parámetros SERIE_FACC y
+// NUMERO_FACC, con el nombre de los campos de la cabecera (maestro).
 function SqlMovimientosFacturaCompra: string;
 
 implementation
@@ -146,8 +147,8 @@ begin
     '  LEFT JOIN fza_articulos A ' +
     '    ON A.CODIGO_ART_ART = M.CODIGO_ART_MOV ' +
     ' WHERE M.TIPO_DOC_MOV = ''' + TIPO_DOC_MOV_FACTURA_COMPRA + ''' ' +
-    '   AND M.SERIE_DOC_MOV  = :SERIE ' +
-    '   AND M.NUMERO_DOC_MOV = :NUMERO ' +
+    '   AND M.SERIE_DOC_MOV  = :SERIE_FACC ' +
+    '   AND M.NUMERO_DOC_MOV = :NUMERO_FACC ' +
     ' ORDER BY M.LINEA_MOV, M.NUMERO_MOV';
 end;
 
