@@ -596,7 +596,7 @@ begin
     iAlto := FBarcodeAltura;
     iAltoHri := 0;
     if FBarcodeHriDebajo then
-      iAltoHri := 22;
+      iAltoHri := 28;
     case FAlineacion of
       1:
         iStartX := (ANCHO_PAPEL_PIXELS - iAncho) div 2;
@@ -624,7 +624,7 @@ begin
     begin
       FCanvas.Brush.Style := bsClear;
       FCanvas.Font.Name := 'Courier New';
-      FCanvas.Font.Size := 9;
+      FCanvas.Font.Size := 12;
       FCanvas.Font.Style := [];
       FCanvas.Font.Color := clBlack;
       FCanvas.TextOut(

@@ -21,6 +21,7 @@ unit inLibReimpresionOperacionCaja;
 interface
 
 uses
+  System.Classes,
   inLibParametrosIntf,
   inLibPreviewTicket,
   inLibUnidadesMedida,
@@ -29,6 +30,17 @@ uses
   inLibTicketsCajaIntf;
 
 type
+  // Ticket de venta con el formato FastReport del parámetro
+  // vgerFormatoTicket, el mismo del cobro (FZ-ISSUE-757).
+  ITicketFormatoCaja = interface
+    ['{6F0B8C1E-3D2A-4B7F-9E51-2C8A4D7B90F3}']
+    function TieneFormato: Boolean;
+    // False si no se pudo emitir: el llamador saca el ticket de texto.
+    function Imprimir(
+      const ASerie, ANumero, ANombreImpresora: string;
+      ARutasPdf: TStrings): Boolean;
+  end;
+
   TDependenciasReimpresionCaja = record
     TraspasoTicket: IRepositorioTraspasoTicket;
     Tickets: TRepositoriosTicketsCaja;
@@ -42,6 +54,8 @@ type
     Unidades: TUnidadesMedida;
     // Empresa de la sesión: la del recordatorio del cliente.
     EmpresaSesion: string;
+    // Opcional: sin él, la venta sale siempre con el ticket de texto.
+    TicketFormato: ITicketFormatoCaja;
   end;
 
   TOperacionReimpresionCaja = record
@@ -86,6 +100,37 @@ begin
   Result := (Pos('EC', ATipos) > 0) or (Pos('GC', ATipos) > 0);
 end;
 
+// El ticket de venta con el formato del cobro, si hay uno elegido.
+function ImprimirVentaConFormato(
+  const AEntorno: TEntornoReimpresionCaja;
+  const ADependencias: TDependenciasReimpresionCaja;
+  const AOperacion: TOperacionReimpresionCaja;
+  const ANombreImpresora: string): Boolean;
+var
+  rContexto: TContextoOperacionTicketCaja;
+  rCabecera: TCabeceraTicketCaja;
+begin
+  Result := False;
+  if Assigned(AEntorno.TicketFormato) and
+     Assigned(ADependencias.Tickets.Tickets) and
+     AEntorno.TicketFormato.TieneFormato then
+  begin
+    rContexto.Empresa := AOperacion.Empresa;
+    rContexto.Almacen := AOperacion.Almacen;
+    rContexto.Caja := AOperacion.Caja;
+    rContexto.Operacion := AOperacion.NumeroOperacion;
+    rCabecera :=
+      ADependencias.Tickets.Tickets.ObtenerCabeceraTicket(rContexto);
+    if rCabecera.Encontrada and
+       (Trim(rCabecera.NumeroFactura) <> '') then
+      Result := AEntorno.TicketFormato.Imprimir(
+        rCabecera.SerieFactura,
+        rCabecera.NumeroFactura,
+        ANombreImpresora,
+        nil);
+  end;
+end;
+
 function ReimprimirOperacionCaja(
   const AEntorno: TEntornoReimpresionCaja;
   const ADependencias: TDependenciasReimpresionCaja;
@@ -112,7 +157,9 @@ begin
   else
   begin
     bOperacionCaja := EsTiposOperacionCaja(AOperacion.Tipos);
-    if AOperacion.TieneFactura then
+    if AOperacion.TieneFactura and
+       (not ImprimirVentaConFormato(
+         AEntorno, ADependencias, AOperacion, ANombreImpresora)) then
       ImprimirTicketDesdeBD(
         AEntorno.ParametrosApp,
         AEntorno.Preview,

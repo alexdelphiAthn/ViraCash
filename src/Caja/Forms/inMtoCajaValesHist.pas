@@ -97,7 +97,8 @@ implementation
 
 uses
   inLibWin, inLibFiltroUsuario, inLibShowMto, inLibMensajesVcl,
-  inLibCajaPantallaInyeccion, inLibMsgFacturas;
+  inLibCajaPantallaInyeccion, inLibMsgFacturas,
+  inMtoCajaFormatosTicket;
 
 {$R *.dfm}
 
@@ -254,6 +255,8 @@ begin
     Entorno.Preview := PreviewTicket;
     Entorno.Unidades := UnidadesMedida;
     Entorno.EmpresaSesion := UbicacionSesion.Empresa;
+    Entorno.TicketFormato := CrearTicketFormatoCaja(
+      ConexionPrincipal, ParametrosCaja, PreviewTicket);
     Screen.Cursor := crHourGlass;
     try
       if not ReimprimirOperacionCaja(

@@ -231,7 +231,10 @@ begin
   if FindField('TIPO_FAC') <> nil then
     Result.TipoFactura := FieldByName('TIPO_FAC').AsString;
   Result.Fecha := FieldByName('FECHA_FAC').AsDateTime;
-    Result.CodigoCliente := FieldByName('CODIGO_CLI_FAC').AsString;
+    Result.CodigoCliente := Trim(
+      FieldByName('CODIGO_CLI_FAC').AsString);
+    if Result.CodigoCliente = '' then
+      Result.CodigoCliente := '0';
     Result.RazonSocialEmp :=
       FieldByName('RAZON_SOCIAL_EMPRESA_FAC').AsString;
     Result.NifEmp := FieldByName('NIF_EMPRESA_FAC').AsString;

@@ -37,7 +37,8 @@ function EnriquecerQueryConGuias(
 
 function ElegirColumnasNuevas(
   AOwner: TForm;
-  ACamposNuevos: TStringList): TStringList;
+  ACamposNuevos: TStringList;
+  out AAceptada: Boolean): TStringList;
 
 implementation
 
@@ -138,7 +139,8 @@ end;
 
 function ElegirColumnasNuevas(
   AOwner: TForm;
-  ACamposNuevos: TStringList): TStringList;
+  ACamposNuevos: TStringList;
+  out AAceptada: Boolean): TStringList;
 var
   iCampo: Integer;
   oBotonAceptar: TButton;
@@ -148,6 +150,7 @@ var
   oPanel: TPanel;
 begin
   Result := TStringList.Create;
+  AAceptada := False;
   if Assigned(ACamposNuevos) and (ACamposNuevos.Count > 0) then
   begin
     oFormulario := TForm.Create(AOwner);
@@ -187,6 +190,7 @@ begin
       oBotonCancelar.Height := 30;
       if oFormulario.ShowModal = mrOk then
       begin
+        AAceptada := True;
         for iCampo := 0 to oLista.Count - 1 do
         begin
           if oLista.Checked[iCampo] then

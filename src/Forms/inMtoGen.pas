@@ -217,6 +217,7 @@ type
       const AFragmentos: array of string);
     procedure CancelarTareasActivas;
     procedure EjecutarModalGuias;
+    procedure SeleccionGuiasAceptada(ACampos, AVisibles: TStrings);
     procedure OcultarFotoArticulo;
     procedure MostrarFotoArticulo(const ACodArt, ACodSku: string);
     procedure VincularFotoArticulo(
@@ -1600,6 +1601,7 @@ begin
     ConfiguracionCampos, RegistroLog,
     SolicitarDestinoPerfil, RecogerPerfilesParticulares,
     ResetearGridPerfil, FGestorGuias.BorrarGuias);
+  FGestorGuias.AlAceptarSeleccion := SeleccionGuiasAceptada;
   FInteraccionFiltros := TInteraccionFiltrosMtoVcl.Create(
     Self.Owner,
     Self.Name,
@@ -2881,6 +2883,12 @@ procedure TfrmMtoGen.sbExportExcelClick(Sender: TObject);
 begin
   if PuedeExportar then
     ExportarExcel(ParametrosApp, cxGrdPrincipal, 'Listado');
+end;
+
+procedure TfrmMtoGen.SeleccionGuiasAceptada(ACampos, AVisibles: TStrings);
+begin
+  FGestorPerfiles.ActualizarVisibilidadColumnas(
+    cxGrdDBTabPrin, ACampos, AVisibles);
 end;
 
 procedure TfrmMtoGen.EjecutarModalGuias;

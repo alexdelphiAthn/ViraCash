@@ -24,6 +24,8 @@ uses
 type
   TObtenerConsultaGuiasMto = function: TUniQuery of object;
   TEjecutarModalGuiasMto = procedure of object;
+  TSeleccionGuiasAceptadaMto = procedure(
+    ACampos, AVisibles: TStrings) of object;
 
   TGestorGuiasGridMto = class
   private
@@ -41,6 +43,7 @@ type
     FColumnasVisibles: TStringList;
     FRegistroLog: IRegistroLog;
     FConfiguracionCampos: IConfiguracionCampos;
+    FAlAceptarSeleccion: TSeleccionGuiasAceptadaMto;
     function BuscarColumna(
       const ACampo: string): TcxGridDBColumn;
     function AbrirConsultaEnriquecida(
@@ -90,6 +93,10 @@ type
     property CamposGuiaTabla: TStringList read FCamposGuiaTabla;
     property ColumnasVisibles: TStringList read FColumnasVisibles;
     property SqlOriginal: string read FSqlOriginal;
+    // Tras aceptar el selector de columnas: el Mto lleva la visibilidad
+    // al perfil Alt+F12 para que no la pise al reabrir (FZ-ISSUE-758).
+    property AlAceptarSeleccion: TSeleccionGuiasAceptadaMto
+      read FAlAceptarSeleccion write FAlAceptarSeleccion;
   end;
 
 implementation
@@ -119,6 +126,7 @@ begin
   FEjecutarModal := AEjecutarModal;
   FRegistroLog := ARegistroLog;
   FConfiguracionCampos := AConfiguracionCampos;
+  FAlAceptarSeleccion := nil;
   if not Assigned(FRegistroLog) then
     FRegistroLog := CrearRegistroLogNulo;
   FSqlOriginal := '';
@@ -566,10 +574,13 @@ begin
   // Conservar los objetos mantiene títulos, anchos y orden del usuario.
   ActualizarColumnas(ACampos, AVisibles, True);
   ActualizarListas(ACampos, ACamposTabla, AVisibles);
+  if Assigned(FAlAceptarSeleccion) then
+    FAlAceptarSeleccion(ACampos, AVisibles);
 end;
 
 procedure TGestorGuiasGridMto.NuevaGuia;
 var
+  bAceptada: Boolean;
   oConsulta: TUniQuery;
   oResultado: TGridGuiaResult;
   oCamposElegidos: TStringList;
@@ -600,12 +611,13 @@ begin
       begin
         FSqlOriginal := oResultado.SqlOriginal;
         oCamposElegidos := ElegirColumnasNuevas(
-          FFormulario, oResultado.CamposNuevos);
+          FFormulario, oResultado.CamposNuevos, bAceptada);
         try
           oConsulta.Open;
-          AplicarSeleccionGuias(
-            oResultado.CamposNuevos,
-            oResultado.CamposTabla, oCamposElegidos);
+          if bAceptada then
+            AplicarSeleccionGuias(
+              oResultado.CamposNuevos,
+              oResultado.CamposTabla, oCamposElegidos);
         finally
           FreeAndNil(oCamposElegidos);
         end;

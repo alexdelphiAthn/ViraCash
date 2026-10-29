@@ -53,6 +53,8 @@ type
     FResetearGrid: TResetearGridPerfilMto;
     FBorrarGuias: TBorrarGuiasPerfilMto;
     FPerfil: TProfileDicc;
+    FUsuario: string;
+    FGrupo: string;
     procedure AnadirPerfil(
       APerfiles: TPerfilList;
       const APermisos, ASubclave, AValor: string);
@@ -98,6 +100,9 @@ type
       AVisible: Boolean;
       const ANombreDataModule: string);
     procedure RestaurarFoco(AVista: TcxCustomGridTableView);
+    procedure ActualizarVisibilidadColumnas(
+      AVista: TcxCustomGridTableView;
+      ACampos, AVisibles: TStrings);
     property Perfil: TProfileDicc read FPerfil;
   end;
 
@@ -135,6 +140,7 @@ begin
   FResetearGrid := AResetearGrid;
   FBorrarGuias := ABorrarGuias;
   FPerfil := nil;
+  FUsuario := '';
 end;
 
 destructor TGestorPerfilesMto.Destroy;
@@ -160,6 +166,8 @@ begin
   if not Assigned(FServicioLectura) then
     raise Exception.Create(SErrorServicioPerfilesUsuarioNoConfigurado);
   FreeAndNil(FPerfil);
+  FUsuario := AUsuario;
+  FGrupo := AGrupo;
   FServicioLectura.CargarPerfilFormulario(
     FFormulario.Name, AUsuario, AGrupo, FPerfil);
   if not Assigned(FPerfil) then
@@ -491,6 +499,8 @@ begin
           ConstruirPerfilesLayout(sPermisos, oPerfiles);
           FServicioEscritura.GrabarPerfiles(oPerfiles);
         end);
+      if FUsuario <> '' then
+        CargarPerfil(FUsuario, FGrupo);
     finally
       FreeAndNil(oPerfiles);
       Screen.Cursor := crDefault;
@@ -540,6 +550,39 @@ procedure TGestorPerfilesMto.RestaurarFoco(
 begin
   if Assigned(FPerfil) and Assigned(AVista) then
     RestaurarFocoGrid(AVista, FPerfil, FRegistroLog);
+end;
+
+procedure TGestorPerfilesMto.ActualizarVisibilidadColumnas(
+  AVista: TcxCustomGridTableView;
+  ACampos, AVisibles: TStrings);
+var
+  sCampo: string;
+  sSubclave: string;
+  rValor: TDictValue;
+begin
+  // FZ-ISSUE-758: al abrir, AplicarEtiquetasTrasAbrir reaplica el diseño
+  // Alt+F12 y su Visible ganaba a la selección aceptada en el selector de
+  // guías. Las columnas que figuran en el perfil (de cualquier nivel)
+  // reciben la visibilidad elegida en el perfil del usuario, que es el de
+  // mayor prioridad; las que no figuran siguen con COLUMNAS_VISIBLES.
+  if Assigned(FPerfil) and Assigned(AVista) and
+     Assigned(FServicioEscritura) and (FUsuario <> '') then
+  begin
+    for sCampo in ACampos do
+    begin
+      sSubclave := AVista.Name + '_' + sCampo + '_Visible';
+      if FPerfil.TryGetValue(sSubclave, rValor) then
+      begin
+        if AVisibles.IndexOf(sCampo) >= 0 then
+          rValor.sValue := 'True'
+        else
+          rValor.sValue := 'False';
+        FServicioEscritura.GrabarPerfil(
+          FUsuario, FFormulario.Name, sSubclave, rValor.sValue);
+        FPerfil.AddOrSetValue(sSubclave, rValor);
+      end;
+    end;
+  end;
 end;
 
 end.

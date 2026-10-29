@@ -3439,6 +3439,7 @@ end;
 procedure TdmCajaOpe.cdsCabeceraAfterInsert(DataSet: TDataSet);
 begin
   AplicarValoresPorDefecto(FConexion, cdsCabecera, 'fza_facturas');
+  cdsCabecera.FieldByName('CODIGO_CLI_FAC').AsString := '0';
   cdsCabecera.FieldByName('SERIE_FAC').AsString := '0';
   cdsCabecera.FieldByName('TIPO_FAC').AsString := 'SIMPLIFICADA';
 end;

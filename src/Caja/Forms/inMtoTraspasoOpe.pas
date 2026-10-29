@@ -490,6 +490,10 @@ const
   ANCHO_MIN_STOCK_ORIGEN_96_DPI = 100;
   ANCHO_SEPARADOR_DERECHO_GRID_96_DPI = 10;
 
+type
+  // Acceso a GetBestFitWidth (protegido) de las columnas de stock
+  TColumnaStockAcceso = class(TcxGridDBColumn);
+
 function TextoBotonConAtajo(
   const ACaption, AAtajo: string): string;
 var
@@ -1225,6 +1229,13 @@ begin
       try
         try
           FStockView.ApplyBestFit;
+          // Como en caja: la vista reparte el ancho (ColumnAutoWidth) y
+          // estrechaba las tallas y el total hasta cortarlos ("7!", "Tc").
+          // Con el mínimo en su ancho óptimo cada talla ocupa lo que mida
+          // su texto y sólo ceden las columnas de código y almacén.
+          for i := 2 to FStockView.ColumnCount - 1 do
+            FStockView.Columns[i].MinWidth :=
+              TColumnaStockAcceso(FStockView.Columns[i]).GetBestFitWidth;
         except
           // ApplyBestFit puede fallar si no hay columnas; lo ignoramos.
           on E: Exception do

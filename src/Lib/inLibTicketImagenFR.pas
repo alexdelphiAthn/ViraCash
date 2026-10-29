@@ -31,7 +31,8 @@ const
 // con corte. El cajón es opcional para documentos ajenos a un cobro.
 // False si el informe no tiene páginas.
 function ComponerTicketDesdeInforme(AInforme: TfrxReport;
-  ATicket: TTicketTermico; AAbrirCajon: Boolean = True): Boolean;
+  ATicket: TTicketTermico; AAbrirCajon: Boolean = True;
+  const ACodigoBarras: string = ''): Boolean;
 
 implementation
 
@@ -58,7 +59,8 @@ begin
 end;
 
 function ComponerTicketDesdeInforme(AInforme: TfrxReport;
-  ATicket: TTicketTermico; AAbrirCajon: Boolean): Boolean;
+  ATicket: TTicketTermico; AAbrirCajon: Boolean;
+  const ACodigoBarras: string): Boolean;
 const
   cMargenFinalPuntos = 16;
 var
@@ -94,6 +96,11 @@ begin
     finally
       FreeAndNil(oPagina);
     end;
+  end;
+  if Trim(ACodigoBarras) <> '' then
+  begin
+    ATicket.SaltarLineas(1);
+    ATicket.ImprimirEAN13Nativo(ACodigoBarras);
   end;
   ATicket.AvanzarYCortarPapel(4);
   if AAbrirCajon then

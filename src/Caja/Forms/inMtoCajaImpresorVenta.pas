@@ -80,15 +80,6 @@ uses
   inLibTicketLotes, Datasnap.DBClient,
   inMtoCajaFormatosTicket;
 
-resourcestring
-  SFormatoTicketNoEncontrado =
-    'No se encuentra el formato de ticket "%s".';
-  SFormatoTicketSinPaginas =
-    'El formato de ticket "%s" no ha generado ninguna página.';
-  SAvisoTicketFastReport =
-    'No se pudo imprimir el ticket con el formato "%s": %s' + sLineBreak +
-    'Se imprime el ticket de texto.';
-
 constructor TImpresorVentaVcl.Create(
   APropietario: TComponent;
   const AParametrosApp: IParametrosAplicacion;
@@ -114,69 +105,14 @@ end;
 function TImpresorVentaVcl.ImprimirTicketFastReport(
   const ASolicitud: TSolicitudImpresionVenta;
   ARutasPdf: TStrings): Boolean;
-var
-  DatosFactura: TdmFacturas;
-  Formulario: TfrmPrintFac;
-  Ticket: TTicketTermico;
-  LineasTicket: TClientDataSet;
-  sFormato: string;
-  sImpresora: string;
-  sRutaPdf: string;
 begin
-  Result := False;
-  sFormato := Trim(FParametrosCaja.GetString(cParametroFormatoTicket, ''));
-  if (sFormato = '') or (not ASolicitud.DatosCobro.FRequiereFactura) or
-     (Trim(ASolicitud.NumeroFactura) = '') then
-    Exit;
-  Formulario := nil;
-  DatosFactura := nil;
-  LineasTicket := nil;
-  try
-    try
-      DatosFactura := CrearDatosImpresionFactura(
-        FPropietario, FConexion, FParametrosCaja);
-      Formulario := TfrmPrintFac.Create(Application);
-      Formulario.edtSerie.Text := ASolicitud.SerieFactura;
-      Formulario.edtNroFac.Text := ASolicitud.NumeroFactura;
-      Formulario.ConfigurarDataModule(DatosFactura);
-      Formulario.preparar_consulta;
-      if not Formulario.SeleccionarFormatoSinDialogo(sFormato) then
-        raise Exception.CreateFmt(SFormatoTicketNoEncontrado, [sFormato]);
-      LineasTicket := PrepararLineasTicket(
-        DatosFactura.unqryLinFacPrint,
-        FParametrosCaja.GetBool(PARAMETRO_IMPRIMIR_LOTES_TICKET, True));
-      DatosFactura.fxdstPrintLinFac.DataSet := LineasTicket;
-      DatosFactura.fxdstPrintLinFac.ResetFieldDefs;
-      // AfterReportLoaded rellena 'qrverifactu' solo con Verifactu activo.
-      if not Formulario.PrepararPaginasSinImprimir then
-        raise Exception.CreateFmt(SFormatoTicketSinPaginas, [sFormato]);
-      sImpresora := FParametrosCaja.ImpresoraCaja;
-      Ticket := TTicketTermico.Create(sImpresora);
-      try
-        Ticket.Inicializar;
-        if not ComponerTicketDesdeInforme(Formulario.frxrprt1, Ticket) then
-          raise Exception.CreateFmt(SFormatoTicketSinPaginas, [sFormato]);
-        sRutaPdf := GetUserFolderTickets + 'Ticket_' +
-          FormatDateTime('yyyy_mm_dd_hh_nn_ss', Now) + '.pdf';
-        // Impresora DEBUG o vacía: vista previa en lugar de impresión.
-        ImprimirOPrevisualizarTicket(FPreviewTicket, Ticket,
-          Ticket.ObtenerComandos, sRutaPdf, sImpresora);
-        if (ARutasPdf <> nil) and FileExists(sRutaPdf) then
-          ARutasPdf.Add(sRutaPdf);
-        Result := True;
-      finally
-        FreeAndNil(Ticket);
-      end;
-    except
-      on E: Exception do
-        MessageDlg_fza(Format(SAvisoTicketFastReport, [sFormato, E.Message]),
-          mtWarning, [mbOK], 0);
-    end;
-  finally
-    FreeAndNil(Formulario);
-    FreeAndNil(DatosFactura);
-    FreeAndNil(LineasTicket);
-  end;
+  Result := ASolicitud.DatosCobro.FRequiereFactura and
+    CrearTicketFormatoCaja(
+      FConexion, FParametrosCaja, FPreviewTicket).Imprimir(
+        ASolicitud.SerieFactura,
+        ASolicitud.NumeroFactura,
+        FParametrosCaja.ImpresoraCaja,
+        ARutasPdf);
 end;
 
 procedure TImpresorVentaVcl.ImprimirFacturaA4(

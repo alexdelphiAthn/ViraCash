@@ -269,7 +269,7 @@ procedure EscribirCabeceraVentaContado(
   const ATarifaDefault: string);
 begin
   ACabecera.Edit;
-  ACabecera.FieldByName('CODIGO_CLI_FAC').AsString := '';
+  ACabecera.FieldByName('CODIGO_CLI_FAC').AsString := '0';
   ACabecera.FieldByName('RAZON_SOCIAL_CLIENTE_FAC').AsString := '';
   ACabecera.FieldByName('NIF_CLIENTE_FAC').AsString := '';
   ACabecera.FieldByName('MOVIL_CLIENTE_FAC').AsString := '';

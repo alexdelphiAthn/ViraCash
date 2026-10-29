@@ -227,6 +227,7 @@ uses
      inLibFotos, inMtoFotoArticulo,
      inLibTraspasoTicket, inLibShowMto, inLibReimpresionOperacionCaja,
      inLibVerifactu, inLibVerifactuTipos, inMtoModalFacturarTicket,
+  inMtoCajaFormatosTicket,
   inLibCorreoTickets, UniDataCorreoTicketsRepositorio,
   inLibAtributosPaleta, inLibMsgComun,
   inLibMsgCaja, inLibMsgConfiguracion, inLibMsgFacturas,
@@ -1493,6 +1494,8 @@ begin
     Entorno.Preview := PreviewTicket;
     Entorno.Unidades := UnidadesMedida;
     Entorno.EmpresaSesion := UbicacionSesion.Empresa;
+    Entorno.TicketFormato := CrearTicketFormatoCaja(
+      ConexionPrincipal, ParametrosCaja, PreviewTicket);
     Dependencias := Default(TDependenciasReimpresionCaja);
     Dependencias.TraspasoTicket := FRepositorioTraspasoTicket;
     Dependencias.Tickets := FRepositoriosTicketsCaja;

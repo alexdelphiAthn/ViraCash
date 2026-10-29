@@ -256,7 +256,8 @@ uses
   inLibWin, inLibUser, inLibShowMto,
   inMtoModalGenImpSave, inMtoModalImpOperaciones, inMtoPreviewExcel,
   inLibDevExcel, inLibFotos, inLibFiltroUsuario,
-  dxSpreadSheetGraphics, inLibMsgCaja, inLibMsgComun, inLibMsgFacturas;
+  dxSpreadSheetGraphics, inLibMsgCaja, inLibMsgComun, inLibMsgFacturas,
+  inMtoCajaFormatosTicket;
 
 {$R *.dfm}
 
@@ -375,6 +376,8 @@ begin
       Entorno.Preview := PreviewTicket;
       Entorno.Unidades := UnidadesMedida;
       Entorno.EmpresaSesion := UbicacionSesion.Empresa;
+      Entorno.TicketFormato := CrearTicketFormatoCaja(
+        ConexionPrincipal, ParametrosCaja, PreviewTicket);
       if not ReimprimirOperacionCaja(
         Entorno,
         FDependenciasInyeccion.Reimpresion,
