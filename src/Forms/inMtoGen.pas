@@ -1593,7 +1593,7 @@ begin
   FGestorGuias := TGestorGuiasGridMto.Create(
     Self, cxgrdPrincipal, cxGrdDBTabPrin,
     InformesGuiasCache, ObtenerConsultaGuias,
-    EjecutarModalGuias, RegistroLog);
+    EjecutarModalGuias, RegistroLog, ConfiguracionCampos);
   FGestorPerfiles := TGestorPerfilesMto.Create(
     Self, dsTablaG, lblTablaOrigen,
     PerfilesLectura, PerfilesEscritura,
@@ -2794,7 +2794,10 @@ begin
   begin
     AplicarEtiquetas;
     AplicarPropertiesPorPrefijo(cxGrdDBTabPrin);
-  end;
+  end
+  else
+    FGestorPerfiles.AplicarEtiquetasTrasAbrir(
+      FGestorGuias.CamposGuia.Count > 0);
 end;
 
 procedure TfrmMtoGen.rbBBDDClick(Sender: TObject);

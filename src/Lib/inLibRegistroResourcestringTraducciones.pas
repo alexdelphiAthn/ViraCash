@@ -1,4 +1,4 @@
-﻿unit inLibRegistroResourcestringTraducciones;
+unit inLibRegistroResourcestringTraducciones;
 
 interface
 
@@ -638,6 +638,14 @@ end;
 procedure EnumerarResourcestringsIntegridadEsquema(
   const ARegistrar: TRegistrarResourcestringTraduccion);
 begin
+  ARegistrar(
+    'inLibMsgIntegridadEsquema.SIntegridadIntercalacionBase',
+    'src/Lib/inLibMsgIntegridadEsquema.pas',
+    @inLibMsgIntegridadEsquema.SIntegridadIntercalacionBase);
+  ARegistrar(
+    'inLibMsgIntegridadEsquema.SIntegridadIntercalacionesIncompatibles',
+    'src/Lib/inLibMsgIntegridadEsquema.pas',
+    @inLibMsgIntegridadEsquema.SIntegridadIntercalacionesIncompatibles);
   ARegistrar(
     'inLibMsgIntegridadEsquema.' +
     'STituloComprobarIntegridad',

@@ -54,6 +54,8 @@ type
     BaseDatos: string;
     VersionServidor: string;
     Usuario: string;
+    IntercalacionBase: string;
+    IncidenciasIntercalacion: TArray<string>;
   end;
 
   // Lee el catálogo de la base conectada con los permisos del usuario. Las

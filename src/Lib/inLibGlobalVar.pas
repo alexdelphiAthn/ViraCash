@@ -17,7 +17,7 @@ interface
 
 const
   oAppName = 'ViraCash';
-  oVersion = '1.0.18.202610281915.beta';
+  oVersion = '1.0.19.202610290735.beta';
   oAll = 'Todos';
 
 implementation

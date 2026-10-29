@@ -19,7 +19,7 @@ uses
   System.Classes, Vcl.Forms, Vcl.Menus, Uni, cxGrid,
   cxGridDBTableView, inLibInformesGuiasCache,
   inLibGridColumnChooser, inLibGuiasGridPersistenciaIntf,
-  inLibLogIntf;
+  inLibLogIntf, inLibConfigCamposIntf;
 
 type
   TObtenerConsultaGuiasMto = function: TUniQuery of object;
@@ -40,6 +40,7 @@ type
     FCamposGuiaTabla: TStringList;
     FColumnasVisibles: TStringList;
     FRegistroLog: IRegistroLog;
+    FConfiguracionCampos: IConfiguracionCampos;
     function BuscarColumna(
       const ACampo: string): TcxGridDBColumn;
     function AbrirConsultaEnriquecida(
@@ -67,7 +68,8 @@ type
       const ACache: IInformesGuiasCache;
       AObtenerConsulta: TObtenerConsultaGuiasMto;
       AEjecutarModal: TEjecutarModalGuiasMto;
-      const ARegistroLog: IRegistroLog = nil);
+      const ARegistroLog: IRegistroLog = nil;
+      const AConfiguracionCampos: IConfiguracionCampos = nil);
     destructor Destroy; override;
     procedure AsignarPersistencia(
       const APersistencia: IPersistenciaGuiasGrid);
@@ -78,6 +80,8 @@ type
     procedure AlternarColumna(AIndice: Integer);
     procedure RenombrarColumnas;
     procedure NuevaGuia;
+    procedure AplicarSeleccionGuias(
+      ACampos, ACamposTabla, AVisibles: TStringList);
     procedure LimpiarColumnasGuia;
     procedure ActualizarListas(
       ACampos, ACamposTabla, AVisibles: TStrings);
@@ -102,7 +106,8 @@ constructor TGestorGuiasGridMto.Create(
   const ACache: IInformesGuiasCache;
   AObtenerConsulta: TObtenerConsultaGuiasMto;
   AEjecutarModal: TEjecutarModalGuiasMto;
-  const ARegistroLog: IRegistroLog);
+  const ARegistroLog: IRegistroLog;
+  const AConfiguracionCampos: IConfiguracionCampos);
 begin
   inherited Create;
   FFormulario := AFormulario;
@@ -113,6 +118,7 @@ begin
   FObtenerConsulta := AObtenerConsulta;
   FEjecutarModal := AEjecutarModal;
   FRegistroLog := ARegistroLog;
+  FConfiguracionCampos := AConfiguracionCampos;
   if not Assigned(FRegistroLog) then
     FRegistroLog := CrearRegistroLogNulo;
   FSqlOriginal := '';
@@ -237,6 +243,16 @@ begin
         oColumna := FVista.CreateColumn as TcxGridDBColumn;
         oColumna.DataBinding.FieldName := sCampo;
         oColumna.Caption := sCampo;
+        if Assigned(FConfiguracionCampos) and
+           FConfiguracionCampos.Cargada then
+        begin
+          if FConfiguracionCampos.ObtenerTitulo(sCampo) <> '' then
+            oColumna.Caption :=
+              FConfiguracionCampos.ObtenerTitulo(sCampo);
+          if FConfiguracionCampos.ObtenerAncho(sCampo) > 0 then
+            oColumna.Width :=
+              FConfiguracionCampos.ObtenerAncho(sCampo);
+        end;
         oColumna.Visible := bVisible;
       end
       else if AActualizarExistentes then
@@ -533,9 +549,23 @@ begin
     FPersistencia.GuardarColumnasVisibles(
       'GRID:' + FFormulario.Name,
       oColumnas.DelimitedText);
+    if Assigned(FCache) then
+    begin
+      FCache.Invalidar;
+      FCache.Precargar;
+    end;
   finally
     FreeAndNil(oColumnas);
   end;
+end;
+
+procedure TGestorGuiasGridMto.AplicarSeleccionGuias(
+  ACampos, ACamposTabla, AVisibles: TStringList);
+begin
+  GuardarColumnasVisibles(AVisibles);
+  // Conservar los objetos mantiene títulos, anchos y orden del usuario.
+  ActualizarColumnas(ACampos, AVisibles, True);
+  ActualizarListas(ACampos, ACamposTabla, AVisibles);
 end;
 
 procedure TGestorGuiasGridMto.NuevaGuia;
@@ -556,7 +586,6 @@ begin
     oConsulta := FObtenerConsulta;
   if Assigned(oConsulta) and oConsulta.Active then
   begin
-    LimpiarColumnasGuia;
     if FSqlOriginal <> '' then
     begin
       oConsulta.Close;
@@ -574,13 +603,9 @@ begin
           FFormulario, oResultado.CamposNuevos);
         try
           oConsulta.Open;
-          ActualizarColumnas(
+          AplicarSeleccionGuias(
             oResultado.CamposNuevos,
-            oCamposElegidos,
-            True);
-          CopiarLista(
-            FCamposGuia, oResultado.CamposNuevos);
-          GuardarColumnasVisibles(oCamposElegidos);
+            oResultado.CamposTabla, oCamposElegidos);
         finally
           FreeAndNil(oCamposElegidos);
         end;

@@ -341,11 +341,6 @@
               DataBinding.FieldName = 'TABLA_INFGUI'
               Width = 160
             end
-            object tvGuiasSQL: TcxGridDBColumn
-              Caption = 'SQL libre'
-              DataBinding.FieldName = 'SQL_INFGUI'
-              Width = 180
-            end
             object tvGuiasMASTER_FIELDS: TcxGridDBColumn
               Caption = 'Master fields'
               DataBinding.FieldName = 'MASTER_FIELDS_INFGUI'

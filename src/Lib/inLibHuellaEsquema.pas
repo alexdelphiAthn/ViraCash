@@ -155,6 +155,7 @@ begin
   // Los objetos propios y ajustes de índices conservan el criterio del
   // comprobador. Una validación parcial nunca autoriza el arranque.
   Result := AComprobacion.EsquemaIdealCoherente and
+    (Length(AComprobacion.Contexto.IncidenciasIntercalacion) = 0) and
     (AComprobacion.Resultado.Estado in [eiIntegra, eiObjetosDeMas]) and
     AComprobacion.Resultado.CodigoComprobado and
     (AComprobacion.Resultado.ElementosSinPermiso = 0) and
@@ -749,6 +750,10 @@ begin
                                       Result.Motor);
   CompararProcedimiento(ALector.LeerHuellasProcedimiento,
                         Result.Resultado);
+  // Las firmas históricas no contienen COLLATE. La comprobación adicional
+  // también debe afectar al estado, aunque esas huellas coincidan.
+  if Length(Result.Contexto.IncidenciasIntercalacion) > 0 then
+    Result.Resultado.Estado := eiConDiferencias;
 end;
 
 end.

@@ -39,6 +39,7 @@ type
   public
     constructor Create(AConexion: TUniConnection);
     class function SqlContexto: string; static;
+    class function SqlIntercalaciones: string; static;
     class function SqlVistas: string; static;
     class function SqlColumnas: string; static;
     class function SqlIndices: string; static;
@@ -111,7 +112,52 @@ begin
   Result :=
     ' SELECT DATABASE() AS BASE_DATOS, ' +
     '        VERSION() AS VERSION_SERVIDOR, ' +
-    '        CURRENT_USER() AS USUARIO ';
+    '        CURRENT_USER() AS USUARIO, ' +
+    '        (SELECT DEFAULT_COLLATION_NAME ' +
+    '           FROM information_schema.SCHEMATA ' +
+    '          WHERE SCHEMA_NAME = DATABASE()) AS INTERCALACION_BASE ';
+end;
+
+class function TLectorCatalogoEsquemaUniDAC.SqlIntercalaciones: string;
+begin
+  // Comprobación adicional: no cambia las firmas ni exige regenerar el
+  // recurso ideal o PRC_FZA_HUELLA_ESQUEMA. Los campos binarios de texto
+  // son válidos (JSON); no se confunden con la mezcla de parámetros.
+  Result :=
+    ' SELECT CONCAT(''DATABASE '', SCHEMA_NAME) AS OBJETO, ' +
+    '        DEFAULT_COLLATION_NAME AS INTERCALACION ' +
+    ' FROM information_schema.SCHEMATA ' +
+    ' WHERE SCHEMA_NAME = DATABASE() ' +
+    ' AND DEFAULT_COLLATION_NAME <> ''utf8mb4_spanish_ci'' ' +
+    ' UNION ALL ' +
+    ' SELECT CONCAT(''TABLE '', T.TABLE_NAME), T.TABLE_COLLATION ' +
+    ' FROM information_schema.TABLES T ' +
+    ' WHERE T.TABLE_SCHEMA = DATABASE() AND T.TABLE_TYPE = ''BASE TABLE'' ' +
+    Format(cSinTablasAjenas, ['T.TABLE_NAME']) +
+    ' AND T.TABLE_COLLATION <> ''utf8mb4_spanish_ci'' ' +
+    ' UNION ALL ' +
+    ' SELECT CONCAT(''COLUMN '', C.TABLE_NAME, ''.'', C.COLUMN_NAME), ' +
+    '        C.COLLATION_NAME FROM information_schema.COLUMNS C ' +
+    ' WHERE C.TABLE_SCHEMA = DATABASE() ' +
+    Format(cSinTablasAjenas, ['C.TABLE_NAME']) +
+    ' AND C.TABLE_NAME NOT LIKE ''vu\_%'' ' +
+    ' AND C.TABLE_NAME NOT LIKE ''%\_print'' ' +
+    ' AND C.COLLATION_NAME NOT IN ' +
+    ' (''utf8mb4_spanish_ci'', ''utf8mb4_bin'') ' +
+    ' UNION ALL ' +
+    ' SELECT CONCAT(''ROUTINE '', R.ROUTINE_NAME), ' +
+    '        R.DATABASE_COLLATION FROM information_schema.ROUTINES R ' +
+    ' WHERE R.ROUTINE_SCHEMA = DATABASE() ' +
+    Format(cSinRutinasAjenas, ['R.ROUTINE_NAME']) +
+    ' AND R.DATABASE_COLLATION <> ''utf8mb4_spanish_ci'' ' +
+    ' UNION ALL ' +
+    ' SELECT CONCAT(''PARAMETER '', P.SPECIFIC_NAME, ''.'', ' +
+    ' IFNULL(P.PARAMETER_NAME, ''RETURNS'')), P.COLLATION_NAME ' +
+    ' FROM information_schema.PARAMETERS P ' +
+    ' WHERE P.SPECIFIC_SCHEMA = DATABASE() ' +
+    Format(cSinRutinasAjenas, ['P.SPECIFIC_NAME']) +
+    ' AND P.COLLATION_NAME <> ''utf8mb4_spanish_ci'' ' +
+    ' ORDER BY OBJETO ';
 end;
 
 class function TLectorCatalogoEsquemaUniDAC.SqlVistas: string;
@@ -257,12 +303,28 @@ function TLectorCatalogoEsquemaUniDAC.LeerContexto: TContextoCatalogo;
 var
   oConsulta: TUniQuery;
 begin
+  Result := Default(TContextoCatalogo);
   oConsulta := AbrirConsulta(SqlContexto);
   try
     Result.BaseDatos := oConsulta.FieldByName('BASE_DATOS').AsString;
     Result.VersionServidor := oConsulta.FieldByName(
       'VERSION_SERVIDOR').AsString;
     Result.Usuario := oConsulta.FieldByName('USUARIO').AsString;
+    Result.IntercalacionBase := oConsulta.FieldByName(
+      'INTERCALACION_BASE').AsString;
+  finally
+    oConsulta.Free;
+  end;
+  oConsulta := AbrirConsulta(SqlIntercalaciones);
+  try
+    while not oConsulta.Eof do
+    begin
+      Result.IncidenciasIntercalacion :=
+        Result.IncidenciasIntercalacion +
+        [oConsulta.FieldByName('OBJETO').AsString + ' = ' +
+         oConsulta.FieldByName('INTERCALACION').AsString];
+      oConsulta.Next;
+    end;
   finally
     oConsulta.Free;
   end;

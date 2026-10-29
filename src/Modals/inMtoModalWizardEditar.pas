@@ -81,7 +81,6 @@ type
     tvGuiasCODIGO: TcxGridDBColumn;
     tvGuiasTIPO: TcxGridDBColumn;
     tvGuiasTABLA: TcxGridDBColumn;
-    tvGuiasSQL: TcxGridDBColumn;
     tvGuiasMASTER_FIELDS: TcxGridDBColumn;
     tvGuiasDETAIL_FIELDS: TcxGridDBColumn;
     tvGuiasORDEN: TcxGridDBColumn;

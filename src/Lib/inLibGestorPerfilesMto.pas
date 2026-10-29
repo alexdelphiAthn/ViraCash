@@ -83,6 +83,7 @@ type
     function Valor(
       const ASubclave, AValorPredeterminado: string): string;
     procedure AplicarEtiquetas;
+    procedure AplicarEtiquetasTrasAbrir(AHayColumnasGuia: Boolean);
     procedure RestaurarSeparadores;
     procedure CargarPerfilesComunes(
       const AUsuarioGrupo: string = PERFIL_TODOS);
@@ -277,6 +278,16 @@ begin
     FreeAndNil(oGrids);
   end;
   // Los perfiles ya no sustituyen textos. La traducción usará su catálogo.
+end;
+
+procedure TGestorPerfilesMto.AplicarEtiquetasTrasAbrir(
+  AHayColumnasGuia: Boolean);
+begin
+  // Las guías crean sus columnas después de cargar el perfil inicial.
+  // Restaurar con todas presentes conserva también los índices normales.
+  if AHayColumnasGuia or
+     SameText(Trim(Valor('oCreateItems', 'False')), 'True') then
+    AplicarEtiquetas;
 end;
 
 procedure TGestorPerfilesMto.CargarPerfilesComunes(

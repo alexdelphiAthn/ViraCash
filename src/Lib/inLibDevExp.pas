@@ -1,4 +1,4 @@
-﻿{******************************************************************************}
+{******************************************************************************}
 {                                                                              }
 {  Módulo:       inLibDevExp                                                   }
 {    Tipo:       Librería                                                      }
@@ -996,8 +996,8 @@ begin
       // la decide el formulario: un perfil antiguo, sin ella, la mostraria.
       if oItem.VisibleForCustomization then
         oItem.Visible := SameText(
-          GetPerfilSubKeyValueDef(
-            APerfil, sSubClave, 'Visible', 'True'), 'True');
+          GetPerfilSubKeyValueDef(APerfil, sSubClave, 'Visible',
+            BoolToStr(oItem.Visible, True)), 'True');
       sValor := GetPerfilSubKeyValueDef(
         APerfil, sSubClave, 'Caption', '');
       if sValor <> '' then
@@ -1032,38 +1032,55 @@ procedure RestaurarIndicesColumnas(
   const ARegistroLog: IRegistroLog);
 var
   oItem: TcxGridColumn;
+  oOrden: TList<TPair<Integer, TcxGridColumn>>;
   iItem: Integer;
   iIndice: Integer;
   iMaximo: Integer;
+  iPosicion: Integer;
   sCampo: string;
   sValor: string;
 begin
   iMaximo := AView.ItemCount - 1;
   if not (AView is TcxGridDBBandedTableView) then
   begin
-    for iItem := 0 to AView.ItemCount - 1 do
-    begin
-      oItem := AView.Items[iItem] as TcxGridColumn;
-      sCampo := GetItemFieldName(oItem);
-      if sCampo <> '' then
+    oOrden := TList<TPair<Integer, TcxGridColumn>>.Create;
+    try
+      // Capturar y ordenar antes de mover: cambiar Index mientras se
+      // recorren Items desplaza columnas y deja otras sin restaurar.
+      for iItem := 0 to AView.ItemCount - 1 do
       begin
-        sValor := GetPerfilSubKeyValueDef(
-          APerfil, ANombreVista + '_' + sCampo, 'Index', '');
-        if sValor <> '' then
+        oItem := AView.Items[iItem] as TcxGridColumn;
+        sCampo := GetItemFieldName(oItem);
+        iIndice := oItem.Index;
+        if sCampo <> '' then
         begin
-          iIndice := StrToIntDef(sValor, oItem.Index);
-          if iIndice > iMaximo then
+          sValor := GetPerfilSubKeyValueDef(
+            APerfil, ANombreVista + '_' + sCampo, 'Index', '');
+          if sValor <> '' then
           begin
-            ARegistroLog.RegistrarAviso(Format(
-              '  columna %s: Index guardado=%d > max=%d, ajustado',
-              [sCampo, iIndice, iMaximo]));
-            iIndice := iMaximo;
+            iIndice := StrToIntDef(sValor, oItem.Index);
+            if iIndice > iMaximo then
+            begin
+              ARegistroLog.RegistrarAviso(Format(
+                '  columna %s: Index guardado=%d > max=%d, ajustado',
+                [sCampo, iIndice, iMaximo]));
+              iIndice := iMaximo;
+            end;
+            if iIndice < 0 then
+              iIndice := 0;
           end;
-          if iIndice < 0 then
-            iIndice := 0;
-          oItem.Index := iIndice;
         end;
+        iPosicion := 0;
+        while (iPosicion < oOrden.Count) and
+              (oOrden[iPosicion].Key <= iIndice) do
+          Inc(iPosicion);
+        oOrden.Insert(iPosicion,
+          TPair<Integer, TcxGridColumn>.Create(iIndice, oItem));
       end;
+      for iItem := 0 to oOrden.Count - 1 do
+        oOrden[iItem].Value.Index := iItem;
+    finally
+      oOrden.Free;
     end;
   end;
 end;

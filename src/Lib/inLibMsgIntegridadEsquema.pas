@@ -17,6 +17,14 @@ unit inLibMsgIntegridadEsquema;
 interface
 
 resourcestring
+  SIntegridadIntercalacionesIncompatibles =
+    'Intercalaciones incompatibles: %d. La base y los parámetros de sus ' +
+    'procedimientos deben usar utf8mb4_spanish_ci. Una copia importada ' +
+    'con otra intercalación puede provocar el error 1267 al guardar. ' +
+    'Cambiar solo el COLLATE de la base no corrige los procedimientos ' +
+    'ya creados. Revise la copia y vuelva a importar sus definiciones ' +
+    'con la intercalación correcta; esta comprobación no modifica datos.';
+  SIntegridadIntercalacionBase = 'Intercalación de la base: %s';
   SIntegridadBotonActualizar = 'Comprobar actualizaciones';
   SIntegridadActualizacionArranque =
     'Puede pulsar Comprobar actualizaciones para actualizar antes de ' +

@@ -246,6 +246,7 @@ function TextoInformeIntegridad(
   AAlArrancar: Boolean): string;
 var
   oLineas: TStringList;
+  iIntercalacion: Integer;
 begin
   oLineas := TStringList.Create;
   try
@@ -256,7 +257,26 @@ begin
                          [AComprobacion.TextoFirma]));
       oLineas.Add('');
     end;
-    oLineas.Add(TextoResultado(AComprobacion.Resultado, AAlArrancar));
+    if Length(AComprobacion.Contexto.IncidenciasIntercalacion) > 0 then
+      oLineas.Add(Format(SIntegridadIntercalacionesIncompatibles,
+        [Length(AComprobacion.Contexto.IncidenciasIntercalacion)]))
+    else
+      oLineas.Add(TextoResultado(AComprobacion.Resultado, AAlArrancar));
+    if AComprobacion.Contexto.IntercalacionBase <> '' then
+      oLineas.Add(Format(SIntegridadIntercalacionBase,
+        [AComprobacion.Contexto.IntercalacionBase]));
+    for iIntercalacion := 0 to
+      Length(AComprobacion.Contexto.IncidenciasIntercalacion) - 1 do
+    begin
+      if iIntercalacion < cMaximoLineasDetalleIntegridad then
+        oLineas.Add(AComprobacion.Contexto.
+          IncidenciasIntercalacion[iIntercalacion]);
+    end;
+    if Length(AComprobacion.Contexto.IncidenciasIntercalacion) >
+       cMaximoLineasDetalleIntegridad then
+      oLineas.Add(Format(SIntegridadMasDiferencias,
+        [Length(AComprobacion.Contexto.IncidenciasIntercalacion) -
+         cMaximoLineasDetalleIntegridad]));
     oLineas.Add('');
     AnadirAvisos(AComprobacion, oLineas);
     oLineas.Add('');
@@ -305,6 +325,9 @@ begin
      Length(AComprobacion.Resultado.Diferencias),
      cProcedimiento[AComprobacion.Resultado.Procedimiento],
      BoolToStr(AComprobacion.EsquemaIdealCoherente, True)]);
+  Result := Result + Format('; intercalacion %s; incompatibles %d',
+    [AComprobacion.Contexto.IntercalacionBase,
+     Length(AComprobacion.Contexto.IncidenciasIntercalacion)]);
 end;
 
 end.
