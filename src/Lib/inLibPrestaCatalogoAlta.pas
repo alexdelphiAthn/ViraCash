@@ -23,7 +23,10 @@ type
     IClienteCatalogoAltaPresta)
   private
     FTransporte: ITransporteAltaPresta;
+    FIdiomasTienda: TArray<Integer>;
+    FIdiomasLeidos: Boolean;
     function SolicitarXml(const ARecurso: string): string;
+    function IdiomasEnvio(AIdIdioma: Integer): TArray<Integer>;
     function BuscarId(const ARecurso, AColeccion, AElemento,
       AIdentificacion: string): Integer;
     function CrearRecurso(const ARecurso, AElemento,
@@ -104,6 +107,11 @@ resourcestring
     'falta el nodo %s';
   SIdAltaPrestaInvalido =
     'el identificador devuelto no es válido';
+  SValidacionAltaPresta =
+    'PrestaShop rechazó el alta (HTTP 400 al ejecutar POST sobre %s): ' +
+    '%s. Revise los datos del artículo; la cola no lo reintentará.';
+  SValidacionAltaPrestaSinDetalle =
+    'sin detalle del error';
 
 function EscaparXml(const AValor: string): string;
 begin
@@ -149,17 +157,25 @@ begin
     ANombre + '>' + sLineBreak;
 end;
 
+// El mismo texto va en todos los idiomas de la tienda: PrestaShop exige
+// los campos obligatorios en su idioma por defecto (FZ-ISSUE-761).
 function CampoIdiomaXml(const ANombre, AValor: string;
-  AIdIdioma: Integer): string;
+  const AIdiomas: TArray<Integer>): string;
+var
+  iIndice: Integer;
 begin
-  Result := '    <' + ANombre + '>' + sLineBreak +
-    '      <language id="' + IntToStr(AIdIdioma) + '">' +
-    EscaparXml(AValor) + '</language>' + sLineBreak +
-    '    </' + ANombre + '>' + sLineBreak;
+  Result := '    <' + ANombre + '>' + sLineBreak;
+  for iIndice := 0 to High(AIdiomas) do
+  begin
+    Result := Result + '      <language id="' +
+      IntToStr(AIdiomas[iIndice]) + '">' + EscaparXml(AValor) +
+      '</language>' + sLineBreak;
+  end;
+  Result := Result + '    </' + ANombre + '>' + sLineBreak;
 end;
 
-function CrearXmlCategoria(
-  const ADatos: TAltaCategoriaPresta): string;
+function CrearXmlCategoria(const ADatos: TAltaCategoriaPresta;
+  const AIdiomas: TArray<Integer>): string;
 var
   sContenido: string;
 begin
@@ -170,14 +186,15 @@ begin
     IntToStr(ADatos.IdTienda));
   sContenido := sContenido + CampoXml('is_root_category', '0');
   sContenido := sContenido + CampoIdiomaXml('name', ADatos.Nombre,
-    ADatos.IdIdioma);
+    AIdiomas);
   sContenido := sContenido + CampoIdiomaXml('link_rewrite',
-    ADatos.Enlace, ADatos.IdIdioma);
+    ADatos.Enlace, AIdiomas);
   Result := CrearDocumento(CCategoria, sContenido);
 end;
 
 function CrearXmlGrupoAtributos(
-  const ADatos: TAltaGrupoAtributosPresta): string;
+  const ADatos: TAltaGrupoAtributosPresta;
+  const AIdiomas: TArray<Integer>): string;
 var
   sContenido: string;
 begin
@@ -186,14 +203,15 @@ begin
   sContenido := sContenido + CampoXml('group_type',
     LowerCase(Trim(ADatos.TipoGrupo)));
   sContenido := sContenido + CampoIdiomaXml('name', ADatos.Nombre,
-    ADatos.IdIdioma);
+    AIdiomas);
   sContenido := sContenido + CampoIdiomaXml('public_name',
-    ADatos.NombrePublico, ADatos.IdIdioma);
+    ADatos.NombrePublico, AIdiomas);
   Result := CrearDocumento(CGrupoAtributos, sContenido);
 end;
 
 function CrearXmlValorAtributo(
-  const ADatos: TAltaValorAtributoPresta): string;
+  const ADatos: TAltaValorAtributoPresta;
+  const AIdiomas: TArray<Integer>): string;
 var
   sContenido: string;
 begin
@@ -201,7 +219,7 @@ begin
     IntToStr(ADatos.IdGrupo));
   sContenido := sContenido + CampoXml('color', Trim(ADatos.Color));
   sContenido := sContenido + CampoIdiomaXml('name', ADatos.Nombre,
-    ADatos.IdIdioma);
+    AIdiomas);
   Result := CrearDocumento(CValorAtributo, sContenido);
 end;
 
@@ -243,8 +261,8 @@ begin
     '    </associations>' + sLineBreak;
 end;
 
-function CrearXmlProductoInactivo(
-  const ADatos: TAltaProductoPresta): string;
+function CrearXmlProductoInactivo(const ADatos: TAltaProductoPresta;
+  const AIdiomas: TArray<Integer>): string;
 var
   aCategorias: TArray<Integer>;
   sContenido: string;
@@ -268,13 +286,13 @@ begin
   sContenido := sContenido + CampoXml('indexed', '0');
   sContenido := sContenido + CampoXml('visibility', 'both');
   sContenido := sContenido + CampoIdiomaXml('name', ADatos.Nombre,
-    ADatos.IdIdioma);
+    AIdiomas);
   sContenido := sContenido + CampoIdiomaXml('link_rewrite',
-    ADatos.Enlace, ADatos.IdIdioma);
+    ADatos.Enlace, AIdiomas);
   sContenido := sContenido + CampoIdiomaXml('description_short',
-    ADatos.DescripcionCorta, ADatos.IdIdioma);
+    ADatos.DescripcionCorta, AIdiomas);
   sContenido := sContenido + CampoIdiomaXml('description',
-    ADatos.Descripcion, ADatos.IdIdioma);
+    ADatos.Descripcion, AIdiomas);
   sContenido := sContenido + AsociacionesCategoriasXml(aCategorias);
   Result := CrearDocumento(CProducto, sContenido);
 end;
@@ -530,6 +548,74 @@ begin
   end;
 end;
 
+// Los campos multilingües de una lectura traen un <language id> por cada
+// idioma instalado; así se conocen sin permiso sobre languages.
+function LeerIdiomasCategoria(const AXml,
+  ARecurso: string): TArray<Integer>;
+var
+  iId: Integer;
+  iIndice: Integer;
+  oCategoria: IXMLNode;
+  oColeccion: IXMLNode;
+  oDocumento: IXMLDocument;
+  oIds: TList<Integer>;
+  oNodo: IXMLNode;
+  oNombre: IXMLNode;
+begin
+  oDocumento := CargarDocumento(AXml, ARecurso);
+  oColeccion := HijoObligatorio(oDocumento.DocumentElement,
+    CCategorias, ARecurso);
+  oCategoria := BuscarHijo(oColeccion, CCategoria);
+  oNombre := BuscarHijo(oCategoria, 'name');
+  oIds := TList<Integer>.Create;
+  try
+    if Assigned(oNombre) then
+    begin
+      for iIndice := 0 to oNombre.ChildNodes.Count - 1 do
+      begin
+        oNodo := oNombre.ChildNodes.Get(iIndice);
+        if SameText(oNodo.NodeName, 'language') and
+           oNodo.HasAttribute('id') and
+           TryStrToInt(VarToStr(oNodo.Attributes['id']), iId) and
+           (iId > 0) and (not oIds.Contains(iId)) then
+          oIds.Add(iId);
+      end;
+    end;
+    Result := oIds.ToArray;
+  finally
+    oIds.Free;
+  end;
+end;
+
+function LeerMensajeErrorPresta(const AXml,
+  ARecurso: string): string;
+var
+  iIndice: Integer;
+  oDocumento: IXMLDocument;
+  oErrores: IXMLNode;
+  oMensaje: IXMLNode;
+begin
+  Result := '';
+  oDocumento := CargarDocumento(AXml, ARecurso);
+  oErrores := BuscarHijo(oDocumento.DocumentElement, 'errors');
+  if Assigned(oErrores) then
+  begin
+    for iIndice := 0 to oErrores.ChildNodes.Count - 1 do
+    begin
+      oMensaje := BuscarHijo(oErrores.ChildNodes.Get(iIndice),
+        'message');
+      if Assigned(oMensaje) and (Trim(oMensaje.Text) <> '') then
+      begin
+        if Result <> '' then
+          Result := Result + '; ';
+        Result := Result + Trim(oMensaje.Text);
+      end;
+    end;
+  end;
+  if Result = '' then
+    Result := SValidacionAltaPrestaSinDetalle;
+end;
+
 function CrearClienteCatalogoAltaPresta(const AUrlApi,
   AClaveApi: string): IClienteCatalogoAltaPresta;
 begin
@@ -578,9 +664,59 @@ var
   rRespuesta: TRespuestaHttpPresta;
 begin
   rRespuesta := FTransporte.EjecutarPostXml(ARecurso, AXml);
-  ComprobarRespuestaHttpPresta(rRespuesta, 'POST', ARecurso);
+  try
+    ComprobarRespuestaHttpPresta(rRespuesta, 'POST', ARecurso);
+  except
+    { Un 400 de PrestaShop es un error de validación: repetir el mismo XML
+      no lo arregla, así que pasa a configuración inválida (incidencia
+      terminal) con el motivo que da la tienda. }
+    on E: EErrorHttpPresta do
+    begin
+      if E.EstadoHttp = 400 then
+        raise EConfiguracionPrestaInvalida.CreateFmt(
+          SValidacionAltaPresta, [ARecurso,
+          LeerMensajeErrorPresta(rRespuesta.Contenido, ARecurso)]);
+      raise;
+    end;
+  end;
   Result := ResolverIdCreado(rRespuesta.Contenido,
     AElemento, ARecurso);
+end;
+
+// Idioma configurado primero y después el resto de idiomas de la tienda,
+// leídos una sola vez por cliente. Si la clave no puede leer categorías
+// (401/403/404), se envía solo el idioma configurado, como hasta ahora.
+function TClienteCatalogoAltaPresta.IdiomasEnvio(
+  AIdIdioma: Integer): TArray<Integer>;
+var
+  iIndice: Integer;
+  oIds: TList<Integer>;
+  sRecurso: string;
+begin
+  if not FIdiomasLeidos then
+  begin
+    sRecurso := CCategorias + '?display=[id,name]&limit=1';
+    try
+      FIdiomasTienda := LeerIdiomasCategoria(SolicitarXml(sRecurso),
+        sRecurso);
+    except
+      on E: EErrorHttpPresta do
+        FIdiomasTienda := nil;
+    end;
+    FIdiomasLeidos := True;
+  end;
+  oIds := TList<Integer>.Create;
+  try
+    oIds.Add(AIdIdioma);
+    for iIndice := 0 to High(FIdiomasTienda) do
+    begin
+      if not oIds.Contains(FIdiomasTienda[iIndice]) then
+        oIds.Add(FIdiomasTienda[iIndice]);
+    end;
+    Result := oIds.ToArray;
+  finally
+    oIds.Free;
+  end;
 end;
 
 function TClienteCatalogoAltaPresta.CrearResultado(AId: Integer;
@@ -609,7 +745,7 @@ begin
     sRecurso := CCategorias + '?id_shop=' +
       IntToStr(ADatos.IdTienda);
     iId := CrearRecurso(sRecurso, CCategoria,
-      CrearXmlCategoria(ADatos));
+      CrearXmlCategoria(ADatos, IdiomasEnvio(ADatos.IdIdioma)));
     Result := CrearResultado(iId, True);
   end
   else
@@ -633,7 +769,7 @@ begin
     sRecurso := CGruposAtributos + '?id_shop=' +
       IntToStr(ADatos.IdTienda);
     iId := CrearRecurso(sRecurso, CGrupoAtributos,
-      CrearXmlGrupoAtributos(ADatos));
+      CrearXmlGrupoAtributos(ADatos, IdiomasEnvio(ADatos.IdIdioma)));
     Result := CrearResultado(iId, True);
   end
   else
@@ -658,7 +794,7 @@ begin
     sRecurso := CValoresAtributos + '?id_shop=' +
       IntToStr(ADatos.IdTienda);
     iId := CrearRecurso(sRecurso, CValorAtributo,
-      CrearXmlValorAtributo(ADatos));
+      CrearXmlValorAtributo(ADatos, IdiomasEnvio(ADatos.IdIdioma)));
     Result := CrearResultado(iId, True);
   end
   else
@@ -682,7 +818,8 @@ begin
     sRecurso := CProductos + '?id_shop=' +
       IntToStr(ADatos.IdTienda);
     iId := CrearRecurso(sRecurso, CProducto,
-      CrearXmlProductoInactivo(ADatos));
+      CrearXmlProductoInactivo(ADatos,
+        IdiomasEnvio(ADatos.IdIdioma)));
     Result := CrearResultado(iId, True);
   end
   else
