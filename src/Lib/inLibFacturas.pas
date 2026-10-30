@@ -358,7 +358,7 @@ implementation
 uses
   System.Variants,
   inLibRegistroLogNulo, inLibMsgFacturas, inLibCajaVentaOperacion,
-  inLibRedondeo;
+  inLibRedondeo, inLibErroresBBDD;
 
 procedure PostearSiPendiente(ADataSet: TDataSet);
 begin
@@ -1339,6 +1339,10 @@ begin
         _unqryFac.Edit;
       ActualizarTotalesEnDataSet;
     except
+      on E: EValidacionBBDD do
+        // El llamante conserva la advertencia de negocio, sin convertirla
+        // en un fallo técnico del recálculo (FZ-ISSUE-765).
+        raise;
       on E: EAbort do
       begin
         // Aborto silencioso de una validación que ya avisó: no es un error
