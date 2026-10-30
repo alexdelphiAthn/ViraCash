@@ -134,6 +134,7 @@ type
     AlCerrarComboAtributo: TNotifyEvent;
   end;
   TServiciosEditorLineasCajaVcl = record
+    MostrarAvisoStock: TProc<string>;
     DatosCaja: TdmCajaOpe;
     Conexion: TUniConnection;
     ParametrosCaja: IParametrosCaja;
@@ -162,6 +163,8 @@ type
     FResolverArticulos: IArticulosResolver;
     FAtributosArticulos: IArticulosAtributosLookup;
     FDependencias: TContextoDependenciasOperacionCaja;
+    FSuspenderStock: Boolean;
+    FMostrarAvisoStock: TProc<string>;
     FRepositorioArticulos: IRepositorioArticulosCaja;
     FRepositorioFacturas: IRepositorioLecturasFactura;
     FRegistroLog: IRegistroLog;
@@ -249,6 +252,8 @@ type
     function ValidarSkuParaVenta(const ASku: string;
       AUnidadPendiente: Boolean = False): Boolean;
     procedure ComprobarStockLinea(ALinea: TDataSet);
+    procedure ComprobarStockTicket;
+    procedure CargarLineasOriginales(const ACarga: TProc);
     procedure ReiniciarStockComprobado;
     procedure CancelarLinea;
     procedure EjecutarBusquedaIncremental(Sender: TObject);
@@ -1206,6 +1211,9 @@ begin
     AFormulario.FLecturas.RepositorioFacturas;
   Result.Cabecera := AFormulario.DatosCaja.cdsCabecera;
   Result.Lineas := AFormulario.DatosCaja.cdsLineas;
+  if (AFormulario.FTipoRectificativa <> trcSustitutiva) or
+     (AFormulario.FTratamientoMovRectificativa <> tmrMantenerOriginales) then
+    Result.ValidarStock := AFormulario.FEditorLineas.ComprobarStockTicket;
   if Assigned(AFormulario.FLotesCaja) then
     Result.ValidarLotes :=
       procedure
@@ -1383,6 +1391,13 @@ begin
   FResolverArticulos := AServicios.ResolverArticulos;
   FAtributosArticulos := AServicios.AtributosArticulos;
   FDependencias := AServicios.Dependencias;
+  FMostrarAvisoStock := AServicios.MostrarAvisoStock;
+  if not Assigned(FMostrarAvisoStock) then
+    FMostrarAvisoStock :=
+      procedure(AMensaje: string)
+      begin
+        ShowMessage_fza(AMensaje);
+      end;
   FRepositorioArticulos := AServicios.RepositorioArticulos;
   FRepositorioFacturas := AServicios.RepositorioFacturas;
   FRegistroLog := AServicios.RegistroLog;
@@ -2042,15 +2057,20 @@ begin
   VigilanteStock.Reiniciar;
 end;
 
-// FZ-ISSUE-424: al grabar la línea (unidades tecleadas). Las cargas en
-// bloque (controles desactivados) no preguntan.
+// DisableControls también se usa al recalcular una venta interactiva:
+// no indica que la línea esté exenta de validar stock (FZ-ISSUE-765).
 procedure TEditorLineasCajaVcl.ComprobarStockLinea(ALinea: TDataSet);
 var
   Resultado: TResultadoPoliticaStockVenta;
   sAviso: string;
+  MostrarAviso: TProc<string>;
 begin
   if Assigned(FDependencias.PoliticaStock) and
-     (not ALinea.ControlsDisabled) then
+     not FActualizandoDepositos and not FSuspenderStock and
+     SameText(ALinea.FieldByName('TIPO_ARTICULO_FACLIN').AsString,
+       'ESTANDAR') and
+     (Trim(ALinea.FieldByName('VIENE_DE_DEPOSITO').AsString) = '') and
+     (Trim(ALinea.FieldByName('ACCION_DEPOSITO').AsString) = '') then
   begin
     Resultado := VigilanteStock.ComprobarLinea(ALinea);
     // EValidacionBBDD: el gestor global lo presenta como aviso, sin pila.
@@ -2059,13 +2079,38 @@ begin
     if Resultado.Mensaje <> '' then
     begin
       sAviso := Resultado.Mensaje;
+      MostrarAviso := FMostrarAvisoStock;
       // Tras el Post: un modal dentro del BeforePost reentraría la rejilla.
       TThread.ForceQueue(nil,
         procedure
         begin
-          ShowMessage_fza(sAviso);
+          MostrarAviso(sAviso);
         end);
     end;
+  end;
+end;
+
+procedure TEditorLineasCajaVcl.ComprobarStockTicket;
+var
+  Resultado: TResultadoPoliticaStockVenta;
+begin
+  Resultado := VigilanteStock.ComprobarTicket(DatosCaja.cdsLineas);
+  if not Resultado.Permitida then
+    raise EValidacionBBDD.Create(Resultado.Mensaje);
+  if Resultado.Mensaje <> '' then
+    FMostrarAvisoStock(Resultado.Mensaje);
+end;
+
+procedure TEditorLineasCajaVcl.CargarLineasOriginales(const ACarga: TProc);
+var
+  SuspendidoAntes: Boolean;
+begin
+  SuspendidoAntes := FSuspenderStock;
+  FSuspenderStock := True;
+  try
+    ACarga();
+  finally
+    FSuspenderStock := SuspendidoAntes;
   end;
 end;
 
@@ -2082,7 +2127,7 @@ begin
   // FZ-ISSUE-454: si la línea en curso ya lleva este SKU con sus
   // unidades, la unidad que se identifica es la suya: se cuenta esa línea
   // y las demás, no «todas más una» (salía «se venden 3» con 2).
-  if Resultado.Permitida and (Resultado.Motivo = msvNinguno) then
+  if Resultado.Permitida then
   begin
     oLineas := dsLineas.DataSet;
     // La entrada STX/ETX valida antes de crear o agrupar la nueva unidad.
@@ -2096,7 +2141,7 @@ begin
       Resultado := VigilanteStock.ComprobarUnidadMas(oLineas, ASku);
   end;
   if Resultado.Mensaje <> '' then
-    ShowMessage_fza(Resultado.Mensaje);
+    FMostrarAvisoStock(Resultado.Mensaje);
   Result := Resultado.Permitida;
 end;
 
@@ -2554,7 +2599,8 @@ begin
     // Validación parametrizada: SKU debe existir en fza_articulos_skus y, si
     // procede, tener stock. Se ejecuta sólo cuando el SKU ya está definido
     // (no es el padre a la espera de talla/color).
-    if (Trim(SkuDetectado) <> '') and (SkuDetectado <> CodigoPadre) and
+    if (Trim(SkuDetectado) <> '') and
+       ((NumAtributos = 0) or (SkuDetectado <> CodigoPadre)) and
        not ValidarSkuParaVenta(SkuDetectado) then
     begin
       EliminarLineaVentaPorValidacion(DatosCaja.cdsLineas);
@@ -4328,10 +4374,14 @@ begin
   FServicioSubsanacion := AServicio;
   DatosCaja.cdsLineas.Cancel;
   DatosCaja.cdsLineas.EmptyDataSet;
-  FDependencias.ServicioRectificacion.Cargar(
-    AOperacion.Clave.SerieFactura, AOperacion.Clave.NumeroFactura,
-    trcSustitutiva, tmrMantenerOriginales,
-    DatosCaja.cdsCabecera, DatosCaja.cdsLineas);
+  FEditorLineas.CargarLineasOriginales(
+    procedure
+    begin
+      FDependencias.ServicioRectificacion.Cargar(
+        AOperacion.Clave.SerieFactura, AOperacion.Clave.NumeroFactura,
+        trcSustitutiva, tmrMantenerOriginales,
+        DatosCaja.cdsCabecera, DatosCaja.cdsLineas);
+    end);
   oControles := Default(TControlesSubsanacionCaja);
   oControles.Propietario := Self;
   oControles.Contenedor := Self;
@@ -4522,13 +4572,13 @@ procedure TfrmMtoOpeCaja.CargarRectificacion(
 var
   Resultado: TResultadoRectificacionCaja;
 begin
-  Resultado := FDependencias.ServicioRectificacion.Cargar(
-    ASerie,
-    ANumero,
-    ATipoRectificativa,
-    ATratamientoMovimientos,
-    DatosCaja.cdsCabecera,
-    DatosCaja.cdsLineas);
+  FEditorLineas.CargarLineasOriginales(
+    procedure
+    begin
+      Resultado := FDependencias.ServicioRectificacion.Cargar(
+        ASerie, ANumero, ATipoRectificativa, ATratamientoMovimientos,
+        DatosCaja.cdsCabecera, DatosCaja.cdsLineas);
+    end);
   FSerieRectifica := Resultado.Serie;
   FNumeroRectifica := Resultado.Numero;
   FLiquidoRectifica := 0;

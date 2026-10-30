@@ -34,7 +34,7 @@ implementation
 uses
   System.SysUtils,
   Data.DB,
-  inLibFiltroUsuario, UniDataFacturasListado;
+  inLibFiltroUsuario, UniDataFacturasListado, UniDataVerifactuEsquema;
 
 const
   SQL_ANYOS =
@@ -45,8 +45,14 @@ const
     '  FROM fza_almacenes ' +
     ' WHERE ESACTIVO_ALM = ''S'' ';
   SQL_LISTADO =
-    'SELECT v.*, ' + SQL_CAMPOS_RECTIFICADA_LISTADO +
+    'SELECT v.*, v.FASE_FAC AS FASE_PRESENTACION_FAC, ' +
+    SQL_CAMPOS_RECTIFICADA_LISTADO +
     ' FROM vi_facturas v ' + SQL_ENLACE_RECTIFICADA_LISTADO;
+  SQL_LISTADO_CON_COLA =
+    'SELECT v.*, c.ESTADO_VFCOLA, ' + SQL_FASE_FISCAL_LISTADO +
+    SQL_CAMPOS_RECTIFICADA_LISTADO +
+    ' FROM vi_facturas v ' + SQL_ENLACE_RECTIFICADA_LISTADO +
+    SQL_ENLACE_COLA_LISTADO;
   SQL_CONTAR =
     'SELECT COUNT(*) AS N FROM vi_facturas v ';
   SQL_ORDEN_LISTADO =
@@ -286,14 +292,18 @@ end;
 function TRepositorioFacturasSimplificadasPantallaUniDAC.ConfigurarListado(
   const AFiltros: TFiltrosFacturasSimplificadas): Boolean;
 var
-  sFirma: string;
+  sFirma, sAviso, sListado: string;
 begin
   sFirma := FirmaFiltros(AFiltros);
   Result := sFirma <> FFirmaFiltros;
   if Result then
   begin
     FListado.Close;
-    FListado.SQL.Text := SQL_LISTADO + ConstruirWhere(AFiltros) +
+    sListado := SQL_LISTADO;
+    if CrearRepositorioEsquemaVerifactuUniDAC(FConexion).
+         ColaDisponible(sAviso) then
+      sListado := SQL_LISTADO_CON_COLA;
+    FListado.SQL.Text := sListado + ConstruirWhere(AFiltros) +
       SQL_ORDEN_LISTADO;
     AsignarParametrosFiltro(FListado, AFiltros);
     FFirmaFiltros := sFirma;

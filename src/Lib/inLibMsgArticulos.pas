@@ -449,15 +449,13 @@ SLeyendaAvisosBalance =
     'Para cada SKU activo:' + sLineBreak +
     '  · Si no tiene principal: se genera un EAN-13 interno (prefijo ' +
     '"%s").' + sLineBreak +
-    '  · Si tiene principal pero no fila vacía: se crea una fila vacía ' +
-    'para el código del fabricante (a rellenar manualmente).' + sLineBreak +
-    '  · Si ya tiene ambos, se respeta.' + sLineBreak + sLineBreak +
+    '  · Si ya tiene principal, se respeta.' + sLineBreak + sLineBreak +
     'Pulse Sí para continuar.';
   SInfoGeneracionCodigosBarras =
     'Generación finalizada.' + sLineBreak +
     '- EAN-13 internos creados: %d' + sLineBreak +
     '- Filas vacías de fabricante creadas: %d' + sLineBreak +
-    '- SKUs ya completos (saltados): %d' + sLineBreak +
+    '- SKUs con código principal (saltados): %d' + sLineBreak +
     '- Placeholders _FAB_ obsoletos eliminados: %d';
   SErrorArticuloNoSeleccionadoVerificarCodigos =
     'Seleccione o guarde un artículo antes de verificar.';

@@ -63,6 +63,7 @@ type
     LeerFecha: TLeerFechaCierreCaja;
     PresentarResultado: TPresentarResultadoCierreCaja;
     ValidarLotes: TProc;
+    ValidarStock: TProc;
     DependenciasFaseCobro: TDependenciasFaseCobro;
   end;
   TCoordinadorCierreVentaCajaVcl = class
@@ -318,6 +319,8 @@ begin
     not HayLineasConCantidadCero(AContexto.Lineas);
   if Result then
   begin
+    if Assigned(AContexto.ValidarStock) then
+      AContexto.ValidarStock();
     if Assigned(AContexto.ValidarLotes) then
       AContexto.ValidarLotes();
     AContexto.ActualizarReloj;

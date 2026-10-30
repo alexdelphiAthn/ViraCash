@@ -1622,6 +1622,16 @@ begin
     @inLibMsgReparaciones.SErrorResponderPresupuesto);
   ARegistrar(
     'inLibMsgReparaciones.' +
+    'SErrorSkuMaterialNoExiste',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorSkuMaterialNoExiste);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SErrorTicketCobroNoExiste',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorTicketCobroNoExiste);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
     'SErrorEntregarReparacion',
     'src/Lib/inLibMsgReparaciones.pas',
     @inLibMsgReparaciones.SErrorEntregarReparacion);
@@ -3358,6 +3368,14 @@ begin
     'SCaptionColHistNumeroDoc',
     'src/Lib/inLibMsgLotesConsultas.pas',
     @inLibMsgLotesConsultas.SCaptionColHistNumeroDoc);
+  ARegistrar(
+    'inLibMsgLotesConsultas.SCaptionColHistSerieFactura',
+    'src/Lib/inLibMsgLotesConsultas.pas',
+    @inLibMsgLotesConsultas.SCaptionColHistSerieFactura);
+  ARegistrar(
+    'inLibMsgLotesConsultas.SCaptionColHistNumeroFactura',
+    'src/Lib/inLibMsgLotesConsultas.pas',
+    @inLibMsgLotesConsultas.SCaptionColHistNumeroFactura);
   ARegistrar(
     'inLibMsgLotesConsultas.' +
     'SCaptionColReclamacion',

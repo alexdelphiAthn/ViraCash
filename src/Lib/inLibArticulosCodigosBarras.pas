@@ -1,9 +1,8 @@
 ﻿unit inLibArticulosCodigosBarras;
 
 {
-  Caso de uso de generacion progresiva de codigos de barras por SKU.
-  La primera ejecucion crea el EAN-13 principal y la siguiente prepara
-  la fila vacia para el codigo del fabricante.
+  Generación de códigos de barras por SKU sin principal.
+  Las ejecuciones posteriores respetan los códigos existentes.
 }
 
 interface
@@ -124,13 +123,6 @@ begin
             aSkus[iIndice].CodigoSku, sCodigoBarras,
             cTipoCodigoBarrasInterno, AUsuario);
           Inc(AResultado.PrincipalesGenerados);
-        end
-        else if not aSkus[iIndice].TieneFilaFabricante then
-        begin
-          APersistencia.InsertarFilaFabricante(
-            aSkus[iIndice].CodigoSku,
-            cTipoCodigoBarrasInterno, AUsuario);
-          Inc(AResultado.FilasFabricanteCreadas);
         end
         else
           Inc(AResultado.SkusSinCambios);

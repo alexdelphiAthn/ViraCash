@@ -200,6 +200,8 @@ begin
   CrearColumna(v, 'TIPO_DOC_MOV', SCaptionColHistDocumento, 50);
   CrearColumna(v, 'SERIE_DOC_MOV', SCaptionColHistSerieDoc, 70);
   CrearColumna(v, 'NUMERO_DOC_MOV', SCaptionColHistNumeroDoc, 100);
+  CrearColumna(v, 'SERIE_FAC_FACREL', SCaptionColHistSerieFactura, 120);
+  CrearColumna(v, 'NUMERO_FAC_FACREL', SCaptionColHistNumeroFactura, 120);
   CrearColumna(v, 'CODIGO_ALM_MOV', SCaptionColHistAlmacen, 70);
   CrearColumna(v, 'CODIGO_ALM_CONTRA_MOV', SCaptionColHistContra, 90);
   CrearColumna(v, 'TIPO_MOV', SCaptionColHistTipo, 40);

@@ -83,7 +83,7 @@
             end
             object cxGrdDBTabPrinFASE_FAC: TcxGridDBColumn
               Caption = 'Fase del borrador'
-              DataBinding.FieldName = 'FASE_FAC'
+              DataBinding.FieldName = 'FASE_PRESENTACION_FAC'
               Options.Editing = False
               Width = 160
             end
@@ -3223,7 +3223,7 @@
                 object txtFASE_FAC: TcxDBTextEdit
                   Left = 495
                   Top = 196
-                  DataBinding.DataField = 'FASE_FAC'
+                  DataBinding.DataField = 'FASE_PRESENTACION_FAC'
                   DataBinding.DataSource = dsTablaG
                   Enabled = False
                   Properties.ReadOnly = True

@@ -31,6 +31,8 @@ type
     procedure Ejecutar(AConsulta: TUniQuery; AId: Int64;
       const AMensaje: string);
     procedure EnTransaccion(AAccion: TProc);
+    procedure ComprobarTicketCobro(const ASerie, ANumero: string);
+    procedure ComprobarSkuMaterial(const ALinea: TLineaReparacion);
     function Situacion(AReparacion: Int64;
       out ATieneLiquidaciones: Boolean): TSituacionReparacion;
     procedure InsertarPrimeraLinea(AReparacion: Int64;
@@ -340,6 +342,8 @@ begin
   sError := ValidarReparacionNueva(AReparacion);
   if sError <> '' then
     raise EArgumentException.Create(sError);
+  if AReparacion.EsCobrado then
+    ComprobarTicketCobro(AReparacion.SerieCobro, AReparacion.NumeroCobro);
   iId := 0;
   EnTransaccion(
     procedure
@@ -507,6 +511,7 @@ begin
   sError := ValidarLineaReparacion(ALinea);
   if sError <> '' then
     raise EArgumentException.Create(sError);
+  ComprobarSkuMaterial(ALinea);
   Result := ALinea.Id;
   if ALinea.Id = 0 then
     Result := InsertarLinea(ALinea)
@@ -749,6 +754,7 @@ begin
   sFase := FaseReparacion(Situacion(AReparacion, bLiquidada));
   if not PuedeEntregarReparacion(sFase) then
     raise EFaseReparacion.CreateFmt(SErrorEntregarReparacion, [AReparacion]);
+  ComprobarTicketCobro(ASerieCobro, ANumeroCobro);
   oConsulta := NuevaConsulta(
     'UPDATE fza_garantias_reclamaciones G ' +
     '   SET G.FECHA_ENTREGA_CLI_GAR = :FECHA, G.ESTADO_GAR = :ESTADO, ' +
@@ -776,6 +782,51 @@ begin
     oConsulta.ParamByName('NUMERO').AsString := Trim(ANumeroCobro);
     oConsulta.ParamByName('USUARIO').AsString := Copy(AUsuario, 1, 50);
     Ejecutar(oConsulta, AReparacion, SErrorEntregarReparacion);
+  finally
+    FreeAndNil(oConsulta);
+  end;
+end;
+
+// El material sale del stock: su SKU tiene que existir.
+procedure TRepositorioReparacionesUniDAC.ComprobarSkuMaterial(
+  const ALinea: TLineaReparacion);
+var
+  oConsulta: TUniQuery;
+begin
+  if ALinea.TipoLinea <> LINEA_REPARACION_MATERIAL then
+    Exit;
+  oConsulta := NuevaConsulta(
+    'SELECT 1 FROM fza_articulos_skus S ' +
+    ' WHERE S.CODIGO_UNIDAD_SKU = :SKU LIMIT 1');
+  try
+    oConsulta.ParamByName('SKU').AsString := Trim(ALinea.Sku);
+    oConsulta.Open;
+    if oConsulta.IsEmpty then
+      raise EArgumentException.CreateFmt(SErrorSkuMaterialNoExiste,
+        [Trim(ALinea.Sku)]);
+  finally
+    FreeAndNil(oConsulta);
+  end;
+end;
+
+// El ticket o factura del cobro tiene que existir; vacío no se comprueba.
+procedure TRepositorioReparacionesUniDAC.ComprobarTicketCobro(
+  const ASerie, ANumero: string);
+var
+  oConsulta: TUniQuery;
+begin
+  if Trim(ASerie) + Trim(ANumero) = '' then
+    Exit;
+  oConsulta := NuevaConsulta(
+    'SELECT 1 FROM fza_facturas F ' +
+    ' WHERE F.SERIE_FAC = :SERIE AND F.NUMERO_FAC = :NUMERO LIMIT 1');
+  try
+    oConsulta.ParamByName('SERIE').AsString := Trim(ASerie);
+    oConsulta.ParamByName('NUMERO').AsString := Trim(ANumero);
+    oConsulta.Open;
+    if oConsulta.IsEmpty then
+      raise EArgumentException.CreateFmt(SErrorTicketCobroNoExiste,
+        [Trim(ASerie), Trim(ANumero)]);
   finally
     FreeAndNil(oConsulta);
   end;

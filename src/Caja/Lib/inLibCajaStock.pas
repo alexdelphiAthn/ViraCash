@@ -152,7 +152,7 @@ begin
   begin
     dDisponible := FPersistencia.ObtenerCantidadDisponible(sCodigoSku,
       ACodigoAlmacen);
-    if (dDisponible > 0) and (ACantidad > dDisponible + TOLERANCIA) then
+    if ACantidad > dDisponible + TOLERANCIA then
     begin
       sDetalle := Format(SDetalleStockInsuficienteLinea,
         [sCodigoSku, FormatFloat('0.###', ACantidad),

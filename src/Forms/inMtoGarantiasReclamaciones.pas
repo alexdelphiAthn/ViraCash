@@ -925,6 +925,10 @@ procedure TfrmMtoGarantiasReclamaciones.Refrescar(AId: Int64);
 begin
   FiltroCambiado(nil);
   dmmGarantias.unqryTablaG.Locate(CAMPO_ID, AId, []);
+  // Las líneas y liquidaciones no se releen solas al volver al mismo
+  // expediente: sin esto, inicio y fin de la línea seguían vacíos.
+  dmmGarantias.Reparaciones.RefrescarLineas;
+  dmmGarantias.Reparaciones.RefrescarLiquidaciones;
 end;
 
 function TfrmMtoGarantiasReclamaciones.HayReclamacion: Boolean;
@@ -1392,7 +1396,8 @@ begin
   if bSeguir and FaltaCobrarReparacion(
     dmmGarantias.unqryTablaG.FieldByName('MODALIDAD_GAR').AsString,
     dmmGarantias.unqryTablaG.FieldByName('MODO_COBRO_GAR').AsString,
-    dmmGarantias.unqryTablaG.FieldByName('ESCOBRADO_GAR').AsString = 'S') then
+    dmmGarantias.unqryTablaG.FieldByName('ESCOBRADO_GAR').AsString = 'S',
+    dmmGarantias.unqryTablaG.FieldByName('TOTAL_CLIENTE_REP').AsCurrency) then
     bSeguir := PedirTicketCobro(sSerie, sNumero);
   if bSeguir then
     EjecutarReparacion(

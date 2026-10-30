@@ -186,8 +186,10 @@ function PuedeAnularReparacion(const AFase: string;
 // La línea de un externo se liquida al terminarla si cobra por línea.
 function LiquidaAlTerminarLinea(const ATipoEjecutor,
   AModoLiquidacion: string): Boolean;
+// Pago al recoger, sin cobrar y con algo que cobrar: un presupuesto
+// rechazado sin cargo se entrega sin ticket.
 function FaltaCobrarReparacion(const AModalidad, AModoCobro: string;
-  AEsCobrado: Boolean): Boolean;
+  AEsCobrado: Boolean; AImporte: Currency): Boolean;
 function EsModalidadReparacion(const AValor: string): Boolean;
 function EsModoCobroReparacion(const AValor: string): Boolean;
 function EsOrigenReparacion(const AValor: string): Boolean;
@@ -415,10 +417,11 @@ begin
 end;
 
 function FaltaCobrarReparacion(const AModalidad, AModoCobro: string;
-  AEsCobrado: Boolean): Boolean;
+  AEsCobrado: Boolean; AImporte: Currency): Boolean;
 begin
   Result := (AModalidad = MODALIDAD_REPARACION_PAGO) and
-    (AModoCobro = COBRO_REPARACION_RECOGIDA) and not AEsCobrado;
+    (AModoCobro = COBRO_REPARACION_RECOGIDA) and not AEsCobrado and
+    (AImporte > 0);
 end;
 
 function TextoDe(const AValor: string; const AValores,

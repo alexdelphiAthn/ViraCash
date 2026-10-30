@@ -91,6 +91,8 @@ resourcestring
   SCaptionColHistProveedor = 'Proveedor';
   SCaptionColHistSerieDoc = 'Serie';
   SCaptionColHistNumeroDoc = 'Número';
+  SCaptionColHistSerieFactura = 'Serie factura sustituta';
+  SCaptionColHistNumeroFactura = 'Nº factura sustituta';
   SCaptionColReclamacion = 'Nº';
   SCaptionColReclamacionEstado = 'Estado';
   SCaptionColReclamacionResolucion = 'Resolución';

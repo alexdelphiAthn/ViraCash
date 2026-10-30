@@ -83,6 +83,11 @@ resourcestring
     'presupuesto ya está aceptado o está cerrada.';
   SErrorResponderPresupuesto =
     'La reparación %d no tiene un presupuesto pendiente de respuesta.';
+  SErrorSkuMaterialNoExiste =
+    'No existe el SKU %s. El material tiene que ser un SKU dado de alta.';
+  SErrorTicketCobroNoExiste =
+    'No existe el ticket o factura %s/%s del cobro. Revise la serie y el ' +
+    'número.';
   SErrorEntregarReparacion =
     'La reparación %d no se puede entregar: no está reparada ni tiene el ' +
     'presupuesto rechazado.';

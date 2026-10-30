@@ -24,6 +24,9 @@ type
     // Al grabar la línea: lo que esa línea deja vendido del SKU.
     function ComprobarLinea(
       ALinea: TDataSet): TResultadoPoliticaStockVenta;
+    // Antes del cobro: consulta de nuevo las ventas nuevas del ticket.
+    function ComprobarTicket(
+      ALineas: TDataSet): TResultadoPoliticaStockVenta;
     // Ticket nuevo: lo comprobado en el anterior ya no cuenta.
     procedure Reiniciar;
   end;
@@ -66,6 +69,8 @@ type
       const ACodigoSku: string): TResultadoPoliticaStockVenta;
     function ComprobarLinea(
       ALinea: TDataSet): TResultadoPoliticaStockVenta;
+    function ComprobarTicket(
+      ALineas: TDataSet): TResultadoPoliticaStockVenta;
     procedure Reiniciar;
   end;
 
@@ -183,6 +188,59 @@ function CrearVigilanteStockVentaCaja(
   const AObtenerAlmacen: TFunc<string>): IVigilanteStockVentaCaja;
 begin
   Result := TVigilanteStockVentaCaja.Create(APolitica, AObtenerAlmacen);
+end;
+
+function TVigilanteStockVentaCaja.ComprobarTicket(
+  ALineas: TDataSet): TResultadoPoliticaStockVenta;
+var
+  Clon: TClientDataSet;
+  Cantidades: TDictionary<string, Double>;
+  Par: TPair<string, Double>;
+  Sku: string;
+  Cantidad, Acumulada: Double;
+  ResultadoSku: TResultadoPoliticaStockVenta;
+begin
+  Result := SinIncidencia;
+  if not (ALineas is TClientDataSet) then
+    raise EArgumentException.Create('El ticket requiere TClientDataSet');
+  Clon := TClientDataSet.Create(nil);
+  Cantidades := TDictionary<string, Double>.Create;
+  try
+    Clon.CloneCursor(TClientDataSet(ALineas), True);
+    Clon.First;
+    while not Clon.Eof do
+    begin
+      Sku := UpperCase(Trim(Clon.FieldByName(CAMPO_SKU).AsString));
+      Cantidad := Clon.FieldByName(CAMPO_CANTIDAD).AsFloat;
+      if (Sku <> '') and (Cantidad > 0) and
+         SameText(Clon.FieldByName('TIPO_ARTICULO_FACLIN').AsString,
+           'ESTANDAR') and
+         (Trim(Clon.FieldByName('VIENE_DE_DEPOSITO').AsString) = '') and
+         (Trim(Clon.FieldByName('ACCION_DEPOSITO').AsString) = '') then
+      begin
+        if not Cantidades.TryGetValue(Sku, Acumulada) then
+          Acumulada := 0;
+        Cantidades.AddOrSetValue(Sku, Acumulada + Cantidad);
+      end;
+      Clon.Next;
+    end;
+    for Par in Cantidades do
+    begin
+      ResultadoSku := FPolitica().ValidarCantidad(
+        Par.Key, FObtenerAlmacen(), Par.Value);
+      if ResultadoSku.Motivo <> msvNinguno then
+      begin
+        Result.Motivo := ResultadoSku.Motivo;
+        Result.Permitida := Result.Permitida and ResultadoSku.Permitida;
+        if Result.Mensaje <> '' then
+          Result.Mensaje := Result.Mensaje + sLineBreak;
+        Result.Mensaje := Result.Mensaje + ResultadoSku.Mensaje;
+      end;
+    end;
+  finally
+    FreeAndNil(Cantidades);
+    FreeAndNil(Clon);
+  end;
 end;
 
 end.

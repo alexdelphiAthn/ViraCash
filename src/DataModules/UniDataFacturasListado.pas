@@ -20,6 +20,21 @@ uses
   inLibFacturasPresentadorListado;
 
 const
+  // Solo presentación: la fase persistida sigue siendo la del motor fiscal.
+  SQL_FASE_FISCAL_LISTADO =
+    'CASE WHEN c.SISTEMA_VFCOLA = ''SII'' ' +
+    ' AND v.FASE_FAC LIKE ''VERIFACTU_%'' THEN ' +
+    ' CASE WHEN v.FASE_FAC = ''VERIFACTU_ANULADA'' ' +
+    '        THEN ''SII_ANULADA'' ' +
+    '      WHEN c.ESTADO_VFCOLA = ''ENVIADA'' THEN ''SII_OK'' ' +
+    '      WHEN c.ESTADO_VFCOLA = ''ERROR'' THEN ''SII_ERROR'' ' +
+    '      ELSE ''SII_PENDIENTE'' END ' +
+    ' ELSE v.FASE_FAC END AS FASE_PRESENTACION_FAC, ';
+  SQL_ENLACE_COLA_LISTADO =
+    ' LEFT JOIN fza_verifactu_cola c ON c.ID_VFCOLA = (' +
+    ' SELECT MAX(uc.ID_VFCOLA) FROM fza_verifactu_cola uc ' +
+    ' WHERE uc.SERIE_FAC_VFCOLA = v.SERIE_FAC ' +
+    '   AND uc.NUMERO_FAC_VFCOLA = v.NUMERO_FAC) ';
   // ABONO apunta desde la original a la rectificativa. El historial guarda
   // el sentido inverso y conserva el origen de rectificaciones anteriores.
   SQL_CAMPOS_RECTIFICADA_LISTADO =
@@ -111,16 +126,12 @@ begin
   // Columna Cola Verifactu: último estado en fza_verifactu_cola de cada
   // factura (PENDIENTE/PROCESANDO/ENVIADA/ERROR; NULL si nunca se encoló).
   Result :=
-    'SELECT v.*, ' +
-    '       (SELECT c.ESTADO_VFCOLA ' +
-    '          FROM fza_verifactu_cola c ' +
-    '         WHERE c.SERIE_FAC_VFCOLA  = v.SERIE_FAC ' +
-    '           AND c.NUMERO_FAC_VFCOLA = v.NUMERO_FAC ' +
-    '         ORDER BY c.ID_VFCOLA DESC ' +
-    '         LIMIT 1) AS ESTADO_VFCOLA, ' +
+    'SELECT v.*, c.ESTADO_VFCOLA, ' +
+    SQL_FASE_FISCAL_LISTADO +
     SQL_CAMPOS_RECTIFICADA_LISTADO +
     '  FROM vi_facturas v ' +
     SQL_ENLACE_RECTIFICADA_LISTADO +
+    SQL_ENLACE_COLA_LISTADO +
     ' WHERE ' + SQLFiltroVistaListadoFacturas(AVista) +
     ' ORDER BY v.FECHA_FAC DESC, v.NUMERO_FAC DESC';
 end;
@@ -130,6 +141,7 @@ function TPreparadorListadoFacturasUniDAC.SentenciaSinEstadoCola(
 begin
   Result :=
     'SELECT v.*, '''' AS ESTADO_VFCOLA, ' +
+    'v.FASE_FAC AS FASE_PRESENTACION_FAC, ' +
     SQL_CAMPOS_RECTIFICADA_LISTADO +
     '  FROM vi_facturas v ' +
     SQL_ENLACE_RECTIFICADA_LISTADO +
@@ -141,14 +153,28 @@ procedure TPreparadorListadoFacturasUniDAC.PrepararListado(
   AConsulta: TDataSet;
   const AVista: string;
   AIncluirEstadoCola: Boolean);
+var
+  sListado, sRefresco: string;
 begin
   if AConsulta is TUniQuery then
   begin
     // SQLFiltroVistaListadoFacturas valida la vista mediante lista blanca.
     if AIncluirEstadoCola then
-      TUniQuery(AConsulta).SQL.Text := SentenciaConEstadoCola(AVista)
+    begin
+      sListado := SentenciaConEstadoCola(AVista);
+      sRefresco := SentenciaConEstadoCola('vi_facturas');
+    end
     else
-      TUniQuery(AConsulta).SQL.Text := SentenciaSinEstadoCola(AVista);
+    begin
+      sListado := SentenciaSinEstadoCola(AVista);
+      sRefresco := SentenciaSinEstadoCola('vi_facturas');
+    end;
+    TUniQuery(AConsulta).SQL.Text := sListado;
+    // Refresh tras consolidar debe recuperar también la fase de presentación.
+    TUniQuery(AConsulta).SQLRefresh.Text := StringReplace(sRefresco,
+      'WHERE 1 = 1',
+      'WHERE v.SERIE_FAC = :Old_SERIE_FAC ' +
+      'AND v.NUMERO_FAC = :Old_NUMERO_FAC', []);
   end;
 end;
 

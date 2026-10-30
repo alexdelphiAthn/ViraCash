@@ -2844,7 +2844,6 @@ begin
   // null), y a la vez nos da margen para anyadir el campo HEX_ATR_CO en
   // la misma pasada.
   PoblarCdsEtiquetasArtDesdeUniQuery;
-  PrepararPreciosUnidadEtiquetas(cdsEtiquetasArt);
 
   // Cuando el usuario marca almacenes, una etiqueta por unidad de stock:
   // se elimina cualquier SKU sin existencia en los almacenes elegidos y se
@@ -3023,6 +3022,9 @@ begin
       cdsEtiquetasArt,
       iCodSkuIdxOrig,
       oHexMap);
+    // Aquí y no en quien llama: los modales de etiquetas repueblan el
+    // dataset al aplicar guías y perdían el texto del precio por unidad.
+    PrepararPreciosUnidadEtiquetas(cdsEtiquetasArt);
   finally
     FreeAndNil(oHexMap);
   end;
