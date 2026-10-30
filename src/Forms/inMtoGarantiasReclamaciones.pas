@@ -587,20 +587,37 @@ begin
   oBoton := TcxButton.Create(Self);
   oBoton.Parent := tsRecepcion;
   oBoton.Caption := SCaptionImprimirResguardo;
-  oBoton.SetBounds(EscalarDpi(12), EscalarDpi(200), EscalarDpi(140),
+  oBoton.SetBounds(EscalarDpi(12), EscalarDpi(230), EscalarDpi(140),
     EscalarDpi(30));
   oBoton.OnClick := btnResguardoClick;
 end;
 
 procedure TfrmMtoGarantiasReclamaciones.CrearFaseRecepcion;
+var
+  oModalidad: TcxDBImageComboBox;
+  oOpcion: TcxImageComboBoxItem;
+  sModalidad: string;
 begin
   tsRecepcion := CrearPestana(SCaptionFaseRecepcion);
   CrearFecha(tsRecepcion, SCaptionGarantiaFechaRecepcion,
     'FECHA_RECEPCION_GAR', 0, 0);
   CrearMedio(tsRecepcion, SCaptionGarantiaMedio, 'MEDIO_RECEPCION_GAR', 1,
     0);
+  ColocarRotulo(tsRecepcion, SRotuloModalidad, 0, 1);
+  oModalidad := TcxDBImageComboBox.Create(Self);
+  ColocarEditor(oModalidad, tsRecepcion, 0, 1, 250, False);
+  oModalidad.DataBinding.DataSource := dsTablaG;
+  oModalidad.DataBinding.DataField := 'MODALIDAD_GAR';
+  oModalidad.Properties.DropDownListStyle := lsFixedList;
+  for sModalidad in [MODALIDAD_REPARACION_PAGO,
+    MODALIDAD_REPARACION_GARANTIA, MODALIDAD_REPARACION_CORTESIA] do
+  begin
+    oOpcion := oModalidad.Properties.Items.Add;
+    oOpcion.Value := sModalidad;
+    oOpcion.Description := TextoModalidadReparacion(sModalidad);
+  end;
   CrearMemo(tsRecepcion, SRecepcionEstadoAccesorios,
-    'OBSERVACIONES_RECEPCION_GAR', 1, 3);
+    'OBSERVACIONES_RECEPCION_GAR', 2, 3);
   CrearBotonResguardoRecepcion;
 end;
 

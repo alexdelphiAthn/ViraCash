@@ -169,7 +169,8 @@ type
 // Reparación nueva con los valores del tipo: categoría, modalidad,
 // trabajo, presupuesto, cobro, ejecutor, cantidad, precios y fecha prevista.
 function AplicarTipoServicio(const AReparacion: TReparacionNueva;
-  const ATipo: TTipoServicio): TReparacionNueva;
+  const ATipo: TTipoServicio;
+  AConservarModalidad: Boolean = False): TReparacionNueva;
 // En garantía y cortesía el cliente no paga: cobro gratis y precio 0.
 function NormalizarCobroReparacion(
   const AReparacion: TReparacionNueva): TReparacionNueva;
@@ -206,12 +207,14 @@ uses
   System.SysUtils, System.Math, inLibGarantias, inLibMsgReparaciones;
 
 function AplicarTipoServicio(const AReparacion: TReparacionNueva;
-  const ATipo: TTipoServicio): TReparacionNueva;
+  const ATipo: TTipoServicio;
+  AConservarModalidad: Boolean): TReparacionNueva;
 begin
   Result := AReparacion;
   Result.Tipo := ATipo.Codigo;
   Result.Categoria := ATipo.Categoria;
-  Result.Modalidad := ATipo.Modalidad;
+  if not AConservarModalidad then
+    Result.Modalidad := ATipo.Modalidad;
   if Trim(Result.Trabajo) = '' then
     Result.Trabajo := ATipo.Descripcion;
   Result.EsPresupuesto := ATipo.EsPresupuesto;

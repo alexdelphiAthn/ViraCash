@@ -16,6 +16,10 @@ unit inLibMsgReparaciones;
 interface
 
 resourcestring
+  SModalidadReparacionCobrada = 'La reparación está cobrada. Revise el ' +
+    'cobro antes de cambiar la modalidad.';
+  SModalidadReparacionConImporte = 'Para pasar a garantía o cortesía, ' +
+    'deje a cero los importes al cliente en Trabajos.';
   // Modalidades, fases, cobro, origen, ejecutor y liquidación.
   SModalidadGarantia = 'Garantía';
   SModalidadPago = 'Pago del cliente';

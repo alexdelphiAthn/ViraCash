@@ -32,7 +32,7 @@ uses
 const
   // Columnas de fza_garantias_reclamaciones que se editan en la ficha, en
   // el orden en que las graba SqlActualizacionGarantia.
-  COLUMNAS_FICHA_GARANTIA: array[0..42] of string = (
+  COLUMNAS_FICHA_GARANTIA: array[0..44] of string = (
     'MOTIVO_GAR', 'OBSERVACIONES_GAR', 'MODELO_GAR', 'CODIGO_PRV_GAR',
     'NOMBRE_CLIENTE_GAR', 'TELEFONO_CLIENTE_GAR', 'EMAIL_CLIENTE_GAR',
     'DIRECCION_CLIENTE_GAR', 'CODIGO_POSTAL_CLIENTE_GAR',
@@ -53,7 +53,8 @@ const
     'RECLAMACION_TRANSPORTE_ENTREGA_CLI_GAR',
     // Reparaciones (30/10/2026).
     'DESCRIPCION_OBJETO_GAR', 'REFERENCIA_OBJETO_GAR', 'DETALLES_GAR',
-    'FECHA_PREVISTA_GAR', 'SERIE_COBRO_GAR', 'NUMERO_COBRO_GAR');
+    'FECHA_PREVISTA_GAR', 'SERIE_COBRO_GAR', 'NUMERO_COBRO_GAR',
+    'MODALIDAD_GAR', 'MODO_COBRO_GAR');
 
 type
   TdmGarantiasReclamaciones = class(TdmBase)
@@ -69,6 +70,7 @@ type
     procedure TablaGBeforeInsert(DataSet: TDataSet);
     procedure TablaGBeforeDelete(DataSet: TDataSet);
     procedure TablaGAfterPost(DataSet: TDataSet);
+    procedure TablaGBeforePost(DataSet: TDataSet);
   public
     // AEstado: un ESTADO_GAR, FILTRO_GARANTIA_PENDIENTES o '' (todas).
     // ATexto: parte de la serie, del SKU, del cliente, del contacto o del
@@ -111,7 +113,7 @@ function LeerDatosSerieGarantia(
 implementation
 
 uses
-  inLibMsgGarantias, inLibMsgReparaciones, inLibErroresBBDD,
+  System.Variants, inLibReparaciones, inLibMsgGarantias, inLibMsgReparaciones, inLibErroresBBDD,
   UniDataReparacionesRepositorio;
 
 {%CLASSGROUP 'Vcl.Controls.TControl'}
@@ -171,11 +173,11 @@ begin
     '       P.CONTACTO_PRV, P.TELEFONO_CONTACTO_PRV, P.TELEFONO_PRV, ' +
     '       P.MOVIL_PRV, P.EMAIL_PRV, P.DIRECCION1_PRV, ' +
     '       P.CODIGO_POSTAL_PRV, P.POBLACION_PRV, P.PROVINCIA_PRV, ' +
-    '       G.MODALIDAD_GAR, G.CATEGORIA_GAR, G.CODIGO_GARTIP_GAR, ' +
+    '       G.CATEGORIA_GAR, G.CODIGO_GARTIP_GAR, ' +
     '       G.ORIGEN_OBJETO_GAR, G.ESPRESUPUESTO_GAR, ' +
     '       G.TOTAL_PRESUPUESTO_GAR, G.FECHA_PRESUPUESTO_GAR, ' +
     '       G.ESTADO_PRESUPUESTO_GAR, G.FECHA_RESPUESTA_PRESUPUESTO_GAR, ' +
-    '       G.MODO_COBRO_GAR, G.ESCOBRADO_GAR, ' +
+    '       G.ESCOBRADO_GAR, ' +
     '       COALESCE(R.TOTAL_CLIENTE, 0) AS TOTAL_CLIENTE_REP, ' +
     '       COALESCE(R.TOTAL_COSTE, 0) AS TOTAL_COSTE_REP, ' +
     '       TRIM(CONCAT_WS('' '', NULLIF(A.DESCRIPCION_ART, ''''), ' +
@@ -260,6 +262,7 @@ begin
   unqryTablaG.BeforeInsert := TablaGBeforeInsert;
   unqryTablaG.BeforeDelete := TablaGBeforeDelete;
   unqryTablaG.AfterPost := TablaGAfterPost;
+  unqryTablaG.BeforePost := TablaGBeforePost;
 end;
 
 // El alta necesita la serie leída (artículo, cliente y venta salen del
@@ -274,6 +277,33 @@ procedure TdmGarantiasReclamaciones.TablaGBeforeDelete(DataSet: TDataSet);
 begin
   NotificarInformacion(SInfoGarantiaNoSeBorra);
   Abort;
+end;
+
+procedure TdmGarantiasReclamaciones.TablaGBeforePost(DataSet: TDataSet);
+var
+  oModalidad: TField;
+begin
+  inherited unqryTablaGBeforePost(DataSet);
+  oModalidad := DataSet.FieldByName('MODALIDAD_GAR');
+  if not EsModalidadReparacion(oModalidad.AsString) then
+    raise EValidacionBBDD.Create(SErrorModalidadReparacion);
+  if (DataSet.State = dsEdit) and
+     (oModalidad.AsString <> VarToStr(oModalidad.OldValue)) then
+  begin
+    if DataSet.FieldByName('ESCOBRADO_GAR').AsString = 'S' then
+      raise EValidacionBBDD.Create(SModalidadReparacionCobrada);
+    if oModalidad.AsString <> MODALIDAD_REPARACION_PAGO then
+    begin
+      if DataSet.FieldByName('TOTAL_CLIENTE_REP').AsCurrency <> 0 then
+        raise EValidacionBBDD.Create(SModalidadReparacionConImporte);
+      DataSet.FieldByName('MODO_COBRO_GAR').AsString :=
+        COBRO_REPARACION_GRATIS;
+    end
+    else if DataSet.FieldByName('MODO_COBRO_GAR').AsString =
+      COBRO_REPARACION_GRATIS then
+      DataSet.FieldByName('MODO_COBRO_GAR').AsString :=
+        COBRO_REPARACION_RECOGIDA;
+  end;
 end;
 
 // Tras grabar se relee la fila: la fase y los datos del proveedor elegido

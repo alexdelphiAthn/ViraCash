@@ -34,6 +34,7 @@ type
     FEjecutores: TArray<TEjecutorServicio>;
     FId: Int64;
     FCargando: Boolean;
+    FModalidadElegida: Boolean;
     FModalidad: TcxComboBox;
     FTipo: TcxComboBox;
     FTrabajo: TcxTextEdit;
@@ -350,8 +351,15 @@ begin
   begin
     Recoger;
     FReparacion.Trabajo := '';
-    FReparacion := AplicarTipoServicio(FReparacion,
-      FTipos[FTipo.ItemIndex - 1]);
+    if FModalidadElegida then
+    begin
+      // El tipo propone los demás datos sin cambiar la decisión del usuario.
+      FReparacion := AplicarTipoServicio(FReparacion,
+        FTipos[FTipo.ItemIndex - 1], True);
+    end
+    else
+      FReparacion := AplicarTipoServicio(FReparacion,
+        FTipos[FTipo.ItemIndex - 1]);
     Mostrar;
   end;
 end;
@@ -361,6 +369,7 @@ procedure TfrmModalReparacion.ModalidadCambiada(Sender: TObject);
 begin
   if not FCargando then
   begin
+    FModalidadElegida := True;
     Recoger;
     FReparacion := NormalizarCobroReparacion(FReparacion);
     Mostrar;
