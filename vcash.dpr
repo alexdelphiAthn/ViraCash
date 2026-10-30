@@ -3,6 +3,13 @@
 { SPDX-License-Identifier: MPL-2.0 }
 { Copyright (c) Alejandro Laorden Hidalgo. }
 uses
+  inLibReparacionesEvidencias in
+    'src\Lib\inLibReparacionesEvidencias.pas',
+  inLibReparacionesMovimientos in 'src\Lib\inLibReparacionesMovimientos.pas',
+  UniDataReparacionesMovimientos in 'src\DataModules\UniDataReparacionesMovimientos.pas',
+  inMtoModalMovimientoReparacion in 'src\Modals\inMtoModalMovimientoReparacion.pas',
+  inMtoReparacionesSeguimientoVcl in 'src\Forms\inMtoReparacionesSeguimientoVcl.pas',
+
   UniDataRetiradaLotesLecturas in
     'src\DataModules\UniDataRetiradaLotesLecturas.pas',
   UniDataRetiradaLotesRepositorio in
@@ -1400,6 +1407,10 @@ uses
   inMtoCargasTransito in 'src\Caja\Forms\inMtoCargasTransito.pas' {frmMtoCargasTransito},
   inLibGarantias in 'src\Lib\inLibGarantias.pas',
   inLibGarantiasResguardo in 'src\Lib\inLibGarantiasResguardo.pas',
+  inLibTicketTextoFR in 'src\Lib\inLibTicketTextoFR.pas',
+  inLibReparacionesPlantillas in 'src\Lib\inLibReparacionesPlantillas.pas',
+  inMtoModalImpReparacion in 'src\Modals\inMtoModalImpReparacion.pas',
+  inLibReparacionesDiseno in 'src\Lib\inLibReparacionesDiseno.pas',
   inLibMsgGarantias in 'src\Lib\inLibMsgGarantias.pas',
   UniDataGarantiasReclamaciones in 'src\DataModules\UniDataGarantiasReclamaciones.pas' {dmGarantiasReclamaciones: TDataModule},
   inMtoGarantiasReclamaciones in 'src\Forms\inMtoGarantiasReclamaciones.pas' {frmMtoGarantiasReclamaciones},

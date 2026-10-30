@@ -28,6 +28,33 @@ fmx/
 └── LEEME_FMX.md           Este fichero.
 ```
 
+## Varias fotos, fases y comentarios (30/10/2026)
+
+El selector ofrece **Artículo / color**, **Reparación · Antes**,
+**Reparación · Después** y **Reparación · Otra fase**. En reparaciones,
+introduce el número de reparación de ViraCash y escribe la fase libremente.
+Cada artículo/color o reparación/fase admite varias entradas numeradas de
+1 a 9999. El índice avanza al capturar o añadir una nota.
+
+Puedes adjuntar un comentario a cada foto o pulsar **Añadir comentario sin
+foto**. El identificador persistente hace idempotentes los reintentos. Otra
+entrada con una secuencia ocupada devuelve HTTP 409 y conserva la anterior.
+Para corregir una entrada pendiente, selecciónala en la cola, introduce otro
+índice y pulsa **Aplicar secuencia a la foto seleccionada**.
+
+La API conserva las reparaciones en una carpeta propia de la instalación,
+separada de los artículos. En ViraCash, **Fotos y comentarios → Recibir fotos
+y comentarios** descarga las imágenes y recibos con fase, comentario, fecha
+UTC y SHA-256 de la imagen. El selector filtra las fases que realmente existen.
+Las notas sin foto también se descargan y consultan. La descarga de artículos
+incorpora todas las fotos del artículo/color seleccionado.
+
+Actualizar ambos endpoints PHP y `privado/fotos_capturas.php` junto con la
+app. Campos añadidos: `captura_id` en todas las entradas; `reparacion`, `fase`
+y `comentario` en reparaciones. `solo_comentario=S` permite omitir `imagen`.
+La descarga admite `reparacion` en lugar de `articulo`. Las fases se conservan
+como texto; nombres con caracteres especiales usan un nombre físico seguro.
+
 ## Flujo
 
 1. **Configuración** (pestaña *Configuración*): URL del endpoint, token
@@ -66,10 +93,10 @@ una sobrescriba a la otra.
 
 | Campo             | Obligatorio | Notas                                  |
 |-------------------|-------------|----------------------------------------|
-| `imagen`          | sí          | El JPG reducido.                       |
-| `articulo`        | sí          | Código de artículo.                    |
+| `imagen`          | salvo nota  | El JPG reducido.                       |
+| `articulo`        | artículos   | Código de artículo.                    |
 | `referencia`      | sí          | Nombre de la instalación.            |
-| `color`           | sí          | Color.                                 |
+| `color`           | artículos   | Color.                                 |
 | `indice`          | sí          | Entero visible >= 1; valor inicial 1.  |
 | `nombre_original` | no          | Nombre del fichero local.              |
 | `osha1`           | no          | SHA1 local para verificación e2e.      |

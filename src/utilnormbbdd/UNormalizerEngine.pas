@@ -339,6 +339,7 @@ begin
   AddSuf('fza_verifactu_cola',                  'VFCOLA');
   AddSuf('fza_verifactu_historial',             'VFHIST');
   AddSuf('fza_verifactu_eventos',               'LOG');
+  AddSuf('fza_garantias_movimientos',          'GARMOV');
   AddSuf('fza_winforms',                        'WINF');
 
   // ========== Concepto largo → sufijo corto ==========

@@ -34,6 +34,7 @@ type
     // Releer la lista y volver a AReparacion (0 = la actual).
     Refrescar: TProc<Int64>;
     Imprimir: TProc<THojaReparaciones>;
+    Etiqueta: TProc<Boolean, Int64>;
   end;
 
   TPanelReparaciones = class(TcxGroupBox)

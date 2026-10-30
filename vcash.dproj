@@ -1,4 +1,4 @@
-<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
         <ProjectGuid>{5372F570-A327-4800-98DB-9E38B75C697D}</ProjectGuid>
         <ProjectVersion>20.5</ProjectVersion>
@@ -179,6 +179,11 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
+        <DCCReference Include="src\Lib\inLibReparacionesEvidencias.pas"/>
+        <DCCReference Include="src\Lib\inLibReparacionesMovimientos.pas"/>
+        <DCCReference Include="src\DataModules\UniDataReparacionesMovimientos.pas"/>
+        <DCCReference Include="src\Modals\inMtoModalMovimientoReparacion.pas"/>
+        <DCCReference Include="src\Forms\inMtoReparacionesSeguimientoVcl.pas"/>
         <DCCReference Include="src\DataModules\UniDataRetiradaLotesLecturas.pas"/>
         <DCCReference Include="src\DataModules\UniDataRetiradaLotesRepositorio.pas"/>
         <DCCReference Include="src\Lib\inLibMsgRetiradaLotes.pas"/>
@@ -2116,6 +2121,10 @@
         </DCCReference>
         <DCCReference Include="src\Lib\inLibGarantias.pas"/>
         <DCCReference Include="src\Lib\inLibGarantiasResguardo.pas"/>
+        <DCCReference Include="src\Lib\inLibTicketTextoFR.pas"/>
+        <DCCReference Include="src\Lib\inLibReparacionesPlantillas.pas"/>
+        <DCCReference Include="src\Modals\inMtoModalImpReparacion.pas"/>
+        <DCCReference Include="src\Lib\inLibReparacionesDiseno.pas"/>
         <DCCReference Include="src\Lib\inLibMsgGarantias.pas"/>
         <DCCReference Include="src\DataModules\UniDataGarantiasReclamaciones.pas">
             <Form>dmGarantiasReclamaciones</Form>

@@ -45,7 +45,8 @@ function DescargarFotosArticulo(
                                 IParametrosAplicacion;
                                 const ACodArt: string;
                                 out AArchivos: TArray<string>;
-                                out AMensaje: string): Boolean;
+                                out AMensaje: string;
+                                AReparacion: Int64 = 0): Boolean;
 
 // Borra los PNG temporales extraídos por DescargarFotosArticulo y su carpeta
 // temporal (solo si es una "viracash_fotos_*"). Llamar tras integrar la foto
@@ -68,6 +69,9 @@ function ElegirFotoRepresentativa(const AArchivos: TArray<string>): string;
 // token saneado (misma regla que SanearColorFoto) para que case.
 function ElegirFotoNubePorColor(const AArchivos: TArray<string>;
                                 const AColor: string): string;
+
+function FiltrarFotosNube(const AArchivos: TArray<string>;
+  const AArticulo, AColor: string): TArray<string>;
 
 implementation
 
@@ -172,7 +176,8 @@ function DescargarFotosArticulo(
                                 IParametrosAplicacion;
                                 const ACodArt: string;
                                 out AArchivos: TArray<string>;
-                                out AMensaje: string): Boolean;
+                                out AMensaje: string;
+                                AReparacion: Int64): Boolean;
 var
   sKey, sReferencia, sDir, sUrlFull, sZipTmp, sTs: string;
   http   : THTTPClient;
@@ -197,6 +202,8 @@ begin
       '?referencia=' + TNetEncoding.URL.Encode(sReferencia) +
       '&articulo=' + TNetEncoding.URL.Encode(ACodArt) +
       '&resolucion=real';
+    if AReparacion > 0 then
+      sUrlFull := sUrlFull + '&reparacion=' + IntToStr(AReparacion);
     http   := THTTPClient.Create;
     cuerpo := TMemoryStream.Create;
     try
@@ -229,12 +236,20 @@ begin
           zip   := TZipFile.Create;
           try
             zip.Open(sZipTmp, zmRead);
-            zip.ExtractAll(sDir);
             nombres := zip.FileNames;
             for i := 0 to High(nombres) do
             begin
-              if SameText(ExtractFileExt(nombres[i]), '.png') then
+              if (ExtractFileName(nombres[i]) <> nombres[i]) or
+                 (Pos('..', nombres[i]) > 0) or
+                 (Pos(':', nombres[i]) > 0) then
+                raise EArgumentException.Create('Nombre de foto inválido');
+              if SameText(ExtractFileExt(nombres[i]), '.png') or
+                 ((AReparacion > 0) and
+                  SameText(ExtractFileExt(nombres[i]), '.json')) then
+              begin
+                zip.Extract(nombres[i], sDir, False);
                 lista.Add(sDir + nombres[i]);
+              end;
             end;
             zip.Close;
             AArchivos := lista.ToStringArray;
@@ -370,6 +385,52 @@ begin
     finally
       FreeAndNil(orden);
     end;
+  end;
+end;
+
+function SegmentoServidorFoto(const ATexto: string): string;
+var
+  cLetra: Char;
+begin
+  Result := '';
+  for cLetra in Trim(ATexto) do
+    if CharInSet(cLetra, ['a'..'z', 'A'..'Z', '0'..'9', '_', '-']) then
+      Result := Result + cLetra
+    else
+      Result := Result + '_';
+  Result := Result.Trim(['_', '-']);
+end;
+
+function FiltrarFotosNube(const AArchivos: TArray<string>;
+  const AArticulo, AColor: string): TArray<string>;
+var
+  oLista: TStringList;
+  sArchivo, sPrefijo, sNombre, sIndice: string;
+  iIndice: Integer;
+begin
+  oLista := TStringList.Create;
+  try
+    sPrefijo := SegmentoServidorFoto(AArticulo) + '_';
+    if AColor = '' then
+      sPrefijo := sPrefijo + 'GENERAL_'
+    else
+      sPrefijo := sPrefijo + SegmentoServidorFoto(AColor) + '_';
+    for sArchivo in AArchivos do
+    begin
+      sNombre := ExtractFileName(sArchivo);
+      if StartsText(sPrefijo, sNombre) and
+         EndsText('_real.png', sNombre) then
+      begin
+        sIndice := Copy(sNombre, Length(sPrefijo) + 1,
+          Length(sNombre) - Length(sPrefijo) - Length('_real.png'));
+        if TryStrToInt(sIndice, iIndice) and (iIndice > 0) then
+          oLista.Add(sArchivo);
+      end;
+    end;
+    oLista.Sort;
+    Result := oLista.ToStringArray;
+  finally
+    FreeAndNil(oLista);
   end;
 end;
 

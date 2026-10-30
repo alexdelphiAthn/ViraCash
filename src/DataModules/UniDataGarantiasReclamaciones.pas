@@ -63,6 +63,8 @@ type
     FdsProveedores: TDataSource;
     FReparaciones: TDatosPantallaReparaciones;
     FMaestro: TDataSource;
+    procedure CompletarImpreso(var ADatos: TResguardoGarantia);
+    procedure TrabajosImpreso(var ADatos: TResguardoGarantia);
     procedure ConfigurarConsulta;
     procedure TablaGBeforeInsert(DataSet: TDataSet);
     procedure TablaGBeforeDelete(DataSet: TDataSet);
@@ -82,6 +84,8 @@ type
     // la primera vez que se pide, ya con la conexión heredada.
     function Proveedores: TDataSource;
     function DatosResguardo: TResguardoGarantia;
+    function DatosImpreso(ATipo: TDocumentoReparacion;
+      AMovimiento: Int64 = 0): TResguardoGarantia;
     function DatosSerie(const ASerie: string): TDatosSerieGarantia;
     function Alta(const ADatos: TDatosSerieGarantia;
       const AMotivo: string): Int64;
@@ -107,7 +111,8 @@ function LeerDatosSerieGarantia(
 implementation
 
 uses
-  inLibMsgGarantias, inLibErroresBBDD, UniDataReparacionesRepositorio;
+  inLibMsgGarantias, inLibMsgReparaciones, inLibErroresBBDD,
+  UniDataReparacionesRepositorio;
 
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 
@@ -334,7 +339,8 @@ end;
 function SqlTiendaResguardoGarantia: string;
 begin
   Result :=
-    'SELECT E.RAZON_SOCIAL_EMP, E.NIF_EMP, A.NOMBRE_ALM_ALM, ' +
+    'SELECT E.RAZON_SOCIAL_EMP, E.NIF_EMP, E.EMAIL_EMP, ' +
+    '       A.NOMBRE_ALM_ALM, ' +
     '       COALESCE(NULLIF(A.DIRECCION_ALM, ''''), E.DIRECCION1_EMP) ' +
     '         AS DIRECCION, ' +
     '       CONCAT_WS('' '', A.CODIGO_POSTAL_ALM, A.POBLACION_ALM, ' +
@@ -400,8 +406,123 @@ begin
     Result.DireccionTienda := oConsulta.FieldByName('DIRECCION').AsString;
     Result.PoblacionTienda := oConsulta.FieldByName('POBLACION').AsString;
     Result.TelefonoTienda := oConsulta.FieldByName('TELEFONO_ALM').AsString;
+    Result.EmailEmpresa := oConsulta.FieldByName('EMAIL_EMP').AsString;
   finally
     FreeAndNil(oConsulta);
+  end;
+  CompletarImpreso(Result);
+  TrabajosImpreso(Result);
+end;
+
+function TdmGarantiasReclamaciones.DatosImpreso(
+  ATipo: TDocumentoReparacion; AMovimiento: Int64): TResguardoGarantia;
+var
+  oConsulta: TUniQuery;
+begin
+  Result := DatosResguardo;
+  // Una etiqueta nueva no reutiliza el tracking de un envío anterior.
+  // Agencia, fecha y tracking se obtienen del seguimiento seleccionado.
+  if ATipo in [drFabricante, drCliente] then
+    Result.Fecha := Date;
+  if AMovimiento > 0 then
+  begin
+    oConsulta := TUniQuery.Create(nil);
+    try
+      oConsulta.Connection := unqryTablaG.Connection;
+      oConsulta.SQL.Text :=
+        'SELECT INSTANTE_GARMOV, AGENCIA_GARMOV, TRACKING_GARMOV, ' +
+        '       OBJETO_GARMOV ' +
+        '  FROM fza_garantias_movimientos ' +
+        ' WHERE ID_GARMOV = :MOVIMIENTO AND ID_GAR_GARMOV = :ID';
+      oConsulta.ParamByName('MOVIMIENTO').AsLargeInt := AMovimiento;
+      oConsulta.ParamByName('ID').AsLargeInt := Result.Numero;
+      oConsulta.Open;
+      if oConsulta.IsEmpty then
+        raise EValidacionBBDD.Create(SMovimientoAnteriorInvalido);
+      Result.Movimiento := AMovimiento;
+      Result.Fecha := oConsulta.FieldByName('INSTANTE_GARMOV').AsDateTime;
+      Result.Agencia := oConsulta.FieldByName('AGENCIA_GARMOV').AsString;
+      Result.Seguimiento := oConsulta.FieldByName('TRACKING_GARMOV').AsString;
+      Result.Objeto := oConsulta.FieldByName('OBJETO_GARMOV').AsString;
+    finally
+      oConsulta.Free;
+    end;
+  end;
+end;
+
+procedure TdmGarantiasReclamaciones.CompletarImpreso(
+  var ADatos: TResguardoGarantia);
+begin
+  ADatos.DireccionCliente :=
+    unqryTablaG.FieldByName('DIRECCION_CLIENTE_GAR').AsString;
+  ADatos.PoblacionCliente := Trim(
+    unqryTablaG.FieldByName('CODIGO_POSTAL_CLIENTE_GAR').AsString + ' ' +
+    unqryTablaG.FieldByName('POBLACION_CLIENTE_GAR').AsString + ' ' +
+    unqryTablaG.FieldByName('PROVINCIA_CLIENTE_GAR').AsString);
+  ADatos.EmailCliente :=
+    unqryTablaG.FieldByName('EMAIL_CLIENTE_GAR').AsString;
+  ADatos.Fabricante := unqryTablaG.FieldByName('RAZON_SOCIAL_PRV').AsString;
+  ADatos.DireccionFabricante :=
+    unqryTablaG.FieldByName('DIRECCION_ENVIO_FAB_GAR').AsString;
+  if (Trim(ADatos.DireccionFabricante) = '') and
+     (Trim(unqryTablaG.FieldByName('DIRECCION1_PRV').AsString) <> '') then
+    ADatos.DireccionFabricante :=
+      unqryTablaG.FieldByName('DIRECCION1_PRV').AsString + sLineBreak +
+      unqryTablaG.FieldByName('CODIGO_POSTAL_PRV').AsString + ' ' +
+      unqryTablaG.FieldByName('POBLACION_PRV').AsString + ' ' +
+      unqryTablaG.FieldByName('PROVINCIA_PRV').AsString;
+  ADatos.TelefonoFabricante :=
+    unqryTablaG.FieldByName('TELEFONO_PRV').AsString;
+  ADatos.EmailFabricante := unqryTablaG.FieldByName('EMAIL_PRV').AsString;
+  ADatos.Rma := unqryTablaG.FieldByName('RMA_GAR').AsString;
+  ADatos.Entrega :=
+    unqryTablaG.FieldByName('FECHA_ENTREGA_CLI_GAR').AsDateTime;
+  ADatos.Resolucion := unqryTablaG.FieldByName('RESOLUCION_GAR').AsString;
+  ADatos.Intervencion :=
+    unqryTablaG.FieldByName('OBSERVACIONES_RECEPCION_FAB_GAR').AsString;
+  ADatos.SerieSustituta :=
+    unqryTablaG.FieldByName('LOTE_SUSTITUTO_GAR').AsString;
+  if unqryTablaG.FieldByName('NUMERO_COBRO_GAR').AsString <> '' then
+    ADatos.DocumentoCobro :=
+      unqryTablaG.FieldByName('SERIE_COBRO_GAR').AsString + '/' +
+      unqryTablaG.FieldByName('NUMERO_COBRO_GAR').AsString;
+  ADatos.EstadoPresupuesto :=
+    unqryTablaG.FieldByName('ESTADO_PRESUPUESTO_GAR').AsString;
+end;
+
+procedure TdmGarantiasReclamaciones.TrabajosImpreso(
+  var ADatos: TResguardoGarantia);
+var
+  oConsulta: TUniQuery;
+  iLinea: Integer;
+begin
+  oConsulta := TUniQuery.Create(nil);
+  try
+    oConsulta.Connection := unqryTablaG.Connection;
+    oConsulta.SQL.Text :=
+      'SELECT DESCRIPCION_GARLIN, CANTIDAD_GARLIN, ' +
+      '       CANTIDAD_GARLIN * PRECIO_CLIENTE_GARLIN AS IMPORTE, ' +
+      '       FECHA_FIN_GARLIN ' +
+      '  FROM fza_garantias_lineas ' +
+      ' WHERE ID_GAR_GARLIN = :ID ORDER BY LINEA_GARLIN';
+    oConsulta.ParamByName('ID').AsLargeInt := ADatos.Numero;
+    oConsulta.Open;
+    while not oConsulta.Eof do
+    begin
+      iLinea := Length(ADatos.Trabajos);
+      SetLength(ADatos.Trabajos, iLinea + 1);
+      ADatos.Trabajos[iLinea].Descripcion :=
+        oConsulta.FieldByName('DESCRIPCION_GARLIN').AsString;
+      ADatos.Trabajos[iLinea].Cantidad :=
+        oConsulta.FieldByName('CANTIDAD_GARLIN').AsFloat;
+      ADatos.Trabajos[iLinea].Importe :=
+        oConsulta.FieldByName('IMPORTE').AsCurrency;
+      ADatos.Trabajos[iLinea].Terminado :=
+        not oConsulta.FieldByName('FECHA_FIN_GARLIN').IsNull;
+      oConsulta.Next;
+    end;
+  finally
+    oConsulta.Free;
   end;
 end;
 

@@ -19,7 +19,14 @@ uses
   frxClass, inLibPreviewTicket;
 
 type
-  TFormatoResguardoGarantia = (frgTicket, frgA4);
+  TFormatoResguardoGarantia = (frgTicket, frgA4, frgEtiqueta);
+  TDocumentoReparacion = (drRecepcion, drFabricante, drCliente, drAlbaran);
+  TTrabajoResguardo = record
+    Descripcion: string;
+    Cantidad: Double;
+    Importe: Currency;
+    Terminado: Boolean;
+  end;
   TResguardoGarantia = record
     Numero: Int64;
     Fecha: TDateTime;
@@ -52,6 +59,25 @@ type
     Importe: Currency;
     EsCobrado: Boolean;
     Presupuesto: Currency;
+    DireccionCliente: string;
+    PoblacionCliente: string;
+    EmailCliente: string;
+    EmailEmpresa: string;
+    Fabricante: string;
+    DireccionFabricante: string;
+    TelefonoFabricante: string;
+    EmailFabricante: string;
+    Rma: string;
+    Entrega: TDateTime;
+    Resolucion: string;
+    Intervencion: string;
+    SerieSustituta: string;
+    DocumentoCobro: string;
+    EstadoPresupuesto: string;
+    Agencia: string;
+    Seguimiento: string;
+    Movimiento: Int64;
+    Trabajos: TArray<TTrabajoResguardo>;
   end;
 
 function TextoResguardoGarantia(const ADatos: TResguardoGarantia): string;
@@ -62,6 +88,10 @@ function FormatoResguardoGarantia(const ATipoImpresion: string):
   TFormatoResguardoGarantia;
 procedure CrearInformeResguardoGarantia(AInforme: TfrxReport;
   const ADatos: TResguardoGarantia; AFormato: TFormatoResguardoGarantia);
+function TituloDocumentoReparacion(ATipo: TDocumentoReparacion): string;
+procedure CrearInformeDocumentoReparacion(AInforme: TfrxReport;
+  const ADatos: TResguardoGarantia; ATipo: TDocumentoReparacion;
+  AFormato: TFormatoResguardoGarantia);
 
 procedure ImprimirResguardoGarantiaTicket(AInforme: TfrxReport;
   const APreview: IPreviewTicket; const AImpresora, ARutaPdf: string);
@@ -69,10 +99,10 @@ procedure ImprimirResguardoGarantiaTicket(AInforme: TfrxReport;
 implementation
 
 uses
-  System.SysUtils, System.Classes, Vcl.Graphics,
+  System.SysUtils, System.Classes,
   inLibGarantias, inLibMsgGarantias, inLibMsgComun, inLibReparaciones,
-  inLibMsgReparaciones,
-  inLibFTicket, inLibTicketImagenFR;
+  inLibMsgReparaciones, inLibReparacionesDiseno,
+  inLibFTicket, inLibTicketTextoFR;
 
 function FechaResguardo(AFecha: TDateTime): string;
 begin
@@ -208,66 +238,230 @@ begin
     Result := frgA4;
 end;
 
-function CrearPaginaResguardo(AInforme: TfrxReport;
-  AFormato: TFormatoResguardoGarantia): TfrxReportPage;
+function TituloDocumentoReparacion(ATipo: TDocumentoReparacion): string;
 begin
-  Result := TfrxReportPage.Create(AInforme);
-  Result.CreateUniqueName;
-  Result.SetDefaults;
-  Result.PaperWidth := 210;
-  Result.PaperHeight := 297;
-  Result.LeftMargin := 15;
-  Result.RightMargin := 15;
-  Result.TopMargin := 12;
-  Result.BottomMargin := 12;
-  if AFormato = frgTicket then
+  case ATipo of
+    drRecepcion: Result := SImpresoRecepcion;
+    drFabricante: Result := SImpresoFabricante;
+    drCliente: Result := SImpresoEnvioCliente;
+    drAlbaran: Result := SImpresoAlbaran;
+  end;
+end;
+
+function BloqueEmisor(const ADatos: TResguardoGarantia): string;
+var
+  stTexto: TStringList;
+begin
+  stTexto := TStringList.Create;
+  try
+    AgregarTienda(stTexto, ADatos);
+    Result := Trim(stTexto.Text);
+  finally
+    stTexto.Free;
+  end;
+end;
+
+function BloqueCliente(const ADatos: TResguardoGarantia): string;
+begin
+  Result := Trim(ADatos.Cliente + sLineBreak + ADatos.DireccionCliente +
+    sLineBreak + ADatos.PoblacionCliente + sLineBreak +
+    ADatos.TelefonoCliente);
+end;
+
+function BloqueAparato(const ADatos: TResguardoGarantia): string;
+var
+  stTexto: TStringList;
+begin
+  stTexto := TStringList.Create;
+  try
+    AgregarDato(stTexto, SCaptionGarantiaArticuloFicha, ADatos.Articulo);
+    if ADatos.Objeto <> '' then
+      stTexto.Add(ADatos.Objeto)
+    else
+      AgregarDato(stTexto, '', ADatos.Descripcion);
+    AgregarDato(stTexto, SCaptionGarantiaModeloFicha, ADatos.Modelo);
+    AgregarDato(stTexto, SCaptionGarantiaSerieFicha, ADatos.Serie);
+    Result := Trim(stTexto.Text);
+  finally
+    stTexto.Free;
+  end;
+end;
+
+procedure ComponerRecepcion(ADiseno: TDisenoReparacion;
+  const ADatos: TResguardoGarantia);
+var
+  stTexto: TStringList;
+begin
+  ADiseno.Sujetos(BloqueEmisor(ADatos), BloqueCliente(ADatos));
+  ADiseno.Seccion(SImpresoAparato, BloqueAparato(ADatos));
+  ADiseno.Seccion(SImpresoMotivo, ADatos.Motivo);
+  ADiseno.Seccion(SImpresoEstadoRecepcion,
+    Trim(ADatos.Detalles + sLineBreak + ADatos.Observaciones));
+  stTexto := TStringList.Create;
+  try
+    AgregarDato(stTexto, SCaptionGarantiaFechaRecepcion,
+      FechaResguardo(ADatos.Recepcion));
+    AgregarDato(stTexto, SRotuloEntregaAproximada,
+      FechaResguardo(ADatos.FechaPrevista));
+    AgregarDato(stTexto, SCaptionGarantiaMedio,
+      TextoMedioGarantia(ADatos.Medio));
+    if EsReparacion(ADatos) then
+    begin
+      stTexto.Add(TextoModalidadReparacion(ADatos.Modalidad));
+      AgregarCobro(stTexto, ADatos);
+      AgregarDato(stTexto, '', ADatos.EstadoPresupuesto);
+    end
+    else
+      AgregarGarantia(stTexto, ADatos);
+    ADiseno.Seccion(SImpresoCondiciones, Trim(stTexto.Text));
+  finally
+    stTexto.Free;
+  end;
+  ADiseno.Firmas(SImpresoAcuseRecepcion);
+end;
+
+procedure ComponerAlbaran(ADiseno: TDisenoReparacion;
+  const ADatos: TResguardoGarantia);
+var
+  rTrabajo: TTrabajoResguardo;
+  sDescripcion, sResultado: string;
+  stTexto: TStringList;
+begin
+  sDescripcion := '';
+  if ADatos.Entrega <= 0 then
+    sDescripcion := SImpresoBorrador;
+  ADiseno.Seccion(SImpresoAlbaran, sDescripcion);
+  ADiseno.Sujetos(BloqueEmisor(ADatos), BloqueCliente(ADatos));
+  ADiseno.Seccion(SImpresoAparato, BloqueAparato(ADatos));
+  sResultado := Trim(ADatos.Resolucion + sLineBreak + ADatos.Intervencion);
+  if sResultado = '' then
+    sResultado := SImpresoSinResolucion;
+  if ADatos.SerieSustituta <> '' then
+    sResultado := sResultado + sLineBreak +
+      SCaptionGarantiaSerieFicha + ' ' + ADatos.SerieSustituta;
+  ADiseno.Seccion(SImpresoResultado, sResultado);
+  sDescripcion := SImpresoPrecios;
+  if Length(ADatos.Trabajos) = 0 then
+    sDescripcion := SImpresoSinTrabajos;
+  ADiseno.Seccion(SImpresoTrabajos, sDescripcion, 8);
+  if Length(ADatos.Trabajos) = 0 then
+    ADiseno.Trabajo('', '', '')
+  else
   begin
-    Result.PaperWidth := 80;
-    Result.LeftMargin := 4;
-    Result.RightMargin := 4;
-    Result.TopMargin := 4;
-    Result.BottomMargin := 4;
-    Result.EndlessHeight := True;
+    ADiseno.CabeceraTrabajos;
+    for rTrabajo in ADatos.Trabajos do
+    begin
+      sDescripcion := rTrabajo.Descripcion;
+      if not rTrabajo.Terminado then
+        sDescripcion := sDescripcion + ' (' + SImpresoPendiente + ')';
+      ADiseno.Trabajo(sDescripcion,
+        FormatFloat('0.###', rTrabajo.Cantidad),
+        FormatFloat('#,##0.00', rTrabajo.Importe));
+    end;
+  end;
+  ADiseno.Total(SImpresoTotal, FormatFloat('#,##0.00', ADatos.Importe));
+  stTexto := TStringList.Create;
+  try
+    // El presupuesto nunca oculta el cobro real en el albarán final.
+    if ADatos.Modalidad = MODALIDAD_REPARACION_CORTESIA then
+      stTexto.Add(SResguardoSinCargo)
+    else if ADatos.EsCobrado then
+      stTexto.Add(Format(SResguardoPagado,
+        [FormatFloat('#,##0.00', ADatos.Importe)]))
+    else if ADatos.Importe > 0 then
+      stTexto.Add(Format(SResguardoAPagar,
+        [FormatFloat('#,##0.00', ADatos.Importe)]));
+    if ADatos.DocumentoCobro <> '' then
+      stTexto.Add(Format(SImpresoCobro, [ADatos.DocumentoCobro]));
+    stTexto.Add(SImpresoNoFactura);
+    ADiseno.Seccion(SImpresoCondiciones, Trim(stTexto.Text), 9);
+  finally
+    stTexto.Free;
+  end;
+  ADiseno.Firmas(SImpresoAcuseEntrega);
+end;
+
+procedure ComponerEtiqueta(ADiseno: TDisenoReparacion;
+  const ADatos: TResguardoGarantia; ATipo: TDocumentoReparacion);
+var
+  sNombre, sDireccion, sDestino: string;
+  stTexto: TStringList;
+begin
+  sNombre := ADatos.Cliente;
+  sDireccion := ADatos.DireccionCliente;
+  sDestino := BloqueCliente(ADatos);
+  if ATipo = drFabricante then
+  begin
+    sNombre := ADatos.Fabricante;
+    sDireccion := ADatos.DireccionFabricante;
+    sDestino := sNombre + sLineBreak + sDireccion + sLineBreak +
+      ADatos.TelefonoFabricante;
+  end;
+  if (Trim(sNombre) = '') or (Trim(sDireccion) = '') then
+    raise EArgumentException.Create(SImpresoDireccionFalta);
+  ADiseno.Seccion(SImpresoDestinatario, sDestino, 12);
+  ADiseno.Seccion(SImpresoRemitente, BloqueEmisor(ADatos), 8);
+  stTexto := TStringList.Create;
+  try
+    if ATipo = drFabricante then
+      AgregarDato(stTexto, 'RMA:', ADatos.Rma);
+    if ADatos.Movimiento > 0 then
+      stTexto.Add(Format(SImpresoMovimiento, [ADatos.Movimiento]));
+    AgregarDato(stTexto, SMovimientoAgencia + ':', ADatos.Agencia);
+    AgregarDato(stTexto, SMovimientoTracking + ':', ADatos.Seguimiento);
+    AgregarDato(stTexto, '', ADatos.Objeto);
+    AgregarDato(stTexto, SCaptionGarantiaModeloFicha, ADatos.Modelo);
+    AgregarDato(stTexto, SCaptionGarantiaSerieFicha, ADatos.Serie);
+    ADiseno.Seccion(SImpresoTransporte, Trim(stTexto.Text), 9);
+  finally
+    stTexto.Free;
+  end;
+end;
+
+procedure CrearInformeDocumentoReparacion(AInforme: TfrxReport;
+  const ADatos: TResguardoGarantia; ATipo: TDocumentoReparacion;
+  AFormato: TFormatoResguardoGarantia);
+var
+  oDiseno: TDisenoReparacion;
+  dAncho, dAlto: Extended;
+  sReferencia, sFecha: string;
+begin
+  dAncho := 210;
+  dAlto := 297;
+  if AFormato = frgTicket then
+    dAncho := 80
+  else if AFormato = frgEtiqueta then
+  begin
+    dAncho := 100;
+    dAlto := 150;
+  end;
+  sReferencia := Format(SImpresoReferencia, [ADatos.Numero]);
+  sFecha := FechaResguardo(ADatos.Fecha);
+  if (ATipo = drAlbaran) and (ADatos.Entrega > 0) then
+    sFecha := FechaResguardo(ADatos.Entrega);
+  oDiseno := TDisenoReparacion.Create(AInforme, dAncho, dAlto,
+    AFormato = frgTicket);
+  try
+    AInforme.ReportOptions.Name := TituloDocumentoReparacion(ATipo);
+    oDiseno.Cabecera(AInforme.ReportOptions.Name, sReferencia,
+      Format(SImpresoFecha, [sFecha]));
+    case ATipo of
+      drRecepcion: ComponerRecepcion(oDiseno, ADatos);
+      drAlbaran: ComponerAlbaran(oDiseno, ADatos);
+      drFabricante, drCliente: ComponerEtiqueta(oDiseno, ADatos, ATipo);
+    end;
+    oDiseno.Pie(sReferencia + ' · ' + AInforme.ReportOptions.Name);
+    if AFormato = frgEtiqueta then
+      oDiseno.ValidarEtiqueta;
+  finally
+    oDiseno.Free;
   end;
 end;
 
 procedure CrearInformeResguardoGarantia(AInforme: TfrxReport;
   const ADatos: TResguardoGarantia; AFormato: TFormatoResguardoGarantia);
-var
-  oPagina: TfrxReportPage;
-  oBanda: TfrxReportTitle;
-  oTitulo, oTexto: TfrxMemoView;
-  dAncho: Extended;
 begin
-  AInforme.Clear;
-  AInforme.ReportOptions.Name := TituloResguardoGarantia(ADatos);
-  AInforme.PreviewOptions.Modal := True;
-  oPagina := CrearPaginaResguardo(AInforme, AFormato);
-  dAncho := (oPagina.PaperWidth - oPagina.LeftMargin -
-    oPagina.RightMargin) * 3.77953;
-  oBanda := TfrxReportTitle.Create(oPagina);
-  oBanda.CreateUniqueName;
-  oBanda.Height := 60;
-  oBanda.Stretched := True;
-  oBanda.AllowSplit := True;
-  oTitulo := TfrxMemoView.Create(oBanda);
-  oTitulo.CreateUniqueName;
-  oTitulo.SetBounds(0, 0, dAncho, 35);
-  oTitulo.Font.Name := 'Arial';
-  oTitulo.Font.Size := 12;
-  oTitulo.Font.Style := [fsBold];
-  oTitulo.AllowExpressions := False;
-  oTitulo.Text := TituloResguardoGarantia(ADatos);
-  oTexto := TfrxMemoView.Create(oBanda);
-  oTexto.CreateUniqueName;
-  oTexto.SetBounds(0, 40, dAncho, 20);
-  oTexto.Font.Name := 'Arial';
-  oTexto.Font.Size := 10;
-  oTexto.WordWrap := True;
-  oTexto.StretchMode := smActualHeight;
-  // Los corchetes del motivo o del nombre son datos, nunca expresiones.
-  oTexto.AllowExpressions := False;
-  oTexto.Text := TextoResguardoGarantia(ADatos);
+  CrearInformeDocumentoReparacion(AInforme, ADatos, drRecepcion, AFormato);
 end;
 
 procedure ImprimirResguardoGarantiaTicket(AInforme: TfrxReport;
@@ -279,11 +473,7 @@ begin
     raise Exception.CreateFmt(SErrorImprimir, [SCaptionResguardoGarantia]);
   oTicket := TTicketTermico.Create(AImpresora);
   try
-    oTicket.Inicializar;
-    // Mismo circuito raster y salida de caja, sin abrir el cajon.
-    if not ComponerTicketDesdeInforme(AInforme, oTicket, False) then
-      raise Exception.CreateFmt(SErrorImprimir,
-        [SCaptionResguardoGarantia]);
+    ComponerTicketTextoDesdeInforme(AInforme, oTicket);
     ImprimirOPrevisualizarTicket(APreview, oTicket,
       oTicket.ObtenerComandos, ARutaPdf, AImpresora);
   finally

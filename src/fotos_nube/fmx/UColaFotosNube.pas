@@ -33,6 +33,11 @@ type
   TFotoItem = class
   public
     Archivo: string;
+    CapturaId: string;
+    Reparacion: string;
+    Fase: string;
+    Comentario: string;
+    SoloComentario: Boolean;
     Articulo: string;
     Color: string;
     Indice: string;
@@ -74,6 +79,10 @@ type
     // La app usa esta firma para conservar el índice elegido al capturar.
     function Add(const AArchivo, AArticulo, AColor: string;
       const AIndice: Integer): TFotoItem; overload;
+    function AddReparacion(const AArchivo, AReparacion,
+      AFase: string; AIndice: Integer;
+      const AComentario: string = ''): TFotoItem;
+    procedure CambiarSecuencia(APosicion, ASecuencia: Integer);
     procedure Limpiar;
     function PendientesCount: Integer;
     // Sube en segundo plano todas las fotos no subidas. Notifica por
@@ -167,6 +176,7 @@ begin
     raise Exception.Create(
       Tr('No se pueden añadir fotos durante una subida'));
   Result := TFotoItem.Create;
+  Result.CapturaId := LowerCase(Copy(TGUID.NewGuid.ToString, 2, 36));
   Result.Archivo := AArchivo;
   Result.Articulo := AArticulo;
   Result.Color := AColor;
@@ -189,11 +199,12 @@ begin
   if FSubiendo then
     raise Exception.Create(
       Tr('No se pueden añadir fotos durante una subida'));
-  if AIndice < 1 then
+  if (AIndice < 1) or (AIndice > 9999) then
     raise EArgumentException.Create(
       Tr('El índice de foto debe ser mayor o igual que 1'));
   for Otro in FItems do
     if (Otro.Estado <> esOk) and
+       (Otro.Reparacion = '') and
        SameText(Trim(Otro.Articulo), Trim(AArticulo)) and
        SameText(Trim(Otro.Color), Trim(AColor)) and
        (StrToIntDef(Otro.Indice, 0) = AIndice) then
@@ -202,9 +213,44 @@ begin
         [AArticulo, AColor, AIndice]));
 
   Result := TFotoItem.Create;
+  Result.CapturaId := LowerCase(Copy(TGUID.NewGuid.ToString, 2, 36));
   Result.Archivo := AArchivo;
   Result.Articulo := AArticulo;
   Result.Color := AColor;
+  Result.Indice := IntToStr(AIndice);
+  Result.Estado := esPendiente;
+  FItems.Add(Result);
+  GuardarCola;
+end;
+
+function TColaFotos.AddReparacion(const AArchivo, AReparacion,
+  AFase: string; AIndice: Integer;
+  const AComentario: string): TFotoItem;
+var
+  iReparacion: Int64;
+  oOtra: TFotoItem;
+begin
+  if FSubiendo then
+    raise EArgumentException.Create(Tr('Hay una subida en curso.'));
+  if not TryStrToInt64(AReparacion, iReparacion) or (iReparacion < 1) or
+     (Trim(AFase) = '') or (Length(AFase) > 60) or
+     (AIndice < 1) or (AIndice > 9999) or
+     ((AArchivo = '') and (Trim(AComentario) = '')) then
+    raise EArgumentException.Create(Tr('Indique reparación, fase y comentario.'));
+  Result := TFotoItem.Create;
+  Result.CapturaId := LowerCase(Copy(TGUID.NewGuid.ToString, 2, 36));
+  Result.Archivo := AArchivo;
+  for oOtra in FItems do
+    if (oOtra.Reparacion = IntToStr(iReparacion)) and
+       (oOtra.Fase = AFase) and (oOtra.Indice = IntToStr(AIndice)) then
+    begin
+      FreeAndNil(Result);
+      raise EArgumentException.Create(Tr('El número de secuencia ya existe.'));
+    end;
+  Result.Reparacion := IntToStr(iReparacion);
+  Result.Fase := AFase;
+  Result.Comentario := Trim(AComentario);
+  Result.SoloComentario := AArchivo = '';
   Result.Indice := IntToStr(AIndice);
   Result.Estado := esPendiente;
   FItems.Add(Result);
@@ -233,6 +279,14 @@ begin
         oObjeto := oValor as TJSONObject;
         oItem := TFotoItem.Create;
         FItems.Add(oItem);
+        oItem.CapturaId := oObjeto.GetValue<string>('captura_id', '');
+        if oItem.CapturaId = '' then
+          oItem.CapturaId := LowerCase(Copy(TGUID.NewGuid.ToString, 2, 36));
+        oItem.Reparacion := oObjeto.GetValue<string>('reparacion', '');
+        oItem.Fase := oObjeto.GetValue<string>('fase', '');
+        oItem.Comentario := oObjeto.GetValue<string>('comentario', '');
+        oItem.SoloComentario :=
+          oObjeto.GetValue<Boolean>('solo_comentario', False);
         oItem.Archivo := oObjeto.GetValue<string>('archivo');
         oItem.Articulo := oObjeto.GetValue<string>('articulo');
         oItem.Color := oObjeto.GetValue<string>('color');
@@ -261,6 +315,12 @@ begin
       begin
         oObjeto := TJSONObject.Create;
         oJson.AddElement(oObjeto);
+        oObjeto.AddPair('captura_id', oItem.CapturaId);
+        oObjeto.AddPair('reparacion', oItem.Reparacion);
+        oObjeto.AddPair('fase', oItem.Fase);
+        oObjeto.AddPair('comentario', oItem.Comentario);
+        oObjeto.AddPair('solo_comentario',
+          TJSONBool.Create(oItem.SoloComentario));
         oObjeto.AddPair('archivo', oItem.Archivo);
         oObjeto.AddPair('articulo', oItem.Articulo);
         oObjeto.AddPair('color', oItem.Color);
@@ -273,6 +333,34 @@ begin
     finally
       oJson.Free;
     end;
+  end;
+end;
+
+procedure TColaFotos.CambiarSecuencia(APosicion, ASecuencia: Integer);
+var
+  oItem, oOtro: TFotoItem;
+begin
+  if FSubiendo or (APosicion < 0) or (APosicion >= FItems.Count) or
+     (ASecuencia < 1) or (ASecuencia > 9999) then
+    raise EArgumentException.Create(Tr('Seleccione foto y secuencia válida.'));
+  oItem := FItems[APosicion];
+  if oItem.Estado = esOk then
+    raise EArgumentException.Create(Tr('La foto ya está subida.'));
+  for oOtro in FItems do
+    if (oOtro <> oItem) and
+       SameText(oOtro.Articulo, oItem.Articulo) and
+       SameText(oOtro.Color, oItem.Color) and
+       (oOtro.Reparacion = oItem.Reparacion) and
+       (oOtro.Fase = oItem.Fase) and
+       (oOtro.Indice = IntToStr(ASecuencia)) then
+      raise EArgumentException.Create(Tr('El número de secuencia ya existe.'));
+  if oItem.Indice <> IntToStr(ASecuencia) then
+  begin
+    oItem.Indice := IntToStr(ASecuencia);
+    oItem.CapturaId := LowerCase(Copy(TGUID.NewGuid.ToString, 2, 36));
+    oItem.Estado := esPendiente;
+    oItem.Mensaje := '';
+    GuardarCola;
   end;
 end;
 
@@ -306,6 +394,7 @@ begin
   Siguiente := 1;
   for Otro in FItems do
     if (Otro <> AItem) and
+       (Otro.Reparacion = '') and
        SameText(Trim(Otro.Articulo), Trim(AItem.Articulo)) and
        SameText(Trim(Otro.Color), Trim(AItem.Color)) then
     begin
@@ -339,15 +428,23 @@ begin
     Form := TMultipartFormData.Create;
     try
       // Campos del contrato moderno POST /api/v1/fotos/subir.php.
+      Form.AddField('captura_id', AItem.CapturaId);
+      Form.AddField('reparacion', AItem.Reparacion);
+      Form.AddField('fase', AItem.Fase);
+      Form.AddField('comentario', AItem.Comentario);
       Form.AddField('articulo', AItem.Articulo);
       Form.AddField('color', AItem.Color);
       Form.AddField('indice', AItem.Indice);
       Form.AddField('referencia', FCarpetaCliente);
-      Form.AddField('nombre_original', ExtractFileName(AItem.Archivo));
-      // SHA1 del fichero local para verificación extremo a extremo.
-      Form.AddField('osha1',
-        LowerCase(THashSHA1.GetHashStringFromFile(AItem.Archivo)));
-      Form.AddFile('imagen', AItem.Archivo);
+      if AItem.SoloComentario then
+        Form.AddField('solo_comentario', 'S')
+      else
+      begin
+        Form.AddField('nombre_original', ExtractFileName(AItem.Archivo));
+        Form.AddField('osha1',
+          LowerCase(THashSHA1.GetHashStringFromFile(AItem.Archivo)));
+        Form.AddFile('imagen', AItem.Archivo);
+      end;
       HTTP.CustomHeaders['Authorization'] := 'Bearer ' + FApiKey;
       Res := HTTP.Post(FUrl, Form, nil);
       if Assigned(Sesion) then

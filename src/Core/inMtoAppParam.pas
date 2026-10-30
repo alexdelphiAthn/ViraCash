@@ -423,7 +423,10 @@ begin
     EsInspector   := (ControlActivo <> nil) and
                      ((ControlActivo = JvInspector1) or
                       JvInspector1.ContainsControl(ControlActivo));
-    if (not EsBoton) and (not EsInspector) then
+    if (ControlActivo = edtBusqueda) or
+       edtBusqueda.ContainsControl(ControlActivo) then
+      edtBusquedaKeyDown(Sender, Key, Shift)
+    else if (not EsBoton) and (not EsInspector) then
     begin
       Key := 0;
       if ActiveControl <> nil then

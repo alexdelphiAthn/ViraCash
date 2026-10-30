@@ -20,11 +20,12 @@ interface
 
 uses
   System.Classes, Data.DB, Uni,
-  inLibReparaciones, inLibReparacionesIntf, inLibReparacionesDocumentos;
+  UniDataReparacionesMovimientos, inLibReparaciones, inLibReparacionesIntf, inLibReparacionesDocumentos;
 
 type
   TDatosPantallaReparaciones = class(TComponent)
   private
+    FMovimientos: TDatosMovimientosReparacion;
     FConexion: TUniConnection;
     FUsuario: string;
     FCatalogo: ICatalogoReparaciones;
@@ -61,6 +62,7 @@ type
     function HojaEntrega(const AIds: TArray<Int64>;
       const AAlmacen: string): THojaReparaciones;
     function HojaLiquidacion(ALiquidacion: Int64): THojaReparaciones;
+    property Movimientos: TDatosMovimientosReparacion read FMovimientos;
     property Catalogo: ICatalogoReparaciones read FCatalogo;
     property Reparaciones: IRepositorioReparaciones read FReparaciones;
     property LiquidacionesRepositorio: ILiquidacionesReparaciones
@@ -130,6 +132,7 @@ var
 begin
   inherited Create(AOwner);
   FConexion := AConexion;
+  FMovimientos := TDatosMovimientosReparacion.CreateDatos(Self, AConexion);
   FUsuario := AUsuario;
   oRepositorio := TRepositorioReparacionesUniDAC.Create(AConexion);
   FCatalogo := oRepositorio;
@@ -157,6 +160,7 @@ end;
 
 procedure TDatosPantallaReparaciones.AsignarMaestro(ADatos: TDataSource);
 begin
+  FMovimientos.AsignarMaestro(ADatos);
   FLineas.MasterSource := ADatos;
   FLineas.MasterFields := 'ID_GAR';
   FLineas.DetailFields := 'ID_GAR_GARLIN';
@@ -167,6 +171,7 @@ end;
 
 procedure TDatosPantallaReparaciones.RefrescarLineas;
 begin
+  FMovimientos.Refrescar;
   if FLineas.Active then
     FLineas.Refresh
   else if Assigned(FLineas.MasterSource) and

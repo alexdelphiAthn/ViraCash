@@ -27,7 +27,7 @@ uses
   FMX.StdCtrls, FMX.Controls.Presentation, FMX.Edit, FMX.ListView.Types,
   FMX.ListView.Appearances, FMX.ListView.Adapters.Base, FMX.ListView,
   FMX.Objects, FMX.TabControl, FMX.ScrollBox, FMX.Memo, FMX.Memo.Types,
-  FMX.ActnList, FMX.MediaLibrary.Actions, FMX.Layouts,
+  FMX.ListBox, FMX.ActnList, FMX.MediaLibrary.Actions, FMX.Layouts,
   SesionClienteMovil, UConfigFotos, UColaFotosNube, UImagenUtil, FMX.MediaLibrary, FMX.StdActns;
 
 type
@@ -73,12 +73,24 @@ type
     procedure actHacerFotoDidFinishTaking(Image: TBitmap);
     procedure actElegirFotoDidFinishTaking(Image: TBitmap);
   private
+    FDestino: TComboBox;
+    FSecuencia: TButton;
+    FComentario: TEdit;
+    FComentarioSolo: TButton;
+    FComentarioCaptura: string;
+    FReparacionCaptura: Boolean;
+    FFaseCaptura: string;
     FConfig: TConfigFotos;
     FCola: TColaFotos;
     FArticuloCaptura: string;
     FColorCaptura: string;
     FIndiceCaptura: Integer;
     FSubidaEnCurso: Boolean;
+    procedure CrearDestino;
+    procedure CrearComentario;
+    procedure ComentarioClick(Sender: TObject);
+    procedure CambiarSecuenciaClick(Sender: TObject);
+    procedure DestinoCambiado(Sender: TObject);
     procedure Log(const S: string);
     procedure ConfigAUI;
     procedure UIAConfig;
@@ -110,7 +122,7 @@ uses
   ;
 
 const
-  cVersionApp = '1.0.0.202608260001.alpha';
+  cVersionApp = '1.1.0.202610300001.alpha';
 
 procedure TfrmPrincipal.ConfigurarModulo(const AUrl, AToken,
   AReferencia, ARutaCola: string; const ASesion: ISesionClienteMovil);
@@ -139,11 +151,117 @@ begin
   FConfig := TConfigFotos.Create;
   FConfig.Cargar;
   FCola := TColaFotos.Create;
+  CrearDestino;
   EstablecerSubidaEnCurso(False);
   ConfigAUI;
   RefrescarCola;
   Log(TrF('ViraCash Fotos Nube %s', [cVersionApp]));
   Log(TrF('Configuración: %s', [FConfig.RutaIni]));
+end;
+
+procedure TfrmPrincipal.CrearDestino;
+begin
+  FDestino := TComboBox.Create(Self);
+  FDestino.Parent := lytCaptura;
+  FDestino.Align := TAlignLayout.Top;
+  FDestino.Position.Y := -100;
+  FDestino.Height := 44;
+  FDestino.Items.Add(Tr('Artículo / color'));
+  FDestino.Items.Add(Tr('Reparación · Antes'));
+  FDestino.Items.Add(Tr('Reparación · Después'));
+  FDestino.Items.Add(Tr('Reparación · Otra fase'));
+  FDestino.ItemIndex := 0;
+  FDestino.OnChange := DestinoCambiado;
+  FSecuencia := TButton.Create(Self);
+  FSecuencia.Parent := lytCaptura;
+  FSecuencia.Align := TAlignLayout.Bottom;
+  FSecuencia.Height := 44;
+  FSecuencia.Text := Tr('Aplicar secuencia a la foto seleccionada');
+  FSecuencia.OnClick := CambiarSecuenciaClick;
+  CrearComentario;
+  lytCaptura.Height := lytCaptura.Height + 202;
+end;
+
+procedure TfrmPrincipal.CambiarSecuenciaClick(Sender: TObject);
+begin
+  try
+    FCola.CambiarSecuencia(lstCola.ItemIndex,
+      StrToIntDef(edIndice.Text, 0));
+    RefrescarCola;
+  except
+    on E: EArgumentException do
+      Log(E.Message);
+  end;
+end;
+
+procedure TfrmPrincipal.CrearComentario;
+var
+  oPanel: TLayout;
+  oRotulo: TLabel;
+begin
+  oPanel := TLayout.Create(Self);
+  oPanel.Parent := lytCaptura;
+  oPanel.Align := TAlignLayout.Top;
+  oPanel.Position.Y := edIndice.Position.Y + edIndice.Height + 1;
+  oPanel.Height := 70;
+  oRotulo := TLabel.Create(Self);
+  oRotulo.Parent := oPanel;
+  oRotulo.Align := TAlignLayout.Top;
+  oRotulo.Text := Tr('Comentario (opcional)');
+  oRotulo.Height := 24;
+  FComentario := TEdit.Create(Self);
+  FComentario.Parent := oPanel;
+  FComentario.Align := TAlignLayout.Client;
+  FComentario.MaxLength := 2000;
+  FComentarioSolo := TButton.Create(Self);
+  FComentarioSolo.Parent := lytCaptura;
+  FComentarioSolo.Align := TAlignLayout.Bottom;
+  FComentarioSolo.Height := 44;
+  FComentarioSolo.Text := Tr('Añadir comentario sin foto');
+  FComentarioSolo.OnClick := ComentarioClick;
+  FComentarioSolo.Enabled := False;
+end;
+
+procedure TfrmPrincipal.ComentarioClick(Sender: TObject);
+begin
+  if ValidarDatosFoto and FReparacionCaptura then
+  begin
+    if Trim(FComentarioCaptura) = '' then
+      Log(Tr('Escriba el comentario.'))
+    else
+    begin
+      FCola.AddReparacion('', FArticuloCaptura, FFaseCaptura,
+        FIndiceCaptura, FComentarioCaptura);
+      edIndice.Text := IntToStr(FIndiceCaptura + 1);
+      RefrescarCola;
+    end;
+  end;
+end;
+
+procedure TfrmPrincipal.DestinoCambiado(Sender: TObject);
+begin
+  edColor.Visible := True;
+  lblColor.Visible := True;
+  if FDestino.ItemIndex = 0 then
+  begin
+    lblArticulo.Text := Tr('Código de artículo (obligatorio)');
+    lblColor.Text := Tr('Color (obligatorio)');
+    edColor.Text := '';
+  end
+  else
+  begin
+    lblArticulo.Text := Tr('Número de reparación (obligatorio)');
+    lblColor.Text := Tr('Fase de la reparación');
+    edColor.Text := '';
+    if FDestino.ItemIndex = 1 then
+      edColor.Text := 'ANTES'
+    else if FDestino.ItemIndex = 2 then
+      edColor.Text := 'DESPUES';
+  end;
+  FComentarioSolo.Enabled := FDestino.ItemIndex > 0;
+  edColor.TextPrompt := lblColor.Text;
+  edArticulo.TextPrompt := lblArticulo.Text;
+  edIndice.Text := '1';
 end;
 
 procedure TfrmPrincipal.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
@@ -164,6 +282,7 @@ begin
   FSubidaEnCurso := AValor;
   btnCamara.Enabled := not AValor;
   btnGaleria.Enabled := not AValor;
+  FComentarioSolo.Enabled := not AValor and (FDestino.ItemIndex > 0);
   btnSubir.Enabled := not AValor;
 end;
 
@@ -229,23 +348,38 @@ end;
 function TfrmPrincipal.ValidarDatosFoto: Boolean;
 var
   Indice: Integer;
+  iReparacion: Int64;
 begin
   // El webservice nombra el fichero como ARTICULO_COLOR_INDICE y exige los
   // tres valores. El índice debe ser un entero positivo.
   Result := True;
   if Trim(edArticulo.Text) = '' then
   begin
-    Log(Tr('Indica el código de artículo antes de hacer la foto'));
+    if FDestino.ItemIndex = 0 then
+      Log(Tr('Indica el código de artículo antes de hacer la foto'))
+    else
+      Log(Tr('Indique un número de reparación válido.'));
     edArticulo.SetFocus;
     Result := False;
   end
   else if Trim(edColor.Text) = '' then
   begin
-    Log(Tr('Indica el color antes de hacer la foto'));
+    if FDestino.ItemIndex = 0 then
+      Log(Tr('Indica el color antes de hacer la foto'))
+    else
+      Log(Tr('Indique la fase de la reparación.'));
     edColor.SetFocus;
     Result := False;
   end
-  else if (not TryStrToInt(Trim(edIndice.Text), Indice)) or (Indice < 1) then
+  else if (FDestino.ItemIndex > 0) and
+    (not TryStrToInt64(Trim(edArticulo.Text), iReparacion) or
+     (iReparacion < 1)) then
+  begin
+    Log(Tr('Indique un número de reparación válido.'));
+    Result := False;
+  end
+  else if (not TryStrToInt(Trim(edIndice.Text), Indice)) or
+    (Indice < 1) or (Indice > 9999) then
   begin
     Log(Tr('El índice de foto debe ser un número entero mayor o igual ' +
       'que 1'));
@@ -256,6 +390,9 @@ begin
   begin
     // Normaliza ceros a la izquierda y espacios antes de encolar.
     edIndice.Text := IntToStr(Indice);
+    FReparacionCaptura := FDestino.ItemIndex > 0;
+    FFaseCaptura := UpperCase(Trim(edColor.Text));
+    FComentarioCaptura := Trim(FComentario.Text);
     FArticuloCaptura := Trim(edArticulo.Text);
     FColorCaptura := Trim(edColor.Text);
     FIndiceCaptura := Indice;
@@ -317,11 +454,15 @@ begin
     imgPrevia.Bitmap.Assign(Reducida);
     // Cualificamos System.IOUtils.TPath: FMX.Objects tambien declara un
     // TPath (la forma vectorial) y, al ir despues en el uses, taparia este.
-    Ruta := System.IOUtils.TPath.Combine(System.IOUtils.TPath.GetTempPath,
-      'foto_' + FormatDateTime('yyyymmdd_hhnnsszzz', Now) + '.jpg');
+    Ruta := System.IOUtils.TPath.Combine(System.IOUtils.TPath.GetDocumentsPath,
+      'foto_' + Copy(TGUID.NewGuid.ToString, 2, 36) + '.jpg');
     Reducida.SaveToFile(Ruta);
     try
-      FCola.Add(Ruta, FArticuloCaptura, FColorCaptura, FIndiceCaptura);
+      if FReparacionCaptura then
+        FCola.AddReparacion(Ruta, FArticuloCaptura, FFaseCaptura,
+          FIndiceCaptura, FComentarioCaptura)
+      else
+        FCola.Add(Ruta, FArticuloCaptura, FColorCaptura, FIndiceCaptura);
     except
       on E: Exception do
       begin
@@ -335,7 +476,7 @@ begin
     Log(TrF('Foto encolada %dx%d: %s / %s / índice %d',
       [Reducida.Width, Reducida.Height, FArticuloCaptura,
        FColorCaptura, FIndiceCaptura]));
-    if FIndiceCaptura < MaxInt then
+    if FIndiceCaptura < 9999 then
       edIndice.Text := IntToStr(FIndiceCaptura + 1);
   finally
     Reducida.Free;
@@ -354,9 +495,14 @@ begin
     for Item in FCola.Items do
     begin
       Etiqueta := Item.Articulo;
+      if Item.Reparacion <> '' then
+        Etiqueta := Tr('Reparación') + ' ' + Item.Reparacion +
+          ' / ' + Item.Fase;
       if Item.Color <> '' then
         Etiqueta := Etiqueta + ' / ' + Item.Color;
       Etiqueta := TrF('%s / foto %s', [Etiqueta, Item.Indice]);
+      if Item.SoloComentario then
+        Etiqueta := Etiqueta + ' · ' + Tr('Comentario');
       // La apariencia por defecto del TListView solo muestra Text, asi
       // que metemos el estado en la misma linea para no perderlo.
       Etiqueta := Etiqueta + '  [' + EstadoTexto(Item.Estado) + ']';

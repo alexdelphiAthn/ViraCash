@@ -191,7 +191,8 @@ type
     procedure EnviarCorreoDocumentoPreparado(
       ATipo: TTipoDocumentoCorreo;
       const ASerie, ANumero, ANombreDocumento, AEmail: string;
-      const ADatos: TDatosCorreoDocumento);
+      const ADatos: TDatosCorreoDocumento;
+      const ANombreAdjunto: string = '');
     procedure PrepararSelectorFormato(
       ASelector: TfrmMtoModalGenImpEle;
       const AFormatoPredeterminado: string); virtual;
@@ -255,7 +256,7 @@ type
     // Evita ejecutar dos veces la consulta en los procesos por lotes.
     function ExportarPdfPreparado(
       const ARuta: string;
-      ANotificarExportacion: Boolean = True): Boolean;
+      ANotificarExportacion: Boolean = True): Boolean; virtual;
     // Imprime sin mostrar el dialogo del controlador usando los datos que
     // el llamador ya ha preparado. Un nombre vacio conserva la impresora
     // predeterminada del informe.
@@ -502,7 +503,7 @@ end;
 procedure TfrmPrint.EnviarCorreoDocumentoPreparado(
   ATipo: TTipoDocumentoCorreo;
   const ASerie, ANumero, ANombreDocumento, AEmail: string;
-  const ADatos: TDatosCorreoDocumento);
+  const ADatos: TDatosCorreoDocumento; const ANombreAdjunto: string);
 var
   bEnviado: Boolean;
   oRutas: TStringList;
@@ -513,6 +514,12 @@ begin
   sReferencia := FormatearDocumento(
     ADatos.FormatoDocumento, ASerie, ANumero);
   sRutaPdf := CrearRutaPdfTemporalCorreo(ATipo, ASerie, ANumero);
+  if ANombreAdjunto <> '' then
+  begin
+    if ExtractFileName(ANombreAdjunto) <> ANombreAdjunto then
+      raise EArgumentException.Create('Nombre de adjunto no válido.');
+    sRutaPdf := ExtractFilePath(sRutaPdf) + ANombreAdjunto;
+  end;
   oRutas := TStringList.Create;
   try
     if not ExportarPdfPreparado(sRutaPdf, False) then

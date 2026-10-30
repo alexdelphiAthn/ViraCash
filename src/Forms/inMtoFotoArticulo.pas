@@ -157,6 +157,8 @@ type
     procedure DesengancharDataChange;
     procedure OnPadreDataChange(Sender: TObject; Field: TField);
     procedure DescargarFotosDeNube;
+    procedure IntegrarFotosNube(const AArchivos: TArray<string>);
+    function FotoNubeYaIntegrada(const AArchivo, AClave: string): Boolean;
     procedure PintarFotoGDIPlus;
     procedure RestaurarGeometriaGuardada;
     procedure VincularDataSourcesInterno(
@@ -219,6 +221,7 @@ procedure MostrarFotoSesionFlotante(AOwner: TComponent;
 implementation
 
 uses
+  System.Hash,
   System.Math,
   inLibMensajesVcl,
   inLibMsgArticulos, inLibMsgCompras, inLibMsgComun,
@@ -1015,19 +1018,47 @@ begin
   DescargarFotosDeNube;
 end;
 
+function TfrmFotoArticulo.FotoNubeYaIntegrada(const AArchivo,
+  AClave: string): Boolean;
+var
+  rFoto: TFotoInfo;
+  sRuta, sHash: string;
+begin
+  Result := False;
+  sHash := THashSHA2.GetHashStringFromFile(AArchivo);
+  for rFoto in FotosArticulos.ResolverColeccion(FCodigoArt, AClave) do
+  begin
+    sRuta := FotosArticulos.RutaFoto(rFoto, frReal);
+    if (rFoto.ClaveResuelta = AClave) and FileExists(sRuta) then
+      Result := Result or (sHash = THashSHA2.GetHashStringFromFile(sRuta));
+  end;
+end;
+
+procedure TfrmFotoArticulo.IntegrarFotosNube(
+  const AArchivos: TArray<string>);
+var
+  sClave, sColor, sArchivo: string;
+  iBarra: Integer;
+begin
+  sClave := ClaveNivelSeleccionado;
+  iBarra := LastDelimiter('/', sClave);
+  sColor := '';
+  if iBarra > 0 then
+    sColor := Copy(sClave, iBarra + 1, MaxInt);
+  for sArchivo in FiltrarFotosNube(AArchivos, FCodigoArt, sColor) do
+    if not FotoNubeYaIntegrada(sArchivo, sClave) then
+      FotosArticulos.Anadir(FCodigoArt, sClave, sArchivo,
+        IdentidadSesion.Usuario);
+end;
+
 procedure TfrmFotoArticulo.DescargarFotosDeNube;
 var
   archivos                   : TArray<string>;
-  sMsg, sFile, sClave, sColor: string;
-  iBarra                     : Integer;
+  sMsg: string;
   bOK                        : Boolean;
 begin
-  // Descarga del servidor (download_foto.php) las fotos del articulo
-  // actual, las descomprime en appDirFotos y borra el ZIP. Integra la foto
-  // al nivel que muestra el combo (por defecto la profundidad de
-  // appNumAtributosFoto, p.ej. articulo/color), igual que "Cambiar foto
-  // del grupo": el color es el ultimo segmento del nivel y se elige el PNG
-  // de ese color. Los demas PNG (y el temporal) se borran tras integrar.
+  // Añade todas las fotos del nivel seleccionado, sin sustituir la
+  // principal ni duplicar imágenes que ya se descargaron.
   if FCodigoArt = '' then
     ShowMessage_fza(SErrorFotoArticuloNoActivoDescargar)
   else
@@ -1047,28 +1078,12 @@ begin
                          [FCodigoArt, sMsg]))
     else
     begin
-      sClave := ClaveNivelSeleccionado;
-      iBarra := LastDelimiter('/', sClave);
-      if iBarra > 0 then
-        sColor := Copy(sClave, iBarra + 1, MaxInt)
-      else
-        sColor := '';
-      sFile := ElegirFotoNubePorColor(archivos, sColor);
-      if sFile <> '' then
-      begin
-        // Sentinela COLOR=NONE: si el PNG no es por color, lo guardamos a
-        // nivel articulo (CODIGO_UNIDAD = ''); si no, al nivel del combo.
-        if Pos('_NONE_', UpperCase(ExtractFileName(sFile))) > 0 then
-          FotosArticulos.Guardar(
-            FCodigoArt, '', sFile, IdentidadSesion.Usuario)
-        else
-          FotosArticulos.Guardar(FCodigoArt, sClave, sFile,
-            IdentidadSesion.Usuario);
+      try
+        IntegrarFotosNube(archivos);
+        SetArticuloSku(FCodigoArt, FCodigoSku);
+      finally
+        LimpiarDescargaTemporal(archivos);
       end;
-      // Re-resolver y refrescar la imagen que se muestra ahora mismo.
-      SetArticuloSku(FCodigoArt, FCodigoSku);
-      // Borrar los PNG temporales extraidos (no dejar huerfanos).
-      LimpiarDescargaTemporal(archivos);
       ShowMessage_fza(Format(SInfoFotosArticuloDescargadas,
                          [Length(archivos), FCodigoArt]));
     end;

@@ -123,6 +123,10 @@ resourcestring
   SCaptionEntregarReparacion = 'Entregar al cliente';
   SCaptionAnularReparacion = 'Anular reparación';
   SCaptionFaseReparacion = 'Reparación';
+  SDatosEnvioReparacion = 'Datos de envío';
+  SResultadoEntregaReparacion = 'Resultado y entrega';
+  SRecepcionEstadoAccesorios = 'Estado y accesorios recibidos';
+  SIntervencionResultadoReparacion = 'Intervención y resultado';
   SCaptionPestanaLiquidaciones = 'Liquidaciones';
   SCaptionPestanaTiposExternos = 'Tipos y externos';
   SCaptionAnadirLinea = 'Añadir línea';
@@ -271,6 +275,90 @@ resourcestring
   SHojaReparacionesLineas = 'Trabajos: %d';
   SHojaReparacionesTotal = 'Total sin impuestos: %s €';
   SHojaReparacionesFirma = 'Firma:';
+
+  SMovimientoNuevo = 'Nuevo movimiento';
+  SMovimientoContinuar = 'Añadir seguimiento';
+  SMovimientoReintentar = 'Reintentar envío';
+  SMovimientoHistorial = 'Seguimientos';
+  SMovimientoFecha = 'Fecha y hora';
+  SMovimientoOrigen = 'Origen';
+  SMovimientoDestino = 'Destino';
+  SMovimientoObjeto = 'Objeto o pieza';
+  SMovimientoEstado = 'Resultado';
+  SMovimientoAgencia = 'Agencia';
+  SMovimientoTracking = 'Seguimiento / RMA';
+  SMovimientoIncidencia = 'Motivo / observaciones';
+  SMovimientoUsuario = 'Registrado por';
+  SMovimientoAnterior = 'Movimiento anterior';
+  SMovimientoEstados = 'Enviado'#13#10'Recibido'#13#10'Devuelto'#13#10 +
+    'Pieza defectuosa'#13#10'Anulado';
+  SMovimientoFechaInvalida = 'Indique una fecha válida, no futura.';
+  SMovimientoDatosObligatorios = 'Indique origen, destino y objeto o pieza.';
+  SMovimientoEstadoInvalido = 'Seleccione el resultado del movimiento.';
+  SMovimientoMotivoObligatorio = 'Explique la devolución o incidencia.';
+  SMovimientoTextoLargo = 'Uno de los textos supera la longitud permitida.';
+  SMovimientoAnteriorInvalido = 'El movimiento pertenece a otra reparación.';
+  SMovimientoSeleccionar = 'Seleccione un movimiento del historial.';
+  SFotosReparacion = 'Fotos y comentarios';
+  SFotosTodasFases = 'Todas las fases';
+  SFotosDescargar = 'Recibir fotos y comentarios';
+  SFotosRefrescar = 'Refrescar';
+  SFotosAntes = 'Antes';
+  SFotosDespues = 'Después';
+  SFotosInstrucciones = 'Reparación %d · En la app Fotos elija ' +
+    'Reparación, la fase, este número y la secuencia de cada foto o nota.';
+  SFotosConfigurarCarpeta = 'Configure la carpeta de fotos.';
+  SFotosConflicto = 'La foto %s ya existe con otro contenido.';
+
+resourcestring
+  SImpresoRecepcion = 'Recepción del aparato';
+  SImpresoFabricante = 'Envío al fabricante';
+  SImpresoEnvioCliente = 'Envío al cliente';
+  SImpresoAlbaran = 'Albarán de entrega';
+  SImpresoEmisor = 'Emisor / taller';
+  SImpresoCliente = 'Cliente';
+  SImpresoDestinatario = 'Destinatario';
+  SImpresoRemitente = 'Remitente';
+  SImpresoAparato = 'Identificación del aparato';
+  SImpresoMotivo = 'Avería comunicada / trabajo solicitado';
+  SImpresoEstadoRecepcion = 'Estado, accesorios y observaciones de recepción';
+  SImpresoCondiciones = 'Modalidad y condiciones';
+  SImpresoTrabajos = 'Trabajos y materiales';
+  SImpresoResultado = 'Resultado de la intervención';
+  SImpresoTransporte = 'Datos del envío';
+  SImpresoFirmasTicket = 'Firma cliente / receptor' + #13#10#13#10 +
+    'Firma taller';
+  SImpresoFirmas = 'Firma cliente / receptor             Firma taller';
+  SImpresoAcuseRecepcion = 'Conserve este resguardo para la recogida. ' +
+    'Compruebe el aparato y los accesorios descritos al depositarlo.';
+  SImpresoAcuseEntrega = 'Recibí el aparato y los accesorios descritos. ' +
+    #13#10 + 'Nombre del receptor: ____________________' + #13#10 +
+    'Fecha: ______________';
+  SImpresoNoFactura = 'Documento de entrega. No sustituye a la factura.';
+  SImpresoPrecios = 'Importes en euros, impuestos incluidos.';
+  SImpresoBorrador = 'BORRADOR - entrega todavía no registrada';
+  SImpresoPendiente = 'Pendiente de finalizar';
+  SImpresoTotal = 'Importe de los trabajos';
+  SImpresoSinTrabajos = 'Sin líneas de trabajo registradas.';
+  SImpresoSinResolucion = 'Sin resultado de intervención registrado.';
+  SImpresoDireccionFalta = 'Complete el nombre y la dirección del ' +
+    'destinatario en la ficha antes de imprimir la etiqueta.';
+  SImpresoEtiquetaLarga = 'Los datos no caben en una etiqueta de ' +
+    '100 x 150 mm. Seleccione A4 o ticket para conservarlos completos.';
+  SImpresoFormato = 'Formato de salida';
+  SImpresoEtiqueta = 'Etiqueta 100 x 150 mm';
+  SImpresoTicket = 'Ticket 80 mm';
+  SImpresoEtiquetaFabricante = 'Etiqueta fabricante';
+  SImpresoEtiquetaCliente = 'Etiqueta cliente';
+  SImpresoReferencia = 'Reparación %d';
+  SImpresoFecha = 'Fecha: %s';
+  SImpresoCantidad = 'Cantidad: %s';
+  SImpresoDescripcion = 'Descripción';
+  SImpresoCantidadColumna = 'Cantidad';
+  SImpresoImporteColumna = 'Importe';
+  SImpresoCobro = 'Documento de cobro: %s';
+  SImpresoPresupuesto = 'Presupuesto: %s · %s';
+  SImpresoMovimiento = 'Movimiento: %d';
 
 implementation
 

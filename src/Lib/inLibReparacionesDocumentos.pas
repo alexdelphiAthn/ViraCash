@@ -63,7 +63,7 @@ implementation
 
 uses
   System.SysUtils, System.Classes, Vcl.Graphics,
-  inLibMsgReparaciones, inLibMsgComun, inLibFTicket, inLibTicketImagenFR;
+  inLibMsgReparaciones, inLibMsgComun, inLibFTicket, inLibTicketTextoFR;
 
 function FechaHoja(AFecha: TDateTime): string;
 begin
@@ -213,10 +213,7 @@ begin
     raise Exception.CreateFmt(SErrorImprimir, [ATitulo]);
   oTicket := TTicketTermico.Create(AImpresora);
   try
-    oTicket.Inicializar;
-    // Mismo circuito raster y salida de caja, sin abrir el cajón.
-    if not ComponerTicketDesdeInforme(AInforme, oTicket, False) then
-      raise Exception.CreateFmt(SErrorImprimir, [ATitulo]);
+    ComponerTicketTextoDesdeInforme(AInforme, oTicket);
     ImprimirOPrevisualizarTicket(APreview, oTicket,
       oTicket.ObtenerComandos, ARutaPdf, AImpresora);
   finally
