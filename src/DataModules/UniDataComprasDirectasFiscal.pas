@@ -36,6 +36,9 @@ uses
 
 const
   TRAMOS: array[0..3] of string = ('N', 'R', 'S', 'E');
+  // Fault de VERI*FACTU: el titular del certificado no es obligado,
+  // colaborador social, apoderado ni sucesor del emisor
+  cFaultSinApoderamiento = '4112';
 
 
 type
@@ -527,8 +530,14 @@ begin
     bAceptado := oVf.Aceptado or oVf.Duplicado;
     FCsv := oVf.Csv;
     FError := oVf.CodigoError + ' ' + oVf.DescripcionError;
+    // 4112: el titular del certificado no es apoderado del proveedor
+    if (not bAceptado) and (oVf.CodigoError = cFaultSinApoderamiento) then
+      FError := FError + sLineBreak + SCompraFiscalSinApoderamiento;
     FEstado := 'RECHAZADO';
   end;
+  // El estado HTTP queda en el error: el cuerpo ya está en la respuesta
+  if FEstado = 'INCIERTO' then
+    FError := Format(SCompraFiscalRespuestaNoDefinitiva, [AEstadoHttp]);
   if bAceptado then
     FEstado := 'ACEPTADO';
 end;

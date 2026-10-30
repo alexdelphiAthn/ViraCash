@@ -43,9 +43,21 @@ type
     FechaVenta: TDateTime;
     FinGarantia: TDateTime;
     EnGarantia: Boolean;
+    // Reparaciones (30/10/2026); Modalidad '' = reclamación de garantía.
+    Modalidad: string;
+    Objeto: string;
+    Detalles: string;
+    FechaPrevista: TDateTime;
+    ModoCobro: string;
+    Importe: Currency;
+    EsCobrado: Boolean;
+    Presupuesto: Currency;
   end;
 
 function TextoResguardoGarantia(const ADatos: TResguardoGarantia): string;
+// «Resguardo de depósito» en reparaciones de pago o cortesía; el de
+// garantía si no.
+function TituloResguardoGarantia(const ADatos: TResguardoGarantia): string;
 function FormatoResguardoGarantia(const ATipoImpresion: string):
   TFormatoResguardoGarantia;
 procedure CrearInformeResguardoGarantia(AInforme: TfrxReport;
@@ -58,7 +70,8 @@ implementation
 
 uses
   System.SysUtils, System.Classes, Vcl.Graphics,
-  inLibGarantias, inLibMsgGarantias, inLibMsgComun,
+  inLibGarantias, inLibMsgGarantias, inLibMsgComun, inLibReparaciones,
+  inLibMsgReparaciones,
   inLibFTicket, inLibTicketImagenFR;
 
 function FechaResguardo(AFecha: TDateTime): string;
@@ -104,6 +117,36 @@ begin
     FechaResguardo(ADatos.FinGarantia));
 end;
 
+function EsReparacion(const ADatos: TResguardoGarantia): Boolean;
+begin
+  Result := (ADatos.Modalidad <> '') and
+    (ADatos.Modalidad <> MODALIDAD_REPARACION_GARANTIA);
+end;
+
+function TituloResguardoGarantia(const ADatos: TResguardoGarantia): string;
+begin
+  Result := SCaptionResguardoGarantia;
+  if EsReparacion(ADatos) then
+    Result := STituloResguardoDeposito;
+end;
+
+// Pago del cliente: importe pagado, a pagar al recoger o presupuesto;
+// cortesía: sin cargo.
+procedure AgregarCobro(ALineas: TStrings; const ADatos: TResguardoGarantia);
+begin
+  if ADatos.Modalidad = MODALIDAD_REPARACION_CORTESIA then
+    ALineas.Add(SResguardoSinCargo)
+  else if ADatos.Presupuesto > 0 then
+    ALineas.Add(Format(SResguardoPresupuesto,
+      [FormatFloat('#,##0.00', ADatos.Presupuesto)]))
+  else if ADatos.EsCobrado then
+    ALineas.Add(Format(SResguardoPagado,
+      [FormatFloat('#,##0.00', ADatos.Importe)]))
+  else if ADatos.Importe > 0 then
+    ALineas.Add(Format(SResguardoAPagar,
+      [FormatFloat('#,##0.00', ADatos.Importe)]));
+end;
+
 function TextoResguardoGarantia(const ADatos: TResguardoGarantia): string;
 var
   stLineas: TStringList;
@@ -111,12 +154,17 @@ begin
   stLineas := TStringList.Create;
   try
     AgregarTienda(stLineas, ADatos);
-    AgregarDato(stLineas, SCaptionGrupoReclamacion + ':',
-      IntToStr(ADatos.Numero));
+    if EsReparacion(ADatos) then
+      AgregarDato(stLineas, SRotuloNumeroDeposito, IntToStr(ADatos.Numero))
+    else
+      AgregarDato(stLineas, SCaptionGrupoReclamacion + ':',
+        IntToStr(ADatos.Numero));
     AgregarDato(stLineas, SCaptionGarantiaFechaReclamacion,
       FechaResguardo(ADatos.Fecha));
     AgregarDato(stLineas, SCaptionGarantiaFechaRecepcion,
       FechaResguardo(ADatos.Recepcion));
+    AgregarDato(stLineas, SRotuloEntregaAproximada,
+      FechaResguardo(ADatos.FechaPrevista));
     AgregarDato(stLineas, SCaptionGarantiaClienteFicha, ADatos.Cliente);
     AgregarDato(stLineas, SCaptionGarantiaTelefonoFicha,
       ADatos.TelefonoCliente);
@@ -125,13 +173,19 @@ begin
     stLineas.Add(ADatos.Descripcion);
     AgregarDato(stLineas, SCaptionGarantiaModeloFicha, ADatos.Modelo);
     AgregarDato(stLineas, SCaptionGarantiaSerieFicha, ADatos.Serie);
+    if EsReparacion(ADatos) then
+      AgregarDato(stLineas, SRotuloObjetoResguardo, ADatos.Objeto);
+    AgregarDato(stLineas, SRotuloDetallesResguardo, ADatos.Detalles);
     AgregarDato(stLineas, SCaptionGarantiaMotivoFicha, ADatos.Motivo);
     AgregarDato(stLineas, SCaptionGarantiaObservacionesFicha,
       ADatos.Observaciones);
     AgregarDato(stLineas, SCaptionGarantiaMedio,
       TextoMedioGarantia(ADatos.Medio));
     stLineas.Add('');
-    AgregarGarantia(stLineas, ADatos);
+    if EsReparacion(ADatos) then
+      AgregarCobro(stLineas, ADatos)
+    else
+      AgregarGarantia(stLineas, ADatos);
     stLineas.Add('');
     stLineas.Add(SResguardoConservar);
     stLineas.Add('');
@@ -186,7 +240,7 @@ var
   dAncho: Extended;
 begin
   AInforme.Clear;
-  AInforme.ReportOptions.Name := SCaptionResguardoGarantia;
+  AInforme.ReportOptions.Name := TituloResguardoGarantia(ADatos);
   AInforme.PreviewOptions.Modal := True;
   oPagina := CrearPaginaResguardo(AInforme, AFormato);
   dAncho := (oPagina.PaperWidth - oPagina.LeftMargin -
@@ -203,7 +257,7 @@ begin
   oTitulo.Font.Size := 12;
   oTitulo.Font.Style := [fsBold];
   oTitulo.AllowExpressions := False;
-  oTitulo.Text := SCaptionResguardoGarantia;
+  oTitulo.Text := TituloResguardoGarantia(ADatos);
   oTexto := TfrxMemoView.Create(oBanda);
   oTexto.CreateUniqueName;
   oTexto.SetBounds(0, 40, dAncho, 20);

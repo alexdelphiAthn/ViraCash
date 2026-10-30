@@ -648,6 +648,7 @@ inherited frmMtoGen: TfrmMtoGen
         Width = 138
         Height = 34
         Caption = '&Cancelar'
+        SpeedButtonOptions.CanBeFocused = False
         TabOrder = 1
         OnClick = btnCancelarClick
       end

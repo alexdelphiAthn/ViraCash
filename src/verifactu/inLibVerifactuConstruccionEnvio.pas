@@ -81,8 +81,12 @@ function InterpretarRespuestaAeat(
   AEstadoHttp: Integer;
   const AXml: string): TInterpretacionRespuestaAeat;
 
+// Código de un faultstring de la AEAT: «Codigo[4104].Error en...» → 4104
+function ExtraerCodigoFault(const AFaultString: string): string;
+
 // True si la respuesta procede del servicio SOAP de la AEAT y resuelve el
-// envío: HTTP 200 con EstadoEnvio o HTTP 500 con SOAP Fault. Un proxy, un
+// envío: HTTP 200 con EstadoEnvio o SOAP Fault con HTTP 200 o 500
+// (FZ-ISSUE-763: la AEAT devuelve faults con HTTP 200). Un proxy, un
 // portal cautivo o un cuerpo truncado no lo son: el registro pudo quedar
 // registrado o no, y el envío sigue siendo incierto.
 function EsRespuestaAeatDefinitiva(
@@ -409,26 +413,54 @@ begin
     AResultado.Duplicado;
 end;
 
+function ExtraerCodigoFault(const AFaultString: string): string;
+var
+  iIni: Integer;
+  iFin: Integer;
+begin
+  Result := '';
+  iIni := Pos('Codigo[', AFaultString);
+  if iIni > 0 then
+  begin
+    iIni := iIni + Length('Codigo[');
+    iFin := PosEx(']', AFaultString, iIni);
+    if (iFin > iIni) and
+       (StrToIntDef(Copy(AFaultString, iIni, iFin - iIni), -1) >= 0) then
+      Result := Copy(AFaultString, iIni, iFin - iIni);
+  end;
+end;
+
+// SOAP Fault sin respuesta del suministro (con HTTP 200 o 500)
+function EsFaultAeat(const AXml: string): Boolean;
+begin
+  Result := (ExtraerEtiqueta(AXml, 'faultstring') <> '') and
+    (ExtraerEtiqueta(AXml, 'EstadoEnvio') = '');
+end;
+
 function InterpretarRespuestaAeat(
   AEstadoHttp: Integer;
   const AXml: string): TInterpretacionRespuestaAeat;
 begin
   Result := Default(TInterpretacionRespuestaAeat);
-  Result.EsHttpCorrecto := AEstadoHttp = 200;
+  // Un fault con HTTP 200 se lee como fault (FZ-ISSUE-763)
+  Result.EsHttpCorrecto := (AEstadoHttp = 200) and not EsFaultAeat(AXml);
   if Result.EsHttpCorrecto then
     LeerRespuestaCorrecta(AXml, Result)
   else
+  begin
     Result.DescripcionError := ExtraerEtiqueta(AXml, 'faultstring');
+    Result.CodigoError := ExtraerCodigoFault(Result.DescripcionError);
+  end;
 end;
 
 function EsRespuestaAeatDefinitiva(
   AEstadoHttp: Integer;
   const AXml: string): Boolean;
 begin
-  if AEstadoHttp = 200 then
-    Result := ExtraerEtiqueta(AXml, 'EstadoEnvio') <> ''
+  if (AEstadoHttp = 200) and (ExtraerEtiqueta(AXml, 'EstadoEnvio') <> '') then
+    Result := True
   else
-    Result := (AEstadoHttp = 500) and
+    Result := ((AEstadoHttp = 200) or (AEstadoHttp = 500)) and
               (ExtraerEtiqueta(AXml, 'faultstring') <> '');
 end;
 

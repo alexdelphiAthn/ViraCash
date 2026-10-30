@@ -2,8 +2,8 @@
 {                                                                              }
 {  Módulo:       UniDataGarantiasReclamaciones                                 }
 {    Tipo:       Data Module                                                   }
-{ Versión:       1.1.0                                                         }
-{   Fecha:       19/10/2026                                                    }
+{ Versión:       1.2.0                                                         }
+{   Fecha:       30/10/2026                                                    }
 {   Autor:       Alejandro Laorden Hidalgo                                     }
 {                                                                              }
 {  Copyright (c) Alejandro Laorden Hidalgo.                                    }
@@ -15,6 +15,8 @@
 {    (PRC_FZA_GARANTIAS_SUSTITUIR). Desde el 19/10/2026 la consulta principal  }
 {    es editable (ficha con cliente, proveedor y las cuatro fases) con         }
 {    SQLUpdate propio, y ofrece la lista de proveedores del desplegable.       }
+{    Desde el 30/10/2026 también las reparaciones: modalidad, objeto, fase y   }
+{    sus datos de pantalla (UniDataReparacionesPantalla).                      }
 {******************************************************************************}
 unit UniDataGarantiasReclamaciones;
 
@@ -25,12 +27,12 @@ uses
   System.SysUtils, System.Classes,
   Data.DB, MemDS, DBAccess, Uni,
   UniDataGen,
-  inLibGarantias, inLibGarantiasResguardo;
+  inLibGarantias, inLibGarantiasResguardo, UniDataReparacionesPantalla;
 
 const
   // Columnas de fza_garantias_reclamaciones que se editan en la ficha, en
   // el orden en que las graba SqlActualizacionGarantia.
-  COLUMNAS_FICHA_GARANTIA: array[0..36] of string = (
+  COLUMNAS_FICHA_GARANTIA: array[0..42] of string = (
     'MOTIVO_GAR', 'OBSERVACIONES_GAR', 'MODELO_GAR', 'CODIGO_PRV_GAR',
     'NOMBRE_CLIENTE_GAR', 'TELEFONO_CLIENTE_GAR', 'EMAIL_CLIENTE_GAR',
     'DIRECCION_CLIENTE_GAR', 'CODIGO_POSTAL_CLIENTE_GAR',
@@ -48,7 +50,10 @@ const
     'FECHA_ENTREGA_CLI_GAR', 'MEDIO_ENTREGA_CLI_GAR',
     'AGENCIA_ENTREGA_CLI_GAR', 'TRACKING_ENTREGA_CLI_GAR',
     'ESINCIDENCIA_ENTREGA_CLI_GAR', 'INCIDENCIA_ENTREGA_CLI_GAR',
-    'RECLAMACION_TRANSPORTE_ENTREGA_CLI_GAR');
+    'RECLAMACION_TRANSPORTE_ENTREGA_CLI_GAR',
+    // Reparaciones (30/10/2026).
+    'DESCRIPCION_OBJETO_GAR', 'REFERENCIA_OBJETO_GAR', 'DETALLES_GAR',
+    'FECHA_PREVISTA_GAR', 'SERIE_COBRO_GAR', 'NUMERO_COBRO_GAR');
 
 type
   TdmGarantiasReclamaciones = class(TdmBase)
@@ -56,6 +61,8 @@ type
   private
     FProveedores: TUniQuery;
     FdsProveedores: TDataSource;
+    FReparaciones: TDatosPantallaReparaciones;
+    FMaestro: TDataSource;
     procedure ConfigurarConsulta;
     procedure TablaGBeforeInsert(DataSet: TDataSet);
     procedure TablaGBeforeDelete(DataSet: TDataSet);
@@ -64,7 +71,13 @@ type
     // AEstado: un ESTADO_GAR, FILTRO_GARANTIA_PENDIENTES o '' (todas).
     // ATexto: parte de la serie, del SKU, del cliente, del contacto o del
     // RMA; '' = sin filtro.
-    procedure AplicarFiltros(const AEstado, ATexto: string);
+    // AModalidad: un MODALIDAD_GAR o '' (todas).
+    procedure AplicarFiltros(const AEstado, ATexto: string;
+      const AModalidad: string = '');
+    procedure AsignarMaestroCabecera(ADataSource: TDataSource); override;
+    // Líneas, liquidaciones, tipos y externos de las reparaciones; se
+    // crean la primera vez que se piden, ya con la conexión heredada.
+    function Reparaciones: TDatosPantallaReparaciones;
     // Proveedores activos para el desplegable de la ficha. Se crea y abre
     // la primera vez que se pide, ya con la conexión heredada.
     function Proveedores: TDataSource;
@@ -94,7 +107,7 @@ function LeerDatosSerieGarantia(
 implementation
 
 uses
-  inLibMsgGarantias, inLibErroresBBDD;
+  inLibMsgGarantias, inLibErroresBBDD, UniDataReparacionesRepositorio;
 
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 
@@ -152,11 +165,24 @@ begin
     '       COALESCE(P.RAZON_SOCIAL_PRV, '''') AS RAZON_SOCIAL_PRV, ' +
     '       P.CONTACTO_PRV, P.TELEFONO_CONTACTO_PRV, P.TELEFONO_PRV, ' +
     '       P.MOVIL_PRV, P.EMAIL_PRV, P.DIRECCION1_PRV, ' +
-    '       P.CODIGO_POSTAL_PRV, P.POBLACION_PRV, P.PROVINCIA_PRV ' +
+    '       P.CODIGO_POSTAL_PRV, P.POBLACION_PRV, P.PROVINCIA_PRV, ' +
+    '       G.MODALIDAD_GAR, G.CATEGORIA_GAR, G.CODIGO_GARTIP_GAR, ' +
+    '       G.ORIGEN_OBJETO_GAR, G.ESPRESUPUESTO_GAR, ' +
+    '       G.TOTAL_PRESUPUESTO_GAR, G.FECHA_PRESUPUESTO_GAR, ' +
+    '       G.ESTADO_PRESUPUESTO_GAR, G.FECHA_RESPUESTA_PRESUPUESTO_GAR, ' +
+    '       G.MODO_COBRO_GAR, G.ESCOBRADO_GAR, ' +
+    '       COALESCE(R.TOTAL_CLIENTE, 0) AS TOTAL_CLIENTE_REP, ' +
+    '       COALESCE(R.TOTAL_COSTE, 0) AS TOTAL_COSTE_REP, ' +
+    '       TRIM(CONCAT_WS('' '', NULLIF(A.DESCRIPCION_ART, ''''), ' +
+    '         G.DESCRIPCION_OBJETO_GAR, G.REFERENCIA_OBJETO_GAR)) ' +
+    '         AS OBJETO_REP, ' +
+    '       ' + SQL_FASE_REPARACION + ' AS FASE_REP ' +
     '  FROM fza_garantias_reclamaciones G ' +
     '  LEFT JOIN fza_articulos A ON A.CODIGO_ART_ART = G.CODIGO_ART_GAR ' +
     '  LEFT JOIN fza_clientes C ON C.CODIGO_CLI_CLI = G.CODIGO_CLI_GAR ' +
-    '  LEFT JOIN fza_proveedores P ON P.CODIGO_PRV_PRV = G.CODIGO_PRV_GAR ';
+    '  LEFT JOIN fza_proveedores P ON P.CODIGO_PRV_PRV = G.CODIGO_PRV_GAR ' +
+    '  LEFT JOIN ' + SQL_RESUMEN_LINEAS_REPARACION + ' R ' +
+    '    ON R.ID_GAR_GARLIN = G.ID_GAR ';
 end;
 
 // Las abiertas primero, de la más antigua a la más reciente; después las
@@ -174,7 +200,12 @@ begin
     '        OR G.CODIGO_CLI_GAR LIKE :PATRON ' +
     '        OR C.RAZON_SOCIAL_CLI LIKE :PATRON ' +
     '        OR G.NOMBRE_CLIENTE_GAR LIKE :PATRON ' +
-    '        OR G.RMA_GAR LIKE :PATRON) ' +
+    '        OR G.RMA_GAR LIKE :PATRON ' +
+    '        OR G.DESCRIPCION_OBJETO_GAR LIKE :PATRON ' +
+    '        OR G.REFERENCIA_OBJETO_GAR LIKE :PATRON ' +
+    '        OR G.TELEFONO_CLIENTE_GAR LIKE :PATRON ' +
+    '        OR CAST(G.ID_GAR AS CHAR) = :TEXTO) ' +
+    '   AND (:MODALIDAD = '''' OR G.MODALIDAD_GAR = :MODALIDAD) ' +
     ' ORDER BY G.ESTADO_GAR IN (''' + ESTADO_GARANTIA_ABIERTA + ''', ''' +
     ESTADO_GARANTIA_EN_SAT + ''') DESC, ' +
     '          IF(G.ESTADO_GAR IN (''' + ESTADO_GARANTIA_ABIERTA + ''', ''' +
@@ -220,6 +251,7 @@ begin
   unqryTablaG.ParamByName('ESTADO').AsString := FILTRO_GARANTIA_PENDIENTES;
   unqryTablaG.ParamByName('TEXTO').AsString := '';
   unqryTablaG.ParamByName('PATRON').AsString := '';
+  unqryTablaG.ParamByName('MODALIDAD').AsString := '';
   unqryTablaG.BeforeInsert := TablaGBeforeInsert;
   unqryTablaG.BeforeDelete := TablaGBeforeDelete;
   unqryTablaG.AfterPost := TablaGAfterPost;
@@ -247,14 +279,36 @@ begin
 end;
 
 procedure TdmGarantiasReclamaciones.AplicarFiltros(
-  const AEstado, ATexto: string);
+  const AEstado, ATexto: string; const AModalidad: string);
 begin
   if unqryTablaG.Active then
     unqryTablaG.Close;
   unqryTablaG.ParamByName('ESTADO').AsString := Trim(AEstado);
   unqryTablaG.ParamByName('TEXTO').AsString := Trim(ATexto);
   unqryTablaG.ParamByName('PATRON').AsString := '%' + Trim(ATexto) + '%';
+  unqryTablaG.ParamByName('MODALIDAD').AsString := Trim(AModalidad);
   unqryTablaG.Open;
+end;
+
+procedure TdmGarantiasReclamaciones.AsignarMaestroCabecera(
+  ADataSource: TDataSource);
+begin
+  inherited;
+  FMaestro := ADataSource;
+  if Assigned(FReparaciones) then
+    FReparaciones.AsignarMaestro(FMaestro);
+end;
+
+function TdmGarantiasReclamaciones.Reparaciones: TDatosPantallaReparaciones;
+begin
+  if not Assigned(FReparaciones) then
+  begin
+    FReparaciones := TDatosPantallaReparaciones.CreateDatos(Self,
+      unqryTablaG.Connection, IdentidadSesion.Usuario);
+    if Assigned(FMaestro) then
+      FReparaciones.AsignarMaestro(FMaestro);
+  end;
+  Result := FReparaciones;
 end;
 
 function TdmGarantiasReclamaciones.Proveedores: TDataSource;
@@ -320,6 +374,18 @@ begin
     unqryTablaG.FieldByName('FECHA_FIN_GARANTIA_GAR').AsDateTime;
   Result.EnGarantia :=
     unqryTablaG.FieldByName('ESEN_GARANTIA').AsString = 'S';
+  Result.Modalidad := unqryTablaG.FieldByName('MODALIDAD_GAR').AsString;
+  Result.Objeto := unqryTablaG.FieldByName('OBJETO_REP').AsString;
+  Result.Detalles := unqryTablaG.FieldByName('DETALLES_GAR').AsString;
+  Result.FechaPrevista :=
+    unqryTablaG.FieldByName('FECHA_PREVISTA_GAR').AsDateTime;
+  Result.ModoCobro := unqryTablaG.FieldByName('MODO_COBRO_GAR').AsString;
+  Result.Importe :=
+    unqryTablaG.FieldByName('TOTAL_CLIENTE_REP').AsCurrency;
+  Result.EsCobrado := unqryTablaG.FieldByName('ESCOBRADO_GAR').AsString = 'S';
+  if unqryTablaG.FieldByName('ESPRESUPUESTO_GAR').AsString = 'S' then
+    Result.Presupuesto :=
+      unqryTablaG.FieldByName('TOTAL_PRESUPUESTO_GAR').AsCurrency;
   oConsulta := TUniQuery.Create(nil);
   try
     oConsulta.Connection := unqryTablaG.Connection;

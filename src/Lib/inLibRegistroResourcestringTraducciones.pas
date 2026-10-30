@@ -1,4 +1,4 @@
-unit inLibRegistroResourcestringTraducciones;
+﻿unit inLibRegistroResourcestringTraducciones;
 
 interface
 
@@ -24,6 +24,7 @@ uses
   inLibMsgCambioArticuloColor,
   inLibMsgCaja,
   inLibMsgGarantias,
+  inLibMsgReparaciones,
   inLibMsgLotesConsultas,
   inLibMsgCompras,
   inLibMsgComun,
@@ -1394,6 +1395,1006 @@ begin
     'SErrorLineaCaducidadFueraDeRango',
     'src/Lib/inLibMsgTrazabilidad.pas',
     @inLibMsgTrazabilidad.SErrorLineaCaducidadFueraDeRango);
+end;
+
+procedure EnumerarResourcestringsReparaciones(
+  const ARegistrar: TRegistrarResourcestringTraduccion);
+begin
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SModalidadGarantia',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SModalidadGarantia);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SModalidadPago',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SModalidadPago);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SModalidadCortesia',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SModalidadCortesia);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SFaseReparacionRecibido',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SFaseReparacionRecibido);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SFaseReparacionPresupuesto',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SFaseReparacionPresupuesto);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SFaseReparacionRechazado',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SFaseReparacionRechazado);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SFaseReparacionEnReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SFaseReparacionEnReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SFaseReparacionReparado',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SFaseReparacionReparado);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SFaseReparacionEntregado',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SFaseReparacionEntregado);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SFaseReparacionAnulado',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SFaseReparacionAnulado);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SCobroReparacionCompra',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SCobroReparacionCompra);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SCobroReparacionRecogida',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SCobroReparacionRecogida);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SCobroReparacionGratis',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SCobroReparacionGratis);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SOrigenReparacionVendido',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SOrigenReparacionVendido);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SOrigenReparacionCliente',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SOrigenReparacionCliente);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SOrigenReparacionTienda',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SOrigenReparacionTienda);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SEjecutorReparacionOperario',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SEjecutorReparacionOperario);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SEjecutorReparacionExterno',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SEjecutorReparacionExterno);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SModoLiquidacionPeriodica',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SModoLiquidacionPeriodica);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SModoLiquidacionLinea',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SModoLiquidacionLinea);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SErrorTiendaReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorTiendaReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SErrorTrabajoReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorTrabajoReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SErrorClienteReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorClienteReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SErrorFechaPrevistaReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorFechaPrevistaReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SErrorOrigenReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorOrigenReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SErrorSkuReparacionTienda',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorSkuReparacionTienda);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SErrorObjetoReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorObjetoReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SErrorModalidadReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorModalidadReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SErrorModoCobroReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorModoCobroReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SErrorImporteReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorImporteReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SErrorCobroSinPagoReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorCobroSinPagoReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SErrorEjecutorReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorEjecutorReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SErrorSinReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorSinReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SErrorDescripcionLineaReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorDescripcionLineaReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SErrorSkuMaterialReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorSkuMaterialReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SErrorTipoLineaReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorTipoLineaReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SErrorReparacionNoExiste',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorReparacionNoExiste);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SErrorReparacionCerrada',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorReparacionCerrada);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SErrorLineaNoEditableReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorLineaNoEditableReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SErrorEmpezarLineaReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorEmpezarLineaReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SErrorTerminarLineaReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorTerminarLineaReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SErrorDevolverLineaReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorDevolverLineaReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SErrorPresupuestarReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorPresupuestarReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SErrorResponderPresupuesto',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorResponderPresupuesto);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SErrorEntregarReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorEntregarReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SErrorAnularReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorAnularReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SMotivoAnulacionReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SMotivoAnulacionReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SErrorSentidoLiquidacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorSentidoLiquidacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SErrorDocumentoLiquidacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorDocumentoLiquidacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SErrorAbonoLiquidacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorAbonoLiquidacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'STituloReparacionesGarantias',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.STituloReparacionesGarantias);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'STituloAltaReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.STituloAltaReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'STituloLineaReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.STituloLineaReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'STituloResguardoDeposito',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.STituloResguardoDeposito);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'STituloEntregarReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.STituloEntregarReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'STituloAnularReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.STituloAnularReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'STituloDevolverLinea',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.STituloDevolverLinea);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'STituloPresupuesto',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.STituloPresupuesto);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'STituloLiquidar',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.STituloLiquidar);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'STituloDocumentoLiquidacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.STituloDocumentoLiquidacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'STituloHojaEntregaExterno',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.STituloHojaEntregaExterno);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'STituloHojaLiquidacionPago',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.STituloHojaLiquidacionPago);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'STituloHojaCargoFabricante',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.STituloHojaCargoFabricante);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SCaptionFiltroModalidad',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SCaptionFiltroModalidad);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SCaptionModalidadesTodas',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SCaptionModalidadesTodas);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SCaptionNuevaReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SCaptionNuevaReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SCaptionEntregarReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SCaptionEntregarReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SCaptionAnularReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SCaptionAnularReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SCaptionFaseReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SCaptionFaseReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SCaptionPestanaLiquidaciones',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SCaptionPestanaLiquidaciones);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SCaptionPestanaTiposExternos',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SCaptionPestanaTiposExternos);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SCaptionAnadirLinea',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SCaptionAnadirLinea);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SCaptionCambiarLinea',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SCaptionCambiarLinea);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SCaptionBorrarLinea',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SCaptionBorrarLinea);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SCaptionEmpezarLinea',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SCaptionEmpezarLinea);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SCaptionTerminarLinea',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SCaptionTerminarLinea);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SCaptionDevolverLinea',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SCaptionDevolverLinea);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SCaptionHojaEntrega',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SCaptionHojaEntrega);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SCaptionPresupuestar',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SCaptionPresupuestar);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SCaptionAceptarPresupuesto',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SCaptionAceptarPresupuesto);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SCaptionRechazarPresupuesto',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SCaptionRechazarPresupuesto);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SCaptionPagarExterno',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SCaptionPagarExterno);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SCaptionCargarFabricante',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SCaptionCargarFabricante);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SCaptionEnlazarDocumento',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SCaptionEnlazarDocumento);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SCaptionAnotarAbono',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SCaptionAnotarAbono);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SCaptionImprimirLiquidacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SCaptionImprimirLiquidacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SCaptionRefrescarLiquidaciones',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SCaptionRefrescarLiquidaciones);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SLineaManoObra',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SLineaManoObra);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SLineaMaterial',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SLineaMaterial);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SSinTipoServicio',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SSinTipoServicio);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SSinEjecutor',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SSinEjecutor);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SNoEsExterno',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SNoEsExterno);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColModalidad',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColModalidad);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColFaseReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColFaseReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColObjetoReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColObjetoReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColEntregaAproximada',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColEntregaAproximada);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColImporteCliente',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColImporteCliente);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColImporteCoste',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColImporteCoste);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColLinea',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColLinea);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColTipoLinea',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColTipoLinea);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColDescripcionLinea',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColDescripcionLinea);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColEjecutorTipo',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColEjecutorTipo);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColEjecutor',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColEjecutor);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColSkuLinea',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColSkuLinea);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColCantidadLinea',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColCantidadLinea);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColInicioLinea',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColInicioLinea);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColFinLinea',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColFinLinea);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColIncidenciaLinea',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColIncidenciaLinea);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColPagoLinea',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColPagoLinea);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColCargoLinea',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColCargoLinea);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColLiquidacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColLiquidacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColSentido',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColSentido);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColProveedor',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColProveedor);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColRazonSocial',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColRazonSocial);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColFechaLiquidacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColFechaLiquidacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColHastaLiquidacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColHastaLiquidacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColLineasLiquidacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColLineasLiquidacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColTotalLiquidacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColTotalLiquidacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColTipoDocumento',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColTipoDocumento);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColSerieDocumento',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColSerieDocumento);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColNumeroDocumento',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColNumeroDocumento);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColAbono',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColAbono);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColTipoCodigo',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColTipoCodigo);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColTipoCategoria',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColTipoCategoria);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColTipoDescripcion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColTipoDescripcion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColTipoPresupuesto',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColTipoPresupuesto);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColModoCobro',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColModoCobro);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColTipoPlazo',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColTipoPlazo);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColTipoOperario',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColTipoOperario);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColTipoArticulo',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColTipoArticulo);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColTipoOrden',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColTipoOrden);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColTipoActivo',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColTipoActivo);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColFacturacionDirecta',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColFacturacionDirecta);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SColModoLiquidacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SColModoLiquidacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloModalidad',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloModalidad);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloTipoServicio',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloTipoServicio);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloTrabajoReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloTrabajoReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloDetallesReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloDetallesReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloObservacionesReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloObservacionesReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloOrigenObjeto',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloOrigenObjeto);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloSkuObjeto',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloSkuObjeto);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloSerieObjeto',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloSerieObjeto);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloDescripcionObjeto',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloDescripcionObjeto);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloReferenciaObjeto',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloReferenciaObjeto);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloSerieVentaObjeto',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloSerieVentaObjeto);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloNumeroVentaObjeto',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloNumeroVentaObjeto);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloCodigoClienteReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloCodigoClienteReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloClienteReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloClienteReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloTelefonoReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloTelefonoReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloFabricanteReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloFabricanteReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloEntregaAproximada',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloEntregaAproximada);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloEjecutorReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloEjecutorReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloCantidadReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloCantidadReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloPrecioClienteReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloPrecioClienteReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloPrecioCosteReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloPrecioCosteReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloPresupuestoReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloPresupuestoReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloModoCobroReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloModoCobroReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloCobradoReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloCobradoReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloSerieCobroReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloSerieCobroReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloNumeroCobroReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloNumeroCobroReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloTipoLinea',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloTipoLinea);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloDescripcionLinea',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloDescripcionLinea);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloSkuMaterial',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloSkuMaterial);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloEstadoPresupuesto',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloEstadoPresupuesto);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloImportePresupuesto',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloImportePresupuesto);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloObjetoResguardo',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloObjetoResguardo);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloDetallesResguardo',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloDetallesResguardo);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloProveedorHoja',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloProveedorHoja);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloFechaHoja',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloFechaHoja);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloLiquidacionHoja',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloLiquidacionHoja);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloTelefonoHoja',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloTelefonoHoja);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SInfoSinReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SInfoSinReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SInfoSinLinea',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SInfoSinLinea);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SInfoSinLineasExternas',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SInfoSinLineasExternas);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SInfoSinLiquidacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SInfoSinLiquidacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SInfoNadaQueLiquidar',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SInfoNadaQueLiquidar);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SErrorSinLineasHoja',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorSinLineasHoja);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SErrorLiquidacionNoExiste',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorLiquidacionNoExiste);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SErrorCodigoTipoServicio',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorCodigoTipoServicio);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SErrorDescripcionTipoServicio',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorDescripcionTipoServicio);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SErrorTipoServicioUsado',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorTipoServicioUsado);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SPreguntaResguardoReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SPreguntaResguardoReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SPreguntaTicketCobroReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SPreguntaTicketCobroReparacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SPreguntaEntregarSinCobro',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SPreguntaEntregarSinCobro);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SPreguntaMotivoAnulacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SPreguntaMotivoAnulacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SPreguntaBorrarLinea',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SPreguntaBorrarLinea);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SPreguntaIncidenciaLinea',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SPreguntaIncidenciaLinea);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SPreguntaImportePresupuesto',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SPreguntaImportePresupuesto);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SPreguntaProveedorLiquidar',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SPreguntaProveedorLiquidar);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SPreguntaDocumentoLiquidacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SPreguntaDocumentoLiquidacion);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SResguardoSinCargo',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SResguardoSinCargo);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SResguardoPresupuesto',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SResguardoPresupuesto);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SResguardoPagado',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SResguardoPagado);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SResguardoAPagar',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SResguardoAPagar);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SRotuloNumeroDeposito',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRotuloNumeroDeposito);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SCaptionPestanaTrabajos',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SCaptionPestanaTrabajos);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SHojaReparacionesLineas',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SHojaReparacionesLineas);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SHojaReparacionesTotal',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SHojaReparacionesTotal);
+  ARegistrar(
+    'inLibMsgReparaciones.' +
+    'SHojaReparacionesFirma',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SHojaReparacionesFirma);
 end;
 
 procedure EnumerarResourcestringsGarantias(
@@ -4480,6 +5481,7 @@ begin
   EnumerarResourcestringsIntegridadEsquema(ARegistrar);
   EnumerarResourcestringsTrazabilidad(ARegistrar);
   EnumerarResourcestringsGarantias(ARegistrar);
+  EnumerarResourcestringsReparaciones(ARegistrar);
   EnumerarResourcestringsLotesConsultas(ARegistrar);
   ARegistrar(
     'inLibMsgArticulos.SErrorLineasDocumentoNoEditables',
@@ -30006,54 +31008,6 @@ begin
   ARegistrar('inLibMsgArticulos.SLeyendaAvisosBalance',
     'src/Lib/inLibMsgArticulos.pas',
     @inLibMsgArticulos.SLeyendaAvisosBalance);
-  ARegistrar('inLibMsgArticulos.SCaptionContenidoPrecioUnidad',
-    'src/Lib/inLibMsgArticulos.pas',
-    @inLibMsgArticulos.SCaptionContenidoPrecioUnidad);
-  ARegistrar('inLibMsgArticulos.SCaptionContenidoNeto',
-    'src/Lib/inLibMsgArticulos.pas',
-    @inLibMsgArticulos.SCaptionContenidoNeto);
-  ARegistrar('inLibMsgArticulos.SCaptionUnidadContenido',
-    'src/Lib/inLibMsgArticulos.pas',
-    @inLibMsgArticulos.SCaptionUnidadContenido);
-  ARegistrar('inLibMsgArticulos.SCaptionReferenciaPrecio',
-    'src/Lib/inLibMsgArticulos.pas',
-    @inLibMsgArticulos.SCaptionReferenciaPrecio);
-  ARegistrar('inLibMsgArticulos.SCaptionUnidadReferencia',
-    'src/Lib/inLibMsgArticulos.pas',
-    @inLibMsgArticulos.SCaptionUnidadReferencia);
-  ARegistrar('inLibMsgArticulos.SCaptionIndicarPrecioUnidad',
-    'src/Lib/inLibMsgArticulos.pas',
-    @inLibMsgArticulos.SCaptionIndicarPrecioUnidad);
-  ARegistrar('inLibMsgArticulos.SCaptionPrecioUnidadTicket',
-    'src/Lib/inLibMsgArticulos.pas',
-    @inLibMsgArticulos.SCaptionPrecioUnidadTicket);
-  ARegistrar('inLibMsgArticulos.SAyudaContenidoPrecioUnidad',
-    'src/Lib/inLibMsgArticulos.pas',
-    @inLibMsgArticulos.SAyudaContenidoPrecioUnidad);
-  ARegistrar('inLibMsgArticulos.SErrorContenidoPrecioUnidad',
-    'src/Lib/inLibMsgArticulos.pas',
-    @inLibMsgArticulos.SErrorContenidoPrecioUnidad);
-  ARegistrar('inLibMsgArticulos.SErrorContenidoSkuNoExiste',
-    'src/Lib/inLibMsgArticulos.pas',
-    @inLibMsgArticulos.SErrorContenidoSkuNoExiste);
-  ARegistrar('inLibMsgArticulos.SErrorContenidoEtiqueta',
-    'src/Lib/inLibMsgArticulos.pas',
-    @inLibMsgArticulos.SErrorContenidoEtiqueta);
-  ARegistrar('inLibMsgArticulos.SInfoContenidoSeleccionarSku',
-    'src/Lib/inLibMsgArticulos.pas',
-    @inLibMsgArticulos.SInfoContenidoSeleccionarSku);
-  ARegistrar('inLibMsgArticulos.SErrorContenidoNetoAusente',
-    'src/Lib/inLibMsgArticulos.pas',
-    @inLibMsgArticulos.SErrorContenidoNetoAusente);
-  ARegistrar('inLibMsgArticulos.SErrorReferenciaContenidoIncompatible',
-    'src/Lib/inLibMsgArticulos.pas',
-    @inLibMsgArticulos.SErrorReferenciaContenidoIncompatible);
-  ARegistrar('inLibMsgArticulos.SErrorTarifaContenidoSinImpuestos',
-    'src/Lib/inLibMsgArticulos.pas',
-    @inLibMsgArticulos.SErrorTarifaContenidoSinImpuestos);
-  ARegistrar('inLibMsgArticulos.SErrorPrecioContenidoAusente',
-    'src/Lib/inLibMsgArticulos.pas',
-    @inLibMsgArticulos.SErrorPrecioContenidoAusente);
   ARegistrar('inLibMsgCompras.SCaptionVariacionLineaSesion',
     'src/Lib/inLibMsgCompras.pas',
     @inLibMsgCompras.SCaptionVariacionLineaSesion);
@@ -30156,6 +31110,12 @@ begin
   ARegistrar('inLibMsgCompras.SCompraFiscalSinModo',
     'src/Lib/inLibMsgCompras.pas',
     @inLibMsgCompras.SCompraFiscalSinModo);
+  ARegistrar('inLibMsgCompras.SCompraFiscalRespuestaNoDefinitiva',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SCompraFiscalRespuestaNoDefinitiva);
+  ARegistrar('inLibMsgCompras.SCompraFiscalSinApoderamiento',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SCompraFiscalSinApoderamiento);
   ARegistrar('inLibMsgCompras.SModalidadCompraDesconocida',
     'src/Lib/inLibMsgCompras.pas',
     @inLibMsgCompras.SModalidadCompraDesconocida);

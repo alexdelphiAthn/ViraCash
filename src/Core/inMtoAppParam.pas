@@ -247,7 +247,8 @@ uses
    UniDataConfiguracionPantalla,
    UniDataTraduccionesDescargaRepositorio,
    UniDataPrestaShopEncolado, inLibResplandorBordesVcl,
-   inLibMotorBaseDatos, inLibTrazabilidad, inLibTraduccionesFastReport,
+   inLibMotorBaseDatos, inLibTrazabilidad, inLibReparaciones,
+   inLibTraduccionesFastReport,
    inLibMargenTarifa;
 
 resourcestring
@@ -1355,6 +1356,7 @@ begin
         High(ACambios.ValoresPerfil)].Valor := sValor;
       Inc(ACambios.Guardados);
       if SameText(AItem.Name, PARAMETRO_GARANTIAS) or
+         SameText(AItem.Name, PARAMETRO_REPARACIONES) or
          SameText(AItem.Name, PARAMETRO_TRAZABILIDAD_LOTES) or
          SameText(AItem.Name, PARAMETRO_TRAZABILIDAD_SERIES) then
         ACambios.CambioTrazabilidad := True;

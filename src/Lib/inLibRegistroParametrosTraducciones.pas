@@ -410,6 +410,10 @@ begin
     'Activar garantías y reclamaciones por número de serie',
     'src/Lib/inLibAppParam.pas');
   ARegistrar(
+    'inMtoAppParam.Parametros.appReparaciones.Descripcion',
+    'Activar reparaciones, arreglos y taller (Reparaciones y garantías)',
+    'src/Lib/inLibAppParam.pas');
+  ARegistrar(
     'inMtoAppParam.Parametros.appCaducidadDiasAviso.Descripci' +
     'on',
     'Días antes de la caducidad para avisar',

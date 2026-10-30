@@ -1418,9 +1418,6 @@
         <DCCReference Include="src\Lib\inLibUnidadesMedida.pas"/>
         <DCCReference Include="src\Lib\inLibPrecioUnidad.pas"/>
         <DCCReference Include="src\DataModules\UniDataPrecioUnidad.pas"/>
-        <DCCReference Include="src\Modals\inMtoModalPrecioUnidad.pas">
-            <Form>frmModalPrecioUnidad</Form>
-        </DCCReference>
         <DCCReference Include="src\Lib\inLibGridCantidad.pas"/>
         <DCCReference Include="src\Lib\inLibTotalMaximoLinea.pas"/>
         <DCCReference Include="src\DataModules\UniDataTotalMaximoLinea.pas"/>
@@ -2127,6 +2124,15 @@
         <DCCReference Include="src\Forms\inMtoGarantiasReclamaciones.pas">
             <Form>frmMtoGarantiasReclamaciones</Form>
         </DCCReference>
+        <DCCReference Include="src\Lib\inLibReparacionesDocumentos.pas"/>
+        <DCCReference Include="src\DataModules\UniDataReparacionesPantalla.pas"/>
+        <DCCReference Include="src\Modals\inMtoModalReparacion.pas"/>
+        <DCCReference Include="src\Modals\inMtoModalLineaReparacion.pas"/>
+        <DCCReference Include="src\Forms\inMtoGarantiasReparacionesVcl.pas"/>
+        <DCCReference Include="src\Lib\inLibMsgReparaciones.pas"/>
+        <DCCReference Include="src\Lib\inLibReparaciones.pas"/>
+        <DCCReference Include="src\Lib\inLibReparacionesIntf.pas"/>
+        <DCCReference Include="src\DataModules\UniDataReparacionesRepositorio.pas"/>
         <DCCReference Include="src\Lib\inLibMsgLotesConsultas.pas"/>
         <DCCReference Include="src\DataModules\UniDataLotesConsultas.pas">
             <Form>dmLotesConsultas</Form>

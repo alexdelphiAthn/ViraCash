@@ -1666,7 +1666,13 @@ begin
   // no puede recibir el foco y lo tecleado iba a los aceleradores.
   pcDetail.ActivePage := tsLineasFactura;
   if cxgrdLineasFactura.CanFocus then
+  begin
     cxgrdLineasFactura.SetFocus;
+    // FZ-ISSUE-762: si el OnEnter no pudo grabar la cabecera, su aviso ya
+    // salió; añadir la línea la volvería a grabar y repetiría el aviso.
+    if dmmFacturas.unqryTablaG.State in dsEditModes then
+      Exit;
+  end;
   // Graba antes la línea en edición (con lo tecleado en la celda): si no,
   // la nueva heredaba lo que se tecleaba y la anterior se grababa con otro
   // artículo y precio 0 (FZ-ISSUE-743).
@@ -2740,6 +2746,9 @@ begin
         try
           dmmFacturas.unqryTablaG.Post;
         except
+          // FZ-ISSUE-762: el aviso de validación ya se mostró en BeforePost.
+          on EAbort do
+            bInsertar := False;
           on E: Exception do
           begin
             ShowMessage_fza(Format(SErrorCompletarDatosBorrador, [E.Message]));
@@ -2773,7 +2782,10 @@ begin
   if not FColsModoConstruido then
   begin
     ConstruirModoEntrada;
-    FPresentadorLineas.AsegurarPrimeraLinea;
+    // FZ-ISSUE-762: si la cabecera no se pudo grabar (aviso ya mostrado),
+    // un segundo intento repetiría el mismo aviso.
+    if not (dmmFacturas.unqryTablaG.State in dsEditModes) then
+      FPresentadorLineas.AsegurarPrimeraLinea;
   end;
   if FModoEntrada <> nil then
     FModoEntrada.MostrarEditor;

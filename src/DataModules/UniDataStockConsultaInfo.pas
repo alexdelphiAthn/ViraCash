@@ -172,7 +172,7 @@ function CargarInfoCabeceraStock(
   const ACodigoArticulo: string; const ATarifa: string): TInfoCabeceraStock;
 var
   Consulta: TUniQuery;
-  Precio: TPrecioSkuContenido;
+  Precio: TPrecioSkuUnidad;
   oPrecios: TList<string>;
 begin
   Result := Default(TInfoCabeceraStock);
@@ -186,10 +186,10 @@ begin
       CargarProveedores(Consulta, ACodigoArticulo, Result);
       oPrecios := TList<string>.Create;
       try
-        for Precio in ListarPreciosContenido(AConexion, ACodigoArticulo,
+        for Precio in ListarPreciosUnidad(AConexion, ACodigoArticulo,
           ATarifa, Date) do
           if Precio.PrecioUnidad.Texto <> '' then
-            oPrecios.Add(Precio.Contenido.CodigoSku + ': ' +
+            oPrecios.Add(Precio.CodigoSku + ': ' +
               Precio.PrecioUnidad.Texto);
         Result.PreciosUnidad := oPrecios.ToArray;
       finally

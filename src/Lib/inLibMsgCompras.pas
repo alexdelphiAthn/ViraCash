@@ -1097,6 +1097,14 @@ resourcestring
     'antes de volver a remitirlo.';
   SCompraFiscalSinModo =
     'Seleccione VERIFACTU o SII para remitir una compra directa.';
+  // FZ-ISSUE-763
+  SCompraFiscalRespuestaNoDefinitiva =
+    'La AEAT no devolvió un resultado (HTTP %d). Consulte el estado del ' +
+    'registro antes de volver a remitirlo.';
+  SCompraFiscalSinApoderamiento =
+    'El titular del certificado no puede remitir registros en nombre del ' +
+    'proveedor. Hace falta su apoderamiento (o su certificado, o actuar ' +
+    'como colaborador social), o que el proveedor emita su propia factura.';
   // Modalidades y textos legales (inLibComprasDirectas):
   SModalidadCompraDesconocida = 'Modalidad de compra desconocida: %s.';
   SCompensacionAgricolaInvalida =

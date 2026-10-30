@@ -250,6 +250,9 @@ begin
   RegistrarParametro('Trazabilidad', 'appGarantias',
     'Activar garantías y reclamaciones por número de serie',
     tpBoolean, 'False');
+  RegistrarParametro('Trazabilidad', 'appReparaciones',
+    'Activar reparaciones, arreglos y taller (Reparaciones y garantías)',
+    tpBoolean, 'False');
   RegistrarParametro('Trazabilidad', 'appCaducidadDiasAviso',
     'Días antes de la caducidad para avisar',
     tpInteger, IntToStr(CADUCIDAD_DIAS_AVISO_DEFECTO));

@@ -375,7 +375,7 @@ uses
   inLibIBAN,
   inLibFotos,
   inLibVerifactuInstalacion,
-  inLibMsgComun, inLibMsgVentas,
+  inLibMsgComun, inLibMsgVentas, inLibMsgVerifactu,
   inMtoModalSeriesDocumentos,
   UniDataConfiguracionPantalla,
   inLibSerieTokenizada;
@@ -701,16 +701,21 @@ begin
   begin
     btnGenerarInstalacionSif.Enabled := False;
     try
-      oEstado := GenerarInstalacionSifEmpresa(
-        ParametrosApp,
-        ConexionPrincipal,
-        IdentidadSesion.Usuario, sCodigoEmpresa);
-      dmmEmpresas.unqryTablaG.Close;
-      dmmEmpresas.unqryTablaG.Open;
-      dmmEmpresas.unqryTablaG.Locate(
-        'CODIGO_EMP_EMP', oEstado.CodigoEmpresa, []);
-      ShowMessage_fza(Format(SInfoInstalacionSifEmpresaDisponible,
-                         [oEstado.RazonSocial, oEstado.Numero]));
+      try
+        oEstado := GenerarInstalacionSifEmpresa(
+          ParametrosApp,
+          ConexionPrincipal,
+          IdentidadSesion.Usuario, sCodigoEmpresa);
+        dmmEmpresas.unqryTablaG.Close;
+        dmmEmpresas.unqryTablaG.Open;
+        dmmEmpresas.unqryTablaG.Locate(
+          'CODIGO_EMP_EMP', oEstado.CodigoEmpresa, []);
+        ShowMessage_fza(Format(SInfoInstalacionSifEmpresaDisponible,
+                           [oEstado.RazonSocial, oEstado.Numero]));
+      except
+        on E: Exception do
+          ShowMessage_fza(SErrorGenerarNumeroInstalacionSif + E.Message);
+      end;
     finally
       btnGenerarInstalacionSif.Enabled := True;
     end;

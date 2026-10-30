@@ -439,7 +439,6 @@ type
     procedure btnQuitarFamiliaClick(Sender: TObject);
     procedure addSkuAllClick(Sender: TObject);
     procedure btnAddSKUClick(Sender: TObject);
-    procedure PrecioUnidadClick(Sender: TObject);
     procedure cxButton11Click(Sender: TObject);
     procedure btnStockExportarExcelClick(Sender: TObject);
     procedure btnReconstruirStockClick(Sender: TObject);
@@ -565,9 +564,6 @@ type
     procedure CambiarFamiliaArticulo(const ACodigoFamilia: string;
       ALimpiar: Boolean);
     procedure InicializarPestanyaVariaciones;
-    procedure CrearBotonesContenido;
-    procedure AbrirContenidoSku;
-    function CodigoSkuContenido: string;
     procedure InicializarPestanyaPropiedades;
     procedure InicializarPresentadores;
     function ModoMargenTarifas: TModoMargenTarifa;
@@ -644,7 +640,6 @@ uses
   inLibGenBusq,
   inMtoModalSelFamilia,
   inMtoModalGenerarSKUs,
-  inMtoModalPrecioUnidad,
   inMtoModalEtiqArt,
   inLibEtiquetasLotes,
   inLibMsgLotesConsultas,
@@ -1065,61 +1060,6 @@ begin
      (dmmArticulos.unqryTablaG.State = dsEdit) then
     dmmArticulos.unqryTablaG.Post;
   BuscarProveedores;
-end;
-
-procedure TfrmMtoArticulos.CrearBotonesContenido;
-var
-  oContenedor: TWinControl;
-  oBoton: TcxButton;
-begin
-  for oContenedor in TArray<TWinControl>.Create(tsGeneral, tsSkuMto) do
-  begin
-    oBoton := TcxButton.Create(Self);
-    oBoton.Parent := oContenedor;
-    oBoton.Align := alBottom;
-    oBoton.Height := ScaleValue(32);
-    oBoton.Caption := SCaptionContenidoPrecioUnidad;
-    oBoton.OnClick := PrecioUnidadClick;
-  end;
-end;
-
-function TfrmMtoArticulos.CodigoSkuContenido: string;
-var
-  sArticulo: string;
-begin
-  ResolverArtSkuActivo(sArticulo, Result);
-  if (Result = '') and (dsTablaG.DataSet <> nil) and
-     not dsTablaG.DataSet.IsEmpty and
-     (dsTablaG.DataSet.FieldByName('ESVARIACION_ART').AsString <> 'S') then
-    Result := sArticulo;
-end;
-
-procedure TfrmMtoArticulos.PrecioUnidadClick(Sender: TObject);
-begin
-  if dmmArticulos.unqryTablaG.Active and
-     not dmmArticulos.unqryTablaG.IsEmpty then
-    AbrirContenidoSku
-  else
-    ShowMessage_fza(SInfoContenidoSeleccionarSku);
-end;
-
-procedure TfrmMtoArticulos.AbrirContenidoSku;
-var
-  Contexto: TContextoContenidoSku;
-begin
-  dmmArticulos.unqryTablaG.CheckBrowseMode;
-  Contexto.CodigoSku := CodigoSkuContenido;
-  if Contexto.CodigoSku = '' then
-    ShowMessage_fza(SInfoContenidoSeleccionarSku)
-  else
-  begin
-    Contexto.CodigoArticulo := dsTablaG.DataSet.FieldByName(
-      'CODIGO_ART_ART').AsString;
-    Contexto.Tarifa := ParametrosCaja.TarifaDefecto;
-    Contexto.Usuario := IdentidadSesion.Usuario;
-    Contexto.PuedeEditar := PuedeAccionMto(apmModificar);
-    TfrmModalPrecioUnidad.Ejecutar(Self, ConexionPrincipal, Contexto);
-  end;
 end;
 
 procedure TfrmMtoArticulos.btnAddSKUClick(Sender: TObject);
@@ -1959,7 +1899,6 @@ begin
     dmmArticulos.dsMovimientosArticulos;
   pkFieldName := 'CODIGO_ART_ART';
   ConstruirTrazabilidadFicha;
-  CrearBotonesContenido;
   dmmArticulos.unqryTablaG.AfterScroll := OnAfterScrollArticulos;
   // Carga perezosa de Tarifas: solo abrir unqryTarifasArticulos cuando
   // el usuario pase a esa pestaña. Asi quitamos los ~6s de la

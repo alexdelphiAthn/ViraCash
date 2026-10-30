@@ -143,9 +143,18 @@ type
     IServicioEmisionFiscal)
   private
     FEstrategia: IEstrategiaEmisionFiscal;
+    FParametrosApp: IParametrosAplicacion;
+    FParametrosCaja: IParametrosCaja;
+    FConexion: TUniConnection;
+    FServicioCola: IServicioVerifactuCola;
   public
     constructor Create(
-      const AEstrategia: IEstrategiaEmisionFiscal);
+      const AEstrategia: IEstrategiaEmisionFiscal); overload;
+    constructor Create(
+      const AParametrosApp: IParametrosAplicacion;
+      const AParametrosCaja: IParametrosCaja;
+      AConexion: TUniConnection;
+      const AServicioCola: IServicioVerifactuCola); overload;
     function Emitir(
       const ASolicitud: TSolicitudEmisionFiscal
     ): TResultadoEmisionFiscal;
@@ -358,16 +367,38 @@ begin
   FEstrategia := AEstrategia;
 end;
 
+constructor TServicioEmisionFiscal.Create(
+  const AParametrosApp: IParametrosAplicacion;
+  const AParametrosCaja: IParametrosCaja;
+  AConexion: TUniConnection;
+  const AServicioCola: IServicioVerifactuCola);
+begin
+  inherited Create;
+  FParametrosApp := AParametrosApp;
+  FParametrosCaja := AParametrosCaja;
+  FConexion := AConexion;
+  FServicioCola := AServicioCola;
+end;
+
 function TServicioEmisionFiscal.Emitir(
   const ASolicitud: TSolicitudEmisionFiscal
 ): TResultadoEmisionFiscal;
 begin
-  Result := FEstrategia.Emitir(ASolicitud);
+  // Los parámetros pueden cambiar mientras la ficha sigue abierta.
+  if Assigned(FParametrosApp) then
+    Result := CrearServicioEmisionFiscalPorModo(
+      Modo, FParametrosApp, FParametrosCaja, FConexion,
+      FServicioCola).Emitir(ASolicitud)
+  else
+    Result := FEstrategia.Emitir(ASolicitud);
 end;
 
 function TServicioEmisionFiscal.Modo: TModoVerifactu;
 begin
-  Result := FEstrategia.Modo;
+  if Assigned(FParametrosApp) then
+    Result := ModoVerifactu(FParametrosApp)
+  else
+    Result := FEstrategia.Modo;
 end;
 
 function CrearServicioEmisionFiscalPorModo(
@@ -419,8 +450,7 @@ function CrearServicioEmisionFiscal(
   const AServicioCola: IServicioVerifactuCola
 ): IServicioEmisionFiscal;
 begin
-  Result := CrearServicioEmisionFiscalPorModo(
-    ModoVerifactu(AParametrosApp),
+  Result := TServicioEmisionFiscal.Create(
     AParametrosApp,
     AParametrosCaja,
     AConexion,

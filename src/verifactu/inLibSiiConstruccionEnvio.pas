@@ -145,7 +145,9 @@ implementation
 uses
   System.SysUtils, System.StrUtils,
   inLibFormatoDocumento, inLibMsgFacturas, inLibMsgVerifactu,
-  inLibVerifactu;
+  inLibVerifactu,
+  // ExtraerCodigoFault: los faults del SII dicen «Codigo[4102]...»
+  inLibVerifactuConstruccionEnvio;
 
 const
   cNsSoapSii = 'http://schemas.xmlsoap.org/soap/envelope/';
@@ -690,24 +692,6 @@ begin
   iFin := Pos(AEtiqueta, AXml);
   if iFin > 0 then
     Result := Copy(AXml, 1, iFin - 1);
-end;
-
-// Los faults del SII dicen «Codigo[4102].El XML no cumple el esquema...»
-function ExtraerCodigoFault(const AFaultString: string): string;
-var
-  iIni: Integer;
-  iFin: Integer;
-begin
-  Result := '';
-  iIni := Pos('Codigo[', AFaultString);
-  if iIni > 0 then
-  begin
-    iIni := iIni + Length('Codigo[');
-    iFin := PosEx(']', AFaultString, iIni);
-    if (iFin > iIni) and
-       (StrToIntDef(Copy(AFaultString, iIni, iFin - iIni), -1) >= 0) then
-      Result := Copy(AFaultString, iIni, iFin - iIni);
-  end;
 end;
 
 // Duplicado: la línea trae el nodo RegistroDuplicado y el CSV del alta

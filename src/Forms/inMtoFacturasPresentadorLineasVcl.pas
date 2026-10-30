@@ -579,6 +579,10 @@ begin
         try
           dsCab.Post;
         except
+          // FZ-ISSUE-762: EAbort llega cuando BeforePost ya mostró el aviso
+          // de validación; repetirlo saldría como «Operation aborted».
+          on EAbort do
+            Result := False;
           on E: Exception do
           begin
             Result := False;

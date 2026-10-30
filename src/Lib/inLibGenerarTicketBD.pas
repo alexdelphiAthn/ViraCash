@@ -58,7 +58,7 @@ uses
   inLibVerifactu, inLibFormatoDocumento,
   inLibCajaDatosFactura, inLibMsgCaja, inLibMsgTickets, inLibTraducciones,
   inLibTicketRecordatorio, inLibTipoCantidad, inLibTrazabilidad,
-  inLibTicketLotes, inLibPrecioUnidad;
+  inLibTicketLotes;
 
 function LPAD(
   const AValue: string;
@@ -713,10 +713,6 @@ begin
           sTotal),
         sTotal);
       FTicket.EscribirLinea(Copy(oLineas[i].Descripcion, 1, 42));
-      sDescuento := TextoPrecioUnidadTicket(oLineas[i].ContenidoPrecio,
-        oLineas[i].Total, oLineas[i].Cantidad);
-      if sDescuento <> '' then
-        FTicket.EscribirLinea(sDescuento);
       sDescuento := TextoDescuentoTicket(oLineas[i].PrecioSalida,
         oLineas[i].PorcentajeDescuento, oLineas[i].ImporteDescuento);
       if sDescuento <> '' then

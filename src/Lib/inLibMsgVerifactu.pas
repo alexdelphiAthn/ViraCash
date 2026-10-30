@@ -427,8 +427,8 @@ resourcestring
     'Borrador %s\%s en VERIFACTU_PENDIENTE: el QR ya puede imprimirse y ' +
     'el envío a la AEAT queda en la cola Verifactu.';
   SInfoBorradorSiiPendiente =
-    'Borrador %s\%s en VERIFACTU_PENDIENTE: el envío al SII queda en la ' +
-    'cola (las facturas del SII no llevan QR).';
+    'Borrador %s\%s consolidado: el envío al SII queda en la ' +
+    'cola de envíos.';
   SInfoBorradorNoVerifactuRegistrado =
     'Borrador %s\%s registrado y firmado en NO VERI*FACTU.';
   SInfoBorradorSinVerifactuEmitido =

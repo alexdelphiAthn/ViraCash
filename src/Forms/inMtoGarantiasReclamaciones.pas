@@ -2,8 +2,8 @@
 {                                                                              }
 {  Módulo:       inMtoGarantiasReclamaciones                                   }
 {    Tipo:       Formulario (Mto)                                              }
-{ Versión:       1.1.0                                                         }
-{   Fecha:       19/10/2026                                                    }
+{ Versión:       1.2.0                                                         }
+{   Fecha:       30/10/2026                                                    }
 {   Autor:       Alejandro Laorden Hidalgo                                     }
 {                                                                              }
 {  Copyright (c) Alejandro Laorden Hidalgo.                                    }
@@ -18,6 +18,10 @@
 {    dirección de envío, el aparato y su modelo, el proveedor con sus datos    }
 {    y las cuatro fases: recepción, envío al fabricante (RMA, tracking,        }
 {    incidencias), recepción del fabricante y entrega al cliente.              }
+{    Desde el 30/10/2026, con appReparaciones, también reparaciones, arreglos  }
+{    y taller sin número de serie: alta con su diálogo, pestaña Reparación     }
+{    (presupuesto y líneas), entrega con cobro, anulación, liquidaciones y     }
+{    tipos y externos (paneles de inMtoGarantiasReparacionesVcl).              }
 {******************************************************************************}
 unit inMtoGarantiasReclamaciones;
 
@@ -39,7 +43,8 @@ uses
   cxDBLookupComboBox, cxGroupBox,
   dxSkinsCore, dxSkinscxPCPainter, dxScrollbarAnnotations, dxDateRanges,
   dxCore,
-  UniDataGarantiasReclamaciones, inLibGarantias, inMtoGen;
+  UniDataGarantiasReclamaciones, inLibGarantias, inLibReparaciones,
+  inLibReparacionesDocumentos, inMtoGarantiasReparacionesVcl, inMtoGen;
 
 type
   TfrmMtoGarantiasReclamaciones = class(TfrmMtoGen)
@@ -63,6 +68,22 @@ type
     tsEnvioFab: TcxTabSheet;
     tsRecepcionFab: TcxTabSheet;
     tsEntregaCli: TcxTabSheet;
+    // Reparaciones (30/10/2026).
+    FEsReparaciones: Boolean;
+    FEsSeries: Boolean;
+    FCodigosModalidad: TArray<string>;
+    cbbModalidad: TcxComboBox;
+    btnNueva: TcxButton;
+    btnSustituir: TcxButton;
+    btnNuevaReparacion: TcxButton;
+    btnEntregarReparacion: TcxButton;
+    btnAnularReparacion: TcxButton;
+    txtModalidadFicha: TcxTextEdit;
+    tsReparacion: TcxTabSheet;
+    tsTrabajos: TcxTabSheet;
+    lblResumenTrabajos: TcxLabel;
+    tsLiquidaciones: TcxTabSheet;
+    tsConfiguracionReparaciones: TcxTabSheet;
     function EscalarDpi(AValor: Integer): Integer;
     procedure CrearFiltros;
     procedure CrearBotones;
@@ -140,6 +161,24 @@ type
     procedure btnAbonadaClick(Sender: TObject);
     procedure btnRechazarClick(Sender: TObject);
     procedure btnExcelClick(Sender: TObject);
+    procedure CrearFiltroModalidad;
+    procedure CrearBotonesReparacion;
+    procedure CrearFaseReparacion;
+    procedure CrearPestanasReparacion;
+    procedure CrearPanelesReparacion;
+    procedure LeerInterruptores;
+    function ModalidadFiltro: string;
+    function Enlaces: TEnlacesReparaciones;
+    procedure ModalidadGetDisplayText(Sender: TcxCustomGridTableItem;
+      ARecord: TcxCustomGridRecord; var AText: string);
+    procedure FaseReparacionGetDisplayText(Sender: TcxCustomGridTableItem;
+      ARecord: TcxCustomGridRecord; var AText: string);
+    procedure btnNuevaReparacionClick(Sender: TObject);
+    procedure btnEntregarReparacionClick(Sender: TObject);
+    procedure btnAnularReparacionClick(Sender: TObject);
+    function PedirTicketCobro(out ASerie, ANumero: string): Boolean;
+    procedure EjecutarReparacion(AAccion: TProc);
+    procedure ImprimirHoja(const AHoja: THojaReparaciones);
   protected
     procedure DoCreate; override;
   public
@@ -152,7 +191,8 @@ implementation
 
 uses
   inLibMensajesVcl,
-  inLibMsgGarantias,
+  inLibMsgGarantias, inLibMsgReparaciones, inLibReparacionesIntf,
+  inMtoModalReparacion, inLibErroresBBDD, inLibTrazabilidad,
   inLibDevExp, inLibGarantiasResguardo, inLibDatasets, inLibDir, frxClass;
 
 {$R *.dfm}
@@ -185,7 +225,9 @@ begin
   begin
     CrearFiltros;
     CrearBotones;
+    CrearBotonesReparacion;
     CrearFicha;
+    CrearPestanasReparacion;
     FControlesCreados := True;
   end;
   inherited;
@@ -241,7 +283,7 @@ begin
   pnlFiltros := TPanel.Create(Self);
   pnlFiltros.Parent := tsLista;
   pnlFiltros.Align := alTop;
-  pnlFiltros.Height := EscalarDpi(96);
+  pnlFiltros.Height := EscalarDpi(138);
   pnlFiltros.BevelOuter := bvNone;
   CrearEtiqueta(SCaptionFiltroEstadoGarantia, 12, 16);
   cbbEstado := TcxComboBox.Create(Self);
@@ -257,14 +299,16 @@ begin
   edtTexto.Top := EscalarDpi(12);
   edtTexto.Width := EscalarDpi(260);
   CrearBoton(SCaptionGarantiaRefrescar, 710, 10, 110, FiltroCambiado);
+  CrearFiltroModalidad;
 end;
 
 procedure TfrmMtoGarantiasReclamaciones.CrearBotones;
 begin
-  CrearBoton(SCaptionGarantiaNueva, 12, 54, 110, btnNuevaClick);
+  btnNueva := CrearBoton(SCaptionGarantiaNueva, 12, 54, 110, btnNuevaClick);
   CrearBoton(SCaptionGarantiaEnviarSat, 130, 54, 130, btnEnviarSatClick);
   CrearBoton(SCaptionGarantiaReparada, 268, 54, 110, btnReparadaClick);
-  CrearBoton(SCaptionGarantiaSustituir, 386, 54, 110, btnSustituirClick);
+  btnSustituir := CrearBoton(SCaptionGarantiaSustituir, 386, 54, 110,
+    btnSustituirClick);
   CrearBoton(SCaptionGarantiaAbonada, 504, 54, 110, btnAbonadaClick);
   CrearBoton(SCaptionGarantiaRechazar, 622, 54, 110, btnRechazarClick);
   CrearBoton(SCaptionGarantiaExcel, 740, 54, 80, btnExcelClick);
@@ -619,6 +663,7 @@ begin
   pcFases.Parent := tsFicha;
   pcFases.Align := alClient;
   CrearFaseRecepcion;
+  CrearFaseReparacion;
   CrearFaseEnvioFabricante;
   CrearFaseRecepcionFabricante;
   CrearFaseEntregaCliente;
@@ -659,6 +704,21 @@ end;
 
 // Estado y resolución traducidos, marca en las fases con fecha y lista de
 // proveedores abierta ya con conexión (en el hilo principal).
+// Las partes con texto, separadas por un punto medio.
+function UnirNoVacios(const APartes: array of string): string;
+var
+  sParte: string;
+begin
+  Result := '';
+  for sParte in APartes do
+    if Trim(sParte) <> '' then
+    begin
+      if Result <> '' then
+        Result := Result + '  ·  ';
+      Result := Result + Trim(sParte);
+    end;
+end;
+
 procedure TfrmMtoGarantiasReclamaciones.DatosCambiados(Sender: TObject;
   Field: TField);
 var
@@ -671,6 +731,14 @@ begin
       TextoEstadoGarantia(oDatos.FieldByName('ESTADO_GAR').AsString);
     txtResolucionFicha.Text :=
       TextoResolucionGarantia(oDatos.FieldByName('RESOLUCION_GAR').AsString);
+    txtModalidadFicha.Text := TextoModalidadReparacion(
+      oDatos.FieldByName('MODALIDAD_GAR').AsString) + ' - ' +
+      TextoFaseReparacion(oDatos.FieldByName('FASE_REP').AsString);
+    lblResumenTrabajos.Caption := UnirNoVacios([
+      SRotuloNumeroDeposito + ' ' + oDatos.FieldByName(CAMPO_ID).AsString,
+      oDatos.FieldByName('OBJETO_REP').AsString,
+      oDatos.FieldByName('NOMBRE_CLIENTE_GAR').AsString,
+      txtModalidadFicha.Text]);
     if Assigned(dmmGarantias) and
        not Assigned(cbbProveedor.Properties.ListSource) then
       cbbProveedor.Properties.ListSource := dmmGarantias.Proveedores;
@@ -679,6 +747,8 @@ begin
   begin
     txtEstadoFicha.Text := '';
     txtResolucionFicha.Text := '';
+    txtModalidadFicha.Text := '';
+    lblResumenTrabajos.Caption := '';
   end;
   RotularPestana(tsRecepcion, 1, SCaptionFaseRecepcion,
     'FECHA_RECEPCION_GAR');
@@ -741,6 +811,15 @@ begin
   if cxGrdDBTabPrin.ColumnCount = 0 then
   begin
     CrearColumna(CAMPO_ID, SCaptionColGarantiaId, 60);
+    CrearColumna('MODALIDAD_GAR', SColModalidad, 100).OnGetDisplayText :=
+      ModalidadGetDisplayText;
+    CrearColumna('FASE_REP', SColFaseReparacion, 130).OnGetDisplayText :=
+      FaseReparacionGetDisplayText;
+    CrearColumna('CATEGORIA_GAR', SColTipoCategoria, 90);
+    CrearColumna('OBJETO_REP', SColObjetoReparacion, 220);
+    CrearColumnaFecha('FECHA_PREVISTA_GAR', SColEntregaAproximada,
+      FORMATO_FECHA);
+    CrearColumna('TOTAL_CLIENTE_REP', SColImporteCliente, 90);
     CrearColumnaFecha('FECHA_RECLAMACION_GAR', SCaptionColGarantiaFecha,
       FORMATO_FECHA_HORA);
     CrearColumna('LOTE_GAR', SCaptionColGarantiaSerie, 160);
@@ -817,6 +896,8 @@ begin
   dsTablaG.OnDataChange := DatosCambiados;
   CargarComboEstados;
   CrearColumnas;
+  LeerInterruptores;
+  CrearPanelesReparacion;
 end;
 
 procedure TfrmMtoGarantiasReclamaciones.ResetForm;
@@ -836,7 +917,8 @@ end;
 procedure TfrmMtoGarantiasReclamaciones.FiltroCambiado(Sender: TObject);
 begin
   if Assigned(dmmGarantias) then
-    dmmGarantias.AplicarFiltros(EstadoFiltro, edtTexto.Text);
+    dmmGarantias.AplicarFiltros(EstadoFiltro, edtTexto.Text,
+      ModalidadFiltro);
 end;
 
 procedure TfrmMtoGarantiasReclamaciones.Refrescar(AId: Int64);
@@ -1056,6 +1138,315 @@ begin
     ExportarExcel(ParametrosApp, cxGrdPrincipal,
       Format(SNombreArchivoGarantias,
         [FormatDateTime('yyyymmdd', Date)]), False);
+end;
+
+// ---------------------------------------------------------------------------
+// Reparaciones (30/10/2026)
+// ---------------------------------------------------------------------------
+
+procedure TfrmMtoGarantiasReclamaciones.CrearFiltroModalidad;
+begin
+  CrearEtiqueta(SCaptionFiltroModalidad, 840, 16);
+  cbbModalidad := TcxComboBox.Create(Self);
+  cbbModalidad.Parent := pnlFiltros;
+  cbbModalidad.Left := EscalarDpi(940);
+  cbbModalidad.Top := EscalarDpi(12);
+  cbbModalidad.Width := EscalarDpi(170);
+  cbbModalidad.Properties.DropDownListStyle := lsFixedList;
+  FCodigosModalidad := TArray<string>.Create('',
+    MODALIDAD_REPARACION_GARANTIA, MODALIDAD_REPARACION_PAGO,
+    MODALIDAD_REPARACION_CORTESIA);
+  cbbModalidad.Properties.Items.Add(SCaptionModalidadesTodas);
+  cbbModalidad.Properties.Items.Add(SModalidadGarantia);
+  cbbModalidad.Properties.Items.Add(SModalidadPago);
+  cbbModalidad.Properties.Items.Add(SModalidadCortesia);
+  cbbModalidad.ItemIndex := 0;
+  cbbModalidad.Properties.OnChange := FiltroCambiado;
+end;
+
+function TfrmMtoGarantiasReclamaciones.ModalidadFiltro: string;
+begin
+  Result := '';
+  if Assigned(cbbModalidad) and (cbbModalidad.ItemIndex > 0) then
+    Result := FCodigosModalidad[cbbModalidad.ItemIndex];
+end;
+
+procedure TfrmMtoGarantiasReclamaciones.CrearBotonesReparacion;
+begin
+  btnNuevaReparacion := CrearBoton(SCaptionNuevaReparacion, 12, 96, 170,
+    btnNuevaReparacionClick);
+  btnEntregarReparacion := CrearBoton(SCaptionEntregarReparacion, 190, 96,
+    150, btnEntregarReparacionClick);
+  btnAnularReparacion := CrearBoton(SCaptionAnularReparacion, 348, 96, 150,
+    btnAnularReparacionClick);
+end;
+
+// Datos de la reparación; sus líneas y el presupuesto van en la pestaña
+// Trabajos, que tiene la altura de la pantalla.
+procedure TfrmMtoGarantiasReclamaciones.CrearFaseReparacion;
+begin
+  tsReparacion := CrearPestana(SCaptionFaseReparacion);
+  txtModalidadFicha := CrearTextoLibre(tsReparacion, SRotuloModalidad, 0);
+  CrearTexto(tsReparacion, SColTipoCategoria, 'CATEGORIA_GAR', 1, 0, True);
+  CrearTexto(tsReparacion, SRotuloDescripcionObjeto,
+    'DESCRIPCION_OBJETO_GAR', 0, 1, False);
+  CrearTexto(tsReparacion, SRotuloReferenciaObjeto, 'REFERENCIA_OBJETO_GAR',
+    1, 1, False);
+  CrearTexto(tsReparacion, SRotuloDetallesReparacion, 'DETALLES_GAR', 0, 2,
+    False);
+  CrearFecha(tsReparacion, SRotuloEntregaAproximada, 'FECHA_PREVISTA_GAR',
+    1, 2);
+  CrearTexto(tsReparacion, SRotuloEstadoPresupuesto,
+    'ESTADO_PRESUPUESTO_GAR', 0, 3, True);
+  CrearTexto(tsReparacion, SRotuloImportePresupuesto,
+    'TOTAL_PRESUPUESTO_GAR', 1, 3, True);
+  CrearTexto(tsReparacion, SColImporteCliente, 'TOTAL_CLIENTE_REP', 0, 4,
+    True);
+  CrearTexto(tsReparacion, SColImporteCoste, 'TOTAL_COSTE_REP', 1, 4, True);
+  CrearTexto(tsReparacion, SRotuloSerieCobroReparacion, 'SERIE_COBRO_GAR',
+    0, 5, False);
+  CrearTexto(tsReparacion, SRotuloNumeroCobroReparacion, 'NUMERO_COBRO_GAR',
+    1, 5, False);
+end;
+
+procedure TfrmMtoGarantiasReclamaciones.CrearPestanasReparacion;
+begin
+  tsTrabajos := TcxTabSheet.Create(Self);
+  tsTrabajos.PageControl := pcPantalla;
+  tsTrabajos.Caption := SCaptionPestanaTrabajos;
+  lblResumenTrabajos := TcxLabel.Create(Self);
+  lblResumenTrabajos.Parent := tsTrabajos;
+  lblResumenTrabajos.Align := alTop;
+  lblResumenTrabajos.Transparent := True;
+  lblResumenTrabajos.Style.Font.Style := [fsBold];
+  lblResumenTrabajos.Properties.Alignment.Vert := taVCenter;
+  lblResumenTrabajos.Height := EscalarDpi(30);
+  tsLiquidaciones := TcxTabSheet.Create(Self);
+  tsLiquidaciones.PageControl := pcPantalla;
+  tsLiquidaciones.Caption := SCaptionPestanaLiquidaciones;
+  tsConfiguracionReparaciones := TcxTabSheet.Create(Self);
+  tsConfiguracionReparaciones.PageControl := pcPantalla;
+  tsConfiguracionReparaciones.Caption := SCaptionPestanaTiposExternos;
+end;
+
+// appReparaciones muestra lo de reparaciones; appGarantias, el alta y la
+// sustitución por número de serie.
+procedure TfrmMtoGarantiasReclamaciones.LeerInterruptores;
+begin
+  FEsReparaciones := ParametrosApp.GetBool(PARAMETRO_REPARACIONES, False);
+  FEsSeries := TActivacionTrazabilidad.Leer(ParametrosApp).Garantias;
+  btnNueva.Visible := FEsSeries;
+  btnSustituir.Visible := FEsSeries;
+  btnNuevaReparacion.Visible := FEsReparaciones;
+  btnEntregarReparacion.Visible := FEsReparaciones;
+  btnAnularReparacion.Visible := FEsReparaciones;
+  tsReparacion.TabVisible := FEsReparaciones;
+  tsTrabajos.TabVisible := FEsReparaciones;
+  tsLiquidaciones.TabVisible := FEsReparaciones;
+  tsConfiguracionReparaciones.TabVisible := FEsReparaciones;
+  if FEsReparaciones then
+    Caption := STituloReparacionesGarantias;
+end;
+
+function TfrmMtoGarantiasReclamaciones.Enlaces: TEnlacesReparaciones;
+begin
+  Result.ReparacionActual :=
+    function: Int64
+    begin
+      Result := 0;
+      if Assigned(dmmGarantias) and dmmGarantias.unqryTablaG.Active and
+         not dmmGarantias.unqryTablaG.IsEmpty then
+        Result := IdActual;
+    end;
+  Result.AlmacenActual :=
+    function: string
+    begin
+      Result := dmmGarantias.UbicacionSesion.Almacen;
+    end;
+  Result.EmpresaActual :=
+    function: string
+    begin
+      Result := dmmGarantias.UbicacionSesion.Empresa;
+    end;
+  Result.Usuario := dmmGarantias.IdentidadSesion.Usuario;
+  Result.Refrescar :=
+    procedure(AId: Int64)
+    begin
+      if AId = 0 then
+        AId := Enlaces.ReparacionActual();
+      Refrescar(AId);
+    end;
+  Result.Imprimir :=
+    procedure(AHoja: THojaReparaciones)
+    begin
+      ImprimirHoja(AHoja);
+    end;
+end;
+
+procedure TfrmMtoGarantiasReclamaciones.CrearPanelesReparacion;
+begin
+  if FEsReparaciones then
+  begin
+    TPanelLineasReparacion.CreatePanel(Self, tsTrabajos,
+      dmmGarantias.Reparaciones, Enlaces);
+    TPanelLiquidacionesReparacion.CreatePanel(Self, tsLiquidaciones,
+      dmmGarantias.Reparaciones, Enlaces);
+    TPanelConfiguracionReparaciones.CreatePanel(Self,
+      tsConfiguracionReparaciones, dmmGarantias.Reparaciones, Enlaces);
+  end;
+end;
+
+procedure TfrmMtoGarantiasReclamaciones.ModalidadGetDisplayText(
+  Sender: TcxCustomGridTableItem; ARecord: TcxCustomGridRecord;
+  var AText: string);
+begin
+  AText := TextoModalidadReparacion(AText);
+end;
+
+procedure TfrmMtoGarantiasReclamaciones.FaseReparacionGetDisplayText(
+  Sender: TcxCustomGridTableItem; ARecord: TcxCustomGridRecord;
+  var AText: string);
+begin
+  AText := TextoFaseReparacion(AText);
+end;
+
+// Ejecuta una acción del repositorio con la ficha grabada; un error de
+// situación o de validación se avisa y la lista se refresca.
+procedure TfrmMtoGarantiasReclamaciones.EjecutarReparacion(AAccion: TProc);
+var
+  iId: Int64;
+begin
+  iId := IdActual;
+  if dmmGarantias.unqryTablaG.State in dsEditModes then
+    dmmGarantias.unqryTablaG.Post;
+  try
+    AAccion();
+  except
+    on E: EFaseReparacion do
+      ShowMessage_fza(E.Message);
+    on E: EArgumentException do
+      ShowMessage_fza(E.Message);
+  end;
+  Refrescar(iId);
+end;
+
+procedure TfrmMtoGarantiasReclamaciones.btnNuevaReparacionClick(
+  Sender: TObject);
+var
+  Base: TReparacionNueva;
+  iId: Int64;
+begin
+  Base := Default(TReparacionNueva);
+  Base.Almacen := dmmGarantias.UbicacionSesion.Almacen;
+  Base.Fecha := Date;
+  Base.Usuario := dmmGarantias.IdentidadSesion.Usuario;
+  iId := TfrmModalReparacion.Ejecutar(Self,
+    dmmGarantias.Reparaciones.Catalogo,
+    dmmGarantias.Reparaciones.Reparaciones, Base);
+  if iId > 0 then
+  begin
+    Refrescar(iId);
+    pcPantalla.ActivePage := tsFicha;
+    pcFases.ActivePage := tsReparacion;
+    if MessageDlg_fza(Format(SPreguntaResguardoReparacion, [iId]),
+      mtConfirmation, [mbYes, mbNo], 0) = mrYes then
+      MostrarResguardo;
+  end;
+end;
+
+// El ticket se teclea como SERIE/NÚMERO; vacío = sin cobrar.
+function TfrmMtoGarantiasReclamaciones.PedirTicketCobro(
+  out ASerie, ANumero: string): Boolean;
+var
+  sTexto: string;
+  iBarra: Integer;
+begin
+  sTexto := '';
+  ASerie := '';
+  ANumero := '';
+  Result := InputQuery_fza(STituloEntregarReparacion,
+    Format(SPreguntaTicketCobroReparacion,
+      [FormatFloat('#,##0.00', dmmGarantias.unqryTablaG.FieldByName(
+        'TOTAL_CLIENTE_REP').AsCurrency)]), sTexto);
+  sTexto := Trim(sTexto);
+  iBarra := LastDelimiter('/', sTexto);
+  if Result and (iBarra > 1) then
+  begin
+    ASerie := Trim(Copy(sTexto, 1, iBarra - 1));
+    ANumero := Trim(Copy(sTexto, iBarra + 1, MaxInt));
+  end;
+  if Result and (ANumero = '') then
+    Result := MessageDlg_fza(SPreguntaEntregarSinCobro, mtWarning,
+      [mbYes, mbNo], 0, mbNo) = mrYes;
+end;
+
+procedure TfrmMtoGarantiasReclamaciones.btnEntregarReparacionClick(
+  Sender: TObject);
+var
+  sSerie, sNumero: string;
+  bSeguir: Boolean;
+begin
+  sSerie := '';
+  sNumero := '';
+  bSeguir := HayReclamacion;
+  if bSeguir and FaltaCobrarReparacion(
+    dmmGarantias.unqryTablaG.FieldByName('MODALIDAD_GAR').AsString,
+    dmmGarantias.unqryTablaG.FieldByName('MODO_COBRO_GAR').AsString,
+    dmmGarantias.unqryTablaG.FieldByName('ESCOBRADO_GAR').AsString = 'S') then
+    bSeguir := PedirTicketCobro(sSerie, sNumero);
+  if bSeguir then
+    EjecutarReparacion(
+      procedure
+      begin
+        dmmGarantias.Reparaciones.Reparaciones.Entregar(IdActual, Date,
+          sNumero <> '', sSerie, sNumero,
+          dmmGarantias.IdentidadSesion.Usuario);
+      end);
+end;
+
+procedure TfrmMtoGarantiasReclamaciones.btnAnularReparacionClick(
+  Sender: TObject);
+var
+  sMotivo: string;
+begin
+  sMotivo := '';
+  if HayReclamacion and InputQuery_fza(STituloAnularReparacion,
+    SPreguntaMotivoAnulacion, sMotivo) and (Trim(sMotivo) <> '') then
+    EjecutarReparacion(
+      procedure
+      begin
+        dmmGarantias.Reparaciones.Reparaciones.Anular(IdActual, sMotivo,
+          dmmGarantias.IdentidadSesion.Usuario);
+      end);
+end;
+
+procedure TfrmMtoGarantiasReclamaciones.ImprimirHoja(
+  const AHoja: THojaReparaciones);
+var
+  oInforme: TfrxReport;
+  Formato: TFormatoHojaReparacion;
+  Eleccion: Integer;
+begin
+  Eleccion := MessageDlgTextos_fza(SPreguntaFormatoResguardo,
+    mtConfirmation, [mbYes, mbNo, mbCancel], ['A4', 'Ticket', ''], mbNo);
+  Formato := fhrTicket;
+  if Eleccion = mrYes then
+    Formato := fhrA4;
+  if Eleccion <> mrCancel then
+  begin
+    oInforme := TfrxReport.Create(nil);
+    try
+      CrearInformeHojaReparaciones(oInforme, AHoja, Formato);
+      if Formato = fhrTicket then
+        ImprimirHojaReparacionesTicket(oInforme, AHoja.Titulo, PreviewTicket,
+          ParametrosCaja.ImpresoraCaja, GetUserFolderTickets + 'Hoja_GAR_' +
+          FormatDateTime('yyyymmdd_hhnnss_zzz', Now) + '.pdf')
+      else
+        oInforme.ShowReport;
+    finally
+      FreeAndNil(oInforme);
+    end;
+  end;
 end;
 
 initialization

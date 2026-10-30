@@ -450,7 +450,8 @@ implementation
 
 uses
   inLibMensajesVcl,
-  inLibTrazabilidad, inLibCajaParam,
+  inLibTrazabilidad, inLibReparaciones, inLibMsgReparaciones,
+  inLibCajaParam,
   inLibMsgLotesConsultas,
   UniDataLotesConsultas,
   inLibMsgLogon,
@@ -1158,9 +1159,14 @@ end;
 procedure TfrmMtoPrincipal.AplicarInterruptoresTrazabilidad;
 var
   Activacion: TActivacionTrazabilidad;
+  bReparaciones: Boolean;
 begin
   Activacion := TActivacionTrazabilidad.Leer(ParametrosApp);
-  if not Activacion.Garantias then
+  // Reparaciones y garantías: con cualquiera de sus dos interruptores.
+  bReparaciones := ParametrosApp.GetBool(PARAMETRO_REPARACIONES, False);
+  if bReparaciones then
+    mnuGarantiasReclamaciones.Caption := STituloReparacionesGarantias
+  else if not Activacion.Garantias then
   begin
     mnuGarantiasReclamaciones.Visible := False;
     mnuGarantiasReclamaciones.Enabled := False;
