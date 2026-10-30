@@ -65,12 +65,12 @@ type
       const ATexto: string; out AInfo: TInfoBasico): Boolean;
     procedure ProgramarConfirmacion(AOrden: Integer;
       const AValor: string);
+    procedure RegistrarValor(AOrden: Integer;
+      const AValorNuevo: string);
     procedure FinalizarUltimoAtributo;
     function MedirTextoMasAncho(AColumna: TcxGridDBColumn;
       AFuente: TFont): Integer;
   public
-    procedure RegistrarValor(AOrden: Integer;
-      const AValorNuevo: string);
     constructor Create(
       const AContexto: TContextoAtributosEditorLineasCajaVcl);
     destructor Destroy; override;
@@ -525,17 +525,7 @@ begin
       if SkuLineaCajaAdmitePrecio(
            SkuNuevo,
            NumAtributosRequeridos) then
-      begin
-        // Rechazar antes de que el recálculo fiscal intente el Post.
-        // La validación presenta el aviso normal y no deja una talla
-        // rechazada con precio y totales a medio calcular (FZ-ISSUE-765).
-        if not FContexto.ValidarSku(SkuNuevo) then
-        begin
-          EliminarLineaVentaPorValidacion(FContexto.DatosCaja.cdsLineas);
-          Abort;
-        end;
         FContexto.RecalcularPrecio(SkuNuevo);
-      end;
     end;
   end;
 end;

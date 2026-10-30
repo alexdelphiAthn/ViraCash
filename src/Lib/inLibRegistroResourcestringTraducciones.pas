@@ -2655,6 +2655,9 @@ begin
     'SErrorSinAlmacenTaras',
     'src/Lib/inLibMsgGarantias.pas',
     @inLibMsgGarantias.SErrorSinAlmacenTaras);
+  ARegistrar('inLibMsgReparaciones.SPreguntaFormatoHojaReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SPreguntaFormatoHojaReparacion);
   ARegistrar('inLibMsgGarantias.SPreguntaFormatoResguardo',
     'src/Lib/inLibMsgGarantias.pas',
     @inLibMsgGarantias.SPreguntaFormatoResguardo);

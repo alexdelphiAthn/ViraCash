@@ -324,6 +324,7 @@
           Font.Style = [fsUnderline]
           Font.Quality = fqClearTypeNatural
           ParentFont = False
+          OnClick = btnF3Click
         end
         object btnF8: TcxButton
           Left = 210
@@ -343,6 +344,7 @@
           Font.Style = [fsUnderline]
           Font.Quality = fqClearTypeNatural
           ParentFont = False
+          OnClick = btnF8Click
         end
         object btnF6: TcxButton
           Left = 310

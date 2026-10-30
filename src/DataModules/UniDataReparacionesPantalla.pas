@@ -408,7 +408,7 @@ var
   bCargo: Boolean;
 begin
   Result := Default(THojaReparaciones);
-  oConsulta := NuevaConsulta('SELECT Q.SENTIDO_GARLIQ, ' +
+  oConsulta := NuevaConsulta('SELECT Q.SENTIDO_GARLIQ, Q.FECHA_GARLIQ, ' +
     'COALESCE(P.RAZON_SOCIAL_PRV, Q.CODIGO_PRV_GARLIQ) AS PROVEEDOR, ' +
     // La tienda de los trabajos liquidados (la del primero).
     '(SELECT G.CODIGO_ALM_GAR FROM fza_garantias_lineas L ' +
@@ -427,6 +427,7 @@ begin
         [ALiquidacion]);
     bCargo := oConsulta.FieldByName('SENTIDO_GARLIQ').AsString =
       LIQUIDACION_REPARACION_CARGO;
+    Result.Fecha := oConsulta.FieldByName('FECHA_GARLIQ').AsDateTime;
     Result.Proveedor := oConsulta.FieldByName('PROVEEDOR').AsString;
     Result.Tienda := Tienda(oConsulta.FieldByName('ALMACEN').AsString);
   finally
@@ -441,7 +442,6 @@ begin
     Result.Lineas := LineasHoja('WHERE L.ID_GARLIQ_CARGO_GARLIN = :ID',
       ALiquidacion);
   end;
-  Result.Fecha := Date;
   Result.Liquidacion := ALiquidacion;
   Result.EsImporte := True;
 end;

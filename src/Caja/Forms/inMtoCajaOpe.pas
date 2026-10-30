@@ -449,6 +449,8 @@ type
       ARecord: TcxCustomGridRecord; var AAllow: Boolean);
     procedure tvTotalPropertiesEditValueChanged(Sender: TObject);
     procedure btnF12Click(Sender: TObject);
+    procedure btnF3Click(Sender: TObject);
+    procedure btnF8Click(Sender: TObject);
     procedure btnCodigoEmpleadoPropertiesButtonClick(Sender: TObject;
       AButtonIndex: Integer);
     procedure btnCodigoClientePropertiesButtonClick(Sender: TObject;
@@ -2127,7 +2129,7 @@ begin
   // FZ-ISSUE-454: si la línea en curso ya lleva este SKU con sus
   // unidades, la unidad que se identifica es la suya: se cuenta esa línea
   // y las demás, no «todas más una» (salía «se venden 3» con 2).
-  if Resultado.Permitida then
+  if Resultado.Permitida or (Resultado.Motivo = msvSinStock) then
   begin
     oLineas := dsLineas.DataSet;
     // La entrada STX/ETX valida antes de crear o agrupar la nueva unidad.
@@ -2529,7 +2531,13 @@ begin
       if DatosCaja.cdsLineas.State = dsInsert then
         DatosCaja.cdsLineas.Cancel
       else if not DatosCaja.cdsLineas.IsEmpty then
+      begin
+        // Delete intenta publicar la edición: descartar antes la cantidad
+        // que BeforePost acaba de rechazar por falta de stock (768).
+        if DatosCaja.cdsLineas.State = dsEdit then
+          DatosCaja.cdsLineas.Cancel;
         DatosCaja.cdsLineas.Delete;
+      end;
       GridRecalc(ConexionPrincipal, FRepositorioFacturas, nil,
         tvLineasOpe, DatosCaja.cdsLineas, DatosCaja.cdsCabecera,
         ActualizarLabelTotal);
@@ -2604,6 +2612,7 @@ begin
        not ValidarSkuParaVenta(SkuDetectado) then
     begin
       EliminarLineaVentaPorValidacion(DatosCaja.cdsLineas);
+      SolicitarFocoArticuloLineaNueva;
       DisplayValue := null;
       Error := False;
       Abort;
@@ -2972,6 +2981,17 @@ var
 begin
   if Trim(ASku) <> '' then
   begin
+    // Comprobar el SKU completo antes de asignar precio y recalcular:
+    // el Post fiscal no debe dejar una venta rechazada a medias.
+    if not FActualizandoDepositos and not FSuspenderStock and
+       SameText(DatosCaja.cdsLineas.FieldByName(
+         'TIPO_ARTICULO_FACLIN').AsString, 'ESTANDAR') and
+       not ValidarSkuParaVenta(ASku) then
+    begin
+      EliminarLineaVentaPorValidacion(DatosCaja.cdsLineas);
+      SolicitarFocoArticuloLineaNueva;
+      Abort;
+    end;
     CodTarifa := DatosCaja.cdsCabecera.FieldByName(
       'TARIFA_ARTICULO_CLIENTE_FAC').AsString;
     FechaFactura := DatosCaja.cdsCabecera.FieldByName(
@@ -3536,6 +3556,18 @@ end;
 procedure TfrmMtoOpeCaja.actCargarCtaExecute(Sender: TObject);
 begin
   btnF2Click(Sender);
+end;
+
+// Los botones F3 y F8 hacen lo mismo que sus teclas: con el ratón no
+// respondían porque solo las acciones tenían el atajo.
+procedure TfrmMtoOpeCaja.btnF3Click(Sender: TObject);
+begin
+  actBuscarEmpleados.Execute;
+end;
+
+procedure TfrmMtoOpeCaja.btnF8Click(Sender: TObject);
+begin
+  actEliminarLinea.Execute;
 end;
 
 procedure TfrmMtoOpeCaja.btnF61Click(Sender: TObject);
@@ -4949,7 +4981,7 @@ end;
 
 procedure TEditorLineasCajaVcl.SolicitarFocoArticuloLineaNueva;
 begin
-  if (not FEnfoqueArticuloPendiente) and
+  if Assigned(Formulario) and (not FEnfoqueArticuloPendiente) and
      (not (csDestroying in Formulario.ComponentState)) then
   begin
     FEnfoqueArticuloPendiente := True;
@@ -4969,6 +5001,12 @@ end;
 procedure TEditorLineasCajaVcl.EnfocarArticulo;
 begin
   FEnfoqueArticuloPendiente := False;
+  // Tras retirar la única línea rechazada, preparar el dataset antes de
+  // la siguiente lectura; hacerlo dentro de OnValidate pierde el texto.
+  if RejillaEnfocable and Assigned(DatosCaja) and
+     DatosCaja.cdsLineas.Active and DatosCaja.cdsLineas.IsEmpty and
+     (DatosCaja.cdsLineas.State = dsBrowse) then
+    DatosCaja.cdsLineas.Append;
   if RejillaEnfocable and
      Assigned(DatosCaja) and DatosCaja.cdsLineas.Active and
      (DatosCaja.cdsLineas.State = dsInsert) and
@@ -5210,7 +5248,14 @@ end;
 
 function TfrmMtoOpeCaja.IsShortCut(var Message: TWMKey): Boolean;
 begin
-  if ShortCutFromMessage(Message) = ShortCut(Ord('F'), [ssCtrl]) then
+  if (Message.CharCode = VK_ESCAPE) and Assigned(FEditorLineas) and
+     not Assigned(FSubsanacion) and
+     (DatosCaja.cdsLineas.State = dsEdit) then
+  begin
+    CancelarEdicionLineas;
+    Result := True;
+  end
+  else if ShortCutFromMessage(Message) = ShortCut(Ord('F'), [ssCtrl]) then
   begin
     AlternarFotoArticulo;
     Result := True;

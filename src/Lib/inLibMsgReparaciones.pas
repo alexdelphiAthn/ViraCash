@@ -221,6 +221,8 @@ resourcestring
   SRotuloSkuMaterial = 'SKU (material):';
   SRotuloEstadoPresupuesto = 'Presupuesto:';
   SRotuloImportePresupuesto = 'Importe presupuesto:';
+  SPreguntaFormatoHojaReparacion =
+    'Seleccione el formato de impresión de «%s»: ';
   SRotuloObjetoResguardo = 'Objeto:';
   SRotuloDetallesResguardo = 'Detalles:';
   SRotuloProveedorHoja = 'Proveedor:';

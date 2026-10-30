@@ -56,6 +56,7 @@ type
     // Unidades de cada SKU ya comprobadas en este ticket: solo se vuelve
     // a preguntar a la política cuando el total sube.
     FComprobado: TDictionary<string, Double>;
+    FAvisado: TDictionary<string, Double>;
     function UnidadesOtrasLineas(ALineas: TDataSet;
       const ACodigoSku, ALineaExcluida: string): Double;
     function Comprobar(const ACodigoSku: string;
@@ -93,10 +94,12 @@ begin
   FPolitica := APolitica;
   FObtenerAlmacen := AObtenerAlmacen;
   FComprobado := TDictionary<string, Double>.Create;
+  FAvisado := TDictionary<string, Double>.Create;
 end;
 
 destructor TVigilanteStockVentaCaja.Destroy;
 begin
+  FreeAndNil(FAvisado);
   FreeAndNil(FComprobado);
   inherited;
 end;
@@ -104,6 +107,7 @@ end;
 procedure TVigilanteStockVentaCaja.Reiniciar;
 begin
   FComprobado.Clear;
+  FAvisado.Clear;
 end;
 
 // En un clon: no mueve el cursor de la rejilla ni dispara sus eventos. La
@@ -144,7 +148,7 @@ var
   sClave: string;
 begin
   Result := SinIncidencia;
-  sClave := UpperCase(ACodigoSku);
+  sClave := UpperCase(FObtenerAlmacen()) + #9 + UpperCase(ACodigoSku);
   if not FComprobado.TryGetValue(sClave, dComprobado) then
     dComprobado := 0;
   if ATotal > dComprobado + TOLERANCIA_CANTIDAD then
@@ -152,7 +156,11 @@ begin
     Result := FPolitica().ValidarCantidad(ACodigoSku, FObtenerAlmacen(),
       ATotal);
     if Result.Permitida then
+    begin
       FComprobado.AddOrSetValue(sClave, ATotal);
+      if Result.Mensaje <> '' then
+        FAvisado.AddOrSetValue(sClave, ATotal);
+    end;
   end;
 end;
 
@@ -196,8 +204,8 @@ var
   Clon: TClientDataSet;
   Cantidades: TDictionary<string, Double>;
   Par: TPair<string, Double>;
-  Sku: string;
-  Cantidad, Acumulada: Double;
+  Sku, Clave: string;
+  Cantidad, Acumulada, Avisada: Double;
   ResultadoSku: TResultadoPoliticaStockVenta;
 begin
   Result := SinIncidencia;
@@ -228,6 +236,17 @@ begin
     begin
       ResultadoSku := FPolitica().ValidarCantidad(
         Par.Key, FObtenerAlmacen(), Par.Value);
+      // Reconsultar siempre al cobrar mantiene el bloqueo si cambia el
+      // stock o el parámetro. Solo se omite un aviso ya presentado (768).
+      Clave := UpperCase(FObtenerAlmacen()) + #9 + Par.Key;
+      if ResultadoSku.Permitida and (ResultadoSku.Mensaje <> '') then
+      begin
+        if FAvisado.TryGetValue(Clave, Avisada) and
+           (Par.Value <= Avisada + TOLERANCIA_CANTIDAD) then
+          ResultadoSku := SinIncidencia
+        else
+          FAvisado.AddOrSetValue(Clave, Par.Value);
+      end;
       if ResultadoSku.Motivo <> msvNinguno then
       begin
         Result.Motivo := ResultadoSku.Motivo;

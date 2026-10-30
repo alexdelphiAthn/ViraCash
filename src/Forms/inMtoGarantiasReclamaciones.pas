@@ -118,6 +118,9 @@ type
       ASoloLectura: Boolean): TcxDBTextEdit;
     function CrearTextoLibre(AParent: TWinControl; const ARotulo: string;
       AFila: Integer): TcxTextEdit;
+    function CrearImporte(AParent: TWinControl;
+      const ARotulo, ACampo: string; AColumna, AFila: Integer):
+      TcxDBCurrencyEdit;
     function CrearFecha(AParent: TWinControl;
       const ARotulo, ACampo: string; AColumna, AFila: Integer): TcxDBDateEdit;
     function CrearMemo(AParent: TWinControl;
@@ -417,6 +420,22 @@ begin
   Result := TcxTextEdit.Create(Self);
   ColocarEditor(Result, AParent, 0, AFila, AnchoColumna(AParent, 0), True);
   Result.Properties.ReadOnly := True;
+  Result.TabStop := False;
+end;
+
+// Los importes se alinean a la derecha: su ancho no debe superar la
+// página, aunque la ficha se cree mientras su pestaña está oculta.
+function TfrmMtoGarantiasReclamaciones.CrearImporte(AParent: TWinControl;
+  const ARotulo, ACampo: string; AColumna, AFila: Integer):
+  TcxDBCurrencyEdit;
+begin
+  ColocarRotulo(AParent, ARotulo, AColumna, AFila);
+  Result := TcxDBCurrencyEdit.Create(Self);
+  ColocarEditor(Result, AParent, AColumna, AFila, 140, False);
+  Result.DataBinding.DataSource := dsTablaG;
+  Result.DataBinding.DataField := ACampo;
+  Result.Properties.ReadOnly := True;
+  Result.Properties.DisplayFormat := '#,##0.00';
   Result.TabStop := False;
 end;
 
@@ -739,6 +758,12 @@ begin
       oDatos.FieldByName('OBJETO_REP').AsString,
       oDatos.FieldByName('NOMBRE_CLIENTE_GAR').AsString,
       txtModalidadFicha.Text]);
+    if (oDatos.FieldByName('ESPRESUPUESTO_GAR').AsString = 'S') and
+       not oDatos.FieldByName('TOTAL_PRESUPUESTO_GAR').IsNull then
+      lblResumenTrabajos.Caption := UnirNoVacios([
+        lblResumenTrabajos.Caption, SRotuloImportePresupuesto + ' ' +
+        FormatFloat('#,##0.00',
+          oDatos.FieldByName('TOTAL_PRESUPUESTO_GAR').AsCurrency)]);
     if Assigned(dmmGarantias) and
        not Assigned(cbbProveedor.Properties.ListSource) then
       cbbProveedor.Properties.ListSource := dmmGarantias.Proveedores;
@@ -1202,11 +1227,10 @@ begin
     1, 2);
   CrearTexto(tsReparacion, SRotuloEstadoPresupuesto,
     'ESTADO_PRESUPUESTO_GAR', 0, 3, True);
-  CrearTexto(tsReparacion, SRotuloImportePresupuesto,
-    'TOTAL_PRESUPUESTO_GAR', 1, 3, True);
-  CrearTexto(tsReparacion, SColImporteCliente, 'TOTAL_CLIENTE_REP', 0, 4,
-    True);
-  CrearTexto(tsReparacion, SColImporteCoste, 'TOTAL_COSTE_REP', 1, 4, True);
+  CrearImporte(tsReparacion, SRotuloImportePresupuesto,
+    'TOTAL_PRESUPUESTO_GAR', 1, 3);
+  CrearImporte(tsReparacion, SColImporteCliente, 'TOTAL_CLIENTE_REP', 0, 4);
+  CrearImporte(tsReparacion, SColImporteCoste, 'TOTAL_COSTE_REP', 1, 4);
   CrearTexto(tsReparacion, SRotuloSerieCobroReparacion, 'SERIE_COBRO_GAR',
     0, 5, False);
   CrearTexto(tsReparacion, SRotuloNumeroCobroReparacion, 'NUMERO_COBRO_GAR',
@@ -1224,7 +1248,8 @@ begin
   lblResumenTrabajos.Transparent := True;
   lblResumenTrabajos.Style.Font.Style := [fsBold];
   lblResumenTrabajos.Properties.Alignment.Vert := taVCenter;
-  lblResumenTrabajos.Height := EscalarDpi(30);
+  lblResumenTrabajos.Properties.WordWrap := True;
+  lblResumenTrabajos.Height := EscalarDpi(52);
   tsLiquidaciones := TcxTabSheet.Create(Self);
   tsLiquidaciones.PageControl := pcPantalla;
   tsLiquidaciones.Caption := SCaptionPestanaLiquidaciones;
@@ -1432,7 +1457,8 @@ var
   Formato: TFormatoHojaReparacion;
   Eleccion: Integer;
 begin
-  Eleccion := MessageDlgTextos_fza(SPreguntaFormatoResguardo,
+  Eleccion := MessageDlgTextos_fza(
+    Format(SPreguntaFormatoHojaReparacion, [AHoja.Titulo]),
     mtConfirmation, [mbYes, mbNo, mbCancel], ['A4', 'Ticket', ''], mbNo);
   Formato := fhrTicket;
   if Eleccion = mrYes then
