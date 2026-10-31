@@ -129,7 +129,7 @@
       '       ESACTIVO_ALM, TIPO_USO_ALM'
       '  FROM fza_almacenes'
       ' ORDER BY CASE WHEN ESACTIVO_ALM = '#39'S'#39' THEN 0 ELSE 1 END,'
-      '          COALESCE(ORDEN_ALM, 2147483647), CODIGO_ALM_ALM')
+      '          CODIGO_ALM_ALM')
     ReadOnly = True
     Left = 376
     Top = 30

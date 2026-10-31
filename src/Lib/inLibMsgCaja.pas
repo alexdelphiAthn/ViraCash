@@ -359,6 +359,9 @@ resourcestring
     'Trae primero una solicitud (F7) para cerrarla.';
   SPreguntaCerrarSolicitudTraspaso =
     '¿Cerrar la solicitud dejando las líneas sin servir como no atendidas?';
+  // FZ-ISSUE-786: cambiar de pestaña en Traspasos con líneas sin grabar.
+  SPreguntaDescartarLineasTraspaso =
+    'Hay líneas sin grabar que se perderán. ¿Cambiar de pestaña?';
   SInfoSolicitudTraspasoCerrada =
     'Solicitud cerrada.';
   SErrorDenegarSolicitudTraspasoModoNoValido =

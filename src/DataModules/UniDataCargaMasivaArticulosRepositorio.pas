@@ -622,7 +622,8 @@ begin
           'WHERE C.CODIGO_UNIDAD_SKU_SKUC = NULLIF(U.SKU, '''') LIMIT 1), ' +
           '(SELECT T.PRECIO_COSTE_ARTTAR FROM fza_articulos_tarifas T ' +
           'WHERE T.CODIGO_ART_ARTTAR = a.CODIGO_ART_ART ' +
-          'AND T.CODIGO_UNIDAD_ARTTAR = NULLIF(U.SKU, '''') ' +
+          // Fila general (SKU vacío): tarifa general (FZ-ISSUE-786).
+          'AND COALESCE(T.CODIGO_UNIDAD_ARTTAR, '''') = U.SKU ' +
           'AND T.CODIGO_TAR_ARTTAR = :P_TAR_ORIG ' +
           'AND T.ESACTIVO_ARTTAR = ''S'' ' +
           'AND (T.FECHA_DESDE_ARTTAR IS NULL OR ' +

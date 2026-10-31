@@ -219,7 +219,8 @@ type
                                         const AContacto: TContactoApartado;
                                         out IdGenerado: string;
                                         out ANumerosMovimiento:
-                                          TArray<string>);
+                                          TArray<string>;
+                                        AConStock: Boolean = True);
     procedure CerrarDepositoCliente(QryTrx: TUniQuery;
                                     const AIdDeposito, AEmpresa,
                                           AAlmacen, ACaja,
@@ -473,6 +474,10 @@ type
     FAlmacenOrigenDevolucion: string;
     FLineasTraspasoDev: TArray<TLineaTraspasoDevolucion>;
     FNumerosMovimientos: TArray<string>;
+    // FZ-ISSUE-778: servicios que se dejan en préstamo (su orden se crea
+    // ahora) y servicios de depósitos que se cierran (su orden ya existe).
+    FServiciosDeposito: TLineasServicioVenta;
+    FServiciosDesdeDeposito: TLineasServicioVenta;
     procedure CargarContexto;
     function AlmacenDeposito: string;
     function OperacionTieneNovedad: Boolean;
@@ -502,6 +507,9 @@ type
     procedure ProcesarVenta(
       const ALinea: TDatosLineaFactura);
     procedure ProcesarLineas;
+    procedure AnotarServicioDeposito(const ALinea: TDatosLineaFactura;
+      const AIdDeposito: string;
+      var ALineas: TLineasServicioVenta);
     procedure CrearOrdenesReparacion;
     procedure SincronizarContadorLineas;
     procedure RegistrarTotalesVenta;
@@ -1577,50 +1585,57 @@ procedure TdmCajaOpe.CrearNuevoDepositoCliente(QryTrx: TUniQuery;
                                                  TContactoApartado;
                                                out IdGenerado: string;
                                                out ANumerosMovimiento:
-                                                 TArray<string>);
+                                                 TArray<string>;
+                                               AConStock: Boolean);
 var
   NuevoIdDep: string;
   SolicitudMovimiento: TSolicitudMovimientoAlmacenCaja;
   Deposito: TNuevoDepositoCaja;
 begin
-  SetLength(ANumerosMovimiento, 2);
-  SolicitudMovimiento := Default(TSolicitudMovimientoAlmacenCaja);
-  SolicitudMovimiento.Movimiento.TipoDocumento := 'TR';
-  SolicitudMovimiento.Movimiento.Linea := '0001';
-  SolicitudMovimiento.Movimiento.Empresa := AEmpresa;
-  SolicitudMovimiento.Movimiento.Almacen := AAlmacenOrigen;
-  SolicitudMovimiento.Movimiento.AlmacenContrapartida := AAlmacenDestino;
-  SolicitudMovimiento.Movimiento.Unidad := ASku;
-  SolicitudMovimiento.Movimiento.Articulo := AArticulo;
-  SolicitudMovimiento.Movimiento.TipoMovimiento := 'S';
-  SolicitudMovimiento.Movimiento.Cantidad := ACantidad;
-  SolicitudMovimiento.Movimiento.Usuario := AUsuario;
-  SolicitudMovimiento.Movimiento.Fecha := AFechaOperacion;
-  SolicitudMovimiento.CajaDocumento := ACaja;
-  SolicitudMovimiento.AlmacenDocumento := AAlmacenOrigen;
-  SolicitudMovimiento.NumeroOperacion := ANumOperacion;
-  SolicitudMovimiento.CodigoCliente := ACliente;
-  ANumerosMovimiento[0] := InsertarMovimientoAlmacen(
-    QryTrx, SolicitudMovimiento);
-  // 1b. Entrada al almacén depósito
-  SolicitudMovimiento := Default(TSolicitudMovimientoAlmacenCaja);
-  SolicitudMovimiento.Movimiento.TipoDocumento := 'TR';
-  SolicitudMovimiento.Movimiento.Linea := '0002';
-  SolicitudMovimiento.Movimiento.Empresa := AEmpresa;
-  SolicitudMovimiento.Movimiento.Almacen := AAlmacenDestino;
-  SolicitudMovimiento.Movimiento.AlmacenContrapartida := AAlmacenOrigen;
-  SolicitudMovimiento.Movimiento.Unidad := ASku;
-  SolicitudMovimiento.Movimiento.Articulo := AArticulo;
-  SolicitudMovimiento.Movimiento.TipoMovimiento := 'E';
-  SolicitudMovimiento.Movimiento.Cantidad := ACantidad;
-  SolicitudMovimiento.Movimiento.Usuario := AUsuario;
-  SolicitudMovimiento.Movimiento.Fecha := AFechaOperacion;
-  SolicitudMovimiento.CajaDocumento := ACaja;
-  SolicitudMovimiento.AlmacenDocumento := AAlmacenOrigen;
-  SolicitudMovimiento.NumeroOperacion := ANumOperacion;
-  SolicitudMovimiento.CodigoCliente := ACliente;
-  ANumerosMovimiento[1] := InsertarMovimientoAlmacen(
-    QryTrx, SolicitudMovimiento);
+  // Un servicio no lleva stock: el depósito no lo traspasa al almacén de
+  // depósitos (FZ-ISSUE-779).
+  SetLength(ANumerosMovimiento, 0);
+  if AConStock then
+  begin
+    SetLength(ANumerosMovimiento, 2);
+    SolicitudMovimiento := Default(TSolicitudMovimientoAlmacenCaja);
+    SolicitudMovimiento.Movimiento.TipoDocumento := 'TR';
+    SolicitudMovimiento.Movimiento.Linea := '0001';
+    SolicitudMovimiento.Movimiento.Empresa := AEmpresa;
+    SolicitudMovimiento.Movimiento.Almacen := AAlmacenOrigen;
+    SolicitudMovimiento.Movimiento.AlmacenContrapartida := AAlmacenDestino;
+    SolicitudMovimiento.Movimiento.Unidad := ASku;
+    SolicitudMovimiento.Movimiento.Articulo := AArticulo;
+    SolicitudMovimiento.Movimiento.TipoMovimiento := 'S';
+    SolicitudMovimiento.Movimiento.Cantidad := ACantidad;
+    SolicitudMovimiento.Movimiento.Usuario := AUsuario;
+    SolicitudMovimiento.Movimiento.Fecha := AFechaOperacion;
+    SolicitudMovimiento.CajaDocumento := ACaja;
+    SolicitudMovimiento.AlmacenDocumento := AAlmacenOrigen;
+    SolicitudMovimiento.NumeroOperacion := ANumOperacion;
+    SolicitudMovimiento.CodigoCliente := ACliente;
+    ANumerosMovimiento[0] := InsertarMovimientoAlmacen(
+      QryTrx, SolicitudMovimiento);
+    // 1b. Entrada al almacén depósito
+    SolicitudMovimiento := Default(TSolicitudMovimientoAlmacenCaja);
+    SolicitudMovimiento.Movimiento.TipoDocumento := 'TR';
+    SolicitudMovimiento.Movimiento.Linea := '0002';
+    SolicitudMovimiento.Movimiento.Empresa := AEmpresa;
+    SolicitudMovimiento.Movimiento.Almacen := AAlmacenDestino;
+    SolicitudMovimiento.Movimiento.AlmacenContrapartida := AAlmacenOrigen;
+    SolicitudMovimiento.Movimiento.Unidad := ASku;
+    SolicitudMovimiento.Movimiento.Articulo := AArticulo;
+    SolicitudMovimiento.Movimiento.TipoMovimiento := 'E';
+    SolicitudMovimiento.Movimiento.Cantidad := ACantidad;
+    SolicitudMovimiento.Movimiento.Usuario := AUsuario;
+    SolicitudMovimiento.Movimiento.Fecha := AFechaOperacion;
+    SolicitudMovimiento.CajaDocumento := ACaja;
+    SolicitudMovimiento.AlmacenDocumento := AAlmacenOrigen;
+    SolicitudMovimiento.NumeroOperacion := ANumOperacion;
+    SolicitudMovimiento.CodigoCliente := ACliente;
+    ANumerosMovimiento[1] := InsertarMovimientoAlmacen(
+      QryTrx, SolicitudMovimiento);
+  end;
   // 2. Generar ID único para el depósito (lógica original)
   NuevoIdDep := 'DP' + FormatDateTime('yymmddhhnnsszzz', Now) +
                 RightStr(ASku, 3);  // máx 20 chars
@@ -2222,7 +2237,7 @@ begin
       ALinea.TipoIva, ALinea.PorcIva, ALinea.EsImpIncl,
       FCaja, FNumeroOperacion, FFechaOperacion,
       FDatosCobro.EsApartado, FDatosCobro.ContactoApartado, sIdDeposito,
-      NumerosMovimiento);
+      NumerosMovimiento, SameText(ALinea.TipoArticulo, 'ESTANDAR'));
     for iIndice := Low(NumerosMovimiento) to High(NumerosMovimiento) do
       RegistrarMovimientoCreado(NumerosMovimiento[iIndice]);
     FPersistencia.GuardarOperacion(
@@ -2231,6 +2246,33 @@ begin
       FNumeroFactura, FSerieGenerada, FCabecera.CodigoCliente,
       'Depósito: ' + ALinea.Descripcion,
       '', '', '', '', '', 'N', sIdDeposito);
+    AnotarServicioDeposito(ALinea, sIdDeposito, FServiciosDeposito);
+  end;
+end;
+
+procedure TGrabacionFacturaCaja.AnotarServicioDeposito(
+  const ALinea: TDatosLineaFactura; const AIdDeposito: string;
+  var ALineas: TLineasServicioVenta);
+var
+  Servicio: TLineaServicioVenta;
+  dPrecio: Currency;
+begin
+  if SameText(ALinea.TipoArticulo, 'SERVICIO') and
+     (Trim(AIdDeposito) <> '') then
+  begin
+    Servicio := Default(TLineaServicioVenta);
+    Servicio.Linea := ALinea.Linea;
+    Servicio.Articulo := ALinea.Articulo;
+    Servicio.Descripcion := ALinea.Descripcion;
+    Servicio.IdDeposito := Trim(AIdDeposito);
+    Servicio.Cantidad := CantidadNuevoDeposito(ALinea);
+    // PRECIO_ORIGINAL_DEP es unitario con impuestos.
+    dPrecio := ALinea.PrecioOriginalDep;
+    if dPrecio = 0 then
+      dPrecio := ALinea.PrecioCIva;
+    Servicio.Total := dPrecio * Servicio.Cantidad;
+    Servicio.CosteUltimaCompra := ALinea.CosteUnitario;
+    ALineas := ALineas + [Servicio];
   end;
 end;
 
@@ -2379,6 +2421,9 @@ var
 begin
   FTotalVentasNormales := 0;
   FTotalDevolucionesNormales := 0;
+  // Un reintento tras un bloqueo vuelve a recorrer las líneas.
+  FServiciosDeposito := nil;
+  FServiciosDesdeDeposito := nil;
   FDataModule.cdsLineas.DisableControls;
   try
     FDataModule.cdsLineas.First;
@@ -2394,7 +2439,12 @@ begin
               (Linea.AccionDeposito = 'AUMENTAR_DEP') then
         ProcesarNuevoDeposito(Linea)
       else
+      begin
         ProcesarVenta(Linea);
+        if Linea.VieneDeDeposito = 'S' then
+          AnotarServicioDeposito(Linea, Linea.IdDeposito,
+            FServiciosDesdeDeposito);
+      end;
       FDataModule.cdsLineas.Next;
     end;
   finally
@@ -2936,7 +2986,9 @@ begin
     Venta.Cobrada := FDatosCobro.ImporteDejarCuenta < 0.001;
     oReparaciones := TReparacionesVentaTpv.Create(FDataModule.FConexion);
     try
+      oReparaciones.EnlazarOrdenesDepositos(Venta, FServiciosDesdeDeposito);
       oReparaciones.CrearOrdenes(Venta);
+      oReparaciones.CrearOrdenesDepositos(Venta, FServiciosDeposito);
     finally
       FreeAndNil(oReparaciones);
     end;

@@ -466,6 +466,9 @@ begin
   cbbTarifaOrigen.Properties.ListFieldNames := 'NOMBRE_TAR_TAR';
   cbbTarifaDestino.Properties.KeyFieldNames := 'CODIGO_TAR_ARTTAR';
   cbbTarifaDestino.Properties.ListFieldNames := 'NOMBRE_TAR_TAR';
+  // Una sola columna: sin cabecera, que mostraba el nombre del campo.
+  cbbTarifaOrigen.Properties.ListOptions.ShowHeader := False;
+  cbbTarifaDestino.Properties.ListOptions.ShowHeader := False;
 end;
 
 procedure TfrmMtoTarifasCambios.VincularDatos;

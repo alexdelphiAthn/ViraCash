@@ -218,6 +218,9 @@ SLeyendaAvisosBalance =
     'La línea del pedido no tiene artículo; no se puede guardar.';
   SErrorNombreSesionCambioTarifaObligatorio =
     'El nombre de la sesión es obligatorio.';
+  // FZ-ISSUE-786: nombre de la sesión de cambio de tarifa sin teclear;
+  // %s = fecha y hora.
+  SNombreSesionCambioTarifaDefecto = 'Sesión de tarifas %s';
   SErrorTarifaDestinoObligatoria =
     'La tarifa destino es obligatoria.';
   SErrorCodigoAtributoVariacionObligatorio =
@@ -1197,6 +1200,10 @@ SLeyendaAvisosBalance =
     'Excel cargado: %d líneas nuevas y %d actualizadas.';
   SErrorSesionTarifaAplicadaNoEditable =
     'La sesión ya está aplicada; no se puede cargar un Excel en ella.';
+  // FZ-ISSUE-787: el coste de una sesión aplicada es el de su aplicación.
+  SErrorSesionTarifaAplicadaNoActualizarCostes =
+    'La sesión ya está aplicada: sus costes quedan como se aplicaron. ' +
+    'Para recalcularlos, crea una sesión nueva.';
   SErrorSesionTarifaAplicadaNoBorrarLineas =
     'La sesión ya está aplicada; no se pueden borrar sus líneas.';
   SErrorTarifasCambiosSesionAplicadaLote =

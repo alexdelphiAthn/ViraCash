@@ -89,7 +89,11 @@ begin
         '  FROM fza_almacenes ' +
         ' WHERE CODIGO_EMP_ALM = :EMPRESA ' +
         '   AND COALESCE(ESACTIVO_ALM, ''S'') = ''S'' ' +
-        ' ORDER BY COALESCE(ORDEN_ALM, 2147483647), ' +
+        // FZ-ISSUE-786: se propone antes un almacen normal que uno de
+        // depositos, transito o taras.
+        ' ORDER BY CASE WHEN COALESCE(TIPO_USO_ALM, '''') IN ' +
+        '   ('''', ''ESTANDAR'', ''ESTANDARD'') THEN 0 ELSE 1 END, ' +
+        '   COALESCE(ORDEN_ALM, 2147483647), ' +
         '          CODIGO_ALM_ALM ' +
         ' LIMIT 1';
       oConsulta.ParamByName('EMPRESA').AsString := Trim(AEmpresa);

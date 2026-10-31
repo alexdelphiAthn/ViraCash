@@ -72,6 +72,7 @@ type
     // Reparaciones (30/10/2026).
     FPanelFotos: TPanelFotosReparacion;
     FPanelFases: TPanelFasesReparacion;
+    FPanelConfiguracion: TPanelConfiguracionReparaciones;
     tsFasesActuales: TcxTabSheet;
     tsMovimientos: TcxTabSheet;
     tsFotosReparacion: TcxTabSheet;
@@ -192,6 +193,7 @@ type
     procedure ImprimirHoja(const AHoja: THojaReparaciones);
   protected
     procedure DoCreate; override;
+    procedure PrepararGuardado; override;
   public
     destructor Destroy; override;
     procedure CrearTablaPrincipal; override;
@@ -1367,9 +1369,17 @@ begin
       dmmGarantias.Reparaciones, Enlaces);
     TPanelLiquidacionesReparacion.CreatePanel(Self, tsLiquidaciones,
       dmmGarantias.Reparaciones, Enlaces);
-    TPanelConfiguracionReparaciones.CreatePanel(Self,
+    FPanelConfiguracion :=
+      TPanelConfiguracionReparaciones.CreatePanel(Self,
       tsConfiguracionReparaciones, dmmGarantias.Reparaciones, Enlaces);
   end;
+end;
+
+procedure TfrmMtoGarantiasReclamaciones.PrepararGuardado;
+begin
+  inherited;
+  if Assigned(FPanelConfiguracion) then
+    FPanelConfiguracion.ConfirmarEdicion;
 end;
 
 procedure TfrmMtoGarantiasReclamaciones.ModalidadGetDisplayText(

@@ -116,8 +116,10 @@ begin
   CargarLibros;
 end;
 
-// Ejercicio y periodo a la derecha de las fechas, que pasan a ser solo de
-// lectura: el rango sale siempre del periodo elegido.
+// Ejercicio y periodo a la derecha de las fechas. Elegir periodo rellena
+// las fechas; FZ-ISSUE-786: las fechas siguen editables y, si se teclean,
+// manda el rango tecleado (antes eran de solo lectura y se emitía el
+// periodo aunque el usuario hubiera escrito otras fechas).
 procedure TfrmPrintLibrosIva.CrearSelectorPeriodo;
 var
   lblEjercicio: TcxLabel;
@@ -154,8 +156,6 @@ begin
   for sNombre in NombresPeriodosLibrosIva do
     FcbPeriodo.Properties.Items.Add(sNombre);
   FcbPeriodo.ItemIndex := PeriodoDeFechaLibrosIva(Date, True);
-  DteDesde.Properties.ReadOnly := True;
-  DteHasta.Properties.ReadOnly := True;
   FseEjercicio.Properties.OnChange := PeriodoCambiado;
   FcbPeriodo.Properties.OnChange := PeriodoCambiado;
   AplicarPeriodo;
@@ -185,9 +185,19 @@ begin
   AplicarPeriodo;
 end;
 
+// El nombre del periodo solo si las fechas son las suyas; con un rango
+// tecleado, el propio rango.
 function TfrmPrintLibrosIva.TextoPeriodo: string;
+var
+  dDesde: TDateTime;
+  dHasta: TDateTime;
 begin
-  Result := Format(SFormatoPeriodoLibrosIva, [Ejercicio, FcbPeriodo.Text]);
+  RangoPeriodoLibrosIva(Ejercicio, FcbPeriodo.ItemIndex, dDesde, dHasta);
+  if (Trunc(FechaDesde) = Trunc(dDesde)) and
+     (Trunc(FechaHasta) = Trunc(dHasta)) then
+    Result := Format(SFormatoPeriodoLibrosIva, [Ejercicio, FcbPeriodo.Text])
+  else
+    Result := DateToStr(FechaDesde) + ' - ' + DateToStr(FechaHasta);
 end;
 
 // Todas las empresas en la lista; marcada solo la de la sesión.

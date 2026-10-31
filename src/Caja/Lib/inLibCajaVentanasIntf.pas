@@ -58,6 +58,9 @@ type
     function CargarSkuExterno(
       const ASku: string;
       ACant: Double): Boolean;
+    // Antes de volcar líneas externas: el cliente del documento y, si la
+    // venta no tiene empleado, se pide una vez (FZ-ISSUE-785).
+    procedure PrepararVentaExterna(const ACliente: string);
     procedure PrepararValores(
       const AEmpresa, AAlmacen, ACaja: string;
       AFecha: TDateTime);

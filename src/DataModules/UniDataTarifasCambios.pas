@@ -123,8 +123,11 @@ const
     'NULLIF(L.CODIGO_UNIDAD_SKU_TARCLIN, '''') LIMIT 1), ' +
     '(SELECT T.PRECIO_COSTE_ARTTAR FROM fza_articulos_tarifas T ' +
     'WHERE T.CODIGO_ART_ARTTAR = L.CODIGO_ART_TARCLIN ' +
-    'AND T.CODIGO_UNIDAD_ARTTAR = ' +
-    'NULLIF(L.CODIGO_UNIDAD_SKU_TARCLIN, '''') ' +
+    // La fila general (SKU vacío) toma la tarifa general del artículo: con
+    // NULLIF nunca casaba y caía al último precio de compra de cualquier
+    // medida (FZ-ISSUE-786).
+    'AND COALESCE(T.CODIGO_UNIDAD_ARTTAR, '''') = ' +
+    'COALESCE(L.CODIGO_UNIDAD_SKU_TARCLIN, '''') ' +
     'AND T.CODIGO_TAR_ARTTAR = :TAR_ORIG AND T.ESACTIVO_ARTTAR = ''S'' ' +
     'AND (T.FECHA_DESDE_ARTTAR IS NULL OR ' +
     'T.FECHA_DESDE_ARTTAR <= CURDATE()) ' +
@@ -369,10 +372,10 @@ begin
   end;
 end;
 
+// FZ-ISSUE-786: el nombre queda vacío para que lo tecleado no se añada al
+// propuesto; si no se escribe ninguno, BeforePost pone el de por defecto.
 procedure TdmTarifasCambios.unqryTablaGAfterInsert(DataSet: TDataSet);
 begin
-  DataSet.FieldByName('NOMBRE_TARC').AsString :=
-    'Sesion tarifas ' + FormatDateTime('dd/mm/yyyy hh:nn', Now);
   DataSet.FieldByName('FECHA_TARC').AsDateTime := Date;
   DataSet.FieldByName('ESTADO_TARC').AsString := 'BORRADOR';
   DataSet.FieldByName('CODIGO_TAR_ORIGEN_TARC').AsString := 'PVP';
@@ -391,7 +394,9 @@ procedure TdmTarifasCambios.unqryTablaGBeforePost(DataSet: TDataSet);
 begin
   inherited;
   if Trim(DataSet.FieldByName('NOMBRE_TARC').AsString) = '' then
-    raise Exception.Create(SErrorNombreSesionCambioTarifaObligatorio);
+    DataSet.FieldByName('NOMBRE_TARC').AsString :=
+      Format(SNombreSesionCambioTarifaDefecto,
+        [FormatDateTime('dd/mm/yyyy hh:nn', Now)]);
   if Trim(DataSet.FieldByName('CODIGO_TAR_DESTINO_TARC').AsString) = '' then
     raise Exception.Create(SErrorTarifaDestinoObligatoria);
   if Trim(DataSet.FieldByName('CAMPO_ORIGEN_TARC').AsString) = '' then

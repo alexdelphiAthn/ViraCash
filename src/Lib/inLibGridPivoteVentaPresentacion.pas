@@ -983,7 +983,9 @@ var
   oGrupo: TGrupoPivoteVenta;
   oRejilla: TWinControl;
 begin
-  if (FPestanas = nil) and (FCfg.View.Control <> nil) then
+  // Sin vista (modo sin rejilla) no hay pestañas que pintar.
+  if (FPestanas = nil) and (FCfg.View <> nil) and
+     (FCfg.View.Control <> nil) then
   begin
     oRejilla := FCfg.View.Control;
     FPestanas := TControlPestanasEje.Create(oRejilla.Owner,

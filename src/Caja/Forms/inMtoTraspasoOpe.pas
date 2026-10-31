@@ -289,6 +289,10 @@ type
       const AAlmacen, ATitulo: string);
     procedure AbrirMisPeticiones;
     procedure AplicarModo(AModo: TModoTraspaso);
+    // FZ-ISSUE-786: cambio de pestaña pedido por el usuario; si hay
+    // líneas sin grabar, pide confirmación antes de descartarlas.
+    procedure CambiarModoConfirmado(AModo: TModoTraspaso);
+    function HayLineasSinGrabar: Boolean;
     procedure AplicarEstiloCaja;
     procedure ColocarBotonesModo(Sender: TObject);
     procedure ActualizarEstiloModo;
@@ -2240,7 +2244,47 @@ end;
 
 procedure TfrmMtoOpeTraspaso.btnModoClick(Sender: TObject);
 begin
-  AplicarModo(TModoTraspaso((Sender as TComponent).Tag));
+  CambiarModoConfirmado(TModoTraspaso((Sender as TComponent).Tag));
+end;
+
+procedure TfrmMtoOpeTraspaso.CambiarModoConfirmado(AModo: TModoTraspaso);
+begin
+  if (not HayLineasSinGrabar) or
+     (MessageDlg_fza(SPreguntaDescartarLineasTraspaso, mtConfirmation,
+                     [mbYes, mbNo], 0) = mrYes) then
+    AplicarModo(AModo);
+end;
+
+// Líneas con artículo o SKU, incluida la que se está editando. La línea en
+// blanco de entrada no cuenta.
+function TfrmMtoOpeTraspaso.HayLineasSinGrabar: Boolean;
+var
+  Clon: TClientDataSet;
+begin
+  Result := False;
+  if Assigned(FDatos) and FDatos.cdsLineas.Active then
+  begin
+    Result := (FDatos.cdsLineas.State in dsEditModes) and
+      ((Trim(FDatos.cdsLineas.FieldByName('CODIGO_ART').AsString) <> '') or
+       (Trim(FDatos.cdsLineas.FieldByName('CODIGO_UNIDAD').AsString) <> ''));
+    if not Result then
+    begin
+      Clon := TClientDataSet.Create(nil);
+      try
+        Clon.CloneCursor(FDatos.cdsLineas, True);
+        Clon.First;
+        while (not Clon.Eof) and (not Result) do
+        begin
+          Result :=
+            (Trim(Clon.FieldByName('CODIGO_ART').AsString) <> '') or
+            (Trim(Clon.FieldByName('CODIGO_UNIDAD').AsString) <> '');
+          Clon.Next;
+        end;
+      finally
+        FreeAndNil(Clon);
+      end;
+    end;
+  end;
 end;
 
 procedure TfrmMtoOpeTraspaso.btnMisPeticionesClick(Sender: TObject);
@@ -2580,8 +2624,9 @@ begin
   end;
 end;
 
-// F12 recibe en bloque las cargas marcadas; F11 abre el reparto de la
-// carga enfocada para anotar unidades deterioradas o perdidas.
+// F12 recibe las cargas marcadas (o la enfocada si no hay ninguna); F11
+// abre el reparto de la carga enfocada para anotar unidades deterioradas o
+// perdidas.
 function TfrmMtoOpeTraspaso.ElegirCargasTransito(ADatos: TDataSet;
   out AIds: TArray<Int64>;
   out AEnfocada: TCargaTransitoElegida): TModalResult;
@@ -2605,9 +2650,9 @@ begin
     oDialogo.ActiveControl := CrearRejillaDatos(oDialogo, oDialogo, ADatos,
       oFuente, oVista);
     TitularColumnasCargasTransito(oVista, 'CODIGO_ALM_DESTINO_TRTRA');
-    // En bloque: todas marcadas; Ctrl+clic quita las que no han llegado.
+    // FZ-ISSUE-786: ya no se marcan todas (se recibían cargas antiguas
+    // sin querer). Ctrl+clic marca varias para recibirlas en bloque.
     oVista.OptionsSelection.MultiSelect := True;
-    oVista.DataController.SelectAll;
     oRecibir := CrearBotonModal(oDialogo, oPanelBotones,
       TextoBotonConAtajo(SCaptionRecibirCargasTransito, 'F12'));
     oRecibir.ModalResult := mrOk;
@@ -2628,6 +2673,10 @@ begin
       for i := 0 to oVista.Controller.SelectedRecordCount - 1 do
         AIds := AIds + [Int64(
           oVista.Controller.SelectedRecords[i].Values[oColumnaId.Index])];
+    // Sin ninguna marcada se recibe la enfocada (el dataset sigue a la
+    // rejilla).
+    if (Result = mrOk) and (Length(AIds) = 0) and (not ADatos.IsEmpty) then
+      AIds := [ADatos.FieldByName('ID_TRTRA').AsLargeInt];
     if Result = mrYes then
       AEnfocada := CargaTransitoActual(ADatos);
   finally
@@ -4975,7 +5024,7 @@ begin
       if ssShift in Shift then
         GestionarCargasEnviadasTransito
       else
-        AplicarModo(mtReposicion);
+        CambiarModoConfirmado(mtReposicion);
     end;
     VK_F6:
     begin
@@ -4983,7 +5032,7 @@ begin
       if ssShift in Shift then
         RecepcionarTransito
       else
-        AplicarModo(mtSolicitar);
+        CambiarModoConfirmado(mtSolicitar);
     end;
     VK_F7:
     begin
@@ -4999,7 +5048,7 @@ begin
         if not btnModoAtender.Visible then
           ActualizarBotonesPendientes;
         if btnModoAtender.Visible then
-          AplicarModo(mtAtender)
+          CambiarModoConfirmado(mtAtender)
         else
           ShowMessage_fza(SErrorSolicitudesTraspasoPendientesNoEncontradas);
       end;

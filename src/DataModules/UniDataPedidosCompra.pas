@@ -108,6 +108,9 @@ type
     procedure CopiarEmpresaaPedidoCompra(DataSet: TDataSet);
     procedure ValidarAlmacenCabecera;
   public
+    // FZ-ISSUE-782: con el pivote de tallas activo la línea del modelo
+    // (sin SKU) es la que reparte las tallas; sin él se exige el SKU.
+    PivoteTallasActivo: TFunc<Boolean>;
     procedure GetCodigoAutoPedidoCompra;
     procedure CalcularTotalesPedidoCompra;
     // Unidades distintas de las lineas del pedido actual (FZ-ISSUE-235).
@@ -140,6 +143,9 @@ type
     procedure DesempaquetarAtributosLineas;
     function BuscarEmpresa(const ACodigo: string): Boolean;
     procedure RefrescarAlmacenes(const ACodigoEmpresa: string);
+    // FZ-ISSUE-786: en un pedido nuevo, si la serie no es de la empresa
+    // de la cabecera se propone la serie por defecto de esa empresa.
+    procedure ProponerSerieEmpresa;
     procedure CargarAlmacenesDelPedido(const ASerie, ANumero: string;
                                        ALV: TObject);
     procedure CrearDataSetEtiquetasPed(ADmArt: TObject;
@@ -472,6 +478,37 @@ begin
      (unqryTablaG.State in [dsInsert, dsEdit]) then
     AjustarEmpresaAlmacenDataSet(unqryTablaG.Connection, unqryTablaG,
       'CODIGO_EMP_PEDC', 'CODIGO_ALM_PEDC');
+end;
+
+procedure TdmPedidosCompra.ProponerSerieEmpresa;
+var
+  sEmpresa: string;
+  sSerie: string;
+  sTipo: string;
+  oSeries: TStringList;
+  oCampo: TField;
+begin
+  oCampo := unqryTablaG.FindField('SERIE_PEDC');
+  if unqryTablaG.Active and (unqryTablaG.State = dsInsert) and
+     (oCampo <> nil) then
+  begin
+    sEmpresa := Trim(
+      unqryTablaG.FieldByName('CODIGO_EMP_PEDC').AsString);
+    sTipo := CrearConfiguracionDocumento(
+      tdPedido, sdCompra).TipoContador;
+    oSeries := TStringList.Create;
+    try
+      CargarSeriesEmpresa(ConexionEscritura, sEmpresa, sTipo, oSeries);
+      if oSeries.IndexOf(Trim(oCampo.AsString)) < 0 then
+      begin
+        sSerie := ObtenerSerieDefecto(ConexionEscritura, sEmpresa, sTipo);
+        if sSerie <> '' then
+          oCampo.AsString := sSerie;
+      end;
+    finally
+      FreeAndNil(oSeries);
+    end;
+  end;
 end;
 
 procedure TdmPedidosCompra.AbrirDetalles;
@@ -865,6 +902,13 @@ begin
   // FZ-ISSUE-520: no se pide un SKU dado de baja.
   ExigirSkuActivoEnDataSet(ConexionEscritura, unqryPedidosCompraLineas,
     'CODIGO_ART_PEDCLIN', 'CODIGO_UNIDAD_PEDCLIN', SErrorSkuCompraNoActivo);
+  // FZ-ISSUE-782: el artículo con variaciones no se pide sin color ni
+  // talla (como en el pedido de venta, FZ-ISSUE-430).
+  if (FReorganizandoLineas = 0) and Assigned(PivoteTallasActivo) and
+     not PivoteTallasActivo() then
+    ExigirSkuCompletoEnDataSet(ConexionEscritura,
+      unqryPedidosCompraLineas, 'CODIGO_ART_PEDCLIN',
+      'CODIGO_UNIDAD_PEDCLIN');
     if (FindField('CANTIDAD_PEDCLIN') <> nil) and
        (FindField('PRECIO_COMPRA_SIVA_ARTICULO_PEDCLIN') <> nil) and
        (FindField('TOTAL_PEDCLIN') <> nil) then
@@ -1263,6 +1307,13 @@ begin
   end;
 end;
 
+// FZ-ISSUE-786: con unidad decimal (metros, kilos) cada celda o línea da
+// una sola etiqueta; unidad vacía o desconocida cuenta como Uds.
+const
+  cUnidadLin =
+    '          LEFT JOIN fza_unidades_medida U ' +
+    '            ON U.CODIGO_UNIMED = L.TIPO_CANTIDAD_ARTICULO_PEDCLIN ';
+
 procedure TdmPedidosCompra.ConfigurarConsultaCantidadCeldas(
   AConsulta: TUniQuery;
   const AAlmacenes: string);
@@ -1276,7 +1327,9 @@ begin
     'SELECT X.SKU, SUM(X.CANTIDAD) AS CANTIDAD ' +
     '  FROM ( ' +
     '        SELECT L.CODIGO_UNIDAD_PEDCLIN AS SKU, ' +
-    '               COALESCE(C.CANTIDAD_PEDCCEL, 0) AS CANTIDAD ' +
+    '               CASE WHEN COALESCE(U.DECIMALES_UNIMED, 0) = 0 ' +
+    '                    THEN COALESCE(C.CANTIDAD_PEDCCEL, 0) ' +
+    '                    ELSE 1 END AS CANTIDAD ' +
     '          FROM fza_pedidos_compra_lineas L ' +
     '          JOIN fza_pedidos_compra P ' +
     '            ON P.SERIE_PEDC  = L.SERIE_PEDC_PEDCLIN ' +
@@ -1286,6 +1339,7 @@ begin
     '           AND C.NUMERO_PEDC_PEDCCEL = L.NUMERO_PEDC_PEDCLIN ' +
     '           AND CAST(C.LINEA_PEDC_PEDCCEL AS UNSIGNED) = ' +
     '               CAST(L.LINEA_PEDCLIN AS UNSIGNED) ' +
+    cUnidadLin +
     '         WHERE L.SERIE_PEDC_PEDCLIN = :s ' +
     '           AND L.NUMERO_PEDC_PEDCLIN = :n ' +
     '           AND COALESCE(L.CODIGO_UNIDAD_PEDCLIN, '''') <> '''' ' +
@@ -1306,11 +1360,14 @@ begin
   AConsulta.SQL.Add(
     '        UNION ALL ' +
     '        SELECT L.CODIGO_UNIDAD_PEDCLIN AS SKU, ' +
-    '               COALESCE(L.CANTIDAD_PEDCLIN, 0) AS CANTIDAD ' +
+    '               CASE WHEN COALESCE(U.DECIMALES_UNIMED, 0) = 0 ' +
+    '                    THEN COALESCE(L.CANTIDAD_PEDCLIN, 0) ' +
+    '                    ELSE 1 END AS CANTIDAD ' +
     '          FROM fza_pedidos_compra_lineas L ' +
     '          JOIN fza_pedidos_compra P ' +
     '            ON P.SERIE_PEDC  = L.SERIE_PEDC_PEDCLIN ' +
     '           AND P.NUMERO_PEDC = L.NUMERO_PEDC_PEDCLIN ' +
+    cUnidadLin +
     '         WHERE L.SERIE_PEDC_PEDCLIN = :s ' +
     '           AND L.NUMERO_PEDC_PEDCLIN = :n ' +
     '           AND COALESCE(L.CODIGO_UNIDAD_PEDCLIN, '''') <> '''' ' +

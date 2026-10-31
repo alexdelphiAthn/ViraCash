@@ -126,6 +126,8 @@ type
     constructor CreatePanel(AOwner: TComponent; AParent: TWinControl;
       ADatos: TDatosPantallaReparaciones;
       const AEnlaces: TEnlacesReparaciones); override;
+    // Graba la fila de tipos en edición antes del «Grabar» de la ficha.
+    procedure ConfirmarEdicion;
   end;
 
 implementation
@@ -696,6 +698,8 @@ begin
   oVista.OptionsData.Inserting := True;
   oVista.OptionsData.Deleting := True;
   oVista.OptionsView.NewItemRow := True;
+  // Tab pasa de celda en vez de salir al buscador (FZ-ISSUE-781).
+  oVista.OptionsBehavior.FocusCellOnTab := True;
   CrearColumna(oVista, 'CODIGO_GARTIP', SColTipoCodigo, 100);
   CrearColumna(oVista, 'CATEGORIA_GARTIP', SColTipoCategoria, 100);
   CrearColumna(oVista, 'DESCRIPCION_GARTIP', SColTipoDescripcion, 200);
@@ -730,6 +734,23 @@ begin
   HacerCasilla(CrearColumna(oVista, 'ESACTIVO_GARTIP', SColTipoActivo, 60));
   for iColumna := 0 to oVista.ColumnCount - 1 do
     oVista.Columns[iColumna].Options.Editing := True;
+end;
+
+// FZ-ISSUE-781: «Grabar» decía «Datos guardados» con la fila nueva aún en
+// edición: los tipos no son datasets del mantenimiento.
+procedure TPanelConfiguracionReparaciones.ConfirmarEdicion;
+var
+  oTipos: TDataSet;
+begin
+  FVistaTipos.DataController.PostEditingData;
+  oTipos := FVistaTipos.DataController.DataSet;
+  if Assigned(oTipos) and (oTipos.State in dsEditModes) then
+  begin
+    if oTipos.Modified then
+      oTipos.Post
+    else
+      oTipos.Cancel;
+  end;
 end;
 
 procedure TPanelConfiguracionReparaciones.ConfigurarArticulo;

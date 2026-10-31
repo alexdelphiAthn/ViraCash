@@ -658,6 +658,7 @@ type
     // articulo/SKU no existe o esta descatalogado.
     function CargarSkuExterno(const ASku: string;
                               ACant: Double): Boolean;
+    procedure PrepararVentaExterna(const ACliente: string);
     procedure PrepararValores(const AEmpresa, AAlmacen, ACaja: string;
                               AFecha: TDateTime);
     procedure CargarDevolucion(
@@ -1913,6 +1914,20 @@ begin
       DatosCaja.cdsLineas.Cancel;
   end;
   end;
+end;
+
+procedure TfrmMtoOpeCaja.PrepararVentaExterna(const ACliente: string);
+var
+  sCliente: string;
+begin
+  sCliente := Trim(ACliente);
+  if (sCliente <> '') and (sCliente <> '0') then
+  begin
+    btnCodigoCliente.Text := sCliente;
+    btnCodigoCliente.ValidateEdit(False);
+  end;
+  if Trim(btnCodigoEmpleado.Text) = '' then
+    btnCodigoEmpleadoPropertiesButtonClick(btnCodigoEmpleado, 0);
 end;
 
 procedure TfrmMtoOpeCaja.PrepararValores(
@@ -3495,21 +3510,20 @@ procedure TEditorLineasCajaVcl.ProcesarTeclaRejilla(Sender: TObject;
 begin
   if (AKey = VK_ESCAPE) then
   begin
-    if DatosCaja.cdsLineas.State = dsInsert then
+    // FZ-ISSUE-786: el contenido se mira antes de cancelar la línea en
+    // alta (como actSalir). Antes se cancelaba primero y una venta cuya
+    // única línea seguía en alta se cerraba sin preguntar.
+    if VentaCajaSinContenido(DatosCaja.cdsLineas) then
     begin
-      DatosCaja.cdsLineas.Cancel;
-      AKey := 0;
-    end;
-    if DatosCaja.cdsLineas.RecordCount > 0 then
-    begin
-      if MessageDlg_fza(SPreguntaCancelarVentaCaja,
-                    mtConfirmation, [mbYes, mbNo], 0) = mrYes then
-      begin
-        FCerrarFormulario();
-      end;
+      if DatosCaja.cdsLineas.State = dsInsert then
+        DatosCaja.cdsLineas.Cancel;
+      FCerrarFormulario();
     end
-    else
+    else if MessageDlg_fza(SPreguntaCancelarVentaCaja,
+                           mtConfirmation, [mbYes, mbNo], 0) = mrYes then
     begin
+      if DatosCaja.cdsLineas.State in [dsEdit, dsInsert] then
+        DatosCaja.cdsLineas.Cancel;
       FCerrarFormulario();
     end;
     AKey := 0;
@@ -4236,7 +4250,23 @@ begin
       (Trim(sCodigo) <> '') and
       FDependencias.RepositorioConsultas.BuscarEmpleado(
         Trim(sCodigo), Empleado);
-    if Encontrado then
+    // FZ-ISSUE-785: vacío no es un error; la lectura de artículos ya exige
+    // el vendedor. El aviso se repetía en bucle cada vez que otra ventana
+    // (el presupuesto que envía a caja) se llevaba el foco.
+    if Trim(sCodigo) = '' then
+    begin
+      Error := False;
+      ErrorText := '';
+      lblNombreEmpleado.Caption := '';
+      if DatosCaja.cdsCabecera.Active and
+         not DatosCaja.cdsCabecera.IsEmpty then
+      begin
+        DatosCaja.cdsCabecera.Edit;
+        DatosCaja.cdsCabecera.FieldByName(
+          'CODIGO_CAJERO_FAC').Clear;
+      end;
+    end
+    else if Encontrado then
     begin
       DisplayValue := Empleado.Codigo;
       lblNombreEmpleado.Caption := Empleado.Nombre;

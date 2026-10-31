@@ -26,6 +26,9 @@ type
       const ACodigoSku: string): TEstadoSkuCajaStock;
     function ObtenerCantidadDisponible(
       const ACodigoSku, ACodigoAlmacen: string): Double;
+    // True si el artículo del SKU no es ESTANDAR (SERVICIO...): no lleva
+    // stock y no se comprueba su disponibilidad (FZ-ISSUE-784).
+    function SkuSinControlStock(const ACodigoSku: string): Boolean;
   end;
 
 implementation

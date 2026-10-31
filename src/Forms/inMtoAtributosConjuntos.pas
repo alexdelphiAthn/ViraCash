@@ -245,6 +245,7 @@ begin
     // («Talla / Medida»).
     lblIdVaDesc.Caption := '';
     LIdVa := dsTablaG.DataSet.FieldByName('ID_VA_AC').AsString;
+    dmmAtributosConjuntos.FiltrarAtributosBasicos(LIdVa);
     if LIdVa <> '' then
     begin
       LValor := dmmAtributosConjuntos.unqryAtributosLookup.Lookup(

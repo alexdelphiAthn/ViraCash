@@ -1925,7 +1925,9 @@ begin
     else if EnviarLineasVentaCaja(Self,
       CrearRepositorioCajasDefectoUniDAC(
         dmmPresupuestos.unqryTablaG.Connection),
-      aLineas, rResultado) then
+      aLineas, rResultado,
+      dmmPresupuestos.unqryTablaG.FieldByName('CODIGO_CLI_PRE').AsString)
+    then
     begin
       if rResultado.LineasNoVolcadas = 0 then
         ShowMessage_fza(Format(SInfoLineasPresupuestoVolcadasCaja,

@@ -38,12 +38,14 @@ function SeleccionarUbicacionVentaCaja(
 
 // Abre (o reutiliza) una venta de caja y le vuelca las líneas. La venta
 // queda en pantalla sin grabar: el usuario la cobra o la cancela. False si
-// no se llegó a abrir la venta.
+// no se llegó a abrir la venta. ACliente: el del documento ('' o '0' =
+// venta de contado).
 function EnviarLineasVentaCaja(
   AFormulario: TfrmBase;
   const ACajasDefecto: IRepositorioCajasDefecto;
   const ALineas: TLineasVentaCajaExterna;
-  out AResultado: TResultadoEnvioVentaCaja): Boolean;
+  out AResultado: TResultadoEnvioVentaCaja;
+  const ACliente: string = ''): Boolean;
 
 implementation
 
@@ -132,7 +134,8 @@ function EnviarLineasVentaCaja(
   AFormulario: TfrmBase;
   const ACajasDefecto: IRepositorioCajasDefecto;
   const ALineas: TLineasVentaCajaExterna;
-  out AResultado: TResultadoEnvioVentaCaja): Boolean;
+  out AResultado: TResultadoEnvioVentaCaja;
+  const ACliente: string): Boolean;
 var
   oOperacionCaja: IOperacionCaja;
   sEmpresa, sAlmacen, sCaja: string;
@@ -145,6 +148,8 @@ begin
   begin
     oOperacionCaja := AbrirVentaCaja(
       AFormulario, sEmpresa, sAlmacen, sCaja);
+    // Antes de las líneas: el cliente fija la tarifa (FZ-ISSUE-785).
+    oOperacionCaja.PrepararVentaExterna(ACliente);
     for i := 0 to High(ALineas) do
     begin
       // Sin SKU (articulo con variaciones sin elegir) no hay que leer.

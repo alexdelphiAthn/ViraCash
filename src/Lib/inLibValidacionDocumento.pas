@@ -71,7 +71,7 @@ implementation
 
 uses
   System.Classes, System.SysUtils, inLibMsgArticulos,
-  inLibMsgCompras, inLibMsgComun;
+  inLibMsgCompras, inLibMsgComun, inLibErroresBBDD;
 
 function LineaSinDatos(ALineas: TDataSet;
   const ACampos: array of string): Boolean;
@@ -309,7 +309,8 @@ begin
   if (ACabecera = nil) or (not ACabecera.Active) or
      (ACabecera.IsEmpty and
       not (ACabecera.State in dsEditModes)) then
-    raise Exception.Create(
+    // Aviso al usuario, no error grave con pila (FZ-ISSUE-783).
+    raise EValidacionBBDD.Create(
       AConfiguracion.MensajeCabeceraNoDisponible);
   if Assigned(AValidarCabecera) then
     AValidarCabecera;

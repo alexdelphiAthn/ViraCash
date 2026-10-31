@@ -113,6 +113,15 @@ type
     Prendas: TArray<TPrendaVentaReparacion>;
   end;
 
+  // Línea de servicio de la venta: del ticket o del depósito que se deja
+  // en préstamo (IdDeposito, FZ-ISSUE-778). Total con impuestos.
+  TLineaServicioVenta = record
+    Linea, Articulo, Descripcion, IdDeposito: string;
+    Cantidad: Double;
+    Total, CosteUltimaCompra: Currency;
+  end;
+  TLineasServicioVenta = TArray<TLineaServicioVenta>;
+
   TArticuloServicioReparacion = record
     Tipo: TTipoServicio;
     Tarifa: string;

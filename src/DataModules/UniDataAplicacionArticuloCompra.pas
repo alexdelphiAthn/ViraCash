@@ -58,7 +58,11 @@ begin
     'AND SC.PRECIO_ULT_COMPRA_SKUC IS NOT NULL ' +
     'UNION ALL ' +
     'SELECT PT.PRECIO_COSTE_ARTTAR, PT.FECHA_ULT_COMPRA_ARTTAR, ' +
-    'CASE WHEN PT.CODIGO_UNIDAD_ARTTAR = :sku THEN 1 ' +
+    // FZ-ISSUE-786 (observación de FZ-782): la tarifa general del
+    // artículo (sin unidad) es el último recurso; antes un SKU sin compras
+    // ni tarifa propia proponía 0,00.
+    'CASE WHEN COALESCE(PT.CODIGO_UNIDAD_ARTTAR, '''') = '''' THEN 4 ' +
+    'WHEN PT.CODIGO_UNIDAD_ARTTAR = :sku THEN 1 ' +
     'WHEN LOCATE(''/*/'', PT.CODIGO_UNIDAD_ARTTAR) > 0 THEN 2 ' +
     'ELSE 3 END, CHAR_LENGTH(PT.CODIGO_UNIDAD_ARTTAR), ' +
     'PT.FECHA_DESDE_ARTTAR, PT.CODIGO_UNICO_ARTTAR ' +
@@ -73,6 +77,7 @@ begin
     'AND (PT.FECHA_HASTA_ARTTAR IS NULL ' +
     'OR PT.FECHA_HASTA_ARTTAR >= :fecha) ' +
     'AND (PT.CODIGO_UNIDAD_ARTTAR = :sku ' +
+    'OR COALESCE(PT.CODIGO_UNIDAD_ARTTAR, '''') = '''' ' +
     'OR (COALESCE(PT.CODIGO_UNIDAD_ARTTAR, '''') <> '''' ' +
     'AND LOCATE(''/*/'', PT.CODIGO_UNIDAD_ARTTAR) = 0 ' +
     'AND LEFT(:sku, CHAR_LENGTH(PT.CODIGO_UNIDAD_ARTTAR) + 1) ' +

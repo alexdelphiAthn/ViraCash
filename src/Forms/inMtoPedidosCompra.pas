@@ -993,6 +993,11 @@ begin
     FPivote := TGridPivoteCompra.Create(
       oConfigPivote,
       CrearRepositorioGridPivoteCompraUniDAC(ConexionPrincipal));
+    dmmPedidosCompra.PivoteTallasActivo :=
+      function: Boolean
+      begin
+        Result := Assigned(FPivote) and FPivote.Activo;
+      end;
   end;
 end;
 
@@ -1492,6 +1497,8 @@ begin
         dmmPedidosCompra.BuscarEmpresa(sEmpresa);
     end;
     dmmPedidosCompra.RefrescarAlmacenes('');
+    // FZ-ISSUE-786: la serie de la empresa anterior no vale en la nueva.
+    dmmPedidosCompra.ProponerSerieEmpresa;
   end;
 end;
 

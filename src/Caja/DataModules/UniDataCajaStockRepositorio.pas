@@ -120,6 +120,7 @@ type
       const ACodigoSku: string): TEstadoSkuCajaStock;
     function ObtenerCantidadDisponible(
       const ACodigoSku, ACodigoAlmacen: string): Double;
+    function SkuSinControlStock(const ACodigoSku: string): Boolean;
   end;
 
 function CrearCajaStockRepositorio(
@@ -187,6 +188,30 @@ begin
     oConsulta.ParamByName('SKU').AsString := ACodigoSku;
     oConsulta.Open;
     Result := oConsulta.FieldByName('CANTIDAD').AsFloat;
+  finally
+    FreeAndNil(oConsulta);
+  end;
+end;
+
+function TCajaStockRepositorio.SkuSinControlStock(
+  const ACodigoSku: string): Boolean;
+var
+  oConsulta: TUniQuery;
+begin
+  oConsulta := TUniQuery.Create(nil);
+  try
+    oConsulta.Connection := FConexion;
+    oConsulta.SQL.Text :=
+      'SELECT A.TIPO_ART ' +
+      '  FROM fza_articulos_skus S ' +
+      '  JOIN fza_articulos A ON A.CODIGO_ART_ART = S.CODIGO_ART_SKU ' +
+      ' WHERE S.CODIGO_UNIDAD_SKU = :SKU';
+    oConsulta.ParamByName('SKU').AsString := ACodigoSku;
+    oConsulta.Open;
+    Result := (not oConsulta.IsEmpty) and
+      (Trim(oConsulta.FieldByName('TIPO_ART').AsString) <> '') and
+      not SameText(Trim(oConsulta.FieldByName('TIPO_ART').AsString),
+        'ESTANDAR');
   finally
     FreeAndNil(oConsulta);
   end;

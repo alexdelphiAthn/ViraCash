@@ -7077,6 +7077,12 @@ begin
       SErrorNombreSesionCambioTarifaObligatorio);
   ARegistrar(
     'inLibMsgArticulos.' +
+    'SNombreSesionCambioTarifaDefecto',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      SNombreSesionCambioTarifaDefecto);
+  ARegistrar(
+    'inLibMsgArticulos.' +
     'SErrorTarifaDestinoObligatoria',
     'src/Lib/inLibMsgArticulos.pas',
     @inLibMsgArticulos.
@@ -10416,6 +10422,12 @@ begin
     'src/Lib/inLibMsgCaja.pas',
     @inLibMsgCaja.
       SPreguntaCerrarSolicitudTraspaso);
+  ARegistrar(
+    'inLibMsgCaja.' +
+    'SPreguntaDescartarLineasTraspaso',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      SPreguntaDescartarLineasTraspaso);
   ARegistrar(
     'inLibMsgCaja.' +
     'SInfoSolicitudTraspasoCerrada',

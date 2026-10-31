@@ -24,8 +24,13 @@ type
       const APrenda: TPrendaVentaReparacion): Int64;
     procedure ValidarSelecciones(const ALineaServicio: string;
       const AVenta: TVentaServiciosReparacion);
-    procedure Movimiento(AConsulta: TUniQuery; const ATipo, AUsuario: string);
+    procedure Movimiento(AConsulta: TUniQuery; const ATipo, AUsuario: string;
+      ACantidad: Double);
     procedure Vincular(AReparacion, APrenda: Int64; const AUsuario: string);
+    function PrendaPorUnidades(const AVenta: TVentaServiciosReparacion;
+      const ALinea: string): Boolean;
+    function CantidadCustodia(const AUnidadMedida: string;
+      ACantidadLinea: Double): Double;
   public
     constructor Create(AConexion: TUniConnection;
       const AEscritor: IEscritorMovimientosAlmacen = nil);
@@ -35,11 +40,39 @@ type
     procedure Entregar(AReparacion: Int64; const AUsuario: string);
   end;
 
+// FZ-ISSUE-786: True si la unidad de medida se cuenta por piezas
+// (DECIMALES_UNIMED = 0); vacía o desconocida cuenta como Uds. Una línea
+// en metros o kilos es una sola prenda, la línea entera.
+function UnidadMedidaPorUnidades(AConexion: TUniConnection;
+  const AUnidadMedida: string): Boolean;
+
 implementation
 
 uses
   System.SysUtils, Data.DB, System.Math, inLibMsgReparaciones,
   UniDataMovimientosAlmacenRepositorio, inLibTrabajosCortinas;
+
+function UnidadMedidaPorUnidades(AConexion: TUniConnection;
+  const AUnidadMedida: string): Boolean;
+var
+  oConsulta: TUniQuery;
+begin
+  Result := True;
+  if Trim(AUnidadMedida) <> '' then
+  begin
+    oConsulta := TUniQuery.Create(nil);
+    try
+      oConsulta.Connection := AConexion;
+      oConsulta.SQL.Text := 'SELECT DECIMALES_UNIMED ' +
+        'FROM fza_unidades_medida WHERE CODIGO_UNIMED=:UNIDAD';
+      oConsulta.ParamByName('UNIDAD').AsString := AUnidadMedida;
+      oConsulta.Open;
+      Result := oConsulta.IsEmpty or (oConsulta.Fields[0].AsInteger = 0);
+    finally
+      FreeAndNil(oConsulta);
+    end;
+  end;
+end;
 
 constructor TDatosPrendasReparacion.Create(AConexion: TUniConnection;
   const AEscritor: IEscritorMovimientosAlmacen);
@@ -124,8 +157,42 @@ begin
   end;
 end;
 
+// La prenda en piezas entra y sale de una en una; la de metros o kilos,
+// con la cantidad de su línea (FZ-ISSUE-786).
+function TDatosPrendasReparacion.CantidadCustodia(
+  const AUnidadMedida: string; ACantidadLinea: Double): Double;
+begin
+  Result := 1;
+  if (ACantidadLinea > 0) and
+     not UnidadMedidaPorUnidades(FConexion, AUnidadMedida) then
+    Result := ACantidadLinea;
+end;
+
+// Sin lectura bloqueante: la línea ya la bloquea Recibir o es del ticket.
+function TDatosPrendasReparacion.PrendaPorUnidades(
+  const AVenta: TVentaServiciosReparacion; const ALinea: string): Boolean;
+var
+  oConsulta: TUniQuery;
+begin
+  oConsulta := Consulta('SELECT TIPO_CANTIDAD_ARTICULO_FACLIN ' +
+    'FROM fza_facturas_lineas ' +
+    'WHERE SERIE_FAC_FACLIN=:SERIE AND NUMERO_FAC_FACLIN=:NUMERO ' +
+    'AND LINEA_FACLIN=:LINEA AND CODIGO_EMP_FACLIN=:EMPRESA');
+  try
+    oConsulta.ParamByName('SERIE').AsString := AVenta.Serie;
+    oConsulta.ParamByName('NUMERO').AsString := AVenta.Numero;
+    oConsulta.ParamByName('LINEA').AsString := ALinea;
+    oConsulta.ParamByName('EMPRESA').AsString := AVenta.Empresa;
+    oConsulta.Open;
+    Result := oConsulta.IsEmpty or
+      UnidadMedidaPorUnidades(FConexion, oConsulta.Fields[0].AsString);
+  finally
+    FreeAndNil(oConsulta);
+  end;
+end;
+
 procedure TDatosPrendasReparacion.Movimiento(AConsulta: TUniQuery;
-  const ATipo, AUsuario: string);
+  const ATipo, AUsuario: string; ACantidad: Double);
 var
   Movimiento: TMovimientoAlmacenEscritura;
 begin
@@ -143,7 +210,7 @@ begin
   Movimiento.FechaCaducidad :=
     AConsulta.FieldByName('FECHA_CADUCIDAD_GARPRE').AsDateTime;
   Movimiento.TipoMovimiento := ATipo;
-  Movimiento.Cantidad := 1;
+  Movimiento.Cantidad := ACantidad;
   Movimiento.Usuario := AUsuario;
   Movimiento.Fecha := Now;
   // Ya vendida: entra en custodia a coste cero, sin otra salida de tienda.
@@ -257,13 +324,17 @@ begin
            (AVenta.Prendas[i].UnidadServicio>Ceil(oServicio.Fields[0].
              AsFloat)) then
           raise EArgumentException.Create(SPrendaVentaInvalida);
+        // FZ-ISSUE-786: varias unidades del servicio pueden ir a la misma
+        // prenda en metros o kilos, que es una sola (la línea entera).
         for j := 0 to i-1 do
           if (AVenta.Prendas[j].LineaServicio=ALineaServicio) and
              ((AVenta.Prendas[j].UnidadServicio=
                AVenta.Prendas[i].UnidadServicio) or
               ((AVenta.Prendas[j].LineaPrenda=AVenta.Prendas[i].LineaPrenda)
                and (AVenta.Prendas[j].UnidadPrenda=
-                 AVenta.Prendas[i].UnidadPrenda))) then
+                 AVenta.Prendas[i].UnidadPrenda)
+               and PrendaPorUnidades(AVenta,
+                 AVenta.Prendas[i].LineaPrenda))) then
             raise EArgumentException.Create(SPrendaVentaInvalida);
       end;
   finally
@@ -277,6 +348,8 @@ var
   Prenda: TPrendaVentaReparacion;
   oPrenda, oLinea: TUniQuery;
   iId: Int64;
+  iMaximo: Integer;
+  dCantidad: Double;
 begin
   if not FConexion.InTransaction then
     raise EInvalidOpException.Create(SErrorArticuloServicioTransaccion);
@@ -292,7 +365,8 @@ begin
     begin
       oLinea := Consulta('SELECT CODIGO_UNIDAD_FACLIN,CODIGO_ART_FACLIN, ' +
         'DESCRIPCION_ARTICULO_FACLIN,CANTIDAD_FACLIN,LOTE_FACLIN, ' +
-        'FECHA_CADUCIDAD_FACLIN FROM fza_facturas_lineas ' +
+        'FECHA_CADUCIDAD_FACLIN,TIPO_CANTIDAD_ARTICULO_FACLIN ' +
+        'FROM fza_facturas_lineas ' +
         'WHERE SERIE_FAC_FACLIN=:SERIE AND NUMERO_FAC_FACLIN=:NUMERO ' +
         'AND LINEA_FACLIN=:LINEA AND CODIGO_EMP_FACLIN=:EMPRESA ' +
         'AND TIPO_ARTICULO_FACLIN=''ESTANDAR'' FOR UPDATE');
@@ -303,9 +377,24 @@ begin
         oLinea.ParamByName('LINEA').AsString := Prenda.LineaPrenda;
         oLinea.ParamByName('EMPRESA').AsString := AVenta.Empresa;
         oLinea.Open;
+        // FZ-ISSUE-786: en piezas, una prenda por unidad entera de la
+        // línea; en metros o kilos, una sola (la unidad 1) con toda la
+        // cantidad de la línea.
+        iMaximo := 0;
+        dCantidad := 1;
+        if not oLinea.IsEmpty then
+        begin
+          dCantidad := CantidadCustodia(oLinea.FieldByName(
+            'TIPO_CANTIDAD_ARTICULO_FACLIN').AsString,
+            oLinea.FieldByName('CANTIDAD_FACLIN').AsFloat);
+          // Una línea de 1 m cae aquí y da el mismo máximo (1).
+          if dCantidad = 1 then
+            iMaximo := Floor(oLinea.FieldByName('CANTIDAD_FACLIN').AsFloat)
+          else
+            iMaximo := 1;
+        end;
         if oLinea.IsEmpty or (Prenda.UnidadPrenda<1) or
-           (Prenda.UnidadPrenda>Floor(oLinea.FieldByName(
-             'CANTIDAD_FACLIN').AsFloat)) then
+           (Prenda.UnidadPrenda>iMaximo) then
           raise EArgumentException.Create(SPrendaVentaInvalida);
         oPrenda := BloquearPrenda(AVenta,Prenda);
         if oPrenda.IsEmpty then
@@ -313,7 +402,7 @@ begin
           FreeAndNil(oPrenda);
           iId := CrearPrenda(oLinea,AVenta,Prenda);
           oPrenda := BloquearPrenda(AVenta,Prenda);
-          Movimiento(oPrenda,'E',AVenta.Usuario);
+          Movimiento(oPrenda,'E',AVenta.Usuario,dCantidad);
         end
         else
           iId := oPrenda.FieldByName('ID_GARPRE').AsLargeInt;
@@ -336,7 +425,19 @@ begin
   begin
     oPrendas := Consulta('SELECT P.ID_GARPRE,P.CODIGO_UNIDAD_SKU_GARPRE, ' +
       'P.CODIGO_ART_GARPRE,P.CODIGO_ALM_GARPRE,P.LOTE_GARPRE, ' +
-      'P.FECHA_CADUCIDAD_GARPRE,P.CODIGO_EMP_GARPRE AS EMPRESA ' +
+      'P.FECHA_CADUCIDAD_GARPRE,P.CODIGO_EMP_GARPRE AS EMPRESA, ' +
+      // FZ-ISSUE-786: sale lo mismo que entró (CantidadCustodia). Las
+      // subconsultas no bloquean las líneas del ticket.
+      '(SELECT L.CANTIDAD_FACLIN FROM fza_facturas_lineas L ' +
+      ' WHERE L.SERIE_FAC_FACLIN=P.SERIE_FAC_GARPRE ' +
+      ' AND L.NUMERO_FAC_FACLIN=P.NUMERO_FAC_GARPRE ' +
+      ' AND L.LINEA_FACLIN=P.LINEA_FACLIN_GARPRE ' +
+      ' AND L.CODIGO_EMP_FACLIN=P.CODIGO_EMP_GARPRE) AS CANTIDAD_LINEA, ' +
+      '(SELECT L.TIPO_CANTIDAD_ARTICULO_FACLIN FROM fza_facturas_lineas L ' +
+      ' WHERE L.SERIE_FAC_FACLIN=P.SERIE_FAC_GARPRE ' +
+      ' AND L.NUMERO_FAC_FACLIN=P.NUMERO_FAC_GARPRE ' +
+      ' AND L.LINEA_FACLIN=P.LINEA_FACLIN_GARPRE ' +
+      ' AND L.CODIGO_EMP_FACLIN=P.CODIGO_EMP_GARPRE) AS UNIDAD_MEDIDA ' +
       'FROM fza_reparaciones_prendas P ' +
       'JOIN fza_reparaciones_prendas_trabajos T ' +
       'ON T.ID_GARPRE_GARPT=P.ID_GARPRE WHERE T.ID_GAR_GARPT=:ID ' +
@@ -360,7 +461,9 @@ begin
         oPendientes.Open;
         if oPendientes.IsEmpty then
         begin
-          Movimiento(oPrendas,'S',AUsuario);
+          Movimiento(oPrendas,'S',AUsuario,CantidadCustodia(
+            oPrendas.FieldByName('UNIDAD_MEDIDA').AsString,
+            oPrendas.FieldByName('CANTIDAD_LINEA').AsFloat));
           oCambio.ParamByName('ID').AsLargeInt :=
             oPrendas.FieldByName('ID_GARPRE').AsLargeInt;
           oCambio.ParamByName('USUARIO').AsString := Copy(AUsuario,1,50);

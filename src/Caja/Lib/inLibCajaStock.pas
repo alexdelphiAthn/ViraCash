@@ -107,7 +107,8 @@ begin
     sMensajeStock := Trim(
       FParametrosCaja.GetString('vgerAvisoStockWarning', ''));
     Entrada.VerificarStock :=
-      Entrada.BloquearSinStock or (sMensajeStock <> '');
+      (Entrada.BloquearSinStock or (sMensajeStock <> '')) and
+      not FPersistencia.SkuSinControlStock(sCodigoSku);
     if Entrada.VerificarStock and
        ((not Entrada.VerificarExistencia) or
         (Entrada.Existe and Entrada.Activo)) then
@@ -130,7 +131,8 @@ end;
 
 // Mismos parámetros que Validar y que el albarán de venta (FZ-ISSUE-233):
 // «Permitir sólo artículos con stock» bloquea; si no, se avisa con el texto
-// de «Aviso en artículos sin stock» (vacío = sin aviso).
+// de «Aviso en artículos sin stock» (vacío = sin aviso). Los artículos que
+// no son ESTANDAR (SERVICIO) no llevan stock (FZ-ISSUE-784).
 function TPoliticaStockVenta.ValidarCantidad(
   const ACodigoSku, ACodigoAlmacen: string;
   ACantidad: Double): TResultadoPoliticaStockVenta;
@@ -148,7 +150,8 @@ begin
   bBloquear := FParametrosCaja.GetBool('vgerChkStockOnly', False);
   sAviso := Trim(FParametrosCaja.GetString('vgerAvisoStockWarning', ''));
   if (sCodigoSku <> '') and (ACantidad > 0) and
-     (bBloquear or (sAviso <> '')) then
+     (bBloquear or (sAviso <> '')) and
+     not FPersistencia.SkuSinControlStock(sCodigoSku) then
   begin
     dDisponible := FPersistencia.ObtenerCantidadDisponible(sCodigoSku,
       ACodigoAlmacen);

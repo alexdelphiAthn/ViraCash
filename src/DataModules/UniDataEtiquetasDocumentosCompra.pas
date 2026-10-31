@@ -105,18 +105,27 @@ end;
 // SKU, CANTIDAD y ALMACEN de cada celda o línea sin celdas del documento
 // (:s, :n). Las celdas cruzan con la línea en numérico ('10' = '0010'),
 // como los movimientos de stock del albarán.
+// FZ-ISSUE-786: si la unidad del artículo admite decimales (metros, kilos)
+// la celda o línea da una sola etiqueta (SIGN), no una por metro; unidad
+// vacía o desconocida cuenta como Uds, como TOTAL_PRENDAS_ALBC.
 function TEtiquetasDocumentoCompra.SqlUnidades: string;
 var
   sCab: string;
   sCel: string;
   sLin: string;
+  sUnidad: string;
 begin
   sCab := Sufijo;
   sLin := sCab + 'LIN';
   sCel := sCab + 'CEL';
+  sUnidad :=
+    '  LEFT JOIN fza_unidades_medida U ' +
+    '    ON U.CODIGO_UNIMED = L.TIPO_CANTIDAD_ARTICULO_' + sLin + ' ';
   Result :=
     'SELECT L.CODIGO_UNIDAD_' + sLin + ' AS SKU, ' +
-    '       C.CANTIDAD_' + sCel + ' AS CANTIDAD, ' +
+    '       CASE WHEN COALESCE(U.DECIMALES_UNIMED, 0) = 0 ' +
+    '            THEN C.CANTIDAD_' + sCel +
+    '            ELSE SIGN(C.CANTIDAD_' + sCel + ') END AS CANTIDAD, ' +
     '       COALESCE(L.LOTE_' + sLin + ', '''') AS LOTE, ' +
     '       L.FECHA_CADUCIDAD_' + sLin + ' AS CADUCIDAD, ' +
     '       COALESCE(NULLIF(C.CODIGO_ALM_' + sCel + ', ''''), ' +
@@ -133,11 +142,14 @@ begin
     sLin +
     '   AND CAST(C.LINEA_' + sCab + '_' + sCel + ' AS UNSIGNED) = ' +
     '       CAST(L.LINEA_' + sLin + ' AS UNSIGNED) ' +
+    sUnidad +
     ' WHERE L.SERIE_' + sCab + '_' + sLin + ' = :s ' +
     '   AND L.NUMERO_' + sCab + '_' + sLin + ' = :n ' +
     'UNION ALL ' +
     'SELECT L.CODIGO_UNIDAD_' + sLin + ', ' +
-    '       L.CANTIDAD_' + sLin + ', ' +
+    '       CASE WHEN COALESCE(U.DECIMALES_UNIMED, 0) = 0 ' +
+    '            THEN L.CANTIDAD_' + sLin +
+    '            ELSE SIGN(L.CANTIDAD_' + sLin + ') END, ' +
     '       COALESCE(L.LOTE_' + sLin + ', ''''), ' +
     '       L.FECHA_CADUCIDAD_' + sLin + ', ' +
     '       COALESCE(NULLIF(L.CODIGO_ALMACEN_' + sLin + ', ''''), ' +
@@ -146,6 +158,7 @@ begin
     '  JOIN ' + Tabla + ' D ' +
     '    ON D.SERIE_' + sCab + ' = L.SERIE_' + sCab + '_' + sLin +
     '   AND D.NUMERO_' + sCab + ' = L.NUMERO_' + sCab + '_' + sLin +
+    sUnidad +
     ' WHERE L.SERIE_' + sCab + '_' + sLin + ' = :s ' +
     '   AND L.NUMERO_' + sCab + '_' + sLin + ' = :n ' +
     '   AND NOT EXISTS ( ' +

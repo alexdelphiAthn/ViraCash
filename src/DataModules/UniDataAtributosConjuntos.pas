@@ -69,6 +69,9 @@ type
     // Lanza EValidacionBBDD si hay SKU que usan el valor de la fila
     // actual del detalle: el formulario lo comprueba antes de preguntar.
     procedure ComprobarValorSinUso;
+    // FZ-ISSUE-786: el desplegable de atributos básicos ofrece solo los
+    // del atributo de la colección (TAL, MED...). Vacío = todos.
+    procedure FiltrarAtributosBasicos(const AIdAtributo: string);
     procedure AbrirDetalles; override;
   end;
 
@@ -383,6 +386,23 @@ begin
      ExisteUso(SQL_VALOR_CON_SKU,
        unqryConjuntoDetalle.FieldByName('ID_AV_ACD').AsInteger) then
     raise EValidacionBBDD.Create(SErrorValorColeccionEnUso);
+end;
+
+procedure TdmAtributosConjuntos.FiltrarAtributosBasicos(
+  const AIdAtributo: string);
+var
+  sFiltro: string;
+begin
+  sFiltro := '';
+  if Trim(AIdAtributo) <> '' then
+    sFiltro := 'ID_VA_ATB = ' + QuotedStr(Trim(AIdAtributo));
+  if (unqryAtributosBasicosLookup.Filter <> sFiltro) or
+     (unqryAtributosBasicosLookup.Filtered <> (sFiltro <> '')) then
+  begin
+    unqryAtributosBasicosLookup.Filtered := False;
+    unqryAtributosBasicosLookup.Filter := sFiltro;
+    unqryAtributosBasicosLookup.Filtered := sFiltro <> '';
+  end;
 end;
 
 procedure TdmAtributosConjuntos.unqryConjuntoDetalleAfterInsert(

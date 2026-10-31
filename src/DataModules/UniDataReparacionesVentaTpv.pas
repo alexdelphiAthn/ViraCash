@@ -16,18 +16,23 @@ type
     FConexion: TUniConnection;
     FRepositorio: TRepositorioReparacionesUniDAC;
     FTipos: TArray<TTipoServicio>;
+    // -1 sin consultar; 0/1 si existe ID_DEP_GARVEN (script 861).
+    FEnlaceDeposito: Integer;
     function Consulta(const ASql: string;
       const AVenta: TVentaServiciosReparacion): TUniQuery;
-    function PrepararOrden(ALinea: TUniQuery;
+    function LeerLinea(AConsulta: TUniQuery): TLineaServicioVenta;
+    function PrepararOrden(const ALinea: TLineaServicioVenta;
       const AVenta: TVentaServiciosReparacion): TReparacionNueva;
     procedure CompletarEjecutor(var AOrden: TReparacionNueva;
       const AArticulo: string);
-    procedure VincularOrden(AId: Int64; ALinea: TUniQuery;
+    procedure VincularOrden(AId: Int64; const ALinea: TLineaServicioVenta;
       const AVenta: TVentaServiciosReparacion);
-    procedure CrearOrden(ALinea: TUniQuery;
+    procedure CrearOrden(const ALinea: TLineaServicioVenta;
       const AVenta: TVentaServiciosReparacion);
     procedure BloquearTicket(const AVenta: TVentaServiciosReparacion);
     function TieneMarca: Boolean;
+    function EsServicioReparacion(const AArticulo: string): Boolean;
+    function OrdenesDeposito(const AIdDeposito: string): TArray<Int64>;
     function LeerResguardo(AConsulta: TUniQuery): TResguardoGarantia;
   public
     constructor Create(AConexion: TUniConnection);
@@ -37,6 +42,18 @@ type
     function ClaseArticuloServicio(const AArticulo: string): string;
     function CodigosServicio: TArray<string>;
     function HayServicios(ALineas: TDataSet): Boolean;
+    // FZ-ISSUE-778: la orden de un servicio en préstamo se crea con el
+    // anticipo, enlazada al depósito; al cobrar el resto se reutiliza.
+    function TieneEnlaceDeposito: Boolean;
+    function DepositoConOrden(const AIdDeposito: string): Boolean;
+    // Participan en la transacción del ticket, como CrearOrdenes.
+    procedure CrearOrdenesDepositos(const AVenta: TVentaServiciosReparacion;
+      const ALineas: TLineasServicioVenta);
+    // Antes de CrearOrdenes: enlaza al ticket las órdenes de los depósitos
+    // que se cierran, que así no se crean de nuevo.
+    procedure EnlazarOrdenesDepositos(
+      const AVenta: TVentaServiciosReparacion;
+      const ALineas: TLineasServicioVenta);
     function Resguardos(const AVenta: TVentaServiciosReparacion):
       TArray<TResguardoGarantia>;
   end;
@@ -52,6 +69,7 @@ begin
   inherited Create;
   FConexion := AConexion;
   FRepositorio := TRepositorioReparacionesUniDAC.Create(AConexion);
+  FEnlaceDeposito := -1;
 end;
 
 destructor TReparacionesVentaTpv.Destroy;
@@ -110,22 +128,39 @@ begin
   end;
 end;
 
-function TReparacionesVentaTpv.PrepararOrden(ALinea: TUniQuery;
+function TReparacionesVentaTpv.LeerLinea(
+  AConsulta: TUniQuery): TLineaServicioVenta;
+begin
+  Result := Default(TLineaServicioVenta);
+  Result.Linea := AConsulta.FieldByName('LINEA_FACLIN').AsString;
+  Result.Articulo := AConsulta.FieldByName('CODIGO_ART_FACLIN').AsString;
+  Result.Descripcion :=
+    AConsulta.FieldByName('DESCRIPCION_ARTICULO_FACLIN').AsString;
+  Result.Cantidad := AConsulta.FieldByName('CANTIDAD_FACLIN').AsFloat;
+  Result.Total := AConsulta.FieldByName('TOTAL_FACLIN').AsCurrency;
+  Result.CosteUltimaCompra :=
+    AConsulta.FieldByName('PRECIO_ULT_COMPRA_FACLIN').AsCurrency;
+end;
+
+function TReparacionesVentaTpv.PrepararOrden(
+  const ALinea: TLineaServicioVenta;
   const AVenta: TVentaServiciosReparacion): TReparacionNueva;
 var
   Tipo: TTipoServicio;
   sArticulo: string;
   Prenda: TPrendaVentaReparacion;
+  dCosteTipo: Currency;
 begin
   Result := Default(TReparacionNueva);
   Result.Fecha := AVenta.Fecha;
   if Result.Fecha <= 0 then
     Result.Fecha := Now;
-  sArticulo := ALinea.FieldByName('CODIGO_ART_FACLIN').AsString;
+  sArticulo := ALinea.Articulo;
   for Tipo in FTipos do
     if (Tipo.Articulo = sArticulo) and
        ((Result.Tipo = '') or (Tipo.Codigo = sArticulo)) then
       Result := AplicarTipoServicio(Result, Tipo);
+  dCosteTipo := Result.PrecioCoste;
   Result.Almacen := AVenta.Almacen;
   Result.Usuario := AVenta.Usuario;
   Result.Modalidad := MODALIDAD_REPARACION_PAGO;
@@ -135,14 +170,13 @@ begin
   if Trim(Result.NombreCliente) = '' then
     Result.NombreCliente := SClienteMostradorReparacion;
   Result.TelefonoCliente := AVenta.Telefono;
-  Result.Trabajo := ALinea.FieldByName('DESCRIPCION_ARTICULO_FACLIN').AsString;
+  Result.Trabajo := ALinea.Descripcion;
   if Trim(Result.Trabajo) = '' then
     Result.Trabajo := sArticulo;
   Result.DescripcionObjeto := Result.Trabajo;
   Result.ReferenciaObjeto := sArticulo;
   for Prenda in AVenta.Prendas do
-    if (Prenda.LineaServicio=ALinea.FieldByName('LINEA_FACLIN').AsString)
-       and (Prenda.LineaPrenda<>'') then
+    if (Prenda.LineaServicio=ALinea.Linea) and (Prenda.LineaPrenda<>'') then
     begin
       if Result.ReferenciaObjeto=sArticulo then
       begin
@@ -164,11 +198,13 @@ begin
     Result.SerieCobro := AVenta.Serie;
     Result.NumeroCobro := AVenta.Numero;
   end;
-  Result.Cantidad := ALinea.FieldByName('CANTIDAD_FACLIN').AsFloat;
-  Result.PrecioCliente := ALinea.FieldByName('TOTAL_FACLIN').AsCurrency /
-    Result.Cantidad;
-  Result.PrecioCoste :=
-    ALinea.FieldByName('PRECIO_ULT_COMPRA_FACLIN').AsCurrency;
+  Result.Cantidad := ALinea.Cantidad;
+  Result.PrecioCliente := ALinea.Total / Result.Cantidad;
+  // El coste unitario del tipo manda; un servicio no tiene última compra
+  // y la liquidación al externo salía a 0 (FZ-ISSUE-780).
+  Result.PrecioCoste := dCosteTipo;
+  if Result.PrecioCoste = 0 then
+    Result.PrecioCoste := ALinea.CosteUltimaCompra;
   CompletarEjecutor(Result, sArticulo);
 end;
 
@@ -200,21 +236,29 @@ begin
 end;
 
 procedure TReparacionesVentaTpv.VincularOrden(AId: Int64;
-  ALinea: TUniQuery; const AVenta: TVentaServiciosReparacion);
+  const ALinea: TLineaServicioVenta;
+  const AVenta: TVentaServiciosReparacion);
 var
   oConsulta: TUniQuery;
 begin
-  oConsulta := Consulta('INSERT INTO fza_reparaciones_ventas ' +
-    '(SERIE_FAC_GARVEN, NUMERO_FAC_GARVEN, LINEA_FACLIN_GARVEN, ' +
-    'ID_GAR_GARVEN, CODIGO_ART_GARVEN, INSTANTE_ALTA, USUARIO_ALTA) ' +
-    'VALUES (:SERIE, :NUMERO, :LINEA, :ID, :ARTICULO, NOW(6), :USUARIO)',
-    AVenta);
+  if TieneEnlaceDeposito then
+    oConsulta := Consulta('INSERT INTO fza_reparaciones_ventas ' +
+      '(SERIE_FAC_GARVEN, NUMERO_FAC_GARVEN, LINEA_FACLIN_GARVEN, ' +
+      'ID_GAR_GARVEN, CODIGO_ART_GARVEN, ID_DEP_GARVEN, INSTANTE_ALTA, ' +
+      'USUARIO_ALTA) VALUES (:SERIE, :NUMERO, :LINEA, :ID, :ARTICULO, ' +
+      'NULLIF(:DEPOSITO, ''''), NOW(6), :USUARIO)', AVenta)
+  else
+    oConsulta := Consulta('INSERT INTO fza_reparaciones_ventas ' +
+      '(SERIE_FAC_GARVEN, NUMERO_FAC_GARVEN, LINEA_FACLIN_GARVEN, ' +
+      'ID_GAR_GARVEN, CODIGO_ART_GARVEN, INSTANTE_ALTA, USUARIO_ALTA) ' +
+      'VALUES (:SERIE, :NUMERO, :LINEA, :ID, :ARTICULO, NOW(6), :USUARIO)',
+      AVenta);
   try
     oConsulta.ParamByName('ID').AsLargeInt := AId;
-    oConsulta.ParamByName('LINEA').AsString :=
-      ALinea.FieldByName('LINEA_FACLIN').AsString;
-    oConsulta.ParamByName('ARTICULO').AsString :=
-      ALinea.FieldByName('CODIGO_ART_FACLIN').AsString;
+    oConsulta.ParamByName('LINEA').AsString := ALinea.Linea;
+    oConsulta.ParamByName('ARTICULO').AsString := ALinea.Articulo;
+    if Assigned(oConsulta.Params.FindParam('DEPOSITO')) then
+      oConsulta.ParamByName('DEPOSITO').AsString := ALinea.IdDeposito;
     oConsulta.ExecSQL;
     oConsulta.SQL.Text := 'UPDATE fza_garantias_reclamaciones ' +
       'SET EMAIL_CLIENTE_GAR = NULLIF(:EMAIL, ''''), ' +
@@ -227,7 +271,8 @@ begin
   end;
 end;
 
-procedure TReparacionesVentaTpv.CrearOrden(ALinea: TUniQuery;
+procedure TReparacionesVentaTpv.CrearOrden(
+  const ALinea: TLineaServicioVenta;
   const AVenta: TVentaServiciosReparacion);
 var
   Orden: TReparacionNueva;
@@ -252,21 +297,25 @@ begin
     FRepositorio.GuardarLinea(Linea);
   end;
   VincularOrden(iId, ALinea, AVenta);
-  sClase := ClaseArticuloServicio(ALinea.FieldByName(
-    'CODIGO_ART_FACLIN').AsString);
+  sClase := ClaseArticuloServicio(ALinea.Articulo);
   oDetalles := TDatosTrabajosCortinas.Create(FConexion);
   try
-    oDetalles.GuardarVenta(iId,ALinea.FieldByName('LINEA_FACLIN').AsString,
-      sClase,ALinea.FieldByName('CANTIDAD_FACLIN').AsFloat,AVenta);
+    oDetalles.GuardarVenta(iId, ALinea.Linea, sClase, ALinea.Cantidad,
+      AVenta);
   finally
     FreeAndNil(oDetalles);
   end;
-  oPrendas := TDatosPrendasReparacion.Create(FConexion);
-  try
-    if sClase<>CLASE_SERVICIO_INSTALACION then
-      oPrendas.Recibir(iId, ALinea.FieldByName('LINEA_FACLIN').AsString, AVenta);
-  finally
-    FreeAndNil(oPrendas);
+  // En préstamo la prenda también queda en el depósito, no en una línea
+  // vendida del ticket: no se recibe en el taller (FZ-ISSUE-778).
+  if ALinea.IdDeposito = '' then
+  begin
+    oPrendas := TDatosPrendasReparacion.Create(FConexion);
+    try
+      if sClase<>CLASE_SERVICIO_INSTALACION then
+        oPrendas.Recibir(iId, ALinea.Linea, AVenta);
+    finally
+      FreeAndNil(oPrendas);
+    end;
   end;
 end;
 
@@ -301,7 +350,7 @@ begin
       oConsulta.Open;
       while not oConsulta.Eof do
       begin
-        CrearOrden(oConsulta, AVenta);
+        CrearOrden(LeerLinea(oConsulta), AVenta);
         oConsulta.Next;
       end;
     finally
@@ -382,7 +431,9 @@ begin
       begin
         bVenta := (Texto('VIENE_DE_DEPOSITO') <> 'A') and
           (Texto('ACCION_DEPOSITO') <> 'NUEVO_DEP') and
-          (Texto('ACCION_DEPOSITO') <> 'AUMENTAR_DEP');
+          (Texto('ACCION_DEPOSITO') <> 'AUMENTAR_DEP') and
+          not ((Texto('VIENE_DE_DEPOSITO') = 'S') and
+               DepositoConOrden(Texto('ID_DEPOSITO_DEP')));
         if bVenta and (ALineas.FieldByName('CANTIDAD_FACLIN').AsFloat > 0)
            and (Texto('CODIGO_ART_FACLIN') <> '') then
         begin
@@ -403,6 +454,133 @@ begin
       FreeAndNil(oConsulta);
     end;
   end;
+end;
+
+function TReparacionesVentaTpv.TieneEnlaceDeposito: Boolean;
+var
+  oConsulta: TUniQuery;
+begin
+  if FEnlaceDeposito < 0 then
+  begin
+    oConsulta := Consulta('SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS ' +
+      'WHERE TABLE_SCHEMA = DATABASE() ' +
+      'AND TABLE_NAME = ''fza_reparaciones_ventas'' ' +
+      'AND COLUMN_NAME = ''ID_DEP_GARVEN''',
+      Default(TVentaServiciosReparacion));
+    try
+      oConsulta.Open;
+      FEnlaceDeposito := Ord(not oConsulta.IsEmpty);
+    finally
+      FreeAndNil(oConsulta);
+    end;
+  end;
+  Result := FEnlaceDeposito = 1;
+end;
+
+function TReparacionesVentaTpv.EsServicioReparacion(
+  const AArticulo: string): Boolean;
+var
+  oConsulta: TUniQuery;
+begin
+  oConsulta := Consulta('SELECT 1 FROM fza_articulos ' +
+    'WHERE CODIGO_ART_ART = :ARTICULO AND TIPO_ART = ''SERVICIO'' ' +
+    'AND ESSERVICIO_REPARACION_ART = ''S''',
+    Default(TVentaServiciosReparacion));
+  try
+    oConsulta.ParamByName('ARTICULO').AsString := AArticulo;
+    oConsulta.Open;
+    Result := not oConsulta.IsEmpty;
+  finally
+    FreeAndNil(oConsulta);
+  end;
+end;
+
+function TReparacionesVentaTpv.OrdenesDeposito(
+  const AIdDeposito: string): TArray<Int64>;
+var
+  oConsulta: TUniQuery;
+  i: Integer;
+begin
+  Result := nil;
+  if (Trim(AIdDeposito) <> '') and TieneMarca and TieneEnlaceDeposito then
+  begin
+    oConsulta := Consulta('SELECT DISTINCT ID_GAR_GARVEN ' +
+      'FROM fza_reparaciones_ventas WHERE ID_DEP_GARVEN = :DEPOSITO ' +
+      'ORDER BY ID_GAR_GARVEN', Default(TVentaServiciosReparacion));
+    try
+      oConsulta.ParamByName('DEPOSITO').AsString := Trim(AIdDeposito);
+      oConsulta.Open;
+      while not oConsulta.Eof do
+      begin
+        i := Length(Result);
+        SetLength(Result, i + 1);
+        Result[i] := oConsulta.Fields[0].AsLargeInt;
+        oConsulta.Next;
+      end;
+    finally
+      FreeAndNil(oConsulta);
+    end;
+  end;
+end;
+
+function TReparacionesVentaTpv.DepositoConOrden(
+  const AIdDeposito: string): Boolean;
+begin
+  Result := Length(OrdenesDeposito(AIdDeposito)) > 0;
+end;
+
+procedure TReparacionesVentaTpv.CrearOrdenesDepositos(
+  const AVenta: TVentaServiciosReparacion;
+  const ALineas: TLineasServicioVenta);
+var
+  Linea: TLineaServicioVenta;
+  Venta: TVentaServiciosReparacion;
+begin
+  if not FConexion.InTransaction then
+    raise EInvalidOpException.Create(SErrorArticuloServicioTransaccion);
+  if (Length(ALineas) > 0) and TieneMarca and TieneEnlaceDeposito then
+  begin
+    BloquearTicket(AVenta);
+    FTipos := FRepositorio.Tipos('');
+    // Solo hay anticipo: el resto se cobra al cerrar el depósito.
+    Venta := AVenta;
+    Venta.Cobrada := False;
+    for Linea in ALineas do
+      if (Linea.IdDeposito <> '') and (Linea.Cantidad > 0) and
+         EsServicioReparacion(Linea.Articulo) and
+         not DepositoConOrden(Linea.IdDeposito) then
+        CrearOrden(Linea, Venta);
+  end;
+end;
+
+procedure TReparacionesVentaTpv.EnlazarOrdenesDepositos(
+  const AVenta: TVentaServiciosReparacion;
+  const ALineas: TLineasServicioVenta);
+var
+  Linea: TLineaServicioVenta;
+  iId: Int64;
+  oConsulta: TUniQuery;
+begin
+  if not FConexion.InTransaction then
+    raise EInvalidOpException.Create(SErrorArticuloServicioTransaccion);
+  for Linea in ALineas do
+    for iId in OrdenesDeposito(Linea.IdDeposito) do
+    begin
+      VincularOrden(iId, Linea, AVenta);
+      if AVenta.Cobrada then
+      begin
+        oConsulta := Consulta('UPDATE fza_garantias_reclamaciones ' +
+          'SET ESCOBRADO_GAR = ''S'', SERIE_COBRO_GAR = :SERIE, ' +
+          'NUMERO_COBRO_GAR = :NUMERO, INSTANTE_MODIF = NOW(), ' +
+          'USUARIO_MODIF = :USUARIO WHERE ID_GAR = :ID', AVenta);
+        try
+          oConsulta.ParamByName('ID').AsLargeInt := iId;
+          oConsulta.ExecSQL;
+        finally
+          FreeAndNil(oConsulta);
+        end;
+      end;
+    end;
 end;
 
 function TReparacionesVentaTpv.LeerResguardo(AConsulta: TUniQuery):

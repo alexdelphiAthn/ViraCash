@@ -22,14 +22,14 @@ uses
   inLibTrabajosCortinas,
   inLibMsgReparaciones, inLibMensajesVcl;
 
-procedure RecogerUnidades(ALineas: TDataSet; const ACodigos: TArray<string>;
-  ADatos: TReparacionesVentaTpv;
+procedure RecogerUnidades(AConexion: TUniConnection; ALineas: TDataSet;
+  const ACodigos: TArray<string>; ADatos: TReparacionesVentaTpv;
   out APrendas, AServicios: TArray<TPrendaVentaReparacion>);
 var
   Marcador: TBookmark;
   Item: TPrendaVentaReparacion;
   iUnidad, i, iUnidades: Integer;
-  bServicio: Boolean;
+  bServicio, bPiezas: Boolean;
   function Texto(const ACampo: string): string;
   begin
     Result := '';
@@ -46,12 +46,25 @@ begin
     while not ALineas.Eof do
     begin
       bServicio := IndexText(Texto('CODIGO_ART_FACLIN'),ACodigos)>=0;
+      // FZ-ISSUE-778: el servicio de un depósito ya tiene su orden, con
+      // las medidas y la cita que se tomaron al dejar el anticipo.
+      if bServicio and (Texto('VIENE_DE_DEPOSITO')='S') and
+         ADatos.DepositoConOrden(Texto('ID_DEPOSITO_DEP')) then
+        bServicio := False;
       if (ALineas.FieldByName('CANTIDAD_FACLIN').AsFloat>0) and
          (Texto('VIENE_DE_DEPOSITO')<>'A') and
          (Texto('ACCION_DEPOSITO')<>'NUEVO_DEP') and
          (Texto('ACCION_DEPOSITO')<>'AUMENTAR_DEP') then
       begin
         iUnidades := Floor(ALineas.FieldByName('CANTIDAD_FACLIN').AsFloat);
+        // FZ-ISSUE-786: una tela en metros (o kilos) es una sola prenda,
+        // la línea entera, no una por metro.
+        bPiezas := True;
+        if not bServicio and (Texto('TIPO_ARTICULO_FACLIN')='ESTANDAR') then
+          bPiezas := UnidadMedidaPorUnidades(AConexion,
+            Texto('TIPO_CANTIDAD_ARTICULO_FACLIN'));
+        if not bPiezas then
+          iUnidades := 1;
         if bServicio then
           iUnidades := Ceil(ALineas.FieldByName('CANTIDAD_FACLIN').AsFloat);
         for iUnidad := 1 to iUnidades do
@@ -72,8 +85,15 @@ begin
           begin
             Item.LineaPrenda := Texto('LINEA_FACLIN');
             Item.UnidadPrenda := iUnidad;
-            Item.Descripcion := Format('%s [%s] · unidad %d',
-              [Item.Descripcion,Texto('CODIGO_UNIDAD_FACLIN'),iUnidad]);
+            if bPiezas then
+              Item.Descripcion := Format('%s [%s] · unidad %d',
+                [Item.Descripcion,Texto('CODIGO_UNIDAD_FACLIN'),iUnidad])
+            else
+              Item.Descripcion := Format('%s [%s] · %s %s',
+                [Item.Descripcion,Texto('CODIGO_UNIDAD_FACLIN'),
+                FormatFloat('0.###',
+                  ALineas.FieldByName('CANTIDAD_FACLIN').AsFloat),
+                Texto('TIPO_CANTIDAD_ARTICULO_FACLIN')]);
             i := Length(APrendas);
             SetLength(APrendas,i+1);
             APrendas[i] := Item;
@@ -163,7 +183,8 @@ begin
   APrendas := nil;
   oDatos := TReparacionesVentaTpv.Create(AConexion);
   try
-    RecogerUnidades(ALineas,oDatos.CodigosServicio,oDatos,Candidatas,Servicios);
+    RecogerUnidades(AConexion,ALineas,oDatos.CodigosServicio,oDatos,
+      Candidatas,Servicios);
     for Servicio in Servicios do
       if Result then
       begin
