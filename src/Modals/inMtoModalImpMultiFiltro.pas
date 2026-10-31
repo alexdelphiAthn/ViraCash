@@ -104,8 +104,14 @@ type
     FTituloAgrup    : string;
     FRepositorioFiltros: IRepositorioInformeMultiFiltro;
     FNombreIconoMenu: string;
-    procedure CrearUIFiltros;
     procedure CrearTabFechas;
+    procedure ConfigurarFecha(AEditor: TcxDateEdit);
+    procedure SeleccionarFecha(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure ValidarTextoFecha(Sender: TObject; var DisplayValue: Variant;
+      var ErrorText: TCaption; var Error: Boolean);
+    procedure ValidarEditorFecha(AEditor: TcxDateEdit;
+      const AMensajeVacio: string);
     procedure CrearIconoInforme;
     function  CrearTabFiltro(const ACaption: string): TFiltroChecklist;
     procedure CargarFiltro(AFc: TFiltroChecklist;
@@ -137,6 +143,9 @@ type
     procedure DescribirFamilias(AResumen: TResumenSeleccionesInforme);
     procedure DescribirAgrupacion(AResumen: TResumenSeleccionesInforme);
   protected
+    procedure CrearUIFiltros;
+    procedure ValidarFechas;
+    procedure AvisarAntesDeConsulta; override;
     // Los descendientes redefinen esto para elegir qué pestañas mostrar.
     function FiltrosUsados: TFiltrosReport; virtual;
     // SQL de proveedores. Los informes de documentos pueden usar otra fuente
@@ -338,8 +347,93 @@ begin
   FdteHasta.Left  := 16;
   FdteHasta.Top   := 92;
   FdteHasta.Width := 160;
+  ConfigurarFecha(FdteDesde);
+  ConfigurarFecha(FdteHasta);
   FdteDesde.Date := EncodeDate(YearOf(Date), MonthOf(Date), 1);
   FdteHasta.Date := Date;
+end;
+
+procedure TfrmPrintMultiFiltro.ConfigurarFecha(AEditor: TcxDateEdit);
+begin
+  // La máscara por secciones puede descartar o desplazar lo tecleado.
+  // La fecha completa se sustituye como texto, conservando el calendario.
+  AEditor.Properties.InputKind := ikStandard;
+  AEditor.Properties.AutoSelect := True;
+  AEditor.Properties.DateOnError := deNoChange;
+  AEditor.Properties.SaveTime := False;
+  AEditor.Properties.MinDate := EncodeDate(1900, 1, 1);
+  AEditor.Properties.MaxDate := EncodeDate(9999, 12, 31);
+  AEditor.Properties.OnValidate := ValidarTextoFecha;
+  AEditor.OnMouseUp := SeleccionarFecha;
+end;
+
+procedure TfrmPrintMultiFiltro.ValidarTextoFecha(Sender: TObject;
+  var DisplayValue: Variant; var ErrorText: TCaption; var Error: Boolean);
+var
+  sTexto: string;
+  dFecha: TDateTime;
+  iNumero: Integer;
+  bValida: Boolean;
+begin
+  // Se comprueba el texto original: el editor puede normalizar días que
+  // no existen antes de entregar DisplayValue a este evento.
+  sTexto := Trim(TcxDateEdit(Sender).Text);
+  if (Length(sTexto) = 8) and TryStrToInt(sTexto, iNumero) then
+    bValida := TryEncodeDate(iNumero mod 10000,
+      (iNumero div 10000) mod 100, iNumero div 1000000, dFecha)
+  else
+    bValida := TryStrToDate(sTexto, dFecha);
+  Error := not bValida;
+  if bValida then
+    Error := (dFecha < EncodeDate(1900, 1, 1)) or
+      (dFecha > EncodeDate(9999, 12, 31));
+  ErrorText := SErrorFechaFiltroInformeNoValida;
+  if not Error then
+    DisplayValue := DateToStr(dFecha);
+end;
+
+procedure TfrmPrintMultiFiltro.SeleccionarFecha(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+begin
+  // Se aplica también al segundo y tercer clic sobre un campo ya activo.
+  if (Button = mbLeft) and (Shift = []) then
+    TcxDateEdit(Sender).SelectAll;
+end;
+
+procedure TfrmPrintMultiFiltro.ValidarEditorFecha(AEditor: TcxDateEdit;
+  const AMensajeVacio: string);
+begin
+  AEditor.ValidateEdit(True);
+  AEditor.PostEditValue;
+  if VarIsNull(AEditor.EditValue) or VarIsEmpty(AEditor.EditValue) then
+  begin
+    FpcFiltros.ActivePage := FtsFechas;
+    AEditor.SetFocus;
+    raise EcxEditValidationError.Create(AMensajeVacio);
+  end;
+end;
+
+procedure TfrmPrintMultiFiltro.ValidarFechas;
+begin
+  // El balance por acumulados no aplica las fechas deshabilitadas.
+  if Assigned(FdteDesde) and FdteDesde.Enabled and
+     Assigned(FdteHasta) and FdteHasta.Enabled then
+  begin
+    ValidarEditorFecha(FdteDesde, SErrorFechaInicioDocumentoNoIndicada);
+    ValidarEditorFecha(FdteHasta, SErrorFechaFinDocumentoNoIndicada);
+    if FdteDesde.Date > FdteHasta.Date then
+    begin
+      FpcFiltros.ActivePage := FtsFechas;
+      FdteDesde.SetFocus;
+      raise EcxEditValidationError.Create(SErrorRangoFechasDocumentoNoValido);
+    end;
+  end;
+end;
+
+procedure TfrmPrintMultiFiltro.AvisarAntesDeConsulta;
+begin
+  ValidarFechas;
+  inherited;
 end;
 
 // Pestaña de filtro con buscador (TcxTextEdit alTop) + checklist (alClient).
@@ -964,6 +1058,7 @@ end;
 
 function TfrmPrintMultiFiltro.FechaDesde: TDateTime;
 begin
+  ValidarFechas;
   if FdteDesde <> nil then
     Result := FdteDesde.Date
   else
@@ -972,6 +1067,7 @@ end;
 
 function TfrmPrintMultiFiltro.FechaHasta: TDateTime;
 begin
+  ValidarFechas;
   if FdteHasta <> nil then
     Result := FdteHasta.Date
   else

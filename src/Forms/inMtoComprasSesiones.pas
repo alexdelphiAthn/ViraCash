@@ -2602,6 +2602,12 @@ begin
     not EsDesplegableAbierto(Screen.ActiveControl);
   if Result then
     tvLineas.Controller.EditingController.HideEdit(False);
+  // Tras cancelar la celda, otro Escape tampoco debe abandonar una
+  // sesión cuya cabecera sigue editándose, incluso fuera de la rejilla.
+  if not Result and not EsDesplegableAbierto(Screen.ActiveControl) then
+    Result := Assigned(pcPantalla) and
+      (pcPantalla.ActivePage = tsFicha) and Assigned(dsTablaG) and
+      (dsTablaG.State in dsEditModes);
 end;
 
 procedure TfrmMtoComprasSesiones.KeyDown(var Key: Word; Shift: TShiftState);
@@ -2609,19 +2615,16 @@ begin
   // KeyPreview heredado = True: este KeyDown corre antes que la
   // navegacion Enter->Tab del grid y que el FormKeyDown base.
   if (Key = VK_ESCAPE) and (Shift = []) and
+     CancelarEdicionConEscape then
+    Key := 0
+  else if (Key = VK_ESCAPE) and (Shift = []) and
      Assigned(cxgrdLineas) and
      ((Screen.ActiveControl = cxgrdLineas) or
       cxgrdLineas.ContainsControl(Screen.ActiveControl)) then
   begin
-    // El desplegable recibe su Esc. Fuera de él se cancela sólo la celda,
-    // sin llegar al Escape global que devuelve la pantalla a la lista.
+    // El desplegable recibe su Esc antes de cancelar la celda o la sesión.
     if not EsDesplegableAbierto(Screen.ActiveControl) then
-    begin
-      if CancelarEdicionConEscape then
-        Key := 0
-      else
-        inherited KeyDown(Key, Shift);
-    end;
+      inherited KeyDown(Key, Shift);
   end
   else if (Key = VK_F1) and (Shift = []) then
   begin

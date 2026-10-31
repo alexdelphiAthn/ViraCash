@@ -409,6 +409,8 @@ resourcestring
     'Introduzca la fecha de fin.';
   SErrorRangoFechasDocumentoNoValido =
     'La fecha de fin no puede ser anterior al inicio.';
+  SErrorFechaFiltroInformeNoValida =
+    'Introduzca una fecha válida entre 01/01/1900 y 31/12/9999.';
   SInfoEmpresaSinCuentasBancarias =
     'La empresa no tiene cuentas bancarias activas. El documento se ' +
     'generará sin banco de empresa asignado.';
