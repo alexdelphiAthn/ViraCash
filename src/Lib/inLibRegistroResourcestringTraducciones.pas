@@ -31935,6 +31935,551 @@ begin
   ARegistrar('inLibMsgReparaciones.SImpresoMovimiento',
     'src/Lib/inLibMsgReparaciones.pas',
     @inLibMsgReparaciones.SImpresoMovimiento);
+  ARegistrar('inLibMsgComun.' +
+    'SErrorFechaFiltroInformeNoValida',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      SErrorFechaFiltroInformeNoValida);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SClaseServicio',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SClaseServicio);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SClaseTaller',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SClaseTaller);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SClaseAltura',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SClaseAltura);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SClaseInstalacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SClaseInstalacion);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SMedidasCita',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SMedidasCita);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SAlturaMedida',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SAlturaMedida);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SLargoFinal',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SLargoFinal);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SAcabadoCortina',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SAcabadoCortina);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SDireccionInstalacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SDireccionInstalacion);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SCitaInstalacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SCitaInstalacion);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SErrorMedidasCortina',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SErrorMedidasCortina);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SErrorCitaInstalacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SErrorCitaInstalacion);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SErrorClaseServicio',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SErrorClaseServicio);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SErrorDetalleCortina',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SErrorDetalleCortina);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SOrdenTrabajoReferencia',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SOrdenTrabajoReferencia);
+  ARegistrar('inLibMsgReparaciones.' +
+    'STrabajoSolicitado',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      STrabajoSolicitado);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SOrdenInstalacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SOrdenInstalacion);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SOrdenAltura',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SOrdenAltura);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SDetalleUnidad',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SDetalleUnidad);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SInstalacionAviso',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SInstalacionAviso);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SMedidasSeccion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SMedidasSeccion);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SInstalacionSeccion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SInstalacionSeccion);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SPrendaSeleccionar',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SPrendaSeleccionar);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SPrendaElegir',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SPrendaElegir);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SPrendaSinSeleccion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SPrendaSinSeleccion);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SPrendaFueraVenta',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SPrendaFueraVenta);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SPrendaAlmacenFalta',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SPrendaAlmacenFalta);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SPrendaEsquemaFalta',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SPrendaEsquemaFalta);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SPrendaVentaInvalida',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SPrendaVentaInvalida);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SPrendaEntregada',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SPrendaEntregada);
+  ARegistrar('inLibMsgReparaciones.' +
+    'STituloContactoReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      STituloContactoReparacion);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SNombreContactoReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SNombreContactoReparacion);
+  ARegistrar('inLibMsgReparaciones.' +
+    'STelefonoContactoReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      STelefonoContactoReparacion);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SCorreoContactoReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SCorreoContactoReparacion);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SErrorContactoReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SErrorContactoReparacion);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SErrorCorreoContactoReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SErrorCorreoContactoReparacion);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SErrorEsquemaArticuloReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SErrorEsquemaArticuloReparacion);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SErrorTicketOrdenReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SErrorTicketOrdenReparacion);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SClienteMostradorReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SClienteMostradorReparacion);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SCrearArticuloServicio',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SCrearArticuloServicio);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SArticuloServicioCreado',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SArticuloServicioCreado);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SMarcaArticuloReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SMarcaArticuloReparacion);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SErrorArticuloServicioCodigo',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SErrorArticuloServicioCodigo);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SErrorArticuloServicioDatos',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SErrorArticuloServicioDatos);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SErrorArticuloServicioTipo',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SErrorArticuloServicioTipo);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SErrorArticuloServicioSku',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SErrorArticuloServicioSku);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SErrorArticuloServicioTarifa',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SErrorArticuloServicioTarifa);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SErrorArticuloServicioProveedor',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SErrorArticuloServicioProveedor);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SErrorArticuloServicioTransaccion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SErrorArticuloServicioTransaccion);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SErrorMarcaArticuloReparacion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SErrorMarcaArticuloReparacion);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SColImporteClienteEuros',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SColImporteClienteEuros);
+  ARegistrar('inLibMsgReparaciones.' +
+    'STituloBuscarOperarioTipo',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      STituloBuscarOperarioTipo);
+  ARegistrar('inLibMsgReparaciones.' +
+    'STituloBuscarProveedorTipo',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      STituloBuscarProveedorTipo);
+  ARegistrar('inLibMsgReparaciones.' +
+    'STituloBuscarArticuloTipo',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      STituloBuscarArticuloTipo);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SErrorBusquedaTipoServicio',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SErrorBusquedaTipoServicio);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SErrorReferenciaTipoServicio',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SErrorReferenciaTipoServicio);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFaseEntregaRegistrada',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFaseEntregaRegistrada);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFaseEntregado',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFaseEntregado);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFaseSituacionTrabajos',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFaseSituacionTrabajos);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFasePestana',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFasePestana);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFaseActual',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFaseActual);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFaseGuardar',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFaseGuardar);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFaseAnadir',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFaseAnadir);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFaseNuevaDescripcion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFaseNuevaDescripcion);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFaseSeleccionar',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFaseSeleccionar);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFaseUsuarioObligatorio',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFaseUsuarioObligatorio);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFaseConflicto',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFaseConflicto);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFaseCerrada',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFaseCerrada);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFaseUsarEntrega',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFaseUsarEntrega);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFaseNombreInvalido',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFaseNombreInvalido);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFaseDuplicada',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFaseDuplicada);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFaseAnterior',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFaseAnterior);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFaseNueva',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFaseNueva);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFaseObservaciones',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFaseObservaciones);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFaseAvisar',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFaseAvisar);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFaseAsuntoCorreo',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFaseAsuntoCorreo);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFaseTextoCorreo',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFaseTextoCorreo);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFaseSinHistorial',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFaseSinHistorial);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFaseEmailInvalido',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFaseEmailInvalido);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFaseAsuntoInvalido',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFaseAsuntoInvalido);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFaseTextoInvalido',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFaseTextoInvalido);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFaseCorreoConfigurar',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFaseCorreoConfigurar);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFaseCorreoEnviado',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFaseCorreoEnviado);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFaseCorreoIncierto',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFaseCorreoIncierto);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFaseReintentarCorreo',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFaseReintentarCorreo);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFaseAvisosHistorial',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFaseAvisosHistorial);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFaseDestinatario',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFaseDestinatario);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFaseAsunto',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFaseAsunto);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFaseMensaje',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFaseMensaje);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFaseEnviar',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFaseEnviar);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFaseCorreoTransaccion',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFaseCorreoTransaccion);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFaseCorreoResultadoNoGuardado',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFaseCorreoResultadoNoGuardado);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFotosEditar',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFotosEditar);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFotosSeleccionar',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFotosSeleccionar);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFotosNombreInvalido',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFotosNombreInvalido);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFotosEdicionConflicto',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFotosEdicionConflicto);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFotosAnadir',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFotosAnadir);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFotosGeneral',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFotosGeneral);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFotosFase',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFotosFase);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFotosFecha',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFotosFecha);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFotosComentario',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFotosComentario);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFotosArchivo',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFotosArchivo);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFotosBuscar',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFotosBuscar);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFotosFiltro',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFotosFiltro);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFotosIndicarFase',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFotosIndicarFase);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFotosIndicarContenido',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFotosIndicarContenido);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFotosIndicarFecha',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFotosIndicarFecha);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SFotosArchivoInexistente',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      SFotosArchivoInexistente);
 end;
 {$WARN SYMBOL_DEPRECATED ON}
 

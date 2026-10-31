@@ -24,7 +24,7 @@ function CrearServiciosPropiedadesArticuloUniDAC(
 implementation
 
 uses
-  System.SysUtils, System.StrUtils, System.Generics.Collections,
+  System.SysUtils, System.StrUtils, System.Generics.Collections, Data.DB,
   UniDataPrestaShopEncolado;
 
 type
