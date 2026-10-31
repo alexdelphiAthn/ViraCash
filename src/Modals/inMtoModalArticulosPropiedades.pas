@@ -38,7 +38,7 @@ uses
   System.SysUtils, System.Classes, System.Generics.Collections,
   Vcl.Controls, Vcl.Forms, Vcl.StdCtrls, Vcl.ExtCtrls, Vcl.Graphics,
   Vcl.Dialogs, inMtoModalAceptCancel, Messages,
-  cxControls, cxContainer, cxEdit, cxTextEdit, cxSpinEdit,
+  cxControls, cxContainer, cxEdit, cxTextEdit, cxSpinEdit, cxMaskEdit,
   cxCheckBox, cxCheckListBox, cxLabel, cxDropDownEdit, cxButtons,
   cxPC, cxLookAndFeels, cxLookAndFeelPainters, cxScrollBox,
   System.UITypes, inLibArticulosPropiedadesPersistenciaIntf;
@@ -184,6 +184,26 @@ implementation
 uses
   System.Math, System.Variants, inLibMensajesVcl,
   uGenericIfThen, inLibMsgArticulos;
+
+type
+  TControlFuentePropiedades = class(TControl);
+
+// Número tecleado en una propiedad NUMERO, con coma o punto decimal.
+// False si está vacío o no es un número: en una obligatoria no vale.
+function LeerNumeroPropiedad(const ATexto: string;
+  out AValor: string): Boolean;
+var
+  sTexto: string;
+  dValor: Double;
+  oFormato: TFormatSettings;
+begin
+  AValor := '';
+  sTexto := StringReplace(Trim(ATexto), ',', '.', [rfReplaceAll]);
+  oFormato := TFormatSettings.Invariant;
+  Result := (sTexto <> '') and TryStrToFloat(sTexto, dValor, oFormato);
+  if Result then
+    AValor := FloatToStr(dValor);
+end;
 
 resourcestring
   STituloPropiedadPorSku = '%s por SKU';
@@ -581,10 +601,9 @@ begin
         tvpTextoLibre:
           S.ValorLibre := Trim((S.Ctrl as TcxTextEdit).Text);
         tvpNumero:
-          if Trim((S.Ctrl as TcxSpinEdit).Text) = '' then
-            S.ValorLibre := ''
-          else
-            S.ValorLibre := FloatToStr((S.Ctrl as TcxSpinEdit).Value);
+          if not LeerNumeroPropiedad((S.Ctrl as TcxMaskEdit).Text,
+            S.ValorLibre) then
+            S.ValorLibre := '';
         tvpBooleano:
           if (S.Ctrl as TcxCheckBox).Checked then
             S.ValorLibre := 'S'
@@ -660,24 +679,25 @@ end;
 // «Edad máxima aconsejada (años)» salía cortado por el control.
 function TGestorPropiedades.AnchoColumnaRotulos: Integer;
 var
-  oMedidor: TcxLabel;
+  oMedidor: Vcl.Graphics.TBitmap;
   S: TSlotProp;
 begin
+  // FZ-ISSUE-789: un TcxLabel no calcula su AutoSize mientras el panel
+  // no tiene ventana; se mide el texto con la fuente que heredan los
+  // rótulos (la del panel, ya escalada).
   Result := ANCHO_LABEL;
-  oMedidor := TcxLabel.Create(nil);
+  oMedidor := Vcl.Graphics.TBitmap.Create;
   try
-    oMedidor.Visible := False;
-    oMedidor.Parent := FScrollBox;
-    oMedidor.AutoSize := True;
+    oMedidor.Canvas.Font.Assign(TControlFuentePropiedades(FScrollBox).Font);
     for S in FSlots do
       if not S.Eliminar then
       begin
         if S.EsRequerido then
-          oMedidor.Style.Font.Style := [fsBold]
+          oMedidor.Canvas.Font.Style := [fsBold]
         else
-          oMedidor.Style.Font.Style := [];
-        oMedidor.Caption := S.NombrePropiedad;
-        Result := Max(Result, oMedidor.Width + 4);
+          oMedidor.Canvas.Font.Style := [];
+        Result := Max(Result,
+          oMedidor.Canvas.TextWidth(S.NombrePropiedad) + 8);
       end;
   finally
     FreeAndNil(oMedidor);
@@ -796,7 +816,7 @@ end;
 procedure TGestorPropiedades.CrearFilaNumero(var S: TSlotProp; ATop: Integer);
 var
   lbl: TcxLabel;
-  sp : TcxSpinEdit;
+  sp : TcxMaskEdit;
 begin
   lbl := TcxLabel.Create(FScrollBox);
   lbl.Parent   := FScrollBox;
@@ -808,20 +828,20 @@ begin
     lbl.Style.Font.Style := [fsBold];
   lbl.Caption  := S.NombrePropiedad;
   lbl.Transparent := True;
-  sp := TcxSpinEdit.Create(FScrollBox);
+  // FZ-ISSUE-789: un TcxSpinEdit convierte el vacío en 0 al validar la
+  // entrada, y una obligatoria vaciada se grababa con 0. El editor de
+  // texto con máscara numérica admite quedarse vacío.
+  sp := TcxMaskEdit.Create(FScrollBox);
   sp.Parent  := FScrollBox;
   sp.Left    := MARGEN_H + FAnchoLabel + 6;
   sp.Top     := ATop;
   sp.Width   := 120;
   sp.Height  := ALTO_FILA;
-  sp.Properties.EditFormat := '0.00';
-  // Sin valor el control queda vacío, no con un 0 que pasaría por
-  // relleno en una propiedad obligatoria.
-  sp.Properties.UseNullString := True;
-  if S.ValorLibre <> '' then
-    sp.Value := StrToFloatDef(StringReplace(S.ValorLibre, ',', '.', []), 0)
-  else
-    sp.EditValue := Null;
+  sp.Properties.MaskKind := emkRegExpr;
+  sp.Properties.EditMask := '-?\d{1,12}([.,]\d{1,6})?';
+  sp.Properties.IgnoreMaskBlank := True;
+  sp.Properties.Alignment.Horz := taRightJustify;
+  sp.Text := S.ValorLibre;
   S.Ctrl := sp;
 end;
 
@@ -1029,6 +1049,7 @@ var
   i: Integer;
   S: TSlotProp;
   TieneValor: Boolean;
+  sNumero: string;
 begin
   Result := '';
   for i := 0 to FSlots.Count - 1 do
@@ -1044,9 +1065,8 @@ begin
         tvpTextoLibre:
           TieneValor := Trim((S.Ctrl as TcxTextEdit).Text) <> '';
         tvpNumero:
-          TieneValor :=
-            (not VarIsNull((S.Ctrl as TcxSpinEdit).EditValue)) and
-            (Trim((S.Ctrl as TcxSpinEdit).Text) <> '');
+          TieneValor := LeerNumeroPropiedad(
+            (S.Ctrl as TcxMaskEdit).Text, sNumero);
         tvpBooleano:
           TieneValor := True;
       end;
@@ -1095,10 +1115,9 @@ begin
         tvpNumero:
         begin
           S.IdValorPV  := 0;
-          if Trim((S.Ctrl as TcxSpinEdit).Text) = '' then
-            S.ValorLibre := ''
-          else
-            S.ValorLibre := FloatToStr((S.Ctrl as TcxSpinEdit).Value);
+          if not LeerNumeroPropiedad((S.Ctrl as TcxMaskEdit).Text,
+            S.ValorLibre) then
+            S.ValorLibre := '';
         end;
         tvpBooleano:
         begin

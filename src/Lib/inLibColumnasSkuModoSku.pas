@@ -134,6 +134,7 @@ type
     function LimpiarEntrada(const AEntrada: string): string;
     procedure PonerCampo(const ANombre, AValor: string);
     procedure EscribirLinea(const ACodArt, ASku, ADescripcion: string);
+    procedure DesengancharVista;
   public
     constructor Create(const AConfig: TConfigColumnasSku);
     destructor Destroy; override;
@@ -222,6 +223,34 @@ procedure TModoEntradaSku.Desmontar;
 begin
   // Sin estado externo que convertir: las lineas del cds YA son la
   // representacion por SKU.
+  DesengancharVista;
+end;
+
+// FZ-ISSUE-791: los eventos que Construir puso en la vista siguen ahí al
+// pasar a otro modo (Tallas horiz.); con el modo ya liberado, Enter en la
+// rejilla llamaba a ViewKeyPress de un objeto muerto. Solo se quitan los
+// que siguen apuntando a este modo: el siguiente pudo poner los suyos.
+// No se llama desde el destructor: al cerrar la ficha la vista puede
+// estar ya destruida.
+procedure TModoEntradaSku.DesengancharVista;
+  function EsMio(const AMetodo: TMethod): Boolean;
+  begin
+    Result := AMetodo.Data = Pointer(Self);
+  end;
+begin
+  if FConfig.View <> nil then
+  begin
+    if EsMio(TMethod(FConfig.View.OnInitEdit)) then
+      FConfig.View.OnInitEdit := nil;
+    if EsMio(TMethod(FConfig.View.OnEditKeyDown)) then
+      FConfig.View.OnEditKeyDown := nil;
+    if EsMio(TMethod(FConfig.View.OnEditKeyPress)) then
+      FConfig.View.OnEditKeyPress := nil;
+    if EsMio(TMethod(FConfig.View.OnKeyPress)) then
+      FConfig.View.OnKeyPress := nil;
+    if EsMio(TMethod(FConfig.View.OnFocusedItemChanged)) then
+      FConfig.View.OnFocusedItemChanged := nil;
+  end;
 end;
 
 procedure TModoEntradaSku.Construir(

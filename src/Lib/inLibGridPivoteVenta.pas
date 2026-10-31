@@ -212,6 +212,8 @@ type
     // fila todavía no tiene ninguna línea real o no hay campo de precio.
     function PrecioDeGrupo(ALineaBase: Integer;
                            out APrecio: Double): Boolean;
+    procedure BorrarSemillasGrupo(ADs: TDataSet;
+      const ALineas: TArray<string>; const ALineaNueva: string);
     function CrearLineaDesdeCelda(AClave: Int64; ACantidad: Double;
                                   out ALineaReal: string): Boolean;
     function CrearLineaNuevaConfirmada(AClave: Int64;
@@ -725,6 +727,24 @@ begin
   end;
 end;
 
+// FZ-ISSUE-791: la semilla del grupo (línea del color a cero que lo
+// sostiene hasta teclear una talla) sobra en cuanto el grupo tiene otra
+// talla con cantidad; antes quedaba grabada con 0. Se borra con Delete
+// para que el data module ajuste lo pendiente, como BorrarLineasGrupo.
+procedure TGridPivoteVenta.BorrarSemillasGrupo(ADs: TDataSet;
+  const ALineas: TArray<string>; const ALineaNueva: string);
+var
+  sLinea: string;
+begin
+  for sLinea in ALineas do
+    if (sLinea <> ALineaNueva) and
+       ADs.Locate(FCfg.FieldLinea, sLinea, []) and
+       (CampoFloat(ADs, FCfg.FieldCantidadPedida) = 0) and
+       (CampoFloat(ADs, FCfg.FieldCantidadEntregada) = 0) and
+       (CampoFloat(ADs, FCfg.FieldCantidadAAlbaranar) = 0) then
+      ADs.Delete;
+end;
+
 function TGridPivoteVenta.CrearLineaDesdeCelda(AClave: Int64;
   ACantidad: Double; out ALineaReal: string): Boolean;
 var
@@ -732,6 +752,7 @@ var
   sSku: string;
   rPrecioGrupo: Double;
   bFiltrado, bPrecioGrupo: Boolean;
+  aLineasGrupo: TArray<string>;
 begin
   Result := False;
   ALineaReal := '';
@@ -747,6 +768,8 @@ begin
       // En ventas se conserva el precio del grupo (FZ-ISSUE-410).
       // En compras, cada talla usa el coste resuelto por su documento
       // y no hereda el de otra talla (FZ-ISSUE-635).
+      aLineasGrupo := FModelo.LineasRealesDeGrupo(
+        LineaBaseDesdeClaveCelda(AClave));
       rPrecioGrupo := 0;
       bPrecioGrupo := not FCfg.AgruparSinPrecio;
       if bPrecioGrupo then
@@ -769,6 +792,12 @@ begin
         oDs.Post;
         ALineaReal := CampoTexto(oDs, FCfg.FieldLinea);
         Result := ALineaReal <> '';
+        if Result then
+        begin
+          BorrarSemillasGrupo(oDs, aLineasGrupo, ALineaReal);
+          // El cursor vuelve a la línea creada.
+          oDs.Locate(FCfg.FieldLinea, ALineaReal, []);
+        end;
       except
         if oDs.State in dsEditModes then
           oDs.Cancel;

@@ -426,18 +426,13 @@ begin
     oPrendas := Consulta('SELECT P.ID_GARPRE,P.CODIGO_UNIDAD_SKU_GARPRE, ' +
       'P.CODIGO_ART_GARPRE,P.CODIGO_ALM_GARPRE,P.LOTE_GARPRE, ' +
       'P.FECHA_CADUCIDAD_GARPRE,P.CODIGO_EMP_GARPRE AS EMPRESA, ' +
-      // FZ-ISSUE-786: sale lo mismo que entró (CantidadCustodia). Las
-      // subconsultas no bloquean las líneas del ticket.
-      '(SELECT L.CANTIDAD_FACLIN FROM fza_facturas_lineas L ' +
-      ' WHERE L.SERIE_FAC_FACLIN=P.SERIE_FAC_GARPRE ' +
-      ' AND L.NUMERO_FAC_FACLIN=P.NUMERO_FAC_GARPRE ' +
-      ' AND L.LINEA_FACLIN=P.LINEA_FACLIN_GARPRE ' +
-      ' AND L.CODIGO_EMP_FACLIN=P.CODIGO_EMP_GARPRE) AS CANTIDAD_LINEA, ' +
-      '(SELECT L.TIPO_CANTIDAD_ARTICULO_FACLIN FROM fza_facturas_lineas L ' +
-      ' WHERE L.SERIE_FAC_FACLIN=P.SERIE_FAC_GARPRE ' +
-      ' AND L.NUMERO_FAC_FACLIN=P.NUMERO_FAC_GARPRE ' +
-      ' AND L.LINEA_FACLIN=P.LINEA_FACLIN_GARPRE ' +
-      ' AND L.CODIGO_EMP_FACLIN=P.CODIGO_EMP_GARPRE) AS UNIDAD_MEDIDA ' +
+      // FZ-ISSUE-790: sale lo que entró en custodia, leído de su
+      // movimiento RT de entrada. Recalcularlo con la línea del ticket
+      // sacaba 5,60 m por cada prenda antigua de 1 m.
+      '(SELECT SUM(M.CANTIDAD_MOV) FROM fza_movimientos_almacen M ' +
+      ' WHERE M.TIPO_DOC_MOV=''RT'' AND M.SERIE_DOC_MOV=''TALLER'' ' +
+      ' AND M.NUMERO_DOC_MOV=CAST(P.ID_GARPRE AS CHAR) ' +
+      ' AND M.TIPO_MOV=''E'') AS CANTIDAD_ENTRADA ' +
       'FROM fza_reparaciones_prendas P ' +
       'JOIN fza_reparaciones_prendas_trabajos T ' +
       'ON T.ID_GARPRE_GARPT=P.ID_GARPRE WHERE T.ID_GAR_GARPT=:ID ' +
@@ -461,9 +456,10 @@ begin
         oPendientes.Open;
         if oPendientes.IsEmpty then
         begin
-          Movimiento(oPrendas,'S',AUsuario,CantidadCustodia(
-            oPrendas.FieldByName('UNIDAD_MEDIDA').AsString,
-            oPrendas.FieldByName('CANTIDAD_LINEA').AsFloat));
+          // Sin entrada registrada no hay nada que sacar del taller.
+          if oPrendas.FieldByName('CANTIDAD_ENTRADA').AsFloat > 0 then
+            Movimiento(oPrendas, 'S', AUsuario,
+              oPrendas.FieldByName('CANTIDAD_ENTRADA').AsFloat);
           oCambio.ParamByName('ID').AsLargeInt :=
             oPrendas.FieldByName('ID_GARPRE').AsLargeInt;
           oCambio.ParamByName('USUARIO').AsString := Copy(AUsuario,1,50);

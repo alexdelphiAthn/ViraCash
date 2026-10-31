@@ -412,6 +412,10 @@ begin
   begin
     AVista.OnInitEdit := nil;
     AVista.OnEditKeyDown := nil;
+    // FZ-ISSUE-791: el modo SKU también engancha estas dos (FZ-ISSUE-350);
+    // sin quitarlas, Enter en el modo siguiente llamaba al modo liberado.
+    AVista.OnEditKeyPress := nil;
+    AVista.OnKeyPress := nil;
     AVista.OnEditing := nil;
     AVista.OnFocusedRecordChanged := nil;
     AVista.OnFocusedItemChanged := nil;
