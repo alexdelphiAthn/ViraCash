@@ -7071,6 +7071,30 @@ begin
       SErrorLineaPedidoSinArticulo);
   ARegistrar(
     'inLibMsgArticulos.' +
+    'STituloPropiedadesHeredadasFamilia',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      STituloPropiedadesHeredadasFamilia);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SLineaPropiedadHeredadaFamilia',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      SLineaPropiedadHeredadaFamilia);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SSufijoPropiedadHeredadaObligatoria',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      SSufijoPropiedadHeredadaObligatoria);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SSinPropiedadesHeredadasFamilia',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      SSinPropiedadesHeredadasFamilia);
+  ARegistrar(
+    'inLibMsgArticulos.' +
     'SErrorNombreSesionCambioTarifaObligatorio',
     'src/Lib/inLibMsgArticulos.pas',
     @inLibMsgArticulos.

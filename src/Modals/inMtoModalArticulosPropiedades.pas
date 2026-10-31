@@ -92,8 +92,10 @@ type
     FSlots          : TList<TSlotProp>;
     FModificado     : Boolean;
     FCargando       : Boolean;
+    FAnchoLabel     : Integer;
 
     function  TipoDesdeCadena(const ATipo: string): TTipoValorProp;
+    function  AnchoColumnaRotulos: Integer;
     procedure LimpiarControles;
     procedure ReconstruirVista;
     procedure CrearFilaLista      (var S: TSlotProp; ATop: Integer);
@@ -180,7 +182,7 @@ type
 implementation
 
 uses
-  System.Math, inLibMensajesVcl,
+  System.Math, System.Variants, inLibMensajesVcl,
   uGenericIfThen, inLibMsgArticulos;
 
 resourcestring
@@ -192,6 +194,8 @@ const
   MARGEN_V       = 6;
   MARGEN_H       = 8;
   ANCHO_LABEL    = 180;
+  // La columna de rótulos crece con la propiedad más larga hasta aquí.
+  ANCHO_LABEL_MAX = 360;
   ANCHO_CTRL     = 260;
   ANCHO_BTN_DEL  = 24;
   COLOR_REQUERIDO = clMaroon;
@@ -651,6 +655,36 @@ begin
   end;
 end;
 
+// Ancho del rótulo más largo, medido con un TcxLabel en el propio panel
+// (misma fuente y escala que las filas; negrita si es obligatoria). Antes
+// «Edad máxima aconsejada (años)» salía cortado por el control.
+function TGestorPropiedades.AnchoColumnaRotulos: Integer;
+var
+  oMedidor: TcxLabel;
+  S: TSlotProp;
+begin
+  Result := ANCHO_LABEL;
+  oMedidor := TcxLabel.Create(nil);
+  try
+    oMedidor.Visible := False;
+    oMedidor.Parent := FScrollBox;
+    oMedidor.AutoSize := True;
+    for S in FSlots do
+      if not S.Eliminar then
+      begin
+        if S.EsRequerido then
+          oMedidor.Style.Font.Style := [fsBold]
+        else
+          oMedidor.Style.Font.Style := [];
+        oMedidor.Caption := S.NombrePropiedad;
+        Result := Max(Result, oMedidor.Width + 4);
+      end;
+  finally
+    FreeAndNil(oMedidor);
+  end;
+  Result := Min(Result, ANCHO_LABEL_MAX);
+end;
+
 procedure TGestorPropiedades.ReconstruirVista;
 var
   i   : Integer;
@@ -670,6 +704,7 @@ begin
   finally
     FScrollBox.EnableAlign;
   end;
+  FAnchoLabel := AnchoColumnaRotulos;
   Top := MARGEN_V;
   for i := 0 to FSlots.Count - 1 do
   begin
@@ -703,7 +738,7 @@ begin
   lbl.Parent  := FScrollBox;
   lbl.Left    := MARGEN_H;
   lbl.Top     := ATop + 4;
-  lbl.Width   := ANCHO_LABEL;
+  lbl.Width   := FAnchoLabel;
   lbl.AutoSize:= True;
   if S.EsRequerido then
     lbl.Style.Font.Style := [fsBold];
@@ -711,7 +746,7 @@ begin
   lbl.Transparent := True;
   cb := TcxComboBox.Create(FScrollBox);
   cb.Parent  := FScrollBox;
-  cb.Left    := MARGEN_H + ANCHO_LABEL + 6;
+  cb.Left    := MARGEN_H + FAnchoLabel + 6;
   cb.Top     := ATop;
   cb.Width   := ANCHO_CTRL;
   cb.Height  := ALTO_FILA;
@@ -742,7 +777,7 @@ begin
   lbl.Parent   := FScrollBox;
   lbl.Left     := MARGEN_H;
   lbl.Top      := ATop + 4;
-  lbl.Width    := ANCHO_LABEL;
+  lbl.Width    := FAnchoLabel;
   lbl.AutoSize := True;
   if S.EsRequerido then
     lbl.Style.Font.Style := [fsBold];
@@ -750,7 +785,7 @@ begin
   lbl.Transparent := True;
   ed := TcxTextEdit.Create(FScrollBox);
   ed.Parent := FScrollBox;
-  ed.Left   := MARGEN_H + ANCHO_LABEL + 6;
+  ed.Left   := MARGEN_H + FAnchoLabel + 6;
   ed.Top    := ATop;
   ed.Width  := ANCHO_CTRL;
   ed.Height := ALTO_FILA;
@@ -767,7 +802,7 @@ begin
   lbl.Parent   := FScrollBox;
   lbl.Left     := MARGEN_H;
   lbl.Top      := ATop + 4;
-  lbl.Width    := ANCHO_LABEL;
+  lbl.Width    := FAnchoLabel;
   lbl.AutoSize := True;
   if S.EsRequerido then
     lbl.Style.Font.Style := [fsBold];
@@ -775,15 +810,18 @@ begin
   lbl.Transparent := True;
   sp := TcxSpinEdit.Create(FScrollBox);
   sp.Parent  := FScrollBox;
-  sp.Left    := MARGEN_H + ANCHO_LABEL + 6;
+  sp.Left    := MARGEN_H + FAnchoLabel + 6;
   sp.Top     := ATop;
   sp.Width   := 120;
   sp.Height  := ALTO_FILA;
   sp.Properties.EditFormat := '0.00';
+  // Sin valor el control queda vacío, no con un 0 que pasaría por
+  // relleno en una propiedad obligatoria.
+  sp.Properties.UseNullString := True;
   if S.ValorLibre <> '' then
     sp.Value := StrToFloatDef(StringReplace(S.ValorLibre, ',', '.', []), 0)
   else
-    sp.Clear;
+    sp.EditValue := Null;
   S.Ctrl := sp;
 end;
 
@@ -796,7 +834,7 @@ begin
   lbl.Parent   := FScrollBox;
   lbl.Left     := MARGEN_H;
   lbl.Top      := ATop + 4;
-  lbl.Width    := ANCHO_LABEL;
+  lbl.Width    := FAnchoLabel;
   lbl.AutoSize := True;
   if S.EsRequerido then
     lbl.Style.Font.Style := [fsBold];
@@ -804,7 +842,7 @@ begin
   lbl.Transparent := True;
   chk := TcxCheckBox.Create(FScrollBox);
   chk.Parent   := FScrollBox;
-  chk.Left     := MARGEN_H + ANCHO_LABEL + 6;
+  chk.Left     := MARGEN_H + FAnchoLabel + 6;
   chk.Top      := ATop + 4;
   chk.Width    := ALTO_FILA;
   chk.Height   := ALTO_FILA;
@@ -822,7 +860,7 @@ var
 begin
   btn := TcxButton.Create(FScrollBox);
   btn.Parent  := FScrollBox;
-  btn.Left    := MARGEN_H + ANCHO_LABEL + 6 + ANCHO_CTRL + 6;
+  btn.Left    := MARGEN_H + FAnchoLabel + 6 + ANCHO_CTRL + 6;
   btn.Top     := ATop;
   btn.Width   := ANCHO_BTN_DEL;
   btn.Height  := ALTO_FILA;
@@ -867,7 +905,7 @@ begin
   S := FSlots[ASlotIdx];
   btn := TcxButton.Create(FScrollBox);
   btn.Parent := FScrollBox;
-  btn.Left   := MARGEN_H + ANCHO_LABEL + 6 + ANCHO_CTRL + 6 + ANCHO_BTN_DEL + 6;
+  btn.Left   := MARGEN_H + FAnchoLabel + 6 + ANCHO_CTRL + 6 + ANCHO_BTN_DEL + 6;
   btn.Top    := ATop;
   btn.Width  := 110;
   btn.Height := ALTO_FILA;
@@ -1006,7 +1044,9 @@ begin
         tvpTextoLibre:
           TieneValor := Trim((S.Ctrl as TcxTextEdit).Text) <> '';
         tvpNumero:
-          TieneValor := Trim((S.Ctrl as TcxSpinEdit).Text) <> '';
+          TieneValor :=
+            (not VarIsNull((S.Ctrl as TcxSpinEdit).EditValue)) and
+            (Trim((S.Ctrl as TcxSpinEdit).Text) <> '');
         tvpBooleano:
           TieneValor := True;
       end;

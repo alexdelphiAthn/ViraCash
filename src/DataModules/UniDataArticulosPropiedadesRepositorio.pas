@@ -24,7 +24,7 @@ function CrearServiciosPropiedadesArticuloUniDAC(
 implementation
 
 uses
-  System.SysUtils, System.Generics.Collections,
+  System.SysUtils, System.StrUtils, System.Generics.Collections,
   UniDataPrestaShopEncolado;
 
 type
@@ -37,6 +37,11 @@ type
     function NuevaConsulta: TUniQuery;
     class function LeerDefinicion(
       AConsulta: TUniQuery): TDefinicionPropiedadArticulo; static;
+    function AscendenciaFamilia(
+      const ACodigoFamilia: string): TArray<string>;
+    function FamiliaArticulo(const ACodigoArticulo: string): string;
+    procedure AsignarFamilias(AConsulta: TUniQuery;
+      const AFamilias: TArray<string>);
   public
     constructor Create(AConexion: TUniConnection);
     function ListarDisponibles: TArray<TDefinicionPropiedadArticulo>;
@@ -81,6 +86,103 @@ function TRepositorioPropiedadesArticuloUniDAC.NuevaConsulta: TUniQuery;
 begin
   Result := TUniQuery.Create(nil);
   Result.Connection := FConexion;
+end;
+
+const
+  MAX_NIVELES_FAMILIA = 32;
+
+// La familia y sus ascendientes por CODIGO_PADRE_FAM, la propia primero.
+// Un ciclo en el árbol corta la subida en la familia repetida.
+function TRepositorioPropiedadesArticuloUniDAC.AscendenciaFamilia(
+  const ACodigoFamilia: string): TArray<string>;
+var
+  oConsulta: TUniQuery;
+  sFamilia: string;
+begin
+  Result := nil;
+  sFamilia := Trim(ACodigoFamilia);
+  oConsulta := NuevaConsulta;
+  try
+    oConsulta.SQL.Text :=
+      'SELECT COALESCE(CODIGO_PADRE_FAM, '''') AS PADRE ' +
+      '  FROM fza_articulos_familias WHERE CODIGO_FAM_FAM = :FAMILIA';
+    while (sFamilia <> '') and (IndexText(sFamilia, Result) < 0) and
+          (Length(Result) < MAX_NIVELES_FAMILIA) do
+    begin
+      Result := Result + [sFamilia];
+      oConsulta.Close;
+      oConsulta.ParamByName('FAMILIA').AsString := sFamilia;
+      oConsulta.Open;
+      if oConsulta.IsEmpty then
+        sFamilia := ''
+      else
+        sFamilia := Trim(oConsulta.FieldByName('PADRE').AsString);
+    end;
+  finally
+    FreeAndNil(oConsulta);
+  end;
+end;
+
+function TRepositorioPropiedadesArticuloUniDAC.FamiliaArticulo(
+  const ACodigoArticulo: string): string;
+var
+  oConsulta: TUniQuery;
+begin
+  Result := '';
+  oConsulta := NuevaConsulta;
+  try
+    oConsulta.SQL.Text :=
+      'SELECT CODIGO_FAM_ART FROM fza_articulos ' +
+      ' WHERE CODIGO_ART_ART = :ARTICULO';
+    oConsulta.ParamByName('ARTICULO').AsString := ACodigoArticulo;
+    oConsulta.Open;
+    if not oConsulta.IsEmpty then
+      Result := oConsulta.Fields[0].AsString;
+  finally
+    FreeAndNil(oConsulta);
+  end;
+end;
+
+// Propiedades de la familia y de sus ascendientes (FZ-ISSUE de la batería
+// «Bazar por turnos», F03): una propiedad repetida es obligatoria si lo
+// es en alguna familia de la cadena, y toma el orden menor.
+function SqlPropiedadesHeredadas(ANumFamilias: Integer): string;
+var
+  iFamilia: Integer;
+  sLista: string;
+begin
+  sLista := '';
+  for iFamilia := 0 to ANumFamilias - 1 do
+  begin
+    if sLista <> '' then
+      sLista := sLista + ', ';
+    sLista := sLista + ':FAM' + IntToStr(iFamilia);
+  end;
+  Result :=
+    '(SELECT fh.CODIGO_PROP_ARTPROP, ' +
+    '        MAX(fh.ESREQUERIDO_FA) AS ESREQUERIDO_FA, ' +
+    '        MIN(fh.ORDEN_MOSTRAR_FA) AS ORDEN_MOSTRAR_FA ' +
+    '   FROM fza_familias_atributos fh ' +
+    '  WHERE fh.CODIGO_FAM_FAM IN (' + sLista + ') ' +
+    '  GROUP BY fh.CODIGO_PROP_ARTPROP)';
+end;
+
+// Sin familia se busca la familia vacía, que no tiene propiedades.
+function FamiliasConsulta(const AFamilias: TArray<string>): TArray<string>;
+begin
+  Result := AFamilias;
+  if Length(Result) = 0 then
+    Result := [''];
+end;
+
+procedure TRepositorioPropiedadesArticuloUniDAC.AsignarFamilias(
+  AConsulta: TUniQuery; const AFamilias: TArray<string>);
+var
+  iFamilia: Integer;
+begin
+  for iFamilia := 0 to High(AFamilias) do
+    AConsulta.ParamByName('FAM' + IntToStr(iFamilia)).AsString :=
+      AFamilias[iFamilia];
 end;
 
 class function TRepositorioPropiedadesArticuloUniDAC.LeerDefinicion(
@@ -139,10 +241,15 @@ function TRepositorioPropiedadesArticuloUniDAC.ListarAsignadas(
 var
   oConsulta: TUniQuery;
   oLista: TList<TDefinicionPropiedadArticulo>;
+  aFamilias: TArray<string>;
 begin
   oLista := TList<TDefinicionPropiedadArticulo>.Create;
   oConsulta := NuevaConsulta;
   try
+    // Las propiedades de la familia padre (y de las de más arriba) valen
+    // también para los artículos de sus subfamilias.
+    aFamilias := FamiliasConsulta(
+      AscendenciaFamilia(FamiliaArticulo(ACodigoArticulo)));
     oConsulta.SQL.Text :=
       'SELECT p.CODIGO_PROP_ARTPROP, p.NOMBRE_PROP_PROP, ' +
       '       p.TIPO_VALOR_PROP, p.NIVEL_PROP, ' +
@@ -154,27 +261,24 @@ begin
       '         WHERE CODIGO_ART_ART = :ARTICULO ' +
       // Incluye las obligatorias aunque el artículo aún no tenga valor.
       '         UNION ' +
-      '        SELECT art.CODIGO_ART_ART, fa.CODIGO_PROP_ARTPROP ' +
+      '        SELECT art.CODIGO_ART_ART, req.CODIGO_PROP_ARTPROP ' +
       '          FROM fza_articulos art ' +
-      '          JOIN fza_familias_atributos fa ' +
-      '            ON fa.CODIGO_FAM_FAM = art.CODIGO_FAM_ART ' +
-      '         WHERE art.CODIGO_ART_ART = :ARTICULO ' +
-      '           AND fa.ESREQUERIDO_FA = ''S'') d ' +
+      '          JOIN ' + SqlPropiedadesHeredadas(Length(aFamilias)) +
+      '            req ON req.ESREQUERIDO_FA = ''S'' ' +
+      '         WHERE art.CODIGO_ART_ART = :ARTICULO) d ' +
       '  JOIN fza_propiedades p ' +
       '    ON p.CODIGO_PROP_ARTPROP = d.CODIGO_PROP_ARTPROP ' +
       '  LEFT JOIN fza_articulos_propiedades apz ' +
       '    ON apz.CODIGO_ART_ART = d.CODIGO_ART_ART ' +
       '   AND apz.CODIGO_PROP_ARTPROP = d.CODIGO_PROP_ARTPROP ' +
       '   AND apz.CODIGO_UNIDAD_ARTPROP = '''' ' +
-      '  LEFT JOIN fza_articulos art ' +
-      '    ON art.CODIGO_ART_ART = d.CODIGO_ART_ART ' +
-      '  LEFT JOIN fza_familias_atributos fa ' +
-      '    ON fa.CODIGO_PROP_ARTPROP = d.CODIGO_PROP_ARTPROP ' +
-      '   AND fa.CODIGO_FAM_FAM = art.CODIGO_FAM_ART ' +
+      '  LEFT JOIN ' + SqlPropiedadesHeredadas(Length(aFamilias)) +
+      '    fa ON fa.CODIGO_PROP_ARTPROP = d.CODIGO_PROP_ARTPROP ' +
       ' WHERE p.ESACTIVO_PROP = ''S'' ' +
       ' ORDER BY COALESCE(fa.ORDEN_MOSTRAR_FA, 999), ' +
       '          p.NOMBRE_PROP_PROP';
     oConsulta.ParamByName('ARTICULO').AsString := ACodigoArticulo;
+    AsignarFamilias(oConsulta, aFamilias);
     oConsulta.Open;
     while not oConsulta.Eof do
     begin
@@ -193,20 +297,23 @@ function TRepositorioPropiedadesArticuloUniDAC.ListarFamilia(
 var
   oConsulta: TUniQuery;
   oLista: TList<TDefinicionPropiedadArticulo>;
+  aFamilias: TArray<string>;
 begin
   oLista := TList<TDefinicionPropiedadArticulo>.Create;
   oConsulta := NuevaConsulta;
   try
+    // Incluye las heredadas de las familias padre (alta de artículo,
+    // sesiones de compra).
+    aFamilias := FamiliasConsulta(AscendenciaFamilia(ACodigoFamilia));
     oConsulta.SQL.Text :=
       'SELECT p.CODIGO_PROP_ARTPROP, p.NOMBRE_PROP_PROP, ' +
       '       p.TIPO_VALOR_PROP, p.NIVEL_PROP, fa.ESREQUERIDO_FA ' +
-      '  FROM fza_familias_atributos fa ' +
+      '  FROM ' + SqlPropiedadesHeredadas(Length(aFamilias)) + ' fa ' +
       '  JOIN fza_propiedades p ' +
       '    ON p.CODIGO_PROP_ARTPROP = fa.CODIGO_PROP_ARTPROP ' +
-      ' WHERE fa.CODIGO_FAM_FAM = :FAMILIA ' +
-      '   AND p.ESACTIVO_PROP = ''S'' ' +
+      ' WHERE p.ESACTIVO_PROP = ''S'' ' +
       ' ORDER BY fa.ORDEN_MOSTRAR_FA, p.NOMBRE_PROP_PROP';
-    oConsulta.ParamByName('FAMILIA').AsString := ACodigoFamilia;
+    AsignarFamilias(oConsulta, aFamilias);
     oConsulta.Open;
     while not oConsulta.Eof do
     begin

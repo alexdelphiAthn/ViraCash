@@ -216,6 +216,13 @@ SLeyendaAvisosBalance =
     'regularización de inventario...).';
   SErrorLineaPedidoSinArticulo =
     'La línea del pedido no tiene artículo; no se puede guardar.';
+  // Ficha de familias: propiedades de las familias superiores.
+  STituloPropiedadesHeredadasFamilia =
+    'Heredadas de las familias superiores (se editan en su familia):';
+  // %s propiedad, %s nombre, %s familia de origen, %s sufijo obligatoria.
+  SLineaPropiedadHeredadaFamilia = '%s · %s (de %s)%s';
+  SSufijoPropiedadHeredadaObligatoria = ' · obligatoria';
+  SSinPropiedadesHeredadasFamilia = 'Ninguna.';
   SErrorNombreSesionCambioTarifaObligatorio =
     'El nombre de la sesión es obligatorio.';
   // FZ-ISSUE-786: nombre de la sesión de cambio de tarifa sin teclear;

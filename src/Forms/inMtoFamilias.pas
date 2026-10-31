@@ -161,8 +161,12 @@ type
     function  DataSourcesParaFoto: TArray<TDataSource>; override;
   private
     dmmFamilias : TdmFamilias;
+    // Propiedades heredadas de las familias superiores, solo lectura.
+    FMemoHeredadas: TcxMemo;
     procedure ConfigurarTrazabilidadFamilia;
     procedure ActualizarEjemploContador;
+    procedure CrearPropiedadesHeredadas;
+    procedure MostrarPropiedadesHeredadas;
   end;
 
 const
@@ -177,7 +181,8 @@ uses
   inLibUser,
   inLibDevExp,
   inLibShowMto, inLibTrazabilidad, inLibTrazabilidadAlta,
-  inLibMsgTrazabilidad, inLibMsgCompras, System.Math;
+  inLibMsgTrazabilidad, inLibMsgCompras, System.Math,
+  inLibMsgArticulos;
 
 {$R *.dfm}
 
@@ -321,6 +326,52 @@ begin
   // Botones «Añadir» y «Borrar» sobre las rejillas de detalle, además
   // de los «+» y «-» del navegador.
   AnadirBotonesDetalle(tvAtributos);
+  CrearPropiedadesHeredadas;
+end;
+
+procedure TfrmMtoFamilias.CrearPropiedadesHeredadas;
+begin
+  FMemoHeredadas := TcxMemo.Create(Self);
+  FMemoHeredadas.Parent := cxTabSheet1;
+  FMemoHeredadas.Align := alBottom;
+  FMemoHeredadas.Height := ScaleValue(96);
+  FMemoHeredadas.Properties.ReadOnly := True;
+  FMemoHeredadas.Properties.ScrollBars := ssVertical;
+  FMemoHeredadas.TabStop := False;
+  MostrarPropiedadesHeredadas;
+end;
+
+// Las propiedades de la familia padre y superiores valen también aquí:
+// se enseñan debajo de las propias, sin poder editarlas desde esta familia.
+procedure TfrmMtoFamilias.MostrarPropiedadesHeredadas;
+var
+  Propiedad: TPropiedadHeredadaFamilia;
+  oLineas: TStringList;
+  sObligatoria: string;
+begin
+  if Assigned(FMemoHeredadas) and Assigned(dmmFamilias) and
+     dsTablaG.DataSet.Active then
+  begin
+    oLineas := TStringList.Create;
+    try
+      for Propiedad in dmmFamilias.PropiedadesHeredadas(
+        dsTablaG.DataSet.FieldByName('CODIGO_FAM_FAM').AsString) do
+      begin
+        sObligatoria := '';
+        if Propiedad.Obligatoria then
+          sObligatoria := SSufijoPropiedadHeredadaObligatoria;
+        oLineas.Add(Format(SLineaPropiedadHeredadaFamilia,
+          [Propiedad.Codigo, Propiedad.Nombre, Propiedad.Familia,
+           sObligatoria]));
+      end;
+      if oLineas.Count = 0 then
+        oLineas.Add(SSinPropiedadesHeredadasFamilia);
+      oLineas.Insert(0, STituloPropiedadesHeredadasFamilia);
+      FMemoHeredadas.Lines.Text := oLineas.Text;
+    finally
+      oLineas.Free;
+    end;
+  end;
 end;
 
 procedure TfrmMtoFamilias.dsTablaGStateChange(Sender: TObject);
@@ -370,6 +421,9 @@ procedure TfrmMtoFamilias.dsTablaGDataChange(Sender: TObject;
   Field: TField);
 begin
   ActualizarEjemploContador;
+  // Al cambiar de familia o de familia padre.
+  if (Field = nil) or SameText(Field.FieldName, 'CODIGO_PADRE_FAM') then
+    MostrarPropiedadesHeredadas;
 end;
 
 procedure TfrmMtoFamilias.CambiarEjemploContador(Sender: TObject);

@@ -24,6 +24,14 @@ uses
   inLibTrazabilidadAlta;
 
 type
+  // Propiedad que una familia recibe de una de sus familias superiores.
+  TPropiedadHeredadaFamilia = record
+    Familia: string;
+    Codigo: string;
+    Nombre: string;
+    Obligatoria: Boolean;
+  end;
+
   TdmFamilias = class(TdmBase)
     unstrdprcContador: TUniStoredProc;
     unqryArticulosFamilias: TUniQuery;
@@ -51,6 +59,12 @@ type
     // maestro aun no esta cableado (AsignarMaestroCabecera llega justo
     // despues de crear el DM, y AbrirDetalles despues de abrir TablaG).
     procedure AbrirDetalles; override;
+    // Las propiedades de las familias superiores (padre, abuela...), que
+    // valen también para los artículos de esta familia. Una propiedad
+    // repetida sale una vez, con la familia más cercana y obligatoria si
+    // lo es en alguna.
+    function PropiedadesHeredadas(
+      const ACodigoFamilia: string): TArray<TPropiedadHeredadaFamilia>;
   end;
 
 function LeerTrazabilidadFamilia(AConexion: TUniConnection;
@@ -63,7 +77,7 @@ function ResolverCodigoArticuloFamilia(AConn: TUniConnection;
 implementation
 
 uses
-  inLibMsgArticulos;
+  System.StrUtils, inLibMsgArticulos;
 
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 
@@ -296,6 +310,81 @@ begin
     unstrdprcContador.ExecProc;
     unqryTablaG.FindField('ORDEN_FAM').AsString :=
       unstrdprcContador.ParamByName('pcont').AsString;
+  end;
+end;
+
+function TdmFamilias.PropiedadesHeredadas(
+  const ACodigoFamilia: string): TArray<TPropiedadHeredadaFamilia>;
+const
+  MAX_NIVELES = 32;
+var
+  oPadre, oPropiedades: TUniQuery;
+  aVistas: TArray<string>;
+  sFamilia: string;
+  iIndice, iPropiedad: Integer;
+  Propiedad: TPropiedadHeredadaFamilia;
+begin
+  Result := nil;
+  aVistas := [Trim(ACodigoFamilia)];
+  oPadre := TUniQuery.Create(nil);
+  oPropiedades := TUniQuery.Create(nil);
+  try
+    oPadre.Connection := ConexionPrincipal;
+    oPadre.SQL.Text := 'SELECT COALESCE(CODIGO_PADRE_FAM, '''') AS PADRE ' +
+      '  FROM fza_articulos_familias WHERE CODIGO_FAM_FAM = :FAMILIA';
+    oPropiedades.Connection := ConexionPrincipal;
+    oPropiedades.SQL.Text :=
+      'SELECT fa.CODIGO_PROP_ARTPROP, p.NOMBRE_PROP_PROP, ' +
+      '       fa.ESREQUERIDO_FA ' +
+      '  FROM fza_familias_atributos fa ' +
+      '  JOIN fza_propiedades p ' +
+      '    ON p.CODIGO_PROP_ARTPROP = fa.CODIGO_PROP_ARTPROP ' +
+      ' WHERE fa.CODIGO_FAM_FAM = :FAMILIA AND p.ESACTIVO_PROP = ''S'' ' +
+      ' ORDER BY fa.ORDEN_MOSTRAR_FA, p.NOMBRE_PROP_PROP';
+    sFamilia := Trim(ACodigoFamilia);
+    while sFamilia <> '' do
+    begin
+      oPadre.Close;
+      oPadre.ParamByName('FAMILIA').AsString := sFamilia;
+      oPadre.Open;
+      sFamilia := '';
+      if not oPadre.IsEmpty then
+        sFamilia := Trim(oPadre.FieldByName('PADRE').AsString);
+      // Un ciclo en el árbol corta la subida en la familia repetida.
+      if (IndexText(sFamilia, aVistas) >= 0) or
+         (Length(aVistas) >= MAX_NIVELES) then
+        sFamilia := '';
+      if sFamilia <> '' then
+      begin
+        aVistas := aVistas + [sFamilia];
+        oPropiedades.Close;
+        oPropiedades.ParamByName('FAMILIA').AsString := sFamilia;
+        oPropiedades.Open;
+        while not oPropiedades.Eof do
+        begin
+          iPropiedad := -1;
+          for iIndice := 0 to High(Result) do
+            if SameText(Result[iIndice].Codigo, oPropiedades.Fields[0].
+              AsString) then
+              iPropiedad := iIndice;
+          if iPropiedad < 0 then
+          begin
+            Propiedad := Default(TPropiedadHeredadaFamilia);
+            Propiedad.Familia := sFamilia;
+            Propiedad.Codigo := oPropiedades.Fields[0].AsString;
+            Propiedad.Nombre := oPropiedades.Fields[1].AsString;
+            Propiedad.Obligatoria := oPropiedades.Fields[2].AsString = 'S';
+            Result := Result + [Propiedad];
+          end
+          else if oPropiedades.Fields[2].AsString = 'S' then
+            Result[iPropiedad].Obligatoria := True;
+          oPropiedades.Next;
+        end;
+      end;
+    end;
+  finally
+    FreeAndNil(oPropiedades);
+    FreeAndNil(oPadre);
   end;
 end;
 
