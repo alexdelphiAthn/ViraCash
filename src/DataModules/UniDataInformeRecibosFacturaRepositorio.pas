@@ -3,8 +3,12 @@
 interface
 
 uses
-  Uni, inLibInformeRecibosFacturaPersistenciaIntf;
+  System.Classes, Uni, inLibInformeRecibosFacturaPersistenciaIntf;
 
+// FZ-ISSUE-749: consulta propia de los recibos de efectos de compra; la
+// libera AOwner.
+function CrearConsultaRecibosFacturaUniDAC(AOwner: TComponent;
+  AConexion: TUniConnection): TUniQuery;
 function CrearPreparadorInformeRecibosFacturaUniDAC(
   AConsultaRecibos: TUniQuery): IPreparadorInformeRecibosFactura;
 
@@ -148,6 +152,13 @@ begin
   else
     PrepararRecibos(ACriterios);
   FConsultaRecibos.Open;
+end;
+
+function CrearConsultaRecibosFacturaUniDAC(AOwner: TComponent;
+  AConexion: TUniConnection): TUniQuery;
+begin
+  Result := TUniQuery.Create(AOwner);
+  Result.Connection := AConexion;
 end;
 
 function CrearPreparadorInformeRecibosFacturaUniDAC(

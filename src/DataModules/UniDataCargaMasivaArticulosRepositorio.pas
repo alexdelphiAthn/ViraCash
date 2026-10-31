@@ -1162,28 +1162,15 @@ begin
   end;
 end;
 
-function TServicioCargaMasivaArticulosUniDAC.ConstruirSqlPreviewArticulos(
-  const AFiltros: TFiltrosCargaMasivaArticulos;
+// Sesion de tarifa: una fila general y las claves propias de origen y
+// destino. Una tarifa destino vacia debe conservar las tallas y SKU del
+// origen. UNION elimina repeticiones de un SKU con varios periodos.
+function UnionesPreviewSesionTarifa(
   const AContexto: TContextoCargaMasivaArticulos): string;
-var
-  oSql: TStringList;
-  sAlmacenes: string;
-  sFamilias: string;
-  sProveedores: string;
-  sPropiedades: string;
-  sUniones: string;
 begin
-  sAlmacenes := StrArrToCsvSql(AFiltros.CodigosAlmacen);
-  sFamilias := StrArrToCsvSql(AFiltros.CodigosFamilia);
-  sProveedores := StrArrToCsvSql(AFiltros.CodigosProveedor);
-  sPropiedades := IntArrToCsvSql(AFiltros.IdsValorPropiedad);
-  sUniones := '';
+  Result := '';
   if AContexto.Modo = mcSesionTarifa then
-  begin
-    // Una fila general y las claves propias de origen y destino. Una
-    // tarifa destino vacía debe conservar las tallas y SKU del origen.
-    // UNION elimina repeticiones de un SKU con varios periodos de precio.
-    sUniones :=
+    Result :=
       'JOIN (SELECT CODIGO_ART_ART AS ARTICULO, ' +
       ''''' AS SKU FROM fza_articulos UNION ' +
       'SELECT CODIGO_ART_ARTTAR, CODIGO_UNIDAD_ARTTAR ' +
@@ -1192,41 +1179,52 @@ begin
       'AND ESACTIVO_ARTTAR = ''S'' ' +
       'AND COALESCE(CODIGO_UNIDAD_ARTTAR, '''') <> '''') U ' +
       'ON U.ARTICULO = a.CODIGO_ART_ART';
-  end;
+end;
+
+// Inventario de solo negativos: stock negativo en el almacen inventariado.
+procedure AnadirFiltroNegativosPreviewArticulos(ASql: TStrings);
+begin
+  ASql.Add('AND EXISTS (SELECT 1');
+  ASql.Add('FROM fza_articulos_stockactual sn');
+  ASql.Add('LEFT JOIN fza_articulos_skus skn');
+  ASql.Add('ON skn.CODIGO_UNIDAD_SKU = sn.CODIGO_UNIDAD_STK');
+  ASql.Add('WHERE COALESCE(skn.CODIGO_ART_SKU,');
+  ASql.Add('sn.CODIGO_UNIDAD_STK) = a.CODIGO_ART_ART');
+  ASql.Add('AND sn.CODIGO_ALM_STK = :P_INV_ALMACEN');
+  ASql.Add('AND sn.CANTIDAD_STK < 0)');
+end;
+
+function TServicioCargaMasivaArticulosUniDAC.ConstruirSqlPreviewArticulos(
+  const AFiltros: TFiltrosCargaMasivaArticulos;
+  const AContexto: TContextoCargaMasivaArticulos): string;
+var
+  oSql: TStringList;
+  sAlmacenes: string;
+begin
+  sAlmacenes := StrArrToCsvSql(AFiltros.CodigosAlmacen);
   oSql := TStringList.Create;
   try
     AnadirOrigenPreviewArticulos(
       oSql, sAlmacenes, ColumnasExtra(AContexto),
-      ExpresionYaCargado(AContexto), sUniones);
+      ExpresionYaCargado(AContexto), UnionesPreviewSesionTarifa(AContexto));
     if AFiltros.SoloActivos then
       oSql.Add('AND a.ESACTIVO_ART = ''S''');
     if AFiltros.ExcluirYaCargados then
       oSql.Add('AND ' + CondicionExcluirCargados(AContexto));
     if (AContexto.Modo = mcInventario) and AFiltros.SoloNegativos then
-    begin
-      oSql.Add('AND EXISTS (SELECT 1');
-      oSql.Add('FROM fza_articulos_stockactual sn');
-      oSql.Add('LEFT JOIN fza_articulos_skus skn');
-      oSql.Add('ON skn.CODIGO_UNIDAD_SKU = sn.CODIGO_UNIDAD_STK');
-      oSql.Add('WHERE COALESCE(skn.CODIGO_ART_SKU,');
-      oSql.Add('sn.CODIGO_UNIDAD_STK) = a.CODIGO_ART_ART');
-      oSql.Add('AND sn.CODIGO_ALM_STK = :P_INV_ALMACEN');
-      oSql.Add('AND sn.CANTIDAD_STK < 0)');
-    end
+      AnadirFiltroNegativosPreviewArticulos(oSql)
     else
       AnadirFiltroStockPreviewArticulos(oSql, AFiltros, sAlmacenes);
-    AnadirFiltroFamiliasPreviewArticulos(oSql, AFiltros, sFamilias);
-    AnadirFiltrosCatalogoPreviewArticulos(
-      oSql, AFiltros, sProveedores, sPropiedades);
+    AnadirFiltroFamiliasPreviewArticulos(oSql, AFiltros,
+      StrArrToCsvSql(AFiltros.CodigosFamilia));
+    AnadirFiltrosCatalogoPreviewArticulos(oSql, AFiltros,
+      StrArrToCsvSql(AFiltros.CodigosProveedor),
+      IntArrToCsvSql(AFiltros.IdsValorPropiedad));
     AnadirFiltroVentasPreviewArticulos(oSql, AFiltros);
     if AContexto.Modo = mcSesionTarifa then
-    begin
-      oSql.Add('ORDER BY a.CODIGO_FAM_ART, a.CODIGO_ART_ART, U.SKU');
-    end
+      oSql.Add('ORDER BY a.CODIGO_FAM_ART, a.CODIGO_ART_ART, U.SKU')
     else
-    begin
       oSql.Add('ORDER BY a.CODIGO_FAM_ART, a.CODIGO_ART_ART');
-    end;
     Result := oSql.Text;
   finally
     FreeAndNil(oSql);

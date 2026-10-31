@@ -347,6 +347,11 @@ begin
           'MOVIL_CLIENTE_FAC').AsString;
         Valores[2] := AContexto.Cabecera.FieldByName(
           'EMAIL_CLIENTE_FAC').AsString;
+        // FZ-ISSUE-787: con el cliente tecleado en la caja el nombre
+        // llegaba vacío; se propone el de su ficha.
+        oReparaciones.CompletarContactoCliente(
+          AContexto.Cabecera.FieldByName('CODIGO_CLI_FAC').AsString,
+          Valores[0], Valores[1], Valores[2]);
         Result := InputQuery_fza(STituloContactoReparacion,
           [SNombreContactoReparacion, STelefonoContactoReparacion,
            SCorreoContactoReparacion], Valores,

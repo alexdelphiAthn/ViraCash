@@ -42,6 +42,10 @@ type
     function ClaseArticuloServicio(const AArticulo: string): string;
     function CodigosServicio: TArray<string>;
     function HayServicios(ALineas: TDataSet): Boolean;
+    // FZ-ISSUE-787: completa nombre, teléfono y correo vacíos con la
+    // ficha del cliente (venta de contado, '0' o '', no cambia nada).
+    procedure CompletarContactoCliente(const ACliente: string;
+      var ANombre, ATelefono, AEmail: string);
     // FZ-ISSUE-778: la orden de un servicio en préstamo se crea con el
     // anticipo, enlazada al depósito; al cobrar el resto se reutiliza.
     function TieneEnlaceDeposito: Boolean;
@@ -451,6 +455,39 @@ begin
         ALineas.GotoBookmark(Marcador);
       ALineas.FreeBookmark(Marcador);
       ALineas.EnableControls;
+      FreeAndNil(oConsulta);
+    end;
+  end;
+end;
+
+procedure TReparacionesVentaTpv.CompletarContactoCliente(
+  const ACliente: string; var ANombre, ATelefono, AEmail: string);
+var
+  oConsulta: TUniQuery;
+begin
+  if (Trim(ACliente) <> '') and (Trim(ACliente) <> '0') and
+     ((Trim(ANombre) = '') or (Trim(ATelefono) = '') or
+      (Trim(AEmail) = '')) then
+  begin
+    oConsulta := Consulta('SELECT RAZON_SOCIAL_CLI, ' +
+      'COALESCE(NULLIF(TRIM(MOVIL_CLI), ''''), ' +
+      'NULLIF(TRIM(TELEFONO_CLI), ''''), ' +
+      'TRIM(TELEFONO_CONTACTO_CLI)) AS TELEFONO, EMAIL_CLI ' +
+      'FROM fza_clientes WHERE CODIGO_CLI_CLI = :CLIENTE',
+      Default(TVentaServiciosReparacion));
+    try
+      oConsulta.ParamByName('CLIENTE').AsString := Trim(ACliente);
+      oConsulta.Open;
+      if not oConsulta.IsEmpty then
+      begin
+        if Trim(ANombre) = '' then
+          ANombre := oConsulta.Fields[0].AsString;
+        if Trim(ATelefono) = '' then
+          ATelefono := oConsulta.Fields[1].AsString;
+        if Trim(AEmail) = '' then
+          AEmail := oConsulta.Fields[2].AsString;
+      end;
+    finally
       FreeAndNil(oConsulta);
     end;
   end;

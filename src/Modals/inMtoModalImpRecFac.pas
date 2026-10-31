@@ -177,8 +177,7 @@ procedure TfrmPrintRecFac.PrepararEfectosCompra(AConexion: TUniConnection;
 begin
   PrepararEfectosVenta(AEfectos);
   FEsEfectosVenta := False;
-  FConsultaPagos := TUniQuery.Create(Self);
-  FConsultaPagos.Connection := AConexion;
+  FConsultaPagos := CrearConsultaRecibosFacturaUniDAC(Self, AConexion);
   FDatasetPagos := TfrxDBDataset.Create(Self);
   FDatasetPagos.UserName := 'Recibos';
   FDatasetPagos.DataSet := FConsultaPagos;

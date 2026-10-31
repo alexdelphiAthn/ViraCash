@@ -1064,19 +1064,16 @@ begin
   btnAceptar.ModalResult := mrNone;
   bContinuar := True;
   pendientes := 0;
+  // FZ-ISSUE-787: la carga sale de la previsualización; si falta, se hace
+  // sin preguntar (con «No» se volvía al diálogo sin cargar). La
+  // confirmación de abajo sigue dando la última palabra.
   if (not Assigned(FDatosPreview)) or
      (not FDatosPreview.Active) or
      (FDatosPreview.RecordCount = 0) then
   begin
-    if MessageDlg_fza(SPreguntaPrevisualizarAddBlock,
-                  mtConfirmation, [mbYes, mbNo], 0) = mrYes then
-    begin
-      btnPrevisualizarClick(nil);
-      bContinuar := Assigned(FDatosPreview) and FDatosPreview.Active and
-        (FDatosPreview.RecordCount > 0);
-    end
-    else
-      bContinuar := False;
+    btnPrevisualizarClick(nil);
+    bContinuar := Assigned(FDatosPreview) and FDatosPreview.Active and
+      (FDatosPreview.RecordCount > 0);
   end;
   if bContinuar then
   begin

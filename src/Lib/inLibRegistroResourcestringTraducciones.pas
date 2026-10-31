@@ -28479,6 +28479,12 @@ begin
       SErrorSesionTarifaAplicadaNoEditable);
   ARegistrar(
     'inLibMsgArticulos.' +
+    'SErrorSesionTarifaAplicadaNoActualizarCostes',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      SErrorSesionTarifaAplicadaNoActualizarCostes);
+  ARegistrar(
+    'inLibMsgArticulos.' +
     'SErrorTarifasCambiosSesionAplicadaLote',
     'src/Lib/inLibMsgArticulos.pas',
     @inLibMsgArticulos.

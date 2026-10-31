@@ -340,14 +340,20 @@ begin
           oSql.AppendLine(
             '  AND vi_articulos.ESACTIVO_ART = ''N''');
       end;
+      // Los servicios (TIPO_ART distinto de ESTANDAR) no llevan stock:
+      // «Solo con stock» no los oculta.
       if AFiltro.SoloConStock then
         oSql.AppendLine(
-          '  AND EXISTS (SELECT 1 FROM fza_articulos_skus sk ' +
+          '  AND (EXISTS (SELECT 1 FROM fza_articulos tip ' +
+          ' WHERE tip.CODIGO_ART_ART = vi_articulos.CODIGO_ART_ART ' +
+          '   AND COALESCE(NULLIF(TRIM(tip.TIPO_ART), ''''), ' +
+          '''ESTANDAR'') <> ''ESTANDAR'') ' +
+          '  OR EXISTS (SELECT 1 FROM fza_articulos_skus sk ' +
           ' JOIN fza_articulos_stockactual stk ' +
           '   ON stk.CODIGO_UNIDAD_STK = sk.CODIGO_UNIDAD_SKU ' +
           ' WHERE sk.CODIGO_ART_SKU = ' +
           'vi_articulos.CODIGO_ART_ART ' +
-          '   AND stk.CANTIDAD_STK > 0)');
+          '   AND stk.CANTIDAD_STK > 0))');
       AgregarLista(oSql, 'vi_articulos.TEMPORADA_ART',
         'TEMP', aTemporadas);
       AgregarLista(oSql, 'vi_articulos.CODIGO_PRV_AP',

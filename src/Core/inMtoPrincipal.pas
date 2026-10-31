@@ -419,6 +419,15 @@ type
     procedure AppMessage(var Msg: TMsg; var Handled: Boolean);
     procedure PrincipalKeyPress(Sender: TObject; var Key: Char);
     procedure AbrirCajonDesdePresentacion;
+    // Ramas de IsShortCut, que queda como coordinador del enrutado.
+    function TeclaCajonDisponible(const AMessage: TWMKey): Boolean;
+    procedure CerrarConAltF4(AFormularioActivo: TCustomForm;
+      AEsFlotante: Boolean);
+    procedure CerrarConCtrlF4(AFormularioActivo: TCustomForm;
+      AEsFlotante: Boolean);
+    function AtenderEscape(var Message: TWMKey;
+      AFormularioActivo: TCustomForm; AEsFlotante: Boolean): Boolean;
+    function AtenderAtajoMenuPrincipal(var Message: TWMKey): Boolean;
   public
     { Public declarations }
     FormManager : TEmbeddedFormManager;
@@ -2053,107 +2062,137 @@ begin
   end;
 end;
 
+// F9 sola (sin Ctrl/Alt/Mayus ni autorrepeticion) -> abrir el cajon
+// portamonedas, mismo criterio que AppMessage. Via redundante: cubre el
+// foco en el principal y sus pestañas embebidas aunque Application.OnMessage
+// quede desenganchado; si AppMessage ya trato la tecla, el mensaje no se
+// despacha y este punto no llega a ejecutarse (no hay doble apertura).
+function TfrmMtoPrincipal.TeclaCajonDisponible(
+  const AMessage: TWMKey): Boolean;
+begin
+  Result := (HiWord(AMessage.KeyData) and KF_REPEAT = 0) and
+    (ImpresoraCajaAsignada(ParametrosCaja) or MenuCajaAbierto) and
+    (GetKeyState(VK_CONTROL) >= 0) and (GetKeyState(VK_MENU) >= 0) and
+    (GetKeyState(VK_SHIFT) >= 0);
+end;
+
+// Alt+F4 cierra solo la pantalla si es una pestaña separada.
+procedure TfrmMtoPrincipal.CerrarConAltF4(AFormularioActivo: TCustomForm;
+  AEsFlotante: Boolean);
+begin
+  if AEsFlotante and Assigned(FormManager) and
+     (FormManager.FormActivo = AFormularioActivo) then
+    AFormularioActivo.Close
+  else
+    Self.Close;
+end;
+
+// Ctrl+F4 -> cerrar pestaña activa o ventana flotante
+procedure TfrmMtoPrincipal.CerrarConCtrlF4(AFormularioActivo: TCustomForm;
+  AEsFlotante: Boolean);
+begin
+  if AEsFlotante then
+    AFormularioActivo.Close
+  else if pcPrincipal.PageCount > 0 then
+    FormManager.CloseActiveForm;
+end;
+
+// ESC -> cerrar pestaña activa (o la ventana independiente en SDI) o salir
+function TfrmMtoPrincipal.AtenderEscape(var Message: TWMKey;
+  AFormularioActivo: TCustomForm; AEsFlotante: Boolean): Boolean;
+var
+  FormularioPestana: TCustomForm;
+begin
+  // Primero cancela la lista; no debe cerrar su pestana anfitriona.
+  if EsDesplegableAbierto(Screen.ActiveControl) then
+    Result := False
+  else if Application.ModalLevel > 0 then
+    Result := inherited IsShortCut(Message)
+  else if AEsFlotante then
+  begin
+    if Assigned(FormManager) and FormManager.ModoSDI and
+       Assigned(FormManager.MantenimientoDeForm(
+         TForm(AFormularioActivo))) then
+    begin
+      if not ((AFormularioActivo is TfrmBase) and
+              TfrmBase(AFormularioActivo).CancelarEdicionConEscape) then
+        FormManager.CloseActiveForm;
+      Result := True;
+    end
+    else
+      Result := inherited IsShortCut(Message);
+  end
+  else if pcPrincipal.PageCount = 0 then
+  begin
+    PostMessage(Self.Handle, WM_CLOSE, 0, 0);
+    Result := True;
+  end
+  else
+  begin
+    // FZ-ISSUE-430: con una linea a medias, Esc la descarta y la ficha
+    // sigue delante. Volver a la lista sacaba el foco de la rejilla,
+    // que aceptaba lo tecleado e intentaba grabar la linea.
+    FormularioPestana := FormularioPestanaActiva(pcPrincipal);
+    if not ((FormularioPestana is TfrmBase) and
+            TfrmBase(FormularioPestana).CancelarEdicionConEscape) then
+      FormManager.CloseActiveForm;
+    Result := True;
+  end;
+end;
+
+// Atajos de apertura del menu principal, que mandan sin modales.
+function TfrmMtoPrincipal.AtenderAtajoMenuPrincipal(
+  var Message: TWMKey): Boolean;
+var
+  Atajo: TShortCut;
+begin
+  Result := False;
+  Atajo := ShortCutFromMessage(Message);
+  if Application.ModalLevel = 0 then
+    Result := EjecutarAtajoApertura(jvMnMenuPrin, Atajo);
+  // FZ-ISSUE-476: Formas de pago conserva su atajo sin Alt.
+  if not Result and (Application.ModalLevel = 0) and
+     (Atajo = Formasdepago2.ShortCut) then
+    Result := jvMnMenuPrin.IsShortCut(Message);
+end;
+
 function TfrmMtoPrincipal.IsShortCut(var Message: TWMKey): Boolean;
 var
   FormularioActivo: TCustomForm;
   FormularioPestana: TCustomForm;
   bEsFlotante: Boolean;
-  Atajo: TShortCut;
 begin
   Result := DespacharBorradoContextual(Message.CharCode,
     KeyDataToShiftState(Message.KeyData));
   FormularioActivo := Screen.ActiveForm;
+  // Pestaña separada o ventana independiente (modo SDI).
   bEsFlotante := EsFormularioFlotante(FormularioActivo, Self);
   if not Result then
   begin
-  // F9 sola (sin Ctrl/Alt/Mayus ni autorrepeticion) -> abrir el cajon
-  // portamonedas, mismo criterio que AppMessage. Via redundante: cubre el
-  // foco en el principal y sus pestañas embebidas aunque Application.OnMessage
-  // quede desenganchado; si AppMessage ya trato la tecla, el mensaje no se
-  // despacha y este punto no llega a ejecutarse (no hay doble apertura).
-  if (Message.CharCode = VK_F9) and
-     (HiWord(Message.KeyData) and KF_REPEAT = 0) and
-     (ImpresoraCajaAsignada(ParametrosCaja) or
-      MenuCajaAbierto) and
-     (GetKeyState(VK_CONTROL) >= 0) and (GetKeyState(VK_MENU) >= 0) and
-     (GetKeyState(VK_SHIFT) >= 0) then
-  begin
-    AbrirCajonDesdePresentacion;
-    Result := True;
-  end
-  // Alt+F4 cierra solo la pantalla si es una pestaña separada.
-  else if (Message.CharCode = VK_F4) and
-          (HiWord(Message.KeyData) and KF_ALTDOWN <> 0) then
-  begin
-    if bEsFlotante and Assigned(FormManager) and
-       (FormManager.FormActivo = FormularioActivo) then
-      FormularioActivo.Close
-    else
-      Self.Close;
-    Result := True;
-  end
-  // Ctrl+F4 -> cerrar pestaña activa o ventana flotante
-  else if (Message.CharCode = VK_F4) and
-          (GetKeyState(VK_CONTROL) < 0) and
-          (HiWord(Message.KeyData) and KF_ALTDOWN = 0) then
-  begin
-    if bEsFlotante then
-      FormularioActivo.Close
-    else if pcPrincipal.PageCount > 0 then
-      FormManager.CloseActiveForm;
-    Result := True;
-  end
-  // ESC -> cerrar pestaña activa o salir
-  else if Message.CharCode = VK_ESCAPE then
-  begin
-    // Primero cancela la lista; no debe cerrar su pestana anfitriona.
-    if EsDesplegableAbierto(Screen.ActiveControl) then
-      Result := False
-    else if Application.ModalLevel > 0 then
-      Result := inherited IsShortCut(Message)
-    else if bEsFlotante then
+    if (Message.CharCode = VK_F9) and TeclaCajonDisponible(Message) then
     begin
-      if Assigned(FormManager) and FormManager.ModoSDI and
-         Assigned(FormManager.MantenimientoDeForm(
-           TForm(FormularioActivo))) then
-      begin
-        if not ((FormularioActivo is TfrmBase) and
-                TfrmBase(FormularioActivo).CancelarEdicionConEscape) then
-          FormManager.CloseActiveForm;
-        Result := True;
-      end
-      else
-        Result := inherited IsShortCut(Message);
-    end
-    else if pcPrincipal.PageCount = 0 then
-    begin
-      PostMessage(Self.Handle, WM_CLOSE, 0, 0);
+      AbrirCajonDesdePresentacion;
       Result := True;
     end
+    else if (Message.CharCode = VK_F4) and
+            (HiWord(Message.KeyData) and KF_ALTDOWN <> 0) then
+    begin
+      CerrarConAltF4(FormularioActivo, bEsFlotante);
+      Result := True;
+    end
+    else if (Message.CharCode = VK_F4) and
+            (GetKeyState(VK_CONTROL) < 0) and
+            (HiWord(Message.KeyData) and KF_ALTDOWN = 0) then
+    begin
+      CerrarConCtrlF4(FormularioActivo, bEsFlotante);
+      Result := True;
+    end
+    else if Message.CharCode = VK_ESCAPE then
+      Result := AtenderEscape(Message, FormularioActivo, bEsFlotante)
     else
     begin
-      // FZ-ISSUE-430: con una linea a medias, Esc la descarta y la ficha
-      // sigue delante. Volver a la lista sacaba el foco de la rejilla,
-      // que aceptaba lo tecleado e intentaba grabar la linea.
-      FormularioPestana := FormularioPestanaActiva(pcPrincipal);
-      if not ((FormularioPestana is TfrmBase) and
-              TfrmBase(FormularioPestana).CancelarEdicionConEscape) then
-        FormManager.CloseActiveForm;
-      Result := True;
-    end;
-  end
-  else
-  begin
-    Atajo := ShortCutFromMessage(Message);
-    if Application.ModalLevel = 0 then
-      Result := EjecutarAtajoApertura(jvMnMenuPrin, Atajo);
-    // FZ-ISSUE-476: Formas de pago conserva su atajo sin Alt.
-    if not Result and (Application.ModalLevel = 0) and
-       (Atajo = Formasdepago2.ShortCut) then
-      Result := jvMnMenuPrin.IsShortCut(Message);
-    if not Result then
-    begin
-      if bEsFlotante then
+      Result := AtenderAtajoMenuPrincipal(Message);
+      if not Result and bEsFlotante then
       begin
         // Incluye OnShortCut y las sobrecargas del formulario activo.
         Result := FormularioActivo.IsShortCut(Message);
@@ -2162,7 +2201,7 @@ begin
         if not Result and (Application.ModalLevel = 0) then
           Result := jvMnMenuPrin.IsShortCut(Message);
       end
-      else
+      else if not Result then
       begin
         // La VCL no consulta por si sola los atajos de la pestana.
         FormularioPestana := FormularioPestanaActiva(pcPrincipal);
@@ -2174,7 +2213,6 @@ begin
           Result := inherited IsShortCut(Message);
       end;
     end;
-  end;
   end;
 end;
 

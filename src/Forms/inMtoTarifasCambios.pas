@@ -966,7 +966,7 @@ begin
       ShowMessage_fza(SErrorSeleccionVaciaSesionTarifa)
     else if SameText(dsTablaG.DataSet.FieldByName('ESTADO_TARC').AsString,
       'APLICADA') then
-      ShowMessage_fza(SErrorSesionTarifaAplicadaNoEditable)
+      ShowMessage_fza(SErrorSesionTarifaAplicadaNoActualizarCostes)
     else if MessageDlg_fza(SPreguntaActualizarCostesSesion,
       mtConfirmation, [mbYes, mbNo], 0) = mrYes then
       dmmTarifasCambios.ActualizarCostesLineas(Ids);
