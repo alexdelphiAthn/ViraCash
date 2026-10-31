@@ -32,6 +32,8 @@ type
     FUnidadesMedida: TUnidadesMedida;
     FPreviewTicket: IPreviewTicket;
     FLecturasImpresionTicket: ILecturasImpresionTicket;
+    procedure ImprimirResguardosReparacion(
+      const ASolicitud: TSolicitudImpresionVenta);
     procedure ImprimirFacturaA4(
       const ASerie, ANumero: string);
     // Ticket con el formato FastReport del parámetro vgerFormatoTicket,
@@ -61,6 +63,8 @@ type
 implementation
 
 uses
+  UniDataReparacionesVentaTpv, inLibReparaciones, inLibGarantiasResguardo,
+  frxClass,
   inLibFormatoDocumento, UniDataFormatoDocumentoRepositorio,
   inLibMensajesVcl,
   System.SysUtils, System.UITypes, Data.DB, Vcl.Forms, Vcl.Dialogs,
@@ -190,6 +194,36 @@ begin
   end;
 end;
 
+procedure TImpresorVentaVcl.ImprimirResguardosReparacion(
+  const ASolicitud: TSolicitudImpresionVenta);
+var
+  Venta: TVentaServiciosReparacion;
+  oDatos: TReparacionesVentaTpv;
+  oInforme: TfrxReport;
+  Resguardo: TResguardoGarantia;
+begin
+  Venta := Default(TVentaServiciosReparacion);
+  Venta.Serie := ASolicitud.SerieFactura;
+  Venta.Numero := ASolicitud.NumeroFactura;
+  Venta.Empresa := ASolicitud.CodigoEmpresa;
+  oDatos := TReparacionesVentaTpv.Create(FConexion);
+  oInforme := TfrxReport.Create(nil);
+  try
+    for Resguardo in oDatos.Resguardos(Venta) do
+    begin
+      CrearInformeDocumentoReparacion(oInforme, Resguardo, drRecepcion,
+        frgTicket);
+      ImprimirResguardoGarantiaTicket(oInforme, FPreviewTicket,
+        FParametrosCaja.ImpresoraCaja, GetUserFolderTickets +
+        'Reparacion_' + IntToStr(Resguardo.Numero) + '_' +
+        FormatDateTime('yyyymmdd_hhnnss_zzz', Now) + '.pdf');
+    end;
+  finally
+    FreeAndNil(oInforme);
+    FreeAndNil(oDatos);
+  end;
+end;
+
 procedure TImpresorVentaVcl.Imprimir(
   const ASolicitud: TSolicitudImpresionVenta;
   ARutasPdf: TStrings);
@@ -282,6 +316,7 @@ begin
         end;
       end;
   end;
+  ImprimirResguardosReparacion(ASolicitud);
 end;
 
 procedure TImpresorVentaVcl.GenerarPdfRespaldo(

@@ -536,6 +536,9 @@ begin
   Result := Assigned(ADataSet) and ADataSet.Active and
     ((ADataSet.State = dsInsert) or
      ((ADataSet.State = dsEdit) and ADataSet.Modified));
+  if Assigned(ADataSet) and ADataSet.Active and
+     (ADataSet is TClientDataSet) then
+    Result := Result or (TClientDataSet(ADataSet).ChangeCount > 0);
 end;
 
 function CheckOpenDatasets(AModulo: TDataModule;
@@ -556,9 +559,10 @@ begin
         TDataSet(AModulo.Components[i]);
       Result :=
         oDataSet.Active and
-        (oDataSet.State in [dsEdit, dsInsert]) and
-        (not ASoloModificados or
-         DataSetTieneCambiosPendientes(oDataSet));
+        (((not ASoloModificados) and
+          (oDataSet.State in [dsEdit, dsInsert])) or
+         (ASoloModificados and
+          DataSetTieneCambiosPendientes(oDataSet)));
     end;
     Inc(i);
   end;

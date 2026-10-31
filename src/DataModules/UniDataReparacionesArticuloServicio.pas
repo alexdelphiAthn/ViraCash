@@ -33,6 +33,7 @@ type
     procedure GuardarTarifa(const AEntrada: TArticuloServicioReparacion;
       APrecio: Double);
     procedure GuardarCoste(const AEntrada: TArticuloServicioReparacion);
+    procedure ComprobarEsquema;
     procedure Validar(const AEntrada: TArticuloServicioReparacion);
   public
     constructor Create(AConexion: TUniConnection);
@@ -74,6 +75,23 @@ begin
   Texto('USUARIO', Copy(AEntrada.Usuario, 1, 50));
   if Assigned(Result.Params.FindParam('COSTE')) then
     Result.ParamByName('COSTE').AsCurrency := AEntrada.Tipo.PrecioCoste;
+end;
+
+procedure TArticulosServicioReparacion.ComprobarEsquema;
+var
+  oConsulta: TUniQuery;
+begin
+  oConsulta := Consulta('SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS ' +
+    'WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ''fza_articulos'' ' +
+    'AND COLUMN_NAME = ''ESSERVICIO_REPARACION_ART''',
+    Default(TArticuloServicioReparacion));
+  try
+    oConsulta.Open;
+    if oConsulta.IsEmpty then
+      raise EArgumentException.Create(SErrorEsquemaArticuloReparacion);
+  finally
+    FreeAndNil(oConsulta);
+  end;
 end;
 
 procedure TArticulosServicioReparacion.Validar(
@@ -328,6 +346,7 @@ var
   sTipoIva: string;
   dPrecio: Double;
 begin
+  ComprobarEsquema;
   Validar(AEntrada);
   sTipoIva := GuardarArticulo(AEntrada);
   dPrecio := PrecioTarifa(AEntrada, sTipoIva);

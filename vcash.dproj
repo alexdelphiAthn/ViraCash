@@ -183,6 +183,12 @@
         <DCCReference Include="src\Lib\inLibReparacionesMovimientos.pas"/>
         <DCCReference Include="src\DataModules\UniDataReparacionesMovimientos.pas"/>
         <DCCReference Include="src\DataModules\UniDataReparacionesArticuloServicio.pas"/>
+        <DCCReference Include="src\Lib\inLibTrabajosCortinas.pas"/>
+        <DCCReference Include="src\DataModules\UniDataTrabajosCortinas.pas"/>
+        <DCCReference Include="src\Modals\inMtoModalTrabajoCortina.pas"/>
+        <DCCReference Include="src\DataModules\UniDataReparacionesPrendas.pas"/>
+        <DCCReference Include="src\Caja\Forms\inMtoCajaPrendasReparacionVcl.pas"/>
+        <DCCReference Include="src\Modals\inMtoModalPrendaReparacion.pas"/>
         <DCCReference Include="src\DataModules\UniDataReparacionesVentaTpv.pas"/>
         <DCCReference Include="src\Modals\inMtoModalAvisoReparacion.pas"/>
         <DCCReference Include="src\Lib\inLibCorreoReparaciones.pas"/>

@@ -2353,7 +2353,8 @@ begin
     LineaFactura.CosteUnitario := RegistrarMovimientoVenta(
       LineaFactura, sNumeroMovimiento, sEmpresaMovimiento,
       sAlmacenOrigen, sTipoMovimiento);
-  if FRequiereFactura and (Abs(ALinea.TotalCIva) > 0.001) then
+  if FRequiereFactura and ((Abs(ALinea.TotalCIva) > 0.001) or
+     (ALinea.TipoArticulo = 'SERVICIO')) then
     FDataModule.InsertarLineaFactura(
       FQuery, FSerieGenerada, FNumeroFactura, LineaFactura.Linea,
       LineaFactura.Articulo, LineaFactura.Sku,
@@ -2920,11 +2921,18 @@ begin
     Venta.Empresa := FEmpresa;
     Venta.Almacen := FAlmacen;
     Venta.Usuario := FUsuarioSesion;
-    Venta.Fecha := FFechaFactura;
+    Venta.Fecha := FFechaOperacion;
+    Venta.Prendas := FDatosCobro.PrendasReparacion;
     Venta.Cliente := FCabecera.CodigoCliente;
     Venta.NombreCliente := FCabecera.RazonSocialCli;
     Venta.Telefono := FCabecera.MovilCli;
     Venta.Email := FCabecera.EmailCli;
+    if Trim(FDatosCobro.NombreReparacion) <> '' then
+    begin
+      Venta.NombreCliente := FDatosCobro.NombreReparacion;
+      Venta.Telefono := FDatosCobro.TelefonoReparacion;
+      Venta.Email := FDatosCobro.EmailReparacion;
+    end;
     Venta.Cobrada := FDatosCobro.ImporteDejarCuenta < 0.001;
     oReparaciones := TReparacionesVentaTpv.Create(FDataModule.FConexion);
     try

@@ -129,6 +129,8 @@ type
     // cdsLineas: permite saltar las recargas repetidas del mismo
     // inventario que llegan por AfterScroll y por DataChange.
     FClaveLineasCargada: string;
+    FMaximaLineaPersistida: Integer;
+    FMaximaLineaConsultada: Boolean;
     // True mientras Midas, al calcular los fkInternalCalc de cada registro
     // (State = dsInternalCalc), debe rellenar ATTR1..5/NUM desde el SKU.
     FCalcularAtributosAlLeer: Boolean;
@@ -306,6 +308,8 @@ type
     // Post + ApplyUpdates de la linea en edicion y de los cambios del
     // cdsLineas aun no aplicados (FZ-ISSUE-079).
     procedure GrabarLineasPendientes;
+    procedure AplicarLineasPendientes;
+    procedure AplicarCambiosDiferidos; override;
     // Devuelve las líneas con sobrante sin PMP en el almacén a las que se
     // ha propuesto el coste conocido del SKU (FZ-ISSUE-619).
     function RecalcularTeorico: Integer;
@@ -500,6 +504,7 @@ begin
     cdsLineas.Close;
   end;
   FLineaEnEdicion := False;
+  FMaximaLineaConsultada := False;
   cdsLineas.Open;
   ForzarRequiredFalseEnCdsLineas;
   if (iRecNo > 0) and (iRecNo <= cdsLineas.RecordCount) then
@@ -736,6 +741,9 @@ end;
 procedure TdmInventarios.SetClavesActivas(const AEmpresa, AAlmacen, ASerie,
   ANumero: string);
 begin
+  if (FCodigoEmpresa <> AEmpresa) or (FCodigoAlmacen <> AAlmacen) or
+     (FSerie <> ASerie) or (FNumero <> ANumero) then
+    FMaximaLineaConsultada := False;
   FCodigoEmpresa := AEmpresa;
   FCodigoAlmacen := AAlmacen;
   FSerie         := ASerie;
@@ -977,6 +985,29 @@ begin
         raise Exception.Create(SErrorCabeceraInventarioNoEncontrada);
       iNuevaLinea := qry.FieldByName('NV').AsInteger + 1;
       qry.Close;
+      // Una consulta por carga, no por alta: evita recorrer todas las
+      // líneas en cada inserción de una importación grande. El contador
+      // de cabecera continúa reservándose con FOR UPDATE en cada alta.
+      if not FMaximaLineaConsultada then
+      begin
+        qry.SQL.Text :=
+          'SELECT COALESCE(MAX(CAST(LINEA_INVLIN AS UNSIGNED)), 0) ' +
+          'AS ULTIMA FROM fza_inventarios_lineas ' +
+          'WHERE CODIGO_EMP_INVLIN = :EMPRESA ' +
+          'AND CODIGO_ALM_INVLIN = :ALMACEN ' +
+          'AND SERIE_INV_INVLIN = :SERIE ' +
+          'AND NUMERO_INV_INVLIN = :NUMERO';
+        qry.ParamByName('EMPRESA').AsString := FCodigoEmpresa;
+        qry.ParamByName('ALMACEN').AsString := FCodigoAlmacen;
+        qry.ParamByName('SERIE').AsString := FSerie;
+        qry.ParamByName('NUMERO').AsString := FNumero;
+        qry.Open;
+        FMaximaLineaPersistida := qry.FieldByName('ULTIMA').AsInteger;
+        FMaximaLineaConsultada := True;
+        qry.Close;
+      end;
+      if iNuevaLinea <= FMaximaLineaPersistida then
+        iNuevaLinea := FMaximaLineaPersistida + 1;
       qry.SQL.Text :=
         'UPDATE fza_inventarios ' +
         '   SET CONTADOR_LINEAS_INV = :NUEVO ' +
@@ -1470,7 +1501,7 @@ begin
   if not FAplicacionLineasDiferida then
   begin
     if cdsLineas.ChangeCount > 0 then
-      cdsLineas.ApplyUpdates(0);
+      AplicarLineasPendientes;
   end;
 end;
 
@@ -1524,7 +1555,7 @@ procedure TdmInventarios.cdsLineasAfterDelete(DataSet: TDataSet);
 begin
   // Persistir la eliminacion en BBDD (mismo patron que AfterPost).
   if cdsLineas.ChangeCount > 0 then
-    cdsLineas.ApplyUpdates(0);
+    AplicarLineasPendientes;
 end;
 
 procedure TdmInventarios.cdsLineasAfterApplyUpdates(Sender: TObject;
@@ -1971,7 +2002,7 @@ begin
   begin
     if cdsLineas.State in [dsInsert, dsEdit] then
     begin
-      if (Trim(cdsLineas.FieldByName('CODIGO_ART_INVLIN').AsString) = '') or
+      if (Trim(cdsLineas.FieldByName('CODIGO_ART_INVLIN').AsString) = '') and
          (Trim(cdsLineas.FieldByName(
            'CODIGO_UNIDAD_INVLIN').AsString) = '') then
         cdsLineas.Cancel
@@ -1979,8 +2010,14 @@ begin
         cdsLineas.Post;
     end;
     if cdsLineas.ChangeCount > 0 then
-      cdsLineas.ApplyUpdates(0);
+      AplicarLineasPendientes;
   end;
+end;
+
+procedure TdmInventarios.AplicarCambiosDiferidos;
+begin
+  inherited;
+  GrabarLineasPendientes;
 end;
 
 procedure TdmInventarios.EjecutarSPActualizarTeorico;
@@ -2419,7 +2456,7 @@ begin
         end;
         qry.Next;
       end;
-      cdsLineas.ApplyUpdates(0);
+      AplicarLineasPendientes;
     finally
       cdsLineas.EnableControls;
     end;
@@ -2491,7 +2528,7 @@ begin
         end;
         qry.Next;
       end;
-      cdsLineas.ApplyUpdates(0);
+      AplicarLineasPendientes;
     finally
       cdsLineas.EnableControls;
     end;
@@ -2560,7 +2597,7 @@ begin
         end;
         qry.Next;
       end;
-      cdsLineas.ApplyUpdates(0);
+      AplicarLineasPendientes;
     finally
       cdsLineas.EnableControls;
     end;
@@ -2640,7 +2677,7 @@ begin
         cdsLineas.Post;
         qry.Next;
       end;
-      cdsLineas.ApplyUpdates(0);
+      AplicarLineasPendientes;
     finally
       cdsLineas.EnableControls;
     end;
@@ -2748,7 +2785,7 @@ begin
         end;
         if Result > 0 then
         begin
-          cdsLineas.ApplyUpdates(0);
+          AplicarLineasPendientes;
         end;
       finally
         cdsLineas.EnableControls;
@@ -2904,6 +2941,17 @@ begin
     raise EDatabaseError.CreateFmt(
       SErrorAplicarImportacionInventario,
       [AErrores]);
+end;
+
+procedure TdmInventarios.AplicarLineasPendientes;
+begin
+  if cdsLineas.Active and (cdsLineas.ChangeCount > 0) then
+  begin
+    ComprobarErroresAplicacionLineas(cdsLineas.ApplyUpdates(0));
+    // Ningún llamador puede anunciar éxito ni regularizar con un delta
+    // que el proveedor no haya confirmado.
+    ComprobarErroresAplicacionLineas(cdsLineas.ChangeCount);
+  end;
 end;
 
 procedure TdmInventarios.ListarAlmacenesRecuento(const AEmpresa: string;
@@ -3082,8 +3130,7 @@ end;
 procedure TdmInventarios.ConfirmarImportacionLineas;
 begin
   try
-    ComprobarErroresAplicacionLineas(
-      cdsLineas.ApplyUpdates(0));
+    AplicarLineasPendientes;
     if FTransaccionImportacionLineas and
        ConexionEscritura.InTransaction then
       ConexionEscritura.Commit;
@@ -3404,8 +3451,7 @@ begin
         end;
       end;
       if AAplicarCambios then
-        ComprobarErroresAplicacionLineas(
-          cdsLineas.ApplyUpdates(0));
+        AplicarLineasPendientes;
     finally
       cdsLineas.EnableControls;
     end;

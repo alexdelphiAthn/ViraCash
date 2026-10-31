@@ -536,6 +536,7 @@
                 Properties.Items.Strings = (
                   'ESTANDAR'
                   'TARAS'
+                  'TALLER'
                   'DEP'#211'SITO'
                   'TR'#193'NSITO')
                 TabOrder = 5
@@ -606,8 +607,8 @@
                 Left = 360
                 Top = 41
                 Hint = 
-                  'Furgoneta o agencia que lleva cargas de varias empresas: la ' +
-                  'mercanc'#237'a en ruta sigue siendo de la empresa que la carga'
+                  'Permite compartir un almacén de tránsito o taller entre ' +
+                  'empresas. Las prendas conservan la empresa de su venta.'
                 Caption = 'Compartido entre empresas'
                 DataBinding.DataField = 'ESCOMPARTIDO_ALM'
                 DataBinding.DataSource = dsTablaG

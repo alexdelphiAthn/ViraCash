@@ -173,6 +173,7 @@ type
     procedure CrearFiltroModalidad;
     procedure CrearBotonesReparacion;
     procedure CrearFaseReparacion;
+    procedure MedidasInstalacionClick(Sender: TObject);
     procedure CrearPestanasReparacion;
     procedure CrearPanelesReparacion;
     procedure LeerInterruptores;
@@ -200,6 +201,7 @@ type
 implementation
 
 uses
+  inMtoModalTrabajoCortina, inLibPermisosIntf,
   inMtoModalAvisoReparacion, inLibCorreoReparaciones,
   inLibMensajesVcl,
   inLibMsgGarantias, inLibMsgReparaciones, inLibReparacionesIntf,
@@ -1188,6 +1190,8 @@ end;
 // Datos de la reparación; sus líneas y el presupuesto van en la pestaña
 // Trabajos, que tiene la altura de la pantalla.
 procedure TfrmMtoGarantiasReclamaciones.CrearFaseReparacion;
+var
+  oBoton: TcxButton;
 begin
   tsReparacion := CrearPestana(SCaptionFaseReparacion);
   txtModalidadFicha := CrearTextoLibre(tsReparacion, SRotuloModalidad, 0);
@@ -1210,6 +1214,29 @@ begin
     0, 5, False);
   CrearTexto(tsReparacion, SRotuloNumeroCobroReparacion, 'NUMERO_COBRO_GAR',
     1, 5, False);
+  oBoton := TcxButton.Create(Self);
+  oBoton.Parent := tsReparacion;
+  oBoton.Caption := SMedidasCita;
+  oBoton.SetBounds(EscalarDpi(12),EscalarDpi(230),EscalarDpi(220),
+    EscalarDpi(32));
+  oBoton.OnClick := MedidasInstalacionClick;
+end;
+
+procedure TfrmMtoGarantiasReclamaciones.MedidasInstalacionClick(
+  Sender: TObject);
+begin
+  if PuedeAccionMto(apmModificar) and ReclamacionAbierta then
+  begin
+    if ActualizarRegistroEnEdicion(dmmGarantias.unqryTablaG) then
+      btnGrabarClick(Sender);
+    if dmmGarantias.unqryTablaG.State=dsBrowse then
+    begin
+      TfrmModalTrabajoCortina.EditarOrden(Self,
+        dmmGarantias.unqryTablaG.Connection,IdActual,
+        dmmGarantias.IdentidadSesion.Usuario);
+      Refrescar(IdActual);
+    end;
+  end;
 end;
 
 procedure TfrmMtoGarantiasReclamaciones.CrearPestanasReparacion;

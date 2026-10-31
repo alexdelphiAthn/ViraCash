@@ -1179,14 +1179,15 @@ begin
   sUniones := '';
   if AContexto.Modo = mcSesionTarifa then
   begin
-    // Una fila general y los SKU con precio propio en la tarifa destino.
+    // Una fila general y las claves propias de origen y destino. Una
+    // tarifa destino vacía debe conservar las tallas y SKU del origen.
     // UNION elimina repeticiones de un SKU con varios periodos de precio.
     sUniones :=
       'JOIN (SELECT CODIGO_ART_ART AS ARTICULO, ' +
       ''''' AS SKU FROM fza_articulos UNION ' +
       'SELECT CODIGO_ART_ARTTAR, CODIGO_UNIDAD_ARTTAR ' +
       'FROM fza_articulos_tarifas ' +
-      'WHERE CODIGO_TAR_ARTTAR = :P_TAR_DEST_SKU ' +
+      'WHERE CODIGO_TAR_ARTTAR IN (:P_TAR_DEST_SKU, :P_TAR_ORIG_SKU) ' +
       'AND ESACTIVO_ARTTAR = ''S'' ' +
       'AND COALESCE(CODIGO_UNIDAD_ARTTAR, '''') <> '''') U ' +
       'ON U.ARTICULO = a.CODIGO_ART_ART';
@@ -1319,6 +1320,7 @@ begin
   Entero('P_TARC_CHK', AContexto.CodigoSesionTarifa);
   Entero('P_TARC_EXCL', AContexto.CodigoSesionTarifa);
   Cadena('P_TAR_ORIG', AContexto.TarifaOrigenSesion);
+  Cadena('P_TAR_ORIG_SKU', AContexto.TarifaOrigenSesion);
   Cadena('P_TAR_DEST_SKU', AContexto.TarifaDestinoSesion);
   Cadena('P_TAR_DEST_SAL', AContexto.TarifaDestinoSesion);
   Cadena('P_TAR_DEST_FIN', AContexto.TarifaDestinoSesion);

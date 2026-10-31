@@ -72,6 +72,7 @@ type
   TTipoServicio = record
     Codigo: string;
     Categoria: string;
+    ClaseServicio: string;
     Descripcion: string;
     Modalidad: string;
     EsPresupuesto: Boolean;
@@ -86,11 +87,30 @@ type
     Proveedor: string;
   end;
 
+  TDatosTrabajoReparacion = record
+    Clase: string;
+    AlturaMedida: Double;
+    LargoFinal: Double;
+    Acabado: string;
+    Direccion: string;
+    Cita: TDateTime;
+  end;
+
+  TPrendaVentaReparacion = record
+    LineaServicio: string;
+    UnidadServicio: Integer;
+    LineaPrenda: string;
+    UnidadPrenda: Integer;
+    Descripcion: string;
+    Trabajo: TDatosTrabajoReparacion;
+  end;
+
   TVentaServiciosReparacion = record
     Serie, Numero, Empresa, Almacen, Usuario: string;
     Cliente, NombreCliente, Telefono, Email: string;
     Fecha: TDateTime;
     Cobrada: Boolean;
+    Prendas: TArray<TPrendaVentaReparacion>;
   end;
 
   TArticuloServicioReparacion = record

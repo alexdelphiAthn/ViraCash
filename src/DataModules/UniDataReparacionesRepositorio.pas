@@ -127,7 +127,7 @@ implementation
 
 uses
   System.Generics.Collections, Data.DB, inLibGarantias,
-  inLibMsgReparaciones, UniDataReparacionesFases;
+  inLibMsgReparaciones, UniDataReparacionesFases, UniDataTrabajosCortinas;
 
 const
   SQL_ALTA_REPARACION =
@@ -244,8 +244,10 @@ var
   oLista: TList<TTipoServicio>;
   Tipo: TTipoServicio;
 begin
+  ExigirEsquemaTrabajosCortinas(FConexion);
   oConsulta := NuevaConsulta(
     'SELECT T.CODIGO_GARTIP, T.CATEGORIA_GARTIP, T.DESCRIPCION_GARTIP, ' +
+    '       T.CLASE_SERVICIO_GARTIP, ' +
     '       T.MODALIDAD_GARTIP, T.ESPRESUPUESTO_GARTIP, ' +
     '       T.PRECIO_CLIENTE_GARTIP, T.PRECIO_COSTE_GARTIP, ' +
     '       T.CANTIDAD_GARTIP, T.MODO_COBRO_GARTIP, T.DIAS_PLAZO_GARTIP, ' +
@@ -262,6 +264,8 @@ begin
     while not oConsulta.Eof do
     begin
       Tipo.Codigo := oConsulta.FieldByName('CODIGO_GARTIP').AsString;
+      Tipo.ClaseServicio :=
+        oConsulta.FieldByName('CLASE_SERVICIO_GARTIP').AsString;
       Tipo.Categoria := oConsulta.FieldByName('CATEGORIA_GARTIP').AsString;
       Tipo.Descripcion :=
         oConsulta.FieldByName('DESCRIPCION_GARTIP').AsString;

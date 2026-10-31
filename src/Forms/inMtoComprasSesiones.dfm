@@ -2428,7 +2428,6 @@
     end
     object actIrAlbaranesCompra: TAction
       Caption = 'Ir a Albaranes de Compra'
-      ShortCut = 24641
     end
     object actIrPedidosCompra: TAction
       Caption = 'Ir a Pedidos de Compra'

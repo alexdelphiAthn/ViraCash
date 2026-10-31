@@ -131,6 +131,7 @@ type
 implementation
 
 uses
+  inLibTrabajosCortinas,
   Winapi.Windows, System.UITypes, System.Variants, Vcl.Dialogs, Vcl.Forms,
   cxContainer, cxGridLevel, cxEdit, cxCheckBox, cxImageComboBox, cxCalendar, cxCurrencyEdit, cxButtonEdit,
   inLibColumnasDocumento,
@@ -698,6 +699,9 @@ begin
   CrearColumna(oVista, 'CODIGO_GARTIP', SColTipoCodigo, 100);
   CrearColumna(oVista, 'CATEGORIA_GARTIP', SColTipoCategoria, 100);
   CrearColumna(oVista, 'DESCRIPCION_GARTIP', SColTipoDescripcion, 200);
+  AgregarOpciones(CrearColumna(oVista,'CLASE_SERVICIO_GARTIP',
+    SClaseServicio,140),[CLASE_SERVICIO_TALLER,CLASE_SERVICIO_ALTURA,
+    CLASE_SERVICIO_INSTALACION],TextoClaseServicio);
   AgregarOpciones(CrearColumna(oVista, 'MODALIDAD_GARTIP', SColModalidad,
     120), [MODALIDAD_REPARACION_PAGO, MODALIDAD_REPARACION_GARANTIA,
     MODALIDAD_REPARACION_CORTESIA], TextoModalidadReparacion);

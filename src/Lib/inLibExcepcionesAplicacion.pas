@@ -282,7 +282,11 @@ begin
     begin
     FGestionandoExcepcion := True;
     try
-    if EsValidacionAplicacionEsperada(E) then
+    if E is EClipboardException then
+      // Un pegado puede coincidir con otro proceso que tiene abierto el
+      // portapapeles. Se omite ese intento, sin diálogo técnico ni envío.
+      RegistrarValidacionSegura(Sender, E)
+    else if EsValidacionAplicacionEsperada(E) then
     begin
       RegistrarValidacionSegura(Sender, E);
       MostrarValidacion(E);

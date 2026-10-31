@@ -221,8 +221,16 @@ begin
 end;
 
 procedure TfrmMtoAlmacenes.ResetForm;
+var
+  oTipos: TcxComboBoxProperties;
 begin
   inherited;
+  if cxdbtxtdtTIPO_USO_ALM.Properties.Items.IndexOf('TALLER') < 0 then
+    cxdbtxtdtTIPO_USO_ALM.Properties.Items.Add('TALLER');
+  dbcGrdDBTabPrinTIPO_USO_ALM.PropertiesClass := TcxComboBoxProperties;
+  oTipos := dbcGrdDBTabPrinTIPO_USO_ALM.Properties as TcxComboBoxProperties;
+  oTipos.Items.Assign(cxdbtxtdtTIPO_USO_ALM.Properties.Items);
+  oTipos.DropDownListStyle := lsFixedList;
 end;
 
 initialization

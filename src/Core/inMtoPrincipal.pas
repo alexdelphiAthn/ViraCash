@@ -446,6 +446,11 @@ type
       ALogBuffer: TStringList);
   end;
 
+// Los atajos de apertura del menú principal tienen prioridad sobre las
+// acciones locales que comparten la combinación.
+function EjecutarAtajoApertura(AMenu: TMainMenu;
+  AAtajo: TShortCut): Boolean;
+
 implementation
 
 uses
@@ -2026,10 +2031,10 @@ var
   Disponible: Boolean;
 begin
   Result := False;
-  // La VCL descarta AltGr antes de buscar el atajo. Con Mayús, estas
-  // combinaciones están reservadas expresamente para abrir pantallas.
-  if (AAtajo and (scCtrl or scAlt or scShift)) =
-     (scCtrl or scAlt or scShift) then
+  // Ctrl+Mayús del menú es una apertura global, también sin Alt:
+  // «Ir a documento» de Pedidos/Sesiones no debe consumir Ctrl+Mayús+A.
+  // Se conserva el tratamiento de Ctrl+Alt+Mayús frente a AltGr.
+  if (AAtajo and (scCtrl or scShift)) = (scCtrl or scShift) then
   begin
     Elemento := AMenu.FindItem(AAtajo, fkShortCut);
     if Assigned(Elemento) then

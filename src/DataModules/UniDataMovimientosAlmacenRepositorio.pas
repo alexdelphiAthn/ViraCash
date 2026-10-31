@@ -37,7 +37,7 @@ uses
   System.SysUtils,
   inLibFiltroUsuario,
   inLibPrestaShopColaSenal,
-  UniDataMovimientosAlmacenRecalculo,
+  UniDataMovimientosAlmacenRecalculo, UniDataMovimientosLote,
   UniDataValoresAutomaticosRepositorio;
 
 const
@@ -446,6 +446,7 @@ var
   ConsultaFecha: TUniQuery;
   Numero: string;
   Procedimiento: TUniStoredProc;
+  oConLote: TUniStoredProc;
 begin
   if AMovimiento.Cantidad = 0 then
     raise EArgumentException.Create(
@@ -457,14 +458,17 @@ begin
       'MV',
       AMovimiento.Usuario);
   Procedimiento := TUniStoredProc.Create(nil);
+  oConLote := TUniStoredProc.Create(nil);
   try
     Procedimiento.Connection := FConexion;
     Procedimiento.StoredProcName :=
       'PRC_FZA_MOVIMIENTOS_ALMACEN_INSERT';
     CrearParametros(Procedimiento);
     AsignarParametros(Procedimiento, AMovimiento, Numero);
-    Procedimiento.ExecProc;
+    EjecutarMovimientoConLote(Procedimiento, oConLote, AMovimiento.Lote,
+      AMovimiento.FechaCaducidad);
   finally
+    oConLote.Free;
     Procedimiento.Free;
   end;
   if AMovimiento.Fecha <> 0 then

@@ -63,6 +63,7 @@ const
 implementation
 
 uses
+  UniDataReparacionesPrendas,
   System.SysUtils, inLibMsgReparaciones;
 
 constructor TDatosFasesReparacion.CreateDatos(AOwner: TComponent;
@@ -353,6 +354,7 @@ var
   oConsulta: TUniQuery;
   rCambio: TCambioFaseReparacion;
   sAnterior: string;
+  oPrendas: TDatosPrendasReparacion;
 begin
   rCambio := Default(TCambioFaseReparacion);
   rCambio.Reparacion := AReparacion;
@@ -376,6 +378,12 @@ begin
     oConsulta.ParamByName('ID').AsLargeInt := AReparacion;
     oConsulta.ParamByName('NUEVA').AsString := FASE_ENTREGADA_CLIENTE;
     oConsulta.Execute;
+    oPrendas := TDatosPrendasReparacion.Create(FConexion);
+    try
+      oPrendas.Entregar(AReparacion,AUsuario);
+    finally
+      FreeAndNil(oPrendas);
+    end;
   finally
     FreeAndNil(oConsulta);
   end;

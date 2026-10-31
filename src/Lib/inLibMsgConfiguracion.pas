@@ -642,7 +642,7 @@ resourcestring
     '¿Desea borrarla de todas formas?';
   // FZ-ISSUE-717: la marca solo tiene sentido en una furgoneta o agencia.
   SErrorCompartidoSoloTransito =
-    'Solo un almacén de tránsito puede ser compartido entre empresas: ' +
+    'Solo los almacenes de tránsito o taller pueden compartirse: ' +
     'desmarque «Compartido entre empresas» o cambie el tipo de uso.';
 implementation
 

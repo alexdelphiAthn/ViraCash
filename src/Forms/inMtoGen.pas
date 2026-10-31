@@ -276,6 +276,7 @@ type
     // crea el suyo en código la pide antes de usar ConexionTrabajo
     // (FZ-ISSUE-536).
     procedure AsegurarConexionTrabajo;
+    procedure PrepararGuardado; virtual;
   public
     tdmDataModule:TObject;
     sDataModuleName:string;
@@ -497,6 +498,10 @@ begin
   CargarPerfilesParticulares;
 end;
 
+procedure TfrmMtoGen.PrepararGuardado;
+begin
+end;
+
 procedure TfrmMtoGen.btnGrabarClick(Sender: TObject);
 var
   Resultado: TResultadoGuardadoMtoGen;
@@ -508,6 +513,7 @@ begin
   inherited;
   if tdmDataModule <> nil then
   begin
+    PrepararGuardado;
     FGuardianBorrado.ComprobarPermisoGrabar(dsTablaG.State);
     if FCasoUsoGuardado = nil then
       FCasoUsoGuardado := CrearCasoUsoGuardadoMtoGenUniDAC(
@@ -2655,6 +2661,8 @@ begin
     ((dsTablaG.State = dsInsert) and
      PuedeAccionMto(apmInsertar)) or
     ((dsTablaG.State = dsEdit) and
+     PuedeAccionMto(apmModificar)) or
+    ((dsTablaG.State = dsBrowse) and HayEdicionesPendientes and
      PuedeAccionMto(apmModificar));
   TAction(Sender).Enabled :=
     Assigned(dsTablaG.DataSet) and
@@ -2668,6 +2676,8 @@ begin
      (((dsTablaG.State = dsInsert) and
        PuedeAccionMto(apmInsertar)) or
       ((dsTablaG.State = dsEdit) and
+       PuedeAccionMto(apmModificar)) or
+      ((dsTablaG.State = dsBrowse) and HayEdicionesPendientes and
        PuedeAccionMto(apmModificar))) then
     btnGrabarClick(Sender);
 end;

@@ -553,6 +553,7 @@ type
       message WM_REORDENAR_LINEAS_SESION;
   public
     function CloseQuery: Boolean; override;
+    function CancelarEdicionConEscape: Boolean; override;
   protected
     procedure AsegurarColumnaVariacionLinea;
     // Interceptamos a nivel de form (KeyPreview heredado = True) para
@@ -598,6 +599,7 @@ uses
   inLibComprasSesionesIntf,
   inLibComprasSesionesReglas,
   inLibDatasets,
+  inLibEnterComoTabDesplegables,
   inLibMtoGenAplicacionIntf,
   UniDataGen,
   inMtoComprasSesionesPresentacionMaterializacion,
@@ -2316,11 +2318,16 @@ begin
   inherited;
   // BeforeInsert se encarga de preparar el master (Post si pendiente,// Edit si
   // Browse,Abort si IsEmpty).
-  LogSes('btnAddLineaClick: detail.Insert');
-  Dmm.unqrySesionLin.Insert;
+  LogSes('btnAddLineaClick: navegador de líneas.Append');
+  // Mismo camino que el «+» del navegador: activar antes la rejilla para
+  // que el cambio de foco del botón no descarte la inserción nueva.
+  if cxgrdLineas.CanFocus then
+    cxgrdLineas.SetFocus;
+  tvLineas.DataController.Append;
   EditarModeloLineaNuevaDiferido;
   LogSes(Format('btnAddLineaClick FIN. LINEA_SESLIN=%d',
-                [Dmm.unqrySesionLin.FieldByName('LINEA_SESLIN').AsInteger]));
+                [tvLineas.DataController.DataSet.FieldByName(
+                  'LINEA_SESLIN').AsInteger]));
 end;
 
 // El ShowEdit del AfterInsert llega antes de que el grid tenga la fila
@@ -2333,7 +2340,8 @@ begin
     procedure
     begin
       if (not (csDestroying in ComponentState)) and
-         (Dmm.unqrySesionLin.State = dsInsert) and
+         Assigned(tvLineas.DataController.DataSet) and
+         (tvLineas.DataController.DataSet.State = dsInsert) and
          cxgrdLineas.CanFocus then
       begin
         cxgrdLineas.SetFocus;
@@ -2585,11 +2593,37 @@ begin
   end;
 end;
 
+function TfrmMtoComprasSesiones.CancelarEdicionConEscape: Boolean;
+begin
+  Result := Assigned(cxgrdLineas) and Assigned(tvLineas) and
+    ((Screen.ActiveControl = cxgrdLineas) or
+     cxgrdLineas.ContainsControl(Screen.ActiveControl)) and
+    tvLineas.Controller.EditingController.IsEditing and
+    not EsDesplegableAbierto(Screen.ActiveControl);
+  if Result then
+    tvLineas.Controller.EditingController.HideEdit(False);
+end;
+
 procedure TfrmMtoComprasSesiones.KeyDown(var Key: Word; Shift: TShiftState);
 begin
   // KeyPreview heredado = True: este KeyDown corre antes que la
   // navegacion Enter->Tab del grid y que el FormKeyDown base.
-  if (Key = VK_F1) and (Shift = []) then
+  if (Key = VK_ESCAPE) and (Shift = []) and
+     Assigned(cxgrdLineas) and
+     ((Screen.ActiveControl = cxgrdLineas) or
+      cxgrdLineas.ContainsControl(Screen.ActiveControl)) then
+  begin
+    // El desplegable recibe su Esc. Fuera de él se cancela sólo la celda,
+    // sin llegar al Escape global que devuelve la pantalla a la lista.
+    if not EsDesplegableAbierto(Screen.ActiveControl) then
+    begin
+      if CancelarEdicionConEscape then
+        Key := 0
+      else
+        inherited KeyDown(Key, Shift);
+    end;
+  end
+  else if (Key = VK_F1) and (Shift = []) then
   begin
     //F1 -> coste y PVP por talla de la línea activa (FZ-ISSUE-638)
     Key := 0;

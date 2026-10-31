@@ -68,6 +68,9 @@ type
   end;
   TCoordinadorCierreVentaCajaVcl = class
   private
+    class function PedirContactoReparacion(
+      const AContexto: TContextoCierreVentaCajaVcl;
+      AFormulario: TfrmMtoCajaFaseCobro): Boolean; static;
     class function GrabarVenta(
       const AContexto: TContextoCierreVentaCajaVcl;
       const ASolicitud: TSolicitudCierreVenta;
@@ -137,6 +140,9 @@ function SeleccionarVentaOrigenCajaVcl(
 implementation
 
 uses
+  UniDataReparacionesVentaTpv, inLibMsgReparaciones,
+  inMtoCajaPrendasReparacionVcl,
+  inLibCorreoValidacion,
   inLibFormatoDocumento, UniDataFormatoDocumentoRepositorio,
   inLibMsgComun,
   System.UITypes, Datasnap.DBClient, Vcl.Dialogs,
@@ -304,6 +310,67 @@ begin
   end;
 end;
 
+function ValidarContactoReparacion(const AValores: array of string): Boolean;
+begin
+  Result := (Trim(AValores[0]) <> '') and
+    (Length(Trim(AValores[0])) <= 200) and (Trim(AValores[1]) <> '') and
+    (Length(Trim(AValores[1])) <= 40);
+  if not Result then
+    ShowMessage_fza(SErrorContactoReparacion)
+  else
+  begin
+    Result := (Trim(AValores[2]) = '') or
+      ((Length(Trim(AValores[2])) <= 200) and
+       EmailDocumentoValido(Trim(AValores[2])));
+    if not Result then
+      ShowMessage_fza(SErrorCorreoContactoReparacion);
+  end;
+end;
+
+class function TCoordinadorCierreVentaCajaVcl.PedirContactoReparacion(
+  const AContexto: TContextoCierreVentaCajaVcl;
+  AFormulario: TfrmMtoCajaFaseCobro): Boolean;
+var
+  oReparaciones: TReparacionesVentaTpv;
+  Valores: array[0..2] of string;
+begin
+  Result := True;
+  if AContexto.TipoRectificativa = trcNinguna then
+  begin
+    oReparaciones := TReparacionesVentaTpv.Create(AContexto.Conexion);
+    try
+      if oReparaciones.HayServicios(AContexto.Lineas) then
+      begin
+        Valores[0] := AContexto.Cabecera.FieldByName(
+          'RAZON_SOCIAL_CLIENTE_FAC').AsString;
+        Valores[1] := AContexto.Cabecera.FieldByName(
+          'MOVIL_CLIENTE_FAC').AsString;
+        Valores[2] := AContexto.Cabecera.FieldByName(
+          'EMAIL_CLIENTE_FAC').AsString;
+        Result := InputQuery_fza(STituloContactoReparacion,
+          [SNombreContactoReparacion, STelefonoContactoReparacion,
+           SCorreoContactoReparacion], Valores,
+          function(const AValores: array of string): Boolean
+          begin
+            Result := ValidarContactoReparacion(AValores);
+          end);
+        if Result then
+          Result := ElegirPrendasReparacion(AContexto.Propietario,
+            AContexto.Conexion,AContexto.Lineas,AContexto.CodigoEmpresa,
+            AContexto.CodigoAlmacen,AFormulario.DatosCobro.PrendasReparacion);
+        if Result then
+        begin
+          AFormulario.DatosCobro.NombreReparacion := Trim(Valores[0]);
+          AFormulario.DatosCobro.TelefonoReparacion := Trim(Valores[1]);
+          AFormulario.DatosCobro.EmailReparacion := Trim(Valores[2]);
+        end;
+      end;
+    finally
+      FreeAndNil(oReparaciones);
+    end;
+  end;
+end;
+
 class function TCoordinadorCierreVentaCajaVcl.PrepararFaseCobro(
   const AContexto: TContextoCierreVentaCajaVcl;
   out AFormulario: TfrmMtoCajaFaseCobro;
@@ -343,7 +410,9 @@ begin
       AContexto.Propietario,
       AContexto.DependenciasFaseCobro);
     ConfigurarFaseCobro(AContexto, AFormulario, ATotales);
-    Result := AFormulario.ShowModal = mrOk;
+    Result := PedirContactoReparacion(AContexto, AFormulario);
+    if Result then
+      Result := AFormulario.ShowModal = mrOk;
     if not Result then
       AFormulario.DeshacerTotalesFactura;
   end;

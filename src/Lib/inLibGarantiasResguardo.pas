@@ -54,6 +54,8 @@ type
     Modalidad: string;
     Objeto: string;
     Detalles: string;
+    ClaseServicio: string;
+    DetallesServicio: string;
     FechaPrevista: TDateTime;
     ModoCobro: string;
     Importe: Currency;
@@ -102,13 +104,20 @@ uses
   System.SysUtils, System.Classes,
   inLibGarantias, inLibMsgGarantias, inLibMsgComun, inLibReparaciones,
   inLibMsgReparaciones, inLibReparacionesDiseno,
-  inLibFTicket, inLibTicketTextoFR;
+  inLibFTicket, inLibTicketTextoFR, inLibTrabajosCortinas;
 
 function FechaResguardo(AFecha: TDateTime): string;
 begin
   Result := '';
   if AFecha > 0 then
     Result := FormatDateTime('dd/mm/yyyy', AFecha);
+end;
+
+function FechaHoraResguardo(AFecha: TDateTime): string;
+begin
+  Result := '';
+  if AFecha > 0 then
+    Result := FormatDateTime('dd/mm/yyyy hh:nn', AFecha);
 end;
 
 procedure AgregarDato(ALineas: TStrings;
@@ -190,9 +199,9 @@ begin
       AgregarDato(stLineas, SCaptionGrupoReclamacion + ':',
         IntToStr(ADatos.Numero));
     AgregarDato(stLineas, SCaptionGarantiaFechaReclamacion,
-      FechaResguardo(ADatos.Fecha));
+      FechaHoraResguardo(ADatos.Fecha));
     AgregarDato(stLineas, SCaptionGarantiaFechaRecepcion,
-      FechaResguardo(ADatos.Recepcion));
+      FechaHoraResguardo(ADatos.Recepcion));
     AgregarDato(stLineas, SRotuloEntregaAproximada,
       FechaResguardo(ADatos.FechaPrevista));
     AgregarDato(stLineas, SCaptionGarantiaClienteFicha, ADatos.Cliente);
@@ -294,17 +303,28 @@ var
 begin
   ADiseno.Sujetos(BloqueEmisor(ADatos), BloqueCliente(ADatos));
   ADiseno.Seccion(SImpresoAparato, BloqueAparato(ADatos));
-  ADiseno.Seccion(SImpresoMotivo, ADatos.Motivo);
+  if (ADatos.ClaseServicio=CLASE_SERVICIO_ALTURA) or
+     (ADatos.ClaseServicio=CLASE_SERVICIO_INSTALACION) then
+    ADiseno.Seccion(STrabajoSolicitado,ADatos.Motivo)
+  else
+    ADiseno.Seccion(SImpresoMotivo, ADatos.Motivo);
+  if ADatos.ClaseServicio=CLASE_SERVICIO_INSTALACION then
+    ADiseno.Seccion(SInstalacionSeccion,ADatos.DetallesServicio)
+  else
+    ADiseno.Seccion(SMedidasSeccion,ADatos.DetallesServicio);
   ADiseno.Seccion(SImpresoEstadoRecepcion,
     Trim(ADatos.Detalles + sLineBreak + ADatos.Observaciones));
   stTexto := TStringList.Create;
   try
-    AgregarDato(stTexto, SCaptionGarantiaFechaRecepcion,
-      FechaResguardo(ADatos.Recepcion));
-    AgregarDato(stTexto, SRotuloEntregaAproximada,
-      FechaResguardo(ADatos.FechaPrevista));
-    AgregarDato(stTexto, SCaptionGarantiaMedio,
-      TextoMedioGarantia(ADatos.Medio));
+    if ADatos.ClaseServicio<>CLASE_SERVICIO_INSTALACION then
+    begin
+      AgregarDato(stTexto, SCaptionGarantiaFechaRecepcion,
+        FechaHoraResguardo(ADatos.Recepcion));
+      AgregarDato(stTexto, SRotuloEntregaAproximada,
+        FechaResguardo(ADatos.FechaPrevista));
+      AgregarDato(stTexto, SCaptionGarantiaMedio,
+        TextoMedioGarantia(ADatos.Medio));
+    end;
     if EsReparacion(ADatos) then
     begin
       stTexto.Add(TextoModalidadReparacion(ADatos.Modalidad));
@@ -317,7 +337,10 @@ begin
   finally
     stTexto.Free;
   end;
-  ADiseno.Firmas(SImpresoAcuseRecepcion);
+  if ADatos.ClaseServicio=CLASE_SERVICIO_INSTALACION then
+    ADiseno.Firmas(SInstalacionAviso)
+  else
+    ADiseno.Firmas(SImpresoAcuseRecepcion);
 end;
 
 procedure ComponerAlbaran(ADiseno: TDisenoReparacion;
@@ -436,13 +459,23 @@ begin
     dAlto := 150;
   end;
   sReferencia := Format(SImpresoReferencia, [ADatos.Numero]);
-  sFecha := FechaResguardo(ADatos.Fecha);
+  if (ADatos.ClaseServicio=CLASE_SERVICIO_ALTURA) or
+     (ADatos.ClaseServicio=CLASE_SERVICIO_INSTALACION) then
+    sReferencia := Format(SOrdenTrabajoReferencia,[ADatos.Numero]);
+  sFecha := FechaHoraResguardo(ADatos.Fecha);
   if (ATipo = drAlbaran) and (ADatos.Entrega > 0) then
     sFecha := FechaResguardo(ADatos.Entrega);
   oDiseno := TDisenoReparacion.Create(AInforme, dAncho, dAlto,
     AFormato = frgTicket);
   try
     AInforme.ReportOptions.Name := TituloDocumentoReparacion(ATipo);
+    if ATipo=drRecepcion then
+    begin
+      if ADatos.ClaseServicio=CLASE_SERVICIO_INSTALACION then
+        AInforme.ReportOptions.Name := SOrdenInstalacion
+      else if ADatos.ClaseServicio=CLASE_SERVICIO_ALTURA then
+        AInforme.ReportOptions.Name := SOrdenAltura;
+    end;
     oDiseno.Cabecera(AInforme.ReportOptions.Name, sReferencia,
       Format(SImpresoFecha, [sFecha]));
     case ATipo of

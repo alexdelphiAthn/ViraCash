@@ -113,7 +113,7 @@ function LeerDatosSerieGarantia(
 implementation
 
 uses
-  UniDataReparacionesFases,
+  UniDataReparacionesFases, UniDataTrabajosCortinas,
   System.Variants, inLibReparaciones, inLibMsgGarantias, inLibMsgReparaciones, inLibErroresBBDD,
   UniDataReparacionesRepositorio;
 
@@ -389,12 +389,17 @@ end;
 function TdmGarantiasReclamaciones.DatosResguardo: TResguardoGarantia;
 var
   oConsulta: TUniQuery;
+  oDetalles: TDatosTrabajosCortinas;
 begin
   Result := Default(TResguardoGarantia);
   if unqryTablaG.IsEmpty then
     raise EValidacionBBDD.Create(SInfoSinReclamacion);
   Result.Numero := unqryTablaG.FieldByName('ID_GAR').AsLargeInt;
   Result.Fecha := unqryTablaG.FieldByName('FECHA_RECLAMACION_GAR').AsDateTime;
+  if not unqryTablaG.FieldByName('INSTANTE_ALTA').IsNull and
+     (Trunc(Result.Fecha) = Trunc(unqryTablaG.FieldByName(
+       'INSTANTE_ALTA').AsDateTime)) then
+    Result.Fecha := unqryTablaG.FieldByName('INSTANTE_ALTA').AsDateTime;
   Result.Recepcion := unqryTablaG.FieldByName('FECHA_RECEPCION_GAR').AsDateTime;
   Result.Cliente := unqryTablaG.FieldByName('NOMBRE_CLIENTE_GAR').AsString;
   if Trim(Result.Cliente) = '' then
@@ -447,6 +452,12 @@ begin
   end;
   CompletarImpreso(Result);
   TrabajosImpreso(Result);
+  oDetalles := TDatosTrabajosCortinas.Create(unqryTablaG.Connection);
+  try
+    oDetalles.CompletarResguardo(Result.Numero,Result);
+  finally
+    FreeAndNil(oDetalles);
+  end;
 end;
 
 function TdmGarantiasReclamaciones.DatosImpreso(

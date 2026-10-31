@@ -173,13 +173,15 @@ begin
     SEtiquetaCodigoPadre, True);
 end;
 
-// FZ-ISSUE-717: solo una furgoneta o agencia lleva cargas de varias
-// empresas; en una tienda la marca no significaría nada.
+// Tránsito y taller pueden custodiar unidades de varias empresas.
+// Una tienda de venta no admite la marca de almacén compartido.
 procedure TdmAlmacenes.ValidarTransitoCompartido(ADataSet: TDataSet);
 begin
   if SameText(ADataSet.FieldByName('ESCOMPARTIDO_ALM').AsString, 'S') and
      (not EsTipoUsoTransito(
-       ADataSet.FieldByName('TIPO_USO_ALM').AsString)) then
+       ADataSet.FieldByName('TIPO_USO_ALM').AsString)) and
+     (not SameText(ADataSet.FieldByName('TIPO_USO_ALM').AsString,
+       'TALLER')) then
     raise EValidacionBBDD.Create(SErrorCompartidoSoloTransito);
 end;
 

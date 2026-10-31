@@ -7,6 +7,18 @@ uses
     'src\Lib\inLibReparacionesEvidencias.pas',
   inLibReparacionesMovimientos in 'src\Lib\inLibReparacionesMovimientos.pas',
   UniDataReparacionesMovimientos in 'src\DataModules\UniDataReparacionesMovimientos.pas',
+  inLibTrabajosCortinas in
+    'src\Lib\inLibTrabajosCortinas.pas',
+  UniDataTrabajosCortinas in
+    'src\DataModules\UniDataTrabajosCortinas.pas',
+  inMtoModalTrabajoCortina in
+    'src\Modals\inMtoModalTrabajoCortina.pas',
+  UniDataReparacionesPrendas in
+    'src\DataModules\UniDataReparacionesPrendas.pas',
+  inMtoCajaPrendasReparacionVcl in
+    'src\Caja\Forms\inMtoCajaPrendasReparacionVcl.pas',
+  inMtoModalPrendaReparacion in
+    'src\Modals\inMtoModalPrendaReparacion.pas',
   UniDataReparacionesVentaTpv in
     'src\DataModules\UniDataReparacionesVentaTpv.pas',
   UniDataReparacionesArticuloServicio in

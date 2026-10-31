@@ -80,6 +80,7 @@ type
 implementation
 
 uses
+  UniDataTrabajosCortinas,
   System.SysUtils, System.Variants, inLibDatasets,
   UniDataReparacionesArticuloServicio,
   inLibMsgReparaciones, inLibErroresBBDD,
@@ -116,6 +117,7 @@ const
     ' ORDER BY Q.ID_GARLIQ DESC';
   SQL_TIPOS =
     'SELECT T.CODIGO_GARTIP, T.CATEGORIA_GARTIP, T.DESCRIPCION_GARTIP, ' +
+    '       T.CLASE_SERVICIO_GARTIP, ' +
     '       T.MODALIDAD_GARTIP, T.ESPRESUPUESTO_GARTIP, ' +
     '       T.PRECIO_CLIENTE_GARTIP, T.PRECIO_COSTE_GARTIP, ' +
     '       T.CANTIDAD_GARTIP, T.MODO_COBRO_GARTIP, T.DIAS_PLAZO_GARTIP, ' +
@@ -221,6 +223,7 @@ function TDatosPantallaReparaciones.TiposEditables: TDataSource;
 begin
   if not Assigned(FTipos) then
   begin
+    ExigirEsquemaTrabajosCortinas(FConexion);
     FTipos := NuevaConsulta(SQL_TIPOS);
     FTipos.KeyFields := 'CODIGO_GARTIP';
     FTipos.UpdatingTable := 'fza_garantias_tipos';
@@ -237,6 +240,7 @@ end;
 // Los mismos valores por defecto que fza_garantias_tipos.
 procedure TDatosPantallaReparaciones.TiposNewRecord(DataSet: TDataSet);
 begin
+  DataSet.FieldByName('CLASE_SERVICIO_GARTIP').AsString := 'TALLER';
   DataSet.FieldByName('CATEGORIA_GARTIP').AsString := 'GENERAL';
   DataSet.FieldByName('MODALIDAD_GARTIP').AsString :=
     MODALIDAD_REPARACION_PAGO;

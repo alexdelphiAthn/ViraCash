@@ -61,6 +61,8 @@ type
     TipoMovimiento: string;
     Cantidad: Double;
     CosteUnitario: Currency;
+    Lote: string;
+    FechaCaducidad: TDateTime;
     Usuario: string;
     Fecha: TDateTime;
   end;

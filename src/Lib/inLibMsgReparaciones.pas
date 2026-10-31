@@ -16,6 +16,51 @@ unit inLibMsgReparaciones;
 interface
 
 resourcestring
+  SClaseServicio = 'Clase de servicio';
+  SClaseTaller = 'Taller / reparación';
+  SClaseAltura = 'Arreglo de altura';
+  SClaseInstalacion = 'Instalación';
+  SMedidasCita = 'Medidas e instalación';
+  SAlturaMedida = 'Altura medida en casa (cm):';
+  SLargoFinal = 'Largo final de la cortina (cm):';
+  SAcabadoCortina = 'Instrucciones de acabado:';
+  SDireccionInstalacion = 'Dirección de instalación:';
+  SCitaInstalacion = 'Fecha y hora de la cita:';
+  SErrorMedidasCortina = 'Indique medidas mayores que cero y las ' +
+    'instrucciones de acabado.';
+  SErrorCitaInstalacion = 'Indique la dirección y la fecha y hora de la cita.';
+  SErrorClaseServicio = 'Seleccione una clase de servicio válida.';
+  SErrorDetalleCortina = 'Aplique la actualización ' +
+    '20261031_cortinas_medidas_instalacion.sql.';
+  SOrdenTrabajoReferencia = 'Orden de trabajo %d';
+  STrabajoSolicitado = 'Trabajo solicitado';
+  SOrdenInstalacion = 'Orden de instalación';
+  SOrdenAltura = 'Orden de taller · arreglo de altura';
+  SDetalleUnidad = 'Servicio, unidad %d';
+  SInstalacionAviso = 'Servicio a domicilio. Conserve esta orden para la cita.';
+  SMedidasSeccion = 'Medidas y acabado';
+  SInstalacionSeccion = 'Instalación y cita';
+  SPrendaSeleccionar = 'Seleccione la prenda para %s (unidad %d)';
+  SPrendaElegir = 'Artículo de esta venta al que se aplica el servicio';
+  SPrendaSinSeleccion = 'Seleccione qué prenda se va a reparar.';
+  SPrendaFueraVenta = 'Prenda aportada por el cliente (fuera de esta venta)';
+  SPrendaAlmacenFalta = 'Configure un almacén activo de tipo TALLER ' +
+    'en esta empresa, asociado a la tienda.';
+  SPrendaEsquemaFalta = 'Aplique la actualización ' +
+    '20261031_reparaciones_prendas_taller.sql para gestionar las prendas.';
+  SPrendaVentaInvalida = 'La prenda seleccionada no corresponde a una ' +
+    'unidad vendida en este ticket.';
+  SPrendaEntregada = 'La prenda ya se ha entregado al cliente.';
+  STituloContactoReparacion = 'Datos del cliente para la reparación';
+  SNombreContactoReparacion = 'Nombre del cliente:';
+  STelefonoContactoReparacion = 'Teléfono:';
+  SCorreoContactoReparacion = 'Correo electrónico (opcional):';
+  SErrorContactoReparacion = 'Indique el nombre y el teléfono del cliente.';
+  SErrorCorreoContactoReparacion = 'Revise el correo electrónico.';
+  SErrorEsquemaArticuloReparacion =
+    'Falta actualizar la base de datos para crear artículos como ' +
+    'servicio de reparación. Aplique la actualización ' +
+    '20261031_articulos_reparacion_tpv.sql y vuelva a intentarlo.';
   SErrorTicketOrdenReparacion =
     'No se encuentra el ticket para crear la orden de reparación.';
   SClienteMostradorReparacion = 'Cliente de mostrador';
@@ -217,7 +262,7 @@ resourcestring
   SRotuloClienteReparacion = 'Cliente:';
   SRotuloTelefonoReparacion = 'Teléfono:';
   SRotuloFabricanteReparacion = 'Fabricante (garantía):';
-  SRotuloEntregaAproximada = 'Entrega aproximada:';
+  SRotuloEntregaAproximada = 'Entrega estimada:';
   SRotuloEjecutorReparacion = 'Lo hace:';
   SRotuloCantidadReparacion = 'Cantidad u horas:';
   SRotuloPrecioClienteReparacion = 'Precio cliente:';
@@ -407,7 +452,7 @@ resourcestring
   SFotosConflicto = 'La foto %s ya existe con otro contenido.';
 
 resourcestring
-  SImpresoRecepcion = 'Recepción del aparato';
+  SImpresoRecepcion = 'Recepción de artículo';
   SImpresoFabricante = 'Envío al fabricante';
   SImpresoEnvioCliente = 'Envío al cliente';
   SImpresoAlbaran = 'Albarán de entrega';
@@ -415,7 +460,7 @@ resourcestring
   SImpresoCliente = 'Cliente';
   SImpresoDestinatario = 'Destinatario';
   SImpresoRemitente = 'Remitente';
-  SImpresoAparato = 'Identificación del aparato';
+  SImpresoAparato = 'Identificación del artículo';
   SImpresoMotivo = 'Avería comunicada / trabajo solicitado';
   SImpresoEstadoRecepcion = 'Estado, accesorios y observaciones de recepción';
   SImpresoCondiciones = 'Modalidad y condiciones';
@@ -426,8 +471,8 @@ resourcestring
     'Firma taller';
   SImpresoFirmas = 'Firma cliente / receptor             Firma taller';
   SImpresoAcuseRecepcion = 'Conserve este resguardo para la recogida. ' +
-    'Compruebe el aparato y los accesorios descritos al depositarlo.';
-  SImpresoAcuseEntrega = 'Recibí el aparato y los accesorios descritos. ' +
+    'Compruebe el artículo y los accesorios descritos al depositarlo.';
+  SImpresoAcuseEntrega = 'Recibí el artículo y los accesorios descritos. ' +
     #13#10 + 'Nombre del receptor: ____________________' + #13#10 +
     'Fecha: ______________';
   SImpresoNoFactura = 'Documento de entrega. No sustituye a la factura.';

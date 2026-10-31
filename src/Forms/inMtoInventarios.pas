@@ -355,6 +355,7 @@ type
       message WM_REVISAR_ENTER_AS_TAB_INVENTARIO;
 
   protected
+    procedure PrepararGuardado; override;
     // F1 = alternar modo de entrada (KeyPreview de TfrmBase).
     procedure KeyDown(var Key: Word; Shift: TShiftState); override;
     function GrabarLineaEnCurso: Boolean;
@@ -2084,6 +2085,13 @@ begin
   end;
 end;
 
+procedure TfrmMtoInventarios.PrepararGuardado;
+begin
+  inherited;
+  if Assigned(dmmInventarios) and dmmInventarios.cdsLineas.Active then
+    tvLineas.DataController.PostEditingData;
+end;
+
 procedure TfrmMtoInventarios.btnAplicarClick(Sender: TObject);
 var
   bAplicable: Boolean;
@@ -2099,6 +2107,7 @@ begin
   if bAplicable then
   begin
     try
+      tvLineas.DataController.PostEditingData;
       dmmInventarios.PreAplicarValidaciones;
       if dmmInventarios.HayMovimientosPosterioresAlRecuento then
       begin
@@ -2307,7 +2316,7 @@ begin
         mtConfirmation, [mbYes, mbNo], 0) = mrYes) then
   begin
     dmmInventarios.cdsLineas.Delete;
-    dmmInventarios.cdsLineas.ApplyUpdates(0);
+    dmmInventarios.AplicarLineasPendientes;
   end;
 end;
 

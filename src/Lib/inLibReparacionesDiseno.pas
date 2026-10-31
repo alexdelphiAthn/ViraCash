@@ -192,7 +192,8 @@ begin
   aTitulos := [SImpresoEmisor, SImpresoCliente, SImpresoAparato,
     SImpresoMotivo, SImpresoEstadoRecepcion, SImpresoCondiciones,
     SImpresoAlbaran, SImpresoTrabajos, SImpresoResultado,
-    SImpresoDestinatario, SImpresoRemitente, SImpresoTransporte];
+    SImpresoDestinatario, SImpresoRemitente, SImpresoTransporte,
+    SMedidasSeccion, SInstalacionSeccion, STrabajoSolicitado];
   Result := '';
   for i := 0 to High(aTitulos) do
     if aTitulos[i] = ATitulo then

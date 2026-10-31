@@ -115,8 +115,9 @@ const
   CLAVE_MAESTRA_LICENCIA = 'Fzam_Tarabudillo_2026_Private!';
   SECCION_LICENCIA       = 'License';
   CLAVE_CODIGO           = 'Code';
+  PREFIJO_CODIGO_LICENCIA = 'VC2-';
   HASH_CONMUTADOR_REG    =
-    '57FB956DB961884A190BAB812D9AE5F5E952FAEE3A52FD1C24A3405849640D83';
+    '2A4DE85043CC2B9684AE3F66B9C72C62CF74973827E069929F2148DC1C3763B4';
 
 function NormalizarConmutador(const AValor: string): string;
 begin
@@ -263,8 +264,10 @@ var
   sNifs: string;
 begin
   sNifs := GenerarCadenaNifs(ANifs);
-  sHash := THashSHA2.GetHashString(sNifs + CLAVE_MAESTRA_LICENCIA);
-  Result := HashACodigoCorto(sHash, 6);
+  sHash := THashSHA2.GetHashString(
+    PREFIJO_CODIGO_LICENCIA + sNifs + CLAVE_MAESTRA_LICENCIA);
+  // El prefijo impide aceptar los codigos numericos de la version anterior.
+  Result := PREFIJO_CODIGO_LICENCIA + HashACodigoCorto(sHash, 6);
 end;
 
 procedure CargarNifsEmpresas(

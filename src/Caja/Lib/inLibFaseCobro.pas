@@ -31,6 +31,7 @@ unit inLibFaseCobro;
 interface
 
 uses
+  inLibReparaciones,
   System.SysUtils, System.Classes, System.Generics.Collections, System.Math,
   Data.DB, VirtualTable, inLibFacturas, inLibFaseCobroPersistenciaIntf,
   inLibFaseCobroCalculo;
@@ -159,6 +160,10 @@ type
     function ObtenerStringSafe(const ANombreCampo: string;
                                const ADefault: string = ''): string;
   public
+    PrendasReparacion: TArray<TPrendaVentaReparacion>;
+    NombreReparacion: string;
+    TelefonoReparacion: string;
+    EmailReparacion: string;
     FRequiereFactura:Boolean;
     constructor Create(
       const ARepositorio: IRepositorioFaseCobro;

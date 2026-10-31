@@ -18,7 +18,11 @@ uses
   inLibDocumentosTrabajoEstados, inLibMsgVentas,
   UniDataDocumentosTrabajoCargaOrigenSql, UniDataImpuestosRepositorio,
   inLibImpuestosLecturasIntf, inLibVentasImpuestos, inLibComprasImpuestos,
-  inLibErroresBBDD;
+  inLibErroresBBDD, inLibLog,
+  inLibAlbaranesVentaPresentacionMovimientos,
+  UniDataAlbaranesVentaMovimientos,
+  UniDataAlbaranesCompraMovimientos,
+  UniDataDevolucionesCompraMovimientos;
 
 const
   SQL_DESTINOS_COMPARTIR =
@@ -385,6 +389,8 @@ type
     FResolver: IArticulosResolver;
     procedure CompletarDatosComerciales(const ADestino: TOpcionesDocumento;
       const ATipo, AUsuario: string);
+    procedure GenerarMovimientosAlbaranVenta(
+      const ADestino: TOpcionesDocumento; const AUsuario: string);
     function NuevaConsulta: TUniQuery;
     function SiguienteLinea(AIdDocumento: Int64): string;
     function ExisteTablaPropuestasTraspaso: Boolean;
@@ -1566,6 +1572,38 @@ begin
   end;
 end;
 
+procedure TRepositorioDocumentosTrabajo.GenerarMovimientosAlbaranVenta(
+  const ADestino: TOpcionesDocumento; const AUsuario: string);
+var
+  oDocumento: TDocumentoMovimientosAlbaranVenta;
+  oOperacion: IOperacionMovimientosAlbaranVenta;
+  oProcedimiento: TUniStoredProc;
+begin
+  // Cabecera, líneas, stock y estado del origen comparten la transacción.
+  // Se usa el mismo adaptador que en TdmAlbaranes, con esta conexión.
+  oDocumento := Default(TDocumentoMovimientosAlbaranVenta);
+  oDocumento.Serie := ADestino.Serie;
+  oDocumento.Numero := ADestino.Numero;
+  oDocumento.Empresa := ADestino.Empresa;
+  oDocumento.Almacen := ADestino.Almacen;
+  oDocumento.Cliente := ADestino.Adicional('TERCERO');
+  oDocumento.Usuario := AUsuario;
+  oDocumento.TipoDocumento := 'AV';
+  oDocumento.TipoMovimiento := 'S';
+  oDocumento.InstanteMovimiento := ADestino.Instante;
+  oProcedimiento := TUniStoredProc.Create(nil);
+  try
+    oOperacion := CrearOperacionMovimientosAlbaranVenta(
+      CrearPersistenciaMovimientosAlbaranVentaUniDAC(
+        FConexion, oProcedimiento, CrearRegistroLog),
+      CrearUnidadTrabajoMovimientosAlbaranVentaUniDAC(FConexion));
+    oOperacion.GenerarFaltantes(oDocumento);
+  finally
+    oOperacion := nil;
+    oProcedimiento.Free;
+  end;
+end;
+
 function TRepositorioDocumentosTrabajo.CrearAlbaran(
   AIdDocumento: Int64;
   const ADestino: TOpcionesDocumento;
@@ -1602,6 +1640,7 @@ begin
         raise ERangeError.Create(SErrorDocumentoTrabajoSinLineasEnviar);
       end;
       CompletarDatosComerciales(ADestino, 'AV', AUsuario);
+      GenerarMovimientosAlbaranVenta(ADestino, AUsuario);
       MarcarDocumentoEnviado(Consulta, AIdDocumento, AUsuario);
       if TransaccionPropia and FConexion.InTransaction then
         FConexion.Commit;
@@ -1770,6 +1809,8 @@ begin
         raise ERangeError.Create(SErrorDocumentoTrabajoSinLineasEnviar);
       end;
       CompletarDatosComerciales(ADestino, 'AB', AUsuario);
+      CrearMovimientosAlbaranCompraUniDAC(FConexion).GenerarDesdeAlbaran(
+        ADestino.Serie, ADestino.Numero, AUsuario);
       MarcarDocumentoEnviado(Consulta, AIdDocumento, AUsuario);
       if TransaccionPropia and FConexion.InTransaction then
         FConexion.Commit;
@@ -1823,6 +1864,8 @@ begin
         raise ERangeError.Create(SErrorDocumentoTrabajoSinLineasEnviar);
       end;
       CompletarDatosComerciales(ADestino, 'DC', AUsuario);
+      CrearMovimientosDevolucionCompraUniDAC(FConexion).
+        GenerarDesdeDevolucion(ADestino.Serie, ADestino.Numero, AUsuario);
       MarcarDocumentoEnviado(Consulta, AIdDocumento, AUsuario);
       if TransaccionPropia and FConexion.InTransaction then
         FConexion.Commit;
