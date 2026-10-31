@@ -113,6 +113,7 @@ function LeerDatosSerieGarantia(
 implementation
 
 uses
+  UniDataReparacionesFases,
   System.Variants, inLibReparaciones, inLibMsgGarantias, inLibMsgReparaciones, inLibErroresBBDD,
   UniDataReparacionesRepositorio;
 
@@ -183,7 +184,11 @@ begin
     '       TRIM(CONCAT_WS('' '', NULLIF(A.DESCRIPCION_ART, ''''), ' +
     '         G.DESCRIPCION_OBJETO_GAR, G.REFERENCIA_OBJETO_GAR)) ' +
     '         AS OBJETO_REP, ' +
-    '       ' + SQL_FASE_REPARACION + ' AS FASE_REP ' +
+    '       ' + SQL_FASE_REPARACION + ' AS FASE_REP, ' +
+    '       ' + SQL_CODIGO_FASE_ACTUAL + ' AS CODIGO_FASE_ACTUAL, ' +
+    '       (SELECT F.DESCRIPCION_GARFA FROM fza_garantias_fases F ' +
+    '        WHERE F.CODIGO_GARFA = ' + SQL_CODIGO_FASE_ACTUAL +
+    ') AS FASE_ACTUAL ' +
     '  FROM fza_garantias_reclamaciones G ' +
     '  LEFT JOIN fza_articulos A ON A.CODIGO_ART_ART = G.CODIGO_ART_GAR ' +
     '  LEFT JOIN fza_clientes C ON C.CODIGO_CLI_CLI = G.CODIGO_CLI_GAR ' +

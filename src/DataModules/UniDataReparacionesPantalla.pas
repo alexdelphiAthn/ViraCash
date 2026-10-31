@@ -20,12 +20,13 @@ interface
 
 uses
   System.Classes, Data.DB, Uni,
-  UniDataReparacionesMovimientos, inLibReparaciones, inLibReparacionesIntf, inLibReparacionesDocumentos;
+  UniDataReparacionesFases, UniDataReparacionesMovimientos, inLibReparaciones, inLibReparacionesIntf, inLibReparacionesDocumentos;
 
 type
   TDatosPantallaReparaciones = class(TComponent)
   private
     FMovimientos: TDatosMovimientosReparacion;
+    FFases: TDatosFasesReparacion;
     FConexion: TUniConnection;
     FUsuario: string;
     FCatalogo: ICatalogoReparaciones;
@@ -41,6 +42,7 @@ type
     FdsExternos: TDataSource;
     function NuevaConsulta(const ASql: string): TUniQuery;
     function NuevoOrigen(ADatos: TDataSet): TDataSource;
+    function TipoArticuloActual: TTipoServicio;
     procedure TiposNewRecord(DataSet: TDataSet);
     procedure TiposBeforePost(DataSet: TDataSet);
     procedure TiposBeforeDelete(DataSet: TDataSet);
@@ -58,10 +60,16 @@ type
     function Liquidaciones: TDataSource;
     function TiposEditables: TDataSource;
     function ExternosEditables: TDataSource;
+    // El llamador libera el dataset de búsqueda.
+    function ConsultaReferenciaTipo(const ACampo: string): TDataSet;
+    procedure AsignarReferenciaTipo(const ACampo, ACodigo: string);
+    function CrearArticuloComoServicio(const ATarifa, AEmpresa: string):
+      string;
     // Hoja de entrega de las líneas de un externo (AIds, una por línea).
     function HojaEntrega(const AIds: TArray<Int64>;
       const AAlmacen: string): THojaReparaciones;
     function HojaLiquidacion(ALiquidacion: Int64): THojaReparaciones;
+    property Fases: TDatosFasesReparacion read FFases;
     property Movimientos: TDatosMovimientosReparacion read FMovimientos;
     property Catalogo: ICatalogoReparaciones read FCatalogo;
     property Reparaciones: IRepositorioReparaciones read FReparaciones;
@@ -72,7 +80,9 @@ type
 implementation
 
 uses
-  System.SysUtils, inLibMsgReparaciones, inLibErroresBBDD,
+  System.SysUtils, System.Variants, inLibDatasets,
+  UniDataReparacionesArticuloServicio,
+  inLibMsgReparaciones, inLibErroresBBDD,
   UniDataReparacionesRepositorio;
 
 const
@@ -134,6 +144,7 @@ begin
   FConexion := AConexion;
   FMovimientos := TDatosMovimientosReparacion.CreateDatos(Self, AConexion);
   FUsuario := AUsuario;
+  FFases := TDatosFasesReparacion.CreateDatos(Self, AConexion);
   oRepositorio := TRepositorioReparacionesUniDAC.Create(AConexion);
   FCatalogo := oRepositorio;
   FReparaciones := oRepositorio;
@@ -161,6 +172,7 @@ end;
 procedure TDatosPantallaReparaciones.AsignarMaestro(ADatos: TDataSource);
 begin
   FMovimientos.AsignarMaestro(ADatos);
+  FFases.AsignarMaestro(ADatos);
   FLineas.MasterSource := ADatos;
   FLineas.MasterFields := 'ID_GAR';
   FLineas.DetailFields := 'ID_GAR_GARLIN';
@@ -172,6 +184,7 @@ end;
 procedure TDatosPantallaReparaciones.RefrescarLineas;
 begin
   FMovimientos.Refrescar;
+  FFases.Refrescar;
   if FLineas.Active then
     FLineas.Refresh
   else if Assigned(FLineas.MasterSource) and
@@ -286,6 +299,155 @@ begin
       raise EValidacionBBDD.Create(SErrorTipoServicioUsado);
   finally
     FreeAndNil(oConsulta);
+  end;
+end;
+
+function TDatosPantallaReparaciones.TipoArticuloActual: TTipoServicio;
+var
+  oTipos: TDataSet;
+begin
+  oTipos := TiposEditables.DataSet;
+  if oTipos.IsEmpty and (oTipos.State <> dsInsert) then
+    raise EArgumentException.Create(SErrorCodigoTipoServicio);
+  Result := Default(TTipoServicio);
+  Result.Codigo := Trim(oTipos.FieldByName('CODIGO_GARTIP').AsString);
+  Result.Descripcion := oTipos.FieldByName('DESCRIPCION_GARTIP').AsString;
+  Result.PrecioCliente := oTipos.FieldByName('PRECIO_CLIENTE_GARTIP').AsCurrency;
+  Result.PrecioCoste := oTipos.FieldByName('PRECIO_COSTE_GARTIP').AsCurrency;
+  Result.Proveedor := oTipos.FieldByName('CODIGO_PRV_GARTIP').AsString;
+end;
+
+function CapturarTipoArticulo(ADatos: TDataSet):
+  TEdicionesDataSetsPendientes;
+var
+  iCampo: Integer;
+begin
+  if not (ADatos.State in dsEditModes) then
+    ADatos.Edit;
+  SetLength(Result, 1);
+  Result[0].DataSet := ADatos;
+  Result[0].Estado := ADatos.State;
+  Result[0].Clave := 'CODIGO_GARTIP';
+  Result[0].ValoresClave := ADatos.FieldByName('CODIGO_GARTIP').OldValue;
+  if VarIsNull(Result[0].ValoresClave) then
+    Result[0].ValoresClave := ADatos.FieldByName('CODIGO_GARTIP').Value;
+  SetLength(Result[0].Campos, ADatos.FieldCount);
+  SetLength(Result[0].Valores, ADatos.FieldCount);
+  for iCampo := 0 to ADatos.FieldCount - 1 do
+  begin
+    Result[0].Campos[iCampo] := ADatos.Fields[iCampo].FieldName;
+    Result[0].Valores[iCampo] := ADatos.Fields[iCampo].Value;
+  end;
+end;
+
+function TDatosPantallaReparaciones.CrearArticuloComoServicio(
+  const ATarifa, AEmpresa: string): string;
+var
+  rEntrada: TArticuloServicioReparacion;
+  aEdiciones: TEdicionesDataSetsPendientes;
+  oArticulos: TArticulosServicioReparacion;
+  oTransaccion: TUniQuery;
+  bPropia: Boolean;
+begin
+  rEntrada.Tipo := TipoArticuloActual;
+  rEntrada.Tarifa := ATarifa;
+  rEntrada.Empresa := AEmpresa;
+  rEntrada.Usuario := FUsuario;
+  aEdiciones := CapturarTipoArticulo(FTipos);
+  bPropia := not FConexion.InTransaction;
+  oArticulos := TArticulosServicioReparacion.Create(FConexion);
+  oTransaccion := NuevaConsulta('SAVEPOINT REP_ARTICULO_SERVICIO');
+  try
+    if bPropia then
+      FConexion.StartTransaction
+    else
+      oTransaccion.Execute;
+    try
+      FTipos.Post;
+      oArticulos.Guardar(rEntrada);
+      Result := rEntrada.Tipo.Codigo;
+      FTipos.Edit;
+      FTipos.FieldByName('CODIGO_ART_GARTIP').AsString := Result;
+      FTipos.Post;
+      if bPropia then
+        FConexion.Commit
+      else
+      begin
+        oTransaccion.SQL.Text := 'RELEASE SAVEPOINT REP_ARTICULO_SERVICIO';
+        oTransaccion.Execute;
+      end;
+    except
+      if bPropia then
+        FConexion.Rollback
+      else
+      begin
+        oTransaccion.SQL.Text := 'ROLLBACK TO SAVEPOINT REP_ARTICULO_SERVICIO';
+        oTransaccion.Execute;
+      end;
+      RestaurarEdicionesDataSets(aEdiciones);
+      raise;
+    end;
+  finally
+    FreeAndNil(oTransaccion);
+    FreeAndNil(oArticulos);
+  end;
+end;
+
+function TDatosPantallaReparaciones.ConsultaReferenciaTipo(
+  const ACampo: string): TDataSet;
+var
+  sSql: string;
+begin
+  sSql := '';
+  if ACampo = 'CODIGO_EMPL_GARTIP' then
+    sSql := 'SELECT CODIGO_EMPL, NOMBRE_EMPL FROM fza_empleados ' +
+      'WHERE ESACTIVO_EMPL = ''S'' ORDER BY NOMBRE_EMPL'
+  else if ACampo = 'CODIGO_PRV_GARTIP' then
+    sSql := 'SELECT CODIGO_PRV_PRV, RAZON_SOCIAL_PRV ' +
+      'FROM fza_proveedores WHERE ESACTIVO_PRV = ''S'' ' +
+      'ORDER BY RAZON_SOCIAL_PRV'
+  else if ACampo = 'CODIGO_ART_GARTIP' then
+    sSql := 'SELECT CODIGO_ART_ART, DESCRIPCION_ART FROM fza_articulos ' +
+      'WHERE ESACTIVO_ART = ''S'' ORDER BY DESCRIPCION_ART';
+  if sSql = '' then
+    raise EArgumentException.Create(SErrorReferenciaTipoServicio);
+  Result := NuevaConsulta(sSql);
+  try
+    Result.Open;
+  except
+    FreeAndNil(Result);
+    raise;
+  end;
+end;
+
+procedure TDatosPantallaReparaciones.AsignarReferenciaTipo(
+  const ACampo, ACodigo: string);
+var
+  oTipos: TDataSet;
+begin
+  if (ACampo <> 'CODIGO_EMPL_GARTIP') and
+     (ACampo <> 'CODIGO_PRV_GARTIP') and (ACampo <> 'CODIGO_ART_GARTIP') then
+    raise EArgumentException.Create(SErrorReferenciaTipoServicio);
+  oTipos := TiposEditables.DataSet;
+  if not (oTipos.State in dsEditModes) then
+  begin
+    if oTipos.IsEmpty then
+      oTipos.Append
+    else
+      oTipos.Edit;
+  end;
+  oTipos.FieldByName(ACampo).AsString := ACodigo;
+  if ACampo = 'CODIGO_EMPL_GARTIP' then
+  begin
+    oTipos.FieldByName('TIPO_EJECUTOR_GARTIP').AsString :=
+      EJECUTOR_REPARACION_OPERARIO;
+    oTipos.FieldByName('CODIGO_PRV_GARTIP').Clear;
+  end
+  else if ACampo = 'CODIGO_PRV_GARTIP' then
+  begin
+    oTipos.FieldByName('TIPO_EJECUTOR_GARTIP').AsString :=
+      EJECUTOR_REPARACION_EXTERNO;
+    oTipos.FieldByName('CODIGO_EMPL_GARTIP').Clear;
   end;
 end;
 

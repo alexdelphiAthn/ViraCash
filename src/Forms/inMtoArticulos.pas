@@ -188,6 +188,7 @@ type
     pnlContenidoGeneral: TPanel;
     rgTipoIVA: TcxDBRadioGroup;
     cxGroupBox2: TcxGroupBox;
+    chkESSERVICIO_REPARACION_ART: TcxDBCheckBox;
     lblNombre1: TcxLabel;
     cbbTipoCantidad: TcxDBLookupComboBox;
     lblTipoArticulo: TcxLabel;

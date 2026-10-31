@@ -52,6 +52,10 @@ type
     FRotulo: TcxLabel;
     function Carpeta: string;
     procedure DescargarClick(Sender: TObject);
+    procedure AnadirClick(Sender: TObject);
+    procedure AnadirEvidencia;
+    procedure EditarClick(Sender: TObject);
+    procedure EditarEvidencia;
     procedure RefrescarClick(Sender: TObject);
     procedure SeleccionarClick(Sender: TObject);
     procedure RecibirFotos;
@@ -73,7 +77,7 @@ uses
   Vcl.StdCtrls,
   inLibReparacionesMovimientos, inMtoModalMovimientoReparacion,
   inLibMsgReparaciones, inLibMensajesVcl, inLibFotosNube,
-  inLibViraCashApi;
+  inLibViraCashApi, inMtoModalEvidenciaReparacion;
 
 constructor TPanelMovimientosReparacion.CreatePanel(AOwner: TComponent;
   AParent: TWinControl; ADatos: TDatosPantallaReparaciones;
@@ -179,9 +183,11 @@ begin
   inherited;
   CrearBoton(SFotosDescargar, 215, DescargarClick);
   CrearBoton(SFotosRefrescar, 100, RefrescarClick);
+  CrearBoton(SFotosAnadir, 165, AnadirClick);
+  CrearBoton(SFotosEditar, 165, EditarClick);
   FFase := TcxComboBox.Create(Self);
   FFase.Parent := FBotonera;
-  FFase.SetBounds(EscalarDpi(335), EscalarDpi(8), EscalarDpi(220), 26);
+  FFase.SetBounds(EscalarDpi(680), EscalarDpi(8), EscalarDpi(220), 26);
   FFase.Properties.DropDownListStyle := lsFixedList;
   FFase.Properties.Items.Add(SFotosTodasFases);
   FFase.ItemIndex := 0;
@@ -197,6 +203,7 @@ begin
   FLista.Align := alLeft;
   FLista.Width := EscalarDpi(330);
   FLista.OnClick := SeleccionarClick;
+  FLista.OnDblClick := EditarClick;
   FComentario := TcxMemo.Create(Self);
   FComentario.Parent := Self;
   FComentario.Align := alBottom;
@@ -276,9 +283,8 @@ begin
     begin
       SetLength(FIndices, Length(FIndices) + 1);
       FIndices[High(FIndices)] := iIndice;
-      FLista.Items.Add(rEvidencia.Fase + ' · ' +
-        Copy(rEvidencia.Nombre, LastDelimiter('_', rEvidencia.Nombre) + 1,
-          MaxInt) + ' · ' + rEvidencia.Instante);
+      FLista.Items.Add(FechaEvidenciaReparacion(rEvidencia.Instante) +
+        ' · ' + rEvidencia.Fase);
     end;
   end;
   if FLista.Items.Count > 0 then
@@ -332,6 +338,51 @@ begin
   RefrescarFotos;
 end;
 
+procedure TPanelFotosReparacion.EditarEvidencia;
+var
+  rOriginal: TEvidenciaReparacion;
+  iIndice: Integer;
+begin
+  if (FLista.ItemIndex < 0) or (FLista.ItemIndex >= Length(FIndices)) then
+    raise EArgumentException.Create(SFotosSeleccionar);
+  rOriginal := FEvidencias[FIndices[FLista.ItemIndex]];
+  if TfrmModalEvidenciaReparacion.Editar(Self, rOriginal,
+    FFase.Properties.Items) then
+  begin
+    FFase.ItemIndex := 0;
+    RefrescarFotos;
+    for iIndice := 0 to High(FIndices) do
+      if FEvidencias[FIndices[iIndice]].Recibo = rOriginal.Recibo then
+        FLista.ItemIndex := iIndice;
+    SeleccionarClick(nil);
+  end;
+end;
+
+procedure TPanelFotosReparacion.EditarClick(Sender: TObject);
+begin
+  Accion(EditarEvidencia);
+end;
+
+procedure TPanelFotosReparacion.AnadirEvidencia;
+var
+  sCarpeta: string;
+begin
+  if FReparacion <= 0 then
+    raise EArgumentException.Create(SInfoSinReparacion);
+  sCarpeta := Carpeta;
+  if TfrmModalEvidenciaReparacion.Ejecutar(Self, sCarpeta,
+    FFase.Properties.Items) then
+  begin
+    FFase.ItemIndex := 0;
+    RefrescarFotos;
+  end;
+end;
+
+procedure TPanelFotosReparacion.AnadirClick(Sender: TObject);
+begin
+  Accion(AnadirEvidencia);
+end;
+
 procedure TPanelFotosReparacion.DescargarClick(Sender: TObject);
 begin
   Accion(RecibirFotos);
@@ -351,7 +402,8 @@ begin
   if FLista.ItemIndex >= 0 then
   begin
     rEvidencia := FEvidencias[FIndices[FLista.ItemIndex]];
-    FComentario.Text := rEvidencia.Instante + ' UTC' + sLineBreak +
+    FComentario.Text := FechaEvidenciaReparacion(rEvidencia.Instante) +
+      sLineBreak +
       rEvidencia.Comentario;
     if (rEvidencia.Archivo <> '') and FileExists(rEvidencia.Archivo) then
       FImagen.Picture.LoadFromFile(rEvidencia.Archivo);

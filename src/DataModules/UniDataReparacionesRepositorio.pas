@@ -31,6 +31,11 @@ type
     procedure Ejecutar(AConsulta: TUniQuery; AId: Int64;
       const AMensaje: string);
     procedure EnTransaccion(AAccion: TProc);
+    procedure RegistrarFaseAlta(AReparacion: Int64;
+      const AUsuario: string);
+    procedure EntregarDatos(AReparacion: Int64; AFecha: TDateTime;
+      AEsCobrado: Boolean; const ASerieCobro, ANumeroCobro,
+      AUsuario: string);
     procedure ComprobarTicketCobro(const ASerie, ANumero: string);
     procedure ComprobarSkuMaterial(const ALinea: TLineaReparacion);
     function Situacion(AReparacion: Int64;
@@ -122,7 +127,7 @@ implementation
 
 uses
   System.Generics.Collections, Data.DB, inLibGarantias,
-  inLibMsgReparaciones;
+  inLibMsgReparaciones, UniDataReparacionesFases;
 
 const
   SQL_ALTA_REPARACION =
@@ -308,7 +313,10 @@ begin
     '  FROM fza_proveedores P ' +
     ' WHERE P.ESACTIVO_PRV = ''S'' ' +
     '   AND (P.ESFACTURACION_DIRECTA_PRV = ''S'' ' +
-    '        OR P.MODO_LIQUIDACION_SERVICIOS_PRV IS NOT NULL) ' +
+    '        OR P.MODO_LIQUIDACION_SERVICIOS_PRV IS NOT NULL ' +
+    '        OR EXISTS (SELECT 1 FROM fza_garantias_tipos T ' +
+    '          WHERE T.CODIGO_PRV_GARTIP = P.CODIGO_PRV_PRV ' +
+    '            AND T.ESACTIVO_GARTIP = ''S'')) ' +
     'ORDER BY 1, 3');
   oLista := TList<TEjecutorServicio>.Create;
   try
@@ -404,8 +412,28 @@ begin
         FreeAndNil(oConsulta);
       end;
       InsertarPrimeraLinea(iId, AReparacion);
+      RegistrarFaseAlta(iId, AReparacion.Usuario);
     end);
   Result := iId;
+end;
+
+procedure TRepositorioReparacionesUniDAC.RegistrarFaseAlta(
+  AReparacion: Int64; const AUsuario: string);
+var
+  oFases: TDatosFasesReparacion;
+  oConsulta: TUniQuery;
+begin
+  oConsulta := NuevaConsulta('UPDATE fza_garantias_reclamaciones ' +
+    'SET CODIGO_GARFA_GAR = ''EN_RECEPCION'' WHERE ID_GAR = :ID');
+  oFases := TDatosFasesReparacion.CreateDatos(nil, FConexion);
+  try
+    oConsulta.ParamByName('ID').AsLargeInt := AReparacion;
+    oConsulta.Execute;
+    oFases.RegistrarInicial(AReparacion, AUsuario);
+  finally
+    FreeAndNil(oFases);
+    FreeAndNil(oConsulta);
+  end;
 end;
 
 // Solo si el alta trae algo que hacer: ejecutor o importes.
@@ -744,6 +772,27 @@ end;
 // Se entrega reparado (RESUELTA / REPARADA) o con el presupuesto rechazado
 // (RECHAZADA). El cobro al recoger se anota con su ticket.
 procedure TRepositorioReparacionesUniDAC.Entregar(AReparacion: Int64;
+  AFecha: TDateTime; AEsCobrado: Boolean; const ASerieCobro, ANumeroCobro,
+  AUsuario: string);
+var
+  oFases: TDatosFasesReparacion;
+begin
+  oFases := TDatosFasesReparacion.CreateDatos(nil, FConexion);
+  try
+    EnTransaccion(
+      procedure
+      begin
+        oFases.PrepararEntrega(AReparacion, AUsuario);
+        EntregarDatos(AReparacion, AFecha, AEsCobrado, ASerieCobro,
+          ANumeroCobro, AUsuario);
+        oFases.RegistrarEntrega(AReparacion, AUsuario);
+      end);
+  finally
+    FreeAndNil(oFases);
+  end;
+end;
+
+procedure TRepositorioReparacionesUniDAC.EntregarDatos(AReparacion: Int64;
   AFecha: TDateTime; AEsCobrado: Boolean; const ASerieCobro, ANumeroCobro,
   AUsuario: string);
 var

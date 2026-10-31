@@ -28,6 +28,7 @@ unit inMtoGarantiasReclamaciones;
 interface
 
 uses
+  inMtoReparacionesFasesVcl, inLibReparacionesFases,
   inMtoReparacionesSeguimientoVcl, inLibRegistroPantallas,
   Winapi.Windows, Winapi.Messages,
   System.SysUtils, System.Variants, System.Classes, System.UITypes,
@@ -67,8 +68,11 @@ type
     tsRecepcion: TcxTabSheet;
     tsEnvioFab: TcxTabSheet;
     tsEntregaCli: TcxTabSheet;
+    FFechaEntrega: TcxDBDateEdit;
     // Reparaciones (30/10/2026).
     FPanelFotos: TPanelFotosReparacion;
+    FPanelFases: TPanelFasesReparacion;
+    tsFasesActuales: TcxTabSheet;
     tsMovimientos: TcxTabSheet;
     tsFotosReparacion: TcxTabSheet;
     FEsReparaciones: Boolean;
@@ -183,6 +187,7 @@ type
     procedure btnAnularReparacionClick(Sender: TObject);
     function PedirTicketCobro(out ASerie, ANumero: string): Boolean;
     procedure EjecutarReparacion(AAccion: TProc);
+    procedure AvisarFase(const AAviso: TAvisoFaseReparacion);
     procedure ImprimirHoja(const AHoja: THojaReparaciones);
   protected
     procedure DoCreate; override;
@@ -195,6 +200,7 @@ type
 implementation
 
 uses
+  inMtoModalAvisoReparacion, inLibCorreoReparaciones,
   inLibMensajesVcl,
   inLibMsgGarantias, inLibMsgReparaciones, inLibReparacionesIntf,
   inMtoModalReparacion, inLibErroresBBDD, inLibTrazabilidad,
@@ -636,7 +642,7 @@ end;
 procedure TfrmMtoGarantiasReclamaciones.CrearFaseEntregaCliente;
 begin
   tsEntregaCli := CrearPestana(SResultadoEntregaReparacion);
-  CrearFecha(tsEntregaCli, SCaptionGarantiaFechaEntrega,
+  FFechaEntrega := CrearFecha(tsEntregaCli, SCaptionGarantiaFechaEntrega,
     'FECHA_ENTREGA_CLI_GAR', 0, 0);
   CrearMedio(tsEntregaCli, SCaptionGarantiaMedio, 'MEDIO_ENTREGA_CLI_GAR',
     1, 0);
@@ -703,7 +709,7 @@ begin
       TextoResolucionGarantia(oDatos.FieldByName('RESOLUCION_GAR').AsString);
     txtModalidadFicha.Text := TextoModalidadReparacion(
       oDatos.FieldByName('MODALIDAD_GAR').AsString) + ' - ' +
-      TextoFaseReparacion(oDatos.FieldByName('FASE_REP').AsString);
+      oDatos.FieldByName('FASE_ACTUAL').AsString;
     lblResumenTrabajos.Caption := UnirNoVacios([
       SRotuloNumeroDeposito + ' ' + oDatos.FieldByName(CAMPO_ID).AsString,
       oDatos.FieldByName('OBJETO_REP').AsString,
@@ -728,6 +734,15 @@ begin
   end;
   if Assigned(FPanelFotos) then
     FPanelFotos.MostrarReparacion(Enlaces.ReparacionActual());
+  if Assigned(FPanelFases) then
+  begin
+    if Assigned(oDatos) and oDatos.Active and not oDatos.IsEmpty then
+      FPanelFases.MostrarReparacion(IdActual,
+        oDatos.FieldByName('CODIGO_FASE_ACTUAL').AsString,
+        oDatos.FieldByName('FASE_ACTUAL').AsString)
+    else
+      FPanelFases.MostrarReparacion(0, '', '');
+  end;
 end;
 
 // ---------------------------------------------------------------------------
@@ -783,7 +798,8 @@ begin
     CrearColumna(CAMPO_ID, SCaptionColGarantiaId, 60);
     CrearColumna('MODALIDAD_GAR', SColModalidad, 100).OnGetDisplayText :=
       ModalidadGetDisplayText;
-    CrearColumna('FASE_REP', SColFaseReparacion, 130).OnGetDisplayText :=
+    CrearColumna('FASE_ACTUAL', SFaseActual, 280);
+    CrearColumna('FASE_REP', SFaseSituacionTrabajos, 130).OnGetDisplayText :=
       FaseReparacionGetDisplayText;
     CrearColumna('CATEGORIA_GAR', SColTipoCategoria, 90);
     CrearColumna('OBJETO_REP', SColObjetoReparacion, 220);
@@ -894,7 +910,13 @@ end;
 procedure TfrmMtoGarantiasReclamaciones.Refrescar(AId: Int64);
 begin
   FiltroCambiado(nil);
-  dmmGarantias.unqryTablaG.Locate(CAMPO_ID, AId, []);
+  if (AId > 0) and
+     not dmmGarantias.unqryTablaG.Locate(CAMPO_ID, AId, []) then
+  begin
+    cbbEstado.ItemIndex := 1;
+    FiltroCambiado(nil);
+    dmmGarantias.unqryTablaG.Locate(CAMPO_ID, AId, []);
+  end;
   // Las líneas y liquidaciones no se releen solas al volver al mismo
   // expediente: sin esto, inicio y fin de la línea seguían vacíos.
   dmmGarantias.Reparaciones.RefrescarLineas;
@@ -1192,6 +1214,9 @@ end;
 
 procedure TfrmMtoGarantiasReclamaciones.CrearPestanasReparacion;
 begin
+  tsFasesActuales := TcxTabSheet.Create(Self);
+  tsFasesActuales.PageControl := pcPantalla;
+  tsFasesActuales.Caption := SFasePestana;
   tsMovimientos := TcxTabSheet.Create(Self);
   tsMovimientos.PageControl := pcPantalla;
   tsMovimientos.Caption := SMovimientoHistorial;
@@ -1222,6 +1247,8 @@ end;
 procedure TfrmMtoGarantiasReclamaciones.LeerInterruptores;
 begin
   FEsReparaciones := ParametrosApp.GetBool(PARAMETRO_REPARACIONES, False);
+  if Assigned(FFechaEntrega) then
+    FFechaEntrega.Properties.ReadOnly := FEsReparaciones;
   FEsSeries := TActivacionTrazabilidad.Leer(ParametrosApp).Garantias;
   btnNueva.Visible := FEsSeries;
   btnSustituir.Visible := FEsSeries;
@@ -1264,6 +1291,24 @@ begin
       else
         MostrarDocumentoReparacion(Ord(drCliente), AMovimiento);
     end;
+  Result.Entregar :=
+    procedure
+    begin
+      btnEntregarReparacionClick(nil);
+    end;
+  Result.AvisarFase :=
+    procedure(AAviso: TAvisoFaseReparacion)
+    begin
+      AvisarFase(AAviso);
+    end;
+  Result.TarifaActual :=
+    function: string
+    begin
+      Result := 'PVP';
+      if Assigned(ParametrosCaja) then
+        Result := ParametrosCaja.TarifaDefecto;
+    end;
+  Result.Busqueda := BusquedaVisual;
   Result.Usuario := dmmGarantias.IdentidadSesion.Usuario;
   Result.Refrescar :=
     procedure(AId: Int64)
@@ -1281,6 +1326,8 @@ end;
 
 procedure TfrmMtoGarantiasReclamaciones.CrearPanelesReparacion;
 begin
+  FPanelFases := TPanelFasesReparacion.CreatePanel(Self, tsFasesActuales,
+    dmmGarantias.Reparaciones, Enlaces);
   TPanelMovimientosReparacion.CreatePanel(Self, tsMovimientos,
     dmmGarantias.Reparaciones, Enlaces);
   FPanelFotos := TPanelFotosReparacion.CreatePanel(Self, tsFotosReparacion,
@@ -1421,6 +1468,26 @@ begin
         dmmGarantias.Reparaciones.Reparaciones.Anular(IdActual, sMotivo,
           dmmGarantias.IdentidadSesion.Usuario);
       end);
+end;
+
+procedure TfrmMtoGarantiasReclamaciones.AvisarFase(
+  const AAviso: TAvisoFaseReparacion);
+var
+  rCorreo: TCorreoFaseReparacion;
+  rResguardo: TResguardoGarantia;
+begin
+  rResguardo := dmmGarantias.DatosResguardo;
+  rCorreo := Default(TCorreoFaseReparacion);
+  rCorreo.Aviso := AAviso;
+  rCorreo.Email := AAviso.Email;
+  rCorreo.Asunto := AsuntoAvisoFase(AAviso);
+  rCorreo.Texto := TextoAvisoFase(AAviso);
+  rCorreo.Empresa := rResguardo.Empresa;
+  rCorreo.EmailRespuesta := rResguardo.EmailEmpresa;
+  rCorreo.Usuario := dmmGarantias.IdentidadSesion.Usuario;
+  TfrmModalAvisoReparacion.Ejecutar(Self,
+    dmmGarantias.Reparaciones.Fases, rCorreo);
+  dmmGarantias.Reparaciones.Fases.Refrescar;
 end;
 
 procedure TfrmMtoGarantiasReclamaciones.ImprimirHoja(

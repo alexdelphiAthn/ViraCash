@@ -86,6 +86,20 @@ type
     Proveedor: string;
   end;
 
+  TVentaServiciosReparacion = record
+    Serie, Numero, Empresa, Almacen, Usuario: string;
+    Cliente, NombreCliente, Telefono, Email: string;
+    Fecha: TDateTime;
+    Cobrada: Boolean;
+  end;
+
+  TArticuloServicioReparacion = record
+    Tipo: TTipoServicio;
+    Tarifa: string;
+    Empresa: string;
+    Usuario: string;
+  end;
+
   // Operario (fza_empleados) o empresa externa (fza_proveedores).
   TEjecutorServicio = record
     Tipo: string;

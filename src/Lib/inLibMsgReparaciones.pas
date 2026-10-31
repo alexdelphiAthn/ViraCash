@@ -16,6 +16,9 @@ unit inLibMsgReparaciones;
 interface
 
 resourcestring
+  SErrorTicketOrdenReparacion =
+    'No se encuentra el ticket para crear la orden de reparación.';
+  SClienteMostradorReparacion = 'Cliente de mostrador';
   SModalidadReparacionCobrada = 'La reparación está cobrada. Revise el ' +
     'cobro antes de cambiar la modalidad.';
   SModalidadReparacionConImporte = 'Para pasar a garantía o cortesía, ' +
@@ -306,11 +309,100 @@ resourcestring
   SFotosReparacion = 'Fotos y comentarios';
   SFotosTodasFases = 'Todas las fases';
   SFotosDescargar = 'Recibir fotos y comentarios';
+  SCrearArticuloServicio = 'Crear artículo como servicio';
+  SArticuloServicioCreado = 'Artículo %s creado o actualizado y vinculado ' +
+    'al servicio, con su proveedor y tarifa TPV.';
+  SMarcaArticuloReparacion = 'Artículo como servicio de reparación';
+  SErrorArticuloServicioCodigo = 'El código del servicio debe tener de 1 ' +
+    'a 20 caracteres y no contener barras.';
+  SErrorArticuloServicioDatos = 'Complete la descripción y revise los ' +
+    'precios del servicio.';
+  SErrorArticuloServicioTipo = 'El código %s ya existe y no es un ' +
+    'servicio simple sin trazabilidad.';
+  SErrorArticuloServicioSku = 'El SKU %s está asociado a otro artículo.';
+  SErrorArticuloServicioTarifa = 'No se puede resolver la tarifa por ' +
+    'defecto del TPV o el IVA vigente de la empresa.';
+  SErrorArticuloServicioProveedor = 'El proveedor asignado no existe ' +
+    'o está inactivo.';
+  SErrorArticuloServicioTransaccion = 'El artículo debe guardarse ' +
+    'dentro de la operación del servicio.';
+  SErrorMarcaArticuloReparacion = 'La marca de reparación solo se ' +
+    'puede asignar a un artículo de tipo SERVICIO.';
+  SColImporteClienteEuros = 'Importe cliente (€)';
+  STituloBuscarOperarioTipo = 'Buscar operario';
+  STituloBuscarProveedorTipo = 'Buscar proveedor';
+  STituloBuscarArticuloTipo = 'Buscar artículo';
+  SErrorBusquedaTipoServicio = 'No está disponible el servicio de búsqueda.';
+  SErrorReferenciaTipoServicio = 'Referencia de tipo de servicio inválida.';
+  SFaseEntregaRegistrada = 'Entrega al cliente registrada';
+  SFaseEntregado = 'Entregado';
+  SFaseSituacionTrabajos = 'Situación de trabajos';
+  SFasePestana = 'Fases y avisos';
+  SFaseActual = 'Fase actual';
+  SFaseGuardar = 'Guardar cambio de fase';
+  SFaseAnadir = 'Añadir fase';
+  SFaseNuevaDescripcion = 'Nombre de la nueva fase:';
+  SFaseSeleccionar = 'Seleccione una fase.';
+  SFaseUsuarioObligatorio = 'Falta el usuario del cambio de fase.';
+  SFaseConflicto = 'La reparación ha cambiado. Refresque y vuelva a intentar.';
+  SFaseCerrada = 'No se puede cambiar la fase de una reparación ' +
+    'entregada o anulada.';
+  SFaseUsarEntrega = 'Para marcar Entregado utilice Entregar al cliente.';
+  SFaseNombreInvalido = 'Indique un nombre de fase de hasta 120 caracteres.';
+  SFaseDuplicada = 'Ya existe una fase con ese nombre.';
+  SFaseAnterior = 'Fase anterior';
+  SFaseNueva = 'Nueva fase';
+  SFaseObservaciones = 'Observaciones internas del cambio';
+  SFaseAvisar = 'Avisar al cliente por email';
+  SFaseAsuntoCorreo = 'Reparación %d: %s';
+  SFaseTextoCorreo = 'Hola %s,' + #13#10 + #13#10 +
+    'Le informamos del estado de su reparación nº %d.' + #13#10 +
+    'Objeto: %s' + #13#10 + 'Fase: %s' + #13#10 +
+    'Fecha y hora del cambio: %s' + #13#10 + #13#10 +
+    'Gracias por su confianza.';
+  SFaseSinHistorial = 'Seleccione un cambio de fase del historial.';
+  SFaseEmailInvalido = 'Indique un email válido.';
+  SFaseAsuntoInvalido = 'Indique un asunto de hasta 200 caracteres, ' +
+    'sin saltos de línea.';
+  SFaseTextoInvalido = 'Indique el mensaje (máximo 20.000 bytes UTF-8).';
+  SFaseCorreoConfigurar = 'Configure la conexión API de ViraCash ' +
+    'y la cuenta de correo de la instalación.';
+  SFaseCorreoEnviado = 'El servicio de correo ha aceptado el aviso.';
+  SFaseCorreoIncierto = 'No se ha podido confirmar el resultado del envío. ' +
+    'Compruébelo antes de reintentar para evitar duplicados.';
+  SFaseReintentarCorreo = 'El resultado del intento anterior es incierto. ' +
+    '¿Desea volver a enviar el aviso?';
+  SFaseAvisosHistorial = 'Historial de avisos al cliente';
+  SFaseDestinatario = 'Destinatario';
+  SFaseAsunto = 'Asunto';
+  SFaseMensaje = 'Mensaje al cliente';
+  SFaseEnviar = 'Enviar aviso';
+  SFaseCorreoTransaccion = 'Termine la operación pendiente antes de enviar.';
+  SFaseCorreoResultadoNoGuardado = 'No se pudo guardar el resultado ' +
+    'del aviso en el historial: %s';
+  SFotosEditar = 'Editar foto o nota';
+  SFotosSeleccionar = 'Seleccione una foto o nota para editar.';
+  SFotosNombreInvalido = 'Nombre de evidencia inválido.';
+  SFotosEdicionConflicto = 'La entrada ha cambiado. Refresque y vuelva ' +
+    'a abrirla antes de guardar.';
+  SFotosAnadir = 'Añadir foto o nota';
+  SFotosGeneral = 'General';
+  SFotosFase = 'Fase';
+  SFotosFecha = 'Fecha y hora';
+  SFotosComentario = 'Comentario';
+  SFotosArchivo = 'Foto (opcional)';
+  SFotosBuscar = 'Seleccionar foto…';
+  SFotosFiltro = 'Imágenes (*.jpg;*.jpeg;*.png;*.bmp)|' +
+    '*.jpg;*.jpeg;*.png;*.bmp';
+  SFotosIndicarFase = 'Indique la fase de la foto o anotación.';
+  SFotosIndicarContenido = 'Escriba un comentario o seleccione una foto.';
+  SFotosIndicarFecha = 'Indique una fecha y hora válidas.';
+  SFotosArchivoInexistente = 'No se encuentra la foto seleccionada.';
   SFotosRefrescar = 'Refrescar';
   SFotosAntes = 'Antes';
   SFotosDespues = 'Después';
-  SFotosInstrucciones = 'Reparación %d · En la app Fotos elija ' +
-    'Reparación, la fase, este número y la secuencia de cada foto o nota.';
+  SFotosInstrucciones = 'Reparación %d · Añada fotos o notas con fecha ' +
+    'y hora desde aquí, o recíbalas desde la app Fotos.';
   SFotosConfigurarCarpeta = 'Configure la carpeta de fotos.';
   SFotosConflicto = 'La foto %s ya existe con otro contenido.';
 

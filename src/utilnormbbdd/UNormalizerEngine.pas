@@ -339,6 +339,10 @@ begin
   AddSuf('fza_verifactu_cola',                  'VFCOLA');
   AddSuf('fza_verifactu_historial',             'VFHIST');
   AddSuf('fza_verifactu_eventos',               'LOG');
+  AddSuf('fza_reparaciones_ventas', 'GARVEN');
+  AddSuf('fza_garantias_fases', 'GARFA');
+  AddSuf('fza_garantias_fases_hist', 'GARHIS');
+  AddSuf('fza_garantias_fases_avisos', 'GARAVI');
   AddSuf('fza_garantias_movimientos',          'GARMOV');
   AddSuf('fza_winforms',                        'WINF');
 
@@ -451,6 +455,10 @@ begin
   AddOwn('fza_efectos_compra',                 ['EFECTO','COMPRA']);
   AddOwn('fza_remesas_compra',                 ['REMESA','COMPRA']);
   AddOwn('fza_efectos_venta',                  ['EFECTO','VENTA']);
+  AddOwn('fza_reparaciones_ventas', ['REPARACION', 'VENTA']);
+  AddOwn('fza_garantias_fases', ['GARANTIA', 'FASE']);
+  AddOwn('fza_garantias_fases_hist', ['GARANTIA', 'FASE', 'HIST']);
+  AddOwn('fza_garantias_fases_avisos', ['GARANTIA', 'FASE', 'AVISO']);
   AddOwn('fza_remesas_venta',                  ['REMESA','VENTA']);
   AddOwn('fza_tipos_efecto',                   ['TIPO','EFECTO']);
   AddOwn('fza_ventas_ws_cola',                 ['VENTA','WS','COLA']);

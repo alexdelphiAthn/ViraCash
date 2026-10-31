@@ -362,6 +362,7 @@ implementation
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 
 uses
+  UniDataReparacionesVentaTpv, inLibReparaciones,
   inLibFormatoDocumento, UniDataFormatoDocumentoRepositorio,
   System.Variants, inLibTotalMaximoLinea, UniDataTotalMaximoLinea,
   UniDataValoresAutomaticosRepositorio,
@@ -501,6 +502,7 @@ type
     procedure ProcesarVenta(
       const ALinea: TDatosLineaFactura);
     procedure ProcesarLineas;
+    procedure CrearOrdenesReparacion;
     procedure SincronizarContadorLineas;
     procedure RegistrarTotalesVenta;
     procedure RegistrarFiscalmente;
@@ -2154,7 +2156,8 @@ end;
 procedure TGrabacionFacturaCaja.ProcesarAnticipoPrevio(
   const ALinea: TDatosLineaFactura);
 begin
-  if FRequiereFactura and (Abs(ALinea.TotalCIva) > 0.001) then
+  if FRequiereFactura and ((Abs(ALinea.TotalCIva) > 0.001) or
+     (ALinea.TipoArticulo = 'SERVICIO')) then
     FDataModule.InsertarLineaFactura(
       FQuery, FSerieGenerada, FNumeroFactura, ALinea.Linea,
       ALinea.Articulo, ALinea.Sku, ALinea.Descripcion,
@@ -2904,6 +2907,34 @@ begin
   end;
 end;
 
+procedure TGrabacionFacturaCaja.CrearOrdenesReparacion;
+var
+  Venta: TVentaServiciosReparacion;
+  oReparaciones: TReparacionesVentaTpv;
+begin
+  if FRequiereFactura and (FTipoRectificativa = trcNinguna) then
+  begin
+    Venta := Default(TVentaServiciosReparacion);
+    Venta.Serie := FSerieGenerada;
+    Venta.Numero := FNumeroFactura;
+    Venta.Empresa := FEmpresa;
+    Venta.Almacen := FAlmacen;
+    Venta.Usuario := FUsuarioSesion;
+    Venta.Fecha := FFechaFactura;
+    Venta.Cliente := FCabecera.CodigoCliente;
+    Venta.NombreCliente := FCabecera.RazonSocialCli;
+    Venta.Telefono := FCabecera.MovilCli;
+    Venta.Email := FCabecera.EmailCli;
+    Venta.Cobrada := FDatosCobro.ImporteDejarCuenta < 0.001;
+    oReparaciones := TReparacionesVentaTpv.Create(FDataModule.FConexion);
+    try
+      oReparaciones.CrearOrdenes(Venta);
+    finally
+      FreeAndNil(oReparaciones);
+    end;
+  end;
+end;
+
 procedure TGrabacionFacturaCaja.EjecutarTransaccion;
 var
   bConfirmando: Boolean;
@@ -2921,6 +2952,7 @@ begin
     RegistrarTotalesVenta;
     GenerarTraspasoAutomaticoDevolucion;
     ProcesarRecalculoMovimientos;
+    CrearOrdenesReparacion;
     RegistrarFiscalmente;
     RegistrarFormasPago;
     RegistrarValesRecogidos;

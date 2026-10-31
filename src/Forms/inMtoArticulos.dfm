@@ -423,7 +423,7 @@
                     Top = 19
                     Caption = 'Tipolog'#237'a'
                     TabOrder = 1
-                    Height = 122
+                    Height = 158
                     Width = 379
                     object lblNombre1: TcxLabel
                       Left = 24
@@ -470,10 +470,22 @@
                       TabOrder = 3
                       Width = 167
                     end
+                    object chkESSERVICIO_REPARACION_ART: TcxDBCheckBox
+                      Left = 24
+                      Top = 110
+                      Caption = 'Artículo como servicio de reparación'
+                      DataBinding.DataField = 'ESSERVICIO_REPARACION_ART'
+                      DataBinding.DataSource = dsTablaG
+                      Properties.ValueChecked = 'S'
+                      Properties.ValueUnchecked = 'N'
+                      TabOrder = 4
+                      Transparent = True
+                      Width = 340
+                    end
                   end
                   object chkESVARIACION_ART: TcxDBCheckBox
                     Left = 23
-                    Top = 147
+                    Top = 183
                     Caption = 'Tiene Variaciones/SKU m'#250'ltiple'
                     DataBinding.DataField = 'ESVARIACION_ART'
                     DataBinding.DataSource = dsTablaG
@@ -485,7 +497,7 @@
                   end
                   object chkESTRAZABLE_ART: TcxDBCheckBox
                     Left = 23
-                    Top = 184
+                    Top = 220
                     Caption =
                       'Trazabilidad/Serializaci'#243'n por unidad y/o LOTE/Fecha de Caducida' +
                       'd'

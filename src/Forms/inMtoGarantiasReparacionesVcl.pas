@@ -20,6 +20,7 @@ unit inMtoGarantiasReparacionesVcl;
 interface
 
 uses
+  inLibReparacionesFases, inLibGenBusq,
   System.SysUtils, System.Classes, Vcl.Controls, Data.DB,
   cxGroupBox, cxGrid, cxGridCustomTableView, cxGridDBTableView, cxButtons,
   UniDataReparacionesPantalla, inLibReparacionesDocumentos;
@@ -28,8 +29,12 @@ type
   // Lo que el panel necesita de quien lo coloca.
   TEnlacesReparaciones = record
     ReparacionActual: TFunc<Int64>;
+    Busqueda: IBusquedaVisual;
+    Entregar: TProc;
+    AvisarFase: TProc<TAvisoFaseReparacion>;
     AlmacenActual: TFunc<string>;
     EmpresaActual: TFunc<string>;
+    TarifaActual: TFunc<string>;
     Usuario: string;
     // Releer la lista y volver a AReparacion (0 = la actual).
     Refrescar: TProc<Int64>;
@@ -108,8 +113,15 @@ type
 
   TPanelConfiguracionReparaciones = class(TPanelReparaciones)
   private
+    FVistaTipos: TcxGridDBTableView;
     procedure CrearRejillaTipos;
-    procedure CrearRejillaExternos;
+    procedure BuscarReferencia(const ACampo, ATitulo: string);
+    procedure OperarioClick(Sender: TObject; AButtonIndex: Integer);
+    procedure ProveedorClick(Sender: TObject; AButtonIndex: Integer);
+    procedure ArticuloClick(Sender: TObject; AButtonIndex: Integer);
+    procedure ConfigurarArticulo;
+    procedure CrearArticulo;
+    procedure CrearArticuloClick(Sender: TObject);
   public
     constructor CreatePanel(AOwner: TComponent; AParent: TWinControl;
       ADatos: TDatosPantallaReparaciones;
@@ -119,8 +131,9 @@ type
 implementation
 
 uses
-  Winapi.Windows, System.UITypes, System.Variants, Vcl.Dialogs,
-  cxContainer, cxGridLevel, cxEdit, cxCheckBox, cxImageComboBox, cxCalendar,
+  Winapi.Windows, System.UITypes, System.Variants, Vcl.Dialogs, Vcl.Forms,
+  cxContainer, cxGridLevel, cxEdit, cxCheckBox, cxImageComboBox, cxCalendar, cxCurrencyEdit, cxButtonEdit,
+  inLibColumnasDocumento,
   inLibMensajesVcl, inLibErroresBBDD, inLibReparaciones,
   inLibReparacionesIntf, inLibMsgReparaciones, inMtoModalLineaReparacion;
 
@@ -633,10 +646,9 @@ constructor TPanelConfiguracionReparaciones.CreatePanel(AOwner: TComponent;
   const AEnlaces: TEnlacesReparaciones);
 begin
   inherited;
-  // Sin acciones: las rejillas se editan directamente.
-  FBotonera.Visible := False;
+  // Los tipos se editan directamente; las referencias llevan búsqueda.
+  CrearBoton(SCrearArticuloServicio, 235, CrearArticuloClick);
   CrearRejillaTipos;
-  CrearRejillaExternos;
 end;
 
 type
@@ -657,15 +669,6 @@ begin
   end;
 end;
 
-// '' = el proveedor no trabaja como externo de reparaciones.
-function TextoModoLiquidacionExterno(const AValor: string): string;
-begin
-  if AValor = '' then
-    Result := SNoEsExterno
-  else
-    Result := TextoModoLiquidacion(AValor);
-end;
-
 procedure HacerCasilla(AColumna: TcxGridDBColumn);
 begin
   AColumna.PropertiesClass := TcxCheckBoxProperties;
@@ -673,12 +676,21 @@ begin
   TcxCheckBoxProperties(AColumna.Properties).ValueUnchecked := 'N';
 end;
 
+procedure MostrarImporteEuros(AColumna: TcxGridDBColumn);
+begin
+  AColumna.PropertiesClass := TcxCurrencyEditProperties;
+  TcxCurrencyEditProperties(AColumna.Properties).DisplayFormat :=
+    '#,##0.00 "€"';
+  TcxCurrencyEditProperties(AColumna.Properties).DecimalPlaces := 6;
+end;
+
 procedure TPanelConfiguracionReparaciones.CrearRejillaTipos;
 var
   oVista: TcxGridDBTableView;
   iColumna: Integer;
 begin
-  oVista := CrearVista(alTop, EscalarDpi(300), FDatos.TiposEditables);
+  oVista := CrearVista(alClient, 0, FDatos.TiposEditables);
+  FVistaTipos := oVista;
   oVista.OptionsData.Editing := True;
   oVista.OptionsData.Inserting := True;
   oVista.OptionsData.Deleting := True;
@@ -692,8 +704,10 @@ begin
   HacerCasilla(CrearColumna(oVista, 'ESPRESUPUESTO_GARTIP',
     SColTipoPresupuesto, 80));
   CrearColumna(oVista, 'CANTIDAD_GARTIP', SColCantidadLinea, 70);
-  CrearColumna(oVista, 'PRECIO_CLIENTE_GARTIP', SColImporteCliente, 90);
-  CrearColumna(oVista, 'PRECIO_COSTE_GARTIP', SColImporteCoste, 90);
+  MostrarImporteEuros(CrearColumna(oVista, 'PRECIO_CLIENTE_GARTIP',
+    SColImporteClienteEuros, 145));
+  MostrarImporteEuros(CrearColumna(oVista, 'PRECIO_COSTE_GARTIP',
+    SColImporteCoste, 100));
   AgregarOpciones(CrearColumna(oVista, 'MODO_COBRO_GARTIP', SColModoCobro,
     110), [COBRO_REPARACION_RECOGIDA, COBRO_REPARACION_COMPRA,
     COBRO_REPARACION_GRATIS], TextoModoCobroReparacion);
@@ -701,32 +715,96 @@ begin
   AgregarOpciones(CrearColumna(oVista, 'TIPO_EJECUTOR_GARTIP',
     SColEjecutorTipo, 110), [EJECUTOR_REPARACION_OPERARIO,
     EJECUTOR_REPARACION_EXTERNO], TextoEjecutorReparacion);
-  CrearColumna(oVista, 'CODIGO_EMPL_GARTIP', SColTipoOperario, 80);
-  CrearColumna(oVista, 'CODIGO_PRV_GARTIP', SColProveedor, 80);
-  CrearColumna(oVista, 'CODIGO_ART_GARTIP', SColTipoArticulo, 100);
+  ConfigurarColumnaBotonDocumento(CrearColumna(oVista,
+    'CODIGO_EMPL_GARTIP', SColTipoOperario, 110), OperarioClick);
+  ConfigurarColumnaBotonDocumento(CrearColumna(oVista,
+    'CODIGO_PRV_GARTIP', SColProveedor, 110), ProveedorClick);
+  ConfigurarColumnaBotonDocumento(CrearColumna(oVista,
+    'CODIGO_ART_GARTIP', SColTipoArticulo, 160), ArticuloClick);
+  ConfigurarArticulo;
   CrearColumna(oVista, 'ORDEN_GARTIP', SColTipoOrden, 50);
   HacerCasilla(CrearColumna(oVista, 'ESACTIVO_GARTIP', SColTipoActivo, 60));
   for iColumna := 0 to oVista.ColumnCount - 1 do
     oVista.Columns[iColumna].Options.Editing := True;
 end;
 
-procedure TPanelConfiguracionReparaciones.CrearRejillaExternos;
+procedure TPanelConfiguracionReparaciones.ConfigurarArticulo;
 var
-  oVista: TcxGridDBTableView;
-  oColumna: TcxGridDBColumn;
+  oPropiedades: TcxButtonEditProperties;
+  oBoton: TcxEditButton;
 begin
-  oVista := CrearVista(alClient, 0, FDatos.ExternosEditables);
-  oVista.OptionsData.Editing := True;
-  oVista.OptionsBehavior.IncSearch := True;
-  CrearColumna(oVista, 'CODIGO_PRV_PRV', SColProveedor, 90);
-  CrearColumna(oVista, 'RAZON_SOCIAL_PRV', SColRazonSocial, 260);
-  HacerCasilla(CrearColumna(oVista, 'ESFACTURACION_DIRECTA_PRV',
-    SColFacturacionDirecta, 110));
-  oColumna := CrearColumna(oVista, 'MODO_LIQUIDACION_SERVICIOS_PRV',
-    SColModoLiquidacion, 200);
-  oColumna.Options.Editing := True;
-  AgregarOpciones(oColumna, ['', MODO_LIQUIDACION_PERIODICA,
-    MODO_LIQUIDACION_LINEA], TextoModoLiquidacionExterno);
+  oPropiedades := FVistaTipos.GetColumnByFieldName('CODIGO_ART_GARTIP').
+    Properties as TcxButtonEditProperties;
+  oBoton := oPropiedades.Buttons.Add;
+  oBoton.Kind := bkText;
+  oBoton.Caption := '+';
+  oBoton.Hint := SCrearArticuloServicio;
+end;
+
+procedure TPanelConfiguracionReparaciones.CrearArticulo;
+var
+  sCodigo: string;
+begin
+  FVistaTipos.DataController.PostEditingData;
+  sCodigo := FDatos.CrearArticuloComoServicio(FEnlaces.TarifaActual(),
+    FEnlaces.EmpresaActual());
+  ShowMessage_fza(Format(SArticuloServicioCreado, [sCodigo]));
+end;
+
+procedure TPanelConfiguracionReparaciones.CrearArticuloClick(Sender: TObject);
+begin
+  Accion(CrearArticulo);
+end;
+
+procedure TPanelConfiguracionReparaciones.BuscarReferencia(
+  const ACampo, ATitulo: string);
+var
+  oConsulta: TDataSet;
+begin
+  if not Assigned(FEnlaces.Busqueda) then
+    raise EArgumentException.Create(SErrorBusquedaTipoServicio);
+  FVistaTipos.DataController.PostEditingData;
+  oConsulta := FDatos.ConsultaReferenciaTipo(ACampo);
+  try
+    if FEnlaces.Busqueda.EjecutarBusquedaDataSet(ATitulo, oConsulta,
+      'frmMtoReparacionesTipos_' + ACampo, GetParentForm(Self)) then
+      FDatos.AsignarReferenciaTipo(ACampo, oConsulta.Fields[0].AsString);
+  finally
+    FreeAndNil(oConsulta);
+  end;
+end;
+
+procedure TPanelConfiguracionReparaciones.OperarioClick(Sender: TObject;
+  AButtonIndex: Integer);
+begin
+  Accion(
+    procedure
+    begin
+      BuscarReferencia('CODIGO_EMPL_GARTIP', STituloBuscarOperarioTipo);
+    end);
+end;
+
+procedure TPanelConfiguracionReparaciones.ProveedorClick(Sender: TObject;
+  AButtonIndex: Integer);
+begin
+  Accion(
+    procedure
+    begin
+      BuscarReferencia('CODIGO_PRV_GARTIP', STituloBuscarProveedorTipo);
+    end);
+end;
+
+procedure TPanelConfiguracionReparaciones.ArticuloClick(Sender: TObject;
+  AButtonIndex: Integer);
+begin
+  if AButtonIndex = 1 then
+    CrearArticuloClick(Sender)
+  else
+    Accion(
+      procedure
+      begin
+        BuscarReferencia('CODIGO_ART_GARTIP', STituloBuscarArticuloTipo);
+      end);
 end;
 
 end.

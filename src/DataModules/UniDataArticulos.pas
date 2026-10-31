@@ -120,6 +120,8 @@ type
   private
     // Vista de stock del Mto de Articulos, empujada por el form via
     // AsignarVistaStock (el DM ya no la busca con GetOwnerForm).
+    FAntesAbrirServicio: TDataSetNotifyEvent;
+    FDespuesAbrirServicio: TDataSetNotifyEvent;
     FVistaStock: TcxGridDBTableView;
     FCodigoArticuloBorrado: string;
     FCodigoArticuloTarifaAnteriorPrestaShop: string;
@@ -142,6 +144,8 @@ type
     FQuedaEnWebVisibilidadAplazada: Boolean;
     FOnConfirmarDesactivacionWeb:
       TConfirmarDesactivacionWebArticuloEvent;
+    procedure AbrirMarcaReparacion(DataSet: TDataSet);
+    procedure ActivarMarcaReparacion(DataSet: TDataSet);
     procedure FamiliaAltaCambiada(Sender: TField);
     procedure GuardarProveedorSolicitadoAlta;
     procedure AsegurarSkuBase(const ACodArt: string);
@@ -276,6 +280,7 @@ type
 implementation
 
 uses
+  UniDataReparacionesArticuloServicio, inLibMsgReparaciones,
   UniDataCodigosBarrasLote,
   inLibArticulosGuardado,
   inLibMsgCompras,
@@ -1215,6 +1220,7 @@ begin
     unqryTablaG.FindField('CODIGO_ART_ART').Clear;
   // La marca web es opt-in: un artículo nuevo nunca debe publicarse por
   // accidente ni enviar NULL aunque aún no exista un valor configurable.
+  unqryTablaG.FieldByName('ESSERVICIO_REPARACION_ART').AsString := 'N';
   oCampoWeb := unqryTablaG.FindField('ESWEB_ART');
   if Assigned(oCampoWeb) and (Trim(oCampoWeb.AsString) = '') then
     oCampoWeb.AsString := 'N';
@@ -1357,9 +1363,28 @@ begin
   unqryProveedoresArticulos.Post;
 end;
 
+procedure TdmArticulos.AbrirMarcaReparacion(DataSet: TDataSet);
+begin
+  if Assigned(FAntesAbrirServicio) then
+    FAntesAbrirServicio(DataSet);
+  unqryTablaG.SQL.Text := SqlArticulosConMarcaReparacion(
+    unqryTablaG.Connection, unqryTablaG.SQL.Text);
+end;
+
+procedure TdmArticulos.ActivarMarcaReparacion(DataSet: TDataSet);
+begin
+  if Assigned(FDespuesAbrirServicio) then
+    FDespuesAbrirServicio(DataSet);
+  DataSet.FieldByName('ESSERVICIO_REPARACION_ART').ReadOnly := False;
+end;
+
 procedure TdmArticulos.DataModuleCreate(Sender: TObject);
 begin
   inherited;
+  FAntesAbrirServicio := unqryTablaG.BeforeOpen;
+  FDespuesAbrirServicio := unqryTablaG.AfterOpen;
+  unqryTablaG.BeforeOpen := AbrirMarcaReparacion;
+  unqryTablaG.AfterOpen := ActivarMarcaReparacion;
   // Solo asignamos Connection y MasterSource. Los Open se han movido a
   // AbrirDetalles (que invoca TfrmMtoGen.AbrirTablaPrincipalAsync en thread)
   // para no congelar la UI durante la creacion del data module.
@@ -2057,6 +2082,9 @@ procedure TdmArticulos.unqryTablaGBeforePost(DataSet: TDataSet);
 begin
   try
     ValidarDatosArticulo;
+    if (DataSet.FieldByName('ESSERVICIO_REPARACION_ART').AsString = 'S')
+       and (DataSet.FieldByName('TIPO_ART').AsString <> 'SERVICIO') then
+      raise EValidacionBBDD.Create(SErrorMarcaArticuloReparacion);
     PrepararTrazabilidadArticulo;
     PrepararCambioTipoVariacion;
   except
