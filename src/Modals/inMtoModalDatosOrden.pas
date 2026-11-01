@@ -16,11 +16,18 @@ type
   private
     FEditores: TArray<TcxTextEdit>;
     procedure CrearCampos(const ARotulos: array of string;
-      const AValores: TArray<string>);
+      const AValores: TArray<string>; const ALongitudes: array of Integer);
     procedure CerrarSinLiberar(Sender: TObject; var Action: TCloseAction);
+    procedure MostrarCampos(Sender: TObject);
   public
     class function Ejecutar(AOwner: TComponent; const ATitulo: string;
       const ARotulos: array of string; var AValores: TArray<string>): Boolean;
+      overload;
+    // ALongitudes: máximo de caracteres por campo según su columna; 0 o
+    // ausente conserva el límite general.
+    class function Ejecutar(AOwner: TComponent; const ATitulo: string;
+      const ARotulos: array of string; var AValores: TArray<string>;
+      const ALongitudes: array of Integer): Boolean; overload;
   end;
 
 implementation
@@ -29,7 +36,7 @@ uses
   System.SysUtils, System.Math, cxLabel;
 
 procedure TfrmModalDatosOrden.CrearCampos(const ARotulos: array of string;
-  const AValores: TArray<string>);
+  const AValores: TArray<string>; const ALongitudes: array of Integer);
 var
   i, iFilas, iColumna, iFila: Integer;
   oRotulo: TcxLabel;
@@ -37,6 +44,10 @@ begin
   iFilas := Min(9, Length(ARotulos));
   ClientWidth := ScaleValue(460 * Ceil(Length(ARotulos) / iFilas));
   ClientHeight := ScaleValue(24 + iFilas * 55) + pnlButton.Height;
+  // Los botones heredan la posición del diseño base (más ancho): se
+  // recolocan simétricos para que Aceptar no quede cortado.
+  btnCancelar.Left := ScaleValue(12);
+  btnAceptar.Left := ClientWidth - btnAceptar.Width - ScaleValue(12);
   SetLength(FEditores, Length(ARotulos));
   for i := 0 to High(ARotulos) do
   begin
@@ -52,9 +63,19 @@ begin
     FEditores[i].Parent := pnlBody;
     FEditores[i].SetBounds(ScaleValue(12 + iColumna * 460),
       ScaleValue(30 + iFila * 55), ScaleValue(430), ScaleValue(26));
-    FEditores[i].Text := AValores[i];
     FEditores[i].Properties.MaxLength := 500;
+    if (i <= High(ALongitudes)) and (ALongitudes[i] > 0) then
+      FEditores[i].Properties.MaxLength := ALongitudes[i];
+    FEditores[i].Text := AValores[i];
   end;
+end;
+
+procedure TfrmModalDatosOrden.MostrarCampos(Sender: TObject);
+begin
+  FormShow(Sender);
+  // Se edita desde el primer campo; Intro no acepta sin haber revisado.
+  if (Length(FEditores) > 0) and FEditores[0].CanFocus then
+    FEditores[0].SetFocus;
 end;
 
 procedure TfrmModalDatosOrden.CerrarSinLiberar(Sender: TObject;
@@ -66,6 +87,13 @@ end;
 class function TfrmModalDatosOrden.Ejecutar(AOwner: TComponent;
   const ATitulo: string; const ARotulos: array of string;
   var AValores: TArray<string>): Boolean;
+begin
+  Result := Ejecutar(AOwner, ATitulo, ARotulos, AValores, []);
+end;
+
+class function TfrmModalDatosOrden.Ejecutar(AOwner: TComponent;
+  const ATitulo: string; const ARotulos: array of string;
+  var AValores: TArray<string>; const ALongitudes: array of Integer): Boolean;
 var
   oFormulario: TfrmModalDatosOrden;
   i: Integer;
@@ -76,7 +104,8 @@ begin
   try
     oFormulario.Caption := ATitulo;
     oFormulario.OnClose := oFormulario.CerrarSinLiberar;
-    oFormulario.CrearCampos(ARotulos, AValores);
+    oFormulario.OnShow := oFormulario.MostrarCampos;
+    oFormulario.CrearCampos(ARotulos, AValores, ALongitudes);
     oFormulario.ShowModal;
     Result := oFormulario.sFicha = 'S';
     if Result then

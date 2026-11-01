@@ -249,7 +249,7 @@ uses
    UniDataPrestaShopEncolado, inLibResplandorBordesVcl,
    inLibMotorBaseDatos, inLibTrazabilidad, inLibReparaciones,
    inLibTraduccionesFastReport,
-   inLibMargenTarifa;
+   inLibMargenTarifa, inLibListasRegalos, inLibMsgListasRegalos;
 
 resourcestring
   SSolicitudSeleccionarCarpetaParametros =
@@ -281,6 +281,8 @@ begin
   if SameText(Parametro.Nombre, 'appIdioma') then
     Parametro.Descripcion := SDescripcionParametroIdioma;
   Result := TraducirDescripcionParametro('inMtoAppParam', Parametro);
+  if EsParametroInstalacionListas(AParametro.Nombre) then
+    Result := Result + SDescripcionParametrosInstalacionListas;
 end;
 
 function CambioPrestaShopRequiereReencolado(
@@ -369,9 +371,12 @@ begin
   if StartsText('appVerifactu', ANombre) or
      StartsText('appSii', ANombre) or
      EsParametroPrestaShop(ANombre) or
+     EsParametroInstalacionListas(ANombre) or
      SameText(ANombre, 'appRestringirEmpAlmCaja') or
      SameText(ANombre, PARAMETRO_MOTOR_BASE_DATOS) then
     Result := SameText(IdentidadSesion.GrupoRaiz, 'S');
+  if EsParametroInstalacionListas(ANombre) then
+    Result := Result and SameText(cmbGrupoUsuario.Text, oAll);
 end;
 
 // -----------------------------------------------------------------------
@@ -1199,8 +1204,9 @@ begin
   begin
     RegistrarValorApiHistorico(
       oValor.Subclave, oValor.Valor, AValoresApi);
-    AplicarValorInspector(
-      AInspector, oValor.Subclave, oValor.Valor);
+    if not EsParametroInstalacionListas(oValor.Subclave) then
+      AplicarValorInspector(
+        AInspector, oValor.Subclave, oValor.Valor);
   end;
 end;
 
@@ -1229,6 +1235,8 @@ procedure TfrmMtoAppParam.CargarParametros(
 var
   oValoresApi: TValoresApiHistoricos;
   aValores: TValoresPerfilAppParam;
+  ValoresInstalacion: TValoresPerfilAppParam;
+  ValorInstalacion: TValorPerfilAppParam;
 begin
   // Primero se leen los valores y solo después se resetea el inspector:
   // si la lectura falla, conserva lo que mostraba y FCargaCorrecta queda
@@ -1238,6 +1246,8 @@ begin
   FCargaCorrecta := False;
   aValores := FRepositorioPersistencia.CargarValores(
     pUsuario, pGrupo, 'frmMtoAppParam');
+  ValoresInstalacion := FRepositorioPersistencia.CargarValores(
+    '', oAll, 'frmMtoAppParam');
   FCargandoParametros := True;
   try
     if Assigned(Grid.Selected) and Grid.Selected.Editing then
@@ -1248,6 +1258,10 @@ begin
     Grid.BeginUpdate;
     try
       AplicarValoresPerfil(Grid, aValores, oValoresApi);
+      for ValorInstalacion in ValoresInstalacion do
+        if EsParametroInstalacionListas(ValorInstalacion.Subclave) then
+          AplicarValorInspector(Grid, ValorInstalacion.Subclave,
+            ValorInstalacion.Valor);
       AplicarValoresApiHistoricos(Grid, oValoresApi);
     finally
       Grid.EndUpdate;

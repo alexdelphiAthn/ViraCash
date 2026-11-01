@@ -92,6 +92,8 @@
                   </button>
                 {elseif $linea.agotado && $linea.pendiente > 0}
                   <span class="vclr-estado">{l s='Agotado en la web; puede regalarlo en la tienda' d='Modules.Vcashlistaregalos.Shop'}</span>
+                {elseif $linea.pendiente == 0 && $linea.reservado_propio > 0 && $linea.regalado_total < $linea.cantidad_deseada}
+                  <span class="vclr-estado">{l s='En su carrito' d='Modules.Vcashlistaregalos.Shop'}</span>
                 {elseif $linea.pendiente == 0 && $linea.reservado_otros > 0 && $linea.regalado_total < $linea.cantidad_deseada}
                   <span class="vclr-estado">{l s='Reservado por otro invitado' d='Modules.Vcashlistaregalos.Shop'}</span>
                 {elseif $linea.pendiente == 0}

@@ -2831,6 +2831,12 @@ begin
     'SColRegaloImporte',
     'src/Lib/inLibMsgListasRegalos.pas',
     @inLibMsgListasRegalos.SColRegaloImporte);
+  ARegistrar('inLibMsgListasRegalos.SColRegaloCantidad',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SColRegaloCantidad);
+  ARegistrar('inLibMsgListasRegalos.SDescripcionParametrosInstalacionListas',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SDescripcionParametrosInstalacionListas);
   ARegistrar(
     'inLibMsgListasRegalos.' +
     'SColRegaloEntregado',
@@ -2971,6 +2977,12 @@ begin
     'SErrorListasPrestaShopRespuesta',
     'src/Lib/inLibMsgListasRegalos.pas',
     @inLibMsgListasRegalos.SErrorListasPrestaShopRespuesta);
+  ARegistrar('inLibMsgListasRegalos.SErrorListasPrestaShopClave',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SErrorListasPrestaShopClave);
+  ARegistrar('inLibMsgListasRegalos.SErrorListasPrestaShopConexion',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SErrorListasPrestaShopConexion);
   ARegistrar(
     'inLibMsgListasRegalos.' +
     'SErrorListasPrestaShopJson',
@@ -6185,6 +6197,21 @@ begin
   ARegistrar('inLibMsgReparacionesCircuito.' +
     'SCircuitoMaterialInvalido', 'src/Lib/inLibMsgReparacionesCircuito.pas',
     @inLibMsgReparacionesCircuito.SCircuitoMaterialInvalido);
+  ARegistrar('inLibMsgReparacionesCircuito.SCircuitoDevueltoSupera',
+    'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoDevueltoSupera);
+  ARegistrar('inLibMsgReparacionesCircuito.SCircuitoEntregaInvalida',
+    'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoEntregaInvalida);
+  ARegistrar('inLibMsgReparacionesCircuito.SCircuitoColImporteDoc',
+    'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoColImporteDoc);
+  ARegistrar('inLibMsgReparacionesCircuito.SCircuitoColCodigoProveedor',
+    'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoColCodigoProveedor);
+  ARegistrar('inLibMsgReparacionesCircuito.SCircuitoColProveedor',
+    'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoColProveedor);
 end;
 
 procedure RegistrarTextosCircuitoOrden10(

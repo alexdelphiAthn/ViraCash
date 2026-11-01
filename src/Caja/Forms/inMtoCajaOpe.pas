@@ -4337,8 +4337,18 @@ var
 begin
   MarcarVentaAppGrabada;
   if FPresupuestoNumero <> '' then
-    NotificarPresupuestoCaja(FPresupuestoEmpresa, FPresupuestoSerie,
-      FPresupuestoNumero);
+  begin
+    try
+      NotificarPresupuestoCaja(FPresupuestoEmpresa, FPresupuestoSerie,
+        FPresupuestoNumero);
+    except
+      on E: Exception do
+      begin
+        RegistroLog.RegistrarError(E.Message);
+        ShowMessage_fza(E.Message);
+      end;
+    end;
+  end;
   if FNumeroRectifica <> '' then
   begin
     if FTipoRectificativa = trcSustitutiva then

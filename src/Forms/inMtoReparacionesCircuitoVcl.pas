@@ -56,11 +56,27 @@ implementation
 
 uses
   System.SysUtils, System.StrUtils, cxButtons, cxCurrencyEdit, cxDBLabel,
-  cxLabel,
+  cxLabel, cxGrid, cxLookAndFeels,
   inLibReparacionesCircuito, inLibMsgReparacionesCircuito,
   UniDataReparacionesDocumentoMemoria, UniDataReparacionesImputaciones,
   UniDataReparacionesEntregas,
   inMtoModalDatosOrden;
+
+procedure AjustarRejilla(AVista: TcxGridDBTableView);
+begin
+  // Barra horizontal siempre visible (sin ella las columnas que no caben no
+  // se descubren con el ratón) y cabeceras en varias líneas en vez de
+  // truncadas.
+  TcxGrid(AVista.Control).LookAndFeel.ScrollbarMode := sbmClassic;
+  AVista.OptionsView.HeaderAutoHeight := True;
+end;
+
+procedure FormatearHoras(AColumna: TcxGridDBColumn);
+begin
+  AColumna.PropertiesClass := TcxCurrencyEditProperties;
+  TcxCurrencyEditProperties(AColumna.Properties).DecimalPlaces := 2;
+  TcxCurrencyEditProperties(AColumna.Properties).DisplayFormat := '#,##0.00';
+end;
 
 procedure TPanelDetalleCircuito.Configurar(AOrigen: TDataSource;
   const ACampos, ATitulos: array of string);
@@ -70,8 +86,12 @@ var
 begin
   FBotonera.Visible := False;
   oVista := CrearVista(alClient, 0, AOrigen);
+  AjustarRejilla(oVista);
   for i := 0 to High(ACampos) do
-    CrearColumna(oVista, ACampos[i], ATitulos[i], 150);
+    if SameText(ACampos[i], 'HORAS') then
+      FormatearHoras(CrearColumna(oVista, ACampos[i], ATitulos[i], 150))
+    else
+      CrearColumna(oVista, ACampos[i], ATitulos[i], 150);
 end;
 
 function SiNo(AValor: Boolean): string;
@@ -121,6 +141,7 @@ begin
   inherited;
   CrearAcciones;
   FResumen := CrearVista(alTop, EscalarDpi(180), FDatos.Circuito.Resumen);
+  AjustarRejilla(FResumen);
   CrearColumna(FResumen, 'LINEA', SCircuitoColNumero, 65);
   CrearColumna(FResumen, 'DESCRIPCION', SCircuitoTarea, 220);
   CrearColumna(FResumen, 'TOTAL', SCircuitoColTotal, 95);
@@ -128,9 +149,12 @@ begin
   CrearColumna(FResumen, 'ASEGURADORA', SCircuitoColAseguradora, 95);
   CrearColumna(FResumen, 'TALLER', SCircuitoTaller, 95);
   CrearColumna(FResumen, 'PENDIENTE', SCircuitoColPendiente, 110);
-  CrearColumna(FResumen, 'HORAS_PREVISTAS', SCircuitoHorasPrevistas, 95);
-  CrearColumna(FResumen, 'HORAS_REALES', SCircuitoColHorasReales, 95);
-  CrearColumna(FResumen, 'HORAS_FACTURABLES', SCircuitoColHorasFacturables, 95);
+  FormatearHoras(CrearColumna(FResumen, 'HORAS_PREVISTAS',
+    SCircuitoHorasPrevistas, 95));
+  FormatearHoras(CrearColumna(FResumen, 'HORAS_REALES',
+    SCircuitoColHorasReales, 95));
+  FormatearHoras(CrearColumna(FResumen, 'HORAS_FACTURABLES',
+    SCircuitoColHorasFacturables, 95));
   CrearColumna(FResumen, 'UTILIZADO', SCircuitoUtilizado, 95);
   CrearColumna(FResumen, 'DEVUELTO', SCircuitoDevuelto, 95);
   CrearDetalles;
@@ -213,10 +237,12 @@ begin
      SCircuitoColConcepto,SCircuitoColAccion,SCircuitoColDetalle]);
   CrearDetalle(SCircuitoDocumentos, FDatos.Circuito.Documentos,
     ['ID_RCI','ID_GARLIN_RCI','TIPO_RCI','SERIE_RCI','NUMERO_RCI',
-     'LINEA_RCI','TOTAL_RCI','CANTIDAD_RCI'],
+     'LINEA_RCI','CODIGO_PROVEEDOR','NOMBRE_PROVEEDOR',
+     'TOTAL_RCI','CANTIDAD_RCI'],
     [SCircuitoColNumero,SCircuitoColConcepto,SCircuitoTipoDoc,
      SCircuitoSerieDoc,SCircuitoNumeroDoc,
-     SCircuitoLineaDoc,SCircuitoImporteDoc,SCircuitoCantidadDoc]);
+     SCircuitoLineaDoc,SCircuitoColCodigoProveedor,SCircuitoColProveedor,
+     SCircuitoColImporteDoc,SCircuitoCantidadDoc]);
   CrearDetalle(SCircuitoExternos, FDatos.Circuito.Externos,
     ['ID_RCE','ID_GARLIN_RCE','CODIGO_PRV_RCE','OBJETO_RCE',
      'CANTIDAD_ENVIADA_RCE','CANTIDAD_RECIBIDA_RCE','INCIDENCIA_RCE'],
@@ -294,7 +320,8 @@ begin
   if TfrmModalDatosOrden.Ejecutar(Self, SCircuitoAcuerdo,
     [SCircuitoReferencia, SCircuitoAutorizacion, SCircuitoPorcentajeMO,
      SCircuitoPorcentajeMAT, SCircuitoLimite, SCircuitoFranquicia,
-     SCircuitoAutorizado, SCircuitoAceptado], aValores) then
+     SCircuitoAutorizado, SCircuitoAceptado], aValores,
+    [100, 200, 10, 10, 15, 15, 1, 1]) then
   begin
     rAcuerdo.Referencia := aValores[0];
     rAcuerdo.Autorizacion := aValores[1];
@@ -324,7 +351,7 @@ begin
   if TfrmModalDatosOrden.Ejecutar(Self, SCircuitoConcepto,
     [SCircuitoHorasPrevistas, SCircuitoHorasFacturables, SCircuitoPropia,
      SCircuitoPorcentaje, SCircuitoLimite, SCircuitoTaller,
-     SCircuitoAceptado], aValores) then
+     SCircuitoAceptado], aValores, [10, 10, 1, 10, 15, 15, 1]) then
   begin
     rDetalle.HorasPrevistas := StrToFloat(aValores[0]);
     rDetalle.PorHoras := aValores[1] <> '';
@@ -363,7 +390,7 @@ begin
   end;
   if TfrmModalDatosOrden.Ejecutar(Self, SCircuitoTiempo,
     [SCircuitoOperario, SCircuitoTarea, SCircuitoInicio, SCircuitoFin,
-     SCircuitoMotivo], aValores) then
+     SCircuitoMotivo], aValores, [20, 200, 19, 19, 500]) then
   begin
     rParte.Operario := aValores[0];
     rParte.Tarea := aValores[1];
@@ -398,7 +425,7 @@ begin
   if TfrmModalDatosOrden.Ejecutar(Self, SCircuitoMaterial,
     [SCircuitoProcedencia, SCircuitoUnidad, SCircuitoOrigen,
      SCircuitoPrevisto, SCircuitoUtilizado, SCircuitoDevuelto],
-     aValores) then
+     aValores, [10, 20, 200, 15, 15, 15]) then
   begin
     rMaterial.Procedencia := UpperCase(aValores[0]);
     rMaterial.Unidad := aValores[1];
@@ -417,7 +444,7 @@ var
 begin
   aValores := [''];
   if TfrmModalDatosOrden.Ejecutar(Self, SCircuitoCerrar,
-    [SCircuitoMotivo], aValores) then
+    [SCircuitoMotivo], aValores, [500]) then
     FDatos.Circuito.Cobertura.CerrarTecnico(FDatos.Circuito.Orden,
       aValores[0]);
 end;
@@ -437,7 +464,8 @@ begin
   if TfrmModalDatosOrden.Ejecutar(Self, SCircuitoAlbaran,
     [SCircuitoTipoDoc, SCircuitoSerieDoc, SCircuitoProveedor, SCircuitoAlmacen,
      SCircuitoImporteDoc, SCircuitoCantidadDoc, SCircuitoOrigen,
-     SCircuitoFechaDoc, SCircuitoTipoIva], aValores) then
+     SCircuitoFechaDoc, SCircuitoTipoIva], aValores,
+    [2, 20, 20, 10, 15, 15, 50, 10, 1]) then
   begin
     rSolicitud.Tipo := UpperCase(aValores[0]);
     rSolicitud.Serie := aValores[1];
@@ -466,7 +494,8 @@ begin
   aValores := ['CL','','','',DateToStr(Date),'N'];
   if TfrmModalDatosOrden.Ejecutar(Self,SCircuitoTodos,
     [SCircuitoTipoVenta,SCircuitoSerieDoc,SCircuitoAlmacen,
-     SCircuitoReferencia,SCircuitoFechaDoc,SCircuitoTipoIva],aValores) then
+     SCircuitoReferencia,SCircuitoFechaDoc,SCircuitoTipoIva],aValores,
+    [2,20,10,50,10,1]) then
   begin
     rSolicitud.Tipo := UpperCase(aValores[0]);
     rSolicitud.Serie := aValores[1];
@@ -492,7 +521,7 @@ begin
   if TfrmModalDatosOrden.Ejecutar(Self, SCircuitoImputar,
     [SCircuitoTipoImputacion, SCircuitoSerieDoc, SCircuitoNumeroDoc,
      SCircuitoLineaDoc, SCircuitoImporteDoc, SCircuitoCantidadDoc],
-     aValores) then
+     aValores, [2, 20, 20, 20, 15, 15]) then
   begin
     rImputacion.Tipo := UpperCase(aValores[0]);
     rImputacion.Serie := aValores[1];
@@ -541,7 +570,8 @@ begin
   end;
   if TfrmModalDatosOrden.Ejecutar(Self, SCircuitoExternos,
     [SCircuitoProveedor, SCircuitoObjeto, SCircuitoEnviado,
-     SCircuitoRecibido, SCircuitoIncidencia], aValores) then
+     SCircuitoRecibido, SCircuitoIncidencia], aValores,
+    [20, 200, 15, 15, 500]) then
   begin
     rEntrega.Proveedor := aValores[0];
     rEntrega.Objeto := aValores[1];

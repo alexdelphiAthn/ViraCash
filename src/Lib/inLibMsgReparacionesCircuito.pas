@@ -52,6 +52,9 @@ resourcestring
   SCircuitoLineaDoc = 'Línea del albarán';
   SCircuitoProveedor = 'Código de proveedor (solo compra)';
   SCircuitoImporteDoc = 'Importe: con IVA en venta / base sin IVA en compra';
+  SCircuitoColImporteDoc = 'Importe (CL/AS/TC con IVA; PR base sin IVA)';
+  SCircuitoColCodigoProveedor = 'Código de proveedor';
+  SCircuitoColProveedor = 'Proveedor';
   SCircuitoCantidadDoc = 'Cantidad documentada';
   SCircuitoFechaDoc = 'Fecha del albarán';
   SCircuitoTipoIva =
@@ -113,7 +116,13 @@ resourcestring
     'sin fechas futuras.';
   SCircuitoMotivoCorreccion = 'Indica el motivo de la corrección.';
   SCircuitoMaterialInvalido =
-    'Revisa procedencia, almacén, unidad y cantidades del material.';
+    'Revisa la procedencia (ALMACEN, COMPRA, CLIENTE o EXTERNO), la unidad ' +
+    'y que las cantidades no sean negativas.';
+  SCircuitoDevueltoSupera =
+    'La cantidad devuelta no puede superar la cantidad utilizada.';
+  SCircuitoEntregaInvalida =
+    'Indica proveedor y objeto; lo enviado debe ser mayor que cero y lo ' +
+    'recibido no puede superarlo.';
   SCircuitoConflicto =
     'La orden ha cambiado o está cerrada. Refresca antes de continuar.';
   SCircuitoTiempoSolapado = 'El operario ya tiene tiempo en ese intervalo.';

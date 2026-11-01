@@ -64,6 +64,7 @@ type
       const AClavesExcluidas: TArray<string>
     );
     procedure DespuesDeRecargar; virtual;
+    procedure ReleerParametrosInstalacion(const AClaves: array of string);
     procedure Inicializar(const AUsuario, AGrupo: string);
     procedure RegistrarParametro(
       const ACategoria, ANombre, ADescripcion: string;
@@ -264,6 +265,37 @@ end;
 
 procedure TParametrosBase.DespuesDeRecargar;
 begin
+end;
+
+procedure TParametrosBase.ReleerParametrosInstalacion(
+  const AClaves: array of string);
+var
+  Perfil: TProfileDicc;
+  Clave: string;
+  Valor: TDictValue;
+  Parametro: TParametroDef;
+begin
+  Perfil := nil;
+  try
+    if not FPerfilesLectura.CargarPerfilFormulario(
+      FFormularioPerfil, '', 'Todos', Perfil) then
+      raise Exception.CreateFmt(SErrorCargarPerfilParametros,
+        [FFormularioPerfil]);
+    FSeccionCritica.Acquire;
+    try
+      for Clave in AClaves do
+        if FDefiniciones.TryGetValue(Clave, Parametro) then
+        begin
+          Parametro.ValorActual := Parametro.ValorPorDefecto;
+          if Assigned(Perfil) and Perfil.TryGetValue(Clave, Valor) then
+            Parametro.ValorActual := Valor.sValue;
+        end;
+    finally
+      FSeccionCritica.Release;
+    end;
+  finally
+    Perfil.Free;
+  end;
 end;
 
 function TParametrosBase.GetString(

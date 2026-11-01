@@ -19,10 +19,10 @@ unit inLibListasRegalosPrestaShop;
 interface
 
 uses
-  System.SysUtils, inLibListasRegalos;
+  System.SysUtils, inLibListasRegalos, inLibErroresBBDD;
 
 type
-  EApiListasRegalos = class(Exception);
+  EApiListasRegalos = class(EValidacionBBDD);
 
   IApiListasRegalos = interface
     ['{6E1C9D2A-4B7F-4C35-9A0E-3F2B8D51C7A4}']
@@ -275,18 +275,26 @@ begin
     oHttp.ConnectionTimeout := MILISEGUNDOS_CONEXION;
     oHttp.ResponseTimeout := MILISEGUNDOS_RESPUESTA;
     oHttp.CustomHeaders[CABECERA_CLAVE] := FClave;
-    if ACuerpo = '' then
-      oRespuesta := oHttp.Get(sUrl)
-    else
-    begin
-      oCuerpo := TStringStream.Create(ACuerpo, TEncoding.UTF8);
-      oHttp.ContentType := 'application/json';
-      oRespuesta := oHttp.Post(sUrl, oCuerpo);
+    try
+      if ACuerpo = '' then
+        oRespuesta := oHttp.Get(sUrl)
+      else
+      begin
+        oCuerpo := TStringStream.Create(ACuerpo, TEncoding.UTF8);
+        oHttp.ContentType := 'application/json';
+        oRespuesta := oHttp.Post(sUrl, oCuerpo);
+      end;
+      sTexto := oRespuesta.ContentAsString(TEncoding.UTF8);
+    except
+      on E: ENetHTTPClientException do
+        raise EApiListasRegalos.CreateFmt(
+          SErrorListasPrestaShopConexion, [FRaiz]);
     end;
-    sTexto := oRespuesta.ContentAsString(TEncoding.UTF8);
+    if (oRespuesta.StatusCode = 401) or (oRespuesta.StatusCode = 403) then
+      raise EApiListasRegalos.Create(SErrorListasPrestaShopClave);
     if oRespuesta.StatusCode <> 200 then
       raise EApiListasRegalos.CreateFmt(SErrorListasPrestaShopRespuesta,
-        [oRespuesta.StatusCode, AAccion, Copy(sTexto, 1, 300)]);
+        [oRespuesta.StatusCode]);
     Result := ParsearObjeto(sTexto, AAccion);
   finally
     oCuerpo.Free;

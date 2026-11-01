@@ -153,9 +153,10 @@ begin
   if (AMaterial.Linea <= 0) or (AMaterial.Previsto < 0) or
      (AMaterial.Utilizado < 0) or
      (AMaterial.Devuelto < 0) or
-     (AMaterial.Devuelto > AMaterial.Utilizado) or
      (Trim(AMaterial.Unidad) = '') then
     raise EArgumentException.Create(SCircuitoMaterialInvalido);
+  if AMaterial.Devuelto > AMaterial.Utilizado then
+    raise EArgumentException.Create(SCircuitoDevueltoSupera);
   if (AMaterial.Procedencia <> 'ALMACEN') and
      (AMaterial.Procedencia <> 'COMPRA') and
      (AMaterial.Procedencia <> 'CLIENTE') and

@@ -1212,7 +1212,7 @@ begin
     if not SameText(unqryTablaG.FieldByName('ESTADO_PRE').AsString,
       'ABIERTO') or
       (Trim(unqryTablaG.FieldByName('NUMERO_DESTINO_PRE').AsString) <> '') then
-      raise Exception.Create(SErrorPresupuestoCajaNoDisponible);
+      raise EValidacionBBDD.Create(SErrorPresupuestoCajaNoDisponible);
     q.Connection := unqryTablaG.Connection;
     q.SQL.Text := SqlPrevisualizarLineasDocumentoOrigen(
       TIPO_DOCUMENTO_ORIGEN_PRESUPUESTO_VENTA);

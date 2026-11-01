@@ -17,6 +17,8 @@ unit inLibMsgListasRegalos;
 interface
 
 resourcestring
+  SDescripcionParametrosInstalacionListas =
+    ' (configuración de instalación; editar en el ámbito Todos)';
   STituloEnviarListaRegalos = 'Enviar a Listas de Regalos PrestaShop';
   SCaptionEnviarListaRegalos = 'Listas de Regalos PrestaShop...';
   SInfoSinListasAbiertas = 'No hay listas de regalos abiertas en esta empresa.';
@@ -108,6 +110,7 @@ resourcestring
   SColRegaloRegalante = 'De';
   SColRegaloMensaje = 'Mensaje';
   SColRegaloImporte = 'Importe';
+  SColRegaloCantidad = 'Cantidad';
   SColRegaloEntregado = 'Entregado';
   SColRegaloEstado = 'Estado';
   SColRegaloPedido = 'Pedido / operación';
@@ -151,14 +154,21 @@ resourcestring
     '(appPrestaShopUrl) y la clave de listas de regalos ' +
     '(appPrestaShopClaveListasRegalos).';
   SErrorListasPrestaShopRespuesta =
-    'PrestaShop respondió %d en «%s»: %s';
+    'La tienda no pudo completar la sincronización (HTTP %d). ' +
+    'Inténtelo de nuevo más tarde.';
+  SErrorListasPrestaShopClave =
+    'PrestaShop rechazó la clave de listas de regalos. ' +
+    'Revísela en Parámetros de Entorno.';
+  SErrorListasPrestaShopConexion =
+    'No se pudo conectar con la tienda en %s. ' +
+    'Compruebe la dirección y la conexión.';
   SErrorListasPrestaShopJson =
     'La respuesta de PrestaShop en «%s» no es un JSON válido.';
   SInfoSincronizacionListasVacia =
     'Las listas ya estaban al día en PrestaShop.';
   SInfoSincronizacionListas =
-    'Sincronización terminada: %d listas publicadas, %d regalos web ' +
-    'registrados y %d rechazados.';
+    'Sincronización terminada. Listas publicadas: %d. ' +
+    'Regalos web registrados: %d. Rechazados: %d.';
   SSincroListaPublicada = 'Lista %s, versión %d, publicada.';
   SSincroListaIgnorada =
     'Lista %s: la tienda ya tenía una versión posterior.';

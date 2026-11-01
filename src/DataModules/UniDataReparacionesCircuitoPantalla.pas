@@ -176,10 +176,14 @@ begin
     'FROM fza_reparaciones_historial WHERE ID_GAR_RCH=:ORDEN ' +
     'ORDER BY ID_RCH DESC');
   FdsHistorial := Origen(FHistorial);
-  FDocumentos := CrearConsulta('SELECT ID_RCI,ID_GARLIN_RCI,TIPO_RCI,' +
-    'SERIE_RCI,NUMERO_RCI,LINEA_RCI,TOTAL_RCI,CANTIDAD_RCI ' +
-    'FROM fza_reparaciones_imputaciones WHERE ID_GAR_RCI=:ORDEN ' +
-    'ORDER BY ID_RCI');
+  FDocumentos := CrearConsulta('SELECT I.ID_RCI,I.ID_GARLIN_RCI,I.TIPO_RCI,' +
+    'I.SERIE_RCI,I.NUMERO_RCI,I.LINEA_RCI,I.TOTAL_RCI,I.CANTIDAD_RCI,' +
+    'COALESCE(A.CODIGO_PRV_ALBC,'''') AS CODIGO_PROVEEDOR,' +
+    'COALESCE(A.RAZON_SOCIAL_PRV_ALBC,'''') AS NOMBRE_PROVEEDOR ' +
+    'FROM fza_reparaciones_imputaciones I ' +
+    'LEFT JOIN fza_albaranes_compra A ON I.TIPO_RCI=''PR'' ' +
+    'AND A.SERIE_ALBC=I.SERIE_RCI AND A.NUMERO_ALBC=I.NUMERO_RCI ' +
+    'WHERE I.ID_GAR_RCI=:ORDEN ORDER BY I.ID_RCI');
   FdsDocumentos := Origen(FDocumentos);
   FExternos := CrearConsulta('SELECT ID_RCE,ID_GARLIN_RCE,CODIGO_PRV_RCE,' +
     'OBJETO_RCE,CANTIDAD_ENVIADA_RCE,CANTIDAD_RECIBIDA_RCE,' +

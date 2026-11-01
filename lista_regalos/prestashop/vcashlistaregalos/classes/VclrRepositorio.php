@@ -213,6 +213,7 @@ class VclrRepositorio
             . ' WHERE r.`id_cart` = ' . (int) $idCarrito
         ) ?: [];
         $regalos = [];
+        $moneda = new Currency((int) $pedido->id_currency);
         foreach ($reservas as $reserva) {
             $detalle = $this->detalleDelProducto($pedido, $reserva);
             if ($detalle === null) {
@@ -235,7 +236,10 @@ class VclrRepositorio
                 . $cantidad . ', '
                 . sprintf(
                     '%.6F',
-                    (float) $detalle['unit_price_tax_incl'] * $cantidad
+                    Tools::ps_round(
+                        (float) $detalle['unit_price_tax_incl'] * $cantidad,
+                        (int) $moneda->precision
+                    )
                 ) . ', '
                 . $this->texto($reserva['nombre'], 150) . ', '
                 . $this->texto($reserva['email'], 150) . ', '

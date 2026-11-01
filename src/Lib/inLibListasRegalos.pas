@@ -109,6 +109,7 @@ type
     Bonificacion: Currency;
   end;
 
+function EsParametroInstalacionListas(const ANombre: string): Boolean;
 function EsResultadoListaCorrecto(AResultado: Integer): Boolean;
 // Texto para el usuario de un p_RESULTADO; '' si es un éxito sin matiz.
 function TextoResultadoLista(AResultado: Integer): string;
@@ -127,6 +128,13 @@ implementation
 
 uses
   System.SysUtils, System.StrUtils, inLibMsgListasRegalos;
+
+function EsParametroInstalacionListas(const ANombre: string): Boolean;
+begin
+  Result := SameText(ANombre, PARAMETRO_LISTAS_REGALOS) or
+    SameText(ANombre, PARAMETRO_CLAVE_LISTAS_REGALOS) or
+    SameText(ANombre, 'appPrestaShopUrl');
+end;
 
 function EsResultadoListaCorrecto(AResultado: Integer): Boolean;
 begin

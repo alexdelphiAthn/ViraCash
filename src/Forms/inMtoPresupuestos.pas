@@ -328,7 +328,7 @@ uses
   inLibMsgArticulos, inLibMsgComun, inLibMsgFacturas, inLibMsgVentas,
   UniDataVentasPantallaComposicion,
   // Volcado del presupuesto en una venta de caja.
-  inLibCajaVentanasIntf, inMtoEnvioVentaCajaVcl,
+  inMtoEnvioVentaCajaVcl,
   UniDataCajasDefectoRepositorio, Uni,
   inLibTrazabilidad, inLibAsignacionLoteLectura, inLibLotesLineaDocumento,
   inLibTrazabilidadDocumento, inLibTrazabilidadDocumentoUniDAC;

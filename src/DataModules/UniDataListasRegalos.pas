@@ -47,6 +47,7 @@ type
     procedure TablaGAfterPost(DataSet: TDataSet);
     procedure TablaGBeforeDelete(DataSet: TDataSet);
     procedure LineasBeforeEdit(DataSet: TDataSet);
+    procedure LineasBeforePost(DataSet: TDataSet);
     procedure LineasAfterPost(DataSet: TDataSet);
   public
     procedure AsignarMaestroCabecera(ADataSource: TDataSource); override;
@@ -149,7 +150,8 @@ const
     '       E.CANTIDAD_DESEADA_LRGLIN, E.CANTIDAD_REGALADA_LRGLIN, ' +
     '       E.CANTIDAD_PENDIENTE_LRGLIN, E.PRECIO_REFERENCIA_LRGLIN, ' +
     '       E.ESIMPRESCINDIBLE_LRGLIN, E.ESADMITE_OTRA_VARIANTE_LRGLIN, ' +
-    '       E.OBSERVACIONES_LRGLIN ' +
+    '       E.OBSERVACIONES_LRGLIN, ' +
+    '       CAST(NULL AS CHAR(100)) AS USUARIO_MODIF ' +
     '  FROM VI_LRG_LINEAS_ESTADO E ' +
     ' WHERE E.CODIGO_LRG_LRGLIN = :CODIGO_LRG ' +
     '   AND E.ESACTIVO_LRGLIN = ''S'' ' +
@@ -161,7 +163,7 @@ const
     '       ESADMITE_OTRA_VARIANTE_LRGLIN = ' +
     '         :ESADMITE_OTRA_VARIANTE_LRGLIN, ' +
     '       OBSERVACIONES_LRGLIN = :OBSERVACIONES_LRGLIN, ' +
-    '       INSTANTE_MODIF = NOW(), USUARIO_MODIF = :USUARIO ' +
+    '       INSTANTE_MODIF = NOW(), USUARIO_MODIF = :USUARIO_MODIF ' +
     ' WHERE CODIGO_LRG_LRGLIN = :Old_CODIGO_LRG_LRGLIN ' +
     '   AND LINEA_LRGLIN = :Old_LINEA_LRGLIN';
   SQL_REGALOS =
@@ -253,6 +255,7 @@ begin
   FLineas.KeyFields := 'CODIGO_LRG_LRGLIN;LINEA_LRGLIN';
   FLineas.Options.SetFieldsReadOnly := False;
   FLineas.BeforeEdit := LineasBeforeEdit;
+  FLineas.BeforePost := LineasBeforePost;
   FLineas.AfterPost := LineasAfterPost;
   FRegalos := CrearDetalle(SQL_REGALOS, FdsRegalos);
   FRegalos.Name := 'unqryRegalosLista';
@@ -384,6 +387,12 @@ begin
     NotificarInformacion(SResultadoListaNoAbierta);
     Abort;
   end;
+end;
+
+procedure TdmListasRegalos.LineasBeforePost(DataSet: TDataSet);
+begin
+  DataSet.FieldByName('USUARIO_MODIF').AsString :=
+    Copy(IdentidadSesion.Usuario, 1, 100);
 end;
 
 procedure TdmListasRegalos.LineasAfterPost(DataSet: TDataSet);

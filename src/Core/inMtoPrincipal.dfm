@@ -615,7 +615,7 @@
         OnClick = MenuGenericoClick
       end
       object mnuListasRegalosPrestaShop: TMenuItem
-        Caption = 'Lista de regalos Prestashop'
+        Caption = 'Lista de regalos PrestaShop'
         Visible = False
         OnClick = MenuGenericoClick
       end

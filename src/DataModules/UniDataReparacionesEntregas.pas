@@ -35,7 +35,7 @@ begin
   if (Trim(AEntrega.Proveedor) = '') or (Trim(AEntrega.Objeto) = '') or
      (AEntrega.Enviado <= 0) or (AEntrega.Recibido < 0) or
      (AEntrega.Recibido > AEntrega.Enviado) then
-    raise EArgumentException.Create(SCircuitoMaterialInvalido);
+    raise EArgumentException.Create(SCircuitoEntregaInvalida);
   Transaccion(
     procedure
     var

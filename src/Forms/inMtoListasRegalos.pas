@@ -32,7 +32,7 @@ uses
   cxGridDBTableView, cxGrid, cxContainer, cxLabel, cxTextEdit,
   cxMaskEdit, cxDropDownEdit, cxButtons, cxCalendar, cxPC, cxCheckBox,
   cxDBEdit, cxMemo, cxImageComboBox, cxGroupBox, cxSpinEdit,
-  cxCurrencyEdit, dxCore,
+  cxCurrencyEdit, dxCore, cxScrollBox, cxSplitter,
   UniDataListasRegalos, inMtoGen;
 
 type
@@ -42,6 +42,9 @@ type
     FControlesCreados: Boolean;
     FCodigosEstado: TArray<string>;
     dmmListas: TdmListasRegalos;
+    FDesplazamiento: TcxScrollBox;
+    FContenidoFicha: TcxGroupBox;
+    FSeparadorFicha: TcxSplitter;
     pnlFiltros: TcxGroupBox;
     cbbEstado: TcxComboBox;
     edtTexto: TcxTextEdit;
@@ -68,6 +71,13 @@ type
       const ACampo, ATitulo: string; AAncho: Integer): TcxGridDBColumn;
     procedure ColumnaCasilla(AColumna: TcxGridDBColumn);
     procedure ColumnaImporte(AColumna: TcxGridDBColumn);
+    procedure ImporteGetDisplayText(Sender: TcxCustomGridTableItem;
+      ARecord: TcxCustomGridRecord; var AText: string);
+    procedure AjustarEditores(Sender: TObject);
+    procedure AjustarContenidoFicha(Sender: TObject);
+    procedure AjustarRepartoFicha(Sender: TObject);
+    procedure LimitarRepartoFicha(Sender: TObject;
+      var NewSize: Integer; var Accept: Boolean);
     // Ficha: rótulo y editor en la fila AFila de un grupo de una columna.
     procedure Colocar(AParent: TWinControl; const ARotulo: string;
       AEditor: TcxCustomEdit; AFila: Integer);
@@ -80,7 +90,6 @@ type
       TcxDBImageComboBox;
     procedure CrearCasilla(AParent: TWinControl; const ARotulo,
       ACampo: string; AFila: Integer);
-    procedure CrearFicha;
     procedure CrearGrupoDatos;
     procedure CrearGrupoTitulares;
     procedure CrearPestanaLineas;
@@ -110,7 +119,9 @@ type
     procedure btnAnularRegaloClick(Sender: TObject);
   protected
     procedure DoCreate; override;
+    procedure CrearFicha;
   public
+    function ContarHijosActivos: Integer; override;
     procedure CrearTablaPrincipal; override;
     procedure ResetForm; override;
   end;
@@ -122,7 +133,7 @@ implementation
 uses
   System.Math, inLibMensajesVcl, inLibListasRegalos,
   inLibListasRegalosSincronizacion,
-  inLibMsgListasRegalos;
+  inLibMsgListasRegalos, inLibGestorGuardianBorradoMto;
 
 const
   CAMPO_CODIGO = 'CODIGO_LRG';
@@ -248,12 +259,28 @@ begin
   TcxCurrencyEditProperties(AColumna.Properties).DecimalPlaces := 2;
   TcxCurrencyEditProperties(AColumna.Properties).DisplayFormat :=
     FORMATO_EUROS;
+  AColumna.OnGetDisplayText := ImporteGetDisplayText;
+end;
+
+procedure TfrmMtoListasRegalos.ImporteGetDisplayText(
+  Sender: TcxCustomGridTableItem; ARecord: TcxCustomGridRecord;
+  var AText: string);
+begin
+  if not VarIsNull(ARecord.Values[Sender.Index]) then
+    AText := FormatFloat(FORMATO_IMPORTE, ARecord.Values[Sender.Index]);
+end;
+
+function TfrmMtoListasRegalos.ContarHijosActivos: Integer;
+begin
+  Result := cBorradoConConfirmacionPropia;
 end;
 
 procedure TfrmMtoListasRegalos.CrearColumnas;
 var
   oColumna: TcxGridDBColumn;
 begin
+  cxgrdPrincipal.LookAndFeel.ScrollbarMode := sbmClassic;
+  cxGrdDBTabPrin.OptionsView.HeaderAutoHeight := True;
   if cxGrdDBTabPrin.ColumnCount = 0 then
   begin
     CrearColumna(cxGrdDBTabPrin, CAMPO_CODIGO, SColListaCodigo, 80);
@@ -266,7 +293,7 @@ begin
     CrearColumna(cxGrdDBTabPrin, 'NOMBRE_HOMENAJEADO_LRG',
       SColListaHomenajeado, 140);
     oColumna := CrearColumna(cxGrdDBTabPrin, 'FECHA_EVENTO_LRG',
-      SColListaFechaEvento, 110);
+      SColListaFechaEvento, 140);
     oColumna.PropertiesClass := TcxDateEditProperties;
     TcxDateEditProperties(oColumna.Properties).DisplayFormat :=
       FORMATO_FECHA_LISTA;
@@ -292,9 +319,51 @@ begin
   AEditor.Top := EscalarDpi(TOP_PRIMERA_FILA + AFila * ALTO_FILA);
   // El grupo alClient puede no tener aún su ancho final: mínimo razonable
   // y anclaje a la derecha para que siga al contenedor.
-  AEditor.Width := Max(EscalarDpi(160),
-    AParent.Width - AEditor.Left - EscalarDpi(MARGEN));
+  AEditor.Width := Max(EscalarDpi(40),
+    AParent.ClientWidth - AEditor.Left - EscalarDpi(MARGEN));
   AEditor.Anchors := [akLeft, akTop, akRight];
+  AEditor.Tag := 1;
+end;
+
+procedure TfrmMtoListasRegalos.AjustarRepartoFicha(Sender: TObject);
+var
+  iMaximo: Integer;
+begin
+  iMaximo := Max(EscalarDpi(100),
+    tsFicha.ClientHeight - EscalarDpi(148));
+  FDesplazamiento.Height := Min(FDesplazamiento.Height, iMaximo);
+end;
+
+procedure TfrmMtoListasRegalos.LimitarRepartoFicha(Sender: TObject;
+  var NewSize: Integer; var Accept: Boolean);
+begin
+  NewSize := EnsureRange(NewSize, EscalarDpi(100),
+    Max(EscalarDpi(100), tsFicha.ClientHeight - EscalarDpi(148)));
+  Accept := True;
+end;
+
+procedure TfrmMtoListasRegalos.AjustarContenidoFicha(Sender: TObject);
+begin
+  if Assigned(FContenidoFicha) then
+  begin
+    FContenidoFicha.Width := Max(FDesplazamiento.ClientWidth,
+      FContenidoFicha.Constraints.MinWidth);
+    FContenidoFicha.Height := Max(FDesplazamiento.ClientHeight,
+      FContenidoFicha.Constraints.MinHeight);
+  end;
+end;
+
+procedure TfrmMtoListasRegalos.AjustarEditores(Sender: TObject);
+var
+  Grupo: TWinControl;
+  i: Integer;
+begin
+  Grupo := Sender as TWinControl;
+  for i := 0 to Grupo.ControlCount - 1 do
+    if (Grupo.Controls[i] is TcxCustomEdit) and
+       (Grupo.Controls[i].Tag = 1) then
+      Grupo.Controls[i].Width := Max(EscalarDpi(40),
+        Grupo.ClientWidth - Grupo.Controls[i].Left - EscalarDpi(MARGEN));
 end;
 
 function TfrmMtoListasRegalos.CrearTexto(AParent: TWinControl;
@@ -315,6 +384,7 @@ begin
   Result := TcxDBDateEdit.Create(Self);
   Colocar(AParent, ARotulo, Result, AFila);
   Result.Anchors := [akLeft, akTop];
+  Result.Tag := 0;
   Result.Width := EscalarDpi(130);
   Result.DataBinding.DataSource := dsTablaG;
   Result.DataBinding.DataField := ACampo;
@@ -366,6 +436,7 @@ begin
   grpDatos.Width := EscalarDpi(ANCHO_GRUPO_DATOS);
   grpDatos.Caption := SGrupoDatosLista;
   grpDatos.AlignWithMargins := True;
+  grpDatos.OnResize := AjustarEditores;
   CrearTexto(grpDatos, SRotuloListaCodigo, CAMPO_CODIGO, 0, True);
   CrearTexto(grpDatos, SRotuloListaClave, 'CLAVE_PUBLICA_LRG', 1, True);
   CrearOpciones(grpDatos, SRotuloListaTipo, 'TIPO_LRG', 2, TIPOS_LISTA,
@@ -382,6 +453,7 @@ begin
   oBonificacion := TcxDBCurrencyEdit.Create(Self);
   Colocar(grpDatos, SRotuloListaBonificacion, oBonificacion, 8);
   oBonificacion.Anchors := [akLeft, akTop];
+  oBonificacion.Tag := 0;
   oBonificacion.Width := EscalarDpi(90);
   oBonificacion.DataBinding.DataSource := dsTablaG;
   oBonificacion.DataBinding.DataField := 'PORCENTAJE_BONIFICACION_LRG';
@@ -397,6 +469,7 @@ begin
   grpTitulares.Align := alClient;
   grpTitulares.Caption := SGrupoTitularesLista;
   grpTitulares.AlignWithMargins := True;
+  grpTitulares.OnResize := AjustarEditores;
   CrearTexto(grpTitulares, SRotuloListaTitulares, 'NOMBRE_TITULARES_LRG', 0);
   CrearTexto(grpTitulares, SRotuloListaCliente, 'CODIGO_CLI_LRG', 1);
   CrearTexto(grpTitulares, SRotuloListaEmail, 'EMAIL_TITULARES_LRG', 2);
@@ -429,6 +502,8 @@ begin
   Result.OptionsData.Inserting := False;
   Result.OptionsData.Deleting := False;
   Result.OptionsView.GroupByBox := False;
+  Result.OptionsView.HeaderAutoHeight := True;
+  oRejilla.LookAndFeel.ScrollbarMode := sbmClassic;
 end;
 
 procedure TfrmMtoListasRegalos.CrearPestanaLineas;
@@ -478,21 +553,46 @@ procedure TfrmMtoListasRegalos.CrearFicha;
 var
   oBotones: TcxGroupBox;
 begin
-  pnlCabecera := CrearPanel(tsFicha, alTop,
+  FDesplazamiento := TcxScrollBox.Create(Self);
+  FDesplazamiento.Parent := tsFicha;
+  FDesplazamiento.Align := alTop;
+  FDesplazamiento.Height := Min(EscalarDpi(384),
+    Max(EscalarDpi(100), tsFicha.ClientHeight div 2));
+  FDesplazamiento.AutoScroll := True;
+  FDesplazamiento.LookAndFeel.ScrollbarMode := sbmClassic;
+  FDesplazamiento.VertScrollBar.Tracking := True;
+  FDesplazamiento.HorzScrollBar.Tracking := True;
+  FContenidoFicha := CrearPanel(FDesplazamiento, alNone, 384);
+  FContenidoFicha.Constraints.MinWidth := EscalarDpi(1000);
+  FContenidoFicha.Constraints.MinHeight := EscalarDpi(384);
+  FDesplazamiento.OnResize := AjustarContenidoFicha;
+  AjustarContenidoFicha(FDesplazamiento);
+  pnlCabecera := CrearPanel(FContenidoFicha, alTop,
     TOP_PRIMERA_FILA + FILAS_CABECERA * ALTO_FILA + 24);
   CrearGrupoDatos;
   CrearGrupoTitulares;
-  oBotones := CrearPanel(tsFicha, alTop, 48);
+  oBotones := CrearPanel(FContenidoFicha, alTop, 48);
   oBotones.Top := pnlCabecera.Top + pnlCabecera.Height;
   CrearBoton(oBotones, SCaptionListaCerrar, 12, 8, 140, btnCerrarListaClick);
   CrearBoton(oBotones, SCaptionListaAnular, 160, 8, 140,
     btnAnularListaClick);
+  FSeparadorFicha := TcxSplitter.Create(Self);
+  FSeparadorFicha.Parent := tsFicha;
+  FSeparadorFicha.AlignSplitter := salTop;
+  FSeparadorFicha.Top := FDesplazamiento.BoundsRect.Bottom;
+  FSeparadorFicha.Control := FDesplazamiento;
+  FSeparadorFicha.MinSize := EscalarDpi(100);
+  FSeparadorFicha.ResizeUpdate := True;
+  FSeparadorFicha.OnCanResize := LimitarRepartoFicha;
+  tsFicha.OnResize := AjustarRepartoFicha;
   pcDetalle := TcxPageControl.Create(Self);
   pcDetalle.Parent := tsFicha;
   pcDetalle.Align := alClient;
   CrearPestanaLineas;
   CrearPestanaRegalos;
   pcDetalle.ActivePage := tsLineas;
+  AjustarEditores(grpDatos);
+  AjustarEditores(grpTitulares);
 end;
 
 // Las rejillas de detalle se enlazan cuando el data module ya existe.
@@ -516,11 +616,11 @@ begin
   ColumnaImporte(CrearColumna(tvLineas, 'PRECIO_REFERENCIA_LRGLIN',
     SColLineaPrecio, 100));
   oColumna := CrearColumna(tvLineas, 'ESIMPRESCINDIBLE_LRGLIN',
-    SColLineaImprescindible, 100);
+    SColLineaImprescindible, 130);
   ColumnaCasilla(oColumna);
   oColumna.Options.Editing := True;
   oColumna := CrearColumna(tvLineas, 'ESADMITE_OTRA_VARIANTE_LRGLIN',
-    SColLineaOtraVariante, 150);
+    SColLineaOtraVariante, 170);
   ColumnaCasilla(oColumna);
   oColumna.Options.Editing := True;
   CrearColumna(tvLineas, 'OBSERVACIONES_LRGLIN', SColLineaObservaciones,
@@ -531,7 +631,7 @@ begin
   CrearColumna(tvRegalos, 'CANAL_LRGREG', SColRegaloCanal,
     70).OnGetDisplayText := CanalGetDisplayText;
   CrearColumna(tvRegalos, 'CODIGO_SKU_LRGREG', SColLineaSku, 160);
-  CrearColumna(tvRegalos, 'CANTIDAD_LRGREG', SColLineaDeseada, 60);
+  CrearColumna(tvRegalos, 'CANTIDAD_LRGREG', SColRegaloCantidad, 85);
   ColumnaImporte(CrearColumna(tvRegalos, 'IMPORTE_LRGREG',
     SColRegaloImporte, 100));
   CrearColumna(tvRegalos, 'NOMBRE_REGALANTE_LRGREG', SColRegaloRegalante,

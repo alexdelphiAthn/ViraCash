@@ -157,30 +157,30 @@ begin
     // Antes de las líneas: el cliente fija la tarifa (FZ-ISSUE-785).
     oOperacionCaja.PrepararVentaExterna(ACliente);
     try
-    for i := 0 to High(ALineas) do
-    begin
-      // Sin SKU (articulo con variaciones sin elegir) no hay que leer.
-      if (Trim(ALineas[i].CodigoSku) <> '') and
-         oOperacionCaja.CargarSkuExterno(
-           ALineas[i].CodigoSku, ALineas[i].Cantidad,
-           ALineas[i].Lote, ALineas[i].FechaCaducidad) then
-        Inc(AResultado.LineasVolcadas)
-      else
-        Inc(AResultado.LineasNoVolcadas);
-    end;
-    if APresupuestoNumero <> '' then
-    begin
-      if AResultado.LineasNoVolcadas = 0 then
-        oOperacionCaja.AsignarPresupuesto(APresupuestoEmpresa,
-          APresupuestoSerie, APresupuestoNumero)
-      else
+      for i := 0 to High(ALineas) do
       begin
-        oOperacionCaja.PrepararValores(sEmpresa, sAlmacen, sCaja,
-          BuscarFechaOperacionCaja(sEmpresa, sAlmacen, sCaja));
-        AResultado.LineasNoVolcadas := Length(ALineas);
-        AResultado.LineasVolcadas := 0;
+        // Sin SKU (articulo con variaciones sin elegir) no hay que leer.
+        if (Trim(ALineas[i].CodigoSku) <> '') and
+           oOperacionCaja.CargarSkuExterno(
+             ALineas[i].CodigoSku, ALineas[i].Cantidad,
+             ALineas[i].Lote, ALineas[i].FechaCaducidad) then
+          Inc(AResultado.LineasVolcadas)
+        else
+          Inc(AResultado.LineasNoVolcadas);
       end;
-    end;
+      if APresupuestoNumero <> '' then
+      begin
+        if AResultado.LineasNoVolcadas = 0 then
+          oOperacionCaja.AsignarPresupuesto(APresupuestoEmpresa,
+            APresupuestoSerie, APresupuestoNumero)
+        else
+        begin
+          oOperacionCaja.PrepararValores(sEmpresa, sAlmacen, sCaja,
+            BuscarFechaOperacionCaja(sEmpresa, sAlmacen, sCaja));
+          AResultado.LineasNoVolcadas := Length(ALineas);
+          AResultado.LineasVolcadas := 0;
+        end;
+      end;
     except
       if APresupuestoNumero <> '' then
         oOperacionCaja.PrepararValores(sEmpresa, sAlmacen, sCaja,

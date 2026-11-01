@@ -549,6 +549,8 @@ end;
 
 procedure TParametrosAplicacion.DespuesDeRecargar;
 begin
+  ReleerParametrosInstalacion(['appListasRegalos',
+    'appPrestaShopClaveListasRegalos', 'appPrestaShopUrl']);
   // F-LOTEC-016: los movimientos de almacén solo usan el lote con los
   // interruptores encendidos.
   PublicarActivacionVigente(TActivacionTrazabilidad.Leer(Self));
