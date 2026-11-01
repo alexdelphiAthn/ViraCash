@@ -111,6 +111,8 @@ type
     procedure unqryTarifasArticulosAfterDelete(DataSet: TDataSet);
     procedure unqryStockArticulosAfterScroll(DataSet: TDataSet);
     procedure unqryVariacionesArticulosBeforePost(DataSet: TDataSet);
+    procedure unqryVariacionesArticulosNewRecord(DataSet: TDataSet);
+    procedure unqryVariacionesArticulosAfterOpen(DataSet: TDataSet);
     procedure unqryVariacionesArticulosBeforeDelete(DataSet: TDataSet);
     procedure unqrySkusBeforePost(DataSet: TDataSet);
     procedure unqrySkusBeforeDelete(DataSet: TDataSet);
@@ -280,6 +282,7 @@ type
 implementation
 
 uses
+  UniDataArticulosPropiedadesRepositorio,
   UniDataReparacionesArticuloServicio, inLibMsgReparaciones,
   UniDataCodigosBarrasLote,
   inLibArticulosGuardado,
@@ -428,7 +431,7 @@ const
     'tar.FECHA_HASTA_DTO_TAR = ''0000-00-00'' OR ' +
     'tar.FECHA_HASTA_DTO_TAR >= :FECHA_APLICACION))';
   cSqlEtiquetasArt =
-    'SELECT eti.*, '                                                          +
+    'SELECT eti.*, art.TIPO_CANTIDAD_ART, ' +
     '       {CAMPOS_PRECIO_UNIDAD} ' +
     '       prc.PRECIO_SALIDA_ARTTAR, ' +
     '       CASE WHEN {DESCUENTO_VIGENTE} ' +
@@ -454,7 +457,8 @@ const
     '       CAST('''' AS CHAR(10)) AS CADUCIDAD_ETI,'                         +
     // FZ-ISSUE-603: «Lote L1 cad. 24/10/26», «S/N …» o la temporada.
     '       CAST('''' AS CHAR(80)) AS TEXTO_LOTE_ETI'                         +
-    '  FROM vi_articulos_skus_etiquetas eti'                                  +
+    '  FROM vi_articulos_skus_etiquetas eti ' +
+    '  JOIN fza_articulos art ON art.CODIGO_ART_ART = eti.CODIGO_ART_ART ' +
     '  LEFT JOIN fza_tarifas tar'                                             +
     '    ON tar.CODIGO_TAR_ARTTAR = :CODIGO_TAR_ARTTAR'                       +
     '  LEFT JOIN fza_articulos_tarifas prc'                                   +
@@ -772,14 +776,58 @@ begin
   end;
 end;
 
+procedure TdmArticulos.unqryVariacionesArticulosAfterOpen(
+  DataSet: TDataSet);
+begin
+  // El stock es un agregado de consulta, ajeno al alta del código de barras.
+  DataSet.FieldByName('STOCK_TOTAL').Required := False;
+  DataSet.FieldByName('STOCK_TOTAL').ReadOnly := True;
+end;
+
+procedure TdmArticulos.unqryVariacionesArticulosNewRecord(
+  DataSet: TDataSet);
+begin
+  DataSet.FieldByName('TIPO_CODIGO_CB').AsString := 'EAN13';
+  DataSet.FieldByName('ESPRINCIPAL_CB').AsString := 'N';
+  if unqrySkus.Active and not unqrySkus.IsEmpty then
+    DataSet.FieldByName('CODIGO_UNIDAD_SKU').AsString :=
+      unqrySkus.FieldByName('CODIGO_UNIDAD_SKU').AsString;
+end;
+
 procedure TdmArticulos.unqryVariacionesArticulosBeforePost(DataSet: TDataSet);
 var
   fldCB, fldAct, fldSku: TField;
   sSku: string;
   bChangedActivo: Boolean;
+  ConsultaSku: TUniQuery;
 begin
   inherited;
 
+  // La vista contiene columnas obligatorias del SKU que no se insertan
+  // en códigos de barras. Resolverlas para la unidad elegida.
+  if DataSet.State = dsInsert then
+  begin
+    ConsultaSku := TUniQuery.Create(nil);
+    try
+      ConsultaSku.Connection := unqryVariacionesArticulos.Connection;
+      ConsultaSku.SQL.Text :=
+        'SELECT CODIGO_VAR_SKU, ESACTIVO_SKU FROM fza_articulos_skus ' +
+        'WHERE CODIGO_UNIDAD_SKU = :SKU AND CODIGO_ART_SKU = :ART';
+      ConsultaSku.ParamByName('SKU').AsString :=
+        DataSet.FieldByName('CODIGO_UNIDAD_SKU').AsString;
+      ConsultaSku.ParamByName('ART').AsString :=
+        unqryTablaG.FieldByName('CODIGO_ART_ART').AsString;
+      ConsultaSku.Open;
+      if ConsultaSku.IsEmpty then
+        raise EValidacionBBDD.Create(SErrorCodigoSkuCodigoBarrasObligatorio);
+      DataSet.FieldByName('CODIGO_VAR_SKU').AsString :=
+        ConsultaSku.FieldByName('CODIGO_VAR_SKU').AsString;
+      DataSet.FieldByName('ESACTIVO_SKU').AsString :=
+        ConsultaSku.FieldByName('ESACTIVO_SKU').AsString;
+    finally
+      ConsultaSku.Free;
+    end;
+  end;
   fldCB  := DataSet.FindField('CODIGO_BARRAS_CB');
   fldAct := DataSet.FindField('ESACTIVO_SKU');
   fldSku := DataSet.FindField('CODIGO_UNIDAD_SKU');
@@ -1015,7 +1063,7 @@ const
   ANCHO_COLOR = 90;
   ANCHO_TOTAL = 80;
   ANCHO_TALLA = 55;
-  ANCHO_PENDIENTE = 95;
+  ANCHO_PENDIENTE = 145;
 var
   Columna: TcxGridDBColumn;
   NombreCampo: string;
@@ -1034,7 +1082,8 @@ begin
       Columna.Width := ANCHO_TOTAL
     // FZ-ISSUE-251: pendiente de traspaso y disponible (script 770); el
     // codigo del almacen solo sirve para el detalle del doble clic.
-    else if EsColumnaPendienteTraspasoStock(NombreCampo) then
+    else if EsColumnaPendienteTraspasoStock(NombreCampo) or
+            SameText(NombreCampo, 'Pte. recibir compra') then
       Columna.Width := ANCHO_PENDIENTE
     else if SameText(NombreCampo, CAMPO_STOCK_CODIGO_ALMACEN) then
     begin
@@ -1087,9 +1136,11 @@ begin
        SameText(NombreCampo, 'Stock Total') then
       ColumnaTotal := Columna
     else if SameText(NombreCampo, CAMPO_STOCK_PTE_TRASPASAR) or
-            SameText(NombreCampo, CAMPO_STOCK_PTE_RECIBIR_TRASPASO) then
+            SameText(NombreCampo, CAMPO_STOCK_PTE_RECIBIR_TRASPASO) or
+            SameText(NombreCampo, 'Pte. recibir compra') then
       Pendientes := Pendientes + [Columna]
-    else if not SameText(NombreCampo, 'Almacen') and
+    else if Columna.Visible and
+            not SameText(NombreCampo, 'Almacen') and
             not SameText(NombreCampo, CAMPO_STOCK_CODIGO_ALMACEN) and
             (Columna.DataBinding.Field <> nil) and
             (Columna.DataBinding.Field.DataType in
@@ -3012,6 +3063,8 @@ begin
         fldDef.DataType := ftWideString;
         fldDef.Size     := cTamanyosColorBasicoEtiquetas[k];
       end;
+    AgregarCamposPropiedadesEtiqueta(
+      unqryArtPrint.Connection, cdsEtiquetasArt);
     // Red de seguridad: si pese al saneo MIDAS aun rechaza algun tipo,
     // dejamos constancia del esquema exacto en el log y reconstruimos todo
     // como texto para que el disenyador / impresion abran igualmente.
@@ -3053,6 +3106,8 @@ begin
     // Aquí y no en quien llama: los modales de etiquetas repueblan el
     // dataset al aplicar guías y perdían el texto del precio por unidad.
     PrepararPreciosUnidadEtiquetas(cdsEtiquetasArt);
+    CompletarPropiedadesEtiquetas(
+      unqryArtPrint.Connection, cdsEtiquetasArt);
   finally
     FreeAndNil(oHexMap);
   end;

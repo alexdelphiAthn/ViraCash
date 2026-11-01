@@ -347,6 +347,7 @@ type
     procedure CrearTablaPrincipal; override;
     procedure AplicarEtiquetas; override;
     procedure ResetForm; override;
+    procedure PrepararGuardado; override;
     procedure ResolverArtSkuActivo(out ACodArt, ACodSku: string); override;
     function  DataSourcesParaFoto: TArray<TDataSource>; override;
   private
@@ -948,6 +949,18 @@ begin
         VarToStr(oRegistro.Values[COLUMNA_CER_FECHAHASTA]);
     dmmEmpresas.unqryTablaG.Post;
   end;
+end;
+
+procedure TfrmMtoEmpresas.PrepararGuardado;
+begin
+  inherited;
+  // Confirmar el detalle antes de que el Post del maestro lo refresque.
+  if dmmEmpresas.unqrySeries.State in dsEditModes then
+    dmmEmpresas.unqrySeries.Post;
+  if dmmEmpresas.unqryBancos.State in dsEditModes then
+    dmmEmpresas.unqryBancos.Post;
+  if dmmEmpresas.unqryRetenciones.State in dsEditModes then
+    dmmEmpresas.unqryRetenciones.Post;
 end;
 
 procedure TfrmMtoEmpresas.ResetForm;

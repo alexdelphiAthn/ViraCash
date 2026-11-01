@@ -126,6 +126,8 @@ type
       const APermisos: IPermisosAplicacion;
       const ADependencias: TDependenciasMenuCaja); reintroduce; overload;
     procedure ActualizarFechaCaja(AFechaCaja: TDateTime);
+    function FechaOperacionCaja(const AEmpresa, AAlmacen,
+      ACaja: string): TDateTime;
     property FechaCaja: TDateTime read FFechaCaja;
   end;
 
@@ -431,6 +433,15 @@ begin
         Handled := True;
       end;
   end;
+end;
+
+function TfrmMtoMenuCaja.FechaOperacionCaja(
+  const AEmpresa, AAlmacen, ACaja: string): TDateTime;
+begin
+  Result := 0;
+  if SameText(FEmpresa, AEmpresa) and SameText(FAlmacen, AAlmacen) and
+     SameText(FCaja, ACaja) then
+    Result := FFechaCaja;
 end;
 
 procedure TfrmMtoMenuCaja.ActualizarFechaCaja(AFechaCaja: TDateTime);

@@ -18,7 +18,7 @@ unit inLibArqueoRango;
 
 interface
 
-// «Desde» que se propone al abrir el arqueo: el segundo siguiente al
+// «Desde» que se propone al abrir el arqueo: el instante del
 // último cierre si queda dentro del rango; si no, el «desde» recibido.
 function DesdePropuestoArqueo(ADesde, AHasta: TDateTime;
   AHayCierre: Boolean; AUltimoCierre: TDateTime): TDateTime;
@@ -40,7 +40,9 @@ begin
   Result := ADesde;
   if AHayCierre then
   begin
-    dSiguiente := IncSecond(AUltimoCierre);
+    // Las operaciones ya arqueadas se excluyen por su código de cierre.
+    // Incluir el mismo segundo evita perder ventas posteriores al cierre.
+    dSiguiente := AUltimoCierre;
     if (CompareDateTime(dSiguiente, ADesde) > 0) and
        (CompareDateTime(dSiguiente, AHasta) < 0) then
       Result := dSiguiente;

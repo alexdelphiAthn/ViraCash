@@ -79,7 +79,8 @@ begin
     'AND CODIGO_ALM_OPCAJA = :pALMACEN ' +
     'AND CODIGO_CAJA_OPCAJA = :pCAJA ' +
     'AND FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
-    'AND FECHA_OPERACION_OPCAJA <= :pFHASTA' +
+    'AND FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
+    'AND COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''' ' +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
       'o.SERIE_FAC_OPCAJA',
@@ -91,11 +92,11 @@ begin
   Result :=
     // FZ-ISSUE-348: el precio de salida del TPV ya lleva el IVA; solo se
     // añade cuando la tarifa de la línea es sin impuestos.
-    ' SELECT COALESCE(SUM(l.CANTIDAD_FACLIN ' +
+    ' SELECT COALESCE(SUM(ROUND(l.CANTIDAD_FACLIN ' +
     '* l.PRECIO_SALIDA_FACLIN ' +
     '* CASE WHEN l.ESIMP_INCL_TARIFA_FACLIN = ''N'' ' +
     'THEN 1 + COALESCE(l.PORCENTAJE_IVA_FACLIN, 0) / 100 ' +
-    'ELSE 1 END), 0) ' +
+    'ELSE 1 END, 2)), 0) ' +
     'AS BRUTO, COALESCE(SUM(l.TOTAL_FACLIN), 0) AS NETO_LIN ' +
     'FROM fza_caja_operaciones o JOIN fza_facturas_lineas l ' +
     'ON l.CODIGO_EMP_FACLIN = o.CODIGO_EMP_OPCAJA ' +
@@ -107,7 +108,8 @@ begin
     'AND o.CODIGO_ALM_OPCAJA = :pALMACEN ' +
     'AND o.CODIGO_CAJA_OPCAJA = :pCAJA ' +
     'AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
-    'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA' +
+    'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
+    'AND COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''' ' +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
       'o.SERIE_FAC_OPCAJA',
@@ -144,7 +146,8 @@ begin
     'AND o.CODIGO_ALM_OPCAJA = :pALMACEN ' +
     'AND o.CODIGO_CAJA_OPCAJA = :pCAJA ' +
     'AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
-    'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA' +
+    'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
+    'AND COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''' ' +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
       'o.SERIE_FAC_OPCAJA',
@@ -203,6 +206,7 @@ begin
     'AND o.CODIGO_CAJA_OPCAJA = :pCAJA ' +
     'AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
+    'AND COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''' ' +
     'AND o.TIPO_OPERACION_OPCAJA IN (:pTIPO_CB, :pTIPO_DE) ' +
     'AND o.IMPORTE_TOTAL_OPCAJA > 0 ' +
     'AND o.ID_DEPOSITO_OPCAJA IS NOT NULL ' +
@@ -265,6 +269,7 @@ begin
     'AND o.NUMERO_OPERACION_OPCAJA = p.NUMERO_OPERACION_PAGO ' +
     'AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
+    'AND COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''' ' +
     // FZ-ISSUE-346: entradas de cambio y gastos de caja van aparte
     // (EfectivoEntradas / EfectivoSalidas); aquí contaban otra vez.
     'AND o.TIPO_OPERACION_OPCAJA NOT IN (:pTIPO_EC, :pTIPO_GC) ' +
@@ -295,7 +300,7 @@ begin
     'AND CODIGO_ALM_ARQ = :pALMACEN ' +
     'AND CODIGO_CAJA_ARQ = :pCAJA ' +
     'AND FASE_ARQ = ''CERRADO'' ' +
-    'AND FECHA_HASTA_ARQ < :pFDESDE ' +
+    'AND FECHA_HASTA_ARQ <= :pFDESDE ' +
     'ORDER BY FECHA_HASTA_ARQ DESC LIMIT 1';
 end;
 

@@ -52,7 +52,7 @@ begin
   if Trim(ANombre) = '' then
     raise EValidacionDatosArticulo.Create(cvaNombre,
       SErrorNombreArticuloVacio);
-  Simbolo := PrimerSimboloProhibido(ANombre, APerfiles);
+  Simbolo := PrimerSimboloProhibido(ANombre, APerfiles, ',/()');
   if Simbolo <> '' then
     raise EValidacionDatosArticulo.Create(cvaNombre,
       Format(SErrorSimboloNombreArticulo, [Simbolo]));

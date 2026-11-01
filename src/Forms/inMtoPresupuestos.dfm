@@ -186,6 +186,22 @@
                 TabOrder = 3
                 Width = 110
               end
+              object lblFechaValidez: TcxLabel
+                Left = 680
+                Top = 12
+                Caption = 'Válido hasta'
+                Transparent = True
+              end
+              object dteFECHA_VALIDEZ_PRE: TcxDBDateEdit
+                Left = 680
+                Top = 32
+                DataBinding.DataField = 'FECHA_VALIDEZ_PRE'
+                DataBinding.DataSource = dsTablaG
+                Properties.DisplayFormat = 'dd/mm/yyyy'
+                Properties.Kind = ckDate
+                TabOrder = 14
+                Width = 120
+              end
               object lblPedidoOrigen: TcxLabel
                 Left = 486
                 Top = 12

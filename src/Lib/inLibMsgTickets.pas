@@ -39,6 +39,8 @@ resourcestring
   STicketFormatoTienda = '%s Tda.%s-%s';
   STicketCabeceraArticulos =
     'Artículo/Sku              Cant.    Total';
+  STicketBrutoVenta = 'BRUTO';
+  STicketACobrar = 'A COBRAR';
   STicketSuma = 'SUMA';
   STicketDescuento = 'DESCUENTO';
   STicketSalidaDescuento = 'Salida %s; dto. %s';

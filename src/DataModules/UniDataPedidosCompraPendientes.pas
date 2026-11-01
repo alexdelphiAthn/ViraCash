@@ -27,9 +27,47 @@ procedure BorrarPdteRecibirDesdePedidoInterno(
   const ASeriePedc, ANumPedc, ALinea: string);
 function CalcularPendienteTotalInterno(AConn: TUniConnection;
   const ASeriePedc, ANumPedc: string): Double;
+procedure CancelarRestoPedidoCompra(AConn: TUniConnection;
+  const ASerie, ANumero, AUsuario: string);
 implementation
 uses
   System.SysUtils, Data.DB, DBAccess;
+procedure CancelarRestoPedidoCompra(AConn: TUniConnection;
+  const ASerie, ANumero, AUsuario: string);
+var
+  Consulta: TUniQuery;
+  Propia: Boolean;
+begin
+  Consulta := TUniQuery.Create(nil);
+  Propia := not AConn.InTransaction;
+  try
+    if Propia then
+      AConn.StartTransaction;
+    try
+      Consulta.Connection := AConn;
+      Consulta.SQL.Text :=
+        'UPDATE fza_pedidos_compra SET ESTADO_PEDC = ''CANCELADO'', ' +
+        'USUARIO_MODIF = :USUARIO, INSTANTE_MODIF = NOW() ' +
+        'WHERE SERIE_PEDC = :SERIE AND NUMERO_PEDC = :NUMERO ' +
+        'AND ESTADO_PEDC = ''PARCIAL''';
+      Consulta.ParamByName('SERIE').AsString := ASerie;
+      Consulta.ParamByName('NUMERO').AsString := ANumero;
+      Consulta.ParamByName('USUARIO').AsString := AUsuario;
+      Consulta.Execute;
+      if Consulta.RowsAffected > 0 then
+        BorrarPdteRecibirDesdePedidoInterno(AConn, ASerie, ANumero, '');
+      if Propia then
+        AConn.Commit;
+    except
+      if Propia and AConn.InTransaction then
+        AConn.Rollback;
+      raise;
+    end;
+  finally
+    Consulta.Free;
+  end;
+end;
+
 type
   TPedidosCompraPendientesUniDAC = class(
     TInterfacedObject, IPedidosCompraPendientes)
@@ -215,6 +253,7 @@ begin
       '   AND L.NUMERO_PEDC_PEDCLIN = :n ' +
       '   AND L.CODIGO_UNIDAD_PEDCLIN IS NOT NULL ' +
       '   AND L.CODIGO_UNIDAD_PEDCLIN <> '''' ' +
+      '   AND P.ESTADO_PEDC <> ''CANCELADO'' ' +
       '   AND L.CANTIDAD_PEDCLIN - IFNULL(L.CANTIDAD_RECIBIDA_PEDCLIN,0) > 0';
     q.ParamByName('s').AsString := ASeriePedc;
     q.ParamByName('n').AsString := ANumPedc;

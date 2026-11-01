@@ -16,6 +16,7 @@ unit inLibMsgVentas;
 interface
 
 resourcestring
+  SCaptionPropiedadesArticuloDocumento = 'Propiedades del artículo';
   STituloMovimientosVentasFacturadas =
     'Movimientos de ventas facturadas por artículos y fechas';
   SCaptionOrigenVentasInforme = 'Origen de las ventas';

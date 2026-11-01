@@ -38,6 +38,9 @@ type
       AConexion: TUniConnection;
       const AUsuarioAuditoria: string);
     function CrearConsulta: TUniQuery;
+    procedure BloquearPresupuesto(const AEmpresa, ASerie, ANumero: string);
+    procedure EnlazarPresupuesto(const AEmpresa, ASerie, ANumero,
+      ASerieFactura, ANumeroFactura: string);
     procedure IniciarUnidadTrabajo;
     procedure ConfirmarUnidadTrabajo;
     procedure RevertirUnidadTrabajo;
@@ -99,7 +102,7 @@ implementation
 
 uses
   inLibFormatoDocumento, UniDataFormatoDocumentoRepositorio,
-  inLibMsgCaja, inLibErroresBBDD;
+  inLibMsgCaja, inLibMsgPresupuestos, inLibErroresBBDD;
 
 function FechaOperacionCaja(AFecha: TDateTime): TDateTime;
 begin
@@ -166,6 +169,65 @@ function TPersistenciaCierreVentaCajaUniDAC.CrearConsulta: TUniQuery;
 begin
   Result := TUniQuery.Create(nil);
   Result.Connection := FConexion;
+end;
+
+procedure TPersistenciaCierreVentaCajaUniDAC.BloquearPresupuesto(
+  const AEmpresa, ASerie, ANumero: string);
+var
+  Consulta: TUniQuery;
+begin
+  Consulta := CrearConsulta;
+  try
+    Consulta.SQL.Text :=
+      'SELECT ESTADO_PRE, NUMERO_DESTINO_PRE FROM fza_presupuestos ' +
+      'WHERE CODIGO_EMP_PRE = :EMPRESA AND SERIE_PRE = :SERIE ' +
+      'AND NUMERO_PRE = :NUMERO FOR UPDATE';
+    Consulta.ParamByName('EMPRESA').AsString := AEmpresa;
+    Consulta.ParamByName('SERIE').AsString := ASerie;
+    Consulta.ParamByName('NUMERO').AsString := ANumero;
+    Consulta.Open;
+    if Consulta.IsEmpty then
+      raise EValidacionBBDD.Create(SErrorPresupuestoNoExiste);
+    if not SameText(Consulta.FieldByName('ESTADO_PRE').AsString,
+      'ABIERTO') or
+      (Trim(Consulta.FieldByName('NUMERO_DESTINO_PRE').AsString) <> '') then
+      raise EValidacionBBDD.Create(SErrorPresupuestoCajaNoDisponible);
+  finally
+    FreeAndNil(Consulta);
+  end;
+end;
+
+procedure TPersistenciaCierreVentaCajaUniDAC.EnlazarPresupuesto(
+  const AEmpresa, ASerie, ANumero, ASerieFactura, ANumeroFactura: string);
+var
+  Consulta: TUniQuery;
+begin
+  if (Trim(ASerieFactura) = '') or (Trim(ANumeroFactura) = '') or
+     (ANumeroFactura = '0') then
+    raise EValidacionBBDD.Create(SErrorPresupuestoCajaCobroCompleto);
+  Consulta := CrearConsulta;
+  try
+    Consulta.SQL.Text :=
+      'UPDATE fza_presupuestos SET ESTADO_PRE = ''CONVERTIDO'', ' +
+      'TIPO_DESTINO_PRE = ''FC'', SERIE_DESTINO_PRE = :FACTURA_SERIE, ' +
+      'NUMERO_DESTINO_PRE = :FACTURA_NUMERO, ' +
+      'SERIE_FAC_PRE = :FACTURA_SERIE, NUMERO_FAC_PRE = :FACTURA_NUMERO, ' +
+      'USUARIO_MODIF = :USUARIO, INSTANTE_MODIF = NOW() ' +
+      'WHERE CODIGO_EMP_PRE = :EMPRESA AND SERIE_PRE = :SERIE ' +
+      'AND NUMERO_PRE = :NUMERO AND ESTADO_PRE = ''ABIERTO'' ' +
+      'AND LENGTH(COALESCE(NUMERO_DESTINO_PRE, SPACE(0))) = 0';
+    Consulta.ParamByName('EMPRESA').AsString := AEmpresa;
+    Consulta.ParamByName('SERIE').AsString := ASerie;
+    Consulta.ParamByName('NUMERO').AsString := ANumero;
+    Consulta.ParamByName('FACTURA_SERIE').AsString := ASerieFactura;
+    Consulta.ParamByName('FACTURA_NUMERO').AsString := ANumeroFactura;
+    Consulta.ParamByName('USUARIO').AsString := FUsuarioAuditoria;
+    Consulta.Execute;
+    if Consulta.RowsAffected <> 1 then
+      raise EValidacionBBDD.Create(SErrorPresupuestoCajaNoDisponible);
+  finally
+    FreeAndNil(Consulta);
+  end;
 end;
 
 procedure TPersistenciaCierreVentaCajaUniDAC.IniciarUnidadTrabajo;

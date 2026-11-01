@@ -457,6 +457,10 @@
       Caption = 'Inventario...'
       OnClick = miEnviarInventarioDTRClick
     end
+    object miEnviarListasRegalosDTR: TMenuItem
+      Caption = 'Listas de Regalos PrestaShop...'
+      OnClick = miEnviarListasRegalosDTRClick
+    end
     object miEnviarTarifasDTR: TMenuItem
       Caption = 'Sesión de cambio de tarifas'
       OnClick = miEnviarTarifasDTRClick

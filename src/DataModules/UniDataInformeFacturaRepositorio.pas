@@ -12,7 +12,7 @@ function CrearPreparadorInformeFacturaUniDAC(
 implementation
 
 uses
-  Data.DB;
+  Data.DB, UniDataPropiedadesLineasDocumento;
 
 type
   TPreparadorInformeFacturaUniDAC = class(
@@ -51,6 +51,8 @@ begin
     'CONCAT_WS(CHAR(13,10), ' +
     'NULLIF(TRIM(L.DESCRIPCION_ARTICULO_FACLIN), ''''), ' +
     'NULLIF(TRIM(L.CODIGO_UNIDAD_FACLIN), ''''), ' +
+    SqlPropiedadesLinea('L.CODIGO_ART_FACLIN',
+      'L.CODIGO_UNIDAD_FACLIN') + ', ' +
     'CASE WHEN :ETIQUETA_LOTE <> '''' AND ' +
     'TRIM(IFNULL(L.LOTE_FACLIN, '''')) <> '''' THEN CONCAT(' +
     'IF(EXISTS(SELECT 1 FROM fza_articulos A ' +

@@ -17,6 +17,12 @@ unit inLibMsgListasRegalos;
 interface
 
 resourcestring
+  STituloEnviarListaRegalos = 'Enviar a Listas de Regalos PrestaShop';
+  SCaptionEnviarListaRegalos = 'Listas de Regalos PrestaShop...';
+  SInfoSinListasAbiertas = 'No hay listas de regalos abiertas en esta empresa.';
+  SErrorCantidadDocumentoLista =
+    'Las listas de regalos requieren cantidades enteras positivas.';
+  SInfoDocumentoEnviadoLista = '%d líneas incorporadas a la lista %s.';
   STituloListasRegalos = 'Lista de regalos PrestaShop';
   // Filtros y botones de la lista.
   SCaptionFiltroEstadoLista = 'Estado:';

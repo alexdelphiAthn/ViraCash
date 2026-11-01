@@ -126,7 +126,9 @@ begin
     ASolicitud.SerieOrigenDevolucion,
     ASolicitud.NumeroOrigenDevolucion,
     ASolicitud.EmpresaOrigenDevolucion,
-    ASolicitud.AlmacenOrigenDevolucion, ASolicitud.ArqueosConfirmados);
+    ASolicitud.AlmacenOrigenDevolucion, ASolicitud.ArqueosConfirmados,
+    ASolicitud.PresupuestoEmpresa, ASolicitud.PresupuestoSerie,
+    ASolicitud.PresupuestoNumero);
 end;
 
 procedure TUnidadTrabajoVentaCajaUniDAC.CompletarResultado(

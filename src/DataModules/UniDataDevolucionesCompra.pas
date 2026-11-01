@@ -145,6 +145,7 @@ uses
   inLibDevolucionesCompraMovimientos,
   UniDataDevolucionesCompraMovimientos,
   inLibContadorLineas, inLibDatasets,
+  UniDataSeriesEmpresaRepositorio,
   UniDataContadorLineasRepositorio,
   inLibComprasImpuestos, UniDataImpuestosRepositorio,
   inLibData, UniDataAlmacenesEmpresaRepositorio,
@@ -749,6 +750,9 @@ var
   iNumero: Int64;
   sNumero: string;
 begin
+  AsegurarContadoresEmpresa(ConexionEscritura,
+    unqryTablaG.FieldByName('CODIGO_EMP_DEVC').AsString,
+    IdentidadSesion.Usuario);
   unstrdprcGetContadorDevc.Params.Clear;
   unstrdprcGetContadorDevc.Params.CreateParam(
     ftString, 'pserie', ptInput);

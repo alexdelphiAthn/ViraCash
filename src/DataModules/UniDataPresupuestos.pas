@@ -106,7 +106,8 @@ type
 implementation
 
 uses
-  inLibLineaSku,
+  UniDataPropiedadesLineasDocumento,
+  UniDataSeriesEmpresaRepositorio, inLibLineaSku,
   inLibValoresAutomaticos, UniDataValoresAutomaticosRepositorio,
   System.Diagnostics,
   UniDataAperturaConsultas,
@@ -141,6 +142,7 @@ begin
   unqryAlbaranesLineas.OnDeleteError := ErrorEscritura;
   // El formulario encadena este manejador (FOldLineasDataChange).
   dsAlbaranesLineas.OnDataChange := LineasPresupuestoDataChange;
+  ConfigurarPropiedadesLineas(unqryAlbaranesLineas, 'PRELIN');
   VigilarTotalMaximoLinea(unqryAlbaranesLineas, 'TOTAL_PRELIN');
 end;
 
@@ -245,6 +247,7 @@ begin
     if FindField('CODIGO_ALM_PRE') <> nil then
       FieldByName('CODIGO_ALM_PRE').AsString := UbicacionSesion.Almacen;
     FieldByName('CODIGO_CLI_PRE').AsString := '0';
+    FieldByName('FECHA_VALIDEZ_PRE').Clear;
     FieldByName('TARIFA_ARTICULO_CLIENTE_PRE').Clear;
     FieldByName('ESIMP_INCL_TARIFA_CLIENTE_PRE').Clear;
     if Trim(UbicacionSesion.Empresa) <> '' then
@@ -731,6 +734,9 @@ var
   iNumero: Int64;
   sNumero: string;
 begin
+  AsegurarContadoresEmpresa(ConexionEscritura,
+    unqryTablaG.FieldByName('CODIGO_EMP_PRE').AsString,
+    IdentidadSesion.Usuario);
   unstrdprcGetContadorAlbaran.Params.Clear;
   unstrdprcGetContadorAlbaran.Params.CreateParam(
     ftString, 'pserie', ptInput);
@@ -1202,6 +1208,11 @@ var
 begin
   q := TUniQuery.Create(nil);
   try
+    unqryTablaG.RefreshRecord;
+    if not SameText(unqryTablaG.FieldByName('ESTADO_PRE').AsString,
+      'ABIERTO') or
+      (Trim(unqryTablaG.FieldByName('NUMERO_DESTINO_PRE').AsString) <> '') then
+      raise Exception.Create(SErrorPresupuestoCajaNoDisponible);
     q.Connection := unqryTablaG.Connection;
     q.SQL.Text := SqlPrevisualizarLineasDocumentoOrigen(
       TIPO_DOCUMENTO_ORIGEN_PRESUPUESTO_VENTA);
@@ -1218,6 +1229,9 @@ begin
     begin
       Result[iLinea].CodigoSku := q.FieldByName('CODIGO_SKU').AsString;
       Result[iLinea].Cantidad := q.FieldByName('CANTIDAD').AsFloat;
+      Result[iLinea].Lote := q.FieldByName('LOTE').AsString;
+      Result[iLinea].FechaCaducidad :=
+        q.FieldByName('FECHA_CADUCIDAD').AsDateTime;
       Inc(iLinea);
       q.Next;
     end;

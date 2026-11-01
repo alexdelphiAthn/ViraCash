@@ -682,7 +682,7 @@ var
   i: Integer;
   sCantidad: string;
   sTotal: string;
-  sDescuento: string;
+  cBruto, cDescuento: Currency;
   oLineas: TArray<TLineaTicketCaja>;
 begin
   if FTieneFactura then
@@ -694,8 +694,10 @@ begin
       FCabecera.SerieFactura,
       FCabecera.NumeroFactura);
     oLineas := AgruparLotesTicket(oLineas, FConfiguracion.ImprimirLotes);
+    cBruto := 0;
     for i := 0 to High(oLineas) do
     begin
+      cBruto := cBruto + oLineas[i].TotalBruto;
       if Assigned(FConfiguracion.Unidades) then
         sCantidad := FConfiguracion.Unidades.Formatear(
           oLineas[i].Cantidad,
@@ -705,7 +707,7 @@ begin
       sCantidad := CantidadConTipo(
         Format('%4s', [sCantidad]),
         oLineas[i].TipoCantidad);
-      sTotal := FormatFloat('#,##0.00', oLineas[i].Total) + ' €';
+      sTotal := FormatFloat('#,##0.00', oLineas[i].TotalBruto) + ' €';
       FTicket.TextoColumnas(
         ColumnaArticuloTicket(
           oLineas[i].CodigoUnidad,
@@ -713,10 +715,6 @@ begin
           sTotal),
         sTotal);
       FTicket.EscribirLinea(Copy(oLineas[i].Descripcion, 1, 42));
-      sDescuento := TextoDescuentoTicket(oLineas[i].PrecioSalida,
-        oLineas[i].PorcentajeDescuento, oLineas[i].ImporteDescuento);
-      if sDescuento <> '' then
-        FTicket.EscribirLinea(sDescuento);
       // F-LOTEC-015: lote o serie bajo la línea (solo con interruptores).
       if ActivacionVigente.AlgunModoActivo and (oLineas[i].Lote <> '') then
         FTicket.EscribirLinea(Copy(TextoLoteTicket(oLineas[i].Lote,
@@ -725,8 +723,19 @@ begin
     FTicket.LineaSeparadora('-');
     FTicket.SaltarLineas(1);
     FTicket.Negrita(True);
+    cBruto := cBruto + FCabecera.TotalReNormal +
+      FCabecera.TotalReReducido + FCabecera.TotalReSuperreducido +
+      FCabecera.TotalReExento - FCabecera.TotalRetencion;
+    cDescuento := cBruto - FCabecera.TotalLiquido;
+    if Abs(cDescuento) > 0.005 then
+    begin
+      FTicket.TextoColumnas(STicketBrutoVenta,
+        FormatFloat('#,##0.00', cBruto) + ' €');
+      FTicket.TextoColumnas(STicketDescuento,
+        FormatFloat('#,##0.00', -cDescuento) + ' €');
+    end;
     FTicket.TextoColumnas(
-      STicketAPagar,
+      STicketACobrar,
       FormatFloat('#,##0.00', FCabecera.TotalLiquido) + ' €');
     FTicket.Negrita(False);
   end;

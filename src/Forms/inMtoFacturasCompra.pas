@@ -1767,8 +1767,11 @@ end;
 procedure TfrmMtoFacturasCompra.btnGenerarEfectosClick(Sender: TObject);
 begin
   inherited;
-  if Assigned(dmmFacturasCompra) then
-    GenerarEfectosFacturaCompraVcl(
+  if Assigned(dmmFacturasCompra) and btnGenerarEfectos.Enabled then
+  begin
+    btnGenerarEfectos.Enabled := False;
+    try
+      GenerarEfectosFacturaCompraVcl(
       Self,
       dsTablaG.DataSet,
       FRepositorioSeleccionBanco,
@@ -1784,6 +1787,10 @@ begin
           ACodigoBancoEmpresa,
           AIban);
       end);
+    finally
+      btnGenerarEfectos.Enabled := True;
+    end;
+  end;
 end;
 
 function TfrmMtoFacturasCompra.FacturaCerrada: Boolean;

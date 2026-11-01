@@ -103,6 +103,7 @@ type
     procedure CopiarEmpresaaAlbaranCompra(DataSet: TDataSet);
     procedure ValidarAlmacenCabecera;
   public
+    procedure LineaCircuitoBeforeDelete(DataSet: TDataSet);
     destructor Destroy; override;
     // F-LOTEC-013: lo llama el formulario con los interruptores leídos.
     procedure ConfigurarLotesLineas(const AConfig: TConfiguracionLotesLineas);
@@ -160,6 +161,7 @@ type
 implementation
 
 uses
+  UniDataReparacionesProteccion,
   UniDataCodigosBarrasLote,
   inLibLineaSku,
   inLibValoresAutomaticos, UniDataValoresAutomaticosRepositorio,
@@ -349,6 +351,7 @@ end;
 procedure TdmAlbaranesCompra.DataModuleCreate(Sender: TObject);
 begin
   inherited;
+  unqryAlbaranesCompraLineas.BeforeDelete := LineaCircuitoBeforeDelete;
   // FZ-ISSUE-154: el borrado de la cabecera, todo o nada.
   unqryTablaG.AfterDelete := ConfirmarBorradoTransaccional;
   unqryTablaG.OnDeleteError := ErrorBorradoTransaccional;
@@ -647,6 +650,10 @@ var
   i: Integer;
 begin
   inherited;
+  if DataSet.State = dsEdit then
+    ExigirDocumentoOrdenEditable(ConexionEscritura,
+      DataSet.FieldByName('SERIE_ALBC').AsString,
+      DataSet.FieldByName('NUMERO_ALBC').AsString, True);
   SincronizarInstanteMovimientoDocumento(
     DataSet, 'FECHA_ALBC', 'INSTANTE_MOVIMIENTO_ALBC');
   // Cinturon: los campos NOT NULL con default en BBDD (p. ej.
@@ -697,6 +704,9 @@ var
 
 begin
   inherited;
+  ExigirDocumentoOrdenEditable(ConexionEscritura,
+    DataSet.FieldByName('SERIE_ALBC').AsString,
+    DataSet.FieldByName('NUMERO_ALBC').AsString, True);
   sSerie  := DataSet.FieldByName('SERIE_ALBC').AsString;
   sNumero := DataSet.FieldByName('NUMERO_ALBC').AsString;
   if (sSerie = '') or (sNumero = '') then
@@ -857,6 +867,9 @@ var
   end;
 begin
   inherited;
+  ExigirDocumentoOrdenEditable(ConexionEscritura,
+    DataSet.FieldByName('SERIE_ALBC_ALBCLIN').AsString,
+    DataSet.FieldByName('NUMERO_ALBC_ALBCLIN').AsString, True);
   // Desempaquetado ATTR en curso: post descriptivo, sin logica fiscal.
   if not FDesempaquetandoAtributos then
   begin
@@ -1449,6 +1462,14 @@ begin
       FDesempaquetandoAtributos := False;
     end;
   end;
+end;
+
+
+procedure TdmAlbaranesCompra.LineaCircuitoBeforeDelete(DataSet: TDataSet);
+begin
+  ExigirDocumentoOrdenEditable(ConexionEscritura,
+    DataSet.FieldByName('SERIE_ALBC_ALBCLIN').AsString,
+    DataSet.FieldByName('NUMERO_ALBC_ALBCLIN').AsString, True);
 end;
 
 initialization

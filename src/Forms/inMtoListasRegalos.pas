@@ -67,6 +67,7 @@ type
     function CrearColumna(AVista: TcxGridDBTableView;
       const ACampo, ATitulo: string; AAncho: Integer): TcxGridDBColumn;
     procedure ColumnaCasilla(AColumna: TcxGridDBColumn);
+    procedure ColumnaImporte(AColumna: TcxGridDBColumn);
     // Ficha: rótulo y editor en la fila AFila de un grupo de una columna.
     procedure Colocar(AParent: TWinControl; const ARotulo: string;
       AEditor: TcxCustomEdit; AFila: Integer);
@@ -127,6 +128,7 @@ const
   CAMPO_CODIGO = 'CODIGO_LRG';
   FORMATO_FECHA_LISTA = 'dd/mm/yyyy';
   FORMATO_IMPORTE = '#,##0.00';
+  FORMATO_EUROS = '0.00 "€"';
   // Ficha: medidas nominales a 96 ppp.
   MARGEN = 12;
   ANCHO_ROTULO = 130;
@@ -240,6 +242,14 @@ begin
   TcxCheckBoxProperties(AColumna.Properties).ValueUnchecked := 'N';
 end;
 
+procedure TfrmMtoListasRegalos.ColumnaImporte(AColumna: TcxGridDBColumn);
+begin
+  AColumna.PropertiesClass := TcxCurrencyEditProperties;
+  TcxCurrencyEditProperties(AColumna.Properties).DecimalPlaces := 2;
+  TcxCurrencyEditProperties(AColumna.Properties).DisplayFormat :=
+    FORMATO_EUROS;
+end;
+
 procedure TfrmMtoListasRegalos.CrearColumnas;
 var
   oColumna: TcxGridDBColumn;
@@ -265,7 +275,8 @@ begin
     ColumnaCasilla(CrearColumna(cxGrdDBTabPrin, 'ESPUBLICA_WEB_LRG',
       SColListaWeb, 60));
     CrearColumna(cxGrdDBTabPrin, 'NUMERO_LINEAS', SColListaLineas, 80);
-    CrearColumna(cxGrdDBTabPrin, 'IMPORTE_REGALADO', SColListaRegalado, 100);
+    ColumnaImporte(CrearColumna(cxGrdDBTabPrin, 'IMPORTE_REGALADO',
+      SColListaRegalado, 100));
     CrearColumna(cxGrdDBTabPrin, 'VERSION_LRG', SColListaVersion, 70);
   end;
 end;
@@ -502,7 +513,8 @@ begin
   CrearColumna(tvLineas, 'CANTIDAD_DESEADA_LRGLIN', SColLineaDeseada, 70);
   CrearColumna(tvLineas, 'CANTIDAD_REGALADA_LRGLIN', SColLineaRegalada, 80);
   CrearColumna(tvLineas, 'CANTIDAD_PENDIENTE_LRGLIN', SColLineaPendiente, 80);
-  CrearColumna(tvLineas, 'PRECIO_REFERENCIA_LRGLIN', SColLineaPrecio, 80);
+  ColumnaImporte(CrearColumna(tvLineas, 'PRECIO_REFERENCIA_LRGLIN',
+    SColLineaPrecio, 100));
   oColumna := CrearColumna(tvLineas, 'ESIMPRESCINDIBLE_LRGLIN',
     SColLineaImprescindible, 100);
   ColumnaCasilla(oColumna);
@@ -520,7 +532,8 @@ begin
     70).OnGetDisplayText := CanalGetDisplayText;
   CrearColumna(tvRegalos, 'CODIGO_SKU_LRGREG', SColLineaSku, 160);
   CrearColumna(tvRegalos, 'CANTIDAD_LRGREG', SColLineaDeseada, 60);
-  CrearColumna(tvRegalos, 'IMPORTE_LRGREG', SColRegaloImporte, 80);
+  ColumnaImporte(CrearColumna(tvRegalos, 'IMPORTE_LRGREG',
+    SColRegaloImporte, 100));
   CrearColumna(tvRegalos, 'NOMBRE_REGALANTE_LRGREG', SColRegaloRegalante,
     160);
   CrearColumna(tvRegalos, 'MENSAJE_LRGREG', SColRegaloMensaje, 220);

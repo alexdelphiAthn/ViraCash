@@ -203,7 +203,7 @@ resourcestring
   SErrorRecepcionPedidoLineasSinLote =
     'No se puede dar entrada a la mercancía: estas líneas del pedido no ' +
     'tienen el lote, la serie o la caducidad que piden sus artículos.';
-  STituloLoteRecepcionPedido = 'Lote de %s (%s uds.)';
+  STituloLoteRecepcionPedido = 'Lote de %s (%s)';
   SPreguntaLoteRecepcionPedido = 'Lote:';
 
   // Descripción impresa de la línea de factura (F-LOTEC-016).

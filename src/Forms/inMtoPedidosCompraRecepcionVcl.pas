@@ -71,7 +71,7 @@ function CrearRecepcionPedidoCompraVcl(
 implementation
 
 uses
-  inLibMensajesVcl,
+  UniDataPedidosCompraPendientes, inLibTipoCantidad, inLibMensajesVcl,
   System.SysUtils,
   System.UITypes,
   System.Variants,
@@ -113,6 +113,7 @@ type
   private
     FConexion: TUniConnection;
     FRegistroLog: IRegistroLog;
+    FUsuario: string;
     FCabecera: TDataSet;
     FLineas: TDataSet;
     FAlbaranes: TDataSet;
@@ -208,6 +209,7 @@ begin
   inherited Create;
   FConexion := AConfig.Conexion;
   FRegistroLog := AConfig.RegistroLog;
+  FUsuario := AConfig.Usuario;
   FCabecera := AConfig.Cabecera;
   FLineas := AConfig.Lineas;
   FAlbaranes := AConfig.Albaranes;
@@ -253,7 +255,8 @@ end;
 procedure TVisualizacionRecepcionPedidoCompraVcl.RefrescarDatos;
 begin
   FCabecera.Refresh;
-  FLineas.Refresh;
+  FLineas.Close;
+  FLineas.Open;
   if FAlbaranes.Active then
     FAlbaranes.Close;
   FAlbaranes.Open;
@@ -292,6 +295,17 @@ procedure TVisualizacionRecepcionPedidoCompraVcl.PresentarRecepcion(
   const AResultado: TResultadoRecepcionPedidoCompra);
 begin
   RefrescarDatos;
+  if SameText(FCabecera.FieldByName('ESTADO_PEDC').AsString,
+       'PARCIAL') then
+    if MessageDlg_fza('El pedido tiene cantidades pendientes de recibir. ' +
+         '¿Desea cancelar lo pendiente y dar por terminada la recepción? ' +
+         'Se conservarán las cantidades recibidas y sus albaranes.',
+         mtConfirmation, [mbYes, mbNo], 0, mbNo) = mrYes then
+    begin
+      CancelarRestoPedidoCompra(FConexion, AEntrada.SeriePedido,
+        AEntrada.NumeroPedido, FUsuario);
+      RefrescarDatos;
+    end;
   MostrarDocumentoCreado(AEntrada, ASolicitud, AResultado);
 end;
 
@@ -309,6 +323,7 @@ var
   bExigeCaducidad: Boolean;
   dtFecha: TDate;
   sPreguntaCaducidad: string;
+  sMascaraCantidad: string;
 begin
   aValores := [APeticion.Lote, ''];
   if APeticion.FechaCaducidad <> SIN_FECHA then
@@ -317,9 +332,13 @@ begin
   sPreguntaCaducidad := SPreguntaCaducidadAltaManual;
   if bExigeCaducidad then
     sPreguntaCaducidad := SPreguntaCaducidadObligatoriaAltaManual;
+  sMascaraCantidad := '0.000';
+  if EsTipoCantidadPredeterminado(APeticion.TipoCantidad) then
+    sMascaraCantidad := '0.###';
   Result := InputQuery_fza(
     Format(STituloLoteRecepcionPedido, [APeticion.CodigoSku,
-      FormatFloat('0.###', APeticion.Cantidad)]),
+      CantidadConTipo(FormatFloat(sMascaraCantidad, APeticion.Cantidad),
+        APeticion.TipoCantidad)]),
     [SPreguntaLoteRecepcionPedido, sPreguntaCaducidad], aValores,
     function(const AValores: array of string): Boolean
     var

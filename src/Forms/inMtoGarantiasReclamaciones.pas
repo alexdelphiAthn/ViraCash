@@ -92,6 +92,7 @@ type
     btnAnularReparacion: TcxButton;
     txtModalidadFicha: TcxTextEdit;
     tsReparacion: TcxTabSheet;
+    tsCircuito: TcxTabSheet;
     tsTrabajos: TcxTabSheet;
     lblResumenTrabajos: TcxLabel;
     tsAlbaranes: TcxTabSheet;
@@ -99,6 +100,8 @@ type
     tsAlbaranesCliente: TcxTabSheet;
     tsAlbaranesProveedor: TcxTabSheet;
     lblRepartoTrabajo: TcxLabel;
+    FFranquiciaAnterior: TcxDBCurrencyEdit;
+    FFranquiciaAcuerdo: TcxLabel;
     FNombreClienteAlbaran: array[0..1] of TcxLabel;
     FCodigoClienteAlbaran: array[0..1] of string;
     tsConfiguracionReparaciones: TcxTabSheet;
@@ -190,6 +193,7 @@ type
     procedure CrearAlbaranesOrden;
     procedure AjustarRotulos(AParent: TWinControl);
     procedure ActualizarRepartoTrabajo;
+    function ConfirmarCobroEntrega(out ASerie, ANumero: string): Boolean;
     procedure ActualizarNombresAlbaranes;
     procedure BuscarClienteAlbaran(Sender: TObject; AButtonIndex: Integer);
     procedure OrganizarSubconsultas(Sender: TObject);
@@ -221,6 +225,7 @@ type
 implementation
 
 uses
+  inMtoReparacionesCircuitoVcl, inLibMsgReparacionesCircuito,
   inMtoModalTrabajoCortina, inLibPermisosIntf, inLibFiltroUsuario,
   inLibShowMto, System.Math, Uni, inLibGenBusq, inLibMsgVentas,
   inMtoModalAvisoReparacion, inLibCorreoReparaciones,
@@ -770,6 +775,12 @@ var
       oImporte.DataBinding.DataSource := dsTablaG;
       oImporte.DataBinding.DataField := ACampo;
       oImporte.Properties.DisplayFormat := '#,##0.00';
+      FFranquiciaAnterior := oImporte;
+      FFranquiciaAcuerdo := TcxLabel.Create(Self);
+      FFranquiciaAcuerdo.Parent := oValor;
+      FFranquiciaAcuerdo.Align := alClient;
+      FFranquiciaAcuerdo.Transparent := True;
+      FFranquiciaAcuerdo.Visible := False;
     end
     else
     begin
@@ -852,7 +863,7 @@ begin
       begin
         oDatos.Edit;
         oDatos.FieldByName(CAMPOS[oEditor.Tag]).AsString :=
-          oClientes.FieldByName('CODIGO_CLI').AsString;
+          oClientes.FieldByName('CODIGO_CLI_CLI').AsString;
         ActualizarNombresAlbaranes;
       end;
     finally
@@ -891,6 +902,7 @@ procedure TfrmMtoGarantiasReclamaciones.ActualizarRepartoTrabajo;
 var
   oDatos: TDataSet;
   dTotal, dTitular: Currency;
+  sReparto: string;
 begin
   if Assigned(lblRepartoTrabajo) then
   begin
@@ -909,6 +921,18 @@ begin
         lblRepartoTrabajo.Caption := Format(SRepartoTrabajo,
           [FormatFloat('#,##0.00', dTitular),
            FormatFloat('#,##0.00', dTotal - dTitular)]);
+      sReparto := dmmGarantias.Reparaciones.Circuito.ResumenReparto(IdActual);
+      if Assigned(FFranquiciaAcuerdo) then
+      begin
+        FFranquiciaAnterior.Visible := sReparto = '';
+        FFranquiciaAcuerdo.Visible := sReparto <> '';
+        if sReparto <> '' then
+          FFranquiciaAcuerdo.Caption := CurrToStr(
+            dmmGarantias.Reparaciones.Circuito.Cobertura.Acuerdo(
+              IdActual).Franquicia);
+      end;
+      if sReparto <> '' then
+        lblRepartoTrabajo.Caption := sReparto;
     end;
   end;
 end;
@@ -1559,6 +1583,9 @@ begin
   tsFotosReparacion := TcxTabSheet.Create(Self);
   tsFotosReparacion.PageControl := pcSubconsultas;
   tsFotosReparacion.Caption := SFotosReparacion;
+  tsCircuito := TcxTabSheet.Create(Self);
+  tsCircuito.PageControl := pcPantalla;
+  tsCircuito.Caption := SCircuitoPestana;
   tsTrabajos := TcxTabSheet.Create(Self);
   tsTrabajos.PageControl := pcSubconsultas;
   tsTrabajos.Caption := SCaptionPestanaTrabajos;
@@ -1593,6 +1620,7 @@ begin
   btnAnularReparacion.Visible := FEsReparaciones;
   tsReparacion.TabVisible := FEsReparaciones;
   tsTrabajos.TabVisible := FEsReparaciones;
+  tsCircuito.TabVisible := FEsReparaciones;
   tsAlbaranes.TabVisible := FEsReparaciones;
   tsConfiguracionReparaciones.TabVisible := FEsReparaciones;
   if FEsReparaciones then
@@ -1699,6 +1727,8 @@ begin
   FPanelFotos.MostrarReparacion(Enlaces.ReparacionActual());
   if FEsReparaciones then
   begin
+    TPanelCircuitoOrden.CreatePanel(Self, tsCircuito,
+      dmmGarantias.Reparaciones, Enlaces);
     TPanelLineasReparacion.CreatePanel(Self, tsTrabajos,
       dmmGarantias.Reparaciones, Enlaces);
     TPanelAlbaranesOrden.CreatePara(Self, tsAlbaranesCliente,
@@ -1803,30 +1833,39 @@ begin
       [mbYes, mbNo], 0, mbNo) = mrYes;
 end;
 
-procedure TfrmMtoGarantiasReclamaciones.btnEntregarReparacionClick(
-  Sender: TObject);
-var
-  sSerie, sNumero: string;
-  bSeguir: Boolean;
+function TfrmMtoGarantiasReclamaciones.ConfirmarCobroEntrega(
+  out ASerie, ANumero: string): Boolean;
 begin
-  sSerie := '';
-  sNumero := '';
-  bSeguir := HayReclamacion;
-  if bSeguir and FaltaCobrarReparacion(
+  ASerie := '';
+  ANumero := '';
+  Result := True;
+  if dmmGarantias.Reparaciones.Circuito.Gestionada(IdActual) then
+  begin
+    if dmmGarantias.Reparaciones.Circuito.Cierre.SaldoCliente(IdActual)>0 then
+      Result := MessageDlg_fza(SPreguntaEntregarSinCobro, mtWarning,
+        [mbYes,mbNo],0,mbNo)=mrYes;
+  end
+  else if FaltaCobrarReparacion(
     dmmGarantias.unqryTablaG.FieldByName('MODALIDAD_GAR').AsString,
     dmmGarantias.unqryTablaG.FieldByName('MODO_COBRO_GAR').AsString,
     dmmGarantias.unqryTablaG.FieldByName('ESCOBRADO_GAR').AsString = 'S',
     dmmGarantias.unqryTablaG.FieldByName('TOTAL_CLIENTE_REP').AsCurrency) and
     (Trim(dmmGarantias.unqryTablaG.FieldByName(
       'CODIGO_CLI_PAGADOR_GAR').AsString) = '') then
-    bSeguir := PedirTicketCobro(sSerie, sNumero);
-  if bSeguir then
+    Result := PedirTicketCobro(ASerie,ANumero);
+end;
+
+procedure TfrmMtoGarantiasReclamaciones.btnEntregarReparacionClick(
+  Sender: TObject);
+var
+  sSerie, sNumero: string;
+begin
+  if HayReclamacion and ConfirmarCobroEntrega(sSerie,sNumero) then
     EjecutarReparacion(
       procedure
       begin
-        dmmGarantias.Reparaciones.Reparaciones.Entregar(IdActual, Date,
-          sNumero <> '', sSerie, sNumero,
-          dmmGarantias.IdentidadSesion.Usuario);
+        dmmGarantias.Reparaciones.Reparaciones.Entregar(IdActual,Date,
+          sNumero<>'',sSerie,sNumero,dmmGarantias.IdentidadSesion.Usuario);
       end);
 end;
 

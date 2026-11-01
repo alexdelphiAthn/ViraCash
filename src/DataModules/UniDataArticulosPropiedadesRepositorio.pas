@@ -16,16 +16,147 @@ unit UniDataArticulosPropiedadesRepositorio;
 interface
 
 uses
-  Uni, inLibArticulosPropiedadesPersistenciaIntf;
+  Uni, Datasnap.DBClient, inLibArticulosPropiedadesPersistenciaIntf;
 
 function CrearServiciosPropiedadesArticuloUniDAC(
   AConexion: TUniConnection): TServiciosPropiedadesArticulo;
+
+procedure AgregarCamposPropiedadesEtiqueta(AConexion: TUniConnection;
+  ADatos: TClientDataSet);
+procedure CompletarPropiedadesEtiquetas(AConexion: TUniConnection;
+  ADatos: TClientDataSet);
 
 implementation
 
 uses
   System.SysUtils, System.StrUtils, System.Generics.Collections, Data.DB,
   UniDataPrestaShopEncolado;
+
+procedure AgregarCamposPropiedadesEtiqueta(AConexion: TUniConnection;
+  ADatos: TClientDataSet);
+var
+  Consulta: TUniQuery;
+  Codigo, Prefijo: string;
+const
+  Prefijos: array[0..1] of string = ('PROP_VALOR_', 'PROP_TEXTO_');
+begin
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := AConexion;
+    Consulta.SQL.Text :=
+      'SELECT CODIGO_PROP_ARTPROP FROM fza_propiedades ' +
+      'WHERE ESACTIVO_PROP = ''S'' ORDER BY CODIGO_PROP_ARTPROP';
+    Consulta.Open;
+    while not Consulta.Eof do
+    begin
+      Codigo := Consulta.Fields[0].AsString;
+      for Prefijo in Prefijos do
+        if ADatos.FieldDefs.IndexOf(Prefijo + Codigo) < 0 then
+          ADatos.FieldDefs.Add(Prefijo + Codigo, ftWideString, 1024);
+      Consulta.Next;
+    end;
+  finally
+    Consulta.Free;
+  end;
+end;
+
+procedure CompletarPropiedadesEtiquetas(AConexion: TUniConnection;
+  ADatos: TClientDataSet);
+var
+  Consulta: TUniQuery;
+  Articulos: TDictionary<string, Integer>;
+  Valores, Nombres: TDictionary<string, string>;
+  Articulo, Codigo, Clave, Valor, Nombre, Lista, Unidad: string;
+  Campo: TField;
+  Indice: Integer;
+begin
+  Consulta := TUniQuery.Create(nil);
+  Articulos := TDictionary<string, Integer>.Create;
+  Valores := TDictionary<string, string>.Create;
+  Nombres := TDictionary<string, string>.Create;
+  ADatos.DisableControls;
+  try
+    ADatos.First;
+    Lista := '';
+    while not ADatos.Eof do
+    begin
+      Articulo := ADatos.FieldByName('CODIGO_ART_ART').AsString;
+      if not Articulos.ContainsKey(Articulo) then
+      begin
+        Indice := Articulos.Count;
+        Articulos.Add(Articulo, Indice);
+        if Lista <> '' then
+          Lista := Lista + ', ';
+        Lista := Lista + ':ART' + IntToStr(Indice);
+      end;
+      ADatos.Next;
+    end;
+    if Lista <> '' then
+    begin
+      Consulta.Connection := AConexion;
+      Consulta.SQL.Text :=
+        'SELECT A.CODIGO_ART_ART, A.CODIGO_UNIDAD_ARTPROP, ' +
+        'A.CODIGO_PROP_ARTPROP, P.NOMBRE_PROP_PROP, ' +
+        'COALESCE(V.PV, A.VALOR_LIBRE_ARTPROP, '''') AS VALOR ' +
+        'FROM fza_articulos_propiedades A JOIN fza_propiedades P ' +
+        'ON P.CODIGO_PROP_ARTPROP = A.CODIGO_PROP_ARTPROP ' +
+        'LEFT JOIN fza_propiedades_valores V ' +
+        'ON V.ID_PV_ARTPROP = A.ID_PV_ARTPROP ' +
+        'WHERE A.CODIGO_ART_ART IN (' + Lista + ') ' +
+        'AND P.ESACTIVO_PROP = ''S'' ' +
+        'ORDER BY A.CODIGO_ART_ART, A.CODIGO_PROP_ARTPROP, VALOR';
+      for Articulo in Articulos.Keys do
+        Consulta.ParamByName('ART' + IntToStr(
+          Articulos[Articulo])).AsString := Articulo;
+      Consulta.Open;
+      while not Consulta.Eof do
+      begin
+        Codigo := Consulta.FieldByName('CODIGO_PROP_ARTPROP').AsString;
+        Clave := Consulta.FieldByName('CODIGO_ART_ART').AsString + #1 +
+          Consulta.FieldByName('CODIGO_UNIDAD_ARTPROP').AsString + #1 +
+          Codigo;
+        Valor := Consulta.FieldByName('VALOR').AsString;
+        if Valores.ContainsKey(Clave) then
+          Valor := Valores[Clave] + ', ' + Valor;
+        Valores.AddOrSetValue(Clave, Valor);
+        Nombres.AddOrSetValue(Codigo,
+          Consulta.FieldByName('NOMBRE_PROP_PROP').AsString);
+        Consulta.Next;
+      end;
+      ADatos.First;
+      while not ADatos.Eof do
+      begin
+        Articulo := ADatos.FieldByName('CODIGO_ART_ART').AsString;
+        Unidad := ADatos.FieldByName('CODIGO_UNIDAD_SKU').AsString;
+        ADatos.Edit;
+        for Campo in ADatos.Fields do
+          if StartsText('PROP_VALOR_', Campo.FieldName) then
+          begin
+            Codigo := Copy(Campo.FieldName, 12, MaxInt);
+            Valor := '';
+            if not Valores.TryGetValue(
+              Articulo + #1 + Unidad + #1 + Codigo, Valor) then
+              Valores.TryGetValue(Articulo + #1 + #1 + Codigo, Valor);
+            Campo.AsString := Valor;
+            Nombre := '';
+            ADatos.FieldByName('PROP_TEXTO_' + Codigo).Clear;
+            if (Valor <> '') and Nombres.TryGetValue(Codigo, Nombre) then
+              ADatos.FieldByName('PROP_TEXTO_' + Codigo).AsString :=
+                Nombre + ': ' + Valor;
+          end;
+        ADatos.Post;
+        ADatos.Next;
+      end;
+    end;
+    ADatos.First;
+  finally
+    ADatos.EnableControls;
+    Nombres.Free;
+    Valores.Free;
+    Articulos.Free;
+    Consulta.Free;
+  end;
+end;
 
 type
   TRepositorioPropiedadesArticuloUniDAC = class(

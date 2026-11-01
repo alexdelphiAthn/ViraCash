@@ -260,6 +260,9 @@ end;
 
 procedure TdmEmpresas.unqrySeriesAfterPost(DataSet: TDataSet);
 begin
+  AsegurarContadoresEmpresa(TUniQuery(DataSet).Connection,
+    DataSet.FieldByName('CODIGO_EMP_EMPSER').AsString,
+    IdentidadSesion.Usuario);
   AsegurarContadorCompraEmpresa(TUniQuery(DataSet).Connection,
     DataSet.FieldByName('CODIGO_EMP_EMPSER').AsString,
     IdentidadSesion.Usuario);
@@ -276,9 +279,9 @@ var
   end;
 begin
   inherited;
-  if ( (unqryTablaG.State = dsInsert) or
-       (unqryTablaG.State = dsEdit)
-   ) then
+  // El maestro existente se grabará después del detalle. Refrescarlo
+  // aquí descartaba la fila de serie todavía en edición.
+  if unqryTablaG.State = dsInsert then
     unqryTablaG.Post;
   bSinErrores := True;
   ValidarSerieTokenizada;

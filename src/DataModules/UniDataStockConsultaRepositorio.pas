@@ -1115,9 +1115,9 @@ begin
   AConsulta.SQL.Text :=
     'SELECT A.CODIGO_ART_ART, VA.NOMBRE_VA ' +
     'FROM fza_articulos A ' +
-    'JOIN VI_VARIACIONES_EJES EJ ON EJ.ID_VAR_VA = A.TIPO_VARIACION_ART ' +
-    'AND EJ.EJE_VA = ''S'' ' +
-    'JOIN fza_variaciones_atributos VA ON VA.ID_VAR_VA = EJ.ID_VAR_VA ' +
+    'LEFT JOIN VI_VARIACIONES_EJES EJ ' +
+    'ON EJ.ID_VAR_VA = A.TIPO_VARIACION_ART AND EJ.EJE_VA = ''S'' ' +
+    'LEFT JOIN fza_variaciones_atributos VA ON VA.ID_VAR_VA = EJ.ID_VAR_VA ' +
     'AND VA.ID_ATB_VA = EJ.ID_ATB_VA ' +
     'WHERE A.CODIGO_ART_ART = :CODIGO OR EXISTS ' +
     '(SELECT 1 FROM fza_articulos_skus SK ' +
@@ -1158,11 +1158,13 @@ begin
       'AS `Pte. traspasar`, ' +
       'SUM(CASE WHEN B.ESTADO_NUM = %d THEN B.CANTIDAD ELSE 0 END) ' +
       'AS `Pte. recibir trasp.`, ' +
+      'SUM(CASE WHEN B.ESTADO_NUM = %d THEN B.CANTIDAD ELSE 0 END) ' +
+      'AS `Pte. recibir compra`, ' +
       'SUM(CASE WHEN B.ESTADO_NUM = %d THEN B.CANTIDAD ' +
       'WHEN B.ESTADO_NUM = %d THEN -B.CANTIDAD ELSE 0 END) ' +
       'AS Disponible, ALM.CODIGO_ALM_ALM AS CODIGO_ALM_STOCK',
       [Ord(esPdteTraspasar), Ord(esPdteRecTraspaso),
-       Ord(esExistencias), Ord(esPdteTraspasar)]);
+       Ord(esPdteRecibir), Ord(esExistencias), Ord(esPdteTraspasar)]);
 end;
 
 function SqlDetalleStockConPestanas(
@@ -1178,7 +1180,9 @@ begin
     sBase := sBase + ' UNION ALL ' +
       ARepositorio.EstadoBaseSelectFor(ASolicitud, esPdteTraspasar) +
       ' UNION ALL ' +
-      ARepositorio.EstadoBaseSelectFor(ASolicitud, esPdteRecTraspaso);
+      ARepositorio.EstadoBaseSelectFor(ASolicitud, esPdteRecTraspaso) +
+      ' UNION ALL ' +
+      ARepositorio.EstadoBaseSelectFor(ASolicitud, esPdteRecibir);
   sColumnas := '';
   for rTalla in ATallas do
     sColumnas := sColumnas + Format(
@@ -1186,7 +1190,8 @@ begin
       'AND B.TALLA_AV = %s THEN B.CANTIDAD ELSE 0 END), 0) AS `%s`',
       [Ord(esExistencias), QuotedStr(rTalla.Codigo),
        StringReplace(rTalla.Texto, '`', '``', [rfReplaceAll])]);
-  sCodigo := 'ALM.NOMBRE_ALM_ALM AS Almacen, D.COLOR_AV AS Color';
+  sCodigo := 'ALM.NOMBRE_ALM_ALM AS Almacen, ' +
+    'COALESCE(D.COLOR_AV, '''') AS Color';
   if not AConPendientes then
     sCodigo := 'CONCAT(' + QuotedStr(ASolicitud.CodigoArticulo) +
       ', CASE WHEN D.COLOR_AV <> '''' THEN CONCAT(''/'', D.COLOR_AV) ' +
@@ -1233,6 +1238,7 @@ begin
     oLectura.Connection := AConsulta.Connection;
     Result := LeerArticuloStockConPestanas(
       oLectura, ACodigo, sArticulo, sNombre);
+    Result := Result and (AConPendientes or (sNombre <> ''));
     if Result then
     begin
       rSolicitud := Default(TSolicitudPivoteStock);
@@ -1253,6 +1259,7 @@ begin
         oRepositorio, rSolicitud, aTallas, AConPendientes);
       AConsulta.Open;
       AConsulta.FieldByName('COPA').DisplayLabel := sNombre;
+      AConsulta.FieldByName('COPA').Visible := sNombre <> '';
     end;
   finally
     oAlmacenes := nil;

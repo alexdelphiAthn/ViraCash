@@ -327,7 +327,10 @@ type
                                      const AAlmacenOrigenDevolucion:
                                        string = '';
                                      const AArqueosConfirmados:
-                                       TArray<string> = nil):
+                                       TArray<string> = nil;
+                                     const APresupuestoEmpresa: string = '';
+                                     const APresupuestoSerie: string = '';
+                                     const APresupuestoNumero: string = ''):
                                        Boolean;
     property OnUpdateTotal: TOnUpdateTotalEvent read FOnUpdateTotal
                                                 write FOnUpdateTotal;
@@ -398,7 +401,7 @@ uses
      inLibArqueoPersistencia,
      System.Generics.Collections,
      inLibEAN13,
-     inLibMsgCaja, inLibMsgFacturas, inLibCajaVentaIntf;
+  inLibMsgPresupuestos, inLibMsgCaja, inLibMsgFacturas, inLibCajaVentaIntf;
 
 {$R *.dfm}
 
@@ -439,6 +442,9 @@ type
     FEmpresa: string;
     FAlmacen: string;
     FCaja: string;
+    FPresupuestoEmpresa: string;
+    FPresupuestoSerie: string;
+    FPresupuestoNumero: string;
     FSerieElegida: string;
     FSerieGenerada: string;
     FTipoFactura: string;
@@ -560,7 +566,10 @@ type
       const ANumeroOrigenDevolucion: string = '';
       const AEmpresaOrigenDevolucion: string = '';
       const AAlmacenOrigenDevolucion: string = '';
-      const AArqueosConfirmados: TArray<string> = nil);
+      const AArqueosConfirmados: TArray<string> = nil;
+  const APresupuestoEmpresa: string = '';
+  const APresupuestoSerie: string = '';
+  const APresupuestoNumero: string = '');
     destructor Destroy; override;
     function Ejecutar(
       out ANumeroGenerado, AValeGenerado: string): Boolean;
@@ -1710,9 +1719,15 @@ constructor TGrabacionFacturaCaja.Create(
   const ANumeroOrigenDevolucion: string = '';
   const AEmpresaOrigenDevolucion: string = '';
   const AAlmacenOrigenDevolucion: string = '';
-  const AArqueosConfirmados: TArray<string> = nil);
+  const AArqueosConfirmados: TArray<string> = nil;
+  const APresupuestoEmpresa: string = '';
+  const APresupuestoSerie: string = '';
+  const APresupuestoNumero: string = '');
 begin
   inherited Create;
+  FPresupuestoEmpresa := APresupuestoEmpresa;
+  FPresupuestoSerie := APresupuestoSerie;
+  FPresupuestoNumero := APresupuestoNumero;
   FArqueosConfirmados := AArqueosConfirmados;
   FDataModule := ADataModule;
   FServicioEmisionFiscal := CrearServicioEmisionFiscal(
@@ -3002,6 +3017,9 @@ begin
   bConfirmando := False;
   try
     IniciarTransaccion;
+    if FPresupuestoNumero <> '' then
+      FPersistencia.BloquearPresupuesto(FPresupuestoEmpresa,
+        FPresupuestoSerie, FPresupuestoNumero);
     if FGenerarMovimientos and
        FDataModule.FParametrosCaja.GetBool('vgerChkStockOnly', False) then
       ValidarStockCobroCaja(FDataModule.FConexion,
@@ -3013,6 +3031,10 @@ begin
     GenerarTraspasoAutomaticoDevolucion;
     ProcesarRecalculoMovimientos;
     CrearOrdenesReparacion;
+    if FPresupuestoNumero <> '' then
+      FPersistencia.EnlazarPresupuesto(FPresupuestoEmpresa,
+        FPresupuestoSerie, FPresupuestoNumero,
+        FSerieGenerada, FNumeroFactura);
     RegistrarFiscalmente;
     RegistrarFormasPago;
     RegistrarValesRecogidos;
@@ -3044,6 +3066,13 @@ begin
   begin
     DeterminarSiRequiereFactura;
     ValidarSolicitud;
+    if (FPresupuestoNumero <> '') and
+       ((not FRequiereFactura) or
+        (FDatosCobro.ImporteDejarCuenta > 0.001) or
+        (FDatosCobro.ImporteEntregado + FDatosCobro.ImporteYaCobrado <
+         FDataModule.cdsCabecera.FieldByName(
+           'TOTAL_LIQUIDO_FAC').AsCurrency - 0.001)) then
+      raise EValidacionBBDD.Create(SErrorPresupuestoCajaCobroCompleto);
     AjustarCobroParcial;
     // Sin entrega (venta a credito, F7) las prendas pasan a deposito con
     // importe 0: ya no hay nada que facturar ni ticket que imprimir.
@@ -3364,7 +3393,10 @@ function TdmCajaOpe.GrabarFacturaSimplificada(
   const ANumeroOrigenDevolucion: string = '';
   const AEmpresaOrigenDevolucion: string = '';
   const AAlmacenOrigenDevolucion: string = '';
-  const AArqueosConfirmados: TArray<string> = nil): Boolean;
+  const AArqueosConfirmados: TArray<string> = nil;
+  const APresupuestoEmpresa: string = '';
+  const APresupuestoSerie: string = '';
+  const APresupuestoNumero: string = ''): Boolean;
 var
   Grabacion: TGrabacionFacturaCaja;
 begin
@@ -3376,7 +3408,8 @@ begin
     ANumeroRectificado, ATratamientoMovimientos,
     AMotivoDevolucion, ASerieOrigenDevolucion,
     ANumeroOrigenDevolucion, AEmpresaOrigenDevolucion,
-    AAlmacenOrigenDevolucion, AArqueosConfirmados);
+    AAlmacenOrigenDevolucion, AArqueosConfirmados,
+    APresupuestoEmpresa, APresupuestoSerie, APresupuestoNumero);
   try
     Result := Grabacion.Ejecutar(
       NumeroGenerado, ValeGenerado);

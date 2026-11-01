@@ -342,6 +342,14 @@ begin
   AddSuf('fza_reparaciones_detalles', 'GARDET');
   AddSuf('fza_reparaciones_prendas', 'GARPRE');
   AddSuf('fza_reparaciones_albaranes', 'GARALB');
+  AddSuf('fza_reparaciones_acuerdos', 'RAC');
+  AddSuf('fza_reparaciones_conceptos', 'RCC');
+  AddSuf('fza_reparaciones_tiempos', 'RCT');
+  AddSuf('fza_reparaciones_materiales', 'RCM');
+  AddSuf('fza_reparaciones_imputaciones', 'RCI');
+  AddSuf('fza_reparaciones_historial', 'RCH');
+  AddSuf('fza_reparaciones_entregas', 'RCE');
+
   AddSuf('fza_reparaciones_prendas_trabajos', 'GARPT');
   AddSuf('fza_reparaciones_ventas', 'GARVEN');
   AddSuf('fza_garantias_fases', 'GARFA');

@@ -37,7 +37,6 @@ type
       AEsCobrado: Boolean; const ASerieCobro, ANumeroCobro,
       AUsuario: string);
     procedure ComprobarTicketCobro(const ASerie, ANumero: string);
-    procedure ComprobarSkuMaterial(const ALinea: TLineaReparacion);
     function Situacion(AReparacion: Int64;
       out ATieneLiquidaciones: Boolean): TSituacionReparacion;
     procedure InsertarPrimeraLinea(AReparacion: Int64;
@@ -134,6 +133,7 @@ const
 implementation
 
 uses
+  UniDataReparacionesCobertura, UniDataReparacionesProteccion,
   System.Generics.Collections, Data.DB, inLibGarantias,
   inLibMsgReparaciones, UniDataReparacionesFases, UniDataTrabajosCortinas;
 
@@ -565,16 +565,24 @@ function TRepositorioReparacionesUniDAC.GuardarLinea(
   const ALinea: TLineaReparacion): Int64;
 var
   sError: string;
+  iId: Int64;
 begin
   sError := ValidarLineaReparacion(ALinea);
   if sError <> '' then
     raise EArgumentException.Create(sError);
-  ComprobarSkuMaterial(ALinea);
-  Result := ALinea.Id;
-  if ALinea.Id = 0 then
-    Result := InsertarLinea(ALinea)
-  else
-    ModificarLinea(ALinea);
+  iId := ALinea.Id;
+  EnTransaccion(
+    procedure
+    begin
+      if ALinea.Id = 0 then
+        iId := InsertarLinea(ALinea)
+      else
+      begin
+        ExigirLineaOrdenEditable(FConexion, ALinea.Id);
+        ModificarLinea(ALinea);
+      end;
+    end);
+  Result := iId;
 end;
 
 procedure TRepositorioReparacionesUniDAC.BorrarLinea(ALinea: Int64;
@@ -582,15 +590,20 @@ procedure TRepositorioReparacionesUniDAC.BorrarLinea(ALinea: Int64;
 var
   oConsulta: TUniQuery;
 begin
-  oConsulta := NuevaConsulta(
-    'DELETE L FROM fza_garantias_lineas L ' +
-    '  JOIN fza_garantias_reclamaciones G ON G.ID_GAR = L.ID_GAR_GARLIN ' +
-    ' WHERE L.ID_GARLIN = :ID AND' + SQL_LINEA_EDITABLE);
-  try
-    Ejecutar(oConsulta, ALinea, SErrorLineaNoEditableReparacion);
-  finally
-    FreeAndNil(oConsulta);
-  end;
+  EnTransaccion(
+    procedure
+    begin
+      ExigirLineaOrdenEditable(FConexion, ALinea);
+      oConsulta := NuevaConsulta(
+        'DELETE L FROM fza_garantias_lineas L ' +
+        'JOIN fza_garantias_reclamaciones G ON G.ID_GAR=L.ID_GAR_GARLIN ' +
+        'WHERE L.ID_GARLIN=:ID AND' + SQL_LINEA_EDITABLE);
+      try
+        Ejecutar(oConsulta, ALinea, SErrorLineaNoEditableReparacion);
+      finally
+        FreeAndNil(oConsulta);
+      end;
+    end);
 end;
 
 procedure TRepositorioReparacionesUniDAC.EmpezarLinea(ALinea: Int64;
@@ -627,6 +640,7 @@ begin
     var
       oConsulta: TUniQuery;
     begin
+      ExigirLineaOrdenSinSesiones(FConexion, ALinea);
       oConsulta := NuevaConsulta(
         'UPDATE fza_garantias_lineas L ' +
         '  JOIN fza_garantias_reclamaciones G ' +
@@ -811,6 +825,7 @@ begin
   sFase := FaseReparacion(Situacion(AReparacion, bLiquidada));
   if not PuedeEntregarReparacion(sFase) then
     raise EFaseReparacion.CreateFmt(SErrorEntregarReparacion, [AReparacion]);
+  ComprobarEntregaCircuito(FConexion, AReparacion, AUsuario);
   ComprobarTicketCobro(ASerieCobro, ANumeroCobro);
   oConsulta := NuevaConsulta(
     'UPDATE fza_garantias_reclamaciones G ' +
@@ -845,27 +860,6 @@ begin
 end;
 
 // El material sale del stock: su SKU tiene que existir.
-procedure TRepositorioReparacionesUniDAC.ComprobarSkuMaterial(
-  const ALinea: TLineaReparacion);
-var
-  oConsulta: TUniQuery;
-begin
-  if ALinea.TipoLinea <> LINEA_REPARACION_MATERIAL then
-    Exit;
-  oConsulta := NuevaConsulta(
-    'SELECT 1 FROM fza_articulos_skus S ' +
-    ' WHERE S.CODIGO_UNIDAD_SKU = :SKU LIMIT 1');
-  try
-    oConsulta.ParamByName('SKU').AsString := Trim(ALinea.Sku);
-    oConsulta.Open;
-    if oConsulta.IsEmpty then
-      raise EArgumentException.CreateFmt(SErrorSkuMaterialNoExiste,
-        [Trim(ALinea.Sku)]);
-  finally
-    FreeAndNil(oConsulta);
-  end;
-end;
-
 // El ticket o factura del cobro tiene que existir; vacío no se comprueba.
 procedure TRepositorioReparacionesUniDAC.ComprobarTicketCobro(
   const ASerie, ANumero: string);
@@ -895,25 +889,30 @@ var
   oConsulta: TUniQuery;
   bLiquidada: Boolean;
 begin
-  if not PuedeAnularReparacion(FaseReparacion(Situacion(AReparacion,
-    bLiquidada)), bLiquidada) then
-    raise EFaseReparacion.CreateFmt(SErrorAnularReparacion, [AReparacion]);
-  oConsulta := NuevaConsulta(
-    'UPDATE fza_garantias_reclamaciones G ' +
-    '   SET G.ESTADO_GAR = ''' + ESTADO_REPARACION_ANULADA + ''', ' +
-    '       G.FECHA_RESOLUCION_GAR = NOW(), ' +
-    '       G.OBSERVACIONES_GAR = LEFT(CONCAT_WS('' / '', ' +
-    '         NULLIF(G.OBSERVACIONES_GAR, ''''), :MOTIVO), 500), ' +
-    '       G.INSTANTE_MODIF = NOW(), G.USUARIO_MODIF = :USUARIO ' +
-    ' WHERE G.ID_GAR = :ID AND ' + SQL_REPARACION_ABIERTA);
-  try
-    oConsulta.ParamByName('MOTIVO').AsString :=
-      Format(SMotivoAnulacionReparacion, [Trim(AMotivo)]);
-    oConsulta.ParamByName('USUARIO').AsString := Copy(AUsuario, 1, 50);
-    Ejecutar(oConsulta, AReparacion, SErrorAnularReparacion);
-  finally
-    FreeAndNil(oConsulta);
-  end;
+  EnTransaccion(
+    procedure
+    begin
+      ExigirOrdenAnulable(FConexion, AReparacion);
+      if not PuedeAnularReparacion(FaseReparacion(Situacion(AReparacion,
+        bLiquidada)), bLiquidada) then
+        raise EFaseReparacion.CreateFmt(SErrorAnularReparacion, [AReparacion]);
+      oConsulta := NuevaConsulta(
+        'UPDATE fza_garantias_reclamaciones G ' +
+        '   SET G.ESTADO_GAR = ''' + ESTADO_REPARACION_ANULADA + ''', ' +
+        '       G.FECHA_RESOLUCION_GAR = NOW(), ' +
+        '       G.OBSERVACIONES_GAR = LEFT(CONCAT_WS('' / '', ' +
+        '         NULLIF(G.OBSERVACIONES_GAR, ''''), :MOTIVO), 500), ' +
+        '       G.INSTANTE_MODIF = NOW(), G.USUARIO_MODIF = :USUARIO ' +
+        ' WHERE G.ID_GAR = :ID AND ' + SQL_REPARACION_ABIERTA);
+      try
+        oConsulta.ParamByName('MOTIVO').AsString :=
+          Format(SMotivoAnulacionReparacion, [Trim(AMotivo)]);
+        oConsulta.ParamByName('USUARIO').AsString := Copy(AUsuario, 1, 50);
+        Ejecutar(oConsulta, AReparacion, SErrorAnularReparacion);
+      finally
+        FreeAndNil(oConsulta);
+      end;
+    end);
 end;
 
 // ---------------------------------------------------------------------------

@@ -68,6 +68,7 @@ type
 implementation
 
 uses
+  inLibMsgReparacionesCircuito,
   System.SysUtils, cxLabel, inLibMsgReparaciones, inLibMensajesVcl;
 
 const
@@ -147,7 +148,7 @@ begin
   FEjecutor := CrearRotuloYEditor(SRotuloEjecutorReparacion, 3,
     TcxComboBox.Create(Self)) as TcxComboBox;
   FEjecutor.Properties.DropDownListStyle := lsFixedList;
-  FSku := CrearRotuloYEditor(SRotuloSkuMaterial, 4,
+  FSku := CrearRotuloYEditor(SCircuitoCodigoManual, 4,
     TcxTextEdit.Create(Self)) as TcxTextEdit;
   FSku.Properties.MaxLength := 50;
   FCantidad := CrearImporte(SRotuloCantidadReparacion, 5);

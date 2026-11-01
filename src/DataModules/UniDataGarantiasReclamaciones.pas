@@ -66,6 +66,7 @@ type
     FReparaciones: TDatosPantallaReparaciones;
     FMaestro: TDataSource;
     procedure CompletarImpreso(var ADatos: TResguardoGarantia);
+    procedure AplicarRepartoImpreso(var ADatos: TResguardoGarantia);
     procedure TrabajosImpreso(var ADatos: TResguardoGarantia);
     procedure ConfigurarConsulta;
     procedure ValidarPagadorTrabajo(DataSet: TDataSet);
@@ -120,6 +121,7 @@ function LeerDatosSerieGarantia(
 implementation
 
 uses
+  inLibReparacionesCircuito, inLibMsgReparacionesCircuito,
   UniDataReparacionesFases, UniDataTrabajosCortinas,
   System.Variants, inLibReparaciones, inLibMsgGarantias, inLibMsgReparaciones, inLibErroresBBDD,
   UniDataReparacionesRepositorio, inLibFiltroUsuario,
@@ -134,8 +136,8 @@ begin
   Result := TUniQuery.Create(nil);
   Result.Connection := unqryTablaG.Connection;
   Result.ReadOnly := True;
-  Result.SQL.Text := 'SELECT CODIGO_CLI, RAZON_SOCIAL_CLI ' +
-    'FROM fza_clientes ORDER BY RAZON_SOCIAL_CLI, CODIGO_CLI';
+  Result.SQL.Text := 'SELECT CODIGO_CLI_CLI, RAZON_SOCIAL_CLI ' +
+    'FROM fza_clientes ORDER BY RAZON_SOCIAL_CLI, CODIGO_CLI_CLI';
 end;
 
 function TdmGarantiasReclamaciones.NombreCliente(
@@ -150,7 +152,7 @@ begin
     try
       oConsulta.Connection := unqryTablaG.Connection;
       oConsulta.SQL.Text := 'SELECT RAZON_SOCIAL_CLI FROM fza_clientes ' +
-        'WHERE CODIGO_CLI=:CODIGO';
+        'WHERE CODIGO_CLI_CLI=:CODIGO';
       oConsulta.ParamByName('CODIGO').AsString := Trim(ACodigo);
       oConsulta.Open;
       if not oConsulta.IsEmpty then
@@ -558,6 +560,7 @@ begin
   end;
   CompletarImpreso(Result);
   TrabajosImpreso(Result);
+  AplicarRepartoImpreso(Result);
   oDetalles := TDatosTrabajosCortinas.Create(unqryTablaG.Connection);
   try
     oDetalles.CompletarResguardo(Result.Numero,Result);
@@ -640,6 +643,26 @@ begin
       unqryTablaG.FieldByName('NUMERO_COBRO_GAR').AsString;
   ADatos.EstadoPresupuesto :=
     unqryTablaG.FieldByName('ESTADO_PRESUPUESTO_GAR').AsString;
+end;
+
+procedure TdmGarantiasReclamaciones.AplicarRepartoImpreso(
+  var ADatos: TResguardoGarantia);
+var
+  aReparto: TArray<TRepartoConceptoOrden>;
+  i: Integer;
+begin
+  if FReparaciones.Circuito.Gestionada(ADatos.Numero) then
+  begin
+    ADatos.Importe := FReparaciones.Circuito.Cierre.ImporteCliente(
+      ADatos.Numero);
+    ADatos.EsCobrado := FReparaciones.Circuito.Cierre.SaldoCliente(
+      ADatos.Numero)<=0;
+    aReparto := FReparaciones.Circuito.Cobertura.Reparto(ADatos.Numero);
+    if Length(aReparto)<>Length(ADatos.Trabajos) then
+      raise EArgumentException.Create(SCircuitoConflicto);
+    for i := 0 to High(aReparto) do
+      ADatos.Trabajos[i].Importe := aReparto[i].Cliente;
+  end;
 end;
 
 procedure TdmGarantiasReclamaciones.TrabajosImpreso(

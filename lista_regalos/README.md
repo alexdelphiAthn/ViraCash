@@ -152,6 +152,13 @@ pedido se valida con el núcleo de PrestaShop, así que salta el hook real),
 sincroniza, comprueba que nada cuenta dos veces y cierra la lista (82,40 €
 regalados, 4,12 € de bonificación). Última ejecución: 22/22.
 
+### Batería para un agente
+
+`factuzam_web\tests\listas_regalos` (37 casos en `casos.json`, LEEME con
+el escenario, `preparar.sh`, verificaciones SQL de ViraCash y de la tienda).
+Base propia `fzam_listas_regalos` en 34712; los esperados se fijaron con
+`ensayo_esperados.py` (0 fallos el 01/11/2026).
+
 ## Estado del entorno de juego (31/10/2026)
 
 - **ViraCash:** `fzam_bazar_turnos_listas` en 127.0.0.1:34712, copia de

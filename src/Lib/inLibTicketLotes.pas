@@ -27,7 +27,8 @@ function AgruparLotesTicket(const ALineas: TArray<TLineaTicketCaja>;
 implementation
 
 uses
-  System.SysUtils, System.Variants, System.Generics.Collections;
+  System.SysUtils, System.Variants, System.Generics.Collections,
+  inLibCajaDatosFactura;
 
 function ClaveAgrupacionTicket(ALinea: TDataSet): string;
 const
@@ -80,6 +81,7 @@ begin
     try
       for Campo in ALineas.Fields do
         Result.FieldDefs.Add(Campo.FieldName, Campo.DataType, Campo.Size);
+      Result.FieldDefs.Add('TOTAL_BRUTO_TICKET', ftCurrency);
       Result.CreateDataSet;
       ALineas.First;
       while not ALineas.Eof do
@@ -97,12 +99,17 @@ begin
                Campo.FieldName.StartsWith('TOTAL_') then
               Result.FieldByName(Campo.FieldName).Value :=
                 Result.FieldByName(Campo.FieldName).Value + Campo.Value;
+          Result.FieldByName('TOTAL_BRUTO_TICKET').AsCurrency :=
+            Result.FieldByName('TOTAL_BRUTO_TICKET').AsCurrency +
+            ImporteBrutoLineaTicket(ALineas);
         end
         else
         begin
           Result.Append;
           for Campo in ALineas.Fields do
             Result.FieldByName(Campo.FieldName).Value := Campo.Value;
+          Result.FieldByName('TOTAL_BRUTO_TICKET').AsCurrency :=
+            ImporteBrutoLineaTicket(ALineas);
         end;
         if Agrupar then
         begin
@@ -153,6 +160,8 @@ begin
       begin
         Result[Indice].Cantidad := Result[Indice].Cantidad + Linea.Cantidad;
         Result[Indice].Total := Result[Indice].Total + Linea.Total;
+        Result[Indice].TotalBruto :=
+          Result[Indice].TotalBruto + Linea.TotalBruto;
       end
       else
       begin

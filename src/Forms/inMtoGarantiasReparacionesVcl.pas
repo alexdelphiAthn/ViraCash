@@ -153,6 +153,7 @@ type
 implementation
 
 uses
+  inLibMsgReparacionesCircuito,
   inLibTrabajosCortinas,
   Winapi.Windows, System.UITypes, System.Variants, Vcl.Dialogs, Vcl.Forms,
   cxContainer, cxGridLevel, cxEdit, cxCheckBox, cxImageComboBox, cxCalendar, cxCurrencyEdit, cxButtonEdit,
@@ -280,7 +281,7 @@ begin
   CrearColumna(FVista, 'TIPO_EJECUTOR_GARLIN', SColEjecutorTipo, 110)
     .OnGetDisplayText := EjecutorGetDisplayText;
   CrearColumna(FVista, 'EJECUTOR', SColEjecutor, 170);
-  CrearColumna(FVista, 'CODIGO_UNIDAD_GARLIN', SColSkuLinea, 130);
+  CrearColumna(FVista, 'CODIGO_UNIDAD_GARLIN', SCircuitoCodigoManual, 130);
   CrearColumna(FVista, 'CANTIDAD_GARLIN', SColCantidadLinea, 70);
   CrearColumna(FVista, 'IMPORTE_CLIENTE', SColImporteCliente, 90);
   CrearColumna(FVista, 'IMPORTE_COSTE', SColImporteCoste, 90);

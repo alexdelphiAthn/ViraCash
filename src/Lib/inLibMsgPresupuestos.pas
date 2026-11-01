@@ -92,6 +92,12 @@ resourcestring
     'Seleccione el tipo de documento.';
   SCaptionEnviarPresupuestoCaja =
     'Enviar a caja';
+  SErrorPresupuestoCajaNoDisponible =
+    'El presupuesto ya no está abierto o tiene un documento creado. ' +
+    'Actualice el presupuesto antes de enviarlo a caja.';
+  SErrorPresupuestoCajaCobroCompleto =
+    'El presupuesto enviado a caja requiere un cobro completo. ' +
+    'Para entregas parciales, use la conversión a documento.';
   SErrorPresupuestoSinLineasCaja =
     'El presupuesto no tiene líneas que enviar a caja.';
   SInfoLineasPresupuestoVolcadasCaja =

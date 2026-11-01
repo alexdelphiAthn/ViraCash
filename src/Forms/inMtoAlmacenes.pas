@@ -207,6 +207,9 @@ begin
   try
     dmmAlmacenes.PrepararCambioCajas;
     tvAlmacenesCajas.DataController.Append;
+    ShowMessage_fza('Para usar la caja nueva en el TPV, configure sus ' +
+      'series de factura simplificada y rectificativa en Archivo > ' +
+      'Empresas > Series, indicando este almacén y el código de caja.');
   except
     on E: Exception do
     begin

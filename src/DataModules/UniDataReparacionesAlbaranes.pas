@@ -53,6 +53,7 @@ function SqlAlbaranesOrden(AProveedor: Boolean): string;
 implementation
 
 uses
+  UniDataReparacionesProteccion,
   System.SysUtils, inLibMsgReparaciones;
 
 function TablaDocumento(AProveedor: Boolean): string;
@@ -237,6 +238,8 @@ begin
     FConexion.StartTransaction;
   try
     ComprobarDocumento(AOrden, AProveedor, ABorrar, ASerie, ANumero);
+    if ABorrar then
+      ExigirDocumentoOrdenEditable(FConexion, ASerie, ANumero, AProveedor);
     if ABorrar then
       oConsulta := Consulta('DELETE FROM fza_reparaciones_albaranes ' +
         'WHERE ID_GAR_GARALB=:ID AND TIPO_GARALB=:TIPO ' +

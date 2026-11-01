@@ -66,6 +66,7 @@ function CrearColumnasFactura(
 implementation
 
 uses
+  inLibMsgVentas,
   Vcl.Controls, Vcl.Forms, Vcl.StdCtrls, cxButtons, cxButtonEdit,
   cxCalendar, cxCheckBox, cxCurrencyEdit, cxCustomData, cxData,
   cxDataStorage, cxDropDownEdit, cxEdit,
@@ -224,6 +225,9 @@ begin
     'DESCRIPCION_ARTICULO_FACLIN',
     300,
     True);
+  NuevaColumna(AConfiguracion.Vista,
+    SCaptionPropiedadesArticuloDocumento, 'PROPIEDADES_ARTICULO',
+    300, False);
   if AConfiguracion.DescripcionAmpliada then
   begin
     AColumnas.DescripcionArticulo.PropertiesClass := TcxMemoProperties;

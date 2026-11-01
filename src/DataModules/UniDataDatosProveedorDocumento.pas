@@ -51,7 +51,7 @@ const
     '       P.DIRECCION1_PRV, P.DIRECCION2_PRV, ' +
     '       P.POBLACION_PRV, P.PROVINCIA_PRV, P.CODIGO_PAI_PRV, ' +
     '       COALESCE(PA.NOMBRE_SPA_PAI, P.PAIS_PRV) AS NOMBRE_PAI_PRV, ' +
-    '       P.CODIGO_POSTAL_PRV ' +
+    '       P.CODIGO_POSTAL_PRV, P.CODIGO_FP_PRV ' +
     '  FROM fza_proveedores P ' +
     '  LEFT JOIN fza_paises PA ON PA.CODIGO_PAI_PAI = P.CODIGO_PAI_PRV ' +
     ' WHERE P.CODIGO_PRV_PRV = :CODIGO';
@@ -112,6 +112,9 @@ begin
       // Un codigo sin ficha (el '0' del alta) no borra lo que hubiera.
       if not oConsulta.IsEmpty then
       begin
+        Campo := ADataSet.FindField('FORMA_PAGO_' + ASufijo);
+        if (Campo <> nil) and (Trim(Campo.AsString) = '') then
+          Campo.Value := oConsulta.FieldByName('CODIGO_FP_PRV').Value;
         for i := Low(CAMPOS_PROVEEDOR) to High(CAMPOS_PROVEEDOR) do
         begin
           Campo := ADataSet.FindField(

@@ -89,7 +89,8 @@ resourcestring
     'yyyy con yy. Ejemplos: A1.yyyy, A1.yy, yyyy.Tq.A1 y yyyy.mm.dd.';
   SErrorSerieTokenizadaCalendarioNoNatural =
     'La empresa debe tener marcado "Hacer coincidir calendario natural ' +
-    'con tokens" antes de usar una serie tokenizada.';
+    'con tokens" antes de usar una serie tokenizada. ' +
+    'Si no utiliza tokens, añada las series una a una con Añadir Serie.';
   SErrorIbanEmpresa =
     'IBAN no válido para el banco de la empresa: %s';
   SErrorRazonSocialEmpresa =

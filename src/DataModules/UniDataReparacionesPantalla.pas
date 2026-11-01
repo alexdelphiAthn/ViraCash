@@ -20,11 +20,13 @@ interface
 
 uses
   System.Classes, Data.DB, Uni,
+  UniDataReparacionesCircuitoPantalla,
   UniDataReparacionesAlbaranes, UniDataReparacionesFases, UniDataReparacionesMovimientos, inLibReparaciones, inLibReparacionesIntf, inLibReparacionesDocumentos;
 
 type
   TDatosPantallaReparaciones = class(TComponent)
   private
+    FCircuito: TDatosCircuitoOrden;
     FAlbaranes: TDatosAlbaranesOrden;
     FMovimientos: TDatosMovimientosReparacion;
     FFases: TDatosFasesReparacion;
@@ -55,6 +57,7 @@ type
       const AUsuario: string);
     // Las líneas siguen al expediente de la lista (campo ID_GAR).
     procedure AsignarMaestro(ADatos: TDataSource);
+    property Circuito: TDatosCircuitoOrden read FCircuito;
     property Albaranes: TDatosAlbaranesOrden read FAlbaranes;
     procedure RefrescarLineas;
     procedure RefrescarLiquidaciones;
@@ -71,6 +74,8 @@ type
     function HojaEntrega(const AIds: TArray<Int64>;
       const AAlmacen: string): THojaReparaciones;
     function HojaLiquidacion(ALiquidacion: Int64): THojaReparaciones;
+    function HojaInterna(AOrden: Int64;
+      const AAlmacen: string): THojaReparaciones;
     property Fases: TDatosFasesReparacion read FFases;
     property Movimientos: TDatosMovimientosReparacion read FMovimientos;
     property Catalogo: ICatalogoReparaciones read FCatalogo;
@@ -82,7 +87,7 @@ type
 implementation
 
 uses
-  UniDataTrabajosCortinas,
+  UniDataTrabajosCortinas, inLibMsgReparacionesCircuito,
   System.SysUtils, System.Variants, inLibDatasets,
   UniDataReparacionesArticuloServicio,
   inLibMsgReparaciones, inLibErroresBBDD,
@@ -146,6 +151,7 @@ var
 begin
   inherited Create(AOwner);
   FConexion := AConexion;
+  FCircuito := TDatosCircuitoOrden.CreateDatos(Self, AConexion, AUsuario);
   FMovimientos := TDatosMovimientosReparacion.CreateDatos(Self, AConexion);
   FUsuario := AUsuario;
   FAlbaranes := TDatosAlbaranesOrden.CreateDatos(Self, AConexion, AUsuario);
@@ -179,6 +185,7 @@ begin
   FMovimientos.AsignarMaestro(ADatos);
   FFases.AsignarMaestro(ADatos);
   FAlbaranes.AsignarMaestro(ADatos);
+  FCircuito.AsignarMaestro(ADatos);
   FLineas.MasterSource := ADatos;
   FLineas.MasterFields := 'ID_GAR';
   FLineas.DetailFields := 'ID_GAR_GARLIN';
@@ -190,6 +197,7 @@ end;
 procedure TDatosPantallaReparaciones.RefrescarLineas;
 begin
   FAlbaranes.Refrescar;
+  FCircuito.Refrescar;
   FMovimientos.Refrescar;
   FFases.Refrescar;
   if FLineas.Active then
@@ -623,6 +631,55 @@ begin
   end;
   Result.Liquidacion := ALiquidacion;
   Result.EsImporte := True;
+end;
+
+
+function TDatosPantallaReparaciones.HojaInterna(AOrden: Int64;
+  const AAlmacen: string): THojaReparaciones;
+var
+  oConsulta: TUniQuery;
+  oResumen: TDataSet;
+  i: Integer;
+  oPosicion: TBookmark;
+begin
+  Result := Default(THojaReparaciones);
+  Result.Tienda := Tienda(AAlmacen);
+  Result.Titulo := SCircuitoImprimir;
+  Result.Fecha := Date;
+  oResumen := FCircuito.Resumen.DataSet;
+  oPosicion := oResumen.Bookmark;
+  oConsulta := NuevaConsulta('SELECT CANTIDAD_GARLIN*PRECIO_COSTE_GARLIN ' +
+    'FROM fza_garantias_lineas WHERE ID_GARLIN=:LINEA ' +
+    'AND ID_GAR_GARLIN=:ORDEN');
+  oResumen.DisableControls;
+  try
+    oResumen.First;
+    while not oResumen.Eof do
+    begin
+      i := Length(Result.Lineas);
+      SetLength(Result.Lineas, i + 1);
+      Result.Lineas[i].Reparacion := AOrden;
+      Result.Lineas[i].Trabajo := oResumen.FieldByName('DESCRIPCION').AsString;
+      oConsulta.Close;
+      oConsulta.ParamByName('LINEA').AsLargeInt :=
+        oResumen.FieldByName('LINEA').AsLargeInt;
+      oConsulta.ParamByName('ORDEN').AsLargeInt := AOrden;
+      oConsulta.Open;
+      Result.Lineas[i].Detalles := Format(SCircuitoDetalleHoja,
+        [oResumen.FieldByName('HORAS_PREVISTAS').AsString,
+         oResumen.FieldByName('HORAS_REALES').AsString,
+         oResumen.FieldByName('HORAS_FACTURABLES').AsString,
+         oResumen.FieldByName('UTILIZADO').AsString,
+         oResumen.FieldByName('DEVUELTO').AsString,
+         oConsulta.Fields[0].AsString]) + sLineBreak + SCircuitoHuecoHoja;
+      oResumen.Next;
+    end;
+  finally
+    if oResumen.BookmarkValid(oPosicion) then
+      oResumen.Bookmark := oPosicion;
+    oResumen.EnableControls;
+    FreeAndNil(oConsulta);
+  end;
 end;
 
 end.

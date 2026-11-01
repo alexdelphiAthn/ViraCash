@@ -975,6 +975,8 @@ begin
   ColLinea := Col(SCaptionColumnaPedidoLinea, 'LINEA_ALBLIN', 60, False);
   Col(SCaptionColumnaPedidoDescripcion,
     'DESCRIPCION_ARTICULO_ALBLIN', 220, False);
+  Col(SCaptionPropiedadesArticuloDocumento,
+    'PROPIEDADES_ARTICULO', 300, False);
   ColCant := Col(SCaptionColCantidad, 'CANTIDAD_ALBLIN', 80,
                  FModoEntradaSel <> mcsTallasInline);
   ColTipo := Col('', 'TIPO_CANTIDAD_ARTICULO_ALBLIN', 20, False);

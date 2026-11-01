@@ -52,6 +52,7 @@ procedure EjecutarContadorDocumentoUniDAC(AProcedimiento: TUniStoredProc;
 implementation
 
 uses
+  inLibErroresBBDD,
   System.Generics.Collections, inLibDocumento, inLibDocumentoIntf,
   inLibValoresAutomaticos, inLibMsgVentas;
 
@@ -203,10 +204,10 @@ begin
       if not Activo then
       begin
         if not AEsAdministrador then
-          raise Exception.Create(Mensaje + sLineBreak +
+          raise EValidacionBBDD.Create(Mensaje + sLineBreak +
             SAvisoAdministradorActivarContador);
         if not Assigned(AConfirmar) then
-          raise Exception.Create(Mensaje);
+          raise EValidacionBBDD.Create(Mensaje);
         if not AConfirmar(Mensaje + sLineBreak +
           SPreguntaActivarContadorDocumento) then
           Abort;
@@ -242,7 +243,7 @@ begin
         Consulta.Open;
         if Consulta.IsEmpty or not SameText(
           Consulta.FieldByName('ESACTIVO_CON').AsString, 'S') then
-          raise Exception.Create(Mensaje + sLineBreak +
+          raise EValidacionBBDD.Create(Mensaje + sLineBreak +
             SAvisoAdministradorRevisarContador);
         if (Consulta.FieldByName('NUM_DIGITOS_CON').AsInteger > 12) or
            (Consulta.FieldByName('CON').AsLargeInt > 999999999999) then

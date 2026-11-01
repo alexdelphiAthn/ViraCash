@@ -319,6 +319,7 @@ public
 implementation
 
 uses
+  UniDataPropiedadesLineasDocumento,
   inLibLineaSku,
   UniDataValoresAutomaticosRepositorio,
 
@@ -882,6 +883,7 @@ begin
   ConfigurarPersistenciaLineasFactura(
     ConexionPrincipal,
     unqryLinFac);
+  ConfigurarPropiedadesLineas(unqryLinFac, 'FACLIN');
   // Guarda de estructura de líneas mientras la factura se subsana.
   unqryLinFac.BeforeDelete := unqryLinFacBeforeDeleteSubsanacion;
   unqrySeries.Connection := ConexionPrincipal;

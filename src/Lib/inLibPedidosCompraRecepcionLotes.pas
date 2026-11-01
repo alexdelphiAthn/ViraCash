@@ -30,6 +30,7 @@ type
     CodigoArticulo: string;
     CodigoSku: string;
     Descripcion: string;
+    TipoCantidad: string;
     Pendiente: Double;
     Lote: string;
     FechaCaducidad: TDate;
@@ -49,6 +50,7 @@ type
     CodigoArticulo: string;
     CodigoSku: string;
     Descripcion: string;
+    TipoCantidad: string;
     Cantidad: Double;
     // Modo efectivo: mtLote o mtSerie.
     Modo: TModoTrazabilidad;
@@ -247,6 +249,7 @@ begin
           rPeticion.CodigoArticulo := rLinea.CodigoArticulo;
           rPeticion.CodigoSku := ACeldas[iCelda].CodigoSku;
           rPeticion.Descripcion := rLinea.Descripcion;
+          rPeticion.TipoCantidad := rLinea.TipoCantidad;
           rPeticion.Cantidad := ACeldas[iCelda].Cantidad;
           rPeticion.Modo := oModo;
           rPeticion.ExigeCaducidad := RequiereCaducidad(oModo,

@@ -95,6 +95,9 @@ type
     Motivo: string;
   end;
 
+// Importe con IVA anterior al descuento, redondeado por linea.
+function ImporteBrutoLineaTicket(ALinea: TDataSet): Currency;
+
 function LeerCabeceraFactura(
   ADataSet: TDataSet): TDatosCabeceraFactura;
 
@@ -125,7 +128,7 @@ procedure NetearSustitutiva(AYaCobrado: Currency;
 implementation
 
 uses
-  System.SysUtils, inLibMsgTickets, inLibFormatoDocumento;
+  System.SysUtils, System.Math, inLibMsgTickets, inLibFormatoDocumento;
 
 procedure AnadirTextoPartido(var ALineas: TArray<string>;
   const ATexto: string; AAnchoLinea: Integer);
@@ -164,10 +167,6 @@ begin
         Result,
         Format(STicketFechaFacturaOriginal,
           [FormatDateTime('dd/mm/yyyy', AReferencia.Fecha)]),
-        AAnchoLinea);
-    if Trim(AReferencia.Motivo) <> '' then
-      AnadirTextoPartido(
-        Result, Format(STicketMotivo, [Trim(AReferencia.Motivo)]),
         AAnchoLinea);
   end;
 end;
@@ -214,6 +213,26 @@ begin
   else if SameText(Trim(ATipo), 'NORMAL') then
     Plantilla := STicketFacturaNumero;
   Result := Format(Plantilla, [ADocumento]);
+end;
+
+function ImporteBrutoLineaTicket(ALinea: TDataSet): Currency;
+var
+  cBruto: Currency;
+begin
+  Result := ALinea.FieldByName('TOTAL_FACLIN').AsCurrency;
+  if (ALinea.FindField('PRECIO_SALIDA_FACLIN') <> nil) and
+     (ALinea.FindField('PRECIO_DTO_FACLIN') <> nil) and
+     (ALinea.FieldByName('PRECIO_DTO_FACLIN').AsCurrency <> 0) then
+  begin
+    cBruto := ALinea.FieldByName('PRECIO_SALIDA_FACLIN').AsCurrency *
+      ALinea.FieldByName('CANTIDAD_FACLIN').AsFloat;
+    if (ALinea.FindField('ESIMP_INCL_TARIFA_FACLIN') <> nil) and
+       SameText(ALinea.FieldByName(
+         'ESIMP_INCL_TARIFA_FACLIN').AsString, 'N') then
+      cBruto := cBruto * (1 + ALinea.FieldByName(
+        'PORCENTAJE_IVA_FACLIN').AsFloat / 100);
+    Result := SimpleRoundTo(cBruto, -2);
+  end;
 end;
 
 function LeerCabeceraFactura(

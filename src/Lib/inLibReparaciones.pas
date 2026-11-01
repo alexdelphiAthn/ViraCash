@@ -387,9 +387,7 @@ begin
     Result := SErrorImporteReparacion
   else if ALinea.TipoLinea = LINEA_REPARACION_MATERIAL then
   begin
-    if Trim(ALinea.Sku) = '' then
-      Result := SErrorSkuMaterialReparacion
-    else if ALinea.TipoEjecutor <> '' then
+    if ALinea.TipoEjecutor <> '' then
       Result := SErrorEjecutorReparacion;
   end
   else if ALinea.TipoLinea = LINEA_REPARACION_MANO_OBRA then

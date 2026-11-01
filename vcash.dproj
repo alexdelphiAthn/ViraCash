@@ -218,6 +218,7 @@
         <DCCReference Include="src\DataModules\UniDataPresupuestosConversion.pas"/>
         <DCCReference Include="src\Lib\inLibInformeDocumento.pas"/>
         <DCCReference Include="src\Lib\inLibPresupuestosIntf.pas"/>
+        <DCCReference Include="src\DataModules\UniDataPropiedadesLineasDocumento.pas"/>
         <DCCReference Include="src\DataModules\UniDataInformeDocumento.pas"/>
         <DCCReference Include="src\Modals\inMtoModalImpDocumento.pas"/>
         <DCCReference Include="src\vcl37\Vcl.Consts.pas"/>
@@ -2160,6 +2161,21 @@
             <Form>frmMtoListasRegalos</Form>
         </DCCReference>
         <DCCReference Include="src\Lib\inLibReparacionesDocumentos.pas"/>
+        <DCCReference Include="src\Lib\inLibReparacionesCircuito.pas"/>
+        <DCCReference Include="src\Lib\inLibMsgReparacionesCircuito.pas"/>
+        <DCCReference Include="src\DataModules\UniDataReparacionesCircuitoBase.pas"/>
+        <DCCReference Include="src\DataModules\UniDataReparacionesCobertura.pas"/>
+        <DCCReference Include="src\DataModules\UniDataReparacionesTiempos.pas"/>
+        <DCCReference Include="src\DataModules\UniDataReparacionesMateriales.pas"/>
+        <DCCReference Include="src\DataModules\UniDataReparacionesCircuitoPantalla.pas"/>
+        <DCCReference Include="src\Modals\inMtoModalDatosOrden.pas"/>
+        <DCCReference Include="src\Forms\inMtoReparacionesCircuitoVcl.pas"/>
+        <DCCReference Include="src\DataModules\UniDataReparacionesDocumentoMemoria.pas"/>
+        <DCCReference Include="src\DataModules\UniDataReparacionesImputaciones.pas"/>
+        <DCCReference Include="src\DataModules\UniDataReparacionesCrearAlbaran.pas"/>
+        <DCCReference Include="src\DataModules\UniDataReparacionesEntregas.pas"/>
+        <DCCReference Include="src\DataModules\UniDataReparacionesProteccion.pas"/>
+        <DCCReference Include="src\DataModules\UniDataReparacionesCierreEconomico.pas"/>
         <DCCReference Include="src\DataModules\UniDataReparacionesAlbaranes.pas"/>
         <DCCReference Include="src\Lib\inLibReparacionesPagadores.pas"/>
         <DCCReference Include="src\DataModules\UniDataReparacionesPantalla.pas"/>

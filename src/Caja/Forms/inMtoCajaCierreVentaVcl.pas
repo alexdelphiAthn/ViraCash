@@ -34,6 +34,9 @@ type
     AEnviarEmail: Boolean;
     const AEmailEnvio: string) of object;
   TContextoCierreVentaCajaVcl = record
+    PresupuestoEmpresa: string;
+    PresupuestoSerie: string;
+    PresupuestoNumero: string;
     Propietario: TComponent;
     Conexion: TUniConnection;
     Permisos: IPermisosAplicacion;
@@ -443,6 +446,9 @@ begin
   dtFecha := AContexto.LeerFecha();
   EscribirFechaCabeceraVenta(AContexto.Cabecera, dtFecha);
   Result := Default(TSolicitudCierreVenta);
+  Result.Grabacion.PresupuestoEmpresa := AContexto.PresupuestoEmpresa;
+  Result.Grabacion.PresupuestoSerie := AContexto.PresupuestoSerie;
+  Result.Grabacion.PresupuestoNumero := AContexto.PresupuestoNumero;
   Result.TipoImpresion := oCobro.TipoImpresion;
   Result.Grabacion.CodigoEmpresa := AContexto.CodigoEmpresa;
   Result.Grabacion.CodigoAlmacen := AContexto.CodigoAlmacen;

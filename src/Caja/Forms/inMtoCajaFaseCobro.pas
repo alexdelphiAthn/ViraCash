@@ -286,7 +286,8 @@ implementation
 {$R *.dfm}
 
 uses
-  inLibMensajesVcl, inLibRedondeo, UniDataFaseCobroRepositorio,
+  inLibTipoCantidad, inLibMensajesVcl, inLibRedondeo,
+  UniDataFaseCobroRepositorio,
   inMtoCajaSeleccionVale, inMtoModalOpcionesDocumento,
   inLibOpcionesDocumentoIntf, inLibMsgOpcionesDocumento,
   UniDataOpcionesDocumentoRepositorio, Uni,
@@ -958,8 +959,9 @@ begin
      (cbbSERIE_FAC.Properties.Items.Count = 0) then
     ShowMessage_fza(SAvisoSinSerieRectificativaCaja)
   else if not Result then
-    ShowMessage_fza('Indique una serie para confirmar la venta. ' +
-      'Puede escribir una nueva en el combo de series.');
+    ShowMessage_fza('No hay una serie de factura disponible para esta ' +
+      'empresa, almacén y caja. Configúrela en Archivo > Empresas > ' +
+      'Series (factura simplificada o rectificativa, según la venta).');
   if Result and (Length(sSerie) > 12) then
   begin
     Result := False;
@@ -1512,8 +1514,18 @@ begin
   if TotalesFactura <> nil then
   begin
     FDatosCobro.CargarDatosFactura(TotalesFactura);
-    txtCantidadLineas.Text := FormatFloat('0.##',
-      TotalesFactura.Totales.TotalCantidades);
+    txtCantidadLineas.Text := ResumenCantidadesPorTipo(
+      TotalesFactura.Lineas, 'CANTIDAD_FACLIN',
+      'TIPO_CANTIDAD_ARTICULO_FACLIN');
+    txtCantidadLineas.Hint := txtCantidadLineas.Text;
+    txtCantidadLineas.ShowHint := True;
+    // El resumen mixto no cabe en la celda de 64 píxeles. Mostrar el
+    // número de líneas y conservar el desglose completo en la ayuda.
+    if Pos(' + ', txtCantidadLineas.Text) > 0 then
+    begin
+      lblSuma.Caption := 'Líneas';
+      txtCantidadLineas.Text := IntToStr(TotalesFactura.Lineas.RecordCount);
+    end;
     txtBrutoLineas.Value := TotalesFactura.Totales.TotalBruto;
     txtTotalDtoLineal.Value := TotalesFactura.Totales.TotalDescuentosLineas;
     if TotalesFactura.Totales.TotalBruto <> 0 then

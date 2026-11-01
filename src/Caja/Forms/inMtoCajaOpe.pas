@@ -513,6 +513,9 @@ type
     // origen es de otra tienda, la grabación genera el traspaso
     // automático hacia el almacén actual.
     FMotivoDevolucion: string;
+    FPresupuestoEmpresa: string;
+    FPresupuestoSerie: string;
+    FPresupuestoNumero: string;
     FSerieOrigenDev: string;
     FNumeroOrigenDev: string;
     FEmpresaOrigenDev: string;
@@ -657,8 +660,10 @@ type
     // que el lector (RellenarDatosArticuloEnDataset). False si el
     // articulo/SKU no existe o esta descatalogado.
     function CargarSkuExterno(const ASku: string;
-                              ACant: Double): Boolean;
+                              ACant: Double; const ALote: string = '';
+      ACaducidad: TDateTime = 0): Boolean;
     procedure PrepararVentaExterna(const ACliente: string);
+    procedure AsignarPresupuesto(const AEmpresa, ASerie, ANumero: string);
     procedure PrepararValores(const AEmpresa, AAlmacen, ACaja: string;
                               AFecha: TDateTime);
     procedure CargarDevolucion(
@@ -1227,6 +1232,9 @@ begin
     AFormulario.FDependencias.RepartidorDescuento;
   Result.CasoUso := AFormulario.FDependencias.CasoUsoCierre;
   Result.RegistroLog := AFormulario.RegistroLog;
+  Result.PresupuestoEmpresa := AFormulario.FPresupuestoEmpresa;
+  Result.PresupuestoSerie := AFormulario.FPresupuestoSerie;
+  Result.PresupuestoNumero := AFormulario.FPresupuestoNumero;
   Result.CodigoEmpresa := AFormulario.FCodigoEmpresa;
   Result.CodigoAlmacen := AFormulario.FCodigoAlmacen;
   Result.CodigoCaja := AFormulario.FCodigoCaja;
@@ -1885,7 +1893,8 @@ begin
 end;
 
 function TfrmMtoOpeCaja.CargarSkuExterno(const ASku: string;
-  ACant: Double): Boolean;
+  ACant: Double; const ALote: string;
+  ACaducidad: TDateTime): Boolean;
 begin
   Result := False;
   if not Assigned(FSubsanacion) then
@@ -1894,6 +1903,13 @@ begin
   FEditorLineas.AsegurarLineaNueva;
   if not (DatosCaja.cdsLineas.State in dsEditModes) then
     DatosCaja.cdsLineas.Edit;
+  DatosCaja.cdsLineas.FieldByName('CANTIDAD_FACLIN').AsFloat := ACant;
+  DatosCaja.cdsLineas.FieldByName('LOTE_FACLIN').AsString := ALote;
+  if ACaducidad > 0 then
+    DatosCaja.cdsLineas.FieldByName(
+      'FECHA_CADUCIDAD_FACLIN').AsDateTime := ACaducidad;
+  DatosCaja.cdsLineas.FieldByName('CODIGO_VENDEDOR_FACLIN').AsString :=
+    DatosCaja.cdsCabecera.FieldByName('CODIGO_CAJERO_FAC').AsString;
   Result := FEditorLineas.RellenarDatosArticuloEnDataset(ASku);
   if Result then
   begin
@@ -1903,6 +1919,8 @@ begin
       DatosCaja.cdsLineas.Edit;
     DatosCaja.cdsLineas.FieldByName('CANTIDAD_FACLIN').AsFloat := ACant;
     DatosCaja.cdsLineas.Post;
+    if Assigned(FLotesCaja) then
+      FLotesCaja.MarcarSeries;
     GridRecalc(ConexionPrincipal, FLecturas.RepositorioFacturas, nil,
                tvLineasOpe, DatosCaja.cdsLineas,
                DatosCaja.cdsCabecera, ActualizarLabelTotal);
@@ -1914,6 +1932,14 @@ begin
       DatosCaja.cdsLineas.Cancel;
   end;
   end;
+end;
+
+procedure TfrmMtoOpeCaja.AsignarPresupuesto(
+  const AEmpresa, ASerie, ANumero: string);
+begin
+  FPresupuestoEmpresa := AEmpresa;
+  FPresupuestoSerie := ASerie;
+  FPresupuestoNumero := ANumero;
 end;
 
 procedure TfrmMtoOpeCaja.PrepararVentaExterna(const ACliente: string);
@@ -1937,6 +1963,7 @@ var
   EmpleadoAnterior, NombreEmpleadoAnterior: string;
   EmpleadoInicial, NombreEmpleadoInicial: string;
 begin
+  AsignarPresupuesto('', '', '');
   FCodigoEmpresa := AEmpresa;
   FCodigoAlmacen := AAlmacen;
   FCodigoCaja    := ACaja;
@@ -4309,6 +4336,9 @@ var
   sMensajeCorreo: string;
 begin
   MarcarVentaAppGrabada;
+  if FPresupuestoNumero <> '' then
+    NotificarPresupuestoCaja(FPresupuestoEmpresa, FPresupuestoSerie,
+      FPresupuestoNumero);
   if FNumeroRectifica <> '' then
   begin
     if FTipoRectificativa = trcSustitutiva then
@@ -4329,6 +4359,7 @@ begin
      (FCaptionPrevio <> '') then
     Caption := FCaptionPrevio;
   // Limpiar el estado de devolucion (motivo y ticket de origen).
+  AsignarPresupuesto('', '', '');
   FMotivoDevolucion := '';
   FSerieOrigenDev := '';
   FNumeroOrigenDev := '';

@@ -25,7 +25,7 @@ uses
   inLibMsgCaja,
   inLibMsgGarantias,
   inLibMsgListasRegalos,
-  inLibMsgReparaciones,
+  inLibMsgReparaciones, inLibMsgReparacionesCircuito,
   inLibMsgLotesConsultas,
   inLibMsgCompras,
   inLibMsgComun,
@@ -2411,6 +2411,26 @@ end;
 procedure EnumerarResourcestringsListasRegalos(
   const ARegistrar: TRegistrarResourcestringTraduccion);
 begin
+  ARegistrar(
+    'inLibMsgListasRegalos.STituloEnviarListaRegalos',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.STituloEnviarListaRegalos);
+  ARegistrar(
+    'inLibMsgListasRegalos.SCaptionEnviarListaRegalos',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SCaptionEnviarListaRegalos);
+  ARegistrar(
+    'inLibMsgListasRegalos.SInfoSinListasAbiertas',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SInfoSinListasAbiertas);
+  ARegistrar(
+    'inLibMsgListasRegalos.SErrorCantidadDocumentoLista',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SErrorCantidadDocumentoLista);
+  ARegistrar(
+    'inLibMsgListasRegalos.SInfoDocumentoEnviadoLista',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SInfoDocumentoEnviadoLista);
   ARegistrar(
     'inLibMsgListasRegalos.' +
     'STituloListasRegalos',
@@ -5852,9 +5872,375 @@ begin
       SConfirmarPlanMedidoProcesosAuxiliaresBBDD);
 end;
 
+procedure RegistrarTextosCircuitoOrden1(
+  const ARegistrar: TRegistrarResourcestringTraduccion);
+begin
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoColTotal', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoColTotal);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoColCliente', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoColCliente);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoColAseguradora', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoColAseguradora);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoColPendiente', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoColPendiente);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoColHorasReales', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoColHorasReales);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoColHorasFacturables', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoColHorasFacturables);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoColHoras', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoColHoras);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoColConcepto', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoColConcepto);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoColAnulada', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoColAnulada);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoColFecha', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoColFecha);
+end;
+
+procedure RegistrarTextosCircuitoOrden2(
+  const ARegistrar: TRegistrarResourcestringTraduccion);
+begin
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoColUsuario', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoColUsuario);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoColAccion', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoColAccion);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoColDetalle', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoColDetalle);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoColNumero', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoColNumero);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoPestana', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoPestana);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoAcuerdo', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoAcuerdo);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoConcepto', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoConcepto);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoTiempo', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoTiempo);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoCorregirTiempo', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoCorregirTiempo);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoPausar', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoPausar);
+end;
+
+procedure RegistrarTextosCircuitoOrden3(
+  const ARegistrar: TRegistrarResourcestringTraduccion);
+begin
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoMaterial', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoMaterial);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoCerrar', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoCerrar);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoCerrarEconomico', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoCerrarEconomico);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoEconomicoPendiente', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoEconomicoPendiente);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoCodigoManual', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoCodigoManual);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoOrden', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoOrden);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoTipoImputacion', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoTipoImputacion);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoRefrescar', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoRefrescar);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoAlbaran', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoAlbaran);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoImputar', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoImputar);
+end;
+
+procedure RegistrarTextosCircuitoOrden4(
+  const ARegistrar: TRegistrarResourcestringTraduccion);
+begin
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoLiberar', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoLiberar);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoDocumentos', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoDocumentos);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoTipoDoc', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoTipoDoc);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoSerieDoc', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoSerieDoc);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoNumeroDoc', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoNumeroDoc);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoLineaDoc', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoLineaDoc);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoProveedor', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoProveedor);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoImporteDoc', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoImporteDoc);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoCantidadDoc', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoCantidadDoc);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoFechaDoc', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoFechaDoc);
+end;
+
+procedure RegistrarTextosCircuitoOrden5(
+  const ARegistrar: TRegistrarResourcestringTraduccion);
+begin
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoTipoIva', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoTipoIva);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoEntrega', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoEntrega);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoRetorno', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoRetorno);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoExternos', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoExternos);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoObjeto', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoObjeto);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoEnviado', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoEnviado);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoRecibido', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoRecibido);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoIncidencia', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoIncidencia);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoImprimir', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoImprimir);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoResumenReparto', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoResumenReparto);
+end;
+
+procedure RegistrarTextosCircuitoOrden6(
+  const ARegistrar: TRegistrarResourcestringTraduccion);
+begin
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoDetalleHoja', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoDetalleHoja);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoHuecoHoja', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoHuecoHoja);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoHistorial', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoHistorial);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoTiempos', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoTiempos);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoMateriales', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoMateriales);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoReferencia', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoReferencia);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoAutorizacion', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoAutorizacion);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoPorcentajeMO', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoPorcentajeMO);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoPorcentajeMAT', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoPorcentajeMAT);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoLimite', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoLimite);
+end;
+
+procedure RegistrarTextosCircuitoOrden7(
+  const ARegistrar: TRegistrarResourcestringTraduccion);
+begin
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoFranquicia', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoFranquicia);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoAutorizado', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoAutorizado);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoAceptado', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoAceptado);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoHorasPrevistas', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoHorasPrevistas);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoHorasFacturables', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoHorasFacturables);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoPropia', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoPropia);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoPorcentaje', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoPorcentaje);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoTaller', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoTaller);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoOperario', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoOperario);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoTarea', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoTarea);
+end;
+
+procedure RegistrarTextosCircuitoOrden8(
+  const ARegistrar: TRegistrarResourcestringTraduccion);
+begin
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoInicio', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoInicio);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoFin', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoFin);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoMotivo', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoMotivo);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoProcedencia', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoProcedencia);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoAlmacen', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoAlmacen);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoUnidad', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoUnidad);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoPrevisto', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoPrevisto);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoUtilizado', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoUtilizado);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoDevuelto', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoDevuelto);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoOrigen', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoOrigen);
+end;
+
+procedure RegistrarTextosCircuitoOrden9(
+  const ARegistrar: TRegistrarResourcestringTraduccion);
+begin
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoSeleccionar', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoSeleccionar);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoSeleccionarTiempo', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoSeleccionarTiempo);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoBooleano', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoBooleano);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoFormato', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoFormato);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoAcuerdoInvalido', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoAcuerdoInvalido);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoFaltaAutorizacion', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoFaltaAutorizacion);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoRepartoInvalido', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoRepartoInvalido);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoTiempoInvalido', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoTiempoInvalido);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoMotivoCorreccion', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoMotivoCorreccion);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoMaterialInvalido', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoMaterialInvalido);
+end;
+
+procedure RegistrarTextosCircuitoOrden10(
+  const ARegistrar: TRegistrarResourcestringTraduccion);
+begin
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoConflicto', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoConflicto);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoTiempoSolapado', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoTiempoSolapado);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoNoManoObra', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoNoManoObra);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoNoMaterial', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoNoMaterial);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoDocumentado', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoDocumentado);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoPendiente', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoPendiente);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoFaltaEsquema', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoFaltaEsquema);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoAlmacenDocumento', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoAlmacenDocumento);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoCobroExistente', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoCobroExistente);
+end;
+
 procedure EnumerarResourcestringsTraduccion(
   const ARegistrar: TRegistrarResourcestringTraduccion);
 begin
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoTodos', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoTodos);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoTipoVenta', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoTipoVenta);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoSinPendientes', 'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoSinPendientes);
+  RegistrarTextosCircuitoOrden1(ARegistrar);
+  RegistrarTextosCircuitoOrden2(ARegistrar);
+  RegistrarTextosCircuitoOrden3(ARegistrar);
+  RegistrarTextosCircuitoOrden4(ARegistrar);
+  RegistrarTextosCircuitoOrden5(ARegistrar);
+  RegistrarTextosCircuitoOrden6(ARegistrar);
+  RegistrarTextosCircuitoOrden7(ARegistrar);
+  RegistrarTextosCircuitoOrden8(ARegistrar);
+  RegistrarTextosCircuitoOrden9(ARegistrar);
+  RegistrarTextosCircuitoOrden10(ARegistrar);
   ARegistrar('inLibMsgTickets.STicketPerdidaTransito',
     'src/Lib/inLibMsgTickets.pas', @inLibMsgTickets.STicketPerdidaTransito);
   ARegistrar('inLibMsgTickets.STicketPerdidasTransito',
@@ -6526,6 +6912,14 @@ begin
     'inLibMsgPresupuestos.SCaptionEnviarPresupuestoCaja',
     'src/Lib/inLibMsgPresupuestos.pas',
     @inLibMsgPresupuestos.SCaptionEnviarPresupuestoCaja);
+  ARegistrar(
+    'inLibMsgPresupuestos.SErrorPresupuestoCajaNoDisponible',
+    'src/Lib/inLibMsgPresupuestos.pas',
+    @inLibMsgPresupuestos.SErrorPresupuestoCajaNoDisponible);
+  ARegistrar(
+    'inLibMsgPresupuestos.SErrorPresupuestoCajaCobroCompleto',
+    'src/Lib/inLibMsgPresupuestos.pas',
+    @inLibMsgPresupuestos.SErrorPresupuestoCajaCobroCompleto);
   ARegistrar(
     'inLibMsgPresupuestos.SErrorPresupuestoSinLineasCaja',
     'src/Lib/inLibMsgPresupuestos.pas',
@@ -19759,6 +20153,18 @@ begin
     'src/Lib/inLibMsgTickets.pas',
     @inLibMsgTickets.
       STicketCabeceraArticulos);
+  ARegistrar(
+    'inLibMsgTickets.' +
+    'STicketBrutoVenta',
+    'src/Lib/inLibMsgTickets.pas',
+    @inLibMsgTickets.
+      STicketBrutoVenta);
+  ARegistrar(
+    'inLibMsgTickets.' +
+    'STicketACobrar',
+    'src/Lib/inLibMsgTickets.pas',
+    @inLibMsgTickets.
+      STicketACobrar);
   ARegistrar(
     'inLibMsgTickets.' +
     'STicketSuma',

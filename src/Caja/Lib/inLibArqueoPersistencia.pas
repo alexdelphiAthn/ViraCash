@@ -71,7 +71,8 @@ function CambiaDineroArqueoVenta(AOriginal, ANuevo: Currency;
   AModo: TModoCambioArqueoVenta): Boolean;
 begin
   if AModo = mcavDiferencias then
-    Result := ANuevo <> 0
+    // La diferencia pertenece a una operación nueva del turno actual.
+    Result := False
   else
     Result := ANuevo <> AOriginal;
 end;

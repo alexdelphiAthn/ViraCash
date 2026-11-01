@@ -188,6 +188,7 @@ type
 implementation
 
 uses
+  UniDataPropiedadesLineasDocumento,
   inLibLineaSku,
   inLibTrazabilidadAlta, UniDataDescuentosVenta, UniDataPedidosAlbaranLotes,
   inLibValoresAutomaticos, UniDataValoresAutomaticosRepositorio,
@@ -556,6 +557,7 @@ begin
   dsVendedores.DataSet := unqryVendedores;
   unqryAlmacenesPed.Connection     := ConexionPrincipal;
   unqryTarifas.Connection          := ConexionPrincipal;
+  ConfigurarPropiedadesLineas(unqryPedidosLineas, 'PEDLIN');
   VigilarTotalMaximoLinea(unqryPedidosLineas, 'TOTAL_PEDLIN');
 end;
 

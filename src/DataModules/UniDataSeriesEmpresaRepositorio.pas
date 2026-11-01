@@ -29,11 +29,57 @@ function EmpresaQueUsaSerie(
   const AEmpresa, ASerie, ASerieTokenizada, ATipo,
     ACodigoSerieExcluida: string): string;
 
+// Crea los contadores ausentes de PV, PE y DC para series configuradas.
+// Conserva los existentes, incluidos los desactivados y su numeración.
+procedure AsegurarContadoresEmpresa(AConexion: TUniConnection;
+  const AEmpresa, AUsuario: string);
+
 implementation
 
 uses
   System.SysUtils, Data.DB, UniDataValoresAutomaticosRepositorio,
   inLibMsgComun;
+
+procedure AsegurarContadoresEmpresa(AConexion: TUniConnection;
+  const AEmpresa, AUsuario: string);
+var
+  Consulta: TUniQuery;
+begin
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := AConexion;
+    // Conserva numeraciones y contadores desactivados. El número inicial
+    // se calcula sobre documentos existentes, también de instalaciones viejas.
+    Consulta.SQL.Text :=
+      'INSERT INTO fza_contadores (TIPO_DOC_CON, EMPRESA_CON, ' +
+      'SERIE_CON, CON, NUM_DIGITOS_CON, ESACTIVO_CON, DEFAULT_CON, ' +
+      'INSTANTE_ALTA, USUARIO_ALTA, USUARIO_MODIF) ' +
+      'SELECT DISTINCT S.TIPO_DOC_EMPSER, S.CODIGO_EMP_EMPSER, ' +
+      'S.EMPSER, COALESCE((SELECT MAX(D.NUMERO) FROM (' +
+      'SELECT ''PV'' AS TIPO, SERIE_PRE AS SERIE, ' +
+      'CAST(NUMERO_PRE AS UNSIGNED) AS NUMERO FROM fza_presupuestos ' +
+      'WHERE NUMERO_PRE REGEXP ''^[0-9]+$'' UNION ALL ' +
+      'SELECT ''PE'', SERIE_PED, CAST(NUMERO_PED AS UNSIGNED) ' +
+      'FROM fza_pedidos WHERE NUMERO_PED REGEXP ''^[0-9]+$'' UNION ALL ' +
+      'SELECT ''DC'', SERIE_DEVC, CAST(NUMERO_DEVC AS UNSIGNED) ' +
+      'FROM fza_devoluciones_compra ' +
+      'WHERE NUMERO_DEVC REGEXP ''^[0-9]+$'') D ' +
+      'WHERE D.TIPO = S.TIPO_DOC_EMPSER AND D.SERIE = S.EMPSER), 0) + 1, ' +
+      '6, ''S'', ''N'', NOW(), :USUARIO, :USUARIO ' +
+      'FROM vi_empresas_series S WHERE S.CODIGO_EMP_EMPSER = :EMPRESA ' +
+      'AND S.TIPO_DOC_EMPSER IN (''PV'', ''PE'', ''DC'') ' +
+      'AND S.EMPSER <> '''' ' +
+      'AND NOT EXISTS (SELECT 1 FROM fza_contadores C ' +
+      'WHERE C.TIPO_DOC_CON = S.TIPO_DOC_EMPSER ' +
+      'AND C.EMPRESA_CON = S.CODIGO_EMP_EMPSER AND C.SERIE_CON = S.EMPSER) ' +
+      'ON DUPLICATE KEY UPDATE CON = fza_contadores.CON';
+    Consulta.ParamByName('EMPRESA').AsString := AEmpresa;
+    Consulta.ParamByName('USUARIO').AsString := AUsuario;
+    Consulta.Execute;
+  finally
+    Consulta.Free;
+  end;
+end;
 
 const
   SQL_TIPOS_DOCUMENTO =
@@ -207,6 +253,7 @@ begin
     Consulta.ParamByName('SUBTIPO').AsString := ASubtipo;
     Consulta.ParamByName('USUARIO').AsString := AUsuario;
     Consulta.Execute;
+    AsegurarContadoresEmpresa(FConexion, AEmpresa, AUsuario);
   finally
     FreeAndNil(Consulta);
   end;

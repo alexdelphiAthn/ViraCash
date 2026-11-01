@@ -68,10 +68,12 @@ begin
     oConsulta.SQL.Text :=
       'SELECT L.LINEA_PEDCLIN, L.CODIGO_ART_PEDCLIN, ' +
       '       L.CODIGO_UNIDAD_PEDCLIN, L.DESCRIPCION_ARTICULO_PEDCLIN, ' +
-      '       L.LOTE_PEDCLIN, L.CADUCIDAD_PEDCLIN, ' +
+      '       L.LOTE_PEDCLIN, L.CADUCIDAD_PEDCLIN, A.TIPO_CANTIDAD_ART, ' +
       '       L.CANTIDAD_PEDCLIN - IFNULL(L.CANTIDAD_RECIBIDA_PEDCLIN, 0) ' +
       '         AS PENDIENTE ' +
       '  FROM fza_pedidos_compra_lineas L ' +
+      '  LEFT JOIN fza_articulos A ' +
+      '    ON A.CODIGO_ART_ART = L.CODIGO_ART_PEDCLIN ' +
       '  JOIN fza_pedidos_compra P ' +
       '    ON P.SERIE_PEDC = L.SERIE_PEDC_PEDCLIN ' +
       '   AND P.NUMERO_PEDC = L.NUMERO_PEDC_PEDCLIN ' +
@@ -96,6 +98,8 @@ begin
         oConsulta.FieldByName('CODIGO_UNIDAD_PEDCLIN').AsString;
       rLinea.Descripcion :=
         oConsulta.FieldByName('DESCRIPCION_ARTICULO_PEDCLIN').AsString;
+      rLinea.TipoCantidad :=
+        oConsulta.FieldByName('TIPO_CANTIDAD_ART').AsString;
       rLinea.Pendiente := oConsulta.FieldByName('PENDIENTE').AsFloat;
       rLinea.Lote := oConsulta.FieldByName('LOTE_PEDCLIN').AsString;
       if not oConsulta.FieldByName('CADUCIDAD_PEDCLIN').IsNull then

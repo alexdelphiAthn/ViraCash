@@ -47,8 +47,16 @@ type
   TLineaVentaCajaExterna = record
     CodigoSku: string;
     Cantidad: Double;
+    Lote: string;
+    FechaCaducidad: TDateTime;
   end;
   TLineasVentaCajaExterna = TArray<TLineaVentaCajaExterna>;
+
+  IReceptorPresupuestoCaja = interface
+    ['{2B58A4B2-88CE-493A-A18E-CF4681BCC0AE}']
+    procedure ActualizarPresupuestoCaja(const AEmpresa, ASerie,
+      ANumero: string);
+  end;
 
   IOperacionCaja = interface
     ['{3C44C353-D264-4F82-8245-6F25AE19E4A0}']
@@ -57,10 +65,12 @@ type
     function OperacionVacia: Boolean;
     function CargarSkuExterno(
       const ASku: string;
-      ACant: Double): Boolean;
+      ACant: Double; const ALote: string = '';
+      ACaducidad: TDateTime = 0): Boolean;
     // Antes de volcar líneas externas: el cliente del documento y, si la
     // venta no tiene empleado, se pide una vez (FZ-ISSUE-785).
     procedure PrepararVentaExterna(const ACliente: string);
+    procedure AsignarPresupuesto(const AEmpresa, ASerie, ANumero: string);
     procedure PrepararValores(
       const AEmpresa, AAlmacen, ACaja: string;
       AFecha: TDateTime);
@@ -89,6 +99,8 @@ type
   IReceptorFechaCaja = interface
     ['{31EB4CB2-7A61-4322-93D6-14A956327846}']
     procedure ActualizarFechaCaja(AFechaCaja: TDateTime);
+    function FechaOperacionCaja(const AEmpresa, AAlmacen,
+      ACaja: string): TDateTime;
   end;
 
   ITraspasoCaja = interface
@@ -123,6 +135,10 @@ function PuedenCerrarOperacionesCaja: Boolean;
 procedure LiberarOperacionesCaja;
 procedure RefrescarConsultasOperacionesCaja;
 procedure NotificarFechaCaja(AFecha: TDateTime);
+function BuscarFechaOperacionCaja(const AEmpresa, AAlmacen,
+  ACaja: string): TDateTime;
+procedure NotificarPresupuestoCaja(const AEmpresa, ASerie,
+  ANumero: string);
 
 implementation
 
@@ -248,6 +264,36 @@ begin
          oConsulta) then
       oConsulta.RefrescarOperaciones;
   end;
+end;
+
+function BuscarFechaOperacionCaja(const AEmpresa, AAlmacen,
+  ACaja: string): TDateTime;
+var
+  i: Integer;
+  Receptor: IReceptorFechaCaja;
+  Fecha: TDateTime;
+begin
+  Result := 0;
+  for i := 0 to Screen.FormCount - 1 do
+    if Supports(Screen.Forms[i], IReceptorFechaCaja, Receptor) then
+    begin
+      Fecha := Receptor.FechaOperacionCaja(AEmpresa, AAlmacen, ACaja);
+      if Fecha > 0 then
+        Result := Fecha;
+    end;
+  if Result = 0 then
+    Result := Now;
+end;
+
+procedure NotificarPresupuestoCaja(const AEmpresa, ASerie,
+  ANumero: string);
+var
+  i: Integer;
+  Receptor: IReceptorPresupuestoCaja;
+begin
+  for i := 0 to Screen.FormCount - 1 do
+    if Supports(Screen.Forms[i], IReceptorPresupuestoCaja, Receptor) then
+      Receptor.ActualizarPresupuestoCaja(AEmpresa, ASerie, ANumero);
 end;
 
 procedure NotificarFechaCaja(AFecha: TDateTime);

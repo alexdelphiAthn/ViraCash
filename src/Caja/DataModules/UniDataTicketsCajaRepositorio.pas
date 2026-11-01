@@ -190,6 +190,7 @@ const
     'f.SERIE_FAC, f.NUMERO_FAC, f.TIPO_FAC, ' +
     'f.NIF_EMPRESA_FAC, f.FECHA_FAC, ' +
     'f.TOTAL_BASES_FAC, f.TOTAL_IMPUESTOS_FAC, ' +
+    'f.TOTAL_RETENCION_FAC, ' +
     'f.TOTAL_LIQUIDO_FAC, f.RAZON_SOCIAL_EMPRESA_FAC, ' +
     'f.DIRECCION1_EMPRESA_FAC, f.CODIGO_POSTAL_EMPRESA_FAC, ' +
     'f.POBLACION_EMPRESA_FAC, f.MOVIL_EMPRESA_FAC, ' +
@@ -226,7 +227,8 @@ const
     'PRECIO_SALIDA_FACLIN, PORCENTAJE_DTO_FACLIN, PRECIO_DTO_FACLIN, ' +
     'PRECIO_VENTA_SIVA_ARTICULO_FACLIN, ' +
     'PRECIO_VENTA_CIVA_ARTICULO_FACLIN, TIPO_IVA_ARTICULO_FACLIN, ' +
-    'PORCENTAJE_IVA_FACLIN, CODIGO_TAR_FACLIN ' +
+    'PORCENTAJE_IVA_FACLIN, CODIGO_TAR_FACLIN, ' +
+    'ESIMP_INCL_TARIFA_FACLIN ' +
     'FROM fza_facturas_lineas ' +
     'WHERE SERIE_FAC_FACLIN = :SERIE ' +
     'AND NUMERO_FAC_FACLIN = :NRO ' +
@@ -791,6 +793,8 @@ begin
       Result.ImporteVerifactu :=
         oQuery.FieldByName('TOTAL_BASES_FAC').AsCurrency +
         oQuery.FieldByName('TOTAL_IMPUESTOS_FAC').AsCurrency;
+      Result.TotalRetencion :=
+        oQuery.FieldByName('TOTAL_RETENCION_FAC').AsCurrency;
       Result.TotalLiquido :=
         oQuery.FieldByName('TOTAL_LIQUIDO_FAC').AsCurrency;
       Result.RazonSocialEmpresa :=
@@ -907,6 +911,7 @@ begin
           oQuery.FieldByName('CANTIDAD_FACLIN').AsFloat;
         oLinea.Total :=
           oQuery.FieldByName('TOTAL_FACLIN').AsCurrency;
+        oLinea.TotalBruto := ImporteBrutoLineaTicket(oQuery);
         oLinea.PrecioSalida :=
           oQuery.FieldByName('PRECIO_SALIDA_FACLIN').AsFloat;
         oLinea.PorcentajeDescuento :=

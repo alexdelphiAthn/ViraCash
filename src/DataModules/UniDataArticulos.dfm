@@ -753,6 +753,8 @@
     MasterSource = frmMtoArticulos.dsTablaG
     MasterFields = 'CODIGO_ART_ART'
     DetailFields = 'CODIGO_ART_SKU'
+    AfterOpen = unqryVariacionesArticulosAfterOpen
+    OnNewRecord = unqryVariacionesArticulosNewRecord
     BeforePost = unqryVariacionesArticulosBeforePost
     BeforeDelete = unqryVariacionesArticulosBeforeDelete
     Left = 144

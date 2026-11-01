@@ -1802,6 +1802,10 @@ var
   UsaModelo, UsaProveedor: Boolean;
   IndiceProveedor: Integer;
 begin
+  // Cada alta comienza sin los valores visuales del artículo anterior.
+  if Assigned(FGestorProp) then
+    FGestorProp.CargarPropiedades('');
+  FArticuloCargado := '';
   Formula := dmmArticulos.FormulaCodigoArticulo;
   UsaModelo := TFormulaCodigoArticuloSesion.UsaModeloProveedor(Formula);
   UsaProveedor := TFormulaCodigoArticuloSesion.UsaCodigoProveedor(Formula);

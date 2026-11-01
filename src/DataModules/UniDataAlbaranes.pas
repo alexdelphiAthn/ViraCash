@@ -70,6 +70,7 @@ type
     procedure unqryAlbaranesLineasAfterPost(DataSet: TDataSet);
     procedure unqryAlbaranesLineasAfterDelete(DataSet: TDataSet);
   public
+    procedure LineaCircuitoBeforeDelete(DataSet: TDataSet);
     // Contrato ColumnSKUcxGrid: rellena ATTR1..5_VALOR_ALBLIN y
     // NUM_ATRIBUTOS_ALBLIN troceando el SKU (CODIGO_UNIDAD_ALBLIN) de
     // cada linea. Idempotente POR COMPARACION: solo edita las lineas
@@ -175,6 +176,8 @@ type
 implementation
 
 uses
+  UniDataReparacionesProteccion,
+  UniDataPropiedadesLineasDocumento,
   inLibLineaSku,
   inLibValoresAutomaticos, UniDataValoresAutomaticosRepositorio,
   UniDataVendedoresRepositorio,
@@ -367,6 +370,7 @@ end;
 procedure TdmAlbaranes.DataModuleCreate(Sender: TObject);
 begin
   inherited;
+  unqryAlbaranesLineas.BeforeDelete := LineaCircuitoBeforeDelete;
   // FZ-ISSUE-154: el borrado de la cabecera, todo o nada.
   unqryTablaG.AfterDelete := ConfirmarBorradoTransaccional;
   unqryTablaG.OnDeleteError := ErrorBorradoTransaccional;
@@ -406,6 +410,7 @@ begin
   unstrdprcCrearFacturaLinea.Connection  := ConexionPrincipal;
   unstrdprcCrearFacturaFin.Connection    := ConexionPrincipal;
   unstrdprcInsertarMovAlb.Connection     := ConexionPrincipal;
+  ConfigurarPropiedadesLineas(unqryAlbaranesLineas, 'ALBLIN');
   VigilarTotalMaximoLinea(unqryAlbaranesLineas, 'TOTAL_ALBLIN');
 end;
 
@@ -537,6 +542,10 @@ end;
 procedure TdmAlbaranes.unqryTablaGBeforePost(DataSet: TDataSet);
 begin
   inherited;
+  if DataSet.State = dsEdit then
+    ExigirDocumentoOrdenEditable(ConexionEscritura,
+      DataSet.FieldByName('SERIE_ALB').AsString,
+      DataSet.FieldByName('NUMERO_ALB').AsString, False);
   SincronizarInstanteMovimientoDocumento(
     DataSet, 'FECHA_ALB', 'INSTANTE_MOVIMIENTO_ALB');
   ValidarAlmacenCabecera;
@@ -574,6 +583,9 @@ var
 
 begin
   inherited;
+  ExigirDocumentoOrdenEditable(ConexionEscritura,
+    DataSet.FieldByName('SERIE_ALB').AsString,
+    DataSet.FieldByName('NUMERO_ALB').AsString, False);
   sSerie  := DataSet.FieldByName('SERIE_ALB').AsString;
   sNumero := DataSet.FieldByName('NUMERO_ALB').AsString;
   if (sSerie = '') or (sNumero = '') then
@@ -897,6 +909,9 @@ var
   end;
 begin
   inherited;
+  ExigirDocumentoOrdenEditable(ConexionEscritura,
+    DataSet.FieldByName('SERIE_ALB_ALBLIN').AsString,
+    DataSet.FieldByName('NUMERO_ALB_ALBLIN').AsString, False);
   // Desempaquetado ATTR en curso: post descriptivo, sin logica fiscal.
   if not FDesempaquetandoAtributos then
   begin
@@ -1952,6 +1967,14 @@ begin
     Result := Operacion.GenerarFaltantes(Documento);
     RefrescarDatosMovimientosSalida;
   end;
+end;
+
+
+procedure TdmAlbaranes.LineaCircuitoBeforeDelete(DataSet: TDataSet);
+begin
+  ExigirDocumentoOrdenEditable(ConexionEscritura,
+    DataSet.FieldByName('SERIE_ALB_ALBLIN').AsString,
+    DataSet.FieldByName('NUMERO_ALB_ALBLIN').AsString, False);
 end;
 
 initialization

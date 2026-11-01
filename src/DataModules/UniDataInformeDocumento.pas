@@ -41,7 +41,7 @@ type
 implementation
 
 uses
-  System.SysUtils, Data.DB;
+  System.SysUtils, Data.DB, UniDataPropiedadesLineasDocumento;
 
 const
   SALTO_SQL = 'CHAR(13,10)';
@@ -273,11 +273,15 @@ end;
 procedure TDatosInformeDocumento.ConfigurarLineas(
   const AConfig: TConfiguracionDocumento);
 var
-  sSufijo, sPrecio, sVariante, sTallas, sDetalle: string;
+  sSufijo, sPrecio, sVariante, sTallas, sDetalle, sPropiedades: string;
 begin
   sSufijo := '_' + AConfig.PrefijoLineas;
   sPrecio := PrecioLinea(AConfig);
   sVariante := VarianteLinea(AConfig);
+  sPropiedades := 'NULL';
+  if AConfig.Sentido = sdVenta then
+    sPropiedades := SqlPropiedadesLinea('L.CODIGO_ART' + sSufijo,
+      'L.CODIGO_UNIDAD' + sSufijo);
   // Desglose por talla solo si la linea lleva varias; con una, la talla
   // es la del SKU y el desglose repetiria (o contradiria) la variante.
   sTallas := '(CASE WHEN ' + VariasTallas(AConfig) +
@@ -288,7 +292,8 @@ begin
   sDetalle := 'CONCAT_WS(' + SALTO_SQL + ', COALESCE(' +
     SinVacio('DESCRIPCION_ARTICULO' + sSufijo) + ', CODIGO_ART' +
     sSufijo + ', ''''), ' + SinVacio('CONCAT_WS('' · '', ' +
-    SinVacio(sVariante) + ', ' + SinVacio(sTallas) + ')') + ')';
+    SinVacio(sVariante) + ', ' + SinVacio(sTallas) + ')') + ', ' +
+    sPropiedades + ')';
   FLineas.SQL.Text :=
     'SELECT LINEA' + sSufijo + ' AS LINEA, CODIGO_ART' + sSufijo +
     ' AS ARTICULO, CODIGO_UNIDAD' + sSufijo + ' AS SKU, ' +

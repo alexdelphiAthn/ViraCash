@@ -122,6 +122,7 @@ type
     miEnviarPeticionTraspasoDTR: TMenuItem;
     miEnviarDistribucionDTR: TMenuItem;
     miEnviarInventarioDTR: TMenuItem;
+    miEnviarListasRegalosDTR: TMenuItem;
     miEnviarTarifasDTR: TMenuItem;
     pmCargarDTR: TPopupMenu;
     miCargarFiltrosDTR: TMenuItem;
@@ -149,6 +150,7 @@ type
     procedure miEnviarPeticionTraspasoDTRClick(Sender: TObject);
     procedure miEnviarDistribucionDTRClick(Sender: TObject);
     procedure miEnviarInventarioDTRClick(Sender: TObject);
+    procedure miEnviarListasRegalosDTRClick(Sender: TObject);
     procedure miEnviarTarifasDTRClick(Sender: TObject);
     procedure btnListadoDTRClick(Sender: TObject);
     procedure btnCargarDTRClick(Sender: TObject);
@@ -266,7 +268,8 @@ function CrearDocumentosTrabajoCompraInyectada(
 implementation
 
 uses
-  inLibMensajesVcl,
+  inLibMensajesVcl, UniDataDocumentosTrabajoRepositorio,
+  inLibListasRegalos, inLibMsgListasRegalos,
   UniDataArticulos, inLibGenBusq, inMtoModalEtiqArt,
   inMtoModalAddBlockDocumentoTrabajo,
   inMtoModalCargarDocumentoTrabajo,
@@ -799,6 +802,13 @@ begin
   tvCompartidosDTR.OptionsData.Editing := bEditarExistente;
   tvCompartidosDTR.OptionsData.Inserting := bEditarExistente;
   tvCompartidosDTR.OptionsData.Deleting := bEditarExistente;
+  miEnviarListasRegalosDTR.Caption := SCaptionEnviarListaRegalos;
+  miEnviarListasRegalosDTR.Visible :=
+    ParametrosApp.GetBool(PARAMETRO_LISTAS_REGALOS, False);
+  miEnviarListasRegalosDTR.Enabled := Assigned(Permisos) and
+    Permisos.TienePermiso('menu.ListasRegalosPrestaShop', paPermitir) and
+    Permisos.TienePermiso(CodigoPermisoMto('ListasRegalosPrestaShop',
+      apmModificar), paPermitir);
   btnEnviarADTR.Enabled := bPuedeEnviar;
   btnCargarDTR.Enabled := bEditarExistente;
   btnCompartirDTR.Enabled := bEditarExistente;
@@ -1962,6 +1972,47 @@ begin
         [oDestino.Serie, oDestino.Numero, oDestino.Almacen, iLineas])) then
       AbrirDocumentoDestino('Inventarios',
         oDestino.Serie + ',' + oDestino.Numero);
+  end;
+end;
+
+procedure TfrmMtoDocumentosTrabajo.miEnviarListasRegalosDTRClick(
+  Sender: TObject);
+var
+  idDtr: Int64;
+  oConsulta: IConsultaDocumentoTrabajo;
+  sLista: string;
+  iLineas: Integer;
+begin
+  AplicarEstadoAmbito;
+  if miEnviarListasRegalosDTR.Visible and
+     miEnviarListasRegalosDTR.Enabled then
+  begin
+    idDtr := PrepararEnvio;
+    if idDtr > 0 then
+    begin
+      oConsulta := ConsultarListasRegalosDestino(
+        dmmDocumentosTrabajo.unqryTablaG.Connection,
+        dmmDocumentosTrabajo.unqryTablaG.FieldByName(
+          'CODIGO_EMP_DTR').AsString);
+      if oConsulta.DataSet.IsEmpty then
+        ShowMessage_fza(SInfoSinListasAbiertas)
+      else if BusquedaVisual.EjecutarBusquedaDataSet(
+        STituloEnviarListaRegalos, oConsulta.DataSet,
+        'frmBuscarListaRegalosDTR', Self) then
+      begin
+        sLista := oConsulta.DataSet.FieldByName('CODIGO').AsString;
+        iLineas := EnviarDocumentoAListaRegalos(
+          dmmDocumentosTrabajo.unqryTablaG.Connection, idDtr,
+          sLista, IdentidadSesion.Usuario,
+          ParametrosApp.GetString('appPrestaShopTarifa', 'PVP'));
+        if iLineas > 0 then
+        begin
+          MarcarDocumentoActualEnviado;
+          ShowMessage_fza(Format(SInfoDocumentoEnviadoLista,
+            [iLineas, sLista]));
+        end;
+      end;
+    end;
   end;
 end;
 

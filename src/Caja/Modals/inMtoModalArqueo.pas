@@ -386,7 +386,7 @@ implementation
 {$R *.dfm}
 
 uses
-  inLibMensajesVcl,
+  System.Math, inLibMensajesVcl,
   inLibPermisosIntf,
      inMtoModalArqueosHistCaja,
      inMtoModalDesgloseEfectivo,
@@ -473,10 +473,10 @@ begin
     if not frm.FEmitirJustificanteCierre then
       frm.btnGrabarArqueo.Caption :=
         SCaptionGrabarArqueoSinJustificante;
-    // Defaults: desde = 00:00:00, hasta = 23:59:59 del mismo día/rango.
+    // El cierre abarca solo las operaciones realizadas hasta este momento.
     frm.dteFechaDesde.EditValue := DateOf(AFechaDesde);
     frm.dteFechaHasta.EditValue :=
-      DateOf(AFechaHasta) + EncodeTime(23, 59, 59, 0);
+      Min(Now, DateOf(AFechaHasta) + EncodeTime(23, 59, 59, 0));
     // Los cierres son por turno: con un cierre ya hecho ese día, el
     // rango empieza donde terminó (FZ-ISSUE-408).
     frm.ProponerDesdeTrasUltimoCierre;
@@ -781,7 +781,7 @@ begin
   if FRepositorioPersistencia.OperacionesSinCerrarAntes(
     Solicitud, dUltimoCierre, iOperaciones) then
   begin
-    dteFechaDesde.EditValue := IncSecond(dUltimoCierre);
+    dteFechaDesde.EditValue := dUltimoCierre;
     sAviso := Format(SAvisoArqueoCajaOperacionesSinCerrar,
       [iOperaciones,
        FormatDateTime('dd/mm/yyyy hh:nn', dUltimoCierre)]);

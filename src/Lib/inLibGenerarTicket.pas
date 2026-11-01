@@ -83,6 +83,8 @@ type
     FImprimirLotes       : Boolean;
     FDocumento           : string;
     FQRTexto             : string;
+    FTotalBruto          : Currency;
+    FDescuentoLineas     : Currency;
     constructor Create(
       const AParametrosApp: IParametrosAplicacion;
       const APreview: IPreviewTicket;
@@ -278,7 +280,7 @@ begin
 end;
 
 // FZ-ISSUE-200: una rectificativa o sustitutiva identifica la factura a
-// la que se refiere, su fecha y el motivo de la devolucion.
+// la que se refiere y su fecha.
 procedure TImpresorTicketVenta.EscribirReferenciaRectificacion;
 var
   oCampoFormato: TField;
@@ -364,10 +366,13 @@ end;
 
 procedure TImpresorTicketVenta.EscribirArticulos;
 var
-  sArticulo, sUnidad, sUnidades, sPrecio, sDescuento: string;
+  sArticulo, sUnidad, sUnidades, sPrecio: string;
+  cBruto: Currency;
   Original: TDataSet;
   Presentacion: TClientDataSet;
 begin
+  FTotalBruto := 0;
+  FDescuentoLineas := 0;
   Original := FLineas;
   Presentacion := PrepararLineasTicket(FLineas, FImprimirLotes);
   FLineas := Presentacion;
@@ -397,25 +402,16 @@ begin
             ColumnaArticuloTicket(sArticulo, sUnidades, ''))
         else
         begin
-          sPrecio := FormatFloat('#,##0.00',
-            FLineas.FieldByName('TOTAL_FACLIN').AsCurrency) + ' €';
+          cBruto := FLineas.FieldByName('TOTAL_BRUTO_TICKET').AsCurrency;
+          FTotalBruto := FTotalBruto + cBruto;
+          FDescuentoLineas := FDescuentoLineas + cBruto -
+            FLineas.FieldByName('TOTAL_FACLIN').AsCurrency;
+          sPrecio := FormatFloat('#,##0.00', cBruto) + ' €';
           FTicket.TextoColumnas(
             ColumnaArticuloTicket(sArticulo, sUnidades, sPrecio), sPrecio);
         end;
         FTicket.EscribirLinea(Copy(FLineas.FieldByName(
           'DESCRIPCION_ARTICULO_FACLIN').AsString, 1, 42));
-        if not FSinPrecios and
-           (FLineas.FindField('PRECIO_SALIDA_FACLIN') <> nil) and
-           (FLineas.FindField('PORCENTAJE_DTO_FACLIN') <> nil) and
-           (FLineas.FindField('PRECIO_DTO_FACLIN') <> nil) then
-        begin
-          sDescuento := TextoDescuentoTicket(
-            FLineas.FieldByName('PRECIO_SALIDA_FACLIN').AsFloat,
-            FLineas.FieldByName('PORCENTAJE_DTO_FACLIN').AsFloat,
-            FLineas.FieldByName('PRECIO_DTO_FACLIN').AsFloat);
-          if sDescuento <> '' then
-            FTicket.EscribirLinea(sDescuento);
-        end;
         EscribirLoteArticulo;
         FLineas.Next;
       end;
@@ -431,22 +427,27 @@ begin
 end;
 
 procedure TImpresorTicketVenta.EscribirResumenImportes;
+var
+  cBruto, cDescuento: Currency;
 begin
   FTicket.Alinear(alIzquierda);
   FTicket.Negrita(True);
-  if FDatosCobro.ImporteDescuentoGlobal > 0 then
+  cBruto := FTotalBruto + FCabecera.TotalReN + FCabecera.TotalReR +
+    FCabecera.TotalReS + FCabecera.TotalReE - FCabecera.TotalRetencion;
+  cDescuento := cBruto - FCabecera.TotalLiquido;
+  if (FDescuentoLineas <> 0) or
+     (FDatosCobro.ImporteDescuentoGlobal <> 0) then
   begin
-    FTicket.TextoColumnas(STicketSuma,
-      Format('%.2f', [FCabecera.TotalLiquido +
-        FDatosCobro.ImporteDescuentoGlobal]) + ' €');
+    FTicket.TextoColumnas(STicketBrutoVenta,
+      Format('%.2f', [cBruto]) + ' €');
     FTicket.TextoColumnas(STicketDescuento,
-      Format('-%.2f', [FDatosCobro.ImporteDescuentoGlobal]) + ' €');
+      Format('%.2f', [-cDescuento]) + ' €');
   end;
   if FDatosCobro.ImporteValeRecogido > 0 then
     FTicket.TextoColumnas(STicketValeRecogido,
       Format('-%.2f', [FDatosCobro.ImporteValeRecogido]) + ' €');
   FTicket.TextoColumnas(
-    STicketAPagar,
+    STicketACobrar,
     Format('%.2f', [FCabecera.TotalLiquido]) + ' €');
   FTicket.Negrita(False);
 end;

@@ -36,14 +36,14 @@ uses
   inLibDocumento, inLibDocumentoIntf,
   inLibEntradaAlbaranVentaPersistenciaIntf,
   inLibVentasPantallaIntf,
-  inLibAlbaranesVentaPresentacionArticulo;
+  inLibAlbaranesVentaPresentacionArticulo, inLibCajaVentanasIntf;
 
 const
   WM_REVISAR_ENTER_AS_TAB_PRESUPUESTO = WM_APP + 250;
   WM_CONFIRMAR_LINEA_LIBRE_PRESUPUESTO = WM_APP + 251;
 
 type
-  TfrmMtoPresupuestos = class(TfrmMtoDocumento)
+  TfrmMtoPresupuestos = class(TfrmMtoDocumento, IReceptorPresupuestoCaja)
     pnlTopFicha: TPanel;
     pcCab: TcxPageControl;
     tsCabecera: TcxTabSheet;
@@ -64,6 +64,8 @@ type
     lblSerieAlbaran: TcxLabel;
     cbbSERIE_PRE: TcxDBComboBox;
     lblFechaAlbaran: TcxLabel;
+    lblFechaValidez: TcxLabel;
+    dteFECHA_VALIDEZ_PRE: TcxDBDateEdit;
     dteINSTANTEMOVIMIENTO_PRE: TcxDBDateEdit;
     lblEstadoAlbaran: TcxLabel;
     txtESTADO_PRE: TcxDBTextEdit;
@@ -291,6 +293,8 @@ type
     procedure PasarDocumentoClick(Sender: TObject);
     procedure EnviarCajaClick(Sender: TObject);
     procedure EnviarPresupuestoCaja;
+    procedure ActualizarPresupuestoCaja(const AEmpresa, ASerie,
+      ANumero: string);
   protected
     procedure KeyDown(var Key: Word; Shift: TShiftState); override;
     function LineasCancelables: TDataSet; override;
@@ -985,6 +989,8 @@ begin
   // Editable: las lineas libres necesitan su propio texto.
   Col(SCaptionDescripcionPresupuesto, 'DESCRIPCION_ARTICULO_PRELIN', 220,
     True);
+  Col(SCaptionPropiedadesArticuloDocumento,
+    'PROPIEDADES_ARTICULO', 300, False);
   ColCant := Col(SCaptionCantidadPresupuesto, 'CANTIDAD_PRELIN', 80,
                  FModoEntradaSel <> mcsTallasInline);
   ColTipo := Col('', 'TIPO_CANTIDAD_ARTICULO_PRELIN', 20, False);
@@ -1907,8 +1913,23 @@ begin
   EnviarPresupuestoCaja;
 end;
 
-// La venta queda abierta en caja sin grabar: el presupuesto no cambia
-// de estado, el usuario cobra o cancela la venta alli.
+// La caja conserva el origen y convierte el presupuesto al cobrar.
+// Cancelar la venta mantiene el presupuesto abierto.
+procedure TfrmMtoPresupuestos.ActualizarPresupuestoCaja(
+  const AEmpresa, ASerie, ANumero: string);
+begin
+  if Assigned(dmmPresupuestos) and
+     dmmPresupuestos.unqryTablaG.Active and
+     not dmmPresupuestos.unqryTablaG.IsEmpty and
+     SameText(dmmPresupuestos.unqryTablaG.FieldByName(
+       'CODIGO_EMP_PRE').AsString, AEmpresa) and
+     SameText(dmmPresupuestos.unqryTablaG.FieldByName(
+       'SERIE_PRE').AsString, ASerie) and
+     SameText(dmmPresupuestos.unqryTablaG.FieldByName(
+       'NUMERO_PRE').AsString, ANumero) then
+    dmmPresupuestos.unqryTablaG.RefreshRecord;
+end;
+
 procedure TfrmMtoPresupuestos.EnviarPresupuestoCaja;
 var
   aLineas: TLineasVentaCajaExterna;
@@ -1926,7 +1947,10 @@ begin
       CrearRepositorioCajasDefectoUniDAC(
         dmmPresupuestos.unqryTablaG.Connection),
       aLineas, rResultado,
-      dmmPresupuestos.unqryTablaG.FieldByName('CODIGO_CLI_PRE').AsString)
+      dmmPresupuestos.unqryTablaG.FieldByName('CODIGO_CLI_PRE').AsString,
+      dmmPresupuestos.unqryTablaG.FieldByName('CODIGO_EMP_PRE').AsString,
+      dmmPresupuestos.unqryTablaG.FieldByName('SERIE_PRE').AsString,
+      dmmPresupuestos.unqryTablaG.FieldByName('NUMERO_PRE').AsString)
     then
     begin
       if rResultado.LineasNoVolcadas = 0 then

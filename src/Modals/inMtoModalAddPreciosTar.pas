@@ -152,7 +152,11 @@ begin
     end;
     if Pos('/*/', FOpcionesSkus[i].CodigoSku) > 0 then
     begin
-      if (FEjePivote <> '') and (FEjeFila <> '') then
+      if (FEjePivote <> '') and (FEjeFila = '') then
+        oItem.Text := Format(SInfoSkuEjePrecioTarifa,
+          [FOpcionesSkus[i].CodigoSku, FEjePivote,
+           FOpcionesSkus[i].Talla])
+      else if (FEjePivote <> '') and (FEjeFila <> '') then
         oItem.Text := Format(SInfoEjeCualquierValorTarifa,
           [FOpcionesSkus[i].CodigoSku, FEjePivote,
            FOpcionesSkus[i].Talla, LowerCase(FEjeFila)])

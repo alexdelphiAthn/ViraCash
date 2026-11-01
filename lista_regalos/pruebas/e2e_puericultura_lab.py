@@ -75,9 +75,11 @@ def maximo(html, linea):
 
 
 def bloque_linea(html, descripcion):
-    m = re.search(r'<li class="vclr-linea.*?</li>', html[html.find(
-        descripcion) - 2000:], re.S)
-    return m.group(0) if m else ''
+    # El bloque <li> de la línea cuya descripción es la indicada.
+    for bloque in re.findall(r'<li class="vclr-linea.*?</li>', html, re.S):
+        if descripcion in bloque:
+            return bloque
+    return ''
 
 
 def instalar_modulo():

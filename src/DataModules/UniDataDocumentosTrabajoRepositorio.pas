@@ -1,4 +1,4 @@
-unit UniDataDocumentosTrabajoRepositorio;
+﻿unit UniDataDocumentosTrabajoRepositorio;
 
 interface
 
@@ -11,11 +11,17 @@ function CrearRepositoriosDocumentosTrabajo(
   AConexion: TUniConnection;
   const AResolver: IArticulosResolver = nil): TRepositoriosDocumentosTrabajo;
 
+function ConsultarListasRegalosDestino(AConexion: TUniConnection;
+  const AEmpresa: string): IConsultaDocumentoTrabajo;
+function EnviarDocumentoAListaRegalos(AConexion: TUniConnection;
+  AIdDocumento: Int64; const ALista, AUsuario, ATarifa: string): Integer;
+
 implementation
 
 uses
-  System.SysUtils, Data.DB, DBAccess, UniDataPedidosCompraPendientes,
+  System.SysUtils, System.Math, Data.DB, DBAccess, UniDataPedidosCompraPendientes,
   inLibDocumentosTrabajoEstados, inLibMsgVentas,
+  inLibListasRegalos, inLibMsgListasRegalos,
   UniDataDocumentosTrabajoCargaOrigenSql, UniDataImpuestosRepositorio,
   inLibImpuestosLecturasIntf, inLibVentasImpuestos, inLibComprasImpuestos,
   inLibErroresBBDD, inLibLog,
@@ -413,6 +419,8 @@ type
     procedure MarcarDocumentoEnviado(AConsulta: TUniQuery;
       AIdDocumento: Int64; const AUsuario: string);
   public
+    function EnviarAListaRegalos(AIdDocumento: Int64;
+      const ALista, AUsuario, ATarifa: string): Integer;
     constructor Create(AConexion: TUniConnection;
       const AResolver: IArticulosResolver);
     function ConsultaDocumentosAbiertos(
@@ -1970,6 +1978,138 @@ begin
     end;
   finally
     FreeAndNil(Consulta);
+  end;
+end;
+
+function ConsultarListasRegalosDestino(AConexion: TUniConnection;
+  const AEmpresa: string): IConsultaDocumentoTrabajo;
+var
+  oConsulta: TUniQuery;
+begin
+  oConsulta := TUniQuery.Create(nil);
+  try
+    oConsulta.Connection := AConexion;
+    oConsulta.SQL.Text :=
+      'SELECT CODIGO_LRG AS CODIGO, TITULO_LRG AS TITULO, ' +
+      'NOMBRE_TITULARES_LRG AS TITULARES FROM fza_listas_regalos ' +
+      'WHERE CODIGO_EMP_LRG=:EMPRESA AND ESTADO_LRG=''ABIERTA'' ' +
+      'ORDER BY CODIGO_LRG DESC';
+    oConsulta.ParamByName('EMPRESA').AsString := AEmpresa;
+    oConsulta.Open;
+    Result := TConsultaDocumentoTrabajoUniDAC.Create(oConsulta);
+  except
+    oConsulta.Free;
+    raise;
+  end;
+end;
+
+function EnviarDocumentoAListaRegalos(AConexion: TUniConnection;
+  AIdDocumento: Int64; const ALista, AUsuario, ATarifa: string): Integer;
+var
+  oRepositorio: TRepositorioDocumentosTrabajo;
+begin
+  oRepositorio := TRepositorioDocumentosTrabajo.Create(AConexion, nil);
+  try
+    Result := oRepositorio.EnviarAListaRegalos(AIdDocumento,
+      ALista, AUsuario, ATarifa);
+  finally
+    oRepositorio.Free;
+  end;
+end;
+
+function TRepositorioDocumentosTrabajo.EnviarAListaRegalos(
+  AIdDocumento: Int64; const ALista, AUsuario, ATarifa: string): Integer;
+var
+  oConsulta, oLineas: TUniQuery;
+  sEmpresa: string;
+  nCantidad: Double;
+  bPropia: Boolean;
+begin
+  Result := 0;
+  oConsulta := NuevaConsulta;
+  oLineas := NuevaConsulta;
+  try
+    bPropia := not FConexion.InTransaction;
+    if bPropia then
+      FConexion.StartTransaction;
+    try
+      // Bloquear primero el origen evita dos envíos simultáneos.
+      oConsulta.SQL.Text :=
+        'SELECT CODIGO_EMP_DTR, ESTADO_DTR FROM fza_documentos_trabajo ' +
+        'WHERE ID_DTR=:ID FOR UPDATE';
+      oConsulta.ParamByName('ID').AsLargeInt := AIdDocumento;
+      oConsulta.Open;
+      if oConsulta.IsEmpty or not EsDocumentoTrabajoCreado(
+        oConsulta.FieldByName('ESTADO_DTR').AsString) then
+        raise ERangeError.Create(SErrorEnviarDocumentoTrabajoNoPermitido);
+      sEmpresa := oConsulta.FieldByName('CODIGO_EMP_DTR').AsString;
+      oConsulta.Close;
+      oConsulta.SQL.Text :=
+        'SELECT CODIGO_LRG FROM fza_listas_regalos ' +
+        'WHERE CODIGO_LRG=:LISTA AND CODIGO_EMP_LRG=:EMPRESA ' +
+        'AND ESTADO_LRG=''ABIERTA'' FOR UPDATE';
+      oConsulta.ParamByName('LISTA').AsString := ALista;
+      oConsulta.ParamByName('EMPRESA').AsString := sEmpresa;
+      oConsulta.Open;
+      if oConsulta.IsEmpty then
+        raise ERangeError.Create(SResultadoListaNoAbierta);
+      oConsulta.Close;
+      oLineas.SQL.Text :=
+        'SELECT CODIGO_UNIDAD_DTL AS SKU, CANTIDAD_DTL AS CANTIDAD, ' +
+        'COALESCE((SELECT T.PRECIO_FINAL_ARTTAR ' +
+        'FROM fza_articulos_tarifas T ' +
+        'WHERE T.CODIGO_ART_ARTTAR=L.CODIGO_ART_DTL ' +
+        'AND T.CODIGO_TAR_ARTTAR=:TARIFA AND T.ESACTIVO_ARTTAR=''S'' ' +
+        'AND (T.CODIGO_UNIDAD_ARTTAR=L.CODIGO_UNIDAD_DTL ' +
+        'OR COALESCE(T.CODIGO_UNIDAD_ARTTAR,'''')='''') ' +
+        'ORDER BY (T.CODIGO_UNIDAD_ARTTAR=L.CODIGO_UNIDAD_DTL) DESC ' +
+        'LIMIT 1),0) AS PRECIO ' +
+        'FROM fza_documentos_trabajo_lineas L ' +
+        'WHERE ID_DTR_DTL=:ID ORDER BY LINEA_DTL FOR UPDATE';
+      oLineas.ParamByName('TARIFA').AsString := ATarifa;
+      oLineas.ParamByName('ID').AsLargeInt := AIdDocumento;
+      oLineas.Open;
+      while not oLineas.Eof do
+      begin
+        nCantidad := oLineas.FieldByName('CANTIDAD').AsFloat;
+        if IsNan(nCantidad) or IsInfinite(nCantidad) or
+           (nCantidad <= 0) or (nCantidad > MaxInt) or
+           (Frac(nCantidad) <> 0) then
+          raise ERangeError.Create(SErrorCantidadDocumentoLista);
+        oConsulta.SQL.Text :=
+          'CALL PRC_LRG_LINEA_AGREGAR(:LISTA,:SKU,:CANTIDAD,:PRECIO,' +
+          ':USUARIO,@LINEA_DTR_LRG,@RESULTADO_DTR_LRG)';
+        oConsulta.ParamByName('LISTA').AsString := ALista;
+        oConsulta.ParamByName('SKU').AsString :=
+          oLineas.FieldByName('SKU').AsString;
+        oConsulta.ParamByName('CANTIDAD').AsInteger := Trunc(nCantidad);
+        oConsulta.ParamByName('PRECIO').AsCurrency :=
+          oLineas.FieldByName('PRECIO').AsCurrency;
+        oConsulta.ParamByName('USUARIO').AsString := AUsuario;
+        oConsulta.Execute;
+        oConsulta.SQL.Text := 'SELECT @RESULTADO_DTR_LRG AS RESULTADO';
+        oConsulta.Open;
+        if not EsResultadoListaCorrecto(
+          oConsulta.FieldByName('RESULTADO').AsInteger) then
+          raise ERangeError.Create(TextoResultadoLista(
+            oConsulta.FieldByName('RESULTADO').AsInteger));
+        oConsulta.Close;
+        Inc(Result);
+        oLineas.Next;
+      end;
+      if Result = 0 then
+        raise ERangeError.Create(SErrorDocumentoTrabajoSinLineasEnviar);
+      MarcarDocumentoEnviado(oConsulta, AIdDocumento, AUsuario);
+      if bPropia then
+        FConexion.Commit;
+    except
+      if bPropia and FConexion.InTransaction then
+        FConexion.Rollback;
+      raise;
+    end;
+  finally
+    oLineas.Free;
+    oConsulta.Free;
   end;
 end;
 

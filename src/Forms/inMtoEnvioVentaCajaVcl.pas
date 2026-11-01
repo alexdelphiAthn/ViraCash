@@ -45,7 +45,10 @@ function EnviarLineasVentaCaja(
   const ACajasDefecto: IRepositorioCajasDefecto;
   const ALineas: TLineasVentaCajaExterna;
   out AResultado: TResultadoEnvioVentaCaja;
-  const ACliente: string = ''): Boolean;
+  const ACliente: string = '';
+  const APresupuestoEmpresa: string = '';
+  const APresupuestoSerie: string = '';
+  const APresupuestoNumero: string = ''): Boolean;
 
 implementation
 
@@ -117,7 +120,8 @@ begin
     oFormularioCaja.Caption := Format(
       STituloOperacionNCajaReal,
       [oFormularioCaja.Tag, ACaja]);
-    Result.PrepararValores(AEmpresa, AAlmacen, ACaja, Now);
+    Result.PrepararValores(AEmpresa, AAlmacen, ACaja,
+      BuscarFechaOperacionCaja(AEmpresa, AAlmacen, ACaja));
     // CargarSkuExterno deja preparada la siguiente linea y le da foco.
     // La venta debe estar visible antes de empezar a volcar los SKU.
     oFormularioCaja.Show;
@@ -135,7 +139,9 @@ function EnviarLineasVentaCaja(
   const ACajasDefecto: IRepositorioCajasDefecto;
   const ALineas: TLineasVentaCajaExterna;
   out AResultado: TResultadoEnvioVentaCaja;
-  const ACliente: string): Boolean;
+  const ACliente: string;
+  const APresupuestoEmpresa, APresupuestoSerie,
+    APresupuestoNumero: string): Boolean;
 var
   oOperacionCaja: IOperacionCaja;
   sEmpresa, sAlmacen, sCaja: string;
@@ -150,15 +156,36 @@ begin
       AFormulario, sEmpresa, sAlmacen, sCaja);
     // Antes de las líneas: el cliente fija la tarifa (FZ-ISSUE-785).
     oOperacionCaja.PrepararVentaExterna(ACliente);
+    try
     for i := 0 to High(ALineas) do
     begin
       // Sin SKU (articulo con variaciones sin elegir) no hay que leer.
       if (Trim(ALineas[i].CodigoSku) <> '') and
          oOperacionCaja.CargarSkuExterno(
-           ALineas[i].CodigoSku, ALineas[i].Cantidad) then
+           ALineas[i].CodigoSku, ALineas[i].Cantidad,
+           ALineas[i].Lote, ALineas[i].FechaCaducidad) then
         Inc(AResultado.LineasVolcadas)
       else
         Inc(AResultado.LineasNoVolcadas);
+    end;
+    if APresupuestoNumero <> '' then
+    begin
+      if AResultado.LineasNoVolcadas = 0 then
+        oOperacionCaja.AsignarPresupuesto(APresupuestoEmpresa,
+          APresupuestoSerie, APresupuestoNumero)
+      else
+      begin
+        oOperacionCaja.PrepararValores(sEmpresa, sAlmacen, sCaja,
+          BuscarFechaOperacionCaja(sEmpresa, sAlmacen, sCaja));
+        AResultado.LineasNoVolcadas := Length(ALineas);
+        AResultado.LineasVolcadas := 0;
+      end;
+    end;
+    except
+      if APresupuestoNumero <> '' then
+        oOperacionCaja.PrepararValores(sEmpresa, sAlmacen, sCaja,
+          BuscarFechaOperacionCaja(sEmpresa, sAlmacen, sCaja));
+      raise;
     end;
   end;
 end;

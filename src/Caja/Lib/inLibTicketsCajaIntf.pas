@@ -84,6 +84,7 @@ type
     NifEmpresaFactura: string;
     FechaFactura: TDateTime;
     TotalLiquido: Currency;
+    TotalRetencion: Currency;
     ImporteVerifactu: Currency;
     RazonSocialEmpresa: string;
     DireccionEmpresa: string;
@@ -122,6 +123,7 @@ type
     TipoCantidad: string;
     Cantidad: Double;
     Total: Currency;
+    TotalBruto: Currency;
     PrecioSalida: Double;
     PorcentajeDescuento: Double;
     ImporteDescuento: Double;
