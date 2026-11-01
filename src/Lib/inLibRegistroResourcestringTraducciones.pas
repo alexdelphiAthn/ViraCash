@@ -24,6 +24,7 @@ uses
   inLibMsgCambioArticuloColor,
   inLibMsgCaja,
   inLibMsgGarantias,
+  inLibMsgListasRegalos,
   inLibMsgReparaciones,
   inLibMsgLotesConsultas,
   inLibMsgCompras,
@@ -2405,6 +2406,596 @@ begin
     'SHojaReparacionesFirma',
     'src/Lib/inLibMsgReparaciones.pas',
     @inLibMsgReparaciones.SHojaReparacionesFirma);
+end;
+
+procedure EnumerarResourcestringsListasRegalos(
+  const ARegistrar: TRegistrarResourcestringTraduccion);
+begin
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'STituloListasRegalos',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.STituloListasRegalos);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SCaptionFiltroEstadoLista',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SCaptionFiltroEstadoLista);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SCaptionFiltroTextoLista',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SCaptionFiltroTextoLista);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SCaptionListasAbiertas',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SCaptionListasAbiertas);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SCaptionListasCerradas',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SCaptionListasCerradas);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SCaptionListasAnuladas',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SCaptionListasAnuladas);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SCaptionListasTodas',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SCaptionListasTodas);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SCaptionListaRefrescar',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SCaptionListaRefrescar);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SCaptionListaSincronizar',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SCaptionListaSincronizar);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SCaptionListaCerrar',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SCaptionListaCerrar);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SCaptionListaAnular',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SCaptionListaAnular);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SEstadoListaAbierta',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SEstadoListaAbierta);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SEstadoListaCerrada',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SEstadoListaCerrada);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SEstadoListaAnulada',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SEstadoListaAnulada);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'STipoListaNacimiento',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.STipoListaNacimiento);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'STipoListaBautizo',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.STipoListaBautizo);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'STipoListaComunion',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.STipoListaComunion);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'STipoListaCumpleanos',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.STipoListaCumpleanos);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'STipoListaBoda',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.STipoListaBoda);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'STipoListaOtra',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.STipoListaOtra);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SCanalRegaloCaja',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SCanalRegaloCaja);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SCanalRegaloWeb',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SCanalRegaloWeb);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SCanalRegaloManual',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SCanalRegaloManual);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SEstadoRegaloConfirmado',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SEstadoRegaloConfirmado);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SEstadoRegaloAnulado',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SEstadoRegaloAnulado);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SEntregaListaTienda',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SEntregaListaTienda);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SEntregaListaDomicilio',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SEntregaListaDomicilio);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SColListaCodigo',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SColListaCodigo);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SColListaClave',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SColListaClave);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SColListaTipo',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SColListaTipo);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SColListaTitulo',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SColListaTitulo);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SColListaTitulares',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SColListaTitulares);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SColListaHomenajeado',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SColListaHomenajeado);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SColListaFechaEvento',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SColListaFechaEvento);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SColListaEstado',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SColListaEstado);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SColListaWeb',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SColListaWeb);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SColListaLineas',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SColListaLineas);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SColListaRegalado',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SColListaRegalado);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SColListaVersion',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SColListaVersion);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SGrupoDatosLista',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SGrupoDatosLista);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SGrupoTitularesLista',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SGrupoTitularesLista);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SRotuloListaCodigo',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SRotuloListaCodigo);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SRotuloListaClave',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SRotuloListaClave);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SRotuloListaTipo',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SRotuloListaTipo);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SRotuloListaTitulo',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SRotuloListaTitulo);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SRotuloListaHomenajeado',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SRotuloListaHomenajeado);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SRotuloListaFechaEvento',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SRotuloListaFechaEvento);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SRotuloListaCaducidad',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SRotuloListaCaducidad);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SRotuloListaEstado',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SRotuloListaEstado);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SRotuloListaCliente',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SRotuloListaCliente);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SRotuloListaTitulares',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SRotuloListaTitulares);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SRotuloListaEmail',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SRotuloListaEmail);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SRotuloListaMovil',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SRotuloListaMovil);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SRotuloListaEntrega',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SRotuloListaEntrega);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SRotuloListaBonificacion',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SRotuloListaBonificacion);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SRotuloListaMensaje',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SRotuloListaMensaje);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SRotuloListaPublica',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SRotuloListaPublica);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SRotuloListaBuscable',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SRotuloListaBuscable);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SPestanaLineasLista',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SPestanaLineasLista);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SPestanaRegalosLista',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SPestanaRegalosLista);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SRotuloListaSku',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SRotuloListaSku);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SRotuloListaCantidad',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SRotuloListaCantidad);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SCaptionListaAgregarLinea',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SCaptionListaAgregarLinea);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SCaptionListaCambiarCantidad',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SCaptionListaCambiarCantidad);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SCaptionListaEntregarRegalo',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SCaptionListaEntregarRegalo);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SCaptionListaAnularRegalo',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SCaptionListaAnularRegalo);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SColLineaSku',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SColLineaSku);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SColLineaDescripcion',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SColLineaDescripcion);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SColLineaDeseada',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SColLineaDeseada);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SColLineaRegalada',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SColLineaRegalada);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SColLineaPendiente',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SColLineaPendiente);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SColLineaPrecio',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SColLineaPrecio);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SColLineaImprescindible',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SColLineaImprescindible);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SColLineaOtraVariante',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SColLineaOtraVariante);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SColLineaObservaciones',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SColLineaObservaciones);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SColRegaloFecha',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SColRegaloFecha);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SColRegaloCanal',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SColRegaloCanal);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SColRegaloRegalante',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SColRegaloRegalante);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SColRegaloMensaje',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SColRegaloMensaje);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SColRegaloImporte',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SColRegaloImporte);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SColRegaloEntregado',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SColRegaloEntregado);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SColRegaloEstado',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SColRegaloEstado);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SColRegaloPedido',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SColRegaloPedido);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SPreguntaCantidadLinea',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SPreguntaCantidadLinea);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SPreguntaMotivoAnulacionRegalo',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SPreguntaMotivoAnulacionRegalo);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SConfirmarCerrarLista',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SConfirmarCerrarLista);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SConfirmarAnularLista',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SConfirmarAnularLista);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SInfoListaCerrada',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SInfoListaCerrada);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SInfoListaSinSeleccion',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SInfoListaSinSeleccion);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SInfoRegaloSinSeleccion',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SInfoRegaloSinSeleccion);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SInfoLineaSinSeleccion',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SInfoLineaSinSeleccion);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SInfoListaGrabarAntes',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SInfoListaGrabarAntes);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SInfoListaSinBorrado',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SInfoListaSinBorrado);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SErrorListaSinTitulares',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SErrorListaSinTitulares);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SErrorSkuListaNoEncontrado',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SErrorSkuListaNoEncontrado);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SResultadoListaSumada',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SResultadoListaSumada);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SResultadoListaExcedente',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SResultadoListaExcedente);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SResultadoListaYaRegistrado',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SResultadoListaYaRegistrado);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SResultadoListaNadaQueHacer',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SResultadoListaNadaQueHacer);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SResultadoListaNoAbierta',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SResultadoListaNoAbierta);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SResultadoListaLineaNoValida',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SResultadoListaLineaNoValida);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SResultadoListaSkuNoValido',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SResultadoListaSkuNoValido);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SResultadoListaCantidadNoValida',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SResultadoListaCantidadNoValida);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SResultadoListaSuperaPendiente',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SResultadoListaSuperaPendiente);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SResultadoListaEstadoNoPermite',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SResultadoListaEstadoNoPermite);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SResultadoListaDesconocido',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SResultadoListaDesconocido);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SErrorListasPrestaShopSinConfigurar',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SErrorListasPrestaShopSinConfigurar);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SErrorListasPrestaShopRespuesta',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SErrorListasPrestaShopRespuesta);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SErrorListasPrestaShopJson',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SErrorListasPrestaShopJson);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SInfoSincronizacionListasVacia',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SInfoSincronizacionListasVacia);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SInfoSincronizacionListas',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SInfoSincronizacionListas);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SSincroListaPublicada',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SSincroListaPublicada);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SSincroListaIgnorada',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SSincroListaIgnorada);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SSincroSinProducto',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SSincroSinProducto);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SSincroRegaloRegistrado',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SSincroRegaloRegistrado);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SSincroRegaloRechazado',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SSincroRegaloRechazado);
+  ARegistrar(
+    'inLibMsgListasRegalos.' +
+    'SEsperaSincronizacionListas',
+    'src/Lib/inLibMsgListasRegalos.pas',
+    @inLibMsgListasRegalos.SEsperaSincronizacionListas);
 end;
 
 procedure EnumerarResourcestringsGarantias(
@@ -5502,6 +6093,7 @@ begin
   EnumerarResourcestringsIntegridadEsquema(ARegistrar);
   EnumerarResourcestringsTrazabilidad(ARegistrar);
   EnumerarResourcestringsGarantias(ARegistrar);
+  EnumerarResourcestringsListasRegalos(ARegistrar);
   EnumerarResourcestringsReparaciones(ARegistrar);
   EnumerarResourcestringsLotesConsultas(ARegistrar);
   ARegistrar(
@@ -13451,10 +14043,16 @@ begin
       SErrorRetencionesEmpresaConcurrentes);
   ARegistrar(
     'inLibMsgComun.' +
-    'SErrorSerieEmpresa',
+    'SErrorSerieEmpresaVacia',
     'src/Lib/inLibMsgComun.pas',
     @inLibMsgComun.
-      SErrorSerieEmpresa);
+      SErrorSerieEmpresaVacia);
+  ARegistrar(
+    'inLibMsgComun.' +
+    'SErrorSerieEmpresaSimbolo',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      SErrorSerieEmpresaSimbolo);
   ARegistrar(
     'inLibMsgComun.' +
     'SErrorSerieTokenizadaEmpresa',
@@ -32480,6 +33078,74 @@ begin
     'src/Lib/inLibMsgReparaciones.pas',
     @inLibMsgReparaciones.
       SFotosArchivoInexistente);
+  ARegistrar('inLibMsgReparaciones.SAlbaranesOrden',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SAlbaranesOrden);
+
+  ARegistrar('inLibMsgReparaciones.SAlbaranesClienteTaller',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SAlbaranesClienteTaller);
+
+  ARegistrar('inLibMsgReparaciones.SAlbaranesProveedorTaller',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SAlbaranesProveedorTaller);
+
+  ARegistrar('inLibMsgReparaciones.SVincularAlbaranOrden',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SVincularAlbaranOrden);
+
+  ARegistrar('inLibMsgReparaciones.SDesvincularAlbaranOrden',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SDesvincularAlbaranOrden);
+
+  ARegistrar('inLibMsgReparaciones.SAbrirAlbaranOrden',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SAbrirAlbaranOrden);
+
+  ARegistrar('inLibMsgReparaciones.SSerieNumeroAlbaranOrden',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SSerieNumeroAlbaranOrden);
+
+  ARegistrar('inLibMsgReparaciones.SConfirmarDesvincularAlbaran',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SConfirmarDesvincularAlbaran);
+
+  ARegistrar('inLibMsgReparaciones.SAlbaranTallerNoValido',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SAlbaranTallerNoValido);
+
+  ARegistrar('inLibMsgReparaciones.SAlbaranTerceroNoValido',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SAlbaranTerceroNoValido);
+
+  ARegistrar('inLibMsgReparaciones.SAlbaranFacturadoNoDesvincular',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SAlbaranFacturadoNoDesvincular);
+
+  ARegistrar('inLibMsgReparaciones.STitularTrabajo',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.STitularTrabajo);
+
+  ARegistrar('inLibMsgReparaciones.SPagadorTrabajo',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SPagadorTrabajo);
+
+  ARegistrar('inLibMsgReparaciones.SFranquiciaTrabajo',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SFranquiciaTrabajo);
+
+  ARegistrar('inLibMsgReparaciones.SPagadorTrabajoNoValido',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SPagadorTrabajoNoValido);
+
+  ARegistrar('inLibMsgReparaciones.SPagadorTrabajoBloqueado',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SPagadorTrabajoBloqueado);
+
+  ARegistrar('inLibMsgReparaciones.SRepartoTrabajo',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SRepartoTrabajo);
+
 end;
 {$WARN SYMBOL_DEPRECATED ON}
 

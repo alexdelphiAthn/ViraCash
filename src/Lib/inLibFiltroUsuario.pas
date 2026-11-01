@@ -51,6 +51,10 @@ function SqlFiltroEmpAlmCaja(
                              const AColEmpresa,
                              AColAlmacen,
                              AColCaja: string): string;
+// Las órdenes siempre pertenecen a un almacén: no incluir huérfanas.
+function SqlFiltroOrdenesTrabajo(
+  const AContextoSesion: IContextoSesionAplicacion;
+  const AParametrosApp: IParametrosAplicacion): string;
 // Deriva las columnas estándar de un documento a partir de su sufijo.
 // Las facturas de venta pueden incluir además la dimensión de caja.
 function SqlFiltroDocumento(
@@ -150,6 +154,17 @@ begin
     if (AColCaja <> '') and (Ubicacion.Caja <> '') then
       Result := Result + Fragmento(AColCaja, Ubicacion.Caja);
   end;
+end;
+
+function SqlFiltroOrdenesTrabajo(
+  const AContextoSesion: IContextoSesionAplicacion;
+  const AParametrosApp: IParametrosAplicacion): string;
+begin
+  Result := SqlFiltroEmpAlmCaja(AContextoSesion, AParametrosApp,
+    'ALM_ORIGEN.CODIGO_EMP_ALM', 'G.CODIGO_ALM_GAR', '');
+  if Result <> '' then
+    Result := Result + ' AND G.CODIGO_ALM_GAR IS NOT NULL ' +
+      'AND ALM_ORIGEN.CODIGO_EMP_ALM IS NOT NULL';
 end;
 
 function SqlFiltroDocumento(

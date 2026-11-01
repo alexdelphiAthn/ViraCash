@@ -625,6 +625,7 @@ function TReparacionesVentaTpv.LeerResguardo(AConsulta: TUniQuery):
 begin
   Result := Default(TResguardoGarantia);
   Result.Numero := AConsulta.FieldByName('ID_GAR').AsLargeInt;
+  Result.Referencia := AConsulta.FieldByName('REFERENCIA_ORDEN').AsString;
   Result.Fecha := AConsulta.FieldByName('INSTANTE_ALTA').AsDateTime;
   Result.FechaPrevista := AConsulta.FieldByName('FECHA_PREVISTA_GAR').AsDateTime;
   Result.Recepcion := AConsulta.FieldByName('FECHA_RECEPCION_GAR').AsDateTime;
@@ -661,7 +662,9 @@ begin
   Result := nil;
   if TieneMarca and (AVenta.Serie <> '') and (AVenta.Numero <> '') then
   begin
-    oConsulta := Consulta('SELECT G.ID_GAR, V.INSTANTE_ALTA, ' +
+    oConsulta := Consulta('SELECT G.ID_GAR, ' +
+      SQL_REFERENCIA_ORDEN_REPARACION + ' AS REFERENCIA_ORDEN, ' +
+      'V.INSTANTE_ALTA, ' +
       'G.FECHA_PREVISTA_GAR, G.FECHA_RECEPCION_GAR, ' +
       'G.NOMBRE_CLIENTE_GAR, G.TELEFONO_CLIENTE_GAR, G.EMAIL_CLIENTE_GAR, ' +
       'G.DESCRIPCION_OBJETO_GAR, G.REFERENCIA_OBJETO_GAR, G.MOTIVO_GAR, ' +

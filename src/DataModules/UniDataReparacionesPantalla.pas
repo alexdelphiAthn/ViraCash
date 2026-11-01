@@ -20,11 +20,12 @@ interface
 
 uses
   System.Classes, Data.DB, Uni,
-  UniDataReparacionesFases, UniDataReparacionesMovimientos, inLibReparaciones, inLibReparacionesIntf, inLibReparacionesDocumentos;
+  UniDataReparacionesAlbaranes, UniDataReparacionesFases, UniDataReparacionesMovimientos, inLibReparaciones, inLibReparacionesIntf, inLibReparacionesDocumentos;
 
 type
   TDatosPantallaReparaciones = class(TComponent)
   private
+    FAlbaranes: TDatosAlbaranesOrden;
     FMovimientos: TDatosMovimientosReparacion;
     FFases: TDatosFasesReparacion;
     FConexion: TUniConnection;
@@ -54,6 +55,7 @@ type
       const AUsuario: string);
     // Las líneas siguen al expediente de la lista (campo ID_GAR).
     procedure AsignarMaestro(ADatos: TDataSource);
+    property Albaranes: TDatosAlbaranesOrden read FAlbaranes;
     procedure RefrescarLineas;
     procedure RefrescarLiquidaciones;
     function Lineas: TDataSource;
@@ -146,6 +148,7 @@ begin
   FConexion := AConexion;
   FMovimientos := TDatosMovimientosReparacion.CreateDatos(Self, AConexion);
   FUsuario := AUsuario;
+  FAlbaranes := TDatosAlbaranesOrden.CreateDatos(Self, AConexion, AUsuario);
   FFases := TDatosFasesReparacion.CreateDatos(Self, AConexion);
   oRepositorio := TRepositorioReparacionesUniDAC.Create(AConexion);
   FCatalogo := oRepositorio;
@@ -175,6 +178,7 @@ procedure TDatosPantallaReparaciones.AsignarMaestro(ADatos: TDataSource);
 begin
   FMovimientos.AsignarMaestro(ADatos);
   FFases.AsignarMaestro(ADatos);
+  FAlbaranes.AsignarMaestro(ADatos);
   FLineas.MasterSource := ADatos;
   FLineas.MasterFields := 'ID_GAR';
   FLineas.DetailFields := 'ID_GAR_GARLIN';
@@ -185,6 +189,7 @@ end;
 
 procedure TDatosPantallaReparaciones.RefrescarLineas;
 begin
+  FAlbaranes.Refrescar;
   FMovimientos.Refrescar;
   FFases.Refrescar;
   if FLineas.Active then
@@ -510,7 +515,8 @@ var
   iLinea: Integer;
 begin
   oConsulta := NuevaConsulta(
-    'SELECT G.ID_GAR, L.FECHA_INICIO_GARLIN, L.FECHA_FIN_GARLIN, ' +
+    'SELECT G.ID_GAR, ' + SQL_REFERENCIA_ORDEN_REPARACION +
+    ' AS REFERENCIA_ORDEN, L.FECHA_INICIO_GARLIN, L.FECHA_FIN_GARLIN, ' +
     '       TRIM(CONCAT_WS('' '', G.CODIGO_UNIDAD_GAR, G.LOTE_GAR, ' +
     '         G.DESCRIPCION_OBJETO_GAR, G.REFERENCIA_OBJETO_GAR)) AS OBJETO, ' +
     '       L.DESCRIPCION_GARLIN, G.DETALLES_GAR, ' +
@@ -526,6 +532,8 @@ begin
     begin
       SetLength(Result, iLinea + 1);
       Result[iLinea].Reparacion := oConsulta.FieldByName('ID_GAR').AsLargeInt;
+      Result[iLinea].Referencia :=
+        oConsulta.FieldByName('REFERENCIA_ORDEN').AsString;
       Result[iLinea].Fecha :=
         oConsulta.FieldByName('FECHA_FIN_GARLIN').AsDateTime;
       if oConsulta.FieldByName('FECHA_FIN_GARLIN').IsNull then

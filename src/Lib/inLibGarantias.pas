@@ -99,7 +99,8 @@ function AlmacenRecepcionGarantia(const ADatos: TDatosSerieGarantia;
   const AAlmacenSesion: string): string;
 begin
   Result := Trim(AAlmacenSesion);
-  if ADatos.Vendida and (Trim(ADatos.AlmacenVenta) <> '') then
+  if (Result = '') and ADatos.Vendida and
+     (Trim(ADatos.AlmacenVenta) <> '') then
     Result := Trim(ADatos.AlmacenVenta);
 end;
 

@@ -43,8 +43,8 @@ type
     procedure BorrarLinea(ALinea: Int64; const AUsuario: string);
     procedure EmpezarLinea(ALinea: Int64; AFecha: TDateTime;
       const AUsuario: string);
-    // Devuelve la liquidación creada si el externo cobra por línea; 0 si
-    // no se liquidó.
+    // Conserva el resultado numérico por compatibilidad (0). Los costes
+    // del externo se tramitan mediante albaranes de proveedor TALLER.
     function TerminarLinea(ALinea: Int64; AFecha: TDateTime;
       const AUsuario: string): Int64;
     // El externo se la vuelve a llevar: incidencia y nueva fecha de inicio.

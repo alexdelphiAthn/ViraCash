@@ -588,6 +588,7 @@
     end
     object Ventas1: TMenuItem
       Caption = 'Ventas Mayor'
+      OnClick = mnuVentasMayorClick
       object mnuPresupuestosVenta: TMenuItem
         Caption = 'Presupuestos'
         ShortCut = 49218
@@ -611,6 +612,11 @@
       object mnuGarantiasReclamaciones: TMenuItem
         Caption = 'Reclamaciones de garant'#237'a'
         ShortCut = 57417
+        OnClick = MenuGenericoClick
+      end
+      object mnuListasRegalosPrestaShop: TMenuItem
+        Caption = 'Lista de regalos Prestashop'
+        Visible = False
         OnClick = MenuGenericoClick
       end
       object EfectosVenta1: TMenuItem

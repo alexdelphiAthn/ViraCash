@@ -30,6 +30,7 @@ type
   TAvisoFaseReparacion = record
     Historial: Int64;
     Reparacion: Int64;
+    Referencia: string;
     Cliente: string;
     Email: string;
     Objeto: string;
@@ -63,14 +64,23 @@ end;
 
 function AsuntoAvisoFase(const AAviso: TAvisoFaseReparacion): string;
 begin
-  Result := Format(SFaseAsuntoCorreo, [AAviso.Reparacion, AAviso.Fase]);
+  if AAviso.Referencia = '' then
+    Result := Format(SFaseAsuntoCorreo, [AAviso.Reparacion, AAviso.Fase])
+  else
+    Result := Format(StringReplace(SFaseAsuntoCorreo, '%d', '%s', []),
+      [AAviso.Referencia, AAviso.Fase]);
 end;
 
 function TextoAvisoFase(const AAviso: TAvisoFaseReparacion): string;
 begin
-  Result := Format(SFaseTextoCorreo, [AAviso.Cliente, AAviso.Reparacion,
-    AAviso.Objeto, AAviso.Fase,
-    FormatDateTime('dd/mm/yyyy hh:nn:ss', AAviso.Instante)]);
+  if AAviso.Referencia = '' then
+    Result := Format(SFaseTextoCorreo, [AAviso.Cliente, AAviso.Reparacion,
+      AAviso.Objeto, AAviso.Fase,
+      FormatDateTime('dd/mm/yyyy hh:nn:ss', AAviso.Instante)])
+  else
+    Result := Format(StringReplace(SFaseTextoCorreo, '%d', '%s', []),
+      [AAviso.Cliente, AAviso.Referencia, AAviso.Objeto, AAviso.Fase,
+      FormatDateTime('dd/mm/yyyy hh:nn:ss', AAviso.Instante)]);
 end;
 
 end.

@@ -2147,7 +2147,21 @@
         <DCCReference Include="src\Forms\inMtoGarantiasReclamaciones.pas">
             <Form>frmMtoGarantiasReclamaciones</Form>
         </DCCReference>
+        <DCCReference Include="src\Lib\inLibMsgListasRegalos.pas"/>
+        <DCCReference Include="src\Lib\inLibListasRegalos.pas"/>
+        <DCCReference Include="src\Lib\inLibListasRegalosPrestaShop.pas"/>
+        <DCCReference Include="src\Lib\inLibListasRegalosSincronizacion.pas"/>
+        <DCCReference Include="src\DataModules\UniDataListasRegalosSincronizacion.pas"/>
+        <DCCReference Include="src\DataModules\UniDataListasRegalos.pas">
+            <Form>dmListasRegalos</Form>
+            <DesignClass>TDataModule</DesignClass>
+        </DCCReference>
+        <DCCReference Include="src\Forms\inMtoListasRegalos.pas">
+            <Form>frmMtoListasRegalos</Form>
+        </DCCReference>
         <DCCReference Include="src\Lib\inLibReparacionesDocumentos.pas"/>
+        <DCCReference Include="src\DataModules\UniDataReparacionesAlbaranes.pas"/>
+        <DCCReference Include="src\Lib\inLibReparacionesPagadores.pas"/>
         <DCCReference Include="src\DataModules\UniDataReparacionesPantalla.pas"/>
         <DCCReference Include="src\Modals\inMtoModalReparacion.pas"/>
         <DCCReference Include="src\Modals\inMtoModalLineaReparacion.pas"/>

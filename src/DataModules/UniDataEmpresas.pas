@@ -79,6 +79,7 @@ type
       AConexion: TUniConnection;
       const ACodigoActual, ACodigoAnterior: string): Boolean;
     procedure ValidarSerieTokenizada;
+    procedure ValidarSerieBase;
     procedure ValidarSerieOtraEmpresa;
     { Private declarations }
   public
@@ -281,17 +282,7 @@ begin
     unqryTablaG.Post;
   bSinErrores := True;
   ValidarSerieTokenizada;
-  if (FindField('EMPSER').AsString = '') or
-     FindField('EMPSER').IsNull or
-     SimbolosProhibidos(
-       FindField('EMPSER').AsString,
-       PerfilesLectura,
-       SIMBOLOS_PERMITIDOS_SERIE) then
-  begin
-    raise ERangeError.CreateFmt(SErrorSerieEmpresa,
-      [FindField('EMPSER').AsString]);
-    bSinErrores := False;
-  end;
+  ValidarSerieBase;
   ValidarSerieOtraEmpresa;
 //    if (State = dsEdit) then
 //      sCodigoSerie := FindField('CODIGO_SERIE_EMPSER').AsString
@@ -459,6 +450,23 @@ begin
       unqrySeries.FieldByName('EMPSER').AsString :=
         ResolverSerieTokenizada(sSerieTokenizada, Date);
   end;
+end;
+
+// Serie vacía o con un símbolo prohibido: dato del usuario, aviso normal
+// (EValidacionBBDD) que dice qué falta, sin la pantalla de error.
+procedure TdmEmpresas.ValidarSerieBase;
+var
+  sSerie: string;
+  sSimbolo: string;
+begin
+  sSerie := unqrySeries.FieldByName('EMPSER').AsString;
+  if Trim(sSerie) = '' then
+    raise EValidacionBBDD.Create(SErrorSerieEmpresaVacia);
+  sSimbolo := PrimerSimboloProhibido(sSerie, PerfilesLectura,
+    SIMBOLOS_PERMITIDOS_SERIE);
+  if sSimbolo <> '' then
+    raise EValidacionBBDD.CreateFmt(SErrorSerieEmpresaSimbolo,
+      [sSerie, sSimbolo]);
 end;
 
 // FZ-ISSUE-371: el texto de la serie (o su plantilla) no puede estar en

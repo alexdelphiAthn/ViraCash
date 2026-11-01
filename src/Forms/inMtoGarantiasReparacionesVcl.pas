@@ -40,6 +40,9 @@ type
     Refrescar: TProc<Int64>;
     Imprimir: TProc<THojaReparaciones>;
     Etiqueta: TProc<Boolean, Int64>;
+    AbrirAlbaran: TProc<Boolean, string, string>;
+    GuardarOrden: TProc;
+    PuedeModificar: TFunc<Boolean>;
   end;
 
   TPanelReparaciones = class(TcxGroupBox)
@@ -92,6 +95,23 @@ type
       const AEnlaces: TEnlacesReparaciones); override;
   end;
 
+  TPanelAlbaranesOrden = class(TPanelReparaciones)
+  private
+    FProveedor: Boolean;
+    FOrigen: TDataSource;
+    FVista: TcxGridDBTableView;
+    procedure VincularClick(Sender: TObject);
+    procedure DesvincularClick(Sender: TObject);
+    procedure AbrirClick(Sender: TObject);
+    procedure RefrescarClick(Sender: TObject);
+    procedure VincularDocumento(const ASerie, ANumero: string);
+    procedure DesvincularDocumento;
+  public
+    constructor CreatePara(AOwner: TComponent; AParent: TWinControl;
+      ADatos: TDatosPantallaReparaciones; const AEnlaces: TEnlacesReparaciones;
+      AProveedor: Boolean);
+  end;
+
   TPanelLiquidacionesReparacion = class(TPanelReparaciones)
   private
     FVista: TcxGridDBTableView;
@@ -136,8 +156,8 @@ uses
   inLibTrabajosCortinas,
   Winapi.Windows, System.UITypes, System.Variants, Vcl.Dialogs, Vcl.Forms,
   cxContainer, cxGridLevel, cxEdit, cxCheckBox, cxImageComboBox, cxCalendar, cxCurrencyEdit, cxButtonEdit,
-  inLibColumnasDocumento,
-  inLibMensajesVcl, inLibErroresBBDD, inLibReparaciones,
+  inLibColumnasDocumento, inLibBotonesDetalle,
+  inLibMsgGarantias, inLibMsgComun, inLibMensajesVcl, inLibErroresBBDD, inLibReparaciones,
   inLibReparacionesIntf, inLibMsgReparaciones, inMtoModalLineaReparacion;
 
 { TPanelReparaciones }
@@ -501,6 +521,95 @@ begin
   Responder(False);
 end;
 
+{ TPanelAlbaranesOrden }
+
+constructor TPanelAlbaranesOrden.CreatePara(AOwner: TComponent;
+  AParent: TWinControl; ADatos: TDatosPantallaReparaciones;
+  const AEnlaces: TEnlacesReparaciones; AProveedor: Boolean);
+begin
+  inherited CreatePanel(AOwner, AParent, ADatos, AEnlaces);
+  FProveedor := AProveedor;
+  FOrigen := FDatos.Albaranes.Cliente;
+  if FProveedor then
+    FOrigen := FDatos.Albaranes.Proveedor;
+  CrearBoton(SVincularAlbaranOrden, 150, VincularClick);
+  CrearBoton(SDesvincularAlbaranOrden, 120, DesvincularClick);
+  CrearBoton(SAbrirAlbaranOrden, 130, AbrirClick);
+  CrearBoton(SCaptionRefrescarLiquidaciones, 100, RefrescarClick);
+  FVista := CrearVista(alClient, 0, FOrigen);
+  CrearColumna(FVista, 'SERIE', SColSerieDocumento, 110);
+  CrearColumna(FVista, 'NUMERO', SColNumeroDocumento, 110);
+  CrearColumna(FVista, 'FECHA', SColFechaLiquidacion, 110);
+  CrearColumna(FVista, 'TERCERO', SCaptionCodigoFiltroInforme, 100);
+  CrearColumna(FVista, 'NOMBRE', SColRazonSocial, 260);
+  CrearColumna(FVista, 'ALMACEN', SCaptionColumnaNombreAlmacen, 100);
+  CrearColumna(FVista, 'ESTADO', SCaptionColGarantiaEstado, 110);
+  CrearColumna(FVista, 'TOTAL', SColTotalLiquidacion, 130).
+    PropertiesClass := TcxCurrencyEditProperties;
+  FVista.OnDblClick := AbrirClick;
+  CrearColumna(FVista, 'SERIE_FACTURA', SColTipoDocumento, 100);
+  CrearColumna(FVista, 'NUMERO_FACTURA', SColNumeroDocumento, 110);
+end;
+
+procedure TPanelAlbaranesOrden.VincularClick(Sender: TObject);
+var
+  sDocumento: string;
+  iBarra: Integer;
+begin
+  sDocumento := '';
+  if Assigned(FEnlaces.PuedeModificar) and FEnlaces.PuedeModificar() and
+     InputQuery_fza(SVincularAlbaranOrden, SSerieNumeroAlbaranOrden,
+    sDocumento) then
+  begin
+    iBarra := LastDelimiter('/', sDocumento);
+    if iBarra > 1 then
+      Accion(
+        procedure
+        begin
+          VincularDocumento(Trim(Copy(sDocumento, 1, iBarra - 1)),
+            Trim(Copy(sDocumento, iBarra + 1, MaxInt)));
+        end);
+  end;
+end;
+
+procedure TPanelAlbaranesOrden.VincularDocumento(
+  const ASerie, ANumero: string);
+begin
+  if Assigned(FEnlaces.GuardarOrden) then
+    FEnlaces.GuardarOrden();
+  FDatos.Albaranes.Vincular(FEnlaces.ReparacionActual(), FProveedor,
+    ASerie, ANumero);
+end;
+
+procedure TPanelAlbaranesOrden.DesvincularClick(Sender: TObject);
+begin
+  if Assigned(FEnlaces.PuedeModificar) and FEnlaces.PuedeModificar() and
+     not FOrigen.DataSet.IsEmpty and
+     (MessageDlg_fza(SConfirmarDesvincularAlbaran, mtConfirmation,
+      [mbYes, mbNo], 0, mbNo) = mrYes) then
+    Accion(DesvincularDocumento);
+end;
+
+procedure TPanelAlbaranesOrden.DesvincularDocumento;
+begin
+  FDatos.Albaranes.Desvincular(FEnlaces.ReparacionActual(), FProveedor,
+    FOrigen.DataSet.FieldByName('SERIE').AsString,
+    FOrigen.DataSet.FieldByName('NUMERO').AsString);
+end;
+
+procedure TPanelAlbaranesOrden.AbrirClick(Sender: TObject);
+begin
+  if not FOrigen.DataSet.IsEmpty and Assigned(FEnlaces.AbrirAlbaran) then
+    FEnlaces.AbrirAlbaran(FProveedor,
+      FOrigen.DataSet.FieldByName('SERIE').AsString,
+      FOrigen.DataSet.FieldByName('NUMERO').AsString);
+end;
+
+procedure TPanelAlbaranesOrden.RefrescarClick(Sender: TObject);
+begin
+  FDatos.Albaranes.Refrescar;
+end;
+
 { TPanelLiquidacionesReparacion }
 
 constructor TPanelLiquidacionesReparacion.CreatePanel(AOwner: TComponent;
@@ -650,8 +759,9 @@ constructor TPanelConfiguracionReparaciones.CreatePanel(AOwner: TComponent;
 begin
   inherited;
   // Los tipos se editan directamente; las referencias llevan búsqueda.
-  CrearBoton(SCrearArticuloServicio, 235, CrearArticuloClick);
+  FBotonera.Visible := False;
   CrearRejillaTipos;
+  AnadirBotonesDetalle(FVistaTipos);
 end;
 
 type
@@ -693,6 +803,7 @@ var
   iColumna: Integer;
 begin
   oVista := CrearVista(alClient, 0, FDatos.TiposEditables);
+  oVista.Name := 'tvTiposServicio';
   FVistaTipos := oVista;
   oVista.OptionsData.Editing := True;
   oVista.OptionsData.Inserting := True;

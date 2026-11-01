@@ -79,7 +79,15 @@ type
       const AUsuario: string);
   end;
 
+procedure AsignarNumeroOrdenReparacion(AConexion: TUniConnection;
+  AId: Int64; const AUsuario: string);
+
 const
+  SQL_REFERENCIA_ORDEN_REPARACION =
+    'CONCAT(COALESCE(G.CODIGO_ALM_GAR, ''''), ''/'', ' +
+    'LPAD(CAST(COALESCE(G.NUMERO_ORDEN_GAR, G.ID_GAR) AS CHAR), ' +
+    'GREATEST(6, CHAR_LENGTH(CAST(COALESCE(G.NUMERO_ORDEN_GAR, ' +
+    'G.ID_GAR) AS CHAR))), ''0''))';
   // Expediente abierto (alias G): sin entregar ni cerrar.
   SQL_REPARACION_ABIERTA =
     'G.ESTADO_GAR IN (''ABIERTA'', ''EN_SAT'') ' +
@@ -175,6 +183,23 @@ const
     ' L.FECHA_INICIO_GARLIN IS NULL AND L.FECHA_FIN_GARLIN IS NULL ' +
     'AND L.ID_GARLIQ_GARLIN IS NULL AND L.ID_GARLIQ_CARGO_GARLIN IS NULL ' +
     'AND ' + SQL_REPARACION_ABIERTA;
+
+procedure AsignarNumeroOrdenReparacion(AConexion: TUniConnection;
+  AId: Int64; const AUsuario: string);
+var
+  oConsulta: TUniQuery;
+begin
+  oConsulta := TUniQuery.Create(nil);
+  try
+    oConsulta.Connection := AConexion;
+    oConsulta.SQL.Text := 'CALL PRC_FZA_REPARACION_NUMERAR(:ID, :USUARIO)';
+    oConsulta.ParamByName('ID').AsLargeInt := AId;
+    oConsulta.ParamByName('USUARIO').AsString := Copy(AUsuario, 1, 100);
+    oConsulta.Execute;
+  finally
+    oConsulta.Free;
+  end;
+end;
 
 constructor TRepositorioReparacionesUniDAC.Create(AConexion: TUniConnection);
 begin
@@ -415,6 +440,7 @@ begin
       finally
         FreeAndNil(oConsulta);
       end;
+      AsignarNumeroOrdenReparacion(FConexion, iId, AReparacion.Usuario);
       InsertarPrimeraLinea(iId, AReparacion);
       RegistrarFaseAlta(iId, AReparacion.Usuario);
     end);
@@ -591,14 +617,11 @@ begin
   end;
 end;
 
-// Un operario puede terminar sin haber marcado el inicio. Si el externo
-// cobra por línea, la liquidación va en la misma transacción.
+// Un operario puede terminar sin haber marcado el inicio. El coste se
+// documenta en albaranes de proveedor TALLER, sin liquidación paralela.
 function TRepositorioReparacionesUniDAC.TerminarLinea(ALinea: Int64;
   AFecha: TDateTime; const AUsuario: string): Int64;
-var
-  iLiquidacion: Int64;
 begin
-  iLiquidacion := 0;
   EnTransaccion(
     procedure
     var
@@ -620,31 +643,12 @@ begin
         oConsulta.ParamByName('FECHA').AsDate := AFecha;
         oConsulta.ParamByName('USUARIO').AsString := Copy(AUsuario, 1, 100);
         Ejecutar(oConsulta, ALinea, SErrorTerminarLineaReparacion);
-        oConsulta.SQL.Text :=
-          'SELECT L.TIPO_EJECUTOR_GARLIN, L.CODIGO_PRV_GARLIN, ' +
-          '       ' + SQL_EMPRESA_REPARACION + ' AS EMPRESA, ' +
-          '       COALESCE(P.MODO_LIQUIDACION_SERVICIOS_PRV, ''' +
-          MODO_LIQUIDACION_PERIODICA + ''') AS MODO ' +
-          '  FROM fza_garantias_lineas L ' +
-          '  JOIN fza_garantias_reclamaciones G ' +
-          '    ON G.ID_GAR = L.ID_GAR_GARLIN ' +
-          '  LEFT JOIN fza_proveedores P ' +
-          '    ON P.CODIGO_PRV_PRV = L.CODIGO_PRV_GARLIN ' +
-          ' WHERE L.ID_GARLIN = :ID';
-        oConsulta.ParamByName('ID').AsLargeInt := ALinea;
-        oConsulta.Open;
-        if LiquidaAlTerminarLinea(
-          oConsulta.FieldByName('TIPO_EJECUTOR_GARLIN').AsString,
-          oConsulta.FieldByName('MODO').AsString) then
-          iLiquidacion := CrearLiquidacion(LIQUIDACION_REPARACION_PAGO,
-            oConsulta.FieldByName('EMPRESA').AsString,
-            oConsulta.FieldByName('CODIGO_PRV_GARLIN').AsString,
-            AFecha, ALinea, AUsuario).Id;
       finally
         FreeAndNil(oConsulta);
       end;
     end);
-  Result := iLiquidacion;
+  // La facturación del externo se tramita desde albaranes de proveedor.
+  Result := 0;
 end;
 
 procedure TRepositorioReparacionesUniDAC.DevolverLinea(ALinea: Int64;

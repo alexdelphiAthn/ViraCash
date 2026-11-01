@@ -41,7 +41,7 @@ uses
   cxGridDBTableView, cxGrid, cxContainer, cxLabel, cxTextEdit,
   cxMaskEdit, cxDropDownEdit, cxButtons, cxCalendar, cxPC, cxCheckBox,
   cxDBEdit, cxMemo, cxImageComboBox, cxLookupEdit, cxDBLookupEdit,
-  cxDBLookupComboBox, cxGroupBox,
+  cxDBLookupComboBox, cxGroupBox, cxButtonEdit,
   dxSkinsCore, dxSkinscxPCPainter, dxScrollbarAnnotations, dxDateRanges,
   dxCore,
   UniDataGarantiasReclamaciones, inLibGarantias, inLibReparaciones,
@@ -58,6 +58,8 @@ type
     cbbEstado: TcxComboBox;
     edtTexto: TcxTextEdit;
     pnlFicha: TPanel;
+    FScrollFicha: TScrollBox;
+    FSeparadorFicha: TSplitter;
     gbReclamacion: TcxGroupBox;
     gbCliente: TcxGroupBox;
     gbProveedor: TcxGroupBox;
@@ -65,6 +67,9 @@ type
     txtResolucionFicha: TcxTextEdit;
     cbbProveedor: TcxDBLookupComboBox;
     pcFases: TcxPageControl;
+    pcSubconsultas: TcxPageControl;
+    FSeparadorSubconsultas: TSplitter;
+    FCambioPaginaAnterior: TNotifyEvent;
     tsRecepcion: TcxTabSheet;
     tsEnvioFab: TcxTabSheet;
     tsEntregaCli: TcxTabSheet;
@@ -89,7 +94,13 @@ type
     tsReparacion: TcxTabSheet;
     tsTrabajos: TcxTabSheet;
     lblResumenTrabajos: TcxLabel;
-    tsLiquidaciones: TcxTabSheet;
+    tsAlbaranes: TcxTabSheet;
+    pcAlbaranes: TcxPageControl;
+    tsAlbaranesCliente: TcxTabSheet;
+    tsAlbaranesProveedor: TcxTabSheet;
+    lblRepartoTrabajo: TcxLabel;
+    FNombreClienteAlbaran: array[0..1] of TcxLabel;
+    FCodigoClienteAlbaran: array[0..1] of string;
     tsConfiguracionReparaciones: TcxTabSheet;
     function EscalarDpi(AValor: Integer): Integer;
     procedure CrearFiltros;
@@ -176,6 +187,12 @@ type
     procedure CrearFaseReparacion;
     procedure MedidasInstalacionClick(Sender: TObject);
     procedure CrearPestanasReparacion;
+    procedure CrearAlbaranesOrden;
+    procedure AjustarRotulos(AParent: TWinControl);
+    procedure ActualizarRepartoTrabajo;
+    procedure ActualizarNombresAlbaranes;
+    procedure BuscarClienteAlbaran(Sender: TObject; AButtonIndex: Integer);
+    procedure OrganizarSubconsultas(Sender: TObject);
     procedure CrearPanelesReparacion;
     procedure LeerInterruptores;
     function ModalidadFiltro: string;
@@ -195,6 +212,7 @@ type
     procedure DoCreate; override;
     procedure PrepararGuardado; override;
   public
+    function SqlRestriccionUsuario: string; override;
     destructor Destroy; override;
     procedure CrearTablaPrincipal; override;
     procedure ResetForm; override;
@@ -203,7 +221,8 @@ type
 implementation
 
 uses
-  inMtoModalTrabajoCortina, inLibPermisosIntf,
+  inMtoModalTrabajoCortina, inLibPermisosIntf, inLibFiltroUsuario,
+  inLibShowMto, System.Math, Uni, inLibGenBusq, inLibMsgVentas,
   inMtoModalAvisoReparacion, inLibCorreoReparaciones,
   inLibMensajesVcl,
   inLibMsgGarantias, inLibMsgReparaciones, inLibReparacionesIntf,
@@ -257,6 +276,8 @@ end;
 
 destructor TfrmMtoGarantiasReclamaciones.Destroy;
 begin
+  if Assigned(pcPantalla) then
+    pcPantalla.OnChange := FCambioPaginaAnterior;
   if Assigned(dsTablaG) then
     dsTablaG.OnDataChange := nil;
   if Assigned(cbbProveedor) then
@@ -391,7 +412,43 @@ begin
     AColumna * (ANCHO_NOMINAL_FASE div 2));
   oRotulo.Top := EscalarDpi(TOP_PRIMERA_FILA + AFila * ALTO_FILA + 3);
   oRotulo.Caption := ATexto;
+  oRotulo.AutoSize := True;
   oRotulo.Transparent := True;
+end;
+
+procedure TfrmMtoGarantiasReclamaciones.AjustarRotulos(
+  AParent: TWinControl);
+var
+  i, iColumna, iAncho, iDesplazamiento, iPaso: Integer;
+  oControl: TControl;
+begin
+  iAncho := EscalarDpi(AnchoRotulo(AParent));
+  for i := 0 to AParent.ControlCount - 1 do
+  begin
+    oControl := AParent.Controls[i];
+    if (oControl is TcxLabel) and (oControl.Align = alNone) then
+      iAncho := Max(iAncho, oControl.Width + EscalarDpi(8));
+  end;
+  iDesplazamiento := iAncho - EscalarDpi(AnchoRotulo(AParent));
+  iPaso := EscalarDpi(ANCHO_NOMINAL_FASE div 2);
+  for i := 0 to AParent.ControlCount - 1 do
+  begin
+    oControl := AParent.Controls[i];
+    if oControl is TcxCustomEdit then
+    begin
+      iColumna := 0;
+      if AParent is TcxTabSheet then
+        iColumna := oControl.Left div iPaso;
+      if oControl.Left >= EscalarDpi(MARGEN_FICHA) +
+         iColumna * iPaso + EscalarDpi(AnchoRotulo(AParent)) then
+      begin
+        oControl.Left := oControl.Left + iDesplazamiento;
+        if akRight in oControl.Anchors then
+          oControl.Width := Max(EscalarDpi(60),
+            oControl.Width - iDesplazamiento);
+      end;
+    end;
+  end;
 end;
 
 // Un editor de la última columna se ancla a la derecha para seguir el
@@ -510,7 +567,8 @@ procedure TfrmMtoGarantiasReclamaciones.CrearGrupoReclamacion;
 begin
   gbReclamacion := CrearGrupo(SCaptionGrupoReclamacion,
     ANCHO_GRUPO_RECLAMACION, alLeft);
-  CrearTexto(gbReclamacion, SCaptionGarantiaNumero, CAMPO_ID, 0, 0, True);
+  CrearTexto(gbReclamacion, SCaptionGarantiaNumero,
+    'REFERENCIA_ORDEN', 0, 0, True);
   CrearTexto(gbReclamacion, SCaptionGarantiaFechaReclamacion,
     'FECHA_RECLAMACION_GAR', 0, 1, True);
   txtEstadoFicha := CrearTextoLibre(gbReclamacion,
@@ -665,22 +723,228 @@ begin
   CrearFaseReparacion;
   CrearFaseEnvioFabricante;
   CrearFaseEntregaCliente;
+  CrearAlbaranesOrden;
   pcFases.ActivePage := tsRecepcion;
+end;
+
+procedure TfrmMtoGarantiasReclamaciones.CrearAlbaranesOrden;
+var
+  oDatos: TcxGroupBox;
+
+  procedure CrearCampo(const ARotulo, ACampo: string; AFila: Integer;
+    AImporte: Boolean);
+  var
+    oFila, oValor: TPanel;
+    oRotulo: TcxLabel;
+    oTexto: TcxDBButtonEdit;
+    oImporte: TcxDBCurrencyEdit;
+  begin
+    oFila := TPanel.Create(Self);
+    oFila.Parent := oDatos;
+    oFila.Top := EscalarDpi(AFila * 34);
+    oFila.Align := alTop;
+    oFila.Height := EscalarDpi(34);
+    oFila.BevelOuter := bvNone;
+    oFila.AlignWithMargins := True;
+    oFila.Margins.SetBounds(EscalarDpi(8), 0, EscalarDpi(8), 0);
+    oRotulo := TcxLabel.Create(Self);
+    oRotulo.Parent := oFila;
+    oRotulo.Caption := ARotulo;
+    oRotulo.Align := alLeft;
+    oRotulo.AutoSize := False;
+    oRotulo.Width := EscalarDpi(280);
+    oRotulo.Properties.Alignment.Vert := taVCenter;
+    oRotulo.Transparent := True;
+    oValor := TPanel.Create(Self);
+    oValor.Parent := oFila;
+    oValor.Align := alClient;
+    oValor.AlignWithMargins := True;
+    oValor.Margins.SetBounds(0, EscalarDpi(3), 0, EscalarDpi(3));
+    oValor.BevelOuter := bvNone;
+    if AImporte then
+    begin
+      oImporte := TcxDBCurrencyEdit.Create(Self);
+      oImporte.Parent := oValor;
+      oImporte.Align := alLeft;
+      oImporte.Width := EscalarDpi(140);
+      oImporte.DataBinding.DataSource := dsTablaG;
+      oImporte.DataBinding.DataField := ACampo;
+      oImporte.Properties.DisplayFormat := '#,##0.00';
+    end
+    else
+    begin
+      oTexto := TcxDBButtonEdit.Create(Self);
+      oTexto.Parent := oValor;
+      oTexto.Align := alLeft;
+      oTexto.Width := EscalarDpi(220);
+      oTexto.Properties.MaxLength := 20;
+      oTexto.Tag := AFila;
+      oTexto.Properties.Buttons.Clear;
+      oTexto.Properties.Buttons.Add.Kind := bkEllipsis;
+      oTexto.Properties.OnButtonClick := BuscarClienteAlbaran;
+      oTexto.DataBinding.DataSource := dsTablaG;
+      oTexto.DataBinding.DataField := ACampo;
+      FNombreClienteAlbaran[AFila] := TcxLabel.Create(Self);
+      FNombreClienteAlbaran[AFila].Parent := oValor;
+      FNombreClienteAlbaran[AFila].Align := alClient;
+      FNombreClienteAlbaran[AFila].AutoSize := False;
+      FNombreClienteAlbaran[AFila].Caption := '';
+      FNombreClienteAlbaran[AFila].Transparent := True;
+      FNombreClienteAlbaran[AFila].Properties.Alignment.Vert := taVCenter;
+      FNombreClienteAlbaran[AFila].AlignWithMargins := True;
+      FNombreClienteAlbaran[AFila].Margins.Left := EscalarDpi(12);
+      FNombreClienteAlbaran[AFila].ShowHint := True;
+    end;
+  end;
+
+begin
+  tsAlbaranes := CrearPestana(SAlbaranesOrden);
+  oDatos := TcxGroupBox.Create(Self);
+  oDatos.Parent := tsAlbaranes;
+  oDatos.Tag := ANCHO_NOMINAL_FASE;
+  oDatos.Align := alTop;
+  oDatos.Height := EscalarDpi(140);
+  oDatos.PanelStyle.Active := True;
+  oDatos.Style.BorderStyle := ebsNone;
+  oDatos.Transparent := True;
+  CrearCampo(STitularTrabajo, 'CODIGO_CLI_GAR', 0, False);
+  CrearCampo(SPagadorTrabajo, 'CODIGO_CLI_PAGADOR_GAR', 1, False);
+  CrearCampo(SFranquiciaTrabajo, 'FRANQUICIA_GAR', 2, True);
+  lblRepartoTrabajo := TcxLabel.Create(Self);
+  lblRepartoTrabajo.Parent := oDatos;
+  lblRepartoTrabajo.Align := alBottom;
+  lblRepartoTrabajo.AlignWithMargins := True;
+  lblRepartoTrabajo.Margins.Left := EscalarDpi(8);
+  lblRepartoTrabajo.Transparent := True;
+  pcAlbaranes := TcxPageControl.Create(Self);
+  pcAlbaranes.Parent := tsAlbaranes;
+  pcAlbaranes.Align := alClient;
+  tsAlbaranesCliente := TcxTabSheet.Create(Self);
+  tsAlbaranesCliente.PageControl := pcAlbaranes;
+  tsAlbaranesCliente.Caption := SAlbaranesClienteTaller;
+  tsAlbaranesProveedor := TcxTabSheet.Create(Self);
+  tsAlbaranesProveedor.PageControl := pcAlbaranes;
+  tsAlbaranesProveedor.Caption := SAlbaranesProveedorTaller;
+  pcAlbaranes.ActivePage := tsAlbaranesCliente;
+  NumerarPestanasAtajo(pcAlbaranes);
+end;
+
+procedure TfrmMtoGarantiasReclamaciones.BuscarClienteAlbaran(
+  Sender: TObject; AButtonIndex: Integer);
+const
+  CAMPOS: array[0..1] of string = (
+    'CODIGO_CLI_GAR', 'CODIGO_CLI_PAGADOR_GAR');
+var
+  oClientes: TUniQuery;
+  oEditor: TcxDBButtonEdit;
+  oDatos: TDataSet;
+begin
+  oEditor := Sender as TcxDBButtonEdit;
+  oDatos := dsTablaG.DataSet;
+  if PuedeAccionMto(apmModificar) and Assigned(oDatos) and
+     oDatos.Active and not oDatos.IsEmpty and oDatos.CanModify then
+  begin
+    oClientes := dmmGarantias.ClientesBusqueda;
+    try
+      if BusquedaVisual.EjecutarBusquedaDataSet(STituloBusquedaClientes,
+        oClientes, 'frmMtoCliReparacionesSearch', Self) and
+        not oClientes.IsEmpty then
+      begin
+        oDatos.Edit;
+        oDatos.FieldByName(CAMPOS[oEditor.Tag]).AsString :=
+          oClientes.FieldByName('CODIGO_CLI').AsString;
+        ActualizarNombresAlbaranes;
+      end;
+    finally
+      oClientes.Free;
+    end;
+  end;
+end;
+
+procedure TfrmMtoGarantiasReclamaciones.ActualizarNombresAlbaranes;
+const
+  CAMPOS: array[0..1] of string = (
+    'CODIGO_CLI_GAR', 'CODIGO_CLI_PAGADOR_GAR');
+var
+  i: Integer;
+  sCodigo: string;
+  oDatos: TDataSet;
+begin
+  oDatos := dsTablaG.DataSet;
+  for i := 0 to 1 do
+    if Assigned(FNombreClienteAlbaran[i]) then
+    begin
+      sCodigo := '';
+      if Assigned(oDatos) and oDatos.Active and not oDatos.IsEmpty then
+        sCodigo := Trim(oDatos.FieldByName(CAMPOS[i]).AsString);
+      if sCodigo <> FCodigoClienteAlbaran[i] then
+      begin
+        FNombreClienteAlbaran[i].Caption :=
+          dmmGarantias.NombreCliente(sCodigo);
+        FNombreClienteAlbaran[i].Hint := FNombreClienteAlbaran[i].Caption;
+        FCodigoClienteAlbaran[i] := sCodigo;
+      end;
+    end;
+end;
+
+procedure TfrmMtoGarantiasReclamaciones.ActualizarRepartoTrabajo;
+var
+  oDatos: TDataSet;
+  dTotal, dTitular: Currency;
+begin
+  if Assigned(lblRepartoTrabajo) then
+  begin
+    lblRepartoTrabajo.Caption := '';
+    oDatos := dsTablaG.DataSet;
+    if Assigned(oDatos) and oDatos.Active and not oDatos.IsEmpty then
+    begin
+      dTotal := SimpleRoundTo(
+        oDatos.FieldByName('TOTAL_CLIENTE_REP').AsCurrency, -2);
+      dTitular := oDatos.FieldByName('FRANQUICIA_GAR').AsCurrency;
+      if (Trim(oDatos.FieldByName('CODIGO_CLI_PAGADOR_GAR').AsString) = '') or
+         SameText(Trim(oDatos.FieldByName('CODIGO_CLI_GAR').AsString),
+           Trim(oDatos.FieldByName('CODIGO_CLI_PAGADOR_GAR').AsString)) then
+        dTitular := dTotal;
+      if (dTitular >= 0) and (dTitular <= dTotal) then
+        lblRepartoTrabajo.Caption := Format(SRepartoTrabajo,
+          [FormatFloat('#,##0.00', dTitular),
+           FormatFloat('#,##0.00', dTotal - dTitular)]);
+    end;
+  end;
 end;
 
 procedure TfrmMtoGarantiasReclamaciones.CrearFicha;
 begin
+  FScrollFicha := TScrollBox.Create(Self);
+  FScrollFicha.Name := 'scrollDatosOrden';
+  FScrollFicha.Parent := tsFicha;
+  FScrollFicha.Align := alTop;
+  FScrollFicha.BorderStyle := bsNone;
   pnlFicha := TPanel.Create(Self);
-  pnlFicha.Parent := tsFicha;
+  pnlFicha.Parent := FScrollFicha;
   pnlFicha.Align := alTop;
   pnlFicha.Height := EscalarDpi(TOP_PRIMERA_FILA +
     FILAS_GRUPO * ALTO_FILA + 16);
   pnlFicha.BevelOuter := bvNone;
+  FScrollFicha.Height := pnlFicha.Height;
   // Dos grupos alLeft ordenados por Left y el del proveedor ocupa el resto.
   CrearGrupoReclamacion;
   CrearGrupoCliente;
   gbCliente.Left := gbReclamacion.Left + gbReclamacion.Width;
   CrearGrupoProveedor;
+  AjustarRotulos(gbReclamacion);
+  AjustarRotulos(gbCliente);
+  AjustarRotulos(gbProveedor);
+  FSeparadorFicha := TSplitter.Create(Self);
+  FSeparadorFicha.Name := 'separadorDatosOrden';
+  FSeparadorFicha.Parent := tsFicha;
+  FSeparadorFicha.Align := alTop;
+  FSeparadorFicha.Top := FScrollFicha.Top + FScrollFicha.Height;
+  FSeparadorFicha.Height := EscalarDpi(7);
+  FSeparadorFicha.MinSize := EscalarDpi(80);
+  FSeparadorFicha.AutoSnap := False;
+  FSeparadorFicha.ResizeStyle := rsUpdate;
+  FSeparadorFicha.Beveled := True;
   CrearFases;
 end;
 
@@ -704,6 +968,8 @@ procedure TfrmMtoGarantiasReclamaciones.DatosCambiados(Sender: TObject;
 var
   oDatos: TDataSet;
 begin
+  ActualizarRepartoTrabajo;
+  ActualizarNombresAlbaranes;
   oDatos := dsTablaG.DataSet;
   if Assigned(oDatos) and oDatos.Active then
   begin
@@ -715,7 +981,8 @@ begin
       oDatos.FieldByName('MODALIDAD_GAR').AsString) + ' - ' +
       oDatos.FieldByName('FASE_ACTUAL').AsString;
     lblResumenTrabajos.Caption := UnirNoVacios([
-      SRotuloNumeroDeposito + ' ' + oDatos.FieldByName(CAMPO_ID).AsString,
+      SRotuloNumeroDeposito + ' ' +
+        oDatos.FieldByName('REFERENCIA_ORDEN').AsString,
       oDatos.FieldByName('OBJETO_REP').AsString,
       oDatos.FieldByName('NOMBRE_CLIENTE_GAR').AsString,
       txtModalidadFicha.Text]);
@@ -799,7 +1066,7 @@ var
 begin
   if cxGrdDBTabPrin.ColumnCount = 0 then
   begin
-    CrearColumna(CAMPO_ID, SCaptionColGarantiaId, 60);
+    CrearColumna('REFERENCIA_ORDEN', SCaptionColGarantiaId, 130);
     CrearColumna('MODALIDAD_GAR', SColModalidad, 100).OnGetDisplayText :=
       ModalidadGetDisplayText;
     CrearColumna('FASE_ACTUAL', SFaseActual, 280);
@@ -888,6 +1155,11 @@ begin
   CrearColumnas;
   LeerInterruptores;
   CrearPanelesReparacion;
+end;
+
+function TfrmMtoGarantiasReclamaciones.SqlRestriccionUsuario: string;
+begin
+  Result := SqlFiltroOrdenesTrabajo(ContextoSesion, ParametrosApp);
 end;
 
 procedure TfrmMtoGarantiasReclamaciones.ResetForm;
@@ -1241,19 +1513,54 @@ begin
   end;
 end;
 
+procedure TfrmMtoGarantiasReclamaciones.OrganizarSubconsultas(
+  Sender: TObject);
+var
+  oDestino: TcxPageControl;
+  oPestana: TcxTabSheet;
+  aPestanas: TArray<TcxTabSheet>;
+begin
+  if Assigned(FCambioPaginaAnterior) then
+    FCambioPaginaAnterior(Sender);
+  if pcPantalla.ActivePage = tsFicha then
+    oDestino := pcFases
+  else
+    oDestino := pcSubconsultas;
+  aPestanas := [tsTrabajos, tsFotosReparacion,
+    tsMovimientos, tsFasesActuales];
+  for oPestana in aPestanas do
+    if oPestana.PageControl <> oDestino then
+      oPestana.PageControl := oDestino;
+  NumerarPestanasAtajo(pcFases);
+  NumerarPestanasAtajo(pcSubconsultas);
+end;
+
 procedure TfrmMtoGarantiasReclamaciones.CrearPestanasReparacion;
 begin
+  pcSubconsultas := TcxPageControl.Create(Self);
+  pcSubconsultas.Name := 'pcSubconsultasOrden';
+  pcSubconsultas.Parent := tsLista;
+  pcSubconsultas.Align := alBottom;
+  pcSubconsultas.Height := EscalarDpi(240);
+  FSeparadorSubconsultas := TSplitter.Create(Self);
+  FSeparadorSubconsultas.Name := 'separadorSubconsultasOrden';
+  FSeparadorSubconsultas.Parent := tsLista;
+  FSeparadorSubconsultas.Align := alBottom;
+  FSeparadorSubconsultas.Height := EscalarDpi(6);
+  FSeparadorSubconsultas.Top := pcSubconsultas.Top -
+    FSeparadorSubconsultas.Height;
+  FSeparadorSubconsultas.MinSize := EscalarDpi(80);
   tsFasesActuales := TcxTabSheet.Create(Self);
-  tsFasesActuales.PageControl := pcPantalla;
+  tsFasesActuales.PageControl := pcSubconsultas;
   tsFasesActuales.Caption := SFasePestana;
   tsMovimientos := TcxTabSheet.Create(Self);
-  tsMovimientos.PageControl := pcPantalla;
+  tsMovimientos.PageControl := pcSubconsultas;
   tsMovimientos.Caption := SMovimientoHistorial;
   tsFotosReparacion := TcxTabSheet.Create(Self);
-  tsFotosReparacion.PageControl := pcPantalla;
+  tsFotosReparacion.PageControl := pcSubconsultas;
   tsFotosReparacion.Caption := SFotosReparacion;
   tsTrabajos := TcxTabSheet.Create(Self);
-  tsTrabajos.PageControl := pcPantalla;
+  tsTrabajos.PageControl := pcSubconsultas;
   tsTrabajos.Caption := SCaptionPestanaTrabajos;
   lblResumenTrabajos := TcxLabel.Create(Self);
   lblResumenTrabajos.Parent := tsTrabajos;
@@ -1263,12 +1570,12 @@ begin
   lblResumenTrabajos.Properties.Alignment.Vert := taVCenter;
   lblResumenTrabajos.Properties.WordWrap := True;
   lblResumenTrabajos.Height := EscalarDpi(52);
-  tsLiquidaciones := TcxTabSheet.Create(Self);
-  tsLiquidaciones.PageControl := pcPantalla;
-  tsLiquidaciones.Caption := SCaptionPestanaLiquidaciones;
   tsConfiguracionReparaciones := TcxTabSheet.Create(Self);
   tsConfiguracionReparaciones.PageControl := pcPantalla;
   tsConfiguracionReparaciones.Caption := SCaptionPestanaTiposExternos;
+  FCambioPaginaAnterior := pcPantalla.OnChange;
+  pcPantalla.OnChange := OrganizarSubconsultas;
+  OrganizarSubconsultas(pcPantalla);
 end;
 
 // appReparaciones muestra lo de reparaciones; appGarantias, el alta y la
@@ -1286,14 +1593,37 @@ begin
   btnAnularReparacion.Visible := FEsReparaciones;
   tsReparacion.TabVisible := FEsReparaciones;
   tsTrabajos.TabVisible := FEsReparaciones;
-  tsLiquidaciones.TabVisible := FEsReparaciones;
+  tsAlbaranes.TabVisible := FEsReparaciones;
   tsConfiguracionReparaciones.TabVisible := FEsReparaciones;
   if FEsReparaciones then
     Caption := STituloReparacionesGarantias;
+  NumerarPestanasAtajo(pcFases);
+  NumerarPestanasAtajo(pcSubconsultas);
 end;
 
 function TfrmMtoGarantiasReclamaciones.Enlaces: TEnlacesReparaciones;
 begin
+  Result.PuedeModificar :=
+    function: Boolean
+    begin
+      Result := PuedeAccionMto(apmModificar);
+    end;
+  Result.GuardarOrden :=
+    procedure
+    begin
+      if dmmGarantias.unqryTablaG.State in dsEditModes then
+        btnGrabarClick(nil);
+    end;
+  Result.AbrirAlbaran :=
+    procedure(AProveedor: Boolean; ASerie, ANumero: string)
+    var
+      sDestino: string;
+    begin
+      sDestino := 'Albaranes';
+      if AProveedor then
+        sDestino := 'AlbaranesCompra';
+      ShowMto(Application.MainForm, sDestino, ASerie + ',' + ANumero);
+    end;
   Result.ReparacionActual :=
     function: Int64
     begin
@@ -1306,6 +1636,10 @@ begin
     function: string
     begin
       Result := dmmGarantias.UbicacionSesion.Almacen;
+      if dmmGarantias.unqryTablaG.Active and
+         not dmmGarantias.unqryTablaG.IsEmpty then
+        Result := dmmGarantias.unqryTablaG.FieldByName(
+          'CODIGO_ALM_GAR').AsString;
     end;
   Result.EmpresaActual :=
     function: string
@@ -1367,8 +1701,10 @@ begin
   begin
     TPanelLineasReparacion.CreatePanel(Self, tsTrabajos,
       dmmGarantias.Reparaciones, Enlaces);
-    TPanelLiquidacionesReparacion.CreatePanel(Self, tsLiquidaciones,
-      dmmGarantias.Reparaciones, Enlaces);
+    TPanelAlbaranesOrden.CreatePara(Self, tsAlbaranesCliente,
+      dmmGarantias.Reparaciones, Enlaces, False);
+    TPanelAlbaranesOrden.CreatePara(Self, tsAlbaranesProveedor,
+      dmmGarantias.Reparaciones, Enlaces, True);
     FPanelConfiguracion :=
       TPanelConfiguracionReparaciones.CreatePanel(Self,
       tsConfiguracionReparaciones, dmmGarantias.Reparaciones, Enlaces);
@@ -1434,7 +1770,8 @@ begin
     Refrescar(iId);
     pcPantalla.ActivePage := tsFicha;
     pcFases.ActivePage := tsReparacion;
-    if MessageDlg_fza(Format(SPreguntaResguardoReparacion, [iId]),
+    if MessageDlg_fza(RotuloReferenciaGarantia(dmmGarantias.DatosResguardo,
+      SPreguntaResguardoReparacion),
       mtConfirmation, [mbYes, mbNo], 0) = mrYes then
       MostrarResguardo;
   end;
@@ -1479,7 +1816,9 @@ begin
     dmmGarantias.unqryTablaG.FieldByName('MODALIDAD_GAR').AsString,
     dmmGarantias.unqryTablaG.FieldByName('MODO_COBRO_GAR').AsString,
     dmmGarantias.unqryTablaG.FieldByName('ESCOBRADO_GAR').AsString = 'S',
-    dmmGarantias.unqryTablaG.FieldByName('TOTAL_CLIENTE_REP').AsCurrency) then
+    dmmGarantias.unqryTablaG.FieldByName('TOTAL_CLIENTE_REP').AsCurrency) and
+    (Trim(dmmGarantias.unqryTablaG.FieldByName(
+      'CODIGO_CLI_PAGADOR_GAR').AsString) = '') then
     bSeguir := PedirTicketCobro(sSerie, sNumero);
   if bSeguir then
     EjecutarReparacion(
@@ -1516,9 +1855,10 @@ begin
   rResguardo := dmmGarantias.DatosResguardo;
   rCorreo := Default(TCorreoFaseReparacion);
   rCorreo.Aviso := AAviso;
+  rCorreo.Aviso.Referencia := rResguardo.Referencia;
   rCorreo.Email := AAviso.Email;
-  rCorreo.Asunto := AsuntoAvisoFase(AAviso);
-  rCorreo.Texto := TextoAvisoFase(AAviso);
+  rCorreo.Asunto := AsuntoAvisoFase(rCorreo.Aviso);
+  rCorreo.Texto := TextoAvisoFase(rCorreo.Aviso);
   rCorreo.Empresa := rResguardo.Empresa;
   rCorreo.EmailRespuesta := rResguardo.EmailEmpresa;
   rCorreo.Usuario := dmmGarantias.IdentidadSesion.Usuario;

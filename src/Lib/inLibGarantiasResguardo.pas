@@ -29,6 +29,7 @@ type
   end;
   TResguardoGarantia = record
     Numero: Int64;
+    Referencia: string;
     Fecha: TDateTime;
     Recepcion: TDateTime;
     Empresa: string;
@@ -82,6 +83,10 @@ type
     Trabajos: TArray<TTrabajoResguardo>;
   end;
 
+function ReferenciaResguardoGarantia(
+  const ADatos: TResguardoGarantia): string;
+function RotuloReferenciaGarantia(const ADatos: TResguardoGarantia;
+  const APlantilla: string): string;
 function TextoResguardoGarantia(const ADatos: TResguardoGarantia): string;
 // «Resguardo de depósito» en reparaciones de pago o cortesía; el de
 // garantía si no.
@@ -186,6 +191,22 @@ begin
       [FormatFloat('#,##0.00', ADatos.Importe)]));
 end;
 
+function ReferenciaResguardoGarantia(
+  const ADatos: TResguardoGarantia): string;
+begin
+  Result := Trim(ADatos.Referencia);
+  if Result = '' then
+    Result := IntToStr(ADatos.Numero);
+end;
+
+function RotuloReferenciaGarantia(const ADatos: TResguardoGarantia;
+  const APlantilla: string): string;
+begin
+  // Conserva los rótulos traducidos que antes recibían el ID numérico.
+  Result := Format(StringReplace(APlantilla, '%d', '%s', [rfReplaceAll]),
+    [ReferenciaResguardoGarantia(ADatos)]);
+end;
+
 function TextoResguardoGarantia(const ADatos: TResguardoGarantia): string;
 var
   stLineas: TStringList;
@@ -194,10 +215,11 @@ begin
   try
     AgregarTienda(stLineas, ADatos);
     if EsReparacion(ADatos) then
-      AgregarDato(stLineas, SRotuloNumeroDeposito, IntToStr(ADatos.Numero))
+      AgregarDato(stLineas, SRotuloNumeroDeposito,
+        ReferenciaResguardoGarantia(ADatos))
     else
       AgregarDato(stLineas, SCaptionGrupoReclamacion + ':',
-        IntToStr(ADatos.Numero));
+        ReferenciaResguardoGarantia(ADatos));
     AgregarDato(stLineas, SCaptionGarantiaFechaReclamacion,
       FechaHoraResguardo(ADatos.Fecha));
     AgregarDato(stLineas, SCaptionGarantiaFechaRecepcion,
@@ -458,10 +480,10 @@ begin
     dAncho := 100;
     dAlto := 150;
   end;
-  sReferencia := Format(SImpresoReferencia, [ADatos.Numero]);
+  sReferencia := RotuloReferenciaGarantia(ADatos, SImpresoReferencia);
   if (ADatos.ClaseServicio=CLASE_SERVICIO_ALTURA) or
      (ADatos.ClaseServicio=CLASE_SERVICIO_INSTALACION) then
-    sReferencia := Format(SOrdenTrabajoReferencia,[ADatos.Numero]);
+    sReferencia := RotuloReferenciaGarantia(ADatos, SOrdenTrabajoReferencia);
   sFecha := FechaHoraResguardo(ADatos.Fecha);
   if (ATipo = drAlbaran) and (ADatos.Entrega > 0) then
     sFecha := FechaResguardo(ADatos.Entrega);

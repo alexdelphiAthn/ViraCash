@@ -126,6 +126,7 @@ type
     mnuDistribucionTiendas: TMenuItem;
     mnuCargasTransito: TMenuItem;
     mnuGarantiasReclamaciones: TMenuItem;
+    mnuListasRegalosPrestaShop: TMenuItem;
     mnuLotesCaducidades: TMenuItem;
     mnuBuscarSerie: TMenuItem;
     mnuPropiedades: TMenuItem;
@@ -304,6 +305,7 @@ type
     procedure mnuLisVentasClick(Sender: TObject);
     procedure FormActivate(Sender: TObject);
     procedure mnuAlmacenClick(Sender: TObject);
+    procedure mnuVentasMayorClick(Sender: TObject);
     procedure WMFreeControl(var Msg: TMessage); message WM_FREECONTROL;
   private
     FException: Boolean;
@@ -373,6 +375,7 @@ type
     procedure AplicarPermisosMenu;
     procedure AplicarInterruptoresTrazabilidad;
     procedure AplicarInterruptorTransito;
+    procedure AplicarInterruptorListasRegalos;
     procedure MostrarAvisoCaducidadesLotes;
     function ComprobarUbicacionSesionArranque: Boolean;
     function PuedeAbrirMenu(AItem: TMenuItem): Boolean;
@@ -465,6 +468,7 @@ implementation
 uses
   inLibMensajesVcl,
   inLibTrazabilidad, inLibReparaciones, inLibMsgReparaciones,
+  inLibListasRegalos,
   inLibCajaParam,
   inLibMsgLotesConsultas,
   UniDataLotesConsultas,
@@ -912,6 +916,7 @@ begin
   AplicarPermisosMenu;
   AplicarInterruptoresTrazabilidad;
   AplicarInterruptorTransito;
+  AplicarInterruptorListasRegalos;
   ActualizarVisibilidadActualizaciones;
   if not ContextoSesion.Identidad.EsAdministrador then
   begin
@@ -1166,6 +1171,24 @@ end;
 procedure TfrmMtoPrincipal.mnuAlmacenClick(Sender: TObject);
 begin
   AplicarInterruptorTransito;
+end;
+
+// Se reevalúa al desplegar Ventas Mayor: encender o apagar appListasRegalos
+// en Parámetros surte efecto sin reiniciar. Encendido, el permiso del menú
+// sigue decidiendo si se puede abrir.
+procedure TfrmMtoPrincipal.AplicarInterruptorListasRegalos;
+var
+  bActivo: Boolean;
+begin
+  bActivo := ParametrosApp.GetBool(PARAMETRO_LISTAS_REGALOS, False);
+  mnuListasRegalosPrestaShop.Visible := bActivo;
+  mnuListasRegalosPrestaShop.Enabled := bActivo and
+    PuedeAbrirMenu(mnuListasRegalosPrestaShop);
+end;
+
+procedure TfrmMtoPrincipal.mnuVentasMayorClick(Sender: TObject);
+begin
+  AplicarInterruptorListasRegalos;
 end;
 
 // F-LOTEC: los menús de trazabilidad solo existen con su interruptor

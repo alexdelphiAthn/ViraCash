@@ -73,8 +73,12 @@ resourcestring
   SErrorRetencionesEmpresaConcurrentes =
     'No se pueden grabar dos porcentajes  activos en la misma fecha para ' +
     'la empresa %s';
-  SErrorSerieEmpresa =
-    '%s no es un valor válido  para serie por Empresa ';
+  SErrorSerieEmpresaVacia =
+    'Para grabar la serie se necesita la Serie base (por ejemplo A1) ' +
+    'o una Serie tokenizada.';
+  SErrorSerieEmpresaSimbolo =
+    'La Serie base %s no puede llevar el símbolo «%s». Use letras, ' +
+    'números, el punto o la barra.';
   SErrorSerieUsadaOtraEmpresa =
     'La serie %s ya la usa la empresa %s. Las facturas y los demás ' +
     'documentos se identifican por serie y número, sin la empresa: cada ' +

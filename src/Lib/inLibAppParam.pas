@@ -300,6 +300,12 @@ begin
     'URL base de la API REST de PrestaShop', tpString, '');
   RegistrarParametro('PrestaShop', 'appPrestaShopApiKey',
     'Clave de acceso a la API de PrestaShop', tpString, '');
+  // Listas de regalos (31/10/2026): sin el interruptor, el menú se oculta.
+  RegistrarParametro('PrestaShop', 'appListasRegalos',
+    'Activar listas de regalos (Ventas Mayor)', tpBoolean, 'False');
+  RegistrarParametro('PrestaShop', 'appPrestaShopClaveListasRegalos',
+    'Clave de la API del módulo de listas de regalos de PrestaShop',
+    tpString, '');
   RegistrarParametro('PrestaShop', 'appPrestaShopTarifa',
     'Código de la tarifa que se sincroniza con PrestaShop',
     tpString, 'PVP');

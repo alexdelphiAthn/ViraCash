@@ -341,6 +341,7 @@ begin
   AddSuf('fza_verifactu_eventos',               'LOG');
   AddSuf('fza_reparaciones_detalles', 'GARDET');
   AddSuf('fza_reparaciones_prendas', 'GARPRE');
+  AddSuf('fza_reparaciones_albaranes', 'GARALB');
   AddSuf('fza_reparaciones_prendas_trabajos', 'GARPT');
   AddSuf('fza_reparaciones_ventas', 'GARVEN');
   AddSuf('fza_garantias_fases', 'GARFA');
@@ -460,6 +461,7 @@ begin
   AddOwn('fza_efectos_venta',                  ['EFECTO','VENTA']);
   AddOwn('fza_reparaciones_detalles', ['REPARACION', 'DETALLE']);
   AddOwn('fza_reparaciones_prendas', ['REPARACION', 'PRENDA']);
+  AddOwn('fza_reparaciones_albaranes', ['REPARACION', 'ALBARAN']);
   AddOwn('fza_reparaciones_prendas_trabajos',
     ['REPARACION', 'PRENDA', 'TRABAJO']);
   AddOwn('fza_reparaciones_ventas', ['REPARACION', 'VENTA']);

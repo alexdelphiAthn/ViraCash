@@ -190,6 +190,15 @@ begin
     'Clave de acceso a la API de PrestaShop',
     'src/Lib/inLibAppParam.pas');
   ARegistrar(
+    'inMtoAppParam.Parametros.appListasRegalos.Descripcion',
+    'Activar listas de regalos (Ventas Mayor)',
+    'src/Lib/inLibAppParam.pas');
+  ARegistrar(
+    'inMtoAppParam.Parametros.appPrestaShopClaveListasRegalos.Descripci' +
+    'on',
+    'Clave de la API del módulo de listas de regalos de PrestaShop',
+    'src/Lib/inLibAppParam.pas');
+  ARegistrar(
     'inMtoAppParam.Parametros.appPrestaShopTarifa.Descripcion',
     'Código de la tarifa que se sincroniza con PrestaShop',
     'src/Lib/inLibAppParam.pas');

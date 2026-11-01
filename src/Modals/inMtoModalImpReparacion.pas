@@ -96,7 +96,7 @@ begin
   oRotulo := TcxLabel.Create(Self);
   oRotulo.Parent := Self;
   oRotulo.Transparent := True;
-  oRotulo.Caption := Format(SImpresoReferencia, [FDatos.Numero]);
+  oRotulo.Caption := RotuloReferenciaGarantia(FDatos, SImpresoReferencia);
   oRotulo.SetBounds(ScaleValue(16), ScaleValue(16), ScaleValue(320),
     ScaleValue(24));
   oRotulo := TcxLabel.Create(Self);

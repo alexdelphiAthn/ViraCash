@@ -501,6 +501,25 @@ resourcestring
   SImpresoPresupuesto = 'Presupuesto: %s · %s';
   SImpresoMovimiento = 'Movimiento: %d';
 
+  // Albaranes TALLER y terceros de la orden.
+  SAlbaranesOrden = 'Albaranes';
+  SAlbaranesClienteTaller = 'De cliente · TALLER';
+  SAlbaranesProveedorTaller = 'De proveedor · TALLER';
+  SVincularAlbaranOrden = 'Vincular albarán';
+  SDesvincularAlbaranOrden = 'Desvincular';
+  SAbrirAlbaranOrden = 'Abrir albarán';
+  SSerieNumeroAlbaranOrden = 'Serie/número del albarán:';
+  SConfirmarDesvincularAlbaran = '¿Desvincular este albarán de la orden? El documento se conserva.';
+  SAlbaranTallerNoValido = 'El albarán no corresponde a un almacén TALLER de la empresa y tienda de esta orden.';
+  SAlbaranTerceroNoValido = 'El cliente del albarán debe ser el titular o el pagador de la orden.';
+  SAlbaranFacturadoNoDesvincular = 'El albarán ya está facturado: revisa su factura antes de cambiar el vínculo.';
+  STitularTrabajo = 'Cliente / titular del trabajo:';
+  SPagadorTrabajo = 'Cliente de facturación / pagador:';
+  SFranquiciaTrabajo = 'Franquicia del titular (IVA incluido):';
+  SPagadorTrabajoNoValido = 'Indica un cliente de facturación válido y una franquicia entre cero y el total del trabajo. Con franquicia, el titular también necesita código de cliente.';
+  SPagadorTrabajoBloqueado = 'La orden tiene albaranes vinculados: revisa esos documentos antes de cambiar el titular, pagador o franquicia.';
+  SRepartoTrabajo = 'Titular: %s € · Pagador: %s €';
+
 implementation
 
 end.

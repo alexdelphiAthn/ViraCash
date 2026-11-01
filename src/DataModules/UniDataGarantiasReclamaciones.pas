@@ -32,7 +32,7 @@ uses
 const
   // Columnas de fza_garantias_reclamaciones que se editan en la ficha, en
   // el orden en que las graba SqlActualizacionGarantia.
-  COLUMNAS_FICHA_GARANTIA: array[0..44] of string = (
+  COLUMNAS_FICHA_GARANTIA: array[0..47] of string = (
     'MOTIVO_GAR', 'OBSERVACIONES_GAR', 'MODELO_GAR', 'CODIGO_PRV_GAR',
     'NOMBRE_CLIENTE_GAR', 'TELEFONO_CLIENTE_GAR', 'EMAIL_CLIENTE_GAR',
     'DIRECCION_CLIENTE_GAR', 'CODIGO_POSTAL_CLIENTE_GAR',
@@ -54,7 +54,8 @@ const
     // Reparaciones (30/10/2026).
     'DESCRIPCION_OBJETO_GAR', 'REFERENCIA_OBJETO_GAR', 'DETALLES_GAR',
     'FECHA_PREVISTA_GAR', 'SERIE_COBRO_GAR', 'NUMERO_COBRO_GAR',
-    'MODALIDAD_GAR', 'MODO_COBRO_GAR');
+    'MODALIDAD_GAR', 'MODO_COBRO_GAR', 'CODIGO_CLI_GAR',
+    'CODIGO_CLI_PAGADOR_GAR', 'FRANQUICIA_GAR');
 
 type
   TdmGarantiasReclamaciones = class(TdmBase)
@@ -67,6 +68,10 @@ type
     procedure CompletarImpreso(var ADatos: TResguardoGarantia);
     procedure TrabajosImpreso(var ADatos: TResguardoGarantia);
     procedure ConfigurarConsulta;
+    procedure ValidarPagadorTrabajo(DataSet: TDataSet);
+  protected
+    function FiltroAlmacenUsuario: string;
+  private
     procedure TablaGBeforeInsert(DataSet: TDataSet);
     procedure TablaGBeforeDelete(DataSet: TDataSet);
     procedure TablaGAfterPost(DataSet: TDataSet);
@@ -85,6 +90,8 @@ type
     // Proveedores activos para el desplegable de la ficha. Se crea y abre
     // la primera vez que se pide, ya con la conexión heredada.
     function Proveedores: TDataSource;
+    function NombreCliente(const ACodigo: string): string;
+    function ClientesBusqueda: TUniQuery;
     function DatosResguardo: TResguardoGarantia;
     function DatosImpreso(ATipo: TDocumentoReparacion;
       AMovimiento: Int64 = 0): TResguardoGarantia;
@@ -115,11 +122,44 @@ implementation
 uses
   UniDataReparacionesFases, UniDataTrabajosCortinas,
   System.Variants, inLibReparaciones, inLibMsgGarantias, inLibMsgReparaciones, inLibErroresBBDD,
-  UniDataReparacionesRepositorio;
+  UniDataReparacionesRepositorio, inLibFiltroUsuario,
+  inLibReparacionesPagadores;
 
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 
 {$R *.dfm}
+
+function TdmGarantiasReclamaciones.ClientesBusqueda: TUniQuery;
+begin
+  Result := TUniQuery.Create(nil);
+  Result.Connection := unqryTablaG.Connection;
+  Result.ReadOnly := True;
+  Result.SQL.Text := 'SELECT CODIGO_CLI, RAZON_SOCIAL_CLI ' +
+    'FROM fza_clientes ORDER BY RAZON_SOCIAL_CLI, CODIGO_CLI';
+end;
+
+function TdmGarantiasReclamaciones.NombreCliente(
+  const ACodigo: string): string;
+var
+  oConsulta: TUniQuery;
+begin
+  Result := '';
+  if Trim(ACodigo) <> '' then
+  begin
+    oConsulta := TUniQuery.Create(nil);
+    try
+      oConsulta.Connection := unqryTablaG.Connection;
+      oConsulta.SQL.Text := 'SELECT RAZON_SOCIAL_CLI FROM fza_clientes ' +
+        'WHERE CODIGO_CLI=:CODIGO';
+      oConsulta.ParamByName('CODIGO').AsString := Trim(ACodigo);
+      oConsulta.Open;
+      if not oConsulta.IsEmpty then
+        Result := oConsulta.FieldByName('RAZON_SOCIAL_CLI').AsString;
+    finally
+      oConsulta.Free;
+    end;
+  end;
+end;
 
 procedure ForceReferenceToClass(C: TClass);
 begin
@@ -140,7 +180,9 @@ end;
 function SqlSeleccionGarantias: string;
 begin
   Result :=
-    'SELECT G.ID_GAR, G.FECHA_RECLAMACION_GAR, G.LOTE_GAR, ' +
+    'SELECT G.ID_GAR, G.CODIGO_ALM_GAR, G.NUMERO_ORDEN_GAR, ' +
+    SQL_REFERENCIA_ORDEN_REPARACION + ' AS REFERENCIA_ORDEN, ' +
+    'G.FECHA_RECLAMACION_GAR, G.LOTE_GAR, ' +
     '       G.CODIGO_ART_GAR, ' +
     '       G.CODIGO_UNIDAD_GAR, COALESCE(A.DESCRIPCION_ART, '''') ' +
     '         AS DESCRIPCION_ART, ' +
@@ -190,6 +232,8 @@ begin
     '        WHERE F.CODIGO_GARFA = ' + SQL_CODIGO_FASE_ACTUAL +
     ') AS FASE_ACTUAL ' +
     '  FROM fza_garantias_reclamaciones G ' +
+    '  LEFT JOIN fza_almacenes ALM_ORIGEN ' +
+    '    ON ALM_ORIGEN.CODIGO_ALM_ALM = G.CODIGO_ALM_GAR ' +
     '  LEFT JOIN fza_articulos A ON A.CODIGO_ART_ART = G.CODIGO_ART_GAR ' +
     '  LEFT JOIN fza_clientes C ON C.CODIGO_CLI_CLI = G.CODIGO_CLI_GAR ' +
     '  LEFT JOIN fza_proveedores P ON P.CODIGO_PRV_PRV = G.CODIGO_PRV_GAR ' +
@@ -216,7 +260,8 @@ begin
     '        OR G.DESCRIPCION_OBJETO_GAR LIKE :PATRON ' +
     '        OR G.REFERENCIA_OBJETO_GAR LIKE :PATRON ' +
     '        OR G.TELEFONO_CLIENTE_GAR LIKE :PATRON ' +
-    '        OR CAST(G.ID_GAR AS CHAR) = :TEXTO) ' +
+    '        OR CAST(G.ID_GAR AS CHAR) = :TEXTO ' +
+    '        OR ' + SQL_REFERENCIA_ORDEN_REPARACION + ' LIKE :PATRON) ' +
     '   AND (:MODALIDAD = '''' OR G.MODALIDAD_GAR = :MODALIDAD) ' +
     ' ORDER BY G.ESTADO_GAR IN (''' + ESTADO_GARANTIA_ABIERTA + ''', ''' +
     ESTADO_GARANTIA_EN_SAT + ''') DESC, ' +
@@ -234,7 +279,12 @@ begin
     Result := Result + sColumna + ' = :' + sColumna + ', ';
   Result := Result +
     'USUARIO_MODIF = :USUARIO_MODIF, INSTANTE_MODIF = NOW() ' +
-    'WHERE ID_GAR = :Old_ID_GAR';
+    'WHERE ID_GAR = :Old_ID_GAR AND (' +
+    '(CODIGO_CLI_GAR <=> :CODIGO_CLI_GAR AND ' +
+    'CODIGO_CLI_PAGADOR_GAR <=> :CODIGO_CLI_PAGADOR_GAR AND ' +
+    'FRANQUICIA_GAR <=> :FRANQUICIA_GAR) OR NOT EXISTS (' +
+    'SELECT 1 FROM fza_reparaciones_albaranes V ' +
+    'WHERE V.ID_GAR_GARALB=fza_garantias_reclamaciones.ID_GAR))';
 end;
 
 function SqlRefrescoGarantia: string;
@@ -284,11 +334,59 @@ begin
   Abort;
 end;
 
+procedure TdmGarantiasReclamaciones.ValidarPagadorTrabajo(DataSet: TDataSet);
+var
+  oConsulta: TUniQuery;
+  sCampo, sCodigo: string;
+begin
+  RepartirTrabajo(DataSet.FieldByName('TOTAL_CLIENTE_REP').AsCurrency,
+    DataSet.FieldByName('FRANQUICIA_GAR').AsCurrency,
+    DataSet.FieldByName('CODIGO_CLI_GAR').AsString,
+    DataSet.FieldByName('CODIGO_CLI_PAGADOR_GAR').AsString);
+  oConsulta := TUniQuery.Create(nil);
+  try
+    oConsulta.Connection := unqryTablaG.Connection;
+    for sCampo in ['CODIGO_CLI_GAR', 'CODIGO_CLI_PAGADOR_GAR'] do
+    begin
+      sCodigo := Trim(DataSet.FieldByName(sCampo).AsString);
+      DataSet.FieldByName(sCampo).AsString := sCodigo;
+      if (sCodigo <> '') and (sCodigo <> '0') then
+      begin
+        oConsulta.Close;
+        oConsulta.SQL.Text := 'SELECT 1 FROM fza_clientes ' +
+          'WHERE CODIGO_CLI_CLI=:CODIGO';
+        oConsulta.ParamByName('CODIGO').AsString := sCodigo;
+        oConsulta.Open;
+        if oConsulta.IsEmpty then
+          raise EValidacionBBDD.Create(SPagadorTrabajoNoValido);
+      end;
+    end;
+    for sCampo in ['CODIGO_CLI_GAR', 'CODIGO_CLI_PAGADOR_GAR',
+      'FRANQUICIA_GAR'] do
+      if (DataSet.State = dsEdit) and
+         (VarToStr(DataSet.FieldByName(sCampo).OldValue) <>
+          VarToStr(DataSet.FieldByName(sCampo).Value)) then
+      begin
+        oConsulta.Close;
+        oConsulta.SQL.Text := 'SELECT 1 FROM fza_reparaciones_albaranes ' +
+          'WHERE ID_GAR_GARALB=:ID LIMIT 1';
+        oConsulta.ParamByName('ID').AsLargeInt :=
+          DataSet.FieldByName('ID_GAR').AsLargeInt;
+        oConsulta.Open;
+        if not oConsulta.IsEmpty then
+          raise EValidacionBBDD.Create(SPagadorTrabajoBloqueado);
+      end;
+  finally
+    oConsulta.Free;
+  end;
+end;
+
 procedure TdmGarantiasReclamaciones.TablaGBeforePost(DataSet: TDataSet);
 var
   oModalidad: TField;
 begin
   inherited unqryTablaGBeforePost(DataSet);
+  ValidarPagadorTrabajo(DataSet);
   oModalidad := DataSet.FieldByName('MODALIDAD_GAR');
   if not EsModalidadReparacion(oModalidad.AsString) then
     raise EValidacionBBDD.Create(SErrorModalidadReparacion);
@@ -318,11 +416,17 @@ begin
   unqryTablaG.RefreshRecord;
 end;
 
+function TdmGarantiasReclamaciones.FiltroAlmacenUsuario: string;
+begin
+  Result := SqlFiltroOrdenesTrabajo(ContextoSesion, ParametrosApp);
+end;
+
 procedure TdmGarantiasReclamaciones.AplicarFiltros(
   const AEstado, ATexto: string; const AModalidad: string);
 begin
   if unqryTablaG.Active then
     unqryTablaG.Close;
+  AplicarRestriccionUsuario(FiltroAlmacenUsuario);
   unqryTablaG.ParamByName('ESTADO').AsString := Trim(AEstado);
   unqryTablaG.ParamByName('TEXTO').AsString := Trim(ATexto);
   unqryTablaG.ParamByName('PATRON').AsString := '%' + Trim(ATexto) + '%';
@@ -395,6 +499,8 @@ begin
   if unqryTablaG.IsEmpty then
     raise EValidacionBBDD.Create(SInfoSinReclamacion);
   Result.Numero := unqryTablaG.FieldByName('ID_GAR').AsLargeInt;
+  Result.Referencia :=
+    unqryTablaG.FieldByName('REFERENCIA_ORDEN').AsString;
   Result.Fecha := unqryTablaG.FieldByName('FECHA_RECLAMACION_GAR').AsDateTime;
   if not unqryTablaG.FieldByName('INSTANTE_ALTA').IsNull and
      (Trunc(Result.Fecha) = Trunc(unqryTablaG.FieldByName(
@@ -636,6 +742,7 @@ function TdmGarantiasReclamaciones.Alta(const ADatos: TDatosSerieGarantia;
   const AMotivo: string): Int64;
 var
   oConsulta: TUniQuery;
+  bPropia: Boolean;
 begin
   oConsulta := TUniQuery.Create(nil);
   try
@@ -662,10 +769,23 @@ begin
       AlmacenRecepcionGarantia(ADatos, UbicacionSesion.Almacen);
     oConsulta.ParamByName('USUARIO').AsString :=
       Copy(IdentidadSesion.Usuario, 1, 50);
-    oConsulta.ExecSQL;
-    oConsulta.SQL.Text := 'SELECT @ID_GAR AS ID';
-    oConsulta.Open;
-    Result := oConsulta.FieldByName('ID').AsLargeInt;
+    bPropia := not oConsulta.Connection.InTransaction;
+    if bPropia then
+      oConsulta.Connection.StartTransaction;
+    try
+      oConsulta.ExecSQL;
+      oConsulta.SQL.Text := 'SELECT @ID_GAR AS ID';
+      oConsulta.Open;
+      Result := oConsulta.FieldByName('ID').AsLargeInt;
+      AsignarNumeroOrdenReparacion(oConsulta.Connection, Result,
+        IdentidadSesion.Usuario);
+      if bPropia then
+        oConsulta.Connection.Commit;
+    except
+      if bPropia and oConsulta.Connection.InTransaction then
+        oConsulta.Connection.Rollback;
+      raise;
+    end;
   finally
     FreeAndNil(oConsulta);
   end;
