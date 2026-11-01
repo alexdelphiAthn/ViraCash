@@ -87,6 +87,13 @@ type
         TTratamientoMovimientosRectificativa);
   end;
 
+  IDevolucionLineasCaja = interface
+    ['{6A1C8969-627E-454D-B3B5-1531B72FCAC1}']
+    procedure CargarDevolucionLineas(const ASerie, ANumero,
+      AEmpresaOrigen, AAlmacenOrigen: string;
+      const ALineas: TArray<string>);
+  end;
+
   IConsultaOperacionesCaja = interface
     ['{50D890C9-5772-47A0-9B53-530748886CBB}']
     function FormularioConsultaCaja: TCustomForm;

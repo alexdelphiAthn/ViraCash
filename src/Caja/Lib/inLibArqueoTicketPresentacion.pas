@@ -211,6 +211,7 @@ procedure AgregarDatosCierre(
 begin
   AgregarAlineacion(APresentacion, aptIzquierda);
   AgregarLinea(APresentacion, STicketPeriodoCerrado);
+  AgregarLinea(APresentacion, STicketPendientesAnteriores);
   AgregarColumnas(
     APresentacion,
     STicketInicio,

@@ -93,6 +93,8 @@ type
     function Proveedores: TDataSource;
     function NombreCliente(const ACodigo: string): string;
     function ClientesBusqueda: TUniQuery;
+    function LineasDevolucion(out ASerie, ANumero, AEmpresa,
+      AAlmacen: string): TArray<string>;
     function DatosResguardo: TResguardoGarantia;
     function DatosImpreso(ATipo: TDocumentoReparacion;
       AMovimiento: Int64 = 0): TResguardoGarantia;
@@ -130,6 +132,53 @@ uses
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 
 {$R *.dfm}
+
+function TdmGarantiasReclamaciones.LineasDevolucion(out ASerie, ANumero,
+  AEmpresa, AAlmacen: string): TArray<string>;
+var
+  oConsulta: TUniQuery;
+  i: Integer;
+begin
+  Result := nil;
+  ASerie := '';
+  ANumero := '';
+  AEmpresa := '';
+  AAlmacen := '';
+  oConsulta := TUniQuery.Create(nil);
+  try
+    oConsulta.Connection := unqryTablaG.Connection;
+    oConsulta.SQL.Text :=
+      'SELECT DISTINCT V.SERIE_FAC_GARVEN, V.NUMERO_FAC_GARVEN, ' +
+      'V.LINEA_FACLIN_GARVEN, F.CODIGO_EMP_FAC, F.CODIGO_ALM_FAC ' +
+      'FROM fza_garantias_reclamaciones G ' +
+      'JOIN fza_almacenes A ON A.CODIGO_ALM_ALM = G.CODIGO_ALM_GAR ' +
+      'JOIN fza_reparaciones_ventas V ON V.ID_GAR_GARVEN = G.ID_GAR ' +
+      'AND V.SERIE_FAC_GARVEN = G.SERIE_DOC_VENTA_GAR ' +
+      'AND V.NUMERO_FAC_GARVEN = G.NUMERO_DOC_VENTA_GAR ' +
+      'JOIN fza_facturas F ON F.SERIE_FAC = V.SERIE_FAC_GARVEN ' +
+      'AND F.NUMERO_FAC = V.NUMERO_FAC_GARVEN ' +
+      'AND F.CODIGO_EMP_FAC = A.CODIGO_EMP_ALM ' +
+      'WHERE G.ID_GAR = :ID ORDER BY V.LINEA_FACLIN_GARVEN';
+    oConsulta.ParamByName('ID').AsLargeInt :=
+      unqryTablaG.FieldByName('ID_GAR').AsLargeInt;
+    oConsulta.Open;
+    if oConsulta.IsEmpty then
+      raise EArgumentException.Create(SErrorDevolucionArregloSinVenta);
+    ASerie := oConsulta.FieldByName('SERIE_FAC_GARVEN').AsString;
+    ANumero := oConsulta.FieldByName('NUMERO_FAC_GARVEN').AsString;
+    AEmpresa := oConsulta.FieldByName('CODIGO_EMP_FAC').AsString;
+    AAlmacen := oConsulta.FieldByName('CODIGO_ALM_FAC').AsString;
+    while not oConsulta.Eof do
+    begin
+      i := Length(Result);
+      SetLength(Result, i + 1);
+      Result[i] := oConsulta.FieldByName('LINEA_FACLIN_GARVEN').AsString;
+      oConsulta.Next;
+    end;
+  finally
+    FreeAndNil(oConsulta);
+  end;
+end;
 
 function TdmGarantiasReclamaciones.ClientesBusqueda: TUniQuery;
 begin
@@ -176,6 +225,48 @@ begin
     Result := Result + ', G.' + sColumna;
 end;
 
+// El enlace identifica la línea del arreglo, no las otras prendas del
+// ticket. Como en Buscar operaciones, se muestra el nombre de ticket y
+// se recurre al empleado de caja si las líneas no lo identifican.
+function SqlVendedorVentaReparacion: string;
+const
+  CODIGO_VENDEDOR =
+    'NULLIF(TRIM(L.CODIGO_VENDEDOR_FACLIN), '''')';
+  NOMBRE_VENDEDOR =
+    'COALESCE(NULLIF(TRIM(E.DIMINUTIVO_TICKET_EMPL), ''''), ' +
+    'NULLIF(TRIM(E.NOMBRE_EMPL), ''''), ' +
+    CODIGO_VENDEDOR + ')';
+  NOMBRE_OPERACION =
+    'COALESCE(NULLIF(TRIM(EO.DIMINUTIVO_TICKET_EMPL), ''''), ' +
+    'NULLIF(TRIM(EO.NOMBRE_EMPL), ''''), ' +
+    'NULLIF(TRIM(O.CODIGO_EMPLEADO_OPCAJA), ''''))';
+begin
+  Result :=
+    'COALESCE((SELECT GROUP_CONCAT(DISTINCT ' + NOMBRE_VENDEDOR +
+    ' ORDER BY ' + NOMBRE_VENDEDOR + ' SEPARATOR '', '') ' +
+    'FROM fza_reparaciones_ventas V ' +
+    'JOIN fza_facturas_lineas L ' +
+    'ON L.SERIE_FAC_FACLIN = V.SERIE_FAC_GARVEN ' +
+    'AND L.NUMERO_FAC_FACLIN = V.NUMERO_FAC_GARVEN ' +
+    'AND L.LINEA_FACLIN = V.LINEA_FACLIN_GARVEN ' +
+    'AND L.CODIGO_EMP_FACLIN = ALM_ORIGEN.CODIGO_EMP_ALM ' +
+    'LEFT JOIN fza_empleados E ON E.CODIGO_EMPL = ' + CODIGO_VENDEDOR +
+    ' WHERE V.ID_GAR_GARVEN = G.ID_GAR ' +
+    'AND V.SERIE_FAC_GARVEN = G.SERIE_DOC_VENTA_GAR ' +
+    'AND V.NUMERO_FAC_GARVEN = G.NUMERO_DOC_VENTA_GAR), ' +
+    '(SELECT GROUP_CONCAT(DISTINCT ' + NOMBRE_OPERACION +
+    ' ORDER BY ' + NOMBRE_OPERACION + ' SEPARATOR '', '') ' +
+    'FROM fza_caja_operaciones O ' +
+    'LEFT JOIN fza_empleados EO ' +
+    'ON EO.CODIGO_EMPL = O.CODIGO_EMPLEADO_OPCAJA ' +
+    'WHERE O.CODIGO_EMP_OPCAJA = F_VENTA.CODIGO_EMP_FAC ' +
+    'AND O.CODIGO_ALM_OPCAJA = F_VENTA.CODIGO_ALM_FAC ' +
+    'AND O.CODIGO_CAJA_OPCAJA = F_VENTA.CODIGO_CAJA_FAC ' +
+    'AND O.NUMERO_OPERACION_OPCAJA = F_VENTA.NUMERO_OPERACION_FAC ' +
+    'AND O.SERIE_FAC_OPCAJA = F_VENTA.SERIE_FAC ' +
+    'AND O.NUMERO_FAC_OPCAJA = F_VENTA.NUMERO_FAC), '''')';
+end;
+
 // SELECT y JOIN comunes a la lista y al refresco: la reclamación, el
 // artículo, el cliente de la venta, el proveedor al que se reclama y la
 // fase actual (la última con fecha).
@@ -197,6 +288,7 @@ begin
     '       CONCAT_WS('' '', G.TIPO_DOC_VENTA_GAR, ' +
     '                 CONCAT(G.SERIE_DOC_VENTA_GAR, ''/'', ' +
     '                        G.NUMERO_DOC_VENTA_GAR)) AS VENTA, ' +
+    '       ' + SqlVendedorVentaReparacion + ' AS VENDEDOR_VENTA, ' +
     '       G.FECHA_VENTA_GAR, G.FECHA_FIN_GARANTIA_GAR, ' +
     '       IF(G.FECHA_FIN_GARANTIA_GAR >= DATE(G.FECHA_RECLAMACION_GAR), ' +
     '          ''S'', ''N'') AS ESEN_GARANTIA, ' +
@@ -236,6 +328,10 @@ begin
     '  FROM fza_garantias_reclamaciones G ' +
     '  LEFT JOIN fza_almacenes ALM_ORIGEN ' +
     '    ON ALM_ORIGEN.CODIGO_ALM_ALM = G.CODIGO_ALM_GAR ' +
+    '  LEFT JOIN fza_facturas F_VENTA ' +
+    '    ON F_VENTA.SERIE_FAC = G.SERIE_DOC_VENTA_GAR ' +
+    '   AND F_VENTA.NUMERO_FAC = G.NUMERO_DOC_VENTA_GAR ' +
+    '   AND F_VENTA.CODIGO_EMP_FAC = ALM_ORIGEN.CODIGO_EMP_ALM ' +
     '  LEFT JOIN fza_articulos A ON A.CODIGO_ART_ART = G.CODIGO_ART_GAR ' +
     '  LEFT JOIN fza_clientes C ON C.CODIGO_CLI_CLI = G.CODIGO_CLI_GAR ' +
     '  LEFT JOIN fza_proveedores P ON P.CODIGO_PRV_PRV = G.CODIGO_PRV_GAR ' +

@@ -33,7 +33,7 @@ uses
   Winapi.Windows, Winapi.Messages,
   System.SysUtils, System.Variants, System.Classes, System.UITypes,
   Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtCtrls,
-  Vcl.StdCtrls, Data.DB,
+  Vcl.StdCtrls, Vcl.Menus, Data.DB,
   cxClasses, cxGraphics, cxControls, cxLookAndFeels,
   cxLookAndFeelPainters, cxStyles, cxCustomData, cxFilter, cxData,
   cxDataStorage, cxEdit, cxNavigator, cxDBData, cxGridLevel,
@@ -67,9 +67,6 @@ type
     txtResolucionFicha: TcxTextEdit;
     cbbProveedor: TcxDBLookupComboBox;
     pcFases: TcxPageControl;
-    pcSubconsultas: TcxPageControl;
-    FSeparadorSubconsultas: TSplitter;
-    FCambioPaginaAnterior: TNotifyEvent;
     tsRecepcion: TcxTabSheet;
     tsEnvioFab: TcxTabSheet;
     tsEntregaCli: TcxTabSheet;
@@ -86,10 +83,14 @@ type
     FCodigosModalidad: TArray<string>;
     cbbModalidad: TcxComboBox;
     btnNueva: TcxButton;
-    btnSustituir: TcxButton;
+    btnSustituir: TMenuItem;
+    btnAbrirFicha: TcxButton;
+    btnCambiarEstado: TcxButton;
+    btnMasOpciones: TcxButton;
+    menuMasOpciones: TPopupMenu;
     btnNuevaReparacion: TcxButton;
     btnEntregarReparacion: TcxButton;
-    btnAnularReparacion: TcxButton;
+    btnAnularReparacion: TMenuItem;
     txtModalidadFicha: TcxTextEdit;
     tsReparacion: TcxTabSheet;
     tsCircuito: TcxTabSheet;
@@ -108,6 +109,9 @@ type
     function EscalarDpi(AValor: Integer): Integer;
     procedure CrearFiltros;
     procedure CrearBotones;
+    function CrearOpcion(AMenu: TPopupMenu; const ATexto: string;
+      AAlPulsar: TNotifyEvent): TMenuItem;
+    procedure ColocarBotones;
     function CrearEtiqueta(const ATexto: string;
       AIzq, ATop: Integer): TcxLabel;
     function CrearBoton(const ATexto: string; AIzq, ATop, AAncho: Integer;
@@ -183,6 +187,7 @@ type
     procedure btnReparadaClick(Sender: TObject);
     procedure btnSustituirClick(Sender: TObject);
     procedure btnAbonadaClick(Sender: TObject);
+    procedure AbrirDevolucionCaja;
     procedure btnRechazarClick(Sender: TObject);
     procedure btnExcelClick(Sender: TObject);
     procedure CrearFiltroModalidad;
@@ -196,7 +201,6 @@ type
     function ConfirmarCobroEntrega(out ASerie, ANumero: string): Boolean;
     procedure ActualizarNombresAlbaranes;
     procedure BuscarClienteAlbaran(Sender: TObject; AButtonIndex: Integer);
-    procedure OrganizarSubconsultas(Sender: TObject);
     procedure CrearPanelesReparacion;
     procedure LeerInterruptores;
     function ModalidadFiltro: string;
@@ -233,7 +237,8 @@ uses
   inLibMsgGarantias, inLibMsgReparaciones, inLibReparacionesIntf,
   inMtoModalReparacion, inLibErroresBBDD, inLibTrazabilidad,
   inMtoModalImpReparacion,
-  inLibDevExp, inLibGarantiasResguardo, inLibDatasets, inLibDir, frxClass;
+  inLibDevExp, inLibGarantiasResguardo, inLibDatasets, inLibDir, frxClass,
+  inLibCajaVentanasIntf;
 
 {$R *.dfm}
 
@@ -281,8 +286,6 @@ end;
 
 destructor TfrmMtoGarantiasReclamaciones.Destroy;
 begin
-  if Assigned(pcPantalla) then
-    pcPantalla.OnChange := FCambioPaginaAnterior;
   if Assigned(dsTablaG) then
     dsTablaG.OnDataChange := nil;
   if Assigned(cbbProveedor) then
@@ -324,7 +327,7 @@ begin
   pnlFiltros := TPanel.Create(Self);
   pnlFiltros.Parent := tsLista;
   pnlFiltros.Align := alTop;
-  pnlFiltros.Height := EscalarDpi(138);
+  pnlFiltros.Height := EscalarDpi(96);
   pnlFiltros.BevelOuter := bvNone;
   CrearEtiqueta(SCaptionFiltroEstadoGarantia, 12, 16);
   cbbEstado := TcxComboBox.Create(Self);
@@ -344,17 +347,58 @@ begin
 end;
 
 procedure TfrmMtoGarantiasReclamaciones.CrearBotones;
+var
+  oEstados: TPopupMenu;
 begin
-  btnNueva := CrearBoton(SCaptionGarantiaNueva, 12, 54, 110, btnNuevaClick);
-  CrearBoton(SCaptionGarantiaEnviarSat, 130, 54, 130, btnEnviarSatClick);
-  CrearBoton(SCaptionGarantiaReparada, 268, 54, 110, btnReparadaClick);
-  btnSustituir := CrearBoton(SCaptionGarantiaSustituir, 386, 54, 110,
+  btnNueva := CrearBoton(SCaptionNuevaGarantia, 12, 54, 150, btnNuevaClick);
+  btnAbrirFicha := CrearBoton(SCaptionAbrirFichaGarantia, 12, 54, 110,
+    btnFichaClick);
+  oEstados := TPopupMenu.Create(Self);
+  CrearOpcion(oEstados, SCaptionGarantiaEnviarSat, btnEnviarSatClick);
+  CrearOpcion(oEstados, SCaptionMarcarReparada, btnReparadaClick);
+  btnSustituir := CrearOpcion(oEstados, SCaptionGarantiaSustituir,
     btnSustituirClick);
-  CrearBoton(SCaptionGarantiaAbonada, 504, 54, 110, btnAbonadaClick);
-  CrearBoton(SCaptionGarantiaRechazar, 622, 54, 110, btnRechazarClick);
-  CrearBoton(SCaptionGarantiaExcel, 740, 54, 80, btnExcelClick);
-  CrearBoton(SCaptionGarantiaFicha, 828, 54, 90, btnFichaClick);
-  CrearBoton(SCaptionImprimirResguardo, 926, 54, 110, btnResguardoClick);
+  CrearOpcion(oEstados, SCaptionMarcarAbonada, btnAbonadaClick);
+  CrearOpcion(oEstados, SCaptionGarantiaRechazar, btnRechazarClick);
+  btnCambiarEstado := CrearBoton(SCaptionCambiarEstadoGarantia,
+    12, 54, 150, nil);
+  btnCambiarEstado.Kind := cxbkDropDown;
+  btnCambiarEstado.DropDownMenu := oEstados;
+  menuMasOpciones := TPopupMenu.Create(Self);
+  CrearOpcion(menuMasOpciones, SCaptionImprimirResguardoGarantia,
+    btnResguardoClick);
+  CrearOpcion(menuMasOpciones, SCaptionExportarGarantiasExcel,
+    btnExcelClick);
+  btnMasOpciones := CrearBoton(SCaptionMasOpcionesGarantia,
+    12, 54, 140, nil);
+  btnMasOpciones.Kind := cxbkDropDown;
+  btnMasOpciones.DropDownMenu := menuMasOpciones;
+end;
+
+function TfrmMtoGarantiasReclamaciones.CrearOpcion(AMenu: TPopupMenu;
+  const ATexto: string; AAlPulsar: TNotifyEvent): TMenuItem;
+begin
+  Result := TMenuItem.Create(Self);
+  Result.Caption := ATexto;
+  Result.OnClick := AAlPulsar;
+  AMenu.Items.Add(Result);
+end;
+
+procedure TfrmMtoGarantiasReclamaciones.ColocarBotones;
+var
+  oBoton: TcxButton;
+  iIzquierda: Integer;
+begin
+  iIzquierda := EscalarDpi(12);
+  for oBoton in TArray<TcxButton>.Create(btnNuevaReparacion, btnNueva,
+    btnAbrirFicha, btnEntregarReparacion, btnCambiarEstado,
+    btnMasOpciones) do
+    if oBoton.Visible then
+    begin
+      oBoton.Left := iIzquierda;
+      oBoton.Top := EscalarDpi(54);
+      Inc(iIzquierda, oBoton.Width + EscalarDpi(8));
+    end;
 end;
 
 // ---------------------------------------------------------------------------
@@ -486,13 +530,15 @@ begin
     Result.TabStop := False;
 end;
 
-// Texto no enlazado: estado y resolución se muestran traducidos.
+// Texto no enlazado: estado, resolución y modalidad traducidos.
+// En las fases respeta la primera columna para no invadir la segunda.
 function TfrmMtoGarantiasReclamaciones.CrearTextoLibre(
   AParent: TWinControl; const ARotulo: string; AFila: Integer): TcxTextEdit;
 begin
   ColocarRotulo(AParent, ARotulo, 0, AFila);
   Result := TcxTextEdit.Create(Self);
-  ColocarEditor(Result, AParent, 0, AFila, AnchoColumna(AParent, 0), True);
+  ColocarEditor(Result, AParent, 0, AFila, AnchoColumna(AParent, 0),
+    not (AParent is TcxTabSheet));
   Result.Properties.ReadOnly := True;
   Result.TabStop := False;
 end;
@@ -583,7 +629,7 @@ begin
   CrearTexto(gbReclamacion, SCaptionGarantiaSkuFicha, 'CODIGO_UNIDAD_GAR',
     0, 4, True);
   CrearTexto(gbReclamacion, SCaptionGarantiaArticuloFicha,
-    'DESCRIPCION_ART', 0, 5, True);
+    'OBJETO_REP', 0, 5, True);
   CrearTexto(gbReclamacion, SCaptionGarantiaModeloFicha, 'MODELO_GAR', 0, 6,
     False);
   CrearMemo(gbReclamacion, SCaptionGarantiaMotivoFicha, 'MOTIVO_GAR', 7, 2);
@@ -619,6 +665,8 @@ begin
     0, 9, True);
   CrearTexto(gbCliente, SCaptionGarantiaFinGarantiaFicha,
     'FECHA_FIN_GARANTIA_GAR', 0, 10, True);
+  CrearTexto(gbCliente, SCaptionVendedorVentaGarantia,
+    'VENDEDOR_VENTA', 0, 11, True);
 end;
 
 procedure TfrmMtoGarantiasReclamaciones.CrearGrupoProveedor;
@@ -676,6 +724,8 @@ begin
     'FECHA_RECEPCION_GAR', 0, 0);
   CrearMedio(tsRecepcion, SCaptionGarantiaMedio, 'MEDIO_RECEPCION_GAR', 1,
     0);
+  CrearTexto(tsRecepcion, SRecepcionObjeto,
+    'DESCRIPCION_OBJETO_GAR', 1, 1, False);
   ColocarRotulo(tsRecepcion, SRotuloModalidad, 0, 1);
   oModalidad := TcxDBImageComboBox.Create(Self);
   ColocarEditor(oModalidad, tsRecepcion, 0, 1, 250, False);
@@ -1098,6 +1148,7 @@ begin
       FaseReparacionGetDisplayText;
     CrearColumna('CATEGORIA_GAR', SColTipoCategoria, 90);
     CrearColumna('OBJETO_REP', SColObjetoReparacion, 220);
+    CrearColumna('VENDEDOR_VENTA', SCaptionVendedorVentaGarantia, 160);
     CrearColumnaFecha('FECHA_PREVISTA_GAR', SColEntregaAproximada,
       FORMATO_FECHA);
     CrearColumna('TOTAL_CLIENTE_REP', SColImporteCliente, 90);
@@ -1348,11 +1399,38 @@ begin
   Cerrar(ESTADO_GARANTIA_RESUELTA, RESOLUCION_GARANTIA_REPARADA, True);
 end;
 
-// El abono se hace en caja como una devolución con la misma serie; aquí
-// solo se anota.
+// La devolución se tramita en caja, con el importe de la venta original.
 procedure TfrmMtoGarantiasReclamaciones.btnAbonadaClick(Sender: TObject);
 begin
-  Cerrar(ESTADO_GARANTIA_RESUELTA, RESOLUCION_GARANTIA_ABONADA, True);
+  if HayReclamacion and PuedeAccionMto(apmModificar) then
+    AbrirDevolucionCaja;
+end;
+
+procedure TfrmMtoGarantiasReclamaciones.AbrirDevolucionCaja;
+var
+  sSerie, sNumero, sEmpresa, sAlmacen: string;
+  aLineas: TArray<string>;
+  oCaja: IOperacionCaja;
+  oDevolucion: IDevolucionLineasCaja;
+  oFormulario: TCustomForm;
+begin
+  aLineas := dmmGarantias.LineasDevolucion(sSerie, sNumero,
+    sEmpresa, sAlmacen);
+  oCaja := ExigirAnfitrionCaja(Application.MainForm).
+    CrearOperacionCaja(Application, Permisos);
+  oFormulario := oCaja.FormularioCaja;
+  try
+    oCaja.PrepararValores(ContextoSesion.Ubicacion.Empresa,
+      ContextoSesion.Ubicacion.Almacen, ContextoSesion.Ubicacion.Caja, Now);
+    oDevolucion := oCaja as IDevolucionLineasCaja;
+    oDevolucion.CargarDevolucionLineas(sSerie, sNumero, sEmpresa,
+      sAlmacen, aLineas);
+  except
+    oFormulario.Free;
+    raise;
+  end;
+  oFormulario.Show;
+  oFormulario.BringToFront;
 end;
 
 procedure TfrmMtoGarantiasReclamaciones.btnRechazarClick(Sender: TObject);
@@ -1477,12 +1555,13 @@ end;
 
 procedure TfrmMtoGarantiasReclamaciones.CrearBotonesReparacion;
 begin
-  btnNuevaReparacion := CrearBoton(SCaptionNuevaReparacion, 12, 96, 170,
+  btnNuevaReparacion := CrearBoton(SCaptionNuevaReparacion, 12, 54, 170,
     btnNuevaReparacionClick);
-  btnEntregarReparacion := CrearBoton(SCaptionEntregarReparacion, 190, 96,
+  btnEntregarReparacion := CrearBoton(SCaptionEntregarReparacion, 190, 54,
     150, btnEntregarReparacionClick);
-  btnAnularReparacion := CrearBoton(SCaptionAnularReparacion, 348, 96, 150,
-    btnAnularReparacionClick);
+  CrearOpcion(menuMasOpciones, '-', nil);
+  btnAnularReparacion := CrearOpcion(menuMasOpciones,
+    SCaptionAnularReparacion, btnAnularReparacionClick);
 end;
 
 // Datos de la reparación; sus líneas y el presupuesto van en la pestaña
@@ -1537,57 +1616,22 @@ begin
   end;
 end;
 
-procedure TfrmMtoGarantiasReclamaciones.OrganizarSubconsultas(
-  Sender: TObject);
-var
-  oDestino: TcxPageControl;
-  oPestana: TcxTabSheet;
-  aPestanas: TArray<TcxTabSheet>;
-begin
-  if Assigned(FCambioPaginaAnterior) then
-    FCambioPaginaAnterior(Sender);
-  if pcPantalla.ActivePage = tsFicha then
-    oDestino := pcFases
-  else
-    oDestino := pcSubconsultas;
-  aPestanas := [tsTrabajos, tsFotosReparacion,
-    tsMovimientos, tsFasesActuales];
-  for oPestana in aPestanas do
-    if oPestana.PageControl <> oDestino then
-      oPestana.PageControl := oDestino;
-  NumerarPestanasAtajo(pcFases);
-  NumerarPestanasAtajo(pcSubconsultas);
-end;
-
 procedure TfrmMtoGarantiasReclamaciones.CrearPestanasReparacion;
 begin
-  pcSubconsultas := TcxPageControl.Create(Self);
-  pcSubconsultas.Name := 'pcSubconsultasOrden';
-  pcSubconsultas.Parent := tsLista;
-  pcSubconsultas.Align := alBottom;
-  pcSubconsultas.Height := EscalarDpi(240);
-  FSeparadorSubconsultas := TSplitter.Create(Self);
-  FSeparadorSubconsultas.Name := 'separadorSubconsultasOrden';
-  FSeparadorSubconsultas.Parent := tsLista;
-  FSeparadorSubconsultas.Align := alBottom;
-  FSeparadorSubconsultas.Height := EscalarDpi(6);
-  FSeparadorSubconsultas.Top := pcSubconsultas.Top -
-    FSeparadorSubconsultas.Height;
-  FSeparadorSubconsultas.MinSize := EscalarDpi(80);
   tsFasesActuales := TcxTabSheet.Create(Self);
-  tsFasesActuales.PageControl := pcSubconsultas;
+  tsFasesActuales.PageControl := pcFases;
   tsFasesActuales.Caption := SFasePestana;
   tsMovimientos := TcxTabSheet.Create(Self);
-  tsMovimientos.PageControl := pcSubconsultas;
+  tsMovimientos.PageControl := pcFases;
   tsMovimientos.Caption := SMovimientoHistorial;
   tsFotosReparacion := TcxTabSheet.Create(Self);
-  tsFotosReparacion.PageControl := pcSubconsultas;
+  tsFotosReparacion.PageControl := pcFases;
   tsFotosReparacion.Caption := SFotosReparacion;
   tsCircuito := TcxTabSheet.Create(Self);
   tsCircuito.PageControl := pcPantalla;
   tsCircuito.Caption := SCircuitoPestana;
   tsTrabajos := TcxTabSheet.Create(Self);
-  tsTrabajos.PageControl := pcSubconsultas;
+  tsTrabajos.PageControl := pcFases;
   tsTrabajos.Caption := SCaptionPestanaTrabajos;
   lblResumenTrabajos := TcxLabel.Create(Self);
   lblResumenTrabajos.Parent := tsTrabajos;
@@ -1600,9 +1644,11 @@ begin
   tsConfiguracionReparaciones := TcxTabSheet.Create(Self);
   tsConfiguracionReparaciones.PageControl := pcPantalla;
   tsConfiguracionReparaciones.Caption := SCaptionPestanaTiposExternos;
-  FCambioPaginaAnterior := pcPantalla.OnChange;
-  pcPantalla.OnChange := OrganizarSubconsultas;
-  OrganizarSubconsultas(pcPantalla);
+  tsTrabajos.PageIndex := tsAlbaranes.PageIndex + 1;
+  tsFotosReparacion.PageIndex := tsTrabajos.PageIndex + 1;
+  tsMovimientos.PageIndex := tsFotosReparacion.PageIndex + 1;
+  tsFasesActuales.PageIndex := tsMovimientos.PageIndex + 1;
+  NumerarPestanasAtajo(pcFases);
 end;
 
 // appReparaciones muestra lo de reparaciones; appGarantias, el alta y la
@@ -1618,6 +1664,8 @@ begin
   btnNuevaReparacion.Visible := FEsReparaciones;
   btnEntregarReparacion.Visible := FEsReparaciones;
   btnAnularReparacion.Visible := FEsReparaciones;
+  menuMasOpciones.Items[2].Visible := FEsReparaciones;
+  ColocarBotones;
   tsReparacion.TabVisible := FEsReparaciones;
   tsTrabajos.TabVisible := FEsReparaciones;
   tsCircuito.TabVisible := FEsReparaciones;
@@ -1626,7 +1674,6 @@ begin
   if FEsReparaciones then
     Caption := STituloReparacionesGarantias;
   NumerarPestanasAtajo(pcFases);
-  NumerarPestanasAtajo(pcSubconsultas);
 end;
 
 function TfrmMtoGarantiasReclamaciones.Enlaces: TEnlacesReparaciones;

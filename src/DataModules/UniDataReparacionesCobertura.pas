@@ -68,6 +68,21 @@ begin
   finally
     FreeAndNil(oConsulta);
   end;
+  // Sin acuerdo de pagadores, una orden de pago del cliente se cobra al
+  // precio pactado en la recepción: el arreglo sencillo no queda pendiente.
+  if Result.Revision = 0 then
+  begin
+    oConsulta := Consulta('SELECT MODALIDAD_GAR FROM ' +
+      'fza_garantias_reclamaciones WHERE ID_GAR=:ID');
+    try
+      oConsulta.ParamByName('ID').AsLargeInt := AOrden;
+      oConsulta.Open;
+      Result.ClienteAcepta := not oConsulta.IsEmpty and
+        (oConsulta.Fields[0].AsString = MODALIDAD_REPARACION_PAGO);
+    finally
+      FreeAndNil(oConsulta);
+    end;
+  end;
 end;
 
 procedure TRepositorioCoberturaOrden.PersistirAcuerdo(AOrden: Int64;

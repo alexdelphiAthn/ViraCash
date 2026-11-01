@@ -172,11 +172,17 @@ begin
   oPedido := TdmPedidos.Create(AOwner);
   try
     oPedido.ReasignarConexion(AConexion);
-    oPedido.unqryTablaG.SQL.Add(
-      'WHERE SERIE_PED = :SERIE AND NUMERO_PED = :NUMERO');
+    oPedido.unqryTablaG.FilterSQL :=
+      'SERIE_PED = :SERIE AND NUMERO_PED = :NUMERO';
     oPedido.unqryTablaG.ParamByName('SERIE').AsString := AResultado.Serie;
     oPedido.unqryTablaG.ParamByName('NUMERO').AsString := AResultado.Numero;
     oPedido.unqryTablaG.Open;
+    oPedido.unqryPedidosLineas.FilterSQL :=
+      'SERIE_PED_PEDLIN = :SERIE AND NUMERO_PED_PEDLIN = :NUMERO';
+    oPedido.unqryPedidosLineas.ParamByName('SERIE').AsString :=
+      AResultado.Serie;
+    oPedido.unqryPedidosLineas.ParamByName('NUMERO').AsString :=
+      AResultado.Numero;
     oPedido.unqryPedidosLineas.Open;
     oPedido.CalcularTotalesPedido;
     if oPedido.unqryTablaG.State in dsEditModes then

@@ -190,6 +190,7 @@ resourcestring
   STicketCabeceraPorcentajeIva = '%IVA';
   STicketCabeceraCuota = 'CUOTA';
   STicketArqueoCaja = 'ARQUEO CAJA %s';
+  STicketPendientesAnteriores = 'INCLUYE PENDIENTES ANTERIORES AL INICIO';
   STicketPeriodoSeleccionado = 'PERIODO SELECCIONADO';
   STicketDesde = 'DESDE %s';
   STicketHasta = 'HASTA %s';

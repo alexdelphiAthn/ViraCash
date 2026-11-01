@@ -35,9 +35,17 @@ resourcestring
   SCaptionGarantiaEnviarSat = 'Enviar al SAT';
   SCaptionGarantiaReparada = 'Reparada';
   SCaptionGarantiaSustituir = 'Sustituir';
-  SCaptionGarantiaAbonada = 'Abonada';
+  SCaptionGarantiaAbonada = 'Devolución';
   SCaptionGarantiaRechazar = 'Rechazar';
   SCaptionGarantiaExcel = 'Excel';
+  SCaptionNuevaGarantia = 'Nueva garantía';
+  SCaptionAbrirFichaGarantia = 'Abrir ficha';
+  SCaptionCambiarEstadoGarantia = 'Cambiar estado';
+  SCaptionMasOpcionesGarantia = 'Más opciones';
+  SCaptionMarcarReparada = 'Marcar como reparada';
+  SCaptionMarcarAbonada = 'Devolución';
+  SCaptionImprimirResguardoGarantia = 'Imprimir resguardo';
+  SCaptionExportarGarantiasExcel = 'Exportar a Excel';
 
   SCaptionColGarantiaId = 'Nº';
   SCaptionColGarantiaFecha = 'Fecha';
@@ -131,6 +139,7 @@ resourcestring
   SCaptionGarantiaPoblacionFicha = 'Población:';
   SCaptionGarantiaProvinciaFicha = 'Provincia:';
   SCaptionGarantiaVentaFicha = 'Venta:';
+  SCaptionVendedorVentaGarantia = 'Empleado';
   SCaptionGarantiaFechaVentaFicha = 'Fecha venta:';
   SCaptionGarantiaFinGarantiaFicha = 'Fin garantía:';
   SCaptionGarantiaProveedorFicha = 'Proveedor:';

@@ -48,6 +48,8 @@ type
     pnlFiltros: TcxGroupBox;
     cbbEstado: TcxComboBox;
     edtTexto: TcxTextEdit;
+    btnRefrescar: TcxButton;
+    btnSincronizar: TcxButton;
     pnlCabecera: TcxGroupBox;
     grpDatos: TcxGroupBox;
     grpTitulares: TcxGroupBox;
@@ -65,7 +67,7 @@ type
       AIzq, ATop: Integer): TcxLabel;
     function CrearBoton(AParent: TWinControl; const ATexto: string;
       AIzq, ATop, AAncho: Integer; AAlPulsar: TNotifyEvent): TcxButton;
-    procedure CrearFiltros;
+    procedure AjustarFiltros(Sender: TObject);
     procedure CrearColumnas;
     function CrearColumna(AVista: TcxGridDBTableView;
       const ACampo, ATitulo: string; AAncho: Integer): TcxGridDBColumn;
@@ -75,6 +77,8 @@ type
       ARecord: TcxCustomGridRecord; var AText: string);
     procedure AjustarEditores(Sender: TObject);
     procedure AjustarContenidoFicha(Sender: TObject);
+    procedure DesplazarCabecera(Sender: TObject; Shift: TShiftState;
+      WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
     procedure AjustarRepartoFicha(Sender: TObject);
     procedure LimitarRepartoFicha(Sender: TObject;
       var NewSize: Integer; var Accept: Boolean);
@@ -118,7 +122,11 @@ type
     procedure btnEntregarRegaloClick(Sender: TObject);
     procedure btnAnularRegaloClick(Sender: TObject);
   protected
+    procedure ChangeScale(M, D: Integer; isDpiChange: Boolean); override;
+    function DoMouseWheel(Shift: TShiftState; WheelDelta: Integer;
+      MousePos: TPoint): Boolean; override;
     procedure DoCreate; override;
+    procedure CrearFiltros;
     procedure CrearFicha;
   public
     function ContarHijosActivos: Integer; override;
@@ -230,10 +238,52 @@ begin
   edtTexto.Left := EscalarDpi(390);
   edtTexto.Top := EscalarDpi(12);
   edtTexto.Width := EscalarDpi(240);
-  CrearBoton(pnlFiltros, SCaptionListaRefrescar, 650, 10, 110,
-    FiltroCambiado);
-  CrearBoton(pnlFiltros, SCaptionListaSincronizar, 770, 10, 220,
-    btnSincronizarClick);
+  btnRefrescar := CrearBoton(pnlFiltros, SCaptionListaRefrescar,
+    650, 10, 110, FiltroCambiado);
+  btnSincronizar := CrearBoton(pnlFiltros, SCaptionListaSincronizar,
+    770, 10, 220, btnSincronizarClick);
+  pnlFiltros.OnResize := AjustarFiltros;
+  AjustarFiltros(pnlFiltros);
+end;
+
+procedure TfrmMtoListasRegalos.AjustarFiltros(Sender: TObject);
+var
+  iMargen, iTop, iSeparacion, iAnchoTexto: Integer;
+begin
+  iMargen := MulDiv(MARGEN, btnRefrescar.Height, 32);
+  iTop := MulDiv(10, btnRefrescar.Height, 32);
+  iSeparacion := MulDiv(20, btnRefrescar.Height, 32);
+  iAnchoTexto := MulDiv(240, btnRefrescar.Height, 32);
+  if pnlFiltros.ClientWidth < edtTexto.Left + iAnchoTexto +
+     iSeparacion + btnRefrescar.Width + iTop +
+     btnSincronizar.Width + iMargen then
+  begin
+    edtTexto.Width := Max(iMargen,
+      Min(iAnchoTexto, pnlFiltros.ClientWidth - edtTexto.Left - iMargen));
+    btnRefrescar.Left := iMargen;
+    btnRefrescar.Top := edtTexto.BoundsRect.Bottom + iMargen;
+    btnSincronizar.Left := btnRefrescar.BoundsRect.Right + iTop;
+    btnSincronizar.Top := btnRefrescar.Top;
+  end
+  else
+  begin
+    edtTexto.Width := iAnchoTexto;
+    btnRefrescar.Left := edtTexto.BoundsRect.Right + iSeparacion;
+    btnRefrescar.Top := iTop;
+    btnSincronizar.Left := btnRefrescar.BoundsRect.Right + iTop;
+    btnSincronizar.Top := iTop;
+  end;
+  pnlFiltros.Height := Max(edtTexto.BoundsRect.Bottom,
+    Max(btnRefrescar.BoundsRect.Bottom,
+      btnSincronizar.BoundsRect.Bottom)) + iTop;
+end;
+
+procedure TfrmMtoListasRegalos.ChangeScale(M, D: Integer;
+  isDpiChange: Boolean);
+begin
+  inherited;
+  if Assigned(btnSincronizar) then
+    AjustarFiltros(pnlFiltros);
 end;
 
 function TfrmMtoListasRegalos.CrearColumna(AVista: TcxGridDBTableView;
@@ -323,6 +373,30 @@ begin
     AParent.ClientWidth - AEditor.Left - EscalarDpi(MARGEN));
   AEditor.Anchors := [akLeft, akTop, akRight];
   AEditor.Tag := 1;
+end;
+
+function TfrmMtoListasRegalos.DoMouseWheel(Shift: TShiftState;
+  WheelDelta: Integer; MousePos: TPoint): Boolean;
+begin
+  Result := False;
+  DesplazarCabecera(Self, Shift, WheelDelta, MousePos, Result);
+  if not Result then
+    Result := inherited DoMouseWheel(Shift, WheelDelta, MousePos);
+end;
+
+procedure TfrmMtoListasRegalos.DesplazarCabecera(Sender: TObject;
+  Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint;
+  var Handled: Boolean);
+begin
+  if Assigned(FDesplazamiento) and FDesplazamiento.Showing and
+     PtInRect(FDesplazamiento.ClientRect,
+       FDesplazamiento.ScreenToClient(MousePos)) then
+  begin
+    FDesplazamiento.VertScrollBar.Position :=
+      FDesplazamiento.VertScrollBar.Position -
+      MulDiv(WheelDelta, EscalarDpi(48), WHEEL_DELTA);
+    Handled := True;
+  end;
 end;
 
 procedure TfrmMtoListasRegalos.AjustarRepartoFicha(Sender: TObject);
@@ -559,6 +633,7 @@ begin
   FDesplazamiento.Height := Min(EscalarDpi(384),
     Max(EscalarDpi(100), tsFicha.ClientHeight div 2));
   FDesplazamiento.AutoScroll := True;
+  FDesplazamiento.OnMouseWheel := DesplazarCabecera;
   FDesplazamiento.LookAndFeel.ScrollbarMode := sbmClassic;
   FDesplazamiento.VertScrollBar.Tracking := True;
   FDesplazamiento.HorzScrollBar.Tracking := True;
@@ -612,7 +687,8 @@ begin
   CrearColumna(tvLineas, 'DESCRIPCION_LRGLIN', SColLineaDescripcion, 260);
   CrearColumna(tvLineas, 'CANTIDAD_DESEADA_LRGLIN', SColLineaDeseada, 70);
   CrearColumna(tvLineas, 'CANTIDAD_REGALADA_LRGLIN', SColLineaRegalada, 80);
-  CrearColumna(tvLineas, 'CANTIDAD_PENDIENTE_LRGLIN', SColLineaPendiente, 80);
+  CrearColumna(tvLineas, 'CANTIDAD_PENDIENTE_LRGLIN',
+    SColLineaPendiente, 110);
   ColumnaImporte(CrearColumna(tvLineas, 'PRECIO_REFERENCIA_LRGLIN',
     SColLineaPrecio, 100));
   oColumna := CrearColumna(tvLineas, 'ESIMPRESCINDIBLE_LRGLIN',

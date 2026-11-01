@@ -22,7 +22,8 @@ function CrearRepositorioModalArqueoUniDAC(
 implementation
 
 uses
-  System.SysUtils, Data.DB, UniDataRectificativasSql;
+  System.SysUtils, Data.DB, UniDataRectificativasSql,
+  UniDataArqueoRepositorio;
 
 type
   TResultadoModalArqueoUniDAC = class(
@@ -148,6 +149,8 @@ begin
     '    AND (o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     'OR COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''') ' +
     '    AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
+    'AND COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''' ' +
+    SqlExcluirLiquidacionDepositoArqueo +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
       'o.SERIE_FAC_OPCAJA',
@@ -180,6 +183,7 @@ begin
     '    AND (o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     'OR COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''') ' +
     '    AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
+    'AND COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''' ' +
     // FZ-ISSUE-407: la entrada de cambio y los gastos de caja no son
     // cobros de ventas (mismo criterio que la pestaña Arqueo, 346).
     '    AND o.TIPO_OPERACION_OPCAJA NOT IN (''EC'', ''GC'') ' +
@@ -219,6 +223,8 @@ begin
     '    AND (o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     'OR COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''') ' +
     '    AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
+    'AND COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''' ' +
+    SqlExcluirLiquidacionDepositoArqueo +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
       'o.SERIE_FAC_OPCAJA',
@@ -298,8 +304,10 @@ begin
     '        AND (o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     'OR COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''') ' +
     '        AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
+    'AND COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''' ' +
     '        AND f.TIPO_FAC IN ' +
     '            (''SIMPLIFICADA'', ''RECTIFICATIVA'') ' +
+    SqlExcluirLiquidacionDepositoArqueo +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
       'o.SERIE_FAC_OPCAJA',

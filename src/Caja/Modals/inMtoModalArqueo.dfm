@@ -999,6 +999,7 @@
           object rgRetiradaTipo: TcxRadioGroup
             Left = 9
             Top = 63
+            Alignment = alCenterCenter
             Properties.Columns = 5
             Properties.Items = <
               item

@@ -110,6 +110,26 @@ begin
   end;
 end;
 
+function PedirPrendaCliente(const AServicio: TPrendaVentaReparacion;
+  var AEleccion: TPrendaVentaReparacion): Boolean;
+var
+  Valores: array[0..0] of string;
+begin
+  Valores[0] := '';
+  Result := InputQuery_fza(Format(SPrendaSeleccionar,
+    [AServicio.Descripcion, AServicio.UnidadServicio]),
+    [SPrendaDescripcionCliente], Valores,
+    function(const AValores: array of string): Boolean
+    begin
+      Result := (Trim(AValores[0]) <> '') and
+        (Length(Trim(AValores[0])) <= 200);
+      if not Result then
+        ShowMessage_fza(SPrendaDescripcionObligatoria);
+    end);
+  if Result then
+    AEleccion.Descripcion := Trim(Valores[0]);
+end;
+
 function ElegirUnidadServicio(AOwner: TComponent;
   const AServicio: TPrendaVentaReparacion;
   const ACandidatas: TArray<TPrendaVentaReparacion>;
@@ -132,6 +152,9 @@ begin
       AEleccion.Trabajo := AServicio.Trabajo;
     end;
   end;
+  if Result and (AServicio.Trabajo.Clase = CLASE_SERVICIO_TALLER) and
+    (AEleccion.LineaPrenda = '') then
+    Result := PedirPrendaCliente(AServicio, AEleccion);
   if Result and ((AServicio.Trabajo.Clase=CLASE_SERVICIO_ALTURA) or
      (AServicio.Trabajo.Clase=CLASE_SERVICIO_INSTALACION)) then
     Result := TfrmModalTrabajoCortina.Editar(AOwner,
@@ -189,8 +212,7 @@ begin
       if Result then
       begin
         Result := ElegirUnidadServicio(AOwner,Servicio,Candidatas,Eleccion);
-        if Result and ((Eleccion.LineaPrenda<>'') or
-           (Servicio.Trabajo.Clase<>CLASE_SERVICIO_TALLER)) then
+        if Result then
         begin
           i := Length(APrendas);
           SetLength(APrendas,i+1);

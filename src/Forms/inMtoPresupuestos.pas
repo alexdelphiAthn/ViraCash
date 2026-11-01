@@ -296,6 +296,7 @@ type
     procedure ActualizarPresupuestoCaja(const AEmpresa, ASerie,
       ANumero: string);
   protected
+    procedure PrepararGuardado; override;
     procedure KeyDown(var Key: Word; Shift: TShiftState); override;
     function LineasCancelables: TDataSet; override;
   public
@@ -1329,14 +1330,13 @@ begin
      (MessageDlg_fza(Format(SPreguntaGrabarPresupuestoVentaSinSku,
                  [sLineasSinSku]),
                  mtWarning, [mbYes, mbNo], 0) = mrYes) then
-  begin
     inherited;
-    if dsTablaG.State in dsEditModes then
-    begin
-      dmmPresupuestos.CalcularTotalesAlbaran;
-      dsTablaG.DataSet.Post;
-    end;
-  end;
+end;
+
+procedure TfrmMtoPresupuestos.PrepararGuardado;
+begin
+  inherited;
+  dmmPresupuestos.PrepararGuardadoDocumento;
 end;
 
 procedure TfrmMtoPresupuestos.btnCODIGO_EMP_PREPropertiesButtonClick(

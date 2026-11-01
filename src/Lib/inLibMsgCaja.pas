@@ -699,7 +699,9 @@ resourcestring
   SPreguntaGrabarArqueoCaja =
     'Se va a grabar el arqueo con los importes recontados.' + sLineBreak +
     'Periodo: %s - %s' + sLineBreak +
-    'Las operaciones del rango quedarán marcadas.' + sLineBreak +
+    'Se marcarán las operaciones pendientes hasta el fin indicado,' +
+    sLineBreak + 'incluidas las anteriores al inicio del periodo.' +
+    sLineBreak +
     sLineBreak + '¿Desea continuar?';
   STituloConfirmarArqueoCaja =
     'Confirmar Arqueo';

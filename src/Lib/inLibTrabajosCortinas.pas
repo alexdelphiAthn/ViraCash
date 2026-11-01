@@ -26,11 +26,27 @@ const
 function TextoClaseServicio(const AClase: string): string;
 function ValidarTrabajoCortina(const ADatos: TDatosTrabajoReparacion): string;
 function TextoTrabajoCortina(const ADatos: TDatosTrabajoReparacion): string;
+// Una prenda de taller identificada en caja ya se ha recibido del cliente.
+function HayPrendaRecibidaVenta(const ALinea: string;
+  const AVenta: TVentaServiciosReparacion): Boolean;
 
 implementation
 
 uses
   System.SysUtils, inLibMsgReparaciones;
+
+function HayPrendaRecibidaVenta(const ALinea: string;
+  const AVenta: TVentaServiciosReparacion): Boolean;
+var
+  Prenda: TPrendaVentaReparacion;
+begin
+  Result := False;
+  for Prenda in AVenta.Prendas do
+    if (Prenda.LineaServicio = ALinea) and
+      (Prenda.Trabajo.Clase = CLASE_SERVICIO_TALLER) and
+      (Trim(Prenda.Descripcion) <> '') then
+      Result := True;
+end;
 
 function TextoClaseServicio(const AClase: string): string;
 begin

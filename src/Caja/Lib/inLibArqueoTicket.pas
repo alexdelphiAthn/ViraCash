@@ -585,6 +585,7 @@ begin
       [FormatDateTime('dd/mm/yy hh:nn:ss', AFechaDesde)]));
     Ticket.EscribirLinea(Format(STicketHasta,
       [FormatDateTime('dd/mm/yy hh:nn:ss', AFechaHasta)]));
+    Ticket.EscribirLinea(STicketPendientesAnteriores);
     Ticket.Negrita(False);
     // Marca de reimpresión: el arqueo original ya se emitió en su día
     if ADuplicado then

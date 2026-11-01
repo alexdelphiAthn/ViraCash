@@ -112,10 +112,13 @@ begin
     ' JOIN fza_garantias_reclamaciones G ON G.ID_GAR=V.ID_GAR_GARALB ' +
     ' JOIN fza_almacenes O ON O.CODIGO_ALM_ALM=G.CODIGO_ALM_GAR ' +
     ' WHERE V.ID_GAR_GARALB=:ID_GAR AND V.TIPO_GARALB=''' +
-    TipoVinculo(AProveedor) + ''' AND A.TIPO_USO_ALM=''TALLER'' ' +
+    TipoVinculo(AProveedor) + ''' ' +
     ' AND D.CODIGO_EMP_' + sSufijo + '=O.CODIGO_EMP_ALM ' +
-    ' AND (A.CODIGO_PADRE_ALM=G.CODIGO_ALM_GAR ' +
-    ' OR A.ESCOMPARTIDO_ALM=''S'') ORDER BY D.FECHA_' + sSufijo +
+    // También los creados desde el almacén de la orden cuando la tienda
+    // no tiene almacén TALLER.
+    ' AND (A.CODIGO_ALM_ALM=G.CODIGO_ALM_GAR OR ' +
+    ' (A.TIPO_USO_ALM=''TALLER'' AND (A.CODIGO_PADRE_ALM=G.CODIGO_ALM_GAR ' +
+    ' OR A.ESCOMPARTIDO_ALM=''S''))) ORDER BY D.FECHA_' + sSufijo +
     ' DESC, D.SERIE_' + sSufijo + ', D.NUMERO_' + sSufijo;
 end;
 
@@ -179,10 +182,12 @@ begin
     ' JOIN fza_garantias_reclamaciones G ON G.ID_GAR=:ID ' +
     ' JOIN fza_almacenes O ON O.CODIGO_ALM_ALM=G.CODIGO_ALM_GAR ' +
     ' WHERE D.SERIE_' + sSufijo + '=:SERIE AND D.NUMERO_' +
-    sSufijo + '=:NUMERO AND A.TIPO_USO_ALM=''TALLER'' ' +
+    sSufijo + '=:NUMERO ' +
     ' AND D.CODIGO_EMP_' + sSufijo + '=O.CODIGO_EMP_ALM ' +
-    ' AND (A.CODIGO_PADRE_ALM=G.CODIGO_ALM_GAR ' +
-    ' OR A.ESCOMPARTIDO_ALM=''S'') ' + sFiltroTercero + ' FOR UPDATE');
+    // Almacén de la orden (tienda sin TALLER) o TALLER de esa tienda.
+    ' AND (A.CODIGO_ALM_ALM=G.CODIGO_ALM_GAR OR ' +
+    ' (A.TIPO_USO_ALM=''TALLER'' AND (A.CODIGO_PADRE_ALM=G.CODIGO_ALM_GAR ' +
+    ' OR A.ESCOMPARTIDO_ALM=''S''))) ' + sFiltroTercero + ' FOR UPDATE');
   try
     oConsulta.ParamByName('ID').AsLargeInt := AOrden;
     oConsulta.ParamByName('SERIE').AsString := ASerie;

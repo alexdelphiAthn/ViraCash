@@ -59,12 +59,28 @@ type
       AFechaDesde, AFechaHasta: TDate): TArqueoCaja;
   end;
 
+function SqlExcluirLiquidacionDepositoArqueo: string;
+
 implementation
 
 uses
   System.DateUtils, UniDataRectificativasSql,
   inLibCatalogoSqlEjecucion,
   UniDataCatalogoSqlValidacion;
+
+function SqlExcluirLiquidacionDepositoArqueo: string;
+begin
+  // La liquidacion ya tiene su movimiento DE: no es una venta normal.
+  // Mismo criterio que V_NORMALES; evita sumar el anticipo ACUENTA.
+  Result :=
+    'AND NOT EXISTS (SELECT 1 FROM fza_caja_operaciones od ' +
+    'WHERE o.TIPO_OPERACION_OPCAJA = ''VE'' ' +
+    'AND od.CODIGO_EMP_OPCAJA = o.CODIGO_EMP_OPCAJA ' +
+    'AND od.CODIGO_ALM_OPCAJA = o.CODIGO_ALM_OPCAJA ' +
+    'AND od.CODIGO_CAJA_OPCAJA = o.CODIGO_CAJA_OPCAJA ' +
+    'AND od.NUMERO_OPERACION_OPCAJA = o.NUMERO_OPERACION_OPCAJA ' +
+    'AND od.TIPO_OPERACION_OPCAJA = ''DE'') ';
+end;
 
 function SqlContadores: string;
 begin

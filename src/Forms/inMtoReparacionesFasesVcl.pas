@@ -16,7 +16,7 @@ unit inMtoReparacionesFasesVcl;
 interface
 
 uses
-  System.Classes, Vcl.Controls, cxDropDownEdit, cxMemo, cxLabel,
+  System.Classes, Vcl.Controls, cxDropDownEdit, cxMemo, cxLabel, cxPC,
   inLibReparacionesFases, inMtoGarantiasReparacionesVcl,
   UniDataReparacionesPantalla;
 
@@ -29,6 +29,8 @@ type
     FSelector: TcxComboBox;
     FActual: TcxLabel;
     FObservaciones: TcxMemo;
+    FHistorial: TcxTabSheet;
+    FAvisos: TcxTabSheet;
     procedure CargarCatalogo;
     procedure CrearHistorial;
     procedure CrearAvisos;
@@ -49,7 +51,8 @@ type
 implementation
 
 uses
-  System.SysUtils, Vcl.StdCtrls, cxGridDBTableView,
+  System.SysUtils, Vcl.StdCtrls, Vcl.ExtCtrls, Vcl.Forms,
+  cxGridDBTableView,
   inLibMsgReparaciones, inLibMensajesVcl;
 
 constructor TPanelFasesReparacion.CreatePanel(AOwner: TComponent;
@@ -57,29 +60,57 @@ constructor TPanelFasesReparacion.CreatePanel(AOwner: TComponent;
   const AEnlaces: TEnlacesReparaciones);
 var
   oRotulo: TcxLabel;
+  oContenido: TPanel;
+  oEdicion: TScrollBox;
+  oHistoriales: TcxPageControl;
 begin
   inherited;
   CrearBoton(SFaseGuardar, 185, GuardarClick);
   CrearBoton(SFaseAnadir, 110, AnadirClick);
   CrearBoton(SFaseAvisar, 215, AvisarClick);
+  // La edición y los historiales comparten el ancho, no la altura.
+  oContenido := TPanel.Create(Self);
+  oContenido.Parent := Self;
+  oContenido.BevelOuter := bvNone;
+  oContenido.Align := alClient;
+  oEdicion := TScrollBox.Create(Self);
+  oEdicion.Parent := oContenido;
+  oEdicion.BorderStyle := bsNone;
+  oEdicion.Width := EscalarDpi(360);
+  oEdicion.Align := alLeft;
+  oHistoriales := TcxPageControl.Create(Self);
+  oHistoriales.Parent := oContenido;
+  oHistoriales.Align := alClient;
+  FHistorial := TcxTabSheet.Create(Self);
+  FHistorial.PageControl := oHistoriales;
+  FHistorial.Caption := SFaseHistorialCambios;
+  FAvisos := TcxTabSheet.Create(Self);
+  FAvisos.PageControl := oHistoriales;
+  FAvisos.Caption := SFaseHistorialAvisos;
+  oHistoriales.ActivePage := FHistorial;
   FActual := TcxLabel.Create(Self);
-  FActual.Parent := Self;
-  FActual.Align := alTop;
+  FActual.Parent := oEdicion;
+  FActual.AutoSize := False;
+  FActual.SetBounds(EscalarDpi(8), 0, EscalarDpi(336), EscalarDpi(28));
+  FActual.Anchors := [akLeft, akTop, akRight];
   FActual.Transparent := True;
-  FActual.Height := EscalarDpi(32);
   FSelector := TcxComboBox.Create(Self);
-  FSelector.Parent := Self;
-  FSelector.Align := alTop;
+  FSelector.Parent := oEdicion;
+  FSelector.SetBounds(EscalarDpi(8), EscalarDpi(32),
+    EscalarDpi(336), EscalarDpi(24));
+  FSelector.Anchors := [akLeft, akTop, akRight];
   FSelector.Properties.DropDownListStyle := lsFixedList;
   oRotulo := TcxLabel.Create(Self);
-  oRotulo.Parent := Self;
-  oRotulo.Align := alTop;
+  oRotulo.Parent := oEdicion;
+  oRotulo.SetBounds(EscalarDpi(8), EscalarDpi(64),
+    EscalarDpi(336), EscalarDpi(20));
   oRotulo.Transparent := True;
   oRotulo.Caption := SFaseObservaciones;
   FObservaciones := TcxMemo.Create(Self);
-  FObservaciones.Parent := Self;
-  FObservaciones.Align := alTop;
-  FObservaciones.Height := EscalarDpi(65);
+  FObservaciones.Parent := oEdicion;
+  FObservaciones.SetBounds(EscalarDpi(8), EscalarDpi(90),
+    EscalarDpi(336), EscalarDpi(65));
+  FObservaciones.Anchors := [akLeft, akTop, akRight];
   FObservaciones.Hint := SFaseObservaciones;
   FObservaciones.ShowHint := True;
   FObservaciones.Properties.ScrollBars := ssVertical;
@@ -93,6 +124,7 @@ var
   oVista: TcxGridDBTableView;
 begin
   oVista := CrearVista(alClient, 0, FDatos.Fases.Origen);
+  oVista.Control.Parent := FHistorial;
   CrearColumna(oVista, 'INSTANTE_GARHIS', SFotosFecha, 155);
   CrearColumna(oVista, 'FASE_ANTERIOR_GARHIS', SFaseAnterior, 230);
   CrearColumna(oVista, 'FASE_GARHIS', SFaseNueva, 280);
@@ -104,7 +136,8 @@ procedure TPanelFasesReparacion.CrearAvisos;
 var
   oVista: TcxGridDBTableView;
 begin
-  oVista := CrearVista(alBottom, EscalarDpi(180), FDatos.Fases.OrigenAvisos);
+  oVista := CrearVista(alClient, 0, FDatos.Fases.OrigenAvisos);
+  oVista.Control.Parent := FAvisos;
   CrearColumna(oVista, 'INSTANTE_ALTA', SFotosFecha, 155);
   CrearColumna(oVista, 'EMAIL_GARAVI', SFaseDestinatario, 220);
   CrearColumna(oVista, 'ASUNTO_GARAVI', SFaseAsunto, 280);

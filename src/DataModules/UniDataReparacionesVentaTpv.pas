@@ -180,7 +180,9 @@ begin
   Result.DescripcionObjeto := Result.Trabajo;
   Result.ReferenciaObjeto := sArticulo;
   for Prenda in AVenta.Prendas do
-    if (Prenda.LineaServicio=ALinea.Linea) and (Prenda.LineaPrenda<>'') then
+    if (Prenda.LineaServicio=ALinea.Linea) and
+       ((Prenda.LineaPrenda<>'') or
+        (Prenda.Trabajo.Clase=CLASE_SERVICIO_TALLER)) then
     begin
       if Result.ReferenciaObjeto=sArticulo then
       begin
@@ -266,7 +268,12 @@ begin
     oConsulta.ExecSQL;
     oConsulta.SQL.Text := 'UPDATE fza_garantias_reclamaciones ' +
       'SET EMAIL_CLIENTE_GAR = NULLIF(:EMAIL, ''''), ' +
-      'FECHA_RECEPCION_GAR = NULL WHERE ID_GAR = :ID';
+      'FECHA_RECEPCION_GAR = CASE WHEN :RECIBIDA = ''S'' ' +
+      'THEN FECHA_RECEPCION_GAR ELSE NULL END WHERE ID_GAR = :ID';
+    if HayPrendaRecibidaVenta(ALinea.Linea, AVenta) then
+      oConsulta.ParamByName('RECIBIDA').AsString := 'S'
+    else
+      oConsulta.ParamByName('RECIBIDA').AsString := 'N';
     oConsulta.ParamByName('EMAIL').AsString := Copy(AVenta.Email, 1, 200);
     oConsulta.ParamByName('ID').AsLargeInt := AId;
     oConsulta.ExecSQL;

@@ -20884,6 +20884,12 @@ begin
       STicketArqueoCaja);
   ARegistrar(
     'inLibMsgTickets.' +
+    'STicketPendientesAnteriores',
+    'src/Lib/inLibMsgTickets.pas',
+    @inLibMsgTickets.
+      STicketPendientesAnteriores);
+  ARegistrar(
+    'inLibMsgTickets.' +
     'STicketPeriodoSeleccionado',
     'src/Lib/inLibMsgTickets.pas',
     @inLibMsgTickets.

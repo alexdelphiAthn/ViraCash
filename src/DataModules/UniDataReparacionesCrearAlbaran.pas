@@ -74,17 +74,27 @@ function TGeneradorAlbaranOrden.DatosOrden(
 begin
   Result := Consulta('SELECT G.CODIGO_CLI_GAR,G.CODIGO_CLI_PAGADOR_GAR,' +
     'G.SERIE_COBRO_GAR,G.NUMERO_COBRO_GAR,G.ESCOBRADO_GAR,' +
-    'O.CODIGO_EMP_ALM AS EMPRESA,T.CODIGO_ALM_ALM AS TALLER,' +
+    'O.CODIGO_EMP_ALM AS EMPRESA,' +
+    'COALESCE(T.CODIGO_ALM_ALM,O.CODIGO_ALM_ALM) AS TALLER,' +
     'L.DESCRIPCION_GARLIN,L.TIPO_LINEA_GARLIN,L.CODIGO_UNIDAD_GARLIN,' +
     'L.CODIGO_PRV_GARLIN ' +
     'FROM fza_garantias_reclamaciones G ' +
     'JOIN fza_almacenes O ON O.CODIGO_ALM_ALM=G.CODIGO_ALM_GAR ' +
-    'JOIN fza_almacenes T ON T.TIPO_USO_ALM=''TALLER'' ' +
+    // Sin almacén TALLER, la tienda documenta desde el almacén de la orden:
+    // las piezas manuales no mueven existencias.
+    'LEFT JOIN fza_almacenes T ON T.TIPO_USO_ALM=''TALLER'' ' +
     'AND T.ESACTIVO_ALM=''S'' AND T.CODIGO_EMP_ALM=O.CODIGO_EMP_ALM ' +
     'AND (T.CODIGO_PADRE_ALM=G.CODIGO_ALM_GAR OR T.ESCOMPARTIDO_ALM=''S'') ' +
+    'AND (:ALMACEN='''' OR T.CODIGO_ALM_ALM=:ALMACEN) ' +
     'JOIN fza_garantias_lineas L ON L.ID_GAR_GARLIN=G.ID_GAR ' +
     'WHERE G.ID_GAR=:ORDEN AND L.ID_GARLIN=:LINEA ' +
-    'AND (:ALMACEN='''' OR T.CODIGO_ALM_ALM=:ALMACEN) ' +
+    'AND (T.CODIGO_ALM_ALM IS NOT NULL OR ' +
+    '(O.ESACTIVO_ALM=''S'' AND (:ALMACEN='''' OR ' +
+    'O.CODIGO_ALM_ALM=:ALMACEN) AND NOT EXISTS (SELECT 1 FROM ' +
+    'fza_almacenes X WHERE X.TIPO_USO_ALM=''TALLER'' ' +
+    'AND X.ESACTIVO_ALM=''S'' AND X.CODIGO_EMP_ALM=O.CODIGO_EMP_ALM ' +
+    'AND (X.CODIGO_PADRE_ALM=G.CODIGO_ALM_GAR OR ' +
+    'X.ESCOMPARTIDO_ALM=''S'')))) ' +
     'ORDER BY T.CODIGO_ALM_ALM LIMIT 1');
   try
     Result.ParamByName('ORDEN').AsLargeInt := ASolicitud.Orden;

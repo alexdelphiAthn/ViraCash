@@ -44,6 +44,10 @@ resourcestring
   SPrendaElegir = 'Artículo de esta venta al que se aplica el servicio';
   SPrendaSinSeleccion = 'Seleccione qué prenda se va a reparar.';
   SPrendaFueraVenta = 'Prenda aportada por el cliente (fuera de esta venta)';
+  SPrendaDescripcionCliente =
+    'Describa la prenda recibida (tipo, color, marca y detalles):';
+  SPrendaDescripcionObligatoria =
+    'Indique una descripción de la prenda de hasta 200 caracteres.';
   SPrendaAlmacenFalta = 'Configure un almacén activo de tipo TALLER ' +
     'en esta empresa, asociado a la tienda.';
   SPrendaEsquemaFalta = 'Aplique la actualización ' +
@@ -174,7 +178,12 @@ resourcestring
   SCaptionNuevaReparacion = 'Nueva reparación';
   SCaptionEntregarReparacion = 'Entregar al cliente';
   SCaptionAnularReparacion = 'Anular reparación';
+  SErrorDevolucionArregloSinVenta =
+    'No se ha localizado la línea de venta de este arreglo.';
+  SErrorDevolucionArregloSinLineas =
+    'No hay líneas de este arreglo pendientes de devolver.';
   SCaptionFaseReparacion = 'Reparación';
+  SRecepcionObjeto = 'Objeto recibido:';
   SDatosEnvioReparacion = 'Datos de envío';
   SResultadoEntregaReparacion = 'Resultado y entrega';
   SRecepcionEstadoAccesorios = 'Estado y accesorios recibidos';
@@ -383,6 +392,8 @@ resourcestring
   SFaseEntregado = 'Entregado';
   SFaseSituacionTrabajos = 'Situación de trabajos';
   SFasePestana = 'Fases y avisos';
+  SFaseHistorialCambios = 'Cambios de fase';
+  SFaseHistorialAvisos = 'Avisos al cliente';
   SFaseActual = 'Fase actual';
   SFaseGuardar = 'Guardar cambio de fase';
   SFaseAnadir = 'Añadir fase';

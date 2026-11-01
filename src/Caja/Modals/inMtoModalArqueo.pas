@@ -781,7 +781,7 @@ begin
   if FRepositorioPersistencia.OperacionesSinCerrarAntes(
     Solicitud, dUltimoCierre, iOperaciones) then
   begin
-    dteFechaDesde.EditValue := dUltimoCierre;
+    dteFechaDesde.EditValue := IncSecond(dUltimoCierre);
     sAviso := Format(SAvisoArqueoCajaOperacionesSinCerrar,
       [iOperaciones,
        FormatDateTime('dd/mm/yyyy hh:nn', dUltimoCierre)]);
@@ -1258,9 +1258,10 @@ begin
   RecalcularTotalesRecuento;
   for iRow := 0 to tvRecuento.DataController.RecordCount - 1 do
     for iAnterior := 0 to High(aRecuentoAnterior) do
-      if VarToStr(tvRecuento.DataController.Values[
+      if ((iRow = 0) or FArqueoTarjetasPermitido) and
+        (VarToStr(tvRecuento.DataController.Values[
         iRow, tvRecuentoFP.Index]) =
-        aRecuentoAnterior[iAnterior].CodigoFormaPago then
+        aRecuentoAnterior[iAnterior].CodigoFormaPago) then
       begin
         tvRecuento.DataController.Values[iRow, tvRecuentoImporte.Index] :=
           Double(aRecuentoAnterior[iAnterior].ImporteRecuento);
@@ -1678,11 +1679,6 @@ end;
 function TfrmModalArqueo.DebeImprimirCierre: Boolean;
 begin
   Result := FEmitirJustificanteCierre;
-  if not Result then
-    Result := MessageBox_fza(
-      PChar(SPreguntaImprimirJustificanteCierreCaja),
-      PChar(STituloJustificanteCierreCaja),
-      MB_YESNO or MB_ICONQUESTION) = IDYES;
 end;
 
 procedure TfrmModalArqueo.MostrarErrorPreparacion(

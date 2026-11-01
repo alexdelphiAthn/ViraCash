@@ -61,14 +61,44 @@ type
     ): TResultadoRectificacionCaja;
   end;
 
+procedure ConservarLineasDevolucionCaja(ALineas: TDataSet;
+  const ASeleccion: TArray<string>);
+
 implementation
 
 uses
   inLibFormatoDocumento, inLibFormatoDocumentoLecturasIntf,
-  System.SysUtils, inLibMsgCaja, inLibErroresBBDD;
+  System.SysUtils, System.StrUtils, inLibMsgCaja, inLibErroresBBDD,
+  inLibMsgReparaciones;
 
 const
   TIPO_FACTURA_COMPLETA_RECTIFICACION = 'NORMAL';
+
+procedure ConservarLineasDevolucionCaja(ALineas: TDataSet;
+  const ASeleccion: TArray<string>);
+var
+  iConservadas: Integer;
+begin
+  iConservadas := 0;
+  ALineas.DisableControls;
+  try
+    ALineas.First;
+    while not ALineas.Eof do
+      if (IndexText(ALineas.FieldByName('LINEA_FACLIN').AsString,
+          ASeleccion) >= 0) and
+        (ALineas.FieldByName('CANTIDAD_FACLIN').AsFloat < 0) then
+      begin
+        Inc(iConservadas);
+        ALineas.Next;
+      end
+      else
+        ALineas.Delete;
+  finally
+    ALineas.EnableControls;
+  end;
+  if iConservadas = 0 then
+    raise EValidacionBBDD.Create(SErrorDevolucionArregloSinLineas);
+end;
 
 constructor TServicioRectificacionCaja.Create(
   const ARepositorio: IRepositorioConsultasCaja);

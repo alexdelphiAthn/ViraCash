@@ -47,6 +47,7 @@ type
     procedure unqryAlbaranesLineasAfterPost(DataSet: TDataSet);
     procedure unqryAlbaranesLineasAfterDelete(DataSet: TDataSet);
   public
+    procedure PrepararGuardadoDocumento;
     procedure GuardarDocumento;
     // F-LOTEC-016: lote y serie de las líneas (solo con interruptores).
     procedure ConfigurarLotesLineas(const AConfig: TConfiguracionLotesLineas);
@@ -1157,6 +1158,16 @@ begin
     ComprobarPresupuestoEditable(ConexionEscritura,
       unqryTablaG.FieldByName('SERIE_PRE').AsString,
       unqryTablaG.FieldByName('NUMERO_PRE').AsString);
+end;
+
+procedure TdmPresupuestos.PrepararGuardadoDocumento;
+begin
+  // El guardado generico solo postea datasets en edicion. BeforePost
+  // recalcula tambien un presupuesto antiguo sin cambios manuales.
+  if unqryTablaG.Active and not unqryTablaG.IsEmpty and
+     (unqryTablaG.FieldByName('NUMERO_DESTINO_PRE').AsString = '') and
+     not (unqryTablaG.State in dsEditModes) then
+    unqryTablaG.Edit;
 end;
 
 procedure TdmPresupuestos.GuardarDocumento;

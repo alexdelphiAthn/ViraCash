@@ -318,7 +318,8 @@ type
     property ArticuloResueltoEdicion: string
       read FArticuloResueltoEdicion;
   end;
-  TfrmMtoOpeCaja = class(TfrmBase, IOperacionCaja)
+  TfrmMtoOpeCaja = class(TfrmBase, IOperacionCaja,
+    IDevolucionLineasCaja)
     pnlUp: TPanel;
     pnlCli: TPanel;
     lblFecha: TcxLabel;
@@ -669,6 +670,9 @@ type
     procedure CargarDevolucion(
       const ASerie, ANumero, AEmpresaOrigen,
       AAlmacenOrigen: string);
+    procedure CargarDevolucionLineas(const ASerie, ANumero,
+      AEmpresaOrigen, AAlmacenOrigen: string;
+      const ALineas: TArray<string>);
     procedure CargarSubsanacion(
       const AOperacion: TOperacionSubsanacionCaja;
       const AServicio: IServicioSubsanacionCaja);
@@ -695,7 +699,8 @@ uses
   inLibArqueoPersistencia,
   inLibFormatoDocumento, UniDataFormatoDocumentoRepositorio,
   Vcl.Graphics,
-  inLibMensajesVcl, inLibErroresBBDD,
+  inLibMensajesVcl, inLibErroresBBDD, inLibMsgReparaciones,
+  inLibCajaRectificacion,
   inLibGridCantidad,
   inLibFormatoMonetario,
 
@@ -3777,6 +3782,20 @@ begin
   else
     CargarDevolucionComercial(ASerie, ANumero, AEmpresaOrigen,
       AAlmacenOrigen);
+end;
+
+procedure TfrmMtoOpeCaja.CargarDevolucionLineas(const ASerie, ANumero,
+  AEmpresaOrigen, AAlmacenOrigen: string;
+  const ALineas: TArray<string>);
+begin
+  if not OperacionVacia or (Length(ALineas) = 0) then
+    raise EValidacionBBDD.Create(SErrorDevolucionArregloSinLineas);
+  CargarDevolucion(ASerie, ANumero, AEmpresaOrigen, AAlmacenOrigen);
+  ConservarLineasDevolucionCaja(DatosCaja.cdsLineas, ALineas);
+  GridRecalc(ConexionPrincipal, FLecturas.RepositorioFacturas, nil,
+    tvLineasOpe, DatosCaja.cdsLineas, DatosCaja.cdsCabecera,
+    ActualizarLabelTotal);
+  FEditorLineas.AsegurarLineaNueva;
 end;
 
 procedure TfrmMtoOpeCaja.CargarDevolucionComercial(

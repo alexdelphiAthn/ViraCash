@@ -80,7 +80,7 @@ implementation
 
 uses
   System.Generics.Collections,
-  UniDataRectificativasSql,
+  UniDataRectificativasSql, UniDataArqueoRepositorio,
   inLibCatalogoSqlEjecucion,
   UniDataCatalogoSqlValidacion;
 
@@ -113,6 +113,8 @@ begin
     'AND (o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     'OR COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''') ' +
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
+    'AND COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''' ' +
+    SqlExcluirLiquidacionDepositoArqueo +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
       'o.SERIE_FAC_OPCAJA',
@@ -136,6 +138,7 @@ begin
     'AND (o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     'OR COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''') ' +
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
+    'AND COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''' ' +
     'AND o.TIPO_OPERACION_OPCAJA = :pTIPO_DV ' +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
@@ -216,6 +219,8 @@ begin
     'AND (o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     'OR COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''') ' +
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
+    'AND COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''' ' +
+    SqlExcluirLiquidacionDepositoArqueo +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
       'o.SERIE_FAC_OPCAJA',
@@ -247,6 +252,8 @@ begin
     'AND (o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     'OR COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''') ' +
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
+    'AND COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''' ' +
+    SqlExcluirLiquidacionDepositoArqueo +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
       'o.SERIE_FAC_OPCAJA',
@@ -271,6 +278,8 @@ begin
     'AND (o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     'OR COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''') ' +
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
+    'AND COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''' ' +
+    SqlExcluirLiquidacionDepositoArqueo +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
       'o.SERIE_FAC_OPCAJA',
@@ -303,6 +312,7 @@ begin
     'AND (o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     'OR COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''') ' +
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
+    'AND COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''' ' +
     'AND o.TIPO_OPERACION_OPCAJA NOT IN (:pTIPO_EC, :pTIPO_GC) ' +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
@@ -333,6 +343,8 @@ begin
     'AND (o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     'OR COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''') ' +
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
+    'AND COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''' ' +
+    SqlExcluirLiquidacionDepositoArqueo +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
       'o.SERIE_FAC_OPCAJA',
