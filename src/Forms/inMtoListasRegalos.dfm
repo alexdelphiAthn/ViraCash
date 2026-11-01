@@ -1,4 +1,4 @@
 ﻿inherited frmMtoListasRegalos: TfrmMtoListasRegalos
-  Caption = 'Lista de regalos Prestashop'
+  Caption = 'Lista de regalos PrestaShop'
   OnCreate = FormCreate
 end
