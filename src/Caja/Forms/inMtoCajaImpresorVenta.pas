@@ -201,6 +201,8 @@ var
   oDatos: TReparacionesVentaTpv;
   oInforme: TfrxReport;
   Resguardo: TResguardoGarantia;
+  sCopia: string;
+  iCopia: Integer;
 begin
   Venta := Default(TVentaServiciosReparacion);
   Venta.Serie := ASolicitud.SerieFactura;
@@ -211,12 +213,18 @@ begin
   try
     for Resguardo in oDatos.Resguardos(Venta) do
     begin
-      CrearInformeDocumentoReparacion(oInforme, Resguardo, drRecepcion,
-        frgTicket);
-      ImprimirResguardoGarantiaTicket(oInforme, FPreviewTicket,
-        FParametrosCaja.ImpresoraCaja, GetUserFolderTickets +
-        'Reparacion_' + IntToStr(Resguardo.Numero) + '_' +
-        FormatDateTime('yyyymmdd_hhnnss_zzz', Now) + '.pdf');
+      iCopia := 0;
+      for sCopia in CopiasRecepcionReparacion(Resguardo) do
+      begin
+        Inc(iCopia);
+        CrearInformeDocumentoReparacion(oInforme, Resguardo, drRecepcion,
+          frgTicket, sCopia);
+        ImprimirResguardoGarantiaTicket(oInforme, FPreviewTicket,
+          FParametrosCaja.ImpresoraCaja, GetUserFolderTickets +
+          'Reparacion_' + IntToStr(Resguardo.Numero) + '_' +
+          IntToStr(iCopia) + '_' +
+          FormatDateTime('yyyymmdd_hhnnss_zzz', Now) + '.pdf');
+      end;
     end;
   finally
     FreeAndNil(oInforme);

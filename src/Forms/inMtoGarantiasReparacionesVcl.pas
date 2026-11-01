@@ -53,8 +53,8 @@ type
     FDatos: TDatosPantallaReparaciones;
     FEnlaces: TEnlacesReparaciones;
     function EscalarDpi(AValor: Integer): Integer;
-    procedure CrearBoton(const ATexto: string; AAncho: Integer;
-      AAlPulsar: TNotifyEvent);
+    function CrearBoton(const ATexto: string; AAncho: Integer;
+      AAlPulsar: TNotifyEvent): TcxButton;
     function CrearVista(AAlineacion: TAlign; AAlto: Integer;
       ADatos: TDataSource): TcxGridDBTableView;
     function CrearColumna(AVista: TcxGridDBTableView;
@@ -83,6 +83,7 @@ type
     procedure BorrarClick(Sender: TObject);
     procedure EmpezarClick(Sender: TObject);
     procedure TerminarClick(Sender: TObject);
+    procedure IncidenciaClick(Sender: TObject);
     procedure DevolverClick(Sender: TObject);
     procedure HojaEntregaClick(Sender: TObject);
     procedure PresupuestarClick(Sender: TObject);
@@ -156,7 +157,8 @@ uses
   inLibMsgReparacionesCircuito,
   inLibTrabajosCortinas,
   Winapi.Windows, System.UITypes, System.Variants, Vcl.Dialogs, Vcl.Forms,
-  cxContainer, cxGridLevel, cxEdit, cxCheckBox, cxImageComboBox, cxCalendar, cxCurrencyEdit, cxButtonEdit,
+  cxContainer, cxGridLevel, cxEdit, cxCheckBox, cxImageComboBox, cxCalendar,
+  cxCurrencyEdit, cxButtonEdit, cxLabel,
   inLibColumnasDocumento, inLibBotonesDetalle,
   inLibMsgGarantias, inLibMsgComun, inLibMensajesVcl, inLibErroresBBDD, inLibReparaciones,
   inLibReparacionesIntf, inLibMsgReparaciones, inMtoModalLineaReparacion;
@@ -191,8 +193,8 @@ begin
 end;
 
 // Los botones se colocan uno tras otro en la botonera.
-procedure TPanelReparaciones.CrearBoton(const ATexto: string;
-  AAncho: Integer; AAlPulsar: TNotifyEvent);
+function TPanelReparaciones.CrearBoton(const ATexto: string;
+  AAncho: Integer; AAlPulsar: TNotifyEvent): TcxButton;
 var
   oBoton: TcxButton;
 begin
@@ -203,6 +205,7 @@ begin
   oBoton.Caption := ATexto;
   oBoton.OnClick := AAlPulsar;
   FSiguienteBoton := FSiguienteBoton + AAncho + 6;
+  Result := oBoton;
 end;
 
 function TPanelReparaciones.CrearVista(AAlineacion: TAlign; AAlto: Integer;
@@ -252,18 +255,59 @@ end;
 constructor TPanelLineasReparacion.CreatePanel(AOwner: TComponent;
   AParent: TWinControl; ADatos: TDatosPantallaReparaciones;
   const AEnlaces: TEnlacesReparaciones);
+var
+  Grupo: TcxGroupBox;
+  iIzquierda: Integer;
+  procedure NuevoGrupo(const ATitulo: string);
+  var
+    Etiqueta: TcxLabel;
+  begin
+    if Assigned(Grupo) then
+      iIzquierda := Grupo.Left + Grupo.Width + EscalarDpi(8);
+    Grupo := TcxGroupBox.Create(Self);
+    Grupo.Parent := FBotonera;
+    Grupo.SetBounds(iIzquierda, 0, EscalarDpi(16), EscalarDpi(70));
+    Grupo.Caption := '';
+    Grupo.Alignment := alCenterCenter;
+    Grupo.PanelStyle.Active := True;
+    Grupo.Transparent := True;
+    Etiqueta := TcxLabel.Create(Self);
+    Etiqueta.Parent := Grupo;
+    Etiqueta.Caption := ATitulo;
+    Etiqueta.Left := EscalarDpi(8);
+    Etiqueta.Top := EscalarDpi(2);
+    Etiqueta.Transparent := True;
+  end;
+  procedure Boton(const ATexto: string; AAncho: Integer;
+    AAlPulsar: TNotifyEvent);
+  var
+    Control: TcxButton;
+  begin
+    Control := CrearBoton(ATexto, AAncho, AAlPulsar);
+    Control.Parent := Grupo;
+    Control.Left := Grupo.Width - EscalarDpi(8);
+    Control.Top := EscalarDpi(26);
+    Grupo.Width := Grupo.Width + Control.Width + EscalarDpi(6);
+  end;
 begin
   inherited;
-  CrearBoton(SCaptionAnadirLinea, 100, AnadirClick);
-  CrearBoton(SCaptionCambiarLinea, 80, CambiarClick);
-  CrearBoton(SCaptionBorrarLinea, 70, BorrarClick);
-  CrearBoton(SCaptionEmpezarLinea, 80, EmpezarClick);
-  CrearBoton(SCaptionTerminarLinea, 80, TerminarClick);
-  CrearBoton(SCaptionDevolverLinea, 120, DevolverClick);
-  CrearBoton(SCaptionHojaEntrega, 110, HojaEntregaClick);
-  CrearBoton(SCaptionPresupuestar, 100, PresupuestarClick);
-  CrearBoton(SCaptionAceptarPresupuesto, 90, AceptarPresupuestoClick);
-  CrearBoton(SCaptionRechazarPresupuesto, 90, RechazarPresupuestoClick);
+  FBotonera.Height := EscalarDpi(76);
+  Grupo := nil;
+  iIzquierda := EscalarDpi(8);
+  NuevoGrupo(SGrupoTrabajosArreglos);
+  Boton(SCaptionAnadirLinea, 100, AnadirClick);
+  Boton(SCaptionCambiarLinea, 80, CambiarClick);
+  Boton(SCaptionBorrarLinea, 70, BorrarClick);
+  Boton(SCaptionEmpezarLinea, 80, EmpezarClick);
+  Boton(SCaptionTerminarLinea, 80, TerminarClick);
+  Boton(SIncidenciaTrabajoTitulo, 90, IncidenciaClick);
+  NuevoGrupo(SGrupoExternosArreglos);
+  Boton(SCaptionDevolverLinea, 120, DevolverClick);
+  Boton(SCaptionHojaEntrega, 110, HojaEntregaClick);
+  NuevoGrupo(STituloPresupuesto);
+  Boton(SCaptionPresupuestar, 100, PresupuestarClick);
+  Boton(SCaptionAceptarPresupuesto, 90, AceptarPresupuestoClick);
+  Boton(SCaptionRechazarPresupuesto, 90, RechazarPresupuestoClick);
   FVista := CrearVista(alClient, 0, FDatos.Lineas);
   FVista.OptionsSelection.MultiSelect := True;
   CrearColumnas;
@@ -272,6 +316,9 @@ end;
 // ID_GARLIN va oculta: la hoja de entrega la lee de las filas
 // seleccionadas.
 procedure TPanelLineasReparacion.CrearColumnas;
+var
+  oColumna: TcxGridDBColumn;
+  sCampo: string;
 begin
   CrearColumna(FVista, 'ID_GARLIN', 'ID_GARLIN', 40).Visible := False;
   CrearColumna(FVista, 'LINEA_GARLIN', SColLinea, 45);
@@ -285,8 +332,16 @@ begin
   CrearColumna(FVista, 'CANTIDAD_GARLIN', SColCantidadLinea, 70);
   CrearColumna(FVista, 'IMPORTE_CLIENTE', SColImporteCliente, 90);
   CrearColumna(FVista, 'IMPORTE_COSTE', SColImporteCoste, 90);
-  CrearColumna(FVista, 'FECHA_INICIO_GARLIN', SColInicioLinea, 90);
-  CrearColumna(FVista, 'FECHA_FIN_GARLIN', SColFinLinea, 90);
+  for sCampo in TArray<string>.Create('FECHA_INICIO_GARLIN',
+    'FECHA_FIN_GARLIN') do
+  begin
+    oColumna := CrearColumna(FVista, sCampo, SColInicioLinea, 165);
+    if sCampo = 'FECHA_FIN_GARLIN' then
+      oColumna.Caption := SColFinLinea;
+    oColumna.PropertiesClass := TcxDateEditProperties;
+    TcxDateEditProperties(oColumna.Properties).DisplayFormat :=
+      'dd/mm/yyyy hh:nn:ss';
+  end;
   CrearColumna(FVista, 'INCIDENCIA_GARLIN', SColIncidenciaLinea, 180);
   CrearColumna(FVista, 'ID_GARLIQ_GARLIN', SColPagoLinea, 70);
   CrearColumna(FVista, 'ID_GARLIQ_CARGO_GARLIN', SColCargoLinea, 70);
@@ -394,10 +449,28 @@ begin
     Accion(
       procedure
       begin
-        FDatos.Reparaciones.EmpezarLinea(LineaActual, Date,
+        FDatos.Reparaciones.EmpezarLinea(LineaActual, Now,
           FEnlaces.Usuario);
         FEnlaces.Refrescar(0);
       end);
+end;
+
+procedure TPanelLineasReparacion.IncidenciaClick(Sender: TObject);
+var
+  sTexto: string;
+begin
+  if HayLinea then
+  begin
+    sTexto := FDatos.Lineas.DataSet.FieldByName('INCIDENCIA_GARLIN').AsString;
+    if InputQuery_fza(SIncidenciaTrabajoTitulo, SIncidenciaTrabajoPregunta,
+      sTexto) then
+      Accion(
+        procedure
+        begin
+          FDatos.RegistrarIncidencia(LineaActual, sTexto);
+          FEnlaces.Refrescar(0);
+        end);
+  end;
 end;
 
 procedure TPanelLineasReparacion.TerminarClick(Sender: TObject);
@@ -408,7 +481,7 @@ begin
       var
         iLiquidacion: Int64;
       begin
-        iLiquidacion := FDatos.Reparaciones.TerminarLinea(LineaActual, Date,
+        iLiquidacion := FDatos.Reparaciones.TerminarLinea(LineaActual, Now,
           FEnlaces.Usuario);
         FEnlaces.Refrescar(0);
         if iLiquidacion > 0 then
@@ -426,7 +499,7 @@ begin
     Accion(
       procedure
       begin
-        FDatos.Reparaciones.DevolverLinea(LineaActual, Date, sIncidencia,
+        FDatos.Reparaciones.DevolverLinea(LineaActual, Now, sIncidencia,
           FEnlaces.Usuario);
         FEnlaces.Refrescar(0);
       end);
@@ -470,7 +543,7 @@ begin
           iId: Int64;
         begin
           for iId in Nuevas do
-            FDatos.Reparaciones.EmpezarLinea(iId, Date, FEnlaces.Usuario);
+            FDatos.Reparaciones.EmpezarLinea(iId, Now, FEnlaces.Usuario);
           FEnlaces.Refrescar(0);
           FEnlaces.Imprimir(FDatos.HojaEntrega(Ids,
             FEnlaces.AlmacenActual()));

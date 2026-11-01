@@ -184,12 +184,35 @@ resourcestring
     'No hay líneas de este arreglo pendientes de devolver.';
   SCaptionFaseReparacion = 'Reparación';
   SRecepcionObjeto = 'Objeto recibido:';
+  SRecepcionCopiaCliente = 'Copia cliente';
+  SRecepcionCopiaPrenda = 'Copia prenda';
+  SParametrosArreglosTitulo = 'Parámetros de arreglos';
+  SParametrosArreglosAyuda =
+    'Fases globales del arreglo para informar al cliente. ' +
+    'Esta configuración se aplica a todos los usuarios. ' +
+    'Los correos se envían desde Avisar al cliente.';
+  SParametrosArreglosEmpezar = 'Al empezar el primer trabajo:';
+  SParametrosArreglosTerminar = 'Al terminar todos los trabajos:';
+  SParametrosArreglosSinCambio = 'No cambiar fase';
+  SParametrosArreglosGuardar = 'Guardar parámetros';
+  SParametrosArreglosGuardados = 'Parámetros de arreglos guardados.';
+  SParametrosArreglosCambioInicio = 'Inicio del primer trabajo del arreglo';
+  SParametrosArreglosCambioFin = 'Todos los trabajos del arreglo terminados';
+  SGrupoTrabajosArreglos = 'Trabajos';
+  SGrupoExternosArreglos = 'Empresas externas';
+  SIncidenciaTrabajoTitulo = 'Incidencia';
+  SIncidenciaTrabajoPregunta =
+    'Describa lo ocurrido con la prenda o el trabajo:';
+  SIncidenciaTrabajoObligatoria =
+    'Indique una incidencia de entre 1 y 500 caracteres.';
+  SIncidenciaTrabajoNoEditable =
+    'No se puede registrar la incidencia en este trabajo cerrado.';
   SDatosEnvioReparacion = 'Datos de envío';
   SResultadoEntregaReparacion = 'Resultado y entrega';
   SRecepcionEstadoAccesorios = 'Estado y accesorios recibidos';
   SIntervencionResultadoReparacion = 'Intervención y resultado';
   SCaptionPestanaLiquidaciones = 'Liquidaciones';
-  SCaptionPestanaTiposExternos = 'Tipos y externos';
+  SCaptionPestanaTiposExternos = 'Artículos de arreglos';
   SCaptionAnadirLinea = 'Añadir línea';
   SCaptionCambiarLinea = 'Cambiar';
   SCaptionBorrarLinea = 'Borrar';

@@ -151,9 +151,12 @@ begin
     oConsulta.ParamByName('LINEA').AsString := AImputacion.LineaDocumento;
     oConsulta.ParamByName('ORDEN').AsLargeInt := AImputacion.Orden;
     oConsulta.Open;
+    // En venta el total con IVA se recalcula desde la base redondeada al
+    // céntimo (100,00 -> 82,64 -> 99,99): se admite esa diferencia.
     if oConsulta.IsEmpty or (AImputacion.Importe >
        oConsulta.FieldByName('TOTAL').AsCurrency -
-       oConsulta.FieldByName('IMPUTADO').AsCurrency + 0.001) then
+       oConsulta.FieldByName('IMPUTADO').AsCurrency +
+       IfThen(AImputacion.Tipo = 'PR', 0.001, 0.011)) then
       raise EArgumentException.Create(SCircuitoRepartoInvalido);
   finally
     FreeAndNil(oConsulta);

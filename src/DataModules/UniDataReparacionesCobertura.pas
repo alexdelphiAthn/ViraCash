@@ -386,6 +386,10 @@ begin
     begin
       BloquearOrden(AOrden);
       ComprobarEntrega(AOrden, Trim(AExcepcion) <> '');
+      // Una orden sencilla no tiene acuerdo: se guarda el de por defecto
+      // para poder anotar su cierre técnico.
+      if Acuerdo(AOrden).Revision = 0 then
+        PersistirAcuerdo(AOrden, Acuerdo(AOrden));
       oConsulta := Consulta('UPDATE fza_reparaciones_acuerdos ' +
         'SET ESCIERRE_TECNICO_RAC=''S'',EXCEPCION_ENTREGA_RAC=:MOTIVO,' +
         'INSTANTE_MODIF=NOW(),USUARIO_MODIF=:USUARIO WHERE ID_GAR_RAC=:ID');

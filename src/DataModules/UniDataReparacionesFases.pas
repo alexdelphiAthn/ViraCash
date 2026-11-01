@@ -37,6 +37,10 @@ type
     procedure AsignarMaestro(AMaestro: TDataSource);
     procedure Refrescar;
     function Catalogo: TArray<TFaseReparacionCatalogo>;
+    function LeerParametrosArreglos: TParametrosArreglos;
+    procedure GuardarParametrosArreglos(const AParametros: TParametrosArreglos);
+    procedure AplicarFaseTrabajo(ALinea: Int64; ATerminado: Boolean;
+      const AUsuario: string);
     function Anadir(const ADescripcion, AUsuario: string): string;
     function Cambiar(const ACambio: TCambioFaseReparacion): Int64;
     procedure RegistrarInicial(AReparacion: Int64; const AUsuario: string);
@@ -64,7 +68,108 @@ implementation
 
 uses
   UniDataReparacionesPrendas,
-  System.SysUtils, inLibMsgReparaciones;
+  System.SysUtils, inLibMsgReparaciones, inLibReparaciones,
+  inLibGlobalVar, inLibAppParamPersistenciaIntf, UniDataAppParamRepositorio;
+
+function TDatosFasesReparacion.LeerParametrosArreglos: TParametrosArreglos;
+var
+  Valor: TValorPerfilAppParam;
+begin
+  Result := Default(TParametrosArreglos);
+  for Valor in CrearRepositorioAppParamUniDAC(FConexion).
+    CargarValores('', oAll, 'ParametrosArreglos') do
+    if Valor.Subclave = 'FaseEmpezar' then
+      Result.FaseEmpezar := Valor.Valor
+    else if Valor.Subclave = 'FaseTerminar' then
+      Result.FaseTerminar := Valor.Valor;
+end;
+
+procedure TDatosFasesReparacion.GuardarParametrosArreglos(
+  const AParametros: TParametrosArreglos);
+var
+  Valores: TValoresPerfilAppParam;
+  Codigo: string;
+  Fase: TFaseReparacionCatalogo;
+  bValida, bPropia: Boolean;
+begin
+  for Codigo in TArray<string>.Create(AParametros.FaseEmpezar,
+    AParametros.FaseTerminar) do
+  begin
+    bValida := Codigo = '';
+    for Fase in Catalogo do
+      bValida := bValida or ((Fase.Codigo = Codigo) and
+        (Codigo <> FASE_ENTREGADA_CLIENTE));
+    if not bValida then
+      raise EArgumentException.Create(SFaseSeleccionar);
+  end;
+  SetLength(Valores, 2);
+  Valores[0].Subclave := 'FaseEmpezar';
+  Valores[0].Valor := AParametros.FaseEmpezar;
+  Valores[1].Subclave := 'FaseTerminar';
+  Valores[1].Valor := AParametros.FaseTerminar;
+  bPropia := not FConexion.InTransaction;
+  if bPropia then
+    FConexion.StartTransaction;
+  try
+    CrearRepositorioAppParamUniDAC(FConexion).GuardarValores(oAll,
+      'ParametrosArreglos', Valores);
+    if bPropia then
+      FConexion.Commit;
+  except
+    if bPropia then
+      FConexion.Rollback;
+    raise;
+  end;
+end;
+
+procedure TDatosFasesReparacion.AplicarFaseTrabajo(ALinea: Int64;
+  ATerminado: Boolean; const AUsuario: string);
+var
+  Parametros: TParametrosArreglos;
+  Cambio: TCambioFaseReparacion;
+  oDatos: TUniQuery;
+begin
+  Parametros := LeerParametrosArreglos;
+  Cambio := Default(TCambioFaseReparacion);
+  Cambio.Nueva := Parametros.FaseEmpezar;
+  if ATerminado then
+    Cambio.Nueva := Parametros.FaseTerminar;
+  if Cambio.Nueva <> '' then
+  begin
+    oDatos := Consulta('SELECT G.ID_GAR, G.CATEGORIA_GAR, ' +
+      '(SELECT COUNT(*) FROM fza_garantias_lineas T ' +
+      'WHERE T.ID_GAR_GARLIN = G.ID_GAR ' +
+      'AND T.TIPO_LINEA_GARLIN = ''' + LINEA_REPARACION_MANO_OBRA + ''' ' +
+      'AND T.FECHA_INICIO_GARLIN IS NOT NULL) AS INICIADAS, ' +
+      '(SELECT COUNT(*) FROM fza_garantias_lineas T ' +
+      'WHERE T.ID_GAR_GARLIN = G.ID_GAR ' +
+      'AND T.TIPO_LINEA_GARLIN = ''' + LINEA_REPARACION_MANO_OBRA + ''' ' +
+      'AND T.FECHA_FIN_GARLIN IS NULL) AS PENDIENTES ' +
+      'FROM fza_garantias_lineas L JOIN fza_garantias_reclamaciones G ' +
+      'ON G.ID_GAR = L.ID_GAR_GARLIN WHERE L.ID_GARLIN = :LINEA');
+    try
+      oDatos.ParamByName('LINEA').AsLargeInt := ALinea;
+      oDatos.Open;
+      if not oDatos.IsEmpty and
+        SameText(Trim(oDatos.FieldByName('CATEGORIA_GAR').AsString),
+          'ARREGLOS') and
+        (((not ATerminado) and
+          (oDatos.FieldByName('INICIADAS').AsInteger = 1)) or
+        (ATerminado and
+          (oDatos.FieldByName('PENDIENTES').AsInteger = 0))) then
+      begin
+        Cambio.Reparacion := oDatos.FieldByName('ID_GAR').AsLargeInt;
+        Cambio.Usuario := AUsuario;
+        Cambio.Observaciones := SParametrosArreglosCambioInicio;
+        if ATerminado then
+          Cambio.Observaciones := SParametrosArreglosCambioFin;
+        Cambiar(Cambio);
+      end;
+    finally
+      FreeAndNil(oDatos);
+    end;
+  end;
+end;
 
 constructor TDatosFasesReparacion.CreateDatos(AOwner: TComponent;
   AConexion: TUniConnection);

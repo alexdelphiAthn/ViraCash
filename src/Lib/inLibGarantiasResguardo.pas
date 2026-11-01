@@ -96,9 +96,11 @@ function FormatoResguardoGarantia(const ATipoImpresion: string):
 procedure CrearInformeResguardoGarantia(AInforme: TfrxReport;
   const ADatos: TResguardoGarantia; AFormato: TFormatoResguardoGarantia);
 function TituloDocumentoReparacion(ATipo: TDocumentoReparacion): string;
+function CopiasRecepcionReparacion(const ADatos: TResguardoGarantia):
+  TArray<string>;
 procedure CrearInformeDocumentoReparacion(AInforme: TfrxReport;
   const ADatos: TResguardoGarantia; ATipo: TDocumentoReparacion;
-  AFormato: TFormatoResguardoGarantia);
+  AFormato: TFormatoResguardoGarantia; const ACopia: string = '');
 
 procedure ImprimirResguardoGarantiaTicket(AInforme: TfrxReport;
   const APreview: IPreviewTicket; const AImpresora, ARutaPdf: string);
@@ -463,13 +465,22 @@ begin
   end;
 end;
 
+function CopiasRecepcionReparacion(const ADatos: TResguardoGarantia):
+  TArray<string>;
+begin
+  Result := TArray<string>.Create('');
+  if ADatos.Recepcion > 0 then
+    Result := TArray<string>.Create(SRecepcionCopiaCliente,
+      SRecepcionCopiaPrenda);
+end;
+
 procedure CrearInformeDocumentoReparacion(AInforme: TfrxReport;
   const ADatos: TResguardoGarantia; ATipo: TDocumentoReparacion;
-  AFormato: TFormatoResguardoGarantia);
+  AFormato: TFormatoResguardoGarantia; const ACopia: string);
 var
   oDiseno: TDisenoReparacion;
   dAncho, dAlto: Extended;
-  sReferencia, sFecha: string;
+  sReferencia, sFecha, sTitulo: string;
 begin
   dAncho := 210;
   dAlto := 297;
@@ -498,7 +509,10 @@ begin
       else if ADatos.ClaseServicio=CLASE_SERVICIO_ALTURA then
         AInforme.ReportOptions.Name := SOrdenAltura;
     end;
-    oDiseno.Cabecera(AInforme.ReportOptions.Name, sReferencia,
+    sTitulo := AInforme.ReportOptions.Name;
+    if (ATipo = drRecepcion) and (ACopia <> '') then
+      sTitulo := sTitulo + sLineBreak + ACopia;
+    oDiseno.Cabecera(sTitulo, sReferencia,
       Format(SImpresoFecha, [sFecha]));
     case ATipo of
       drRecepcion: ComponerRecepcion(oDiseno, ADatos);

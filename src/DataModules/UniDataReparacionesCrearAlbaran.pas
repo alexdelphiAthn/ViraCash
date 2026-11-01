@@ -155,7 +155,11 @@ begin
   begin
     sTercero := AOrden.FieldByName('CODIGO_CLI_GAR').AsString;
     if ASolicitud.Tipo = 'AS' then
+    begin
       sTercero := AOrden.FieldByName('CODIGO_CLI_PAGADOR_GAR').AsString;
+      if Trim(sTercero) = '' then
+        raise EArgumentException.Create(SCircuitoSinAseguradora);
+    end;
     ACabecera.FieldByName('CODIGO_CLI_ALB').AsString := sTercero;
     CopiarFicha(ACabecera, 'fza_clientes', sTercero, 'CLI', 'CLIENTE_ALB');
     ACabecera.FieldByName('ESIMP_INCL_TARIFA_CLIENTE_ALB').AsString := 'S';

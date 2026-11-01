@@ -23,7 +23,7 @@ resourcestring
   SCircuitoColAccion = 'Acción';
   SCircuitoColDetalle = 'Detalle';
   SCircuitoColNumero = 'Nº';
-  SCircuitoPestana = 'Ejecución y reparto';
+  SCircuitoPestana = 'Modo avanzado';
   SCircuitoAcuerdo = 'Acuerdo y aceptación';
   SCircuitoConcepto = 'Condiciones del concepto';
   SCircuitoTiempo = 'Registrar tiempo';
@@ -136,6 +136,13 @@ resourcestring
   SCircuitoFaltaEsquema = 'Actualiza el esquema del circuito de órdenes.';
   SCircuitoAlmacenDocumento =
     'Selecciona un almacén TALLER activo y compatible con la orden.';
+  SCircuitoProveedorLinea =
+    'El concepto no está asignado a ese proveedor. Indica la empresa ' +
+    'externa en «Lo hace» de la línea (Ficha > Trabajos) o usa su proveedor.';
+  SCircuitoSinAseguradora =
+    'La orden no tiene aseguradora pagadora. Indícala en Ficha > ' +
+    'Albaranes (Cliente de facturación / pagador) antes de crear el ' +
+    'albarán de la aseguradora.';
   SCircuitoCobroExistente =
     'La orden tiene cobro o ticket vinculado. Revisa ese documento antes ' +
     'de emitir otro albarán de venta.';

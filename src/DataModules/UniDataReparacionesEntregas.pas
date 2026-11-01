@@ -45,7 +45,7 @@ begin
       try
         if oLinea.FieldByName('CODIGO_PRV_GARLIN').AsString <>
            AEntrega.Proveedor then
-          raise EArgumentException.Create(SCircuitoConflicto);
+          raise EArgumentException.Create(SCircuitoProveedorLinea);
         if AEntrega.Id = 0 then
           oConsulta := Consulta('INSERT INTO fza_reparaciones_entregas ' +
             '(ID_GAR_RCE,ID_GARLIN_RCE,CODIGO_PRV_RCE,OBJETO_RCE,' +

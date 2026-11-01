@@ -16,6 +16,10 @@ unit inLibReparacionesFases;
 interface
 
 type
+  TParametrosArreglos = record
+    FaseEmpezar: string;
+    FaseTerminar: string;
+  end;
   TFaseReparacionCatalogo = record
     Codigo: string;
     Descripcion: string;

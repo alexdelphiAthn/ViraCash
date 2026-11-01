@@ -60,6 +60,7 @@ type
     property Circuito: TDatosCircuitoOrden read FCircuito;
     property Albaranes: TDatosAlbaranesOrden read FAlbaranes;
     procedure RefrescarLineas;
+    procedure RegistrarIncidencia(ALinea: Int64; const ATexto: string);
     procedure RefrescarLiquidaciones;
     function Lineas: TDataSource;
     function Liquidaciones: TDataSource;
@@ -192,6 +193,30 @@ begin
   // Abierta, sigue sola al expediente de la lista.
   if not FLineas.Active then
     FLineas.Open;
+end;
+
+procedure TDatosPantallaReparaciones.RegistrarIncidencia(ALinea: Int64;
+  const ATexto: string);
+var
+  oConsulta: TUniQuery;
+begin
+  if (Trim(ATexto) = '') or (Length(Trim(ATexto)) > 500) then
+    raise EArgumentException.Create(SIncidenciaTrabajoObligatoria);
+  oConsulta := NuevaConsulta('UPDATE fza_garantias_lineas L ' +
+    'JOIN fza_garantias_reclamaciones G ON G.ID_GAR=L.ID_GAR_GARLIN ' +
+    'SET L.ESINCIDENCIA_GARLIN=''S'', L.INCIDENCIA_GARLIN=:TEXTO, ' +
+    'L.INSTANTE_MODIF=NOW(), L.USUARIO_MODIF=:USUARIO ' +
+    'WHERE L.ID_GARLIN=:LINEA AND ' + SQL_REPARACION_ABIERTA);
+  try
+    oConsulta.ParamByName('TEXTO').AsString := Trim(ATexto);
+    oConsulta.ParamByName('USUARIO').AsString := Copy(FUsuario, 1, 100);
+    oConsulta.ParamByName('LINEA').AsLargeInt := ALinea;
+    oConsulta.Execute;
+    if oConsulta.RowsAffected = 0 then
+      raise EArgumentException.Create(SIncidenciaTrabajoNoEditable);
+  finally
+    FreeAndNil(oConsulta);
+  end;
 end;
 
 procedure TDatosPantallaReparaciones.RefrescarLineas;

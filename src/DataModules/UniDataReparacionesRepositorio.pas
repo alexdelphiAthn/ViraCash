@@ -43,6 +43,8 @@ type
       const AReparacionNueva: TReparacionNueva);
     function InsertarLinea(const ALinea: TLineaReparacion): Int64;
     procedure ModificarLinea(const ALinea: TLineaReparacion);
+    procedure AplicarFaseTrabajo(ALinea: Int64; ATerminado: Boolean;
+      const AUsuario: string);
     function CrearLiquidacion(const ASentido, AEmpresa, AProveedor: string;
       AHasta: TDateTime; ALinea: Int64;
       const AUsuario: string): TLiquidacionReparaciones;
@@ -608,25 +610,45 @@ end;
 
 procedure TRepositorioReparacionesUniDAC.EmpezarLinea(ALinea: Int64;
   AFecha: TDateTime; const AUsuario: string);
-var
-  oConsulta: TUniQuery;
 begin
-  oConsulta := NuevaConsulta(
-    'UPDATE fza_garantias_lineas L ' +
-    '  JOIN fza_garantias_reclamaciones G ON G.ID_GAR = L.ID_GAR_GARLIN ' +
-    '   SET L.FECHA_INICIO_GARLIN = :FECHA, L.INSTANTE_MODIF = NOW(), ' +
-    '       L.USUARIO_MODIF = :USUARIO ' +
-    ' WHERE L.ID_GARLIN = :ID ' +
-    '   AND L.TIPO_LINEA_GARLIN = ''' + LINEA_REPARACION_MANO_OBRA + ''' ' +
-    '   AND L.FECHA_INICIO_GARLIN IS NULL AND L.FECHA_FIN_GARLIN IS NULL ' +
-    '   AND ' + SQL_REPARACION_ABIERTA +
-    '   AND ' + SQL_REPARACION_PUEDE_EMPEZAR);
+  EnTransaccion(
+    procedure
+    var
+      oConsulta: TUniQuery;
+    begin
+      oConsulta := NuevaConsulta(
+        'UPDATE fza_garantias_lineas L ' +
+        '  JOIN fza_garantias_reclamaciones G ' +
+        '    ON G.ID_GAR = L.ID_GAR_GARLIN ' +
+        '   SET L.FECHA_INICIO_GARLIN = :FECHA, L.INSTANTE_MODIF = NOW(), ' +
+        '       L.USUARIO_MODIF = :USUARIO ' +
+        ' WHERE L.ID_GARLIN = :ID ' +
+        '   AND L.TIPO_LINEA_GARLIN = ''' + LINEA_REPARACION_MANO_OBRA +
+        ''' AND L.FECHA_INICIO_GARLIN IS NULL ' +
+        '   AND L.FECHA_FIN_GARLIN IS NULL ' +
+        '   AND ' + SQL_REPARACION_ABIERTA +
+        '   AND ' + SQL_REPARACION_PUEDE_EMPEZAR);
+      try
+        oConsulta.ParamByName('FECHA').AsDateTime := AFecha;
+        oConsulta.ParamByName('USUARIO').AsString := Copy(AUsuario, 1, 100);
+        Ejecutar(oConsulta, ALinea, SErrorEmpezarLineaReparacion);
+        AplicarFaseTrabajo(ALinea, False, AUsuario);
+      finally
+        FreeAndNil(oConsulta);
+      end;
+    end);
+end;
+
+procedure TRepositorioReparacionesUniDAC.AplicarFaseTrabajo(ALinea: Int64;
+  ATerminado: Boolean; const AUsuario: string);
+var
+  oFases: TDatosFasesReparacion;
+begin
+  oFases := TDatosFasesReparacion.CreateDatos(nil, FConexion);
   try
-    oConsulta.ParamByName('FECHA').AsDate := AFecha;
-    oConsulta.ParamByName('USUARIO').AsString := Copy(AUsuario, 1, 100);
-    Ejecutar(oConsulta, ALinea, SErrorEmpezarLineaReparacion);
+    oFases.AplicarFaseTrabajo(ALinea, ATerminado, AUsuario);
   finally
-    FreeAndNil(oConsulta);
+    FreeAndNil(oFases);
   end;
 end;
 
@@ -654,9 +676,10 @@ begin
         '   AND ' + SQL_REPARACION_ABIERTA +
         '   AND ' + SQL_REPARACION_PUEDE_EMPEZAR);
       try
-        oConsulta.ParamByName('FECHA').AsDate := AFecha;
+        oConsulta.ParamByName('FECHA').AsDateTime := AFecha;
         oConsulta.ParamByName('USUARIO').AsString := Copy(AUsuario, 1, 100);
         Ejecutar(oConsulta, ALinea, SErrorTerminarLineaReparacion);
+        AplicarFaseTrabajo(ALinea, True, AUsuario);
       finally
         FreeAndNil(oConsulta);
       end;
@@ -683,7 +706,7 @@ begin
     ''' AND L.FECHA_FIN_GARLIN IS NOT NULL ' +
     '   AND ' + SQL_REPARACION_ABIERTA);
   try
-    oConsulta.ParamByName('FECHA').AsDate := AFecha;
+    oConsulta.ParamByName('FECHA').AsDateTime := AFecha;
     oConsulta.ParamByName('INCIDENCIA').AsString :=
       Copy(Trim(AIncidencia), 1, 500);
     oConsulta.ParamByName('USUARIO').AsString := Copy(AUsuario, 1, 100);
@@ -929,12 +952,14 @@ begin
     Result :=
       ' L.TIPO_EJECUTOR_GARLIN = ''' + EJECUTOR_REPARACION_EXTERNO + ''' ' +
       'AND L.CODIGO_PRV_GARLIN = :PROVEEDOR ' +
-      'AND L.FECHA_FIN_GARLIN <= :HASTA AND L.ID_GARLIQ_GARLIN IS NULL '
+      'AND L.FECHA_FIN_GARLIN < DATE_ADD(:HASTA, INTERVAL 1 DAY) ' +
+      'AND L.ID_GARLIQ_GARLIN IS NULL '
   else
     Result :=
       ' G.MODALIDAD_GAR = ''' + MODALIDAD_REPARACION_GARANTIA + ''' ' +
       'AND G.CODIGO_PRV_GAR = :PROVEEDOR AND L.PRECIO_COSTE_GARLIN > 0 ' +
-      'AND (L.FECHA_FIN_GARLIN <= :HASTA OR (L.TIPO_LINEA_GARLIN = ''' +
+      'AND (L.FECHA_FIN_GARLIN < DATE_ADD(:HASTA, INTERVAL 1 DAY) ' +
+      'OR (L.TIPO_LINEA_GARLIN = ''' +
       LINEA_REPARACION_MATERIAL + ''' ' +
       '     AND G.FECHA_ENTREGA_CLI_GAR <= :HASTA)) ' +
       'AND L.ID_GARLIQ_CARGO_GARLIN IS NULL ';

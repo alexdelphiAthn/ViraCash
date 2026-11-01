@@ -50,6 +50,7 @@ type
     constructor CreatePanel(AOwner: TComponent; AParent: TWinControl;
       ADatos: TDatosPantallaReparaciones;
       const AEnlaces: TEnlacesReparaciones); override;
+    procedure AnadirPestana(APestana: TcxTabSheet);
   end;
 
 implementation
@@ -158,6 +159,11 @@ begin
   CrearColumna(FResumen, 'UTILIZADO', SCircuitoUtilizado, 95);
   CrearColumna(FResumen, 'DEVUELTO', SCircuitoDevuelto, 95);
   CrearDetalles;
+end;
+
+procedure TPanelCircuitoOrden.AnadirPestana(APestana: TcxTabSheet);
+begin
+  APestana.PageControl := FPestanas;
 end;
 
 procedure TPanelCircuitoOrden.CrearAcciones;

@@ -106,6 +106,13 @@ type
     FNombreClienteAlbaran: array[0..1] of TcxLabel;
     FCodigoClienteAlbaran: array[0..1] of string;
     tsConfiguracionReparaciones: TcxTabSheet;
+    tsParametrosArreglos: TcxTabSheet;
+    cbbFaseEmpezar: TcxComboBox;
+    cbbFaseTerminar: TcxComboBox;
+    FCatalogoParametros: TArray<TFaseReparacionCatalogo>;
+    procedure CrearParametrosArreglos;
+    procedure CargarParametrosArreglos(Sender: TObject);
+    procedure GuardarParametrosArreglos(Sender: TObject);
     function EscalarDpi(AValor: Integer): Integer;
     procedure CrearFiltros;
     procedure CrearBotones;
@@ -272,6 +279,7 @@ begin
     CrearBotonesReparacion;
     CrearFicha;
     CrearPestanasReparacion;
+    CrearParametrosArreglos;
     FControlesCreados := True;
   end;
   inherited;
@@ -859,7 +867,8 @@ var
   end;
 
 begin
-  tsAlbaranes := CrearPestana(SAlbaranesOrden);
+  tsAlbaranes := TcxTabSheet.Create(Self);
+  tsAlbaranes.Caption := SAlbaranesOrden;
   oDatos := TcxGroupBox.Create(Self);
   oDatos.Parent := tsAlbaranes;
   oDatos.Tag := ANCHO_NOMINAL_FASE;
@@ -1616,6 +1625,94 @@ begin
   end;
 end;
 
+procedure TfrmMtoGarantiasReclamaciones.CrearParametrosArreglos;
+var
+  Etiqueta: TcxLabel;
+  Boton: TcxButton;
+begin
+  tsParametrosArreglos := TcxTabSheet.Create(Self);
+  tsParametrosArreglos.PageControl := pcPantalla;
+  tsParametrosArreglos.Caption := SParametrosArreglosTitulo;
+  Etiqueta := TcxLabel.Create(Self);
+  Etiqueta.Parent := tsParametrosArreglos;
+  Etiqueta.AutoSize := False;
+  Etiqueta.Properties.WordWrap := True;
+  Etiqueta.Caption := SParametrosArreglosAyuda;
+  Etiqueta.SetBounds(EscalarDpi(16), EscalarDpi(16),
+    EscalarDpi(1000), EscalarDpi(50));
+  ColocarRotulo(tsParametrosArreglos, SParametrosArreglosEmpezar, 0, 2);
+  cbbFaseEmpezar := TcxComboBox.Create(Self);
+  ColocarEditor(cbbFaseEmpezar, tsParametrosArreglos, 0, 2, 350, False);
+  cbbFaseEmpezar.Properties.DropDownListStyle := lsFixedList;
+  ColocarRotulo(tsParametrosArreglos, SParametrosArreglosTerminar, 0, 4);
+  cbbFaseTerminar := TcxComboBox.Create(Self);
+  ColocarEditor(cbbFaseTerminar, tsParametrosArreglos, 0, 4, 350, False);
+  cbbFaseTerminar.Properties.DropDownListStyle := lsFixedList;
+  cbbFaseEmpezar.Left := EscalarDpi(320);
+  cbbFaseTerminar.Left := EscalarDpi(320);
+  Boton := TcxButton.Create(Self);
+  Boton.Parent := tsParametrosArreglos;
+  Boton.Caption := SParametrosArreglosGuardar;
+  Boton.SetBounds(EscalarDpi(16), EscalarDpi(200),
+    EscalarDpi(180), EscalarDpi(34));
+  Boton.OnClick := GuardarParametrosArreglos;
+  Boton := TcxButton.Create(Self);
+  Boton.Parent := tsParametrosArreglos;
+  Boton.Caption := SCaptionGarantiaRefrescar;
+  Boton.SetBounds(EscalarDpi(210), EscalarDpi(200),
+    EscalarDpi(130), EscalarDpi(34));
+  Boton.OnClick := CargarParametrosArreglos;
+end;
+
+procedure TfrmMtoGarantiasReclamaciones.CargarParametrosArreglos(
+  Sender: TObject);
+var
+  Parametros: TParametrosArreglos;
+  Fase: TFaseReparacionCatalogo;
+  i: Integer;
+begin
+  Parametros := dmmGarantias.Reparaciones.Fases.LeerParametrosArreglos;
+  cbbFaseEmpezar.Properties.Items.Clear;
+  cbbFaseTerminar.Properties.Items.Clear;
+  Fase := Default(TFaseReparacionCatalogo);
+  Fase.Descripcion := SParametrosArreglosSinCambio;
+  FCatalogoParametros := [Fase];
+  for Fase in dmmGarantias.Reparaciones.Fases.Catalogo do
+    if Fase.Codigo <> FASE_ENTREGADA_CLIENTE then
+      FCatalogoParametros := FCatalogoParametros + [Fase];
+  cbbFaseEmpezar.ItemIndex := -1;
+  cbbFaseTerminar.ItemIndex := -1;
+  for i := 0 to High(FCatalogoParametros) do
+  begin
+    Fase := FCatalogoParametros[i];
+    cbbFaseEmpezar.Properties.Items.Add(Fase.Descripcion);
+    cbbFaseTerminar.Properties.Items.Add(Fase.Descripcion);
+    if Fase.Codigo = Parametros.FaseEmpezar then
+      cbbFaseEmpezar.ItemIndex := i;
+    if Fase.Codigo = Parametros.FaseTerminar then
+      cbbFaseTerminar.ItemIndex := i;
+  end;
+end;
+
+procedure TfrmMtoGarantiasReclamaciones.GuardarParametrosArreglos(
+  Sender: TObject);
+var
+  Parametros: TParametrosArreglos;
+begin
+  if PuedeAccionMto(apmModificar) then
+  begin
+    if (cbbFaseEmpezar.ItemIndex < 0) or
+      (cbbFaseTerminar.ItemIndex < 0) then
+      raise EArgumentException.Create(SFaseSeleccionar);
+    Parametros.FaseEmpezar :=
+      FCatalogoParametros[cbbFaseEmpezar.ItemIndex].Codigo;
+    Parametros.FaseTerminar :=
+      FCatalogoParametros[cbbFaseTerminar.ItemIndex].Codigo;
+    dmmGarantias.Reparaciones.Fases.GuardarParametrosArreglos(Parametros);
+    ShowMessage_fza(SParametrosArreglosGuardados);
+  end;
+end;
+
 procedure TfrmMtoGarantiasReclamaciones.CrearPestanasReparacion;
 begin
   tsFasesActuales := TcxTabSheet.Create(Self);
@@ -1644,7 +1741,7 @@ begin
   tsConfiguracionReparaciones := TcxTabSheet.Create(Self);
   tsConfiguracionReparaciones.PageControl := pcPantalla;
   tsConfiguracionReparaciones.Caption := SCaptionPestanaTiposExternos;
-  tsTrabajos.PageIndex := tsAlbaranes.PageIndex + 1;
+  tsTrabajos.PageIndex := tsEntregaCli.PageIndex + 1;
   tsFotosReparacion.PageIndex := tsTrabajos.PageIndex + 1;
   tsMovimientos.PageIndex := tsFotosReparacion.PageIndex + 1;
   tsFasesActuales.PageIndex := tsMovimientos.PageIndex + 1;
@@ -1671,6 +1768,7 @@ begin
   tsCircuito.TabVisible := FEsReparaciones;
   tsAlbaranes.TabVisible := FEsReparaciones;
   tsConfiguracionReparaciones.TabVisible := FEsReparaciones;
+  tsParametrosArreglos.TabVisible := FEsReparaciones;
   if FEsReparaciones then
     Caption := STituloReparacionesGarantias;
   NumerarPestanasAtajo(pcFases);
@@ -1763,6 +1861,8 @@ begin
 end;
 
 procedure TfrmMtoGarantiasReclamaciones.CrearPanelesReparacion;
+var
+  oCircuito: TPanelCircuitoOrden;
 begin
   FPanelFases := TPanelFasesReparacion.CreatePanel(Self, tsFasesActuales,
     dmmGarantias.Reparaciones, Enlaces);
@@ -1771,11 +1871,13 @@ begin
   FPanelFotos := TPanelFotosReparacion.CreatePanel(Self, tsFotosReparacion,
     dmmGarantias.Reparaciones, Enlaces);
   FPanelFotos.Configurar(ParametrosApp);
+  CargarParametrosArreglos(nil);
   FPanelFotos.MostrarReparacion(Enlaces.ReparacionActual());
   if FEsReparaciones then
   begin
-    TPanelCircuitoOrden.CreatePanel(Self, tsCircuito,
+    oCircuito := TPanelCircuitoOrden.CreatePanel(Self, tsCircuito,
       dmmGarantias.Reparaciones, Enlaces);
+    oCircuito.AnadirPestana(tsAlbaranes);
     TPanelLineasReparacion.CreatePanel(Self, tsTrabajos,
       dmmGarantias.Reparaciones, Enlaces);
     TPanelAlbaranesOrden.CreatePara(Self, tsAlbaranesCliente,
