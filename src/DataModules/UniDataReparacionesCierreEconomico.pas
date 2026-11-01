@@ -52,7 +52,13 @@ var
   oConsulta: TUniQuery;
 begin
   oConsulta := Consulta('SELECT 1 FROM fza_reparaciones_imputaciones ' +
-    'WHERE ID_GAR_RCI=:ORDEN AND TIPO_RCI IN (''CL'',''TC'') LIMIT 1');
+    'WHERE ID_GAR_RCI=:ORDEN AND TIPO_RCI IN (''CL'',''TC'') ' +
+    'UNION ALL SELECT 1 FROM fza_reparaciones_albaranes V ' +
+    'JOIN fza_albaranes D ON D.SERIE_ALB=V.SERIE_GARALB ' +
+    'AND D.NUMERO_ALB=V.NUMERO_GARALB ' +
+    'JOIN fza_garantias_reclamaciones G ON G.ID_GAR=V.ID_GAR_GARALB ' +
+    'WHERE G.ID_GAR=:ORDEN AND V.TIPO_GARALB=''CL'' ' +
+    'AND D.CODIGO_CLI_ALB=G.CODIGO_CLI_GAR LIMIT 1');
   try
     oConsulta.ParamByName('ORDEN').AsLargeInt := AOrden;
     oConsulta.Open;

@@ -382,7 +382,20 @@ begin
     'CODIGO_CLI_PAGADOR_GAR <=> :CODIGO_CLI_PAGADOR_GAR AND ' +
     'FRANQUICIA_GAR <=> :FRANQUICIA_GAR) OR NOT EXISTS (' +
     'SELECT 1 FROM fza_reparaciones_albaranes V ' +
-    'WHERE V.ID_GAR_GARALB=fza_garantias_reclamaciones.ID_GAR))';
+    'WHERE V.ID_GAR_GARALB=fza_garantias_reclamaciones.ID_GAR) OR (' +
+    'COALESCE(CODIGO_CLI_PAGADOR_GAR,'''')='''' ' +
+    'AND NULLIF(:CODIGO_CLI_PAGADOR_GAR,'''') IS NOT NULL ' +
+    'AND CODIGO_CLI_GAR <=> :CODIGO_CLI_GAR ' +
+    'AND FRANQUICIA_GAR <=> :FRANQUICIA_GAR ' +
+    'AND NOT EXISTS (SELECT 1 FROM fza_reparaciones_albaranes V ' +
+    'LEFT JOIN fza_albaranes D ON D.SERIE_ALB=V.SERIE_GARALB ' +
+    'AND D.NUMERO_ALB=V.NUMERO_GARALB ' +
+    'WHERE V.ID_GAR_GARALB=fza_garantias_reclamaciones.ID_GAR ' +
+    'AND V.TIPO_GARALB=''CL'' ' +
+    'AND COALESCE(D.CODIGO_CLI_ALB,'''')<>:CODIGO_CLI_GAR) ' +
+    'AND NOT EXISTS (SELECT 1 FROM fza_reparaciones_imputaciones I ' +
+    'WHERE I.ID_GAR_RCI=fza_garantias_reclamaciones.ID_GAR ' +
+    'AND I.TIPO_RCI=''AS'')))';
 end;
 
 function SqlRefrescoGarantia: string;
@@ -468,6 +481,26 @@ begin
         oConsulta.Close;
         oConsulta.SQL.Text := 'SELECT 1 FROM fza_reparaciones_albaranes ' +
           'WHERE ID_GAR_GARALB=:ID LIMIT 1';
+        // Añadir un pagador vacío no cambia las ventas ya emitidas para
+        // el titular. No se permite si ya hay documentación de aseguradora.
+        if (sCampo = 'CODIGO_CLI_PAGADOR_GAR') and
+           (Trim(VarToStr(DataSet.FieldByName(sCampo).OldValue)) = '') and
+           (VarToStr(DataSet.FieldByName('CODIGO_CLI_GAR').OldValue) =
+            VarToStr(DataSet.FieldByName('CODIGO_CLI_GAR').Value)) and
+           (VarToStr(DataSet.FieldByName('FRANQUICIA_GAR').OldValue) =
+            VarToStr(DataSet.FieldByName('FRANQUICIA_GAR').Value)) then
+        begin
+          oConsulta.SQL.Text :=
+            'SELECT 1 FROM fza_reparaciones_albaranes V ' +
+            'LEFT JOIN fza_albaranes D ON D.SERIE_ALB=V.SERIE_GARALB ' +
+            'AND D.NUMERO_ALB=V.NUMERO_GARALB ' +
+            'WHERE V.ID_GAR_GARALB=:ID AND V.TIPO_GARALB=''CL'' ' +
+            'AND COALESCE(D.CODIGO_CLI_ALB,'''')<>:TITULAR ' +
+            'UNION ALL SELECT 1 FROM fza_reparaciones_imputaciones ' +
+            'WHERE ID_GAR_RCI=:ID AND TIPO_RCI=''AS'' LIMIT 1';
+          oConsulta.ParamByName('TITULAR').AsString :=
+            DataSet.FieldByName('CODIGO_CLI_GAR').AsString;
+        end;
         oConsulta.ParamByName('ID').AsLargeInt :=
           DataSet.FieldByName('ID_GAR').AsLargeInt;
         oConsulta.Open;

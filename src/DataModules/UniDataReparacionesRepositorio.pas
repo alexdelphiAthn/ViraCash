@@ -80,6 +80,9 @@ type
       const AUsuario: string);
   end;
 
+function ExigirEntregaReparacion(AConexion: TUniConnection;
+  AOrden: Int64; const AUsuario: string): string;
+
 procedure AsignarNumeroOrdenReparacion(AConexion: TUniConnection;
   AId: Int64; const AUsuario: string);
 
@@ -456,7 +459,8 @@ var
   oConsulta: TUniQuery;
 begin
   oConsulta := NuevaConsulta('UPDATE fza_garantias_reclamaciones ' +
-    'SET CODIGO_GARFA_GAR = ''EN_RECEPCION'' WHERE ID_GAR = :ID');
+    'SET CODIGO_GARFA_GAR = IF(FECHA_RECEPCION_GAR IS NULL, ' +
+    '''EN_RECEPCION'', ''EN_TALLER'') WHERE ID_GAR = :ID');
   oFases := TDatosFasesReparacion.CreateDatos(nil, FConexion);
   try
     oConsulta.ParamByName('ID').AsLargeInt := AReparacion;
@@ -811,6 +815,23 @@ begin
     ATieneLiquidaciones := oConsulta.FieldByName('LIQUIDADAS').AsInteger > 0;
   finally
     FreeAndNil(oConsulta);
+  end;
+end;
+
+function ExigirEntregaReparacion(AConexion: TUniConnection;
+  AOrden: Int64; const AUsuario: string): string;
+var
+  oRepositorio: TRepositorioReparacionesUniDAC;
+  bLiquidada: Boolean;
+begin
+  oRepositorio := TRepositorioReparacionesUniDAC.Create(AConexion);
+  try
+    Result := FaseReparacion(oRepositorio.Situacion(AOrden, bLiquidada));
+    if not PuedeEntregarReparacion(Result) then
+      raise EFaseReparacion.CreateFmt(SErrorEntregarReparacion, [AOrden]);
+    ComprobarEntregaCircuito(AConexion, AOrden, AUsuario);
+  finally
+    FreeAndNil(oRepositorio);
   end;
 end;
 

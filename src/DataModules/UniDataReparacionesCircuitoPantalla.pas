@@ -322,13 +322,20 @@ begin
 end;
 
 procedure TDatosCircuitoOrden.Refrescar;
+var
+  iLinea: Int64;
 begin
   if FDisponible and not FActualizando then
   begin
     FActualizando := True;
+    iLinea := 0;
+    if not FResumen.IsEmpty then
+      iLinea := FResumen.FieldByName('LINEA').AsLargeInt;
     FResumen.DisableControls;
     try
       CargarResumen;
+      if iLinea > 0 then
+        FResumen.Locate('LINEA', iLinea, []);
       AbrirDetalle(FTiempos);
       AbrirDetalle(FMateriales);
       AbrirDetalle(FHistorial);

@@ -60,6 +60,7 @@ type
     property Circuito: TDatosCircuitoOrden read FCircuito;
     property Albaranes: TDatosAlbaranesOrden read FAlbaranes;
     procedure RefrescarLineas;
+    procedure ComprobarEntrega(AOrden: Int64);
     procedure RegistrarIncidencia(ALinea: Int64; const ATexto: string);
     procedure RefrescarLiquidaciones;
     function Lineas: TDataSource;
@@ -217,6 +218,11 @@ begin
   finally
     FreeAndNil(oConsulta);
   end;
+end;
+
+procedure TDatosPantallaReparaciones.ComprobarEntrega(AOrden: Int64);
+begin
+  ExigirEntregaReparacion(FConexion, AOrden, FUsuario);
 end;
 
 procedure TDatosPantallaReparaciones.RefrescarLineas;

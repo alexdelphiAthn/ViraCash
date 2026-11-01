@@ -9,6 +9,17 @@ unit inLibMsgReparacionesCircuito;
 interface
 
 resourcestring
+  SCircuitoSinOrden = 'Sin orden seleccionada';
+  SCircuitoDocumentoNoDisponible =
+    'No se encuentra esa línea de documento para el destinatario de la ' +
+    'orden. Revisa serie, número y línea.';
+  SCircuitoImporteDocumento =
+    'El importe supera lo disponible en esa línea del documento.';
+  SCircuitoDatosDocumento =
+    'Indica un destinatario válido, la serie, una fecha válida y un ' +
+    'importe y cantidad mayores que cero.';
+  SCircuitoEmpresaExterna = 'Proveedor externo';
+  SCircuitoCampoFormato = 'Revisa el formato del campo «%s».';
   SCircuitoColTotal = 'Total';
   SCircuitoColCliente = 'Cliente';
   SCircuitoColAseguradora = 'Aseguradora';
@@ -131,8 +142,8 @@ resourcestring
   SCircuitoDocumentado =
     'Hay importes documentados. Conserva el reparto o corrige los documentos.';
   SCircuitoPendiente =
-    'Resuelve las autorizaciones, los tiempos abiertos ' +
-    'y las entregas externas.';
+    'Termina las líneas de mano de obra y resuelve las autorizaciones, ' +
+    'las sesiones de trabajo abiertas y las entregas externas.';
   SCircuitoFaltaEsquema = 'Actualiza el esquema del circuito de órdenes.';
   SCircuitoAlmacenDocumento =
     'Selecciona un almacén TALLER activo y compatible con la orden.';

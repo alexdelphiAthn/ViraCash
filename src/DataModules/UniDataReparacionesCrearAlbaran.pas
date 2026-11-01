@@ -181,7 +181,8 @@ begin
     sTipoIva := 'N';
   if (sTipoIva <> 'N') and (sTipoIva <> 'R') and
      (sTipoIva <> 'S') and (sTipoIva <> 'E') then
-    raise EArgumentException.Create(SCircuitoRepartoInvalido);
+    raise EArgumentException.CreateFmt(SCircuitoCampoFormato,
+      [SCircuitoTipoIva]);
   // El concepto se documenta libremente, sin identificar una pieza de stock.
   ALinea.FieldByName('SERIE_' + sSufijo + '_' + sLinea).AsString :=
     ACabecera.FieldByName('SERIE_' + sSufijo).AsString;
@@ -318,7 +319,7 @@ var
 begin
   Result := nil;
   if (APlantilla.Tipo<>'CL') and (APlantilla.Tipo<>'AS') then
-    raise EArgumentException.Create(SCircuitoRepartoInvalido);
+    raise EArgumentException.Create(SCircuitoDatosDocumento);
   oCobertura := TRepositorioCoberturaOrden.Create(FConexion,FUsuario);
   oImputaciones := TRepositorioImputacionesOrden.Create(FConexion,FUsuario);
   try
@@ -347,7 +348,7 @@ var
   rCreado: TDocumentoOrdenCreado;
 begin
   if (APlantilla.Serie='') or (APlantilla.Fecha<=0) then
-    raise EArgumentException.Create(SCircuitoRepartoInvalido);
+    raise EArgumentException.Create(SCircuitoDatosDocumento);
   Transaccion(
     procedure
     begin
@@ -366,7 +367,7 @@ begin
       (ASolicitud.Tipo <> 'PR')) or
      (ASolicitud.Importe <= 0) or (ASolicitud.Cantidad <= 0) or
      (Trim(ASolicitud.Serie) = '') or (ASolicitud.Fecha <= 0) then
-    raise EArgumentException.Create(SCircuitoRepartoInvalido);
+    raise EArgumentException.Create(SCircuitoDatosDocumento);
   Transaccion(
     procedure
     begin

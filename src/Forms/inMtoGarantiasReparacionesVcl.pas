@@ -330,8 +330,16 @@ begin
   CrearColumna(FVista, 'EJECUTOR', SColEjecutor, 170);
   CrearColumna(FVista, 'CODIGO_UNIDAD_GARLIN', SCircuitoCodigoManual, 130);
   CrearColumna(FVista, 'CANTIDAD_GARLIN', SColCantidadLinea, 70);
-  CrearColumna(FVista, 'IMPORTE_CLIENTE', SColImporteCliente, 90);
-  CrearColumna(FVista, 'IMPORTE_COSTE', SColImporteCoste, 90);
+  oColumna := CrearColumna(FVista, 'IMPORTE_CLIENTE',
+    SColImporteCliente, 90);
+  oColumna.PropertiesClass := TcxCurrencyEditProperties;
+  TcxCurrencyEditProperties(oColumna.Properties).DisplayFormat :=
+    '#,##0.00';
+  oColumna := CrearColumna(FVista, 'IMPORTE_COSTE',
+    SColImporteCoste, 90);
+  oColumna.PropertiesClass := TcxCurrencyEditProperties;
+  TcxCurrencyEditProperties(oColumna.Properties).DisplayFormat :=
+    '#,##0.00';
   for sCampo in TArray<string>.Create('FECHA_INICIO_GARLIN',
     'FECHA_FIN_GARLIN') do
   begin

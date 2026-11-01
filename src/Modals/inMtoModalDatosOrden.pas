@@ -9,16 +9,19 @@ unit inMtoModalDatosOrden;
 interface
 
 uses
-  System.Classes, Vcl.Forms, cxTextEdit, inMtoModalAceptCancel;
+  System.Classes, Vcl.Forms, cxTextEdit, Vcl.Controls, inMtoModalAceptCancel;
 
 type
   TfrmModalDatosOrden = class(TfrmModalAceptCancel)
   private
-    FEditores: TArray<TcxTextEdit>;
+    FEditores: TArray<TcxCustomTextEdit>;
     procedure CrearCampos(const ARotulos: array of string;
       const AValores: TArray<string>; const ALongitudes: array of Integer);
     procedure CerrarSinLiberar(Sender: TObject; var Action: TCloseAction);
     procedure MostrarCampos(Sender: TObject);
+    procedure TeclaEditor(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
+    function Opciones(const ARotulo: string): TArray<string>;
   public
     class function Ejecutar(AOwner: TComponent; const ATitulo: string;
       const ARotulos: array of string; var AValores: TArray<string>): Boolean;
@@ -33,13 +36,46 @@ type
 implementation
 
 uses
-  System.SysUtils, System.Math, cxLabel;
+  System.SysUtils, System.Math, cxLabel, cxDropDownEdit,
+  inLibMsgReparacionesCircuito;
+
+function TfrmModalDatosOrden.Opciones(
+  const ARotulo: string): TArray<string>;
+begin
+  Result := nil;
+  if (ARotulo = SCircuitoAutorizado) or (ARotulo = SCircuitoAceptado) or
+     (ARotulo = SCircuitoPropia) then
+    Result := ['S', 'N']
+  else if ARotulo = SCircuitoTipoIva then
+    Result := ['N', 'R', 'S', 'E']
+  else if ARotulo = SCircuitoTipoVenta then
+    Result := ['CL', 'AS']
+  else if ARotulo = SCircuitoTipoDoc then
+    Result := ['CL', 'AS', 'PR']
+  else if ARotulo = SCircuitoTipoImputacion then
+    Result := ['CL', 'AS', 'PR', 'TC']
+  else if ARotulo = SCircuitoProcedencia then
+    Result := ['ALMACEN', 'COMPRA', 'CLIENTE', 'EXTERNO'];
+end;
+
+procedure TfrmModalDatosOrden.TeclaEditor(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if (Key = Ord('A')) and (ssCtrl in Shift) then
+  begin
+    TcxCustomTextEdit(Sender).SelectAll;
+    Key := 0;
+  end;
+end;
 
 procedure TfrmModalDatosOrden.CrearCampos(const ARotulos: array of string;
   const AValores: TArray<string>; const ALongitudes: array of Integer);
 var
   i, iFilas, iColumna, iFila: Integer;
   oRotulo: TcxLabel;
+  aOpciones: TArray<string>;
+  oLista: TcxComboBox;
+  sOpcion: string;
 begin
   iFilas := Min(9, Length(ARotulos));
   ClientWidth := ScaleValue(460 * Ceil(Length(ARotulos) / iFilas));
@@ -59,7 +95,18 @@ begin
     oRotulo.Caption := ARotulos[i];
     oRotulo.SetBounds(ScaleValue(12 + iColumna * 460),
       ScaleValue(8 + iFila * 55), ScaleValue(430), ScaleValue(22));
-    FEditores[i] := TcxTextEdit.Create(Self);
+    aOpciones := Opciones(ARotulos[i]);
+    if Length(aOpciones) > 0 then
+    begin
+      oLista := TcxComboBox.Create(Self);
+      oLista.Properties.DropDownListStyle := lsFixedList;
+      for sOpcion in aOpciones do
+        oLista.Properties.Items.Add(sOpcion);
+      FEditores[i] := oLista;
+    end
+    else
+      FEditores[i] := TcxTextEdit.Create(Self);
+    FEditores[i].OnKeyDown := TeclaEditor;
     FEditores[i].Parent := pnlBody;
     FEditores[i].SetBounds(ScaleValue(12 + iColumna * 460),
       ScaleValue(30 + iFila * 55), ScaleValue(430), ScaleValue(26));

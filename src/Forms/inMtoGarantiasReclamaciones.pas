@@ -202,6 +202,8 @@ type
     procedure CrearFaseReparacion;
     procedure MedidasInstalacionClick(Sender: TObject);
     procedure CrearPestanasReparacion;
+    procedure AjustarAltoFicha(Sender: TObject);
+    procedure DesplazarFase(APagina: TcxTabSheet);
     procedure CrearAlbaranesOrden;
     procedure AjustarRotulos(AParent: TWinControl);
     procedure ActualizarRepartoTrabajo;
@@ -219,6 +221,7 @@ type
     procedure btnNuevaReparacionClick(Sender: TObject);
     procedure btnEntregarReparacionClick(Sender: TObject);
     procedure btnAnularReparacionClick(Sender: TObject);
+    function PrepararDocumentoEntrega: Boolean;
     function PedirTicketCobro(out ASerie, ANumero: string): Boolean;
     procedure EjecutarReparacion(AAccion: TProc);
     procedure AvisarFase(const AAviso: TAvisoFaseReparacion);
@@ -237,6 +240,8 @@ implementation
 
 uses
   inMtoReparacionesCircuitoVcl, inLibMsgReparacionesCircuito,
+  UniDataReparacionesDocumentoMemoria, inMtoModalDatosOrden,
+  cxScrollBox,
   inMtoModalTrabajoCortina, inLibPermisosIntf, inLibFiltroUsuario,
   inLibShowMto, System.Math, Uni, inLibGenBusq, inLibMsgVentas,
   inMtoModalAvisoReparacion, inLibCorreoReparaciones,
@@ -280,6 +285,12 @@ begin
     CrearFicha;
     CrearPestanasReparacion;
     CrearParametrosArreglos;
+    DesplazarFase(tsRecepcion);
+    DesplazarFase(tsEnvioFab);
+    DesplazarFase(tsEntregaCli);
+    DesplazarFase(tsReparacion);
+    tsFicha.OnResize := AjustarAltoFicha;
+    AjustarAltoFicha(nil);
     FControlesCreados := True;
   end;
   inherited;
@@ -500,9 +511,8 @@ begin
          iColumna * iPaso + EscalarDpi(AnchoRotulo(AParent)) then
       begin
         oControl.Left := oControl.Left + iDesplazamiento;
-        if akRight in oControl.Anchors then
-          oControl.Width := Max(EscalarDpi(60),
-            oControl.Width - iDesplazamiento);
+        oControl.Width := Max(EscalarDpi(60),
+          oControl.Width - iDesplazamiento);
       end;
     end;
   end;
@@ -994,6 +1004,40 @@ begin
         lblRepartoTrabajo.Caption := sReparto;
     end;
   end;
+end;
+
+procedure TfrmMtoGarantiasReclamaciones.AjustarAltoFicha(Sender: TObject);
+begin
+  if Assigned(FScrollFicha) and (tsFicha.ClientHeight > 0) then
+    FScrollFicha.Height := Min(pnlFicha.Height,
+      Max(EscalarDpi(100), tsFicha.ClientHeight div 3));
+end;
+
+procedure TfrmMtoGarantiasReclamaciones.DesplazarFase(
+  APagina: TcxTabSheet);
+var
+  oScroll: TcxScrollBox;
+  oControl: TControl;
+  i: Integer;
+begin
+  oScroll := TcxScrollBox.Create(Self);
+  oScroll.Parent := APagina;
+  oScroll.Align := alClient;
+  oScroll.BorderStyle := cxcbsNone;
+  oScroll.HorzScrollBar.Range := EscalarDpi(ANCHO_NOMINAL_FASE);
+  // Reubicar antes de mostrar evita que los anclajes de una pestaña oculta
+  // agranden el editor de la primera columna al escalar Windows.
+  for i := APagina.ControlCount - 1 downto 0 do
+  begin
+    oControl := APagina.Controls[i];
+    if oControl <> oScroll then
+    begin
+      oControl.Anchors := [akLeft, akTop];
+      oControl.Parent := oScroll;
+    end;
+  end;
+  txtModalidadFicha.Width := EscalarDpi(ANCHO_NOMINAL_FASE div 2 -
+    MARGEN_FICHA * 2 - ANCHO_ROTULO_FASE);
 end;
 
 procedure TfrmMtoGarantiasReclamaciones.CrearFicha;
@@ -1982,13 +2026,44 @@ begin
       [mbYes, mbNo], 0, mbNo) = mrYes;
 end;
 
+function TfrmMtoGarantiasReclamaciones.PrepararDocumentoEntrega: Boolean;
+var
+  rSolicitud: TDocumentoOrdenNuevo;
+  rCreado: TDocumentoOrdenCreado;
+  aValores: TArray<string>;
+begin
+  Result := False;
+  if MessageDlg_fza(SPreguntaDocumentoEntrega, mtConfirmation,
+    [mbYes, mbNo], 0, mbYes) = mrYes then
+  begin
+    aValores := ['', 'N'];
+    if TfrmModalDatosOrden.Ejecutar(Self, SCircuitoTodos,
+      [SCircuitoSerieDoc, SCircuitoTipoIva], aValores, [20, 1]) then
+    begin
+      rSolicitud := Default(TDocumentoOrdenNuevo);
+      rSolicitud.Orden := IdActual;
+      rSolicitud.Tipo := 'CL';
+      rSolicitud.Serie := aValores[0];
+      rSolicitud.TipoIva := aValores[1];
+      rSolicitud.Fecha := Date;
+      rCreado := dmmGarantias.Reparaciones.Circuito.Generador.
+        CrearPendientes(rSolicitud);
+      dmmGarantias.Reparaciones.RefrescarLineas;
+      Enlaces.AbrirAlbaran(False, rCreado.Serie, rCreado.Numero);
+    end;
+  end;
+end;
+
 function TfrmMtoGarantiasReclamaciones.ConfirmarCobroEntrega(
   out ASerie, ANumero: string): Boolean;
 begin
   ASerie := '';
   ANumero := '';
   Result := True;
-  if dmmGarantias.Reparaciones.Circuito.Gestionada(IdActual) then
+  if dmmGarantias.Reparaciones.Circuito.Disponible and
+     (dmmGarantias.Reparaciones.Circuito.Gestionada(IdActual) or
+      dmmGarantias.Reparaciones.Circuito.Cierre.
+        TieneDocumentosCliente(IdActual)) then
   begin
     if dmmGarantias.Reparaciones.Circuito.Cierre.SaldoCliente(IdActual)>0 then
       Result := MessageDlg_fza(SPreguntaEntregarSinCobro, mtWarning,
@@ -2001,7 +2076,12 @@ begin
     dmmGarantias.unqryTablaG.FieldByName('TOTAL_CLIENTE_REP').AsCurrency) and
     (Trim(dmmGarantias.unqryTablaG.FieldByName(
       'CODIGO_CLI_PAGADOR_GAR').AsString) = '') then
-    Result := PedirTicketCobro(ASerie,ANumero);
+  begin
+    if dmmGarantias.Reparaciones.Circuito.Disponible then
+      Result := PrepararDocumentoEntrega
+    else
+      Result := PedirTicketCobro(ASerie, ANumero);
+  end;
 end;
 
 procedure TfrmMtoGarantiasReclamaciones.btnEntregarReparacionClick(
@@ -2009,12 +2089,16 @@ procedure TfrmMtoGarantiasReclamaciones.btnEntregarReparacionClick(
 var
   sSerie, sNumero: string;
 begin
-  if HayReclamacion and ConfirmarCobroEntrega(sSerie,sNumero) then
+  if HayReclamacion then
     EjecutarReparacion(
       procedure
       begin
-        dmmGarantias.Reparaciones.Reparaciones.Entregar(IdActual,Date,
-          sNumero<>'',sSerie,sNumero,dmmGarantias.IdentidadSesion.Usuario);
+        Enlaces.GuardarOrden();
+        dmmGarantias.Reparaciones.ComprobarEntrega(IdActual);
+        if ConfirmarCobroEntrega(sSerie, sNumero) then
+          dmmGarantias.Reparaciones.Reparaciones.Entregar(IdActual, Date,
+            sNumero <> '', sSerie, sNumero,
+            dmmGarantias.IdentidadSesion.Usuario);
       end);
 end;
 

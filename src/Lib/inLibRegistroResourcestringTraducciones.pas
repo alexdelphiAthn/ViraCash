@@ -33727,6 +33727,34 @@ begin
     'src/Lib/inLibMsgReparaciones.pas',
     @inLibMsgReparaciones.SFaseHistorialAvisos);
 
+  ARegistrar('inLibMsgReparaciones.SPreguntaDocumentoEntrega',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SPreguntaDocumentoEntrega);
+
+  ARegistrar('inLibMsgReparacionesCircuito.SCircuitoEmpresaExterna',
+    'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoEmpresaExterna);
+
+  ARegistrar('inLibMsgReparacionesCircuito.SCircuitoCampoFormato',
+    'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoCampoFormato);
+
+  ARegistrar('inLibMsgReparacionesCircuito.SCircuitoDocumentoNoDisponible',
+    'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoDocumentoNoDisponible);
+
+  ARegistrar('inLibMsgReparacionesCircuito.SCircuitoImporteDocumento',
+    'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoImporteDocumento);
+
+  ARegistrar('inLibMsgReparacionesCircuito.SCircuitoDatosDocumento',
+    'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoDatosDocumento);
+
+  ARegistrar('inLibMsgReparacionesCircuito.SCircuitoSinOrden',
+    'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoSinOrden);
+
 end;
 {$WARN SYMBOL_DEPRECATED ON}
 

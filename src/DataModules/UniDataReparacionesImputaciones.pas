@@ -153,11 +153,13 @@ begin
     oConsulta.Open;
     // En venta el total con IVA se recalcula desde la base redondeada al
     // céntimo (100,00 -> 82,64 -> 99,99): se admite esa diferencia.
-    if oConsulta.IsEmpty or (AImputacion.Importe >
+    if oConsulta.IsEmpty then
+      raise EArgumentException.Create(SCircuitoDocumentoNoDisponible);
+    if AImputacion.Importe >
        oConsulta.FieldByName('TOTAL').AsCurrency -
        oConsulta.FieldByName('IMPUTADO').AsCurrency +
-       IfThen(AImputacion.Tipo = 'PR', 0.001, 0.011)) then
-      raise EArgumentException.Create(SCircuitoRepartoInvalido);
+       IfThen(AImputacion.Tipo = 'PR', 0.001, 0.011) then
+      raise EArgumentException.Create(SCircuitoImporteDocumento);
   finally
     FreeAndNil(oConsulta);
   end;
@@ -192,10 +194,10 @@ end;
 procedure TRepositorioImputacionesOrden.Imputar(
   const AImputacion: TImputacionOrden);
 begin
-  if (AImputacion.Importe <= 0) or (AImputacion.Cantidad < 0) or
+  if (AImputacion.Importe <= 0) or (AImputacion.Cantidad <= 0) or
      ((AImputacion.Tipo <> 'CL') and (AImputacion.Tipo <> 'AS') and
       (AImputacion.Tipo <> 'PR') and (AImputacion.Tipo <> 'TC')) then
-    raise EArgumentException.Create(SCircuitoRepartoInvalido);
+    raise EArgumentException.Create(SCircuitoDatosDocumento);
   Transaccion(
     procedure
     var

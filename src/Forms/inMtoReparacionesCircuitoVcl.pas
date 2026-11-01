@@ -28,6 +28,7 @@ type
   private
     FResumen: TcxGridDBTableView;
     FPestanas: TcxPageControl;
+    FEnlaceRotulo: TDataLink;
     procedure CrearAcciones;
     procedure CrearDetalles;
     procedure CrearDetalle(const ATitulo: string; AOrigen: TDataSource;
@@ -51,17 +52,56 @@ type
       ADatos: TDatosPantallaReparaciones;
       const AEnlaces: TEnlacesReparaciones); override;
     procedure AnadirPestana(APestana: TcxTabSheet);
+    destructor Destroy; override;
   end;
 
 implementation
 
 uses
-  System.SysUtils, System.StrUtils, cxButtons, cxCurrencyEdit, cxDBLabel,
+  System.SysUtils, System.StrUtils, cxButtons, cxCurrencyEdit,
   cxLabel, cxGrid, cxLookAndFeels,
   inLibReparacionesCircuito, inLibMsgReparacionesCircuito,
   UniDataReparacionesDocumentoMemoria, UniDataReparacionesImputaciones,
   UniDataReparacionesEntregas,
   inMtoModalDatosOrden;
+
+type
+  TEnlaceRotuloOrden = class(TDataLink)
+  private
+    FRotulo: TcxLabel;
+  protected
+    procedure ActiveChanged; override;
+    procedure RecordChanged(Field: TField); override;
+  public
+    constructor Create(ARotulo: TcxLabel; AOrigen: TDataSource);
+  end;
+
+constructor TEnlaceRotuloOrden.Create(ARotulo: TcxLabel;
+  AOrigen: TDataSource);
+begin
+  inherited Create;
+  FRotulo := ARotulo;
+  DataSource := AOrigen;
+  ActiveChanged;
+end;
+
+procedure TEnlaceRotuloOrden.ActiveChanged;
+begin
+  RecordChanged(nil);
+end;
+
+procedure TEnlaceRotuloOrden.RecordChanged(Field: TField);
+begin
+  FRotulo.Caption := SCircuitoSinOrden;
+  if Active and not DataSet.IsEmpty then
+    FRotulo.Caption := DataSet.FieldByName('ID_GAR').AsString;
+end;
+
+destructor TPanelCircuitoOrden.Destroy;
+begin
+  FreeAndNil(FEnlaceRotulo);
+  inherited;
+end;
 
 procedure AjustarRejilla(AVista: TcxGridDBTableView);
 begin
@@ -114,25 +154,65 @@ begin
     Result := CurrToStr(AValor);
 end;
 
-function FechaOpcional(const AValor: string): TDateTime;
+function LeerImporte(const ATexto, ACampo: string): Currency;
+begin
+  try
+    Result := StrToCurr(ATexto);
+  except
+    on E: EConvertError do
+      raise EArgumentException.CreateFmt(SCircuitoCampoFormato, [ACampo]);
+  end;
+end;
+
+function LeerCantidad(const ATexto, ACampo: string): Double;
+begin
+  try
+    Result := StrToFloat(ATexto);
+  except
+    on E: EConvertError do
+      raise EArgumentException.CreateFmt(SCircuitoCampoFormato, [ACampo]);
+  end;
+end;
+
+function LeerFecha(const ATexto, ACampo: string): TDateTime;
+begin
+  try
+    Result := StrToDate(ATexto);
+  except
+    on E: EConvertError do
+      raise EArgumentException.CreateFmt(SCircuitoCampoFormato, [ACampo]);
+  end;
+end;
+
+function LeerInstante(const ATexto, ACampo: string): TDateTime;
+begin
+  try
+    Result := StrToDateTime(ATexto);
+  except
+    on E: EConvertError do
+      raise EArgumentException.CreateFmt(SCircuitoCampoFormato, [ACampo]);
+  end;
+end;
+
+function FechaOpcional(const AValor, ACampo: string): TDateTime;
 begin
   Result := 0;
   if Trim(AValor) <> '' then
-    Result := StrToDateTime(AValor);
+    Result := LeerInstante(AValor, ACampo);
 end;
 
-function MonedaOpcional(const ATexto: string): Currency;
+function MonedaOpcional(const ATexto, ACampo: string): Currency;
 begin
   Result := 0;
   if ATexto <> '' then
-    Result := StrToCurr(ATexto);
+    Result := LeerImporte(ATexto, ACampo);
 end;
 
-function NumeroOpcional(const ATexto: string): Double;
+function NumeroOpcional(const ATexto, ACampo: string): Double;
 begin
   Result := 0;
   if ATexto <> '' then
-    Result := StrToFloat(ATexto);
+    Result := LeerCantidad(ATexto, ACampo);
 end;
 
 constructor TPanelCircuitoOrden.CreatePanel(AOwner: TComponent;
@@ -145,11 +225,16 @@ begin
   AjustarRejilla(FResumen);
   CrearColumna(FResumen, 'LINEA', SCircuitoColNumero, 65);
   CrearColumna(FResumen, 'DESCRIPCION', SCircuitoTarea, 220);
-  CrearColumna(FResumen, 'TOTAL', SCircuitoColTotal, 95);
-  CrearColumna(FResumen, 'CLIENTE', SCircuitoColCliente, 95);
-  CrearColumna(FResumen, 'ASEGURADORA', SCircuitoColAseguradora, 95);
-  CrearColumna(FResumen, 'TALLER', SCircuitoTaller, 95);
-  CrearColumna(FResumen, 'PENDIENTE', SCircuitoColPendiente, 110);
+  FormatearHoras(CrearColumna(FResumen, 'TOTAL',
+    SCircuitoColTotal, 95));
+  FormatearHoras(CrearColumna(FResumen, 'CLIENTE',
+    SCircuitoColCliente, 95));
+  FormatearHoras(CrearColumna(FResumen, 'ASEGURADORA',
+    SCircuitoColAseguradora, 95));
+  FormatearHoras(CrearColumna(FResumen, 'TALLER',
+    SCircuitoTaller, 95));
+  FormatearHoras(CrearColumna(FResumen, 'PENDIENTE',
+    SCircuitoColPendiente, 110));
   FormatearHoras(CrearColumna(FResumen, 'HORAS_PREVISTAS',
     SCircuitoHorasPrevistas, 95));
   FormatearHoras(CrearColumna(FResumen, 'HORAS_REALES',
@@ -171,7 +256,7 @@ var
   aTextos: TArray<string>;
   i: Integer;
   oBoton: TcxButton;
-  oOrden: TcxDBLabel;
+  oOrden: TcxLabel;
   oRotulo: TcxLabel;
 begin
   aTextos := [SCircuitoAcuerdo, SCircuitoConcepto, SCircuitoTiempo,
@@ -190,12 +275,13 @@ begin
     oBoton.Tag := i;
     oBoton.OnClick := PulsarAccion;
   end;
-  oOrden := TcxDBLabel.Create(Self);
+  oOrden := TcxLabel.Create(Self);
+  oOrden.Transparent := True;
   oOrden.Parent := FBotonera;
   oOrden.SetBounds(EscalarDpi(630),EscalarDpi(160),
-    EscalarDpi(110),EscalarDpi(24));
-  oOrden.DataBinding.DataSource := FDatos.Circuito.Maestro;
-  oOrden.DataBinding.DataField := 'ID_GAR';
+    EscalarDpi(220),EscalarDpi(24));
+  FEnlaceRotulo := TEnlaceRotuloOrden.Create(oOrden,
+    FDatos.Circuito.Maestro);
   oRotulo := TcxLabel.Create(Self);
   oRotulo.Parent := FBotonera;
   oRotulo.Transparent := True;
@@ -252,7 +338,8 @@ begin
   CrearDetalle(SCircuitoExternos, FDatos.Circuito.Externos,
     ['ID_RCE','ID_GARLIN_RCE','CODIGO_PRV_RCE','OBJETO_RCE',
      'CANTIDAD_ENVIADA_RCE','CANTIDAD_RECIBIDA_RCE','INCIDENCIA_RCE'],
-    [SCircuitoColNumero,SCircuitoColConcepto,SCircuitoProveedor,SCircuitoObjeto,
+    [SCircuitoColNumero,SCircuitoColConcepto,SCircuitoEmpresaExterna,
+     SCircuitoObjeto,
      SCircuitoEnviado,SCircuitoRecibido,SCircuitoIncidencia]);
   FPestanas.ActivePageIndex := 0;
 end;
@@ -280,6 +367,7 @@ begin
       not FEnlaces.PuedeModificar()) then
     raise EArgumentException.Create(SCircuitoConflicto);
   FEnlaces.GuardarOrden();
+  FDatos.Circuito.Refrescar;
   if FEnlaces.ReparacionActual() <= 0 then
     raise EArgumentException.Create(SCircuitoSeleccionar);
   case AAccion of
@@ -331,11 +419,15 @@ begin
   begin
     rAcuerdo.Referencia := aValores[0];
     rAcuerdo.Autorizacion := aValores[1];
-    rAcuerdo.PorcentajeManoObra := StrToCurr(aValores[2]);
-    rAcuerdo.PorcentajeMaterial := StrToCurr(aValores[3]);
+    rAcuerdo.PorcentajeManoObra := LeerImporte(aValores[2],
+      SCircuitoPorcentajeMO);
+    rAcuerdo.PorcentajeMaterial := LeerImporte(aValores[3],
+      SCircuitoPorcentajeMAT);
     rAcuerdo.TieneLimite := aValores[4] <> '';
-    rAcuerdo.Limite := MonedaOpcional(aValores[4]);
-    rAcuerdo.Franquicia := StrToCurr(aValores[5]);
+    rAcuerdo.Limite := MonedaOpcional(aValores[4],
+      SCircuitoLimite);
+    rAcuerdo.Franquicia := LeerImporte(aValores[5],
+      SCircuitoFranquicia);
     rAcuerdo.Autorizado := LeerSiNo(aValores[6]);
     rAcuerdo.ClienteAcepta := LeerSiNo(aValores[7]);
     FDatos.Circuito.Cobertura.GuardarAcuerdo(FDatos.Circuito.Orden, rAcuerdo);
@@ -359,14 +451,19 @@ begin
      SCircuitoPorcentaje, SCircuitoLimite, SCircuitoTaller,
      SCircuitoAceptado], aValores, [10, 10, 1, 10, 15, 15, 1]) then
   begin
-    rDetalle.HorasPrevistas := StrToFloat(aValores[0]);
+    rDetalle.HorasPrevistas := LeerCantidad(aValores[0],
+      SCircuitoHorasPrevistas);
     rDetalle.PorHoras := aValores[1] <> '';
-    rDetalle.HorasFacturables := NumeroOpcional(aValores[1]);
+    rDetalle.HorasFacturables := NumeroOpcional(aValores[1],
+      SCircuitoHorasFacturables);
     rDetalle.Concepto.CoberturaPropia := LeerSiNo(aValores[2]);
-    rDetalle.Concepto.Porcentaje := StrToCurr(aValores[3]);
+    rDetalle.Concepto.Porcentaje := LeerImporte(aValores[3],
+      SCircuitoPorcentaje);
     rDetalle.Concepto.TieneLimite := aValores[4] <> '';
-    rDetalle.Concepto.Limite := MonedaOpcional(aValores[4]);
-    rDetalle.Concepto.Taller := StrToCurr(aValores[5]);
+    rDetalle.Concepto.Limite := MonedaOpcional(aValores[4],
+      SCircuitoLimite);
+    rDetalle.Concepto.Taller := LeerImporte(aValores[5],
+      SCircuitoTaller);
     rDetalle.Concepto.ClienteAcepta := LeerSiNo(aValores[6]);
     FDatos.Circuito.Cobertura.GuardarConcepto(FDatos.Circuito.Orden, rDetalle);
   end;
@@ -400,8 +497,10 @@ begin
   begin
     rParte.Operario := aValores[0];
     rParte.Tarea := aValores[1];
-    rParte.Inicio := StrToDateTime(aValores[2]);
-    rParte.Fin := FechaOpcional(aValores[3]);
+    rParte.Inicio := LeerInstante(aValores[2],
+      SCircuitoInicio);
+    rParte.Fin := FechaOpcional(aValores[3],
+      SCircuitoFin);
     rParte.Motivo := aValores[4];
     FDatos.Circuito.RegistroTiempos.Registrar(FDatos.Circuito.Orden, rParte);
   end;
@@ -436,9 +535,12 @@ begin
     rMaterial.Procedencia := UpperCase(aValores[0]);
     rMaterial.Unidad := aValores[1];
     rMaterial.Referencia := aValores[2];
-    rMaterial.Previsto := StrToFloat(aValores[3]);
-    rMaterial.Utilizado := StrToFloat(aValores[4]);
-    rMaterial.Devuelto := StrToFloat(aValores[5]);
+    rMaterial.Previsto := LeerCantidad(aValores[3],
+      SCircuitoPrevisto);
+    rMaterial.Utilizado := LeerCantidad(aValores[4],
+      SCircuitoUtilizado);
+    rMaterial.Devuelto := LeerCantidad(aValores[5],
+      SCircuitoDevuelto);
     FDatos.Circuito.RegistroMateriales.Guardar(FDatos.Circuito.Orden,
       rMaterial);
   end;
@@ -477,10 +579,13 @@ begin
     rSolicitud.Serie := aValores[1];
     rSolicitud.Proveedor := aValores[2];
     rSolicitud.Almacen := aValores[3];
-    rSolicitud.Importe := StrToCurr(aValores[4]);
-    rSolicitud.Cantidad := StrToFloat(aValores[5]);
+    rSolicitud.Importe := LeerImporte(aValores[4],
+      SCircuitoImporteDoc);
+    rSolicitud.Cantidad := LeerCantidad(aValores[5],
+      SCircuitoCantidadDoc);
     rSolicitud.Referencia := aValores[6];
-    rSolicitud.Fecha := StrToDate(aValores[7]);
+    rSolicitud.Fecha := LeerFecha(aValores[7],
+      SCircuitoFechaDoc);
     rSolicitud.TipoIva := aValores[8];
     rCreado := FDatos.Circuito.Generador.Crear(rSolicitud);
     FDatos.Albaranes.Refrescar;
@@ -507,7 +612,8 @@ begin
     rSolicitud.Serie := aValores[1];
     rSolicitud.Almacen := aValores[2];
     rSolicitud.Referencia := aValores[3];
-    rSolicitud.Fecha := StrToDate(aValores[4]);
+    rSolicitud.Fecha := LeerFecha(aValores[4],
+      SCircuitoFechaDoc);
     rSolicitud.TipoIva := aValores[5];
     rCreado := FDatos.Circuito.Generador.CrearPendientes(rSolicitud);
     FDatos.Albaranes.Refrescar;
@@ -533,8 +639,10 @@ begin
     rImputacion.Serie := aValores[1];
     rImputacion.Numero := aValores[2];
     rImputacion.LineaDocumento := aValores[3];
-    rImputacion.Importe := StrToCurr(aValores[4]);
-    rImputacion.Cantidad := StrToFloat(aValores[5]);
+    rImputacion.Importe := LeerImporte(aValores[4],
+      SCircuitoImporteDoc);
+    rImputacion.Cantidad := LeerCantidad(aValores[5],
+      SCircuitoCantidadDoc);
     FDatos.Circuito.Imputaciones.Imputar(rImputacion);
     FDatos.Albaranes.Refrescar;
   end;
@@ -573,16 +681,19 @@ begin
     aValores[1] := oDatos.FieldByName('OBJETO_RCE').AsString;
     aValores[2] := oDatos.FieldByName('CANTIDAD_ENVIADA_RCE').AsString;
     aValores[3] := oDatos.FieldByName('CANTIDAD_RECIBIDA_RCE').AsString;
+    aValores[4] := oDatos.FieldByName('INCIDENCIA_RCE').AsString;
   end;
   if TfrmModalDatosOrden.Ejecutar(Self, SCircuitoExternos,
-    [SCircuitoProveedor, SCircuitoObjeto, SCircuitoEnviado,
+    [SCircuitoEmpresaExterna, SCircuitoObjeto, SCircuitoEnviado,
      SCircuitoRecibido, SCircuitoIncidencia], aValores,
     [20, 200, 15, 15, 500]) then
   begin
     rEntrega.Proveedor := aValores[0];
     rEntrega.Objeto := aValores[1];
-    rEntrega.Enviado := StrToFloat(aValores[2]);
-    rEntrega.Recibido := StrToFloat(aValores[3]);
+    rEntrega.Enviado := LeerCantidad(aValores[2],
+      SCircuitoEnviado);
+    rEntrega.Recibido := LeerCantidad(aValores[3],
+      SCircuitoRecibido);
     rEntrega.Incidencia := aValores[4];
     FDatos.Circuito.Entregas.Registrar(rEntrega);
     if not ARetorno then

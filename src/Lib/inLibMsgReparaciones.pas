@@ -16,6 +16,10 @@ unit inLibMsgReparaciones;
 interface
 
 resourcestring
+  SPreguntaDocumentoEntrega =
+    'Esta orden aún no tiene documento de cobro. ¿Crear un albarán de ' +
+    'cliente con los trabajos pendientes? Desde el albarán podrá facturar ' +
+    'y cobrar. Después vuelva a Entregar al cliente.';
   SClaseServicio = 'Clase de servicio';
   SClaseTaller = 'Taller / reparación';
   SClaseAltura = 'Arreglo de altura';
