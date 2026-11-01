@@ -1168,6 +1168,7 @@ begin
     else
       unqryAlbaranesLineas.Post;
   end;
+  CalcularTotalesAlbaran;
   if unqryTablaG.State in dsEditModes then
     unqryTablaG.Post;
   if unqryTablaG.IsEmpty then

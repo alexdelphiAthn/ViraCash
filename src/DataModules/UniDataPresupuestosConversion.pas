@@ -26,7 +26,7 @@ uses
   System.SysUtils, Data.DB,
   inLibDocumento, inLibDocumentoIntf,
   inLibValoresAutomaticos, UniDataValoresAutomaticosRepositorio,
-  UniDataAlbaranes;
+  UniDataAlbaranes, UniDataPedidos;
 
 function ResolverSerieDestino(AConexion: TUniConnection;
   const ASolicitud: TSolicitudConversionPresupuesto): string;
@@ -163,6 +163,29 @@ begin
   end;
 end;
 
+procedure RecalcularPedidoCreado(AOwner: TComponent;
+  AConexion: TUniConnection;
+  const AResultado: TResultadoConversionPresupuesto);
+var
+  oPedido: TdmPedidos;
+begin
+  oPedido := TdmPedidos.Create(AOwner);
+  try
+    oPedido.ReasignarConexion(AConexion);
+    oPedido.unqryTablaG.SQL.Add(
+      'WHERE SERIE_PED = :SERIE AND NUMERO_PED = :NUMERO');
+    oPedido.unqryTablaG.ParamByName('SERIE').AsString := AResultado.Serie;
+    oPedido.unqryTablaG.ParamByName('NUMERO').AsString := AResultado.Numero;
+    oPedido.unqryTablaG.Open;
+    oPedido.unqryPedidosLineas.Open;
+    oPedido.CalcularTotalesPedido;
+    if oPedido.unqryTablaG.State in dsEditModes then
+      oPedido.unqryTablaG.Post;
+  finally
+    oPedido.Free;
+  end;
+end;
+
 function ConvertirPresupuestoUniDAC(AOwner: TComponent;
   AConexion: TUniConnection;
   const ASolicitud: TSolicitudConversionPresupuesto):
@@ -186,6 +209,8 @@ begin
       Result.Serie := ResolverSerieDestino(AConexion, ASolicitud);
       CopiarPresupuesto(AConexion, ASolicitud, Result);
     end;
+    if ASolicitud.Destino = dpPedido then
+      RecalcularPedidoCreado(AOwner, AConexion, Result);
     if ASolicitud.Destino = dpAlbaran then
       SincronizarAlbaran(AOwner, AConexion, Result);
     AConexion.Commit;

@@ -1177,8 +1177,11 @@ end;
 
 procedure TfrmModalArqueo.CargarRecuento(const AArqueo: TArqueoCaja);
 var
-  i, iRow: Integer;
+  i, iRow, iAnterior: Integer;
+  aRecuentoAnterior: TArray<TDatoRecuentoModalArqueo>;
 begin
+  tvRecuento.DataController.Post;
+  aRecuentoAnterior := ObtenerDatosRecuento;
   { Resto día anterior }
   lblAnteriorImporte.Caption :=
     Format(SCaptionImporteEur,
@@ -1252,6 +1255,19 @@ begin
   finally
     tvRecuento.EndUpdate;
   end;
+  RecalcularTotalesRecuento;
+  for iRow := 0 to tvRecuento.DataController.RecordCount - 1 do
+    for iAnterior := 0 to High(aRecuentoAnterior) do
+      if VarToStr(tvRecuento.DataController.Values[
+        iRow, tvRecuentoFP.Index]) =
+        aRecuentoAnterior[iAnterior].CodigoFormaPago then
+      begin
+        tvRecuento.DataController.Values[iRow, tvRecuentoImporte.Index] :=
+          Double(aRecuentoAnterior[iAnterior].ImporteRecuento);
+        tvRecuento.DataController.Values[iRow, tvRecuentoDiferencia.Index] :=
+          Double(aRecuentoAnterior[iAnterior].ImporteRecuento -
+          ObtenerImporteRecuento(iRow, tvRecuentoSistema));
+      end;
   RecalcularTotalesRecuento;
   { Un recálculo no debe perder lo que ya han contado. }
   AplicarDesgloseAlRecuento;

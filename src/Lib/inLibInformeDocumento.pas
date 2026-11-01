@@ -93,6 +93,16 @@ begin
          (TfrxMemoView(Componente).Width < ANCHOS[I]) then
         TfrxMemoView(Componente).Width := ANCHOS[I];
     end;
+  if AInforme <> nil then
+    for I := 0 to AInforme.AllObjects.Count - 1 do
+    begin
+      Componente := AInforme.AllObjects[I];
+      if (Componente is TfrxMemoView) and
+         (Pos('<IBAN>', string(TfrxMemoView(Componente).Text)) > 0) then
+        TfrxMemoView(Componente).Text :=
+          '[IIF(<Recibos."IBAN_CLI_REC"> <> '''', ' +
+          '''PAGADERO EN:'', '''')]';
+    end;
 end;
 
 const

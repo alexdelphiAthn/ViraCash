@@ -40,9 +40,8 @@ begin
   Result := ADesde;
   if AHayCierre then
   begin
-    // Las operaciones ya arqueadas se excluyen por su código de cierre.
-    // Incluir el mismo segundo evita perder ventas posteriores al cierre.
-    dSiguiente := AUltimoCierre;
+    // Los rangos persistidos tienen ambos extremos incluidos.
+    dSiguiente := IncSecond(AUltimoCierre);
     if (CompareDateTime(dSiguiente, ADesde) > 0) and
        (CompareDateTime(dSiguiente, AHasta) < 0) then
       Result := dSiguiente;

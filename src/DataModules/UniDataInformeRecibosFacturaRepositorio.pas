@@ -46,7 +46,14 @@ procedure TPreparadorInformeRecibosFacturaUniDAC.PrepararRecibos(
   const ACriterios: TCriteriosInformeRecibosFactura);
 begin
   FConsultaRecibos.SQL.Text :=
-    'SELECT r.*, ' +
+    'SELECT r.SERIE_FAC_REC, r.NUMERO_FAC_REC, r.NUMERO_PLAZO_REC, ' +
+    'r.ESTADO_RECIBO_REC, r.EUROS_RECIBO_REC, ' +
+    'r.FECHA_EXPEDICION_RECIBO_REC, r.FECHA_VENCIMIENTO_RECIBO_REC, ' +
+    'r.IBAN_CLI_REC, emp.POBLACION_EMP ' +
+    'AS LOCALIDAD_EXPEDICION_RECIBO_REC, r.CODIGO_CLI_REC, ' +
+    'r.RAZON_SOCIAL_CLI_REC, r.DIRECCION1_CLIENTE_RECIBO_REC, ' +
+    'r.POBLACION_CLI_REC, r.PROVINCIA_CLI_REC, r.CODIGO_POSTAL_CLI_REC, ' +
+    'r.IMPORTE_LETRA_RECIBO_REC, ' +
     ExpresionSqlFormatoDocumento(
       'emp.FORMATO_DOCUMENTO_EMP',
       'r.SERIE_FAC_REC',
@@ -84,7 +91,14 @@ begin
     'CALL PRC_PREPARAR_RECIBOS_EFECTOS_VENTA(:serie, :numfac, :efectos)',
     [ACriterios.Serie, ACriterios.NumeroFactura, sEfectos]);
   FConsultaRecibos.SQL.Text :=
-    'SELECT r.*, ' +
+    'SELECT r.SERIE_FAC_REC, r.NUMERO_FAC_REC, r.NUMERO_PLAZO_REC, ' +
+    'r.ESTADO_RECIBO_REC, r.EUROS_RECIBO_REC, ' +
+    'r.FECHA_EXPEDICION_RECIBO_REC, r.FECHA_VENCIMIENTO_RECIBO_REC, ' +
+    'r.IBAN_CLI_REC, emp.POBLACION_EMP ' +
+    'AS LOCALIDAD_EXPEDICION_RECIBO_REC, r.CODIGO_CLI_REC, ' +
+    'r.RAZON_SOCIAL_CLI_REC, r.DIRECCION1_CLIENTE_RECIBO_REC, ' +
+    'r.POBLACION_CLI_REC, r.PROVINCIA_CLI_REC, r.CODIGO_POSTAL_CLI_REC, ' +
+    'r.IMPORTE_LETRA_RECIBO_REC, ' +
     ExpresionSqlFormatoDocumento(
       'emp.FORMATO_DOCUMENTO_EMP',
       'r.SERIE_FAC_REC',

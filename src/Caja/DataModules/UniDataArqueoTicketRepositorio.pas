@@ -110,7 +110,8 @@ begin
     'AND o.CODIGO_EMP_OPCAJA = :pEMPRESA ' +
     'AND o.CODIGO_ALM_OPCAJA = :pALMACEN ' +
     'AND o.CODIGO_CAJA_OPCAJA = :pCAJA ' +
-    'AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
+    'AND (o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
+    'OR COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''') ' +
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
@@ -132,7 +133,8 @@ begin
     'WHERE p.CODIGO_EMP_PAGO = :pEMPRESA ' +
     'AND p.CODIGO_ALM_PAGO = :pALMACEN ' +
     'AND p.CODIGO_CAJA_PAGO = :pCAJA ' +
-    'AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
+    'AND (o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
+    'OR COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''') ' +
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
     'AND o.TIPO_OPERACION_OPCAJA = :pTIPO_DV ' +
     SQLExcluirVentaRetirada(
@@ -211,7 +213,8 @@ begin
     'AND o.CODIGO_EMP_OPCAJA = :pEMPRESA ' +
     'AND o.CODIGO_ALM_OPCAJA = :pALMACEN ' +
     'AND o.CODIGO_CAJA_OPCAJA = :pCAJA ' +
-    'AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
+    'AND (o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
+    'OR COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''') ' +
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
@@ -241,7 +244,8 @@ begin
     'AND o.CODIGO_EMP_OPCAJA = :pEMPRESA ' +
     'AND o.CODIGO_ALM_OPCAJA = :pALMACEN ' +
     'AND o.CODIGO_CAJA_OPCAJA = :pCAJA ' +
-    'AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
+    'AND (o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
+    'OR COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''') ' +
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
@@ -264,7 +268,8 @@ begin
     'AND o.CODIGO_EMP_OPCAJA = :pEMPRESA ' +
     'AND o.CODIGO_ALM_OPCAJA = :pALMACEN ' +
     'AND o.CODIGO_CAJA_OPCAJA = :pCAJA ' +
-    'AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
+    'AND (o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
+    'OR COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''') ' +
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
@@ -295,7 +300,8 @@ begin
     'WHERE p.CODIGO_EMP_PAGO = :pEMPRESA ' +
     'AND p.CODIGO_ALM_PAGO = :pALMACEN ' +
     'AND p.CODIGO_CAJA_PAGO = :pCAJA ' +
-    'AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
+    'AND (o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
+    'OR COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''') ' +
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
     'AND o.TIPO_OPERACION_OPCAJA NOT IN (:pTIPO_EC, :pTIPO_GC) ' +
     SQLExcluirVentaRetirada(
@@ -324,7 +330,8 @@ begin
     'AND o.CODIGO_EMP_OPCAJA = :pEMPRESA ' +
     'AND o.CODIGO_ALM_OPCAJA = :pALMACEN ' +
     'AND o.CODIGO_CAJA_OPCAJA = :pCAJA ' +
-    'AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
+    'AND (o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
+    'OR COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''') ' +
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',

@@ -261,7 +261,10 @@ begin
   // FZ-ISSUE-205: a centimos, IVA por tipo y, con IVA incluido, manda el
   // PVP (mismo criterio que las facturas: el documento fiscal cuadra).
   Result.RedondearPorLinea := True;
-  Result.CalcularIvaIncluidoPorDiferencia := True;
+  // Presupuestos y pedidos conservan las bases redondeadas de sus lineas.
+  Result.CalcularIvaIncluidoPorDiferencia :=
+    not (SameText(ASufijoCabecera, 'PRE') or
+      SameText(ASufijoCabecera, 'PED'));
   Result.AplicaRecargo :=
     AplicaRecargoVenta(ACabecera, ASufijoCabecera);
   Result.ClienteConDatosFiscales := True;
