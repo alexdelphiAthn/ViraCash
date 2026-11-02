@@ -36,6 +36,8 @@ type
     Reparacion: Int64;
     Referencia: string;
     Fecha: TDateTime;
+    FechaEntregaCliente: TDateTime;
+    Cantidad: Double;
     Objeto: string;
     Trabajo: string;
     Detalles: string;
@@ -54,6 +56,8 @@ type
   end;
 
 function TextoHojaReparaciones(const AHoja: THojaReparaciones): string;
+function PlazoLineaHoja(const ALinea: TLineaHojaReparacion): string;
+function DetalleLineaHoja(const ALinea: TLineaHojaReparacion): string;
 procedure CrearInformeHojaReparaciones(AInforme: TfrxReport;
   const AHoja: THojaReparaciones; AFormato: TFormatoHojaReparacion);
 procedure ImprimirHojaReparacionesTicket(AInforme: TfrxReport;
@@ -99,6 +103,28 @@ begin
     Result := IntToStr(ALinea.Reparacion);
 end;
 
+function PlazoLineaHoja(const ALinea: TLineaHojaReparacion): string;
+var
+  sFecha: string;
+begin
+  sFecha := FechaHoja(ALinea.FechaEntregaCliente);
+  if sFecha = '' then
+    sFecha := SHojaSinFechaPrevista;
+  Result := SHojaLimiteEntregaCliente + ' ' + sFecha;
+end;
+
+function DetalleLineaHoja(const ALinea: TLineaHojaReparacion): string;
+begin
+  Result := Trim(ALinea.Objeto);
+  if (Trim(ALinea.Detalles) <> '') and
+     not SameText(Trim(ALinea.Detalles), Result) then
+  begin
+    if Result <> '' then
+      Result := Result + sLineBreak;
+    Result := Result + Trim(ALinea.Detalles);
+  end;
+end;
+
 procedure AgregarLinea(ALineas: TStrings; const ALinea: TLineaHojaReparacion;
   AEsImporte: Boolean);
 var
@@ -111,6 +137,7 @@ begin
   ALineas.Add(sLinea);
   AgregarDato(ALineas, '   ', ALinea.Objeto);
   AgregarDato(ALineas, '   ', ALinea.Detalles);
+  ALineas.Add(PlazoLineaHoja(ALinea));
 end;
 
 function TextoHojaReparaciones(const AHoja: THojaReparaciones): string;
@@ -176,7 +203,7 @@ function CrearMemo(ABanda: TfrxBand; AArriba, AAncho: Extended;
   ATamano: Integer): TfrxMemoView;
 begin
   Result := TfrxMemoView.Create(ABanda);
-  Result.CreateUniqueName;
+  Result.Name := ABanda.Name + '_Texto' + IntToStr(ABanda.Objects.Count);
   Result.SetBounds(0, AArriba, AAncho, 20);
   Result.Font.Name := 'Arial';
   Result.Font.Size := ATamano;
@@ -225,7 +252,7 @@ var
   dY, dAlto: Extended;
 begin
   oBanda := TfrxReportTitle.Create(APagina);
-  oBanda.CreateUniqueName;
+  oBanda.Name := 'HojaCabecera';
   oTexto := TextoA4(oBanda, AHoja.Titulo, 0, 0, AAncho, 20, True);
   oTexto.Frame.Typ := [ftBottom];
   oTexto.Frame.Color := $00B0B0B0;
@@ -268,7 +295,7 @@ var
   dDescripcion: Extended;
 begin
   oBanda := TfrxPageHeader.Create(APagina);
-  oBanda.CreateUniqueName;
+  oBanda.Name := 'HojaColumnas';
   oBanda.Height := 30;
   oBanda.PrintOnFirstPage := True;
   dDescripcion := AAncho - 200;
@@ -297,35 +324,38 @@ var
   sDetalle: string;
 begin
   oBanda := TfrxMasterData.Create(APagina);
-  oBanda.CreateUniqueName;
+  oBanda.Name := 'HojaLinea' + Format('%.4d', [AIndice]);
   oBanda.Top := 1000 + AIndice * 1000;
   oBanda.RowCount := 1;
   dDescripcion := AAncho - 200;
   if AEsImporte then
     dDescripcion := dDescripcion - 100;
-  TextoA4(oBanda, ReferenciaLineaHoja(ALinea), 0, 6, 105, 9);
-  TextoA4(oBanda, FechaHoja(ALinea.Fecha), 105, 6, 95, 9);
+  TextoA4(oBanda, ReferenciaLineaHoja(ALinea), 0, 6, 105, 9)
+    .Name := oBanda.Name + '_Referencia';
+  TextoA4(oBanda, FechaHoja(ALinea.Fecha), 105, 6, 95, 9)
+    .Name := oBanda.Name + '_Fecha';
   oTexto := TextoA4(oBanda, ALinea.Trabajo, 200, 6,
     dDescripcion, 10, True);
+  oTexto.Name := oBanda.Name + '_Trabajo';
   dY := 6 + oTexto.Height;
   if AEsImporte then
     TextoA4(oBanda, FormatFloat('#,##0.00', ALinea.Importe),
-      AAncho - 100, 6, 100, 10, True).HAlign := haRight;
-  sDetalle := Trim(ALinea.Objeto);
-  if (Trim(ALinea.Detalles) <> '') and
-     not SameText(Trim(ALinea.Detalles), sDetalle) then
-  begin
-    if sDetalle <> '' then
-      sDetalle := sDetalle + sLineBreak;
-    sDetalle := sDetalle + Trim(ALinea.Detalles);
-  end;
-  if sDetalle <> '' then
-  begin
-    oTexto := TextoA4(oBanda, sDetalle, 200, dY,
-      dDescripcion, 9);
-    oTexto.Font.Color := $00555555;
-    dY := dY + oTexto.Height;
-  end;
+      AAncho - 100, 6, 100, 10, True).Name :=
+        oBanda.Name + '_Importe';
+  sDetalle := DetalleLineaHoja(ALinea);
+  oTexto := TextoA4(oBanda, sDetalle, 200, dY, dDescripcion, 9);
+  oTexto.Name := oBanda.Name + '_Detalles';
+  oTexto.Font.Color := $00555555;
+  dY := dY + oTexto.Height;
+  oTexto := TextoA4(oBanda, PlazoLineaHoja(ALinea),
+    200, dY, dDescripcion, 10, True);
+  oTexto.Name := oBanda.Name + '_Plazo';
+  dY := dY + oTexto.Height;
+  oTexto := TextoA4(oBanda, Format(SImpresoCantidad,
+    [FormatFloat('0.###', ALinea.Cantidad)]),
+    200, dY, dDescripcion, 9);
+  oTexto.Name := oBanda.Name + '_Cantidad';
+  dY := dY + oTexto.Height;
   oTexto := TextoA4(oBanda, '', 0, dY + 10, AAncho, 1);
   oTexto.Height := 1;
   oTexto.Frame.Typ := [ftBottom];
@@ -349,7 +379,7 @@ begin
   for Linea in AHoja.Lineas do
     dTotal := dTotal + Linea.Importe;
   oBanda := TfrxReportSummary.Create(APagina);
-  oBanda.CreateUniqueName;
+  oBanda.Name := 'HojaResumen';
   oBanda.AllowSplit := False;
   oTexto := TextoA4(oBanda, Format(SHojaReparacionesLineas,
     [Length(AHoja.Lineas)]), 0, 16, AAncho * 0.32, 10);
@@ -402,13 +432,91 @@ begin
   oTexto.Font.Color := $00777777;
 end;
 
-procedure CrearInformeHojaReparaciones(AInforme: TfrxReport;
-  const AHoja: THojaReparaciones; AFormato: TFormatoHojaReparacion);
+procedure CrearHojaTicket(AInforme: TfrxReport;
+  const AHoja: THojaReparaciones);
 var
   oPagina: TfrxReportPage;
-  oBanda: TfrxReportTitle;
-  oTitulo: TfrxMemoView;
-  dAncho: Extended;
+  oBanda: TfrxBand;
+  oTexto: TfrxMemoView;
+  dAncho, dY: Extended;
+  i: Integer;
+begin
+  oPagina := CrearPagina(AInforme, fhrTicket);
+  dAncho := (oPagina.PaperWidth - oPagina.LeftMargin -
+    oPagina.RightMargin) * 3.77953;
+  oBanda := TfrxReportTitle.Create(oPagina);
+  oBanda.Name := 'HojaCabecera';
+  oTexto := TextoA4(oBanda, AHoja.Titulo, 0, 0, dAncho, 12, True);
+  oTexto.HAlign := haCenter;
+  oTexto.Frame.Typ := [ftBottom];
+  dY := oTexto.Height + 8;
+  oTexto := TextoA4(oBanda, AHoja.Tienda.Empresa,
+    0, dY, dAncho, 10, True);
+  dY := dY + oTexto.Height;
+  oTexto := TextoA4(oBanda, DatosTiendaA4(AHoja.Tienda),
+    0, dY, dAncho, 9);
+  dY := dY + oTexto.Height + 8;
+  oTexto := TextoA4(oBanda, SRotuloProveedorHoja + ' ' +
+    AHoja.Proveedor, 0, dY, dAncho, 10, True);
+  oTexto.Frame.Typ := [ftTop, ftBottom];
+  dY := dY + oTexto.Height;
+  oTexto := TextoA4(oBanda, SRotuloFechaHoja + ' ' +
+    FechaHoja(AHoja.Fecha), 0, dY, dAncho, 9);
+  dY := dY + oTexto.Height;
+  if AHoja.Liquidacion > 0 then
+  begin
+    oTexto := TextoA4(oBanda, SRotuloLiquidacionHoja + ' ' +
+      IntToStr(AHoja.Liquidacion), 0, dY, dAncho, 9);
+    dY := dY + oTexto.Height;
+  end;
+  oBanda.Height := dY + 12;
+  for i := 0 to High(AHoja.Lineas) do
+  begin
+    oBanda := TfrxMasterData.Create(oPagina);
+    oBanda.Name := 'HojaLinea' + Format('%.4d', [i]);
+    oBanda.Top := 1000 + i * 1000;
+    TfrxMasterData(oBanda).RowCount := 1;
+    oTexto := TextoA4(oBanda, ReferenciaLineaHoja(AHoja.Lineas[i]),
+      0, 0, dAncho, 11, True);
+    oTexto.Name := oBanda.Name + '_Referencia';
+    oTexto.Color := $00EEEEEE;
+    dY := oTexto.Height;
+    oTexto := TextoA4(oBanda, AHoja.Lineas[i].Trabajo,
+      0, dY, dAncho, 10, True);
+    oTexto.Name := oBanda.Name + '_Trabajo';
+    dY := dY + oTexto.Height;
+    oTexto := TextoA4(oBanda, DetalleLineaHoja(AHoja.Lineas[i]),
+      0, dY, dAncho, 9);
+    oTexto.Name := oBanda.Name + '_Detalles';
+    dY := dY + oTexto.Height;
+    oTexto := TextoA4(oBanda, Format(SImpresoCantidad,
+      [FormatFloat('0.###', AHoja.Lineas[i].Cantidad)]),
+      0, dY, dAncho, 9);
+    oTexto.Name := oBanda.Name + '_Cantidad';
+    dY := dY + oTexto.Height;
+    oTexto := TextoA4(oBanda, PlazoLineaHoja(AHoja.Lineas[i]),
+      0, dY, dAncho, 10, True);
+    oTexto.Name := oBanda.Name + '_Plazo';
+    oTexto.Frame.Typ := [ftTop, ftBottom];
+    dY := dY + oTexto.Height;
+    if AHoja.EsImporte then
+    begin
+      oTexto := TextoA4(oBanda,
+        FormatFloat('#,##0.00', AHoja.Lineas[i].Importe),
+        0, dY, dAncho, 10, True);
+      oTexto.Name := oBanda.Name + '_Importe';
+      oTexto.HAlign := haRight;
+      dY := dY + oTexto.Height;
+    end;
+    oBanda.Height := dY + 16;
+    oBanda.Stretched := True;
+    oBanda.AllowSplit := True;
+  end;
+  ResumenA4(oPagina, AHoja, dAncho);
+end;
+
+procedure CrearInformeHojaReparaciones(AInforme: TfrxReport;
+  const AHoja: THojaReparaciones; AFormato: TFormatoHojaReparacion);
 begin
   AInforme.Clear;
   AInforme.ReportOptions.Name := AHoja.Titulo;
@@ -416,21 +524,7 @@ begin
   if AFormato = fhrA4 then
     CrearHojaA4(AInforme, AHoja)
   else
-  begin
-    oPagina := CrearPagina(AInforme, AFormato);
-    dAncho := (oPagina.PaperWidth - oPagina.LeftMargin -
-      oPagina.RightMargin) * 3.77953;
-    oBanda := TfrxReportTitle.Create(oPagina);
-    oBanda.CreateUniqueName;
-    oBanda.Height := 60;
-    oBanda.Stretched := True;
-    oBanda.AllowSplit := True;
-    oTitulo := CrearMemo(oBanda, 0, dAncho, 12);
-    oTitulo.Height := 35;
-    oTitulo.Font.Style := [fsBold];
-    oTitulo.Text := AHoja.Titulo;
-    CrearMemo(oBanda, 40, dAncho, 10).Text := TextoHojaReparaciones(AHoja);
-  end;
+    CrearHojaTicket(AInforme, AHoja);
 end;
 
 procedure ImprimirHojaReparacionesTicket(AInforme: TfrxReport;

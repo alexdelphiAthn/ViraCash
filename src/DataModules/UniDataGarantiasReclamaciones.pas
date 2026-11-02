@@ -102,7 +102,8 @@ type
     function Alta(const ADatos: TDatosSerieGarantia;
       const AMotivo: string): Int64;
     procedure CambiarEstado(AId: Int64;
-      const AEstado, AResolucion, AObservaciones: string);
+      const AEstado, AResolucion, AObservaciones: string;
+      AEsReparacion: Boolean = False);
     procedure Sustituir(AId: Int64;
       const ASerieNueva, AAlmacen, AAlmacenTaras: string);
     // Almacén de taras activo de la empresa; primero el hijo de AAlmacen.
@@ -945,38 +946,48 @@ end;
 
 // Solo cambia reclamaciones abiertas: una cerrada no se reabre por error.
 procedure TdmGarantiasReclamaciones.CambiarEstado(AId: Int64;
-  const AEstado, AResolucion, AObservaciones: string);
+  const AEstado, AResolucion, AObservaciones: string;
+  AEsReparacion: Boolean);
 var
   oConsulta: TUniQuery;
 begin
   oConsulta := TUniQuery.Create(nil);
   try
     oConsulta.Connection := unqryTablaG.Connection;
-    oConsulta.SQL.Text :=
-      'UPDATE fza_garantias_reclamaciones ' +
-      '   SET ESTADO_GAR = :ESTADO, ' +
-      '       FECHA_ENVIO_FAB_GAR = CASE WHEN :ESTADO = ''' +
-      ESTADO_GARANTIA_EN_SAT + ''' THEN ' +
-      '         COALESCE(FECHA_ENVIO_FAB_GAR, CURDATE()) ' +
-      '         ELSE FECHA_ENVIO_FAB_GAR END, ' +
-      '       RESOLUCION_GAR = NULLIF(:RESOLUCION, ''''), ' +
-      '       FECHA_RESOLUCION_GAR = IF(:ESTADO IN (''' +
-      ESTADO_GARANTIA_RESUELTA + ''', ''' + ESTADO_GARANTIA_RECHAZADA +
-      '''), NOW(), NULL), ' +
-      '       OBSERVACIONES_GAR = COALESCE(NULLIF(:OBSERVACIONES, ''''), ' +
-      '                                    OBSERVACIONES_GAR), ' +
-      '       INSTANTE_MODIF = NOW(), USUARIO_MODIF = :USUARIO ' +
-      ' WHERE ID_GAR = :ID ' +
-      '   AND ESTADO_GAR IN (''' + ESTADO_GARANTIA_ABIERTA + ''', ''' +
-      ESTADO_GARANTIA_EN_SAT + ''')';
-    oConsulta.ParamByName('ESTADO').AsString := AEstado;
-    oConsulta.ParamByName('RESOLUCION').AsString := AResolucion;
-    oConsulta.ParamByName('OBSERVACIONES').AsString :=
-      Copy(Trim(AObservaciones), 1, 500);
-    oConsulta.ParamByName('USUARIO').AsString :=
-      Copy(IdentidadSesion.Usuario, 1, 50);
-    oConsulta.ParamByName('ID').AsLargeInt := AId;
-    oConsulta.ExecSQL;
+    if AEsReparacion and
+      (AEstado = ESTADO_GARANTIA_RESUELTA) and
+      (AResolucion = RESOLUCION_GARANTIA_REPARADA) then
+      Reparaciones.Fases.PrepararRecogida(AId, AObservaciones,
+        IdentidadSesion.Usuario)
+    else
+    begin
+      oConsulta.Close;
+      oConsulta.SQL.Text :=
+        'UPDATE fza_garantias_reclamaciones ' +
+        '   SET ESTADO_GAR = :ESTADO, ' +
+        '       FECHA_ENVIO_FAB_GAR = CASE WHEN :ESTADO = ''' +
+        ESTADO_GARANTIA_EN_SAT + ''' THEN ' +
+        '         COALESCE(FECHA_ENVIO_FAB_GAR, CURDATE()) ' +
+        '         ELSE FECHA_ENVIO_FAB_GAR END, ' +
+        '       RESOLUCION_GAR = NULLIF(:RESOLUCION, ''''), ' +
+        '       FECHA_RESOLUCION_GAR = IF(:ESTADO IN (''' +
+        ESTADO_GARANTIA_RESUELTA + ''', ''' + ESTADO_GARANTIA_RECHAZADA +
+        '''), NOW(), NULL), ' +
+        '       OBSERVACIONES_GAR = COALESCE(NULLIF(:OBSERVACIONES, ''''), ' +
+        '                                    OBSERVACIONES_GAR), ' +
+        '       INSTANTE_MODIF = NOW(), USUARIO_MODIF = :USUARIO ' +
+        ' WHERE ID_GAR = :ID ' +
+        '   AND ESTADO_GAR IN (''' + ESTADO_GARANTIA_ABIERTA + ''', ''' +
+        ESTADO_GARANTIA_EN_SAT + ''')';
+      oConsulta.ParamByName('ESTADO').AsString := AEstado;
+      oConsulta.ParamByName('RESOLUCION').AsString := AResolucion;
+      oConsulta.ParamByName('OBSERVACIONES').AsString :=
+        Copy(Trim(AObservaciones), 1, 500);
+      oConsulta.ParamByName('USUARIO').AsString :=
+        Copy(IdentidadSesion.Usuario, 1, 50);
+      oConsulta.ParamByName('ID').AsLargeInt := AId;
+      oConsulta.ExecSQL;
+    end;
   finally
     FreeAndNil(oConsulta);
   end;

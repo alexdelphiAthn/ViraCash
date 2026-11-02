@@ -59,6 +59,7 @@ type
     edtTexto: TcxTextEdit;
     pnlFicha: TPanel;
     FScrollFicha: TScrollBox;
+    FReabrirTrabajos: TMenuItem;
     FSeparadorFicha: TSplitter;
     gbReclamacion: TcxGroupBox;
     gbCliente: TcxGroupBox;
@@ -192,6 +193,7 @@ type
       ATipo, AX, AY: Integer);
     procedure btnEnviarSatClick(Sender: TObject);
     procedure btnReparadaClick(Sender: TObject);
+    procedure ReabrirTrabajosClick(Sender: TObject);
     procedure btnSustituirClick(Sender: TObject);
     procedure btnAbonadaClick(Sender: TObject);
     procedure AbrirDevolucionCaja;
@@ -375,6 +377,8 @@ begin
   oEstados := TPopupMenu.Create(Self);
   CrearOpcion(oEstados, SCaptionGarantiaEnviarSat, btnEnviarSatClick);
   CrearOpcion(oEstados, SCaptionMarcarReparada, btnReparadaClick);
+  FReabrirTrabajos := CrearOpcion(oEstados, SReabrirTrabajos,
+    ReabrirTrabajosClick);
   btnSustituir := CrearOpcion(oEstados, SCaptionGarantiaSustituir,
     btnSustituirClick);
   CrearOpcion(oEstados, SCaptionMarcarAbonada, btnAbonadaClick);
@@ -1034,6 +1038,10 @@ begin
     begin
       oControl.Anchors := [akLeft, akTop];
       oControl.Parent := oScroll;
+      if oControl is TcxCustomEdit then
+        oControl.Width := Min(oControl.Width,
+          Max(EscalarDpi(60), EscalarDpi(ANCHO_NOMINAL_FASE -
+            MARGEN_FICHA) - oControl.Left));
     end;
   end;
   txtModalidadFicha.Width := EscalarDpi(ANCHO_NOMINAL_FASE div 2 -
@@ -1053,6 +1061,8 @@ begin
   pnlFicha.Height := EscalarDpi(TOP_PRIMERA_FILA +
     FILAS_GRUPO * ALTO_FILA + 16);
   pnlFicha.BevelOuter := bvNone;
+  pnlFicha.Constraints.MinWidth := EscalarDpi(ANCHO_GRUPO_RECLAMACION +
+    ANCHO_GRUPO_CLIENTE + ANCHO_GRUPO_PROVEEDOR + 24);
   FScrollFicha.Height := pnlFicha.Height;
   // Dos grupos alLeft ordenados por Left y el del proveedor ocupa el resto.
   CrearGrupoReclamacion;
@@ -1423,20 +1433,30 @@ procedure TfrmMtoGarantiasReclamaciones.Cerrar(
   const AEstado, AResolucion: string; APedirObservaciones: Boolean);
 var
   iId: Int64;
-  sObservaciones: string;
-  bSeguir: Boolean;
+  sObservaciones, sTitulo: string;
+  bSeguir, bPermitir: Boolean;
 begin
-  if ReclamacionAbierta then
+  bPermitir := HayReclamacion and PuedeAccionMto(apmModificar);
+  if bPermitir and not (FEsReparaciones and
+    (AEstado = ESTADO_GARANTIA_RESUELTA) and
+    (AResolucion = RESOLUCION_GARANTIA_REPARADA)) then
+    bPermitir := ReclamacionAbierta;
+  if bPermitir then
   begin
     iId := IdActual;
     sObservaciones := '';
+    sTitulo := Format(STituloObservacionesGarantia, [IntToStr(iId)]);
+    if FEsReparaciones then
+      sTitulo := STituloAltaReparacion + ' ' + IntToStr(iId);
     bSeguir := (not APedirObservaciones) or InputQuery_fza(
-      Format(STituloObservacionesGarantia, [IntToStr(iId)]),
+      sTitulo,
       SPreguntaObservacionesGarantia, sObservaciones);
     if bSeguir then
     begin
+      if FEsReparaciones then
+        Enlaces.GuardarOrden();
       dmmGarantias.CambiarEstado(iId, AEstado, AResolucion,
-        sObservaciones);
+        sObservaciones, FEsReparaciones);
       Refrescar(iId);
     end;
   end;
@@ -1449,7 +1469,29 @@ end;
 
 procedure TfrmMtoGarantiasReclamaciones.btnReparadaClick(Sender: TObject);
 begin
-  Cerrar(ESTADO_GARANTIA_RESUELTA, RESOLUCION_GARANTIA_REPARADA, True);
+  EjecutarReparacion(
+    procedure
+    begin
+      Cerrar(ESTADO_GARANTIA_RESUELTA, RESOLUCION_GARANTIA_REPARADA, True);
+    end);
+end;
+
+procedure TfrmMtoGarantiasReclamaciones.ReabrirTrabajosClick(
+  Sender: TObject);
+begin
+  if HayReclamacion and PuedeAccionMto(apmModificar) and
+    (MessageDlg_fza(SConfirmarReabrirTrabajos, mtConfirmation,
+      [mbYes, mbNo], 0, mbNo) = mrYes) then
+    EjecutarReparacion(
+      procedure
+      begin
+        Enlaces.GuardarOrden();
+        dmmGarantias.Reparaciones.Fases.PrepararRecogida(IdActual, '',
+          dmmGarantias.IdentidadSesion.Usuario, True);
+        Refrescar(IdActual);
+        pcPantalla.ActivePage := tsFicha;
+        pcFases.ActivePage := tsTrabajos;
+      end);
 end;
 
 // La devolución se tramita en caja, con el importe de la venta original.
@@ -1803,6 +1845,7 @@ begin
   btnNueva.Visible := FEsSeries;
   btnSustituir.Visible := FEsSeries;
   btnNuevaReparacion.Visible := FEsReparaciones;
+  FReabrirTrabajos.Visible := FEsReparaciones;
   btnEntregarReparacion.Visible := FEsReparaciones;
   btnAnularReparacion.Visible := FEsReparaciones;
   menuMasOpciones.Items[2].Visible := FEsReparaciones;
@@ -2141,32 +2184,8 @@ end;
 
 procedure TfrmMtoGarantiasReclamaciones.ImprimirHoja(
   const AHoja: THojaReparaciones);
-var
-  oInforme: TfrxReport;
-  Formato: TFormatoHojaReparacion;
-  Eleccion: Integer;
 begin
-  Eleccion := MessageDlgTextos_fza(
-    Format(SPreguntaFormatoHojaReparacion, [AHoja.Titulo]),
-    mtConfirmation, [mbYes, mbNo, mbCancel], ['A4', 'Ticket', ''], mbNo);
-  Formato := fhrTicket;
-  if Eleccion = mrYes then
-    Formato := fhrA4;
-  if Eleccion <> mrCancel then
-  begin
-    oInforme := TfrxReport.Create(nil);
-    try
-      CrearInformeHojaReparaciones(oInforme, AHoja, Formato);
-      if Formato = fhrTicket then
-        ImprimirHojaReparacionesTicket(oInforme, AHoja.Titulo, PreviewTicket,
-          ParametrosCaja.ImpresoraCaja, GetUserFolderTickets + 'Hoja_GAR_' +
-          FormatDateTime('yyyymmdd_hhnnss_zzz', Now) + '.pdf')
-      else
-        oInforme.ShowReport;
-    finally
-      FreeAndNil(oInforme);
-    end;
-  end;
+  TfrmPrintReparacion.EjecutarHoja(Self, AHoja);
 end;
 
 initialization

@@ -60,6 +60,9 @@ type
     pnlBottomFicha: TPanel;
     pcPestana: TcxPageControl;
 
+    pnlAccionesValores: TPanel;
+    btnAnadirValor: TcxButton;
+    btnBorrarValor: TcxButton;
     tsValores: TcxTabSheet;
     cxgrdValores: TcxGrid;
     tvValores: TcxGridDBTableView;
@@ -83,13 +86,20 @@ type
 
     alPropiedades: TActionList;
     actGoArticulo: TAction;
+    actAnadirValor: TAction;
+    actBorrarValor: TAction;
 
     procedure dsTablaGStateChange(Sender: TObject);
     procedure actGoArticuloExecute(Sender: TObject);
     procedure actGoArticuloUpdate(Sender: TObject);
     procedure unqryValoresBeforePost(DataSet: TDataSet);
+    procedure actAnadirValorExecute(Sender: TObject);
+    procedure actBorrarValorExecute(Sender: TObject);
+    procedure actValoresUpdate(Sender: TObject);
   private
     dmmPropiedades: TdmPropiedades;
+    function EsTipoLista: Boolean;
+    function PuedeEditarValores: Boolean;
   public
     procedure CrearTablaPrincipal; override;
     procedure ResetForm; override;
@@ -100,7 +110,8 @@ type
 implementation
 
 uses
-  inLibWin, inLibShowMto, inLibFotos;
+  System.UITypes, inLibWin, inLibShowMto, inLibFotos,
+  inLibPermisosIntf, inLibMensajesVcl, inLibMsgComun;
 
 {$R *.dfm}
 
@@ -185,6 +196,63 @@ begin
       DataSet.FieldByName('ESACTIVO_PV').AsString := 'S';
   end;
   ActualizarAuditoria(DataSet);
+end;
+
+function TfrmMtoPropiedades.EsTipoLista: Boolean;
+begin
+  Result := Assigned(dsTablaG.DataSet) and dsTablaG.DataSet.Active and
+    not dsTablaG.DataSet.IsEmpty and
+    SameText(dsTablaG.DataSet.FieldByName('TIPO_VALOR_PROP').AsString,
+      'LISTA');
+end;
+
+function TfrmMtoPropiedades.PuedeEditarValores: Boolean;
+begin
+  Result := EsTipoLista and Assigned(dmmPropiedades) and
+    Assigned(dsTablaG.DataSet) and dsTablaG.DataSet.Active and
+    not dsTablaG.DataSet.IsEmpty and
+    (dsTablaG.DataSet.FieldByName('CODIGO_PROP_ARTPROP').AsString <> '') and
+    dmmPropiedades.unqryValores.Active and
+    dmmPropiedades.unqryValores.CanModify and
+    PuedeAccionMto(apmModificar);
+end;
+
+procedure TfrmMtoPropiedades.actValoresUpdate(Sender: TObject);
+var
+  bHabilitada: Boolean;
+begin
+  cxgrdValores.Enabled := EsTipoLista;
+  bHabilitada := PuedeEditarValores;
+  if (Sender = actBorrarValor) and bHabilitada then
+    bHabilitada := not dmmPropiedades.unqryValores.IsEmpty;
+  TAction(Sender).Enabled := bHabilitada;
+end;
+
+procedure TfrmMtoPropiedades.actAnadirValorExecute(Sender: TObject);
+begin
+  if PuedeEditarValores then
+  begin
+    dsTablaG.DataSet.CheckBrowseMode;
+    dmmPropiedades.unqryValores.Append;
+    dmmPropiedades.unqryValores.FieldByName('ID_PROP_PV').AsString :=
+      dsTablaG.DataSet.FieldByName('CODIGO_PROP_ARTPROP').AsString;
+    dmmPropiedades.unqryValores.FieldByName('ESACTIVO_PV').AsString := 'S';
+    cxgrdValores.SetFocus;
+    tvValores.Controller.FocusedColumn := tvValoresPV;
+    tvValores.Controller.EditingController.ShowEdit;
+  end;
+end;
+
+procedure TfrmMtoPropiedades.actBorrarValorExecute(Sender: TObject);
+begin
+  if PuedeEditarValores and not dmmPropiedades.unqryValores.IsEmpty then
+  begin
+    if dmmPropiedades.unqryValores.State = dsInsert then
+      dmmPropiedades.unqryValores.Cancel
+    else if MessageDlg_fza(SPreguntaEliminarRegistro, mtConfirmation,
+      [mbYes, mbNo], 0) = mrYes then
+      dmmPropiedades.unqryValores.Delete;
+  end;
 end;
 
 procedure TfrmMtoPropiedades.actGoArticuloUpdate(Sender: TObject);

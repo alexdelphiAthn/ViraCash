@@ -35,6 +35,10 @@ resourcestring
   SCircuitoColDetalle = 'Detalle';
   SCircuitoColNumero = 'Nº';
   SCircuitoPestana = 'Modo avanzado';
+  SCircuitoGrupoCondiciones = 'Condiciones y cierre';
+  SCircuitoGrupoTrabajo = 'Trabajo y materiales';
+  SCircuitoGrupoAlbaranes = 'Albaranes';
+  SCircuitoGrupoExternos = 'Empresas externas';
   SCircuitoAcuerdo = 'Acuerdo y aceptación';
   SCircuitoConcepto = 'Condiciones del concepto';
   SCircuitoTiempo = 'Registrar tiempo';

@@ -1712,6 +1712,14 @@ begin
     'src/Lib/inLibMsgReparaciones.pas',
     @inLibMsgReparaciones.STituloDocumentoLiquidacion);
   ARegistrar(
+    'inLibMsgReparaciones.SHojaLimiteEntregaCliente',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SHojaLimiteEntregaCliente);
+  ARegistrar(
+    'inLibMsgReparaciones.SHojaSinFechaPrevista',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SHojaSinFechaPrevista);
+  ARegistrar(
     'inLibMsgReparaciones.' +
     'STituloHojaEntregaExterno',
     'src/Lib/inLibMsgReparaciones.pas',
@@ -33398,6 +33406,26 @@ begin
     'src/Lib/inLibMsgReparaciones.pas',
     @inLibMsgReparaciones.
       SFaseCorreoEnviado);
+  ARegistrar(
+    'inLibMsgReparaciones.SFaseCorreoRutaNoDisponible',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SFaseCorreoRutaNoDisponible);
+  ARegistrar(
+    'inLibMsgReparaciones.SFaseAvisoNoEnviado',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SFaseAvisoNoEnviado);
+  ARegistrar(
+    'inLibMsgReparaciones.SFaseAvisoSinConfirmar',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SFaseAvisoSinConfirmar);
+  ARegistrar(
+    'inLibMsgReparaciones.SFaseAvisoEnviando',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SFaseAvisoEnviando);
+  ARegistrar(
+    'inLibMsgReparaciones.SFaseAvisoEnviado',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SFaseAvisoEnviado);
   ARegistrar('inLibMsgReparaciones.' +
     'SFaseCorreoIncierto',
     'src/Lib/inLibMsgReparaciones.pas',
@@ -33754,6 +33782,22 @@ begin
   ARegistrar('inLibMsgReparacionesCircuito.SCircuitoSinOrden',
     'src/Lib/inLibMsgReparacionesCircuito.pas',
     @inLibMsgReparacionesCircuito.SCircuitoSinOrden);
+
+  ARegistrar('inLibMsgReparaciones.SReabrirTrabajos',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SReabrirTrabajos);
+
+  ARegistrar('inLibMsgReparaciones.SConfirmarReabrirTrabajos',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SConfirmarReabrirTrabajos);
+
+  ARegistrar('inLibMsgReparaciones.SReparacionTrabajosPendientes',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SReparacionTrabajosPendientes);
+
+  ARegistrar('inLibMsgReparaciones.SReparacionNoReabrible',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SReparacionNoReabrible);
 
 end;
 {$WARN SYMBOL_DEPRECATED ON}

@@ -17,7 +17,7 @@ interface
 
 uses
   System.Classes, System.Generics.Collections, frxClass,
-  inLibGarantiasResguardo;
+  inLibGarantiasResguardo, inLibReparacionesDocumentos;
 
 type
   TDatosPlantillaReparacion = class(TComponent)
@@ -28,6 +28,8 @@ type
     FTrabajos: TfrxUserDataSet;
     FLineas: TArray<TTrabajoResguardo>;
     FTicket: Boolean;
+    FEsHoja: Boolean;
+    FHoja: THojaReparaciones;
     procedure ValorCabecera(const ACampo: string; var AValor: Variant);
     procedure ValorTrabajo(const ACampo: string; var AValor: Variant);
     procedure VincularMemo(AMemo: TfrxMemoView);
@@ -37,6 +39,8 @@ type
     procedure Preparar(AInforme: TfrxReport;
       const ADatos: TResguardoGarantia; ATipo: TDocumentoReparacion;
       AFormato: TFormatoResguardoGarantia);
+    procedure PrepararHoja(AInforme: TfrxReport;
+      const AHoja: THojaReparaciones; AFormato: TFormatoHojaReparacion);
     procedure Enlazar(AInforme: TfrxReport);
     procedure AntesImprimir(AComponente: TfrxReportComponent);
   end;
@@ -84,24 +88,52 @@ var
 begin
   AValor := '';
   i := FTrabajos.RecNo;
-  if (i >= 0) and (i < Length(FLineas)) then
+  if FEsHoja and (i >= 0) and (i < Length(FHoja.Lineas)) then
   begin
-    if ACampo = 'Descripcion' then
+    if ACampo = 'Referencia' then
     begin
-      sTexto := FLineas[i].Descripcion;
-      if not FLineas[i].Terminado then
-        sTexto := sTexto + ' (' + SImpresoPendiente + ')';
-      AValor := sTexto;
+      AValor := FHoja.Lineas[i].Referencia;
+      if FHoja.Lineas[i].Referencia = '' then
+        AValor := IntToStr(FHoja.Lineas[i].Reparacion);
     end
+    else if ACampo = 'Fecha' then
+    begin
+      if FHoja.Lineas[i].Fecha > 0 then
+        AValor := FormatDateTime('dd/mm/yyyy', FHoja.Lineas[i].Fecha);
+    end
+    else if ACampo = 'Trabajo' then
+      AValor := FHoja.Lineas[i].Trabajo
+    else if ACampo = 'Detalles' then
+      AValor := DetalleLineaHoja(FHoja.Lineas[i])
+    else if ACampo = 'Plazo' then
+      AValor := PlazoLineaHoja(FHoja.Lineas[i])
     else if ACampo = 'Cantidad' then
-    begin
-      sTexto := FormatFloat('0.###', FLineas[i].Cantidad);
-      if FTicket then
-        sTexto := Format(SImpresoCantidad, [sTexto]);
-      AValor := sTexto;
-    end
+      AValor := Format(SImpresoCantidad,
+        [FormatFloat('0.###', FHoja.Lineas[i].Cantidad)])
     else if ACampo = 'Importe' then
-      AValor := FormatFloat('#,##0.00', FLineas[i].Importe);
+      AValor := FormatFloat('#,##0.00', FHoja.Lineas[i].Importe);
+  end;
+  if not FEsHoja then
+  begin
+    if (i >= 0) and (i < Length(FLineas)) then
+    begin
+      if ACampo = 'Descripcion' then
+      begin
+        sTexto := FLineas[i].Descripcion;
+        if not FLineas[i].Terminado then
+          sTexto := sTexto + ' (' + SImpresoPendiente + ')';
+        AValor := sTexto;
+      end
+      else if ACampo = 'Cantidad' then
+      begin
+        sTexto := FormatFloat('0.###', FLineas[i].Cantidad);
+        if FTicket then
+          sTexto := Format(SImpresoCantidad, [sTexto]);
+        AValor := sTexto;
+      end
+      else if ACampo = 'Importe' then
+        AValor := FormatFloat('#,##0.00', FLineas[i].Importe);
+    end;
   end;
 end;
 
@@ -141,6 +173,8 @@ var
   oObjeto: TfrxComponent;
   oBanda: TfrxMasterData;
 begin
+  FEsHoja := False;
+  FTrabajos.Fields.Text := 'Descripcion'#13#10'Cantidad'#13#10'Importe';
   FValores.Clear;
   FVisibles.Clear;
   FCabecera.Fields.Clear;
@@ -171,6 +205,78 @@ begin
       begin
         oBanda.RowCount := 0;
         oBanda.DataSet := FTrabajos;
+      end;
+    end;
+  end;
+  Enlazar(AInforme);
+end;
+
+procedure TDatosPlantillaReparacion.PrepararHoja(AInforme: TfrxReport;
+  const AHoja: THojaReparaciones; AFormato: TFormatoHojaReparacion);
+var
+  rModelo: THojaReparaciones;
+  oObjeto: TfrxComponent;
+  oMemo: TfrxMemoView;
+  i: Integer;
+begin
+  FEsHoja := True;
+  FHoja := AHoja;
+  FValores.Clear;
+  FVisibles.Clear;
+  FCabecera.Fields.Clear;
+  FTrabajos.Fields.Text := 'Referencia'#13#10'Fecha'#13#10'Trabajo'#13#10 +
+    'Detalles'#13#10'Plazo'#13#10'Cantidad'#13#10'Importe';
+  FTrabajos.RangeEndCount := Length(AHoja.Lineas);
+  rModelo := AHoja;
+  if Length(AHoja.Lineas) = 0 then
+  begin
+    SetLength(rModelo.Lineas, 1);
+    rModelo.Lineas[0] := Default(TLineaHojaReparacion);
+  end;
+  CrearInformeHojaReparaciones(AInforme, rModelo, AFormato);
+  // El formato conserva una banda repetible y el resumen de todas las filas.
+  for i := AInforme.AllObjects.Count - 1 downto 0 do
+  begin
+    oObjeto := TfrxComponent(AInforme.AllObjects[i]);
+    if (oObjeto is TfrxMasterData) and
+       string(oObjeto.Name).StartsWith('HojaLinea') and
+       (oObjeto.Name <> 'HojaLinea0000') then
+      oObjeto.Free;
+  end;
+  for i := 0 to AInforme.AllObjects.Count - 1 do
+  begin
+    oObjeto := TfrxComponent(AInforme.AllObjects[i]);
+    if oObjeto is TfrxMemoView then
+    begin
+      oMemo := TfrxMemoView(oObjeto);
+      if (Length(AHoja.Lineas) = 0) and
+         (oMemo.Text = Format(SHojaReparacionesLineas, [1])) then
+        oMemo.Text := Format(SHojaReparacionesLineas, [0]);
+      if not oMemo.AllowExpressions then
+      begin
+        if string(oMemo.Name).StartsWith('HojaLinea0000_') and
+           (FTrabajos.Fields.IndexOf(Copy(oMemo.Name, 15, MaxInt)) >= 0) then
+        begin
+          oMemo.DataSet := FTrabajos;
+          oMemo.DataField := Copy(oMemo.Name, 15, MaxInt);
+        end
+        else
+        begin
+          FValores.Values[oMemo.Name] := oMemo.Text;
+          FCabecera.Fields.Add(oMemo.Name);
+          oMemo.DataSet := FCabecera;
+          oMemo.DataField := oMemo.Name;
+        end;
+        oMemo.Text := '';
+        oMemo.ShiftMode := smAlways;
+      end;
+    end;
+    if oObjeto is TfrxMasterData then
+    begin
+      if oObjeto.Name = 'HojaLinea0000' then
+      begin
+        TfrxMasterData(oObjeto).RowCount := 0;
+        TfrxMasterData(oObjeto).DataSet := FTrabajos;
       end;
     end;
   end;

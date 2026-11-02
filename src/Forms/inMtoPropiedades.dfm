@@ -205,13 +205,38 @@
             object tsValores: TcxTabSheet
               Caption = '&1_Valores Disponibles'
               ImageIndex = 0
-              object cxgrdValores: TcxGrid
+              object pnlAccionesValores: TPanel
                 Left = 0
                 Top = 0
                 Width = 941
-                Height = 331
-                Align = alClient
+                Height = 36
+                Align = alTop
+                BevelOuter = bvNone
                 TabOrder = 0
+                object btnAnadirValor: TcxButton
+                  Left = 4
+                  Top = 4
+                  Width = 100
+                  Height = 28
+                  Action = actAnadirValor
+                  TabOrder = 0
+                end
+                object btnBorrarValor: TcxButton
+                  Left = 112
+                  Top = 4
+                  Width = 100
+                  Height = 28
+                  Action = actBorrarValor
+                  TabOrder = 1
+                end
+              end
+              object cxgrdValores: TcxGrid
+                Left = 0
+                Top = 36
+                Width = 941
+                Height = 295
+                Align = alClient
+                TabOrder = 1
                 object tvValores: TcxGridDBTableView
                   DataController.Options = [dcoCaseInsensitive, dcoAssignGroupingValues, dcoAssignMasterDetailKeys, dcoSaveExpanding]
                   OptionsBehavior.IncSearch = True
@@ -354,6 +379,16 @@
   object alPropiedades: TActionList
     Left = 360
     Top = 24
+    object actAnadirValor: TAction
+      Caption = 'A'#241'adir'
+      OnExecute = actAnadirValorExecute
+      OnUpdate = actValoresUpdate
+    end
+    object actBorrarValor: TAction
+      Caption = 'Borrar'
+      OnExecute = actBorrarValorExecute
+      OnUpdate = actValoresUpdate
+    end
     object actGoArticulo: TAction
       Category = 'Navegaci'#243'n'
       Caption = 'Ir al art'#237'culo'

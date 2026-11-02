@@ -16,10 +16,21 @@ unit inLibMsgReparaciones;
 interface
 
 resourcestring
+  SReabrirTrabajos = 'Reanudar trabajos pendientes';
+  SConfirmarReabrirTrabajos =
+    '¿Reabrir esta reparación para terminar sus trabajos pendientes? ' +
+    'Se conservarán los documentos y los cobros.';
+  SReparacionTrabajosPendientes =
+    'Quedan trabajos sin terminar. Use Trabajos > Empezar y Terminar ' +
+    'antes de marcar la reparación como reparada. Si ya figura resuelta, ' +
+    'use Cambiar estado > Reanudar trabajos pendientes.';
+  SReparacionNoReabrible =
+    'Solo se reabren reparaciones marcadas como reparadas, sin entregar ' +
+    'y con trabajos pendientes.';
   SPreguntaDocumentoEntrega =
     'Esta orden aún no tiene documento de cobro. ¿Crear un albarán de ' +
     'cliente con los trabajos pendientes? Desde el albarán podrá facturar ' +
-    'y cobrar. Después vuelva a Entregar al cliente.';
+    'y cobrar.' + #13#10 + 'Al terminar, vuelva a Entregar al cliente.';
   SClaseServicio = 'Clase de servicio';
   SClaseTaller = 'Taller / reparación';
   SClaseAltura = 'Arreglo de altura';
@@ -317,6 +328,8 @@ resourcestring
     'Seleccione el formato de impresión de «%s»: ';
   SRotuloObjetoResguardo = 'Objeto:';
   SRotuloDetallesResguardo = 'Detalles:';
+  SHojaLimiteEntregaCliente = 'Fecha límite de entrega al cliente:';
+  SHojaSinFechaPrevista = 'Sin fecha prevista';
   SRotuloProveedorHoja = 'Proveedor:';
   SRotuloFechaHoja = 'Fecha:';
   SRotuloLiquidacionHoja = 'Liquidación:';
@@ -420,7 +433,7 @@ resourcestring
   SFaseSituacionTrabajos = 'Situación de trabajos';
   SFasePestana = 'Fases y avisos';
   SFaseHistorialCambios = 'Cambios de fase';
-  SFaseHistorialAvisos = 'Avisos al cliente';
+  SFaseHistorialAvisos = 'Intentos de aviso al cliente';
   SFaseActual = 'Fase actual';
   SFaseGuardar = 'Guardar cambio de fase';
   SFaseAnadir = 'Añadir fase';
@@ -451,6 +464,13 @@ resourcestring
   SFaseCorreoConfigurar = 'Configure la conexión API de ViraCash ' +
     'y la cuenta de correo de la instalación.';
   SFaseCorreoEnviado = 'El servicio de correo ha aceptado el aviso.';
+  SFaseCorreoRutaNoDisponible = 'No enviado. La ruta de avisos de ' +
+    'reparación no está disponible en la API (HTTP %d). ' +
+    'Publique el servicio correo/aviso_reparacion.php en el servidor.';
+  SFaseAvisoNoEnviado = 'No enviado';
+  SFaseAvisoSinConfirmar = 'Sin confirmar';
+  SFaseAvisoEnviando = 'Enviando';
+  SFaseAvisoEnviado = 'Enviado';
   SFaseCorreoIncierto = 'No se ha podido confirmar el resultado del envío. ' +
     'Compruébelo antes de reintentar para evitar duplicados.';
   SFaseReintentarCorreo = 'El resultado del intento anterior es incierto. ' +

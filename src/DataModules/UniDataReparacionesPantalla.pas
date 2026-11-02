@@ -559,6 +559,7 @@ begin
     '       TRIM(CONCAT_WS('' '', G.CODIGO_UNIDAD_GAR, G.LOTE_GAR, ' +
     '         G.DESCRIPCION_OBJETO_GAR, G.REFERENCIA_OBJETO_GAR)) AS OBJETO, ' +
     '       L.DESCRIPCION_GARLIN, G.DETALLES_GAR, ' +
+    '       G.FECHA_PREVISTA_GAR, L.CANTIDAD_GARLIN, ' +
     '       L.CANTIDAD_GARLIN * L.PRECIO_COSTE_GARLIN AS IMPORTE ' +
     '  FROM fza_garantias_lineas L ' +
     '  JOIN fza_garantias_reclamaciones G ON G.ID_GAR = L.ID_GAR_GARLIN ' +
@@ -578,6 +579,10 @@ begin
       if oConsulta.FieldByName('FECHA_FIN_GARLIN').IsNull then
         Result[iLinea].Fecha :=
           oConsulta.FieldByName('FECHA_INICIO_GARLIN').AsDateTime;
+      Result[iLinea].FechaEntregaCliente :=
+        oConsulta.FieldByName('FECHA_PREVISTA_GAR').AsDateTime;
+      Result[iLinea].Cantidad :=
+        oConsulta.FieldByName('CANTIDAD_GARLIN').AsFloat;
       Result[iLinea].Objeto := oConsulta.FieldByName('OBJETO').AsString;
       Result[iLinea].Trabajo :=
         oConsulta.FieldByName('DESCRIPCION_GARLIN').AsString;

@@ -112,6 +112,19 @@ begin
       else
         AMensaje := rRespuesta.Mensaje;
     except
+      on E: ERespuestaAjenaViraCashApi do
+      begin
+        if (E.EstadoHttp = 404) or (E.EstadoHttp = 405) then
+        begin
+          Result := rcrRechazado;
+          AMensaje := Format(SFaseCorreoRutaNoDisponible, [E.EstadoHttp]);
+        end
+        else
+        begin
+          Result := rcrDesconocido;
+          AMensaje := SFaseCorreoIncierto + ' ' + E.Message;
+        end;
+      end;
       on E: Exception do
       begin
         Result := rcrDesconocido;

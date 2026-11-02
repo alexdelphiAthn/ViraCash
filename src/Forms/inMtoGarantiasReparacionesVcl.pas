@@ -257,6 +257,7 @@ constructor TPanelLineasReparacion.CreatePanel(AOwner: TComponent;
   const AEnlaces: TEnlacesReparaciones);
 var
   Grupo: TcxGroupBox;
+  Desplazamiento: TScrollBox;
   iIzquierda: Integer;
   procedure NuevoGrupo(const ATitulo: string);
   var
@@ -308,6 +309,18 @@ begin
   Boton(SCaptionPresupuestar, 100, PresupuestarClick);
   Boton(SCaptionAceptarPresupuesto, 90, AceptarPresupuestoClick);
   Boton(SCaptionRechazarPresupuesto, 90, RechazarPresupuestoClick);
+  Desplazamiento := TScrollBox.Create(Self);
+  Desplazamiento.Name := 'scrollBotonesTrabajos';
+  Desplazamiento.Parent := Self;
+  Desplazamiento.Align := alTop;
+  Desplazamiento.Height := EscalarDpi(96);
+  Desplazamiento.BorderStyle := bsNone;
+  Desplazamiento.VertScrollBar.Visible := False;
+  Desplazamiento.HorzScrollBar.Tracking := True;
+  FBotonera.Align := alNone;
+  FBotonera.Parent := Desplazamiento;
+  FBotonera.SetBounds(0, 0, Grupo.Left + Grupo.Width + EscalarDpi(8),
+    EscalarDpi(76));
   FVista := CrearVista(alClient, 0, FDatos.Lineas);
   FVista.OptionsSelection.MultiSelect := True;
   CrearColumnas;

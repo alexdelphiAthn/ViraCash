@@ -18,12 +18,14 @@ interface
 uses
   System.Classes, cxDropDownEdit, frxClass, inMtoModalGenImp,
   inLibGarantiasResguardo, inLibCorreoTickets,
-  inLibReparacionesPlantillas;
+  inLibReparacionesPlantillas, inLibReparacionesDocumentos;
 
 type
   TfrmPrintReparacion = class(TfrmPrint)
   private
     FDatos: TResguardoGarantia;
+    FHoja: THojaReparaciones;
+    FEsHoja: Boolean;
     FTipo: TDocumentoReparacion;
     FFormato: TcxComboBox;
     FPlantilla: TDatosPlantillaReparacion;
@@ -38,6 +40,7 @@ type
     procedure EnviarCorreoDocumento(ATipo: TTipoDocumentoCorreo;
       const ASerie, ANumero: string); override;
   public
+    procedure ConfigurarHoja(const AHoja: THojaReparaciones);
     procedure Configurar(const ADatos: TResguardoGarantia;
       ATipo: TDocumentoReparacion);
     procedure preparar_consulta; override;
@@ -46,6 +49,8 @@ type
     procedure btnPDFClick(Sender: TObject); override;
     function ExportarPdfPreparado(const ARuta: string;
       ANotificarExportacion: Boolean = True): Boolean; override;
+    class procedure EjecutarHoja(AOwner: TComponent;
+      const AHoja: THojaReparaciones);
     class procedure Ejecutar(AOwner: TComponent;
       const ADatos: TResguardoGarantia; ATipo: TDocumentoReparacion);
   end;
@@ -71,6 +76,36 @@ begin
   finally
     oFormulario.Free;
   end;
+end;
+
+class procedure TfrmPrintReparacion.EjecutarHoja(AOwner: TComponent;
+  const AHoja: THojaReparaciones);
+var
+  oFormulario: TfrmPrintReparacion;
+begin
+  oFormulario := TfrmPrintReparacion.Create(AOwner);
+  try
+    oFormulario.ConfigurarHoja(AHoja);
+    oFormulario.ShowModal;
+  finally
+    oFormulario.Free;
+  end;
+end;
+
+procedure TfrmPrintReparacion.ConfigurarHoja(
+  const AHoja: THojaReparaciones);
+var
+  rDatos: TResguardoGarantia;
+begin
+  rDatos := Default(TResguardoGarantia);
+  rDatos.Empresa := AHoja.Tienda.Empresa;
+  rDatos.Numero := AHoja.Liquidacion;
+  if (rDatos.Numero = 0) and (Length(AHoja.Lineas) > 0) then
+    rDatos.Numero := AHoja.Lineas[0].Reparacion;
+  FEsHoja := True;
+  FHoja := AHoja;
+  Configurar(rDatos, drRecepcion);
+  Caption := AHoja.Titulo;
 end;
 
 procedure TfrmPrintReparacion.Configurar(const ADatos: TResguardoGarantia;
@@ -118,7 +153,7 @@ begin
   if FTipo in [drFabricante, drCliente] then
     FFormato.ItemIndex := 2;
   btnEditar.Visible := True;
-  btnExcel.Visible := False;
+  btnExcel.Visible := FEsHoja;
   btnVistaPreliminar.OnClick := VistaPreviaClick;
 end;
 
@@ -134,9 +169,21 @@ end;
 procedure TfrmPrintReparacion.preparar_consulta;
 begin
   // Los formatos de cada documento y tamaño tienen su propio catálogo.
-  Name := 'frmPrintReparacion' + IntToStr(Ord(FTipo)) +
-    '_' + IntToStr(Ord(Formato));
-  FPlantilla.Preparar(frxrprt1, FDatos, FTipo, Formato);
+  if FEsHoja then
+  begin
+    Name := 'frmPrintHojaReparaciones' + IntToStr(Ord(FHoja.EsImporte)) +
+      '_' + IntToStr(Ord(Formato));
+    if Formato = frgTicket then
+      FPlantilla.PrepararHoja(frxrprt1, FHoja, fhrTicket)
+    else
+      FPlantilla.PrepararHoja(frxrprt1, FHoja, fhrA4);
+  end
+  else
+  begin
+    Name := 'frmPrintReparacion' + IntToStr(Ord(FTipo)) +
+      '_' + IntToStr(Ord(Formato));
+    FPlantilla.Preparar(frxrprt1, FDatos, FTipo, Formato);
+  end;
   frxrprt1.PreviewOptions.Buttons := frxrprt1.PreviewOptions.Buttons -
     [pbEdit, pbLoad];
   // El ticket se imprime desde el botón del modal por el circuito ESC/POS.

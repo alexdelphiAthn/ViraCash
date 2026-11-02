@@ -43,6 +43,8 @@ type
       const AUsuario: string);
     function Anadir(const ADescripcion, AUsuario: string): string;
     function Cambiar(const ACambio: TCambioFaseReparacion): Int64;
+    procedure PrepararRecogida(AReparacion: Int64;
+      const AObservaciones, AUsuario: string; AReabrir: Boolean = False);
     procedure RegistrarInicial(AReparacion: Int64; const AUsuario: string);
     procedure PrepararEntrega(AReparacion: Int64;
       const AUsuario: string);
@@ -131,43 +133,47 @@ var
 begin
   Parametros := LeerParametrosArreglos;
   Cambio := Default(TCambioFaseReparacion);
-  Cambio.Nueva := Parametros.FaseEmpezar;
-  if ATerminado then
-    Cambio.Nueva := Parametros.FaseTerminar;
-  if Cambio.Nueva <> '' then
-  begin
-    oDatos := Consulta('SELECT G.ID_GAR, G.CATEGORIA_GAR, ' +
-      '(SELECT COUNT(*) FROM fza_garantias_lineas T ' +
-      'WHERE T.ID_GAR_GARLIN = G.ID_GAR ' +
-      'AND T.TIPO_LINEA_GARLIN = ''' + LINEA_REPARACION_MANO_OBRA + ''' ' +
-      'AND T.FECHA_INICIO_GARLIN IS NOT NULL) AS INICIADAS, ' +
-      '(SELECT COUNT(*) FROM fza_garantias_lineas T ' +
-      'WHERE T.ID_GAR_GARLIN = G.ID_GAR ' +
-      'AND T.TIPO_LINEA_GARLIN = ''' + LINEA_REPARACION_MANO_OBRA + ''' ' +
-      'AND T.FECHA_FIN_GARLIN IS NULL) AS PENDIENTES ' +
-      'FROM fza_garantias_lineas L JOIN fza_garantias_reclamaciones G ' +
-      'ON G.ID_GAR = L.ID_GAR_GARLIN WHERE L.ID_GARLIN = :LINEA');
-    try
-      oDatos.ParamByName('LINEA').AsLargeInt := ALinea;
-      oDatos.Open;
-      if not oDatos.IsEmpty and
-        SameText(Trim(oDatos.FieldByName('CATEGORIA_GAR').AsString),
-          'ARREGLOS') and
-        (((not ATerminado) and
-          (oDatos.FieldByName('INICIADAS').AsInteger = 1)) or
-        (ATerminado and
-          (oDatos.FieldByName('PENDIENTES').AsInteger = 0))) then
+  oDatos := Consulta('SELECT G.ID_GAR, G.CATEGORIA_GAR, ' +
+    '(SELECT COUNT(*) FROM fza_garantias_lineas T ' +
+    'WHERE T.ID_GAR_GARLIN = G.ID_GAR ' +
+    'AND T.TIPO_LINEA_GARLIN = ''' + LINEA_REPARACION_MANO_OBRA + ''' ' +
+    'AND T.FECHA_INICIO_GARLIN IS NOT NULL) AS INICIADAS, ' +
+    '(SELECT COUNT(*) FROM fza_garantias_lineas T ' +
+    'WHERE T.ID_GAR_GARLIN = G.ID_GAR ' +
+    'AND T.TIPO_LINEA_GARLIN = ''' + LINEA_REPARACION_MANO_OBRA + ''' ' +
+    'AND T.FECHA_FIN_GARLIN IS NULL) AS PENDIENTES ' +
+    'FROM fza_garantias_lineas L JOIN fza_garantias_reclamaciones G ' +
+    'ON G.ID_GAR = L.ID_GAR_GARLIN WHERE L.ID_GARLIN = :LINEA');
+  try
+    oDatos.ParamByName('LINEA').AsLargeInt := ALinea;
+    oDatos.Open;
+    if not oDatos.IsEmpty then
+    begin
+      if ATerminado then
+        Cambio.Nueva := 'ENTREGA_CLIENTE';
+      if SameText(Trim(oDatos.FieldByName('CATEGORIA_GAR').AsString),
+        'ARREGLOS') then
       begin
-        Cambio.Reparacion := oDatos.FieldByName('ID_GAR').AsLargeInt;
-        Cambio.Usuario := AUsuario;
-        Cambio.Observaciones := SParametrosArreglosCambioInicio;
+        Cambio.Nueva := Parametros.FaseEmpezar;
         if ATerminado then
-          Cambio.Observaciones := SParametrosArreglosCambioFin;
-        Cambiar(Cambio);
+          Cambio.Nueva := Parametros.FaseTerminar;
       end;
-    finally
-      FreeAndNil(oDatos);
     end;
+    if not oDatos.IsEmpty and (Cambio.Nueva <> '') and
+      (((not ATerminado) and
+        (oDatos.FieldByName('INICIADAS').AsInteger = 1)) or
+      (ATerminado and
+        (oDatos.FieldByName('PENDIENTES').AsInteger = 0))) then
+    begin
+      Cambio.Reparacion := oDatos.FieldByName('ID_GAR').AsLargeInt;
+      Cambio.Usuario := AUsuario;
+      Cambio.Observaciones := SParametrosArreglosCambioInicio;
+      if ATerminado then
+        Cambio.Observaciones := SParametrosArreglosCambioFin;
+      Cambiar(Cambio);
+    end;
+  finally
+    FreeAndNil(oDatos);
   end;
 end;
 
@@ -435,6 +441,97 @@ begin
       FConexion.Commit;
   except
     if bPropia then
+      FConexion.Rollback;
+    raise;
+  end;
+end;
+
+// Reparada significa lista para recoger; el cierre real es la entrega.
+// La reapertura solo recupera el cierre prematuro de versiones anteriores.
+procedure TDatosFasesReparacion.PrepararRecogida(AReparacion: Int64;
+  const AObservaciones, AUsuario: string; AReabrir: Boolean);
+var
+  oOrden: TUniQuery;
+  bPropia, bCierreAnterior: Boolean;
+  rCambio: TCambioFaseReparacion;
+begin
+  bPropia := not FConexion.InTransaction;
+  if bPropia then
+    FConexion.StartTransaction;
+  try
+    oOrden := Consulta('SELECT G.ESTADO_GAR, G.RESOLUCION_GAR, ' +
+      'G.MODALIDAD_GAR, G.FECHA_ENTREGA_CLI_GAR, ' +
+      '(SELECT COUNT(*) FROM fza_garantias_lineas L ' +
+      'WHERE L.ID_GAR_GARLIN=G.ID_GAR ' +
+      'AND L.TIPO_LINEA_GARLIN=''MANO_OBRA'' ' +
+      'AND L.FECHA_FIN_GARLIN IS NULL) AS PENDIENTES, ' +
+      '(SELECT COUNT(*) FROM fza_garantias_lineas L ' +
+      'WHERE L.ID_GAR_GARLIN=G.ID_GAR ' +
+      'AND L.TIPO_LINEA_GARLIN=''MANO_OBRA'') AS TRABAJOS ' +
+      'FROM fza_garantias_reclamaciones G WHERE G.ID_GAR=:ID FOR UPDATE');
+    try
+      oOrden.ParamByName('ID').AsLargeInt := AReparacion;
+      oOrden.Open;
+      if oOrden.IsEmpty then
+        raise EArgumentException.Create(SInfoSinReparacion);
+      bCierreAnterior :=
+        (oOrden.FieldByName('ESTADO_GAR').AsString = 'RESUELTA') and
+        (oOrden.FieldByName('RESOLUCION_GAR').AsString = 'REPARADA');
+      if not EsModalidadReparacion(
+          oOrden.FieldByName('MODALIDAD_GAR').AsString) or
+        not oOrden.FieldByName('FECHA_ENTREGA_CLI_GAR').IsNull or
+        not ((oOrden.FieldByName('ESTADO_GAR').AsString = 'ABIERTA') or
+          (oOrden.FieldByName('ESTADO_GAR').AsString = 'EN_SAT') or
+          bCierreAnterior) then
+        raise EArgumentException.Create(SFaseCerrada);
+      if AReabrir then
+      begin
+        if not bCierreAnterior or
+          (oOrden.FieldByName('PENDIENTES').AsInteger = 0) then
+          raise EArgumentException.Create(SReparacionNoReabrible);
+      end
+      else if (oOrden.FieldByName('PENDIENTES').AsInteger > 0) or
+        (oOrden.FieldByName('TRABAJOS').AsInteger = 0) then
+        raise EArgumentException.Create(SReparacionTrabajosPendientes);
+      RegistrarInicial(AReparacion, AUsuario);
+      oOrden.Close;
+      oOrden.SQL.Text := 'UPDATE fza_garantias_reclamaciones ' +
+        'SET ESTADO_GAR=''ABIERTA'', RESOLUCION_GAR=NULL, ' +
+        'FECHA_RESOLUCION_GAR=NULL, ' +
+        'OBSERVACIONES_GAR=COALESCE(NULLIF(:OBS, ''''), ' +
+        'OBSERVACIONES_GAR), INSTANTE_MODIF=NOW(6), ' +
+        'USUARIO_MODIF=:USUARIO WHERE ID_GAR=:ID';
+      oOrden.ParamByName('ID').AsLargeInt := AReparacion;
+      oOrden.ParamByName('OBS').AsString := Copy(AObservaciones, 1, 500);
+      oOrden.ParamByName('USUARIO').AsString := Copy(AUsuario, 1, 50);
+      oOrden.Execute;
+      rCambio := Default(TCambioFaseReparacion);
+      rCambio.Reparacion := AReparacion;
+      rCambio.Nueva := 'ENTREGA_CLIENTE';
+      rCambio.Observaciones := SParametrosArreglosCambioFin;
+      if AReabrir then
+      begin
+        rCambio.Nueva := 'EN_TALLER';
+        rCambio.Observaciones := SReabrirTrabajos;
+      end;
+      rCambio.Usuario := AUsuario;
+      if (Cambiar(rCambio) = 0) and AReabrir then
+      begin
+        rCambio.Anterior := rCambio.Nueva;
+        oOrden.SQL.Text := 'SELECT DESCRIPCION_GARFA FROM ' +
+          'fza_garantias_fases WHERE CODIGO_GARFA=:FASE';
+        oOrden.ParamByName('FASE').AsString := rCambio.Nueva;
+        oOrden.Open;
+        InsertarHistorial(rCambio, oOrden.Fields[0].AsString,
+          oOrden.Fields[0].AsString);
+      end;
+    finally
+      oOrden.Free;
+    end;
+    if bPropia then
+      FConexion.Commit;
+  except
+    if bPropia and FConexion.InTransaction then
       FConexion.Rollback;
     raise;
   end;

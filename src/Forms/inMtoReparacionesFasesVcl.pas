@@ -16,7 +16,7 @@ unit inMtoReparacionesFasesVcl;
 interface
 
 uses
-  System.Classes, Vcl.Controls, cxDropDownEdit, cxMemo, cxLabel, cxPC,
+  cxGridCustomTableView, cxGridTableView, System.Classes, Vcl.Controls, cxDropDownEdit, cxMemo, cxLabel, cxPC,
   inLibReparacionesFases, inMtoGarantiasReparacionesVcl,
   UniDataReparacionesPantalla;
 
@@ -34,6 +34,8 @@ type
     procedure CargarCatalogo;
     procedure CrearHistorial;
     procedure CrearAvisos;
+    procedure EstadoAvisoGetDisplayText(Sender: TcxCustomGridTableItem;
+      ARecord: TcxCustomGridRecord; var AText: string);
     procedure GuardarCambio;
     procedure AnadirFase;
     procedure AvisarCliente;
@@ -132,6 +134,20 @@ begin
   CrearColumna(oVista, 'OBSERVACIONES_GARHIS', SFaseObservaciones, 320);
 end;
 
+procedure TPanelFasesReparacion.EstadoAvisoGetDisplayText(
+  Sender: TcxCustomGridTableItem; ARecord: TcxCustomGridRecord;
+  var AText: string);
+begin
+  if AText = 'ERROR' then
+    AText := SFaseAvisoNoEnviado
+  else if AText = 'DESCONOCIDO' then
+    AText := SFaseAvisoSinConfirmar
+  else if AText = 'ENVIANDO' then
+    AText := SFaseAvisoEnviando
+  else if AText = 'ENVIADO' then
+    AText := SFaseAvisoEnviado;
+end;
+
 procedure TPanelFasesReparacion.CrearAvisos;
 var
   oVista: TcxGridDBTableView;
@@ -141,7 +157,8 @@ begin
   CrearColumna(oVista, 'INSTANTE_ALTA', SFotosFecha, 155);
   CrearColumna(oVista, 'EMAIL_GARAVI', SFaseDestinatario, 220);
   CrearColumna(oVista, 'ASUNTO_GARAVI', SFaseAsunto, 280);
-  CrearColumna(oVista, 'ESTADO_GARAVI', SMovimientoEstado, 120);
+  CrearColumna(oVista, 'ESTADO_GARAVI', SMovimientoEstado, 150)
+    .OnGetDisplayText := EstadoAvisoGetDisplayText;
   CrearColumna(oVista, 'RESULTADO_GARAVI', SMovimientoIncidencia, 280);
   CrearColumna(oVista, 'USUARIO_ALTA', SMovimientoUsuario, 110);
   CrearColumna(oVista, 'TEXTO_GARAVI', SFaseMensaje, 400);

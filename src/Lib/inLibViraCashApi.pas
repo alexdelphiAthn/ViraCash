@@ -16,13 +16,22 @@ unit inLibViraCashApi;
 interface
 
 uses
-  System.SysUtils, inLibParametrosIntf;
+  System.SysUtils, inLibParametrosIntf, inLibErroresHttp;
 
 const
   cUrlViraCashApiDefecto =
     'https://webservice.veryverifactu.com/api/v1/';
 
 type
+  ERespuestaAjenaViraCashApi = class(EConexionHttpTemporal)
+  private
+    FEstadoHttp: Integer;
+  public
+    constructor CreateEstado(AEstadoHttp: Integer;
+      const AMensaje: string);
+    property EstadoHttp: Integer read FEstadoHttp;
+  end;
+
   // Devuelve True cuando el llamador ya no puede esperar la respuesta,
   // por ejemplo porque la aplicación se está cerrando.
   TConsultarCancelacionEnvio = reference to function: Boolean;
@@ -84,11 +93,18 @@ implementation
 uses
   System.Classes, System.JSON, System.NetEncoding, System.Types,
   System.Net.HttpClient, System.Net.URLClient,
-  inLibMsgIntegraciones, inLibErroresHttp;
+  inLibMsgIntegraciones;
 
 const
   // Cada cuánto consulta un envío cancelable si debe interrumpirse.
   cMilisegundosConsultaCancelacion = 100;
+
+constructor ERespuestaAjenaViraCashApi.CreateEstado(AEstadoHttp: Integer;
+  const AMensaje: string);
+begin
+  inherited Create(AMensaje);
+  FEstadoHttp := AEstadoHttp;
+end;
 
 { Crea el cliente HTTP con los tiempos de espera y la credencial ya
   puestos. Todas las llamadas de la API comparten esta configuración. }
@@ -376,9 +392,9 @@ begin
         // intento de la cola; lo demás se reintenta como sin conexión.
         if not EsRespuestaProtocoloViraCashApi(
           sRespuesta, oRespuesta.StatusCode) then
-          raise EConexionHttpTemporal.CreateFmt(
-            SErrorRespuestaAjenaViraCashApi,
-            [oRespuesta.StatusCode]);
+          raise ERespuestaAjenaViraCashApi.CreateEstado(
+            oRespuesta.StatusCode, Format(SErrorRespuestaAjenaViraCashApi,
+              [oRespuesta.StatusCode]));
         Result := LeerRespuesta(
           sRespuesta,
           oRespuesta.StatusCode,

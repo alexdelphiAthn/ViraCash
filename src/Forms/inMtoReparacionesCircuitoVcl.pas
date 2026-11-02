@@ -58,8 +58,9 @@ type
 implementation
 
 uses
-  System.SysUtils, System.StrUtils, cxButtons, cxCurrencyEdit,
-  cxLabel, cxGrid, cxLookAndFeels,
+  System.SysUtils, System.StrUtils, Vcl.Forms, Vcl.Graphics, cxGroupBox,
+  cxButtons, cxCurrencyEdit,
+  cxLabel, cxGrid, cxLookAndFeels, cxSplitter,
   inLibReparacionesCircuito, inLibMsgReparacionesCircuito,
   UniDataReparacionesDocumentoMemoria, UniDataReparacionesImputaciones,
   UniDataReparacionesEntregas,
@@ -218,10 +219,12 @@ end;
 constructor TPanelCircuitoOrden.CreatePanel(AOwner: TComponent;
   AParent: TWinControl; ADatos: TDatosPantallaReparaciones;
   const AEnlaces: TEnlacesReparaciones);
+var
+  oSeparador: TcxSplitter;
 begin
   inherited;
   CrearAcciones;
-  FResumen := CrearVista(alTop, EscalarDpi(180), FDatos.Circuito.Resumen);
+  FResumen := CrearVista(alTop, EscalarDpi(120), FDatos.Circuito.Resumen);
   AjustarRejilla(FResumen);
   CrearColumna(FResumen, 'LINEA', SCircuitoColNumero, 65);
   CrearColumna(FResumen, 'DESCRIPCION', SCircuitoTarea, 220);
@@ -243,6 +246,14 @@ begin
     SCircuitoColHorasFacturables, 95));
   CrearColumna(FResumen, 'UTILIZADO', SCircuitoUtilizado, 95);
   CrearColumna(FResumen, 'DEVUELTO', SCircuitoDevuelto, 95);
+  oSeparador := TcxSplitter.Create(Self);
+  oSeparador.Parent := Self;
+  oSeparador.AlignSplitter := salTop;
+  oSeparador.Height := EscalarDpi(8);
+  oSeparador.MinSize := EscalarDpi(80);
+  oSeparador.HotZoneClassName := 'TcxMediaPlayer9Style';
+  oSeparador.Control := FResumen.Control;
+  oSeparador.Top := FResumen.Control.Top + FResumen.Control.Height;
   CrearDetalles;
 end;
 
@@ -253,41 +264,97 @@ end;
 
 procedure TPanelCircuitoOrden.CrearAcciones;
 var
-  aTextos: TArray<string>;
-  i: Integer;
-  oBoton: TcxButton;
+  oGrupos: TScrollBox;
+  oCabecera: TcxGroupBox;
   oOrden: TcxLabel;
   oRotulo: TcxLabel;
-begin
-  aTextos := [SCircuitoAcuerdo, SCircuitoConcepto, SCircuitoTiempo,
-    SCircuitoCorregirTiempo, SCircuitoPausar, SCircuitoMaterial,
-    SCircuitoCerrar, SCircuitoRefrescar, SCircuitoAlbaran,
-    SCircuitoImputar, SCircuitoLiberar, SCircuitoEntrega, SCircuitoRetorno,
-    SCircuitoImprimir, SCircuitoCerrarEconomico, SCircuitoTodos];
-  FBotonera.Height := EscalarDpi(190);
-  for i := 0 to High(aTextos) do
+  iGrupo: Integer;
+
+  function Boton(AParent: TWinControl; const ATitulo: string;
+    AAccion: TAccionCircuitoOrden; AFila: Integer): TcxButton;
+  var
+    oBoton: TcxButton;
   begin
     oBoton := TcxButton.Create(Self);
-    oBoton.Parent := FBotonera;
-    oBoton.SetBounds(EscalarDpi(8 + (i mod 4) * 185),
-      EscalarDpi(4 + (i div 4) * 38), EscalarDpi(179), EscalarDpi(32));
-    oBoton.Caption := aTextos[i];
-    oBoton.Tag := i;
+    oBoton.Parent := AParent;
+    oBoton.SetBounds(EscalarDpi(8), EscalarDpi(28 + AFila * 36),
+      EscalarDpi(179), EscalarDpi(32));
+    oBoton.Caption := ATitulo;
+    oBoton.Tag := Ord(AAccion);
     oBoton.OnClick := PulsarAccion;
+    Result := oBoton;
   end;
-  oOrden := TcxLabel.Create(Self);
-  oOrden.Transparent := True;
-  oOrden.Parent := FBotonera;
-  oOrden.SetBounds(EscalarDpi(630),EscalarDpi(160),
-    EscalarDpi(220),EscalarDpi(24));
-  FEnlaceRotulo := TEnlaceRotuloOrden.Create(oOrden,
-    FDatos.Circuito.Maestro);
+
+  procedure Grupo(const ATitulo: string;
+    const ATextos: array of string;
+    const AAcciones: array of TAccionCircuitoOrden);
+  var
+    oGrupo: TcxGroupBox;
+    oTitulo: TcxLabel;
+    i: Integer;
+  begin
+    oGrupo := TcxGroupBox.Create(Self);
+    oGrupo.Parent := oGrupos;
+    oGrupo.Caption := '';
+    oGrupo.Alignment := alCenterCenter;
+    oGrupo.PanelStyle.Active := True;
+    oGrupo.SetBounds(EscalarDpi(4 + iGrupo * 203), EscalarDpi(4),
+      EscalarDpi(197), EscalarDpi(176));
+    oTitulo := TcxLabel.Create(Self);
+    oTitulo.Parent := oGrupo;
+    oTitulo.Transparent := True;
+    oTitulo.Caption := ATitulo;
+    oTitulo.Style.TextStyle := [fsBold];
+    oTitulo.SetBounds(EscalarDpi(8), EscalarDpi(4),
+      EscalarDpi(181), EscalarDpi(22));
+    for i := 0 to High(AAcciones) do
+      Boton(oGrupo, ATextos[i], AAcciones[i], i);
+    Inc(iGrupo);
+  end;
+
+begin
+  FBotonera.Height := EscalarDpi(240);
+  oCabecera := TcxGroupBox.Create(Self);
+  oCabecera.Parent := FBotonera;
+  oCabecera.Align := alTop;
+  oCabecera.Height := EscalarDpi(36);
+  oCabecera.PanelStyle.Active := True;
+  Boton(oCabecera, SCircuitoRefrescar, acoRefrescar, 0).Top :=
+    EscalarDpi(2);
   oRotulo := TcxLabel.Create(Self);
-  oRotulo.Parent := FBotonera;
+  oRotulo.Parent := oCabecera;
   oRotulo.Transparent := True;
   oRotulo.Caption := SCircuitoOrden;
-  oRotulo.SetBounds(EscalarDpi(565),EscalarDpi(160),
-    EscalarDpi(65),EscalarDpi(24));
+  oRotulo.SetBounds(EscalarDpi(199), EscalarDpi(6),
+    EscalarDpi(55), EscalarDpi(24));
+  oOrden := TcxLabel.Create(Self);
+  oOrden.Transparent := True;
+  oOrden.Parent := oCabecera;
+  oOrden.SetBounds(EscalarDpi(254), EscalarDpi(6),
+    EscalarDpi(260), EscalarDpi(24));
+  FEnlaceRotulo := TEnlaceRotuloOrden.Create(oOrden,
+    FDatos.Circuito.Maestro);
+  oGrupos := TScrollBox.Create(Self);
+  oGrupos.Parent := FBotonera;
+  oGrupos.Align := alClient;
+  oGrupos.BorderStyle := bsNone;
+  oGrupos.VertScrollBar.Visible := False;
+  oGrupos.HorzScrollBar.Tracking := True;
+  iGrupo := 0;
+  Grupo(SCircuitoGrupoCondiciones,
+    [SCircuitoAcuerdo, SCircuitoConcepto, SCircuitoCerrarEconomico],
+    [acoAcuerdo, acoConcepto, acoEconomico]);
+  Grupo(SCircuitoTiempos,
+    [SCircuitoTiempo, SCircuitoPausar, SCircuitoCorregirTiempo],
+    [acoTiempo, acoPausar, acoCorregirTiempo]);
+  Grupo(SCircuitoGrupoTrabajo,
+    [SCircuitoMaterial, SCircuitoImprimir, SCircuitoCerrar],
+    [acoMaterial, acoHoja, acoCerrar]);
+  Grupo(SCircuitoGrupoAlbaranes,
+    [SCircuitoAlbaran, SCircuitoTodos, SCircuitoImputar, SCircuitoLiberar],
+    [acoCrearAlbaran, acoTodos, acoImputar, acoLiberar]);
+  Grupo(SCircuitoGrupoExternos,
+    [SCircuitoEntrega, SCircuitoRetorno], [acoEntrega, acoRetorno]);
 end;
 
 procedure TPanelCircuitoOrden.CrearDetalle(const ATitulo: string;
