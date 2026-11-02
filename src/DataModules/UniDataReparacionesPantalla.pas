@@ -89,6 +89,7 @@ type
 implementation
 
 uses
+  UniDataCambiosTrabajo,
   UniDataTrabajosCortinas, inLibMsgReparacionesCircuito,
   System.SysUtils, System.Variants, inLibDatasets,
   UniDataReparacionesArticuloServicio,
@@ -97,7 +98,8 @@ uses
 
 const
   SQL_LINEAS =
-    'SELECT L.ID_GARLIN, L.ID_GAR_GARLIN, L.LINEA_GARLIN, ' +
+    'SELECT ' + SQL_REVISION_TRABAJO + ' AS REVISION_CAMBIO,' +
+    ' L.ID_GARLIN, L.ID_GAR_GARLIN, L.LINEA_GARLIN, ' +
     '       L.TIPO_LINEA_GARLIN, L.CODIGO_GARTIP_GARLIN, ' +
     '       L.DESCRIPCION_GARLIN, L.TIPO_EJECUTOR_GARLIN, ' +
     '       L.CODIGO_EMPL_GARLIN, L.CODIGO_PRV_GARLIN, ' +

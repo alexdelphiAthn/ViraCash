@@ -132,6 +132,7 @@ type
       const AProveedor, ADocumento, ASerieExcluida, ANumeroExcluido: string;
       out AExistente: TFacturaCompraRepetida): Boolean;
     function DatosBusquedaProveedoresDirectos: TDataSet;
+    procedure ActualizarDatosEmisor;
     procedure CargarSeriesCompra(AElementos: TStrings);
     procedure ActualizarModalidadCompra;
     // FZ-ISSUE-745: en compras directas, la serie del proveedor se ve
@@ -224,6 +225,7 @@ uses
   UniDataArticulosValidadorRepositorio,
   inLibMsgCompras, inLibDocumento, inLibDocumentoIntf,
   UniDataDatosProveedorDocumento, UniDataComprasDirectas,
+  UniDataComprasAgricultores,
   inLibComprasDirectas, UniDataComprasDirectasFiscal, inLibErroresBBDD,
   inLibRedondeo, inLibVerifactu, inLibTrazabilidad,
   UniDataFacturasCompraMovimientos;
@@ -506,9 +508,12 @@ begin
     q := TUniQuery.Create(nil);
     try
       q.Connection := ConexionEscritura;
-      q.SQL.Text := 'SELECT CODIGO_EMPBAN_PRV ' +
-                    '  FROM fza_proveedores ' +
-                    ' WHERE CODIGO_PRV_PRV = :prv';
+      if CampoEmisorCompra(unqryTablaG) = 'CODIGO_CLI_FACC' then
+        q.SQL.Text := 'SELECT CODIGO_EMPBAN_CLI AS CODIGO_EMPBAN_PRV ' +
+          'FROM fza_clientes WHERE CODIGO_CLI_CLI=:prv'
+      else
+        q.SQL.Text := 'SELECT CODIGO_EMPBAN_PRV ' +
+          'FROM fza_proveedores WHERE CODIGO_PRV_PRV=:prv';
       q.ParamByName('prv').AsString := ACodigoPrv;
       q.Open;
       if not q.IsEmpty then
@@ -530,9 +535,12 @@ begin
     q := TUniQuery.Create(nil);
     try
       q.Connection := ConexionEscritura;
-      q.SQL.Text := 'SELECT CODIGO_FP_PRV ' +
-                    '  FROM fza_proveedores ' +
-                    ' WHERE CODIGO_PRV_PRV = :prv';
+      if CampoEmisorCompra(unqryTablaG) = 'CODIGO_CLI_FACC' then
+        q.SQL.Text := 'SELECT CODIGO_FP_CLI AS CODIGO_FP_PRV ' +
+          'FROM fza_clientes WHERE CODIGO_CLI_CLI=:prv'
+      else
+        q.SQL.Text := 'SELECT CODIGO_FP_PRV ' +
+          'FROM fza_proveedores WHERE CODIGO_PRV_PRV=:prv';
       q.ParamByName('prv').AsString := ACodigoPrv;
       q.Open;
       if not q.IsEmpty then
@@ -549,7 +557,11 @@ var
 begin
   if unqryTablaG.State in [dsEdit, dsInsert] then
   begin
-    if unqryTablaG.FindField('ESIVA_EXENTO_INTRACOMUNITARIO_FACC') <> nil then
+    if EsReciboAgricola(unqryTablaG) then
+      unqryTablaG.FieldByName(
+        'ESIVA_EXENTO_INTRACOMUNITARIO_FACC').AsString := 'N'
+    else if unqryTablaG.FindField(
+      'ESIVA_EXENTO_INTRACOMUNITARIO_FACC') <> nil then
       unqryTablaG.FieldByName('ESIVA_EXENTO_INTRACOMUNITARIO_FACC').AsString :=
         ObtenerIvaExentoIntracomunitarioProveedor(
           CrearLecturasImpuestos(ConexionEscritura), ACodigoPrv);
@@ -686,7 +698,8 @@ procedure TdmFacturasCompra.ProponerSerieAlElegirProveedor;
 var
   sProveedor: string;
 begin
-  sProveedor := Trim(unqryTablaG.FieldByName('CODIGO_PRV_FACC').AsString);
+  sProveedor := Trim(unqryTablaG.FieldByName(
+    CampoEmisorCompra(unqryTablaG)).AsString);
   // Solo proveedores con facturación directa: la lista de la pantalla
   // directa viene filtrada. A otro no se le crea serie.
   if FEsCompraDirecta and
@@ -755,7 +768,17 @@ begin
   then
     DataSet.FieldByName('ESPIVOTE_HORIZONTAL_FACC').AsString := 'N';
   // FZ-ISSUE-249: datos del proveedor en la cabecera, como los de empresa.
-  CopiarDatosProveedorDocumento(DataSet, 'FACC');
+  if CampoEmisorCompra(DataSet) = 'CODIGO_CLI_FACC' then
+  begin
+    CopiarDatosAgricultorCompra(ConexionEscritura, DataSet);
+    DataSet.FieldByName('CODIGO_PRV_FACC').Clear;
+  end
+  else
+  begin
+    if not EsReciboAgricola(DataSet) then
+      DataSet.FieldByName('CODIGO_CLI_FACC').Clear;
+    CopiarDatosProveedorDocumento(DataSet, 'FACC');
+  end;
   CopiarDatosEmpresaDocumento(DataSet, 'FACC');
   if FEsCompraDirecta then
     ProponerSerieCompraDirecta(ConexionEscritura, DataSet,
@@ -859,7 +882,7 @@ begin
     qChk.SQL.Text :=
       'SELECT SERIE_FACC, NUMERO_FACC, FECHA_FACC ' +
       '  FROM fza_facturas_compra ' +
-      ' WHERE CODIGO_PRV_FACC = :prv ' +
+      ' WHERE ' + CampoEmisorCompra(unqryTablaG) + ' = :prv ' +
       '   AND ' + SQL_NORMALIZAR_DOCUMENTO_INI +
       '       COALESCE(NULLIF(TRIM(DOC_EXTERNO_FACC), ''''), ' +
       '                REF_PROVEEDOR_FACC)' + SQL_NORMALIZAR_DOCUMENTO_FIN +
@@ -917,7 +940,7 @@ var
 begin
   if not Assigned(OnFacturaRepetida) then
     Exit;
-  fPrv := DataSet.FindField('CODIGO_PRV_FACC');
+  fPrv := DataSet.FindField(CampoEmisorCompra(DataSet));
   fDoc := DataSet.FindField('DOC_EXTERNO_FACC');
   fRef := DataSet.FindField('REF_PROVEEDOR_FACC');
   sDocumento := DocumentoProveedorFactura(fDoc, fRef);
@@ -1470,16 +1493,45 @@ begin
   begin
     FProveedoresDirectosBusqueda := TUniQuery.Create(Self);
     FProveedoresDirectosBusqueda.Connection := ConexionEscritura;
+  end;
+  FProveedoresDirectosBusqueda.Close;
+  if CampoEmisorCompra(unqryTablaG) = 'CODIGO_CLI_FACC' then
+    FProveedoresDirectosBusqueda.SQL.Text := SQL_CLIENTES_AGRICULTORES
+  else
     FProveedoresDirectosBusqueda.SQL.Text :=
       'SELECT CODIGO_PRV_PRV, NOMBRE_PRV, RAZON_SOCIAL_PRV, NIF_PRV, ' +
       'MOVIL_PRV, EMAIL_PRV FROM fza_proveedores ' +
       'WHERE ESFACTURACION_DIRECTA_PRV = ''S'' ' +
       'AND COALESCE(ESACTIVO_PRV, ''S'') = ''S'' ' +
       'ORDER BY RAZON_SOCIAL_PRV';
-  end;
-  FProveedoresDirectosBusqueda.Close;
   FProveedoresDirectosBusqueda.Open;
   Result := FProveedoresDirectosBusqueda;
+end;
+
+procedure TdmFacturasCompra.ActualizarDatosEmisor;
+var
+  sSql: string;
+  bAgricola: Boolean;
+begin
+  bAgricola := CampoEmisorCompra(unqryTablaG) = 'CODIGO_CLI_FACC';
+  if bAgricola then
+    sSql := SQL_CLIENTES_AGRICULTORES
+  else
+    sSql := 'SELECT CODIGO_PRV_PRV, NOMBRE_PRV, RAZON_SOCIAL_PRV, ' +
+      'NIF_PRV, MOVIL_PRV, EMAIL_PRV, ESFACTURACION_DIRECTA_PRV ' +
+      'FROM fza_proveedores ORDER BY CODIGO_PRV_PRV';
+  if Trim(unqryPrvDataFacc.SQL.Text) <> sSql then
+  begin
+    unqryPrvDataFacc.Close;
+    unqryPrvDataFacc.Filtered := False;
+    unqryPrvDataFacc.SQL.Text := sSql;
+    if FEsCompraDirecta and not bAgricola then
+    begin
+      unqryPrvDataFacc.Filter := 'ESFACTURACION_DIRECTA_PRV = ''S''';
+      unqryPrvDataFacc.Filtered := True;
+    end;
+    unqryPrvDataFacc.Open;
+  end;
 end;
 
 procedure TdmFacturasCompra.CargarSeriesCompra(AElementos: TStrings);

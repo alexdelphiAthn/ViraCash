@@ -39,7 +39,7 @@ procedure ImprimirReciboPagoCompraVcl(AOwner: TComponent;
 implementation
 
 uses
-  inLibMensajesVcl,
+  inLibMensajesVcl, UniDataComprasAgricultores,
   System.SysUtils, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   inLibMsgCompras,
   inMtoModalRegistrarPago, inMtoModalSeleccionarBanco, inMtoModalImpRecFac;
@@ -61,7 +61,8 @@ begin
   if Assigned(ACabecera) then
   begin
     Empresa := ACabecera.FieldByName('CODIGO_EMP_FACC').AsString;
-    Proveedor := ACabecera.FieldByName('CODIGO_PRV_FACC').AsString;
+    Proveedor := ACabecera.FieldByName(
+      CampoEmisorCompra(ACabecera)).AsString;
     BancoPreferido := AObtenerBancoDefecto(Proveedor);
     Banco := TfrmModalSeleccionarBanco.Ejecutar(
       AOwner,

@@ -38,6 +38,10 @@ resourcestring
   SCuotaDeducible = 'Cuota deducible (SII)';
   SGenerarEnviarFiscal = 'Generar / enviar registro fiscal';
   SProveedorEmisor = 'Proveedor / profesional (emisor)';
+  SClienteAgricultorEmisor = 'Cliente agricultor (emisor)';
+  STituloBuscarAgricultores = 'Búsqueda de clientes agricultores';
+  SClienteAgricultorObligatorio =
+    'Seleccione un cliente activo con la casilla «Es agricultor» marcada.';
   SEmpresaDestinataria = 'Empresa destinataria';
 
   SSerieCompraDirectaInvalida =

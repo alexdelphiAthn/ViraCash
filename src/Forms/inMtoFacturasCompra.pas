@@ -200,6 +200,7 @@ type
     procedure btnCerrarBorradorClick(Sender: TObject);
     procedure btnRegistrarPagoClick(Sender: TObject);
   private
+    FActualizandoEmisor: Boolean;
     FGestorTallas    : TGestorGridTallas;
     FPivote          : TGridPivoteCompra;
     FTallaColumns    : array[0..CANT_TALLAS_MAX-1] of TcxGridDBColumn;
@@ -257,6 +258,7 @@ type
     // (razon social entre parentesis si difiere). Ver UniDataFacturasCompra
     // .unqryPrvDataFacc (lookup completo de fza_proveedores).
     procedure ActualizarLabelProveedor;
+    procedure ActualizarSelectorEmisor;
     // Pinta lblTotalPrendasFacc con el total de prendas (suma de
     // CANTIDAD_FACCLIN de todas las lineas). Calculado en Delphi, no
     // persiste en BBDD.
@@ -336,6 +338,7 @@ uses
   inLibTrazabilidadDocumento, UniDataLotesRepositorio,
   inMtoModalSeleccionLote,
   inLibFiltroUsuario, UniDataComprasDirectas, inLibErroresBBDD,
+  UniDataComprasAgricultores,
   UniDataAplicacionArticuloCompra,
   inLibGridCantidad,
   inLibColumnasDocumento, UniDataColumnasDocumentoRepositorio,
@@ -456,15 +459,31 @@ end;
 function TfrmMtoFacturasCompra.BuscarArticuloFacturaCompra: string;
 var
   sPrv: string;
+  oDatos: TDataSet;
 begin
   Result := '';
   if PuedeIntroducirArticuloFacturaCompra then
   begin
     sPrv := Trim(dmmFacturasCompra.unqryTablaG.
                    FieldByName('CODIGO_PRV_FACC').AsString);
-    Result := BuscarArticuloProveedorCompra(
-      FBusquedasArticulos, BusquedaVisual, sPrv,
-      STituloBuscarArticulosFacturaCompra, 'frmMtoFaccArtSearch', Self);
+    if CampoEmisorCompra(dmmFacturasCompra.unqryTablaG) =
+       'CODIGO_CLI_FACC' then
+    begin
+      oDatos := ConsultarArticulosAgricultor(
+        dmmFacturasCompra.unqryTablaG.Connection);
+      try
+        if BusquedaVisual.EjecutarBusquedaDataSet(
+          STituloBuscarArticulosFacturaCompra, oDatos,
+          'frmMtoReciboAgricolaArtSearch', Self) then
+          Result := oDatos.FieldByName('CODIGO_ART_ART').AsString;
+      finally
+        FreeAndNil(oDatos);
+      end;
+    end
+    else
+      Result := BuscarArticuloProveedorCompra(
+        FBusquedasArticulos, BusquedaVisual, sPrv,
+        STituloBuscarArticulosFacturaCompra, 'frmMtoFaccArtSearch', Self);
   end;
 end;
 
@@ -476,8 +495,8 @@ begin
   sPrv := '';
   if Assigned(dmmFacturasCompra) and
      dmmFacturasCompra.unqryTablaG.Active then
-    sPrv := Trim(dmmFacturasCompra.unqryTablaG.
-      FieldByName('CODIGO_PRV_FACC').AsString);
+    sPrv := Trim(dmmFacturasCompra.unqryTablaG.FieldByName(
+      CampoEmisorCompra(dmmFacturasCompra.unqryTablaG)).AsString);
   Result := (sPrv <> '') and (sPrv <> '0');
   if not Result then
     MessageDlg_fza(SErrorProveedorNoSeleccionadoBuscarArticulosFacturaCompra,
@@ -992,6 +1011,8 @@ end;
 procedure TfrmMtoFacturasCompra.dsTablaGDataChangeHook(Sender: TObject;
                                                        Field: TField);
 begin
+  if (Field = nil) or SameText(Field.FieldName, 'MODALIDAD_FACC') then
+    ActualizarSelectorEmisor;
   if ((Field = nil) or SameText(Field.FieldName, 'CODIGO_EMP_FACC')) and
      Assigned(dmmFacturasCompra) and
      dmmFacturasCompra.unqryTablaG.Active and
@@ -1001,10 +1022,13 @@ begin
         'CODIGO_EMP_FACC').AsString);
   // Refrescar el rotulo del proveedor al navegar entre facturas (Field=nil)
   // o al cambiar CODIGO_PRV_FACC tecleado directamente en el ButtonEdit.
-  if (Field = nil) or SameText(Field.FieldName, 'CODIGO_PRV_FACC') then
+  if (Field = nil) or SameText(Field.FieldName, 'CODIGO_PRV_FACC') or
+     SameText(Field.FieldName, 'CODIGO_CLI_FACC') then
     ActualizarLabelProveedor;
   // FZ-ISSUE-745: en compras directas la serie sigue al proveedor.
-  if Assigned(Field) and SameText(Field.FieldName, 'CODIGO_PRV_FACC') and
+  if Assigned(Field) and
+     (SameText(Field.FieldName, 'CODIGO_PRV_FACC') or
+      SameText(Field.FieldName, 'CODIGO_CLI_FACC')) and
      Assigned(dmmFacturasCompra) then
     dmmFacturasCompra.ProponerSerieAlElegirProveedor;
   // Al navegar entre facturas hay que recalcular el total de prendas: las
@@ -1027,6 +1051,31 @@ begin
   end;
 end;
 
+procedure TfrmMtoFacturasCompra.ActualizarSelectorEmisor;
+var
+  sCampo: string;
+begin
+  if Assigned(dmmFacturasCompra) and
+     dmmFacturasCompra.unqryTablaG.Active and
+     not FActualizandoEmisor then
+  begin
+    FActualizandoEmisor := True;
+    try
+      sCampo := CampoEmisorCompra(dmmFacturasCompra.unqryTablaG);
+      dmmFacturasCompra.ActualizarDatosEmisor;
+      cbbCODIGO_PRV_FACC.DataBinding.DataField := sCampo;
+      if sCampo = 'CODIGO_CLI_FACC' then
+        lblCodigoProveedor.Caption := SClienteAgricultorEmisor
+      else if EsPantallaCompraDirecta then
+        lblCodigoProveedor.Caption := SProveedorEmisor;
+      lblCodigoProveedor.Hint := lblCodigoProveedor.Caption;
+      ActualizarLabelProveedor;
+    finally
+      FActualizandoEmisor := False;
+    end;
+  end;
+end;
+
 procedure TfrmMtoFacturasCompra.ActualizarLabelProveedor;
 var
   sSinDirecta: string;
@@ -1036,10 +1085,12 @@ begin
     lblProveedorNombreFacc.Caption := TextoProveedorDocumento(
       dmmFacturasCompra.unqryTablaG,
       dmmFacturasCompra.unqryPrvDataFacc,
-      'CODIGO_PRV_FACC');
+      CampoEmisorCompra(dmmFacturasCompra.unqryTablaG));
     // FZ-ISSUE-745: en compras directas la lista solo trae proveedores con
     // facturación directa; otro existente no es «no encontrado».
-    if EsPantallaCompraDirecta and dmmFacturasCompra.unqryTablaG.Active and
+    if EsPantallaCompraDirecta and
+       not EsReciboAgricola(dmmFacturasCompra.unqryTablaG) and
+       dmmFacturasCompra.unqryTablaG.Active and
        not dmmFacturasCompra.unqryTablaG.IsEmpty and
        not dmmFacturasCompra.unqryPrvDataFacc.Locate('CODIGO_PRV_PRV',
          Trim(dmmFacturasCompra.unqryTablaG.FieldByName(
@@ -1673,7 +1724,12 @@ end;
 
 procedure TfrmMtoFacturasCompra.actIrProveedorExecute(Sender: TObject);
 begin
-  if Assigned(dmmFacturasCompra) then
+  if Assigned(dmmFacturasCompra) and
+     (CampoEmisorCompra(dmmFacturasCompra.unqryTablaG) =
+       'CODIGO_CLI_FACC') then
+    ShowMtoCodigoDataSet(Self.Owner, 'Clientes',
+      dmmFacturasCompra.unqryTablaG, 'CODIGO_CLI_FACC')
+  else if Assigned(dmmFacturasCompra) then
     ShowMtoCodigoDataSet(Self.Owner, 'Proveedores',
       dmmFacturasCompra.unqryTablaG, 'CODIGO_PRV_FACC')
   else
@@ -1688,7 +1744,8 @@ var
 begin
   inherited;
   // Al cargar/cambiar el proveedor, precarga su forma de pago en la cabecera.
-  if (Assigned(dmmFacturasCompra) and Assigned(dsTablaG.DataSet) and
+  if (not FActualizandoEmisor and
+      Assigned(dmmFacturasCompra) and Assigned(dsTablaG.DataSet) and
       ((dsTablaG.DataSet.State = dsInsert) or
        (dsTablaG.DataSet.State = dsEdit))) then
   begin
@@ -1724,7 +1781,7 @@ begin
       begin
         if not (ds.State in [dsInsert, dsEdit]) then
           ds.Edit;
-        ds.FieldByName('CODIGO_PRV_FACC').AsString := sCodigo;
+        ds.FieldByName(CampoEmisorCompra(ds)).AsString := sCodigo;
         dmmFacturasCompra.CargarFormaPagoProveedor(sCodigo);
         ActualizarLabelProveedor;
       end;
@@ -1737,6 +1794,7 @@ function TfrmMtoFacturasCompra.BuscarProveedorFacturaCompra(
 var
   oConsulta: IConsultaComprasPantalla;
   oDatos: TDataSet;
+  sTitulo: string;
 begin
   ACodigo := '';
   if EsPantallaCompraDirecta then
@@ -1746,8 +1804,12 @@ begin
     oConsulta := FBusquedaProveedores.ConsultarProveedores;
     oDatos := oConsulta.DataSet;
   end;
+  sTitulo := STituloBuscarProveedoresFacturaCompra;
+  if CampoEmisorCompra(dmmFacturasCompra.unqryTablaG) =
+     'CODIGO_CLI_FACC' then
+    sTitulo := STituloBuscarAgricultores;
   Result := BusquedaVisual.EjecutarBusquedaDataSet(
-    STituloBuscarProveedoresFacturaCompra, oDatos,
+    sTitulo, oDatos,
     'frmMtoFaccProvSearch', Self);
   if Result then
     ACodigo := oDatos.FieldByName('CODIGO_PRV_PRV').AsString;

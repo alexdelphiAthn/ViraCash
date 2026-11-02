@@ -283,6 +283,15 @@
         <DCCReference Include="src\Lib\inLibMsgArticulos.pas"/>
         <DCCReference Include="src\Lib\inLibMsgCambioArticuloColor.pas"/>
         <DCCReference Include="src\Lib\inLibMsgFotos.pas"/>
+        <DCCReference Include="src\Lib\inLibClientesCoincidencias.pas"/>
+        <DCCReference Include="src\DataModules\UniDataClientesCoincidencias.pas"/>
+        <DCCReference Include="src\Lib\inLibCambiosTrabajo.pas"/>
+        <DCCReference Include="src\DataModules\UniDataCambiosTrabajo.pas"/>
+        <DCCReference Include="src\Modals\inMtoModalCambioTrabajo.pas"/>
+        <DCCReference Include="src\Lib\inLibMedidasCliente.pas"/>
+        <DCCReference Include="src\Lib\inLibMsgMedidasCliente.pas"/>
+        <DCCReference Include="src\DataModules\UniDataMedidasCliente.pas"/>
+        <DCCReference Include="src\Modals\inMtoModalMedidasCliente.pas"/>
         <DCCReference Include="src\Lib\inLibMsgVentas.pas"/>
         <DCCReference Include="src\Lib\inLibMsgCompras.pas"/>
         <DCCReference Include="src\Lib\inLibMsgFacturas.pas"/>
@@ -1124,6 +1133,7 @@
         <DCCReference Include="src\Lib\inLibComprasDirectas.pas"/>
         <DCCReference Include="src\Lib\inLibComprasDirectasInforme.pas"/>
         <DCCReference Include="src\DataModules\UniDataComprasDirectas.pas"/>
+        <DCCReference Include="src\DataModules\UniDataComprasAgricultores.pas"/>
         <DCCReference Include="src\verifactu\inLibComprasDirectasFiscal.pas"/>
         <DCCReference Include="src\DataModules\UniDataComprasDirectasFiscal.pas"/>
         <DCCReference Include="src\Forms\inMtoComprasDirectasTerceros.pas"/>

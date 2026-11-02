@@ -70,7 +70,7 @@ uses
   inLibRegistroPantallas, inLibReagpVcl, inLibComprasDirectas,
   inMtoFacturasCompraPagosVcl, UniDataComprasDirectasFiscal,
   inLibMensajesVcl, inLibDevExp, System.Math, Vcl.Graphics, cxGraphics,
-  dxCoreGraphics;
+  dxCoreGraphics, UniDataComprasAgricultores;
 
 {$R *.dfm}
 
@@ -433,14 +433,17 @@ procedure TfrmMtoComprasDirectasTerceros.AplicarEtiquetas;
 begin
   inherited;
   Caption := STituloComprasDirectas;
-  lblCodigoProveedor.Caption := SProveedorEmisor;
+  if CampoEmisorCompra(dsTablaG.DataSet) = 'CODIGO_CLI_FACC' then
+    lblCodigoProveedor.Caption := SClienteAgricultorEmisor
+  else
+    lblCodigoProveedor.Caption := SProveedorEmisor;
   // El rótulo es más largo que su hueco: se corta antes de «Ref.
   // proveedor» y el texto completo queda en la ayuda.
   lblCodigoProveedor.AutoSize := False;
   lblCodigoProveedor.Properties.ShowEndEllipsis := True;
   lblCodigoProveedor.Width :=
     lblRefProveedor.Left - lblCodigoProveedor.Left - ScaleValue(4);
-  lblCodigoProveedor.Hint := SProveedorEmisor;
+  lblCodigoProveedor.Hint := lblCodigoProveedor.Caption;
   lblCodigoProveedor.ShowHint := True;
   lblCodigoEmpresa.Caption := SEmpresaDestinataria;
   tsEfectos.Caption := SRecibosPago;

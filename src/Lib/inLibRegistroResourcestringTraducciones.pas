@@ -13,6 +13,8 @@ procedure EnumerarResourcestringsTraduccion(
 implementation
 
 uses
+  inLibCambiosTrabajo,
+  inLibMsgMedidasCliente,
   inLibMsgRetiradaLotes,
   inLibMsgSubsanacionCaja,
   inLibMsgPersistenciaSubsanacionCaja,
@@ -6260,9 +6262,102 @@ begin
     @inLibMsgReparacionesCircuito.SCircuitoCobroExistente);
 end;
 
+procedure RegistrarMedidasCliente(
+  const ARegistrar: TRegistrarResourcestringTraduccion);
+
+  procedure Registrar(const ANombre: string; ARecurso: PResStringRec);
+  begin
+    ARegistrar('inLibMsgMedidasCliente.' + ANombre,
+      'src/Lib/inLibMsgMedidasCliente.pas', ARecurso);
+  end;
+
+begin
+  Registrar('SMedidasTitulo', @SMedidasTitulo);
+  Registrar('SMedidasNueva', @SMedidasNueva);
+  Registrar('SMedidasCorregir', @SMedidasCorregir);
+  Registrar('SMedidasVincular', @SMedidasVincular);
+  Registrar('SMedidasCerrar', @SMedidasCerrar);
+  Registrar('SMedidasFecha', @SMedidasFecha);
+  Registrar('SMedidasPersona', @SMedidasPersona);
+  Registrar('SMedidasObservaciones', @SMedidasObservaciones);
+  Registrar('SMedidasMotivo', @SMedidasMotivo);
+  Registrar('SMedidasDesconocida', @SMedidasDesconocida);
+  Registrar('SMedidasVacia', @SMedidasVacia);
+  Registrar('SMedidasDatosObligatorios', @SMedidasDatosObligatorios);
+  Registrar('SMedidasMotivoCorreccion', @SMedidasMotivoCorreccion);
+  Registrar('SMedidasMagnitudInvalida', @SMedidasMagnitudInvalida);
+  Registrar('SMedidasValorNegativo', @SMedidasValorNegativo);
+  Registrar('SMedidasFueraRango', @SMedidasFueraRango);
+  Registrar('SMedidasConfirmarRango', @SMedidasConfirmarRango);
+  Registrar('SMedidasSinPermiso', @SMedidasSinPermiso);
+  Registrar('SMedidasClienteInexistente', @SMedidasClienteInexistente);
+  Registrar('SMedidasOrigenInvalido', @SMedidasOrigenInvalido);
+  Registrar('SMedidasOrdenInvalida', @SMedidasOrdenInvalida);
+  Registrar('SMedidasMigracionPendiente', @SMedidasMigracionPendiente);
+  Registrar('SMedidasFechaInvalida', @SMedidasFechaInvalida);
+  Registrar('SMedidasValorInvalido', @SMedidasValorInvalido);
+  Registrar('SMedidasSesionInexistente', @SMedidasSesionInexistente);
+  Registrar('SMedidasGuardadas', @SMedidasGuardadas);
+  Registrar('SMedidasVinculadas', @SMedidasVinculadas);
+end;
+
+procedure RegistrarCoincidenciasCliente(
+  const ARegistrar: TRegistrarResourcestringTraduccion);
+
+  procedure Registrar(const ANombre: string; ARecurso: PResStringRec);
+  begin
+    ARegistrar('inLibMsgVentas.' + ANombre,
+      'src/Lib/inLibMsgVentas.pas', ARecurso);
+  end;
+
+begin
+  Registrar('STituloCoincidenciasCliente', @STituloCoincidenciasCliente);
+  Registrar('SResumenCoincidenciasCliente', @SResumenCoincidenciasCliente);
+  Registrar('SPreguntaCoincidenciasCliente', @SPreguntaCoincidenciasCliente);
+  Registrar('SIdentificacionCoincidenteCliente', @SIdentificacionCoincidenteCliente);
+  Registrar('SContactoCoincidenteCliente', @SContactoCoincidenteCliente);
+  Registrar('SPreguntaMotivoCoincidenciasCliente', @SPreguntaMotivoCoincidenciasCliente);
+  Registrar('SPreguntaAbrirCoincidenciaCliente', @SPreguntaAbrirCoincidenciaCliente);
+  Registrar('SErrorConfirmarCoincidenciasCliente', @SErrorConfirmarCoincidenciasCliente);
+  Registrar('SErrorMotivoCoincidenciasCliente', @SErrorMotivoCoincidenciasCliente);
+end;
+
+procedure RegistrarCambiosTrabajo(
+  const ARegistrar: TRegistrarResourcestringTraduccion);
+
+  procedure Registrar(const ANombre: string; ARecurso: PResStringRec);
+  begin
+    ARegistrar('inLibCambiosTrabajo.' + ANombre,
+      'src/Lib/inLibCambiosTrabajo.pas', ARecurso);
+  end;
+
+begin
+  Registrar('SCambioTrabajoTitulo', @SCambioTrabajoTitulo);
+  Registrar('SCambioTrabajoReasignar', @SCambioTrabajoReasignar);
+  Registrar('SCambioTrabajoRepetir', @SCambioTrabajoRepetir);
+  Registrar('SCambioTrabajoMotivo', @SCambioTrabajoMotivo);
+  Registrar('SCambioTrabajoTipo', @SCambioTrabajoTipo);
+  Registrar('SCambioTrabajoCodigo', @SCambioTrabajoCodigo);
+  Registrar('SCambioTrabajoCantidad', @SCambioTrabajoCantidad);
+  Registrar('SCambioTrabajoCoste', @SCambioTrabajoCoste);
+  Registrar('SCambioTrabajoResponsable', @SCambioTrabajoResponsable);
+  Registrar('SCambioTrabajoConfirmar', @SCambioTrabajoConfirmar);
+  Registrar('SCambioTrabajoInvalido', @SCambioTrabajoInvalido);
+  Registrar('SCambioTrabajoSinPermiso', @SCambioTrabajoSinPermiso);
+  Registrar('SCambioTrabajoConflicto', @SCambioTrabajoConflicto);
+  Registrar('SCambioTrabajoEjecutor', @SCambioTrabajoEjecutor);
+  Registrar('SCambioTrabajoEstado', @SCambioTrabajoEstado);
+  Registrar('SCambioTrabajoCostePrevio', @SCambioTrabajoCostePrevio);
+  Registrar('SCambioTrabajoPendiente', @SCambioTrabajoPendiente);
+  Registrar('SCambioTrabajoGrabado', @SCambioTrabajoGrabado);
+end;
+
 procedure EnumerarResourcestringsTraduccion(
   const ARegistrar: TRegistrarResourcestringTraduccion);
 begin
+  RegistrarCambiosTrabajo(ARegistrar);
+  RegistrarMedidasCliente(ARegistrar);
+  RegistrarCoincidenciasCliente(ARegistrar);
   ARegistrar('inLibMsgReparacionesCircuito.' +
     'SCircuitoTodos', 'src/Lib/inLibMsgReparacionesCircuito.pas',
     @inLibMsgReparacionesCircuito.SCircuitoTodos);
@@ -32293,6 +32388,15 @@ begin
   ARegistrar('inLibMsgCompras.SProveedorEmisor',
     'src/Lib/inLibMsgCompras.pas',
     @inLibMsgCompras.SProveedorEmisor);
+  ARegistrar('inLibMsgCompras.SClienteAgricultorEmisor',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SClienteAgricultorEmisor);
+  ARegistrar('inLibMsgCompras.STituloBuscarAgricultores',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.STituloBuscarAgricultores);
+  ARegistrar('inLibMsgCompras.SClienteAgricultorObligatorio',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SClienteAgricultorObligatorio);
   ARegistrar('inLibMsgCompras.SEmpresaDestinataria',
     'src/Lib/inLibMsgCompras.pas',
     @inLibMsgCompras.SEmpresaDestinataria);

@@ -201,10 +201,12 @@ type
     procedure btnExcelClick(Sender: TObject);
     procedure CrearFiltroModalidad;
     procedure CrearBotonesReparacion;
+    procedure MedidasClienteClick(Sender: TObject);
     procedure CrearFaseReparacion;
     procedure MedidasInstalacionClick(Sender: TObject);
     procedure CrearPestanasReparacion;
     procedure AjustarAltoFicha(Sender: TObject);
+    procedure AjustarAnchoFase(Sender: TObject);
     procedure DesplazarFase(APagina: TcxTabSheet);
     procedure CrearAlbaranesOrden;
     procedure AjustarRotulos(AParent: TWinControl);
@@ -241,6 +243,7 @@ type
 implementation
 
 uses
+  inLibMsgMedidasCliente, inMtoModalMedidasCliente,
   inMtoReparacionesCircuitoVcl, inLibMsgReparacionesCircuito,
   UniDataReparacionesDocumentoMemoria, inMtoModalDatosOrden,
   cxScrollBox,
@@ -1012,9 +1015,45 @@ end;
 
 procedure TfrmMtoGarantiasReclamaciones.AjustarAltoFicha(Sender: TObject);
 begin
-  if Assigned(FScrollFicha) and (tsFicha.ClientHeight > 0) then
+  if Assigned(FScrollFicha) and Assigned(pnlFicha) and
+    (tsFicha.ClientHeight > 0) then
+  begin
     FScrollFicha.Height := Min(pnlFicha.Height,
       Max(EscalarDpi(100), tsFicha.ClientHeight div 3));
+    // Un contenido libre conserva su ancho sin imponer un minimo a la
+    // ventana principal ni anular el desplazamiento del contenedor.
+    pnlFicha.Width := Max(FScrollFicha.ClientWidth,
+      EscalarDpi(ANCHO_GRUPO_RECLAMACION + ANCHO_GRUPO_CLIENTE +
+        ANCHO_GRUPO_PROVEEDOR + 24));
+  end;
+end;
+
+procedure TfrmMtoGarantiasReclamaciones.AjustarAnchoFase(Sender: TObject);
+var
+  oScroll: TcxScrollBox;
+  oControl: TControl;
+  i, iAncho: Integer;
+begin
+  oScroll := Sender as TcxScrollBox;
+  oScroll.DisableAlign;
+  try
+    for i := 0 to oScroll.ControlCount - 1 do
+    begin
+      oControl := oScroll.Controls[i];
+      if (oControl is TcxCustomEdit) and not (oControl is TcxLabel) and
+        (oControl.Tag > 0) then
+      begin
+        // Tag conserva el ancho nominal para recuperar espacio al ampliar.
+        // Position devuelve la coordenada logica si hubo desplazamiento.
+        iAncho := oScroll.ClientWidth - oControl.Left -
+          oScroll.HorzScrollBar.Position - EscalarDpi(MARGEN_FICHA);
+        oControl.Width := Min(EscalarDpi(oControl.Tag),
+          Max(EscalarDpi(60), iAncho));
+      end;
+    end;
+  finally
+    oScroll.EnableAlign;
+  end;
 end;
 
 procedure TfrmMtoGarantiasReclamaciones.DesplazarFase(
@@ -1028,7 +1067,10 @@ begin
   oScroll.Parent := APagina;
   oScroll.Align := alClient;
   oScroll.BorderStyle := cxcbsNone;
-  oScroll.HorzScrollBar.Range := EscalarDpi(ANCHO_NOMINAL_FASE);
+  oScroll.LookAndFeel.ScrollbarMode := sbmClassic;
+  oScroll.HorzScrollBar.Tracking := True;
+  oScroll.HorzScrollBar.Margin := EscalarDpi(MARGEN_FICHA);
+  oScroll.VertScrollBar.Tracking := True;
   // Reubicar antes de mostrar evita que los anclajes de una pestaña oculta
   // agranden el editor de la primera columna al escalar Windows.
   for i := APagina.ControlCount - 1 downto 0 do
@@ -1038,14 +1080,12 @@ begin
     begin
       oControl.Anchors := [akLeft, akTop];
       oControl.Parent := oScroll;
-      if oControl is TcxCustomEdit then
-        oControl.Width := Min(oControl.Width,
-          Max(EscalarDpi(60), EscalarDpi(ANCHO_NOMINAL_FASE -
-            MARGEN_FICHA) - oControl.Left));
+      if (oControl is TcxCustomEdit) and not (oControl is TcxLabel) then
+        oControl.Tag := MulDiv(oControl.Width, 96, CurrentPPI);
     end;
   end;
-  txtModalidadFicha.Width := EscalarDpi(ANCHO_NOMINAL_FASE div 2 -
-    MARGEN_FICHA * 2 - ANCHO_ROTULO_FASE);
+  oScroll.OnResize := AjustarAnchoFase;
+  AjustarAnchoFase(oScroll);
 end;
 
 procedure TfrmMtoGarantiasReclamaciones.CrearFicha;
@@ -1055,15 +1095,20 @@ begin
   FScrollFicha.Parent := tsFicha;
   FScrollFicha.Align := alTop;
   FScrollFicha.BorderStyle := bsNone;
+  FScrollFicha.AutoScroll := True;
+  FScrollFicha.HorzScrollBar.Tracking := True;
+  FScrollFicha.VertScrollBar.Tracking := True;
   pnlFicha := TPanel.Create(Self);
   pnlFicha.Parent := FScrollFicha;
-  pnlFicha.Align := alTop;
+  pnlFicha.Align := alNone;
+  pnlFicha.Anchors := [akLeft, akTop];
   pnlFicha.Height := EscalarDpi(TOP_PRIMERA_FILA +
     FILAS_GRUPO * ALTO_FILA + 16);
   pnlFicha.BevelOuter := bvNone;
-  pnlFicha.Constraints.MinWidth := EscalarDpi(ANCHO_GRUPO_RECLAMACION +
+  pnlFicha.Width := EscalarDpi(ANCHO_GRUPO_RECLAMACION +
     ANCHO_GRUPO_CLIENTE + ANCHO_GRUPO_PROVEEDOR + 24);
   FScrollFicha.Height := pnlFicha.Height;
+  FScrollFicha.OnResize := AjustarAltoFicha;
   // Dos grupos alLeft ordenados por Left y el del proveedor ocupa el resto.
   CrearGrupoReclamacion;
   CrearGrupoCliente;
@@ -1657,6 +1702,18 @@ begin
   CrearOpcion(menuMasOpciones, '-', nil);
   btnAnularReparacion := CrearOpcion(menuMasOpciones,
     SCaptionAnularReparacion, btnAnularReparacionClick);
+  CrearOpcion(menuMasOpciones, SMedidasTitulo, MedidasClienteClick);
+end;
+
+procedure TfrmMtoGarantiasReclamaciones.MedidasClienteClick(Sender: TObject);
+begin
+  if HayReclamacion then
+  begin
+    Enlaces.GuardarOrden();
+    TfrmModalMedidasCliente.Ejecutar(Self,
+      dmmGarantias.unqryTablaG.FieldByName('CODIGO_CLI_GAR').AsString,
+      IdActual);
+  end;
 end;
 
 // Datos de la reparación; sus líneas y el presupuesto van en la pestaña

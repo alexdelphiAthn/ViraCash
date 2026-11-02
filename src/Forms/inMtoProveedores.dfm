@@ -525,9 +525,9 @@
               object chkESFACTURACION_DIRECTA_PRV: TcxDBCheckBox
                 Left = 147
                 Top = 245
-                Width = 240
+                Width = 400
                 Height = 26
-                Caption = 'Facturación directa'
+                Caption = 'Proveedor de reparaciones y/o arreglos'
                 DataBinding.DataField = 'ESFACTURACION_DIRECTA_PRV'
                 DataBinding.DataSource = dsTablaG
                 Properties.ValueChecked = 'S'

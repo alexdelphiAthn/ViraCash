@@ -33,7 +33,8 @@ implementation
 
 uses
   inLibMsgCompras, inLibErroresBBDD, System.SysUtils, System.Variants,
-  UniDataSeriesEmpresaRepositorio, inLibSeriesEmpresaPersistenciaIntf;
+  UniDataSeriesEmpresaRepositorio, inLibSeriesEmpresaPersistenciaIntf,
+  UniDataComprasAgricultores;
 
 const
   fmodalidad = 'MODALIDAD_FACC';
@@ -135,8 +136,9 @@ begin
   // El número se reserva en BeforePost. Después es inmutable.
   if (oModalidad <> mcdOrdinaria) and
      (StrToInt64Def(ACabecera.FieldByName(fnumero).AsString, 0) = 0) and
-     (Trim(ACabecera.FieldByName('CODIGO_PRV_FACC').AsString) <> '') and
-     (ACabecera.FieldByName('CODIGO_PRV_FACC').AsString <> '0') then
+     (Trim(ACabecera.FieldByName(
+       CampoEmisorCompra(ACabecera)).AsString) <> '') and
+     (ACabecera.FieldByName(CampoEmisorCompra(ACabecera)).AsString <> '0') then
   begin
     sEmpresa := ACabecera.FieldByName(fempresa).AsString;
     sProveedor := ACabecera.FieldByName('CODIGO_PRV_FACC').AsString;
@@ -184,7 +186,7 @@ begin
      (StrToInt64Def(VarToStr(
        ACabecera.FieldByName(fnumero).OldValue), 0) > 0) then
     for sCampo in TArray<string>.Create(fmodalidad, fempresa,
-      fserie, fnumero, 'CODIGO_PRV_FACC') do
+      fserie, fnumero, 'CODIGO_PRV_FACC', 'CODIGO_CLI_FACC') do
     begin
       oCampo := ACabecera.FieldByName(sCampo);
       if VarToStr(oCampo.OldValue) <> oCampo.AsString then
@@ -240,8 +242,9 @@ begin
     // vigente. Una nueva reserva exige una serie vigente del subtipo.
     if (AModalidad <> mcdOrdinaria) and
        (StrToInt64Def(ACabecera.FieldByName(fnumero).AsString, 0) = 0) and
-     (Trim(ACabecera.FieldByName('CODIGO_PRV_FACC').AsString) <> '') and
-     (ACabecera.FieldByName('CODIGO_PRV_FACC').AsString <> '0') then
+     (Trim(ACabecera.FieldByName(
+       CampoEmisorCompra(ACabecera)).AsString) <> '') and
+     (ACabecera.FieldByName(CampoEmisorCompra(ACabecera)).AsString <> '0') then
     begin
       CargarSeriesModalidadCompra(AConexion,
         ACabecera.FieldByName(fempresa).AsString, AModalidad, oSeries,
@@ -308,7 +311,10 @@ begin
   if oModalidad <> mcdOrdinaria then
   begin
     ValidarIdentidadNumerada(ACabecera);
-    ValidarProveedorHabilitado(AConexion, ACabecera);
+    if oModalidad = mcdReagp then
+      ValidarAgricultorCompra(AConexion, ACabecera)
+    else
+      ValidarProveedorHabilitado(AConexion, ACabecera);
     if ACabecera.FieldByName(fempresa).AsString <> AEmpresaLocal then
       raise EValidacionBBDD.Create(SEmpresaCompraDirecta);
     bNuevoTratamiento := (ACabecera.State = dsInsert) or
@@ -324,8 +330,9 @@ begin
         SAcuerdoAutofactura + sLineBreak +
         Format(SUbicacionCasillaCompraDirecta,
           [SAcuerdoFacturacion, SDatosFiscales]));
-    if (Trim(ACabecera.FieldByName('CODIGO_PRV_FACC').AsString) = '') or
-       (ACabecera.FieldByName('CODIGO_PRV_FACC').AsString = '0') then
+    if (Trim(ACabecera.FieldByName(
+         CampoEmisorCompra(ACabecera)).AsString) = '') or
+       (ACabecera.FieldByName(CampoEmisorCompra(ACabecera)).AsString = '0') then
       raise EValidacionBBDD.Create(SDatosFiscalesCompra);
     ValidarCompensacionCompraDirecta(ACabecera);
   end;

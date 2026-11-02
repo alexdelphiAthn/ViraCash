@@ -80,6 +80,8 @@ type
       ARecord: TcxCustomGridRecord; var AText: string);
     procedure AnadirClick(Sender: TObject);
     procedure CambiarClick(Sender: TObject);
+    procedure ReasignarClick(Sender: TObject);
+    procedure RepetirClick(Sender: TObject);
     procedure BorrarClick(Sender: TObject);
     procedure EmpezarClick(Sender: TObject);
     procedure TerminarClick(Sender: TObject);
@@ -154,6 +156,7 @@ type
 implementation
 
 uses
+  inLibCambiosTrabajo, inMtoModalCambioTrabajo,
   inLibMsgReparacionesCircuito,
   inLibTrabajosCortinas,
   Winapi.Windows, System.UITypes, System.Variants, Vcl.Dialogs, Vcl.Forms,
@@ -302,6 +305,8 @@ begin
   Boton(SCaptionEmpezarLinea, 80, EmpezarClick);
   Boton(SCaptionTerminarLinea, 80, TerminarClick);
   Boton(SIncidenciaTrabajoTitulo, 90, IncidenciaClick);
+  Boton(SCambioTrabajoReasignar, 100, ReasignarClick);
+  Boton(SCambioTrabajoRepetir, 80, RepetirClick);
   NuevoGrupo(SGrupoExternosArreglos);
   Boton(SCaptionDevolverLinea, 120, DevolverClick);
   Boton(SCaptionHojaEntrega, 110, HojaEntregaClick);
@@ -450,6 +455,28 @@ begin
       FDatos.Reparaciones, Linea) > 0 then
       FEnlaces.Refrescar(0);
   end;
+end;
+
+procedure TPanelLineasReparacion.ReasignarClick(Sender: TObject);
+begin
+  if HayLinea then
+    Accion(
+      procedure
+      begin
+        TfrmModalCambioTrabajo.Ejecutar(Owner, FDatos.Lineas.DataSet, False);
+        FEnlaces.Refrescar(0);
+      end);
+end;
+
+procedure TPanelLineasReparacion.RepetirClick(Sender: TObject);
+begin
+  if HayLinea then
+    Accion(
+      procedure
+      begin
+        TfrmModalCambioTrabajo.Ejecutar(Owner, FDatos.Lineas.DataSet, True);
+        FEnlaces.Refrescar(0);
+      end);
 end;
 
 procedure TPanelLineasReparacion.BorrarClick(Sender: TObject);

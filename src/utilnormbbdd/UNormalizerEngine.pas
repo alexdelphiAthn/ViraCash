@@ -249,6 +249,11 @@ begin
   AddSuf('fza_caja_subsanaciones',              'CJSUB');
   AddSuf('fza_caja_vales',                      'VL');
   AddSuf('fza_clientes',                        'CLI');
+  AddSuf('fza_reparaciones_medidas', 'RCMED');
+  AddSuf('fza_clientes_medidas_valores', 'CMVAL');
+  AddSuf('fza_clientes_medidas', 'CLMED');
+  AddSuf('fza_reparaciones_cambios_trabajo', 'RCTRA');
+  AddSuf('fza_clientes_medidas_magnitudes', 'CMM');
   AddSuf('fza_codigos_barras',                  'CB');
   AddSuf('fza_config_campos',                   'CC');
   AddSuf('fza_contadores',                      'CON');

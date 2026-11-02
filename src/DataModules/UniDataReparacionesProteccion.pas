@@ -9,7 +9,8 @@ interface
 uses Uni;
 procedure ExigirDocumentoOrdenEditable(AConexion: TUniConnection;
   const ASerie, ANumero: string; AProveedor: Boolean);
-procedure ExigirLineaOrdenEditable(AConexion: TUniConnection; ALinea: Int64);
+procedure ExigirLineaOrdenEditable(AConexion: TUniConnection;
+  ALinea: Int64; AExigirSinCambios: Boolean = True);
 procedure ExigirLineaOrdenSinSesiones(AConexion: TUniConnection; ALinea: Int64);
 procedure ExigirOrdenAnulable(AConexion: TUniConnection; AOrden: Int64);
 implementation
@@ -65,21 +66,34 @@ begin
   end;
 end;
 
-procedure ExigirLineaOrdenEditable(AConexion: TUniConnection; ALinea: Int64);
+procedure ExigirLineaOrdenEditable(AConexion: TUniConnection;
+  ALinea: Int64; AExigirSinCambios: Boolean);
 var
   oConsulta: TUniQuery;
+  sCambios: string;
 begin
   if TieneCircuito(AConexion) then
   begin
     oConsulta := TUniQuery.Create(nil);
     try
       oConsulta.Connection := AConexion;
+      sCambios := '';
+      oConsulta.SQL.Text := 'SELECT 1 FROM INFORMATION_SCHEMA.TABLES ' +
+        'WHERE TABLE_SCHEMA=DATABASE() ' +
+        'AND TABLE_NAME=''fza_reparaciones_cambios_trabajo''';
+      oConsulta.Open;
+      if AExigirSinCambios and not oConsulta.IsEmpty then
+        sCambios := ' UNION ALL SELECT 1 ' +
+          'FROM fza_reparaciones_cambios_trabajo ' +
+          'WHERE ID_ORIGEN_RCTRA=:LINEA OR ID_DESTINO_RCTRA=:LINEA';
+      oConsulta.Close;
       oConsulta.SQL.Text := 'SELECT 1 FROM fza_reparaciones_tiempos ' +
         'WHERE ID_GARLIN_RCT=:LINEA UNION ALL SELECT 1 ' +
         'FROM fza_reparaciones_materiales WHERE ID_GARLIN_RCM=:LINEA ' +
         'UNION ALL SELECT 1 FROM fza_reparaciones_imputaciones ' +
         'WHERE ID_GARLIN_RCI=:LINEA UNION ALL SELECT 1 ' +
-        'FROM fza_reparaciones_entregas WHERE ID_GARLIN_RCE=:LINEA LIMIT 1';
+        'FROM fza_reparaciones_entregas WHERE ID_GARLIN_RCE=:LINEA' +
+        sCambios + ' LIMIT 1';
       oConsulta.ParamByName('LINEA').AsLargeInt := ALinea;
       oConsulta.Open;
       if not oConsulta.IsEmpty then

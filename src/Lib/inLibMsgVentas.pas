@@ -16,6 +16,22 @@ unit inLibMsgVentas;
 interface
 
 resourcestring
+  STituloCoincidenciasCliente = 'Posibles clientes duplicados';
+  SResumenCoincidenciasCliente =
+    'Se han encontrado %d fichas con el mismo NIF o contacto.';
+  SPreguntaCoincidenciasCliente =
+    'Sí: guardar una ficha distinta. No: abrir una existente. ' +
+    'Cancelar: volver sin guardar.';
+  SIdentificacionCoincidenteCliente = 'NIF';
+  SContactoCoincidenteCliente = 'Contacto compartido';
+  SPreguntaMotivoCoincidenciasCliente =
+    'Motivo para conservar las fichas separadas (máximo 500 caracteres):';
+  SPreguntaAbrirCoincidenciaCliente =
+    'Código de la ficha que desea abrir; se descartará esta edición:';
+  SErrorConfirmarCoincidenciasCliente =
+    'Hay coincidencias de clientes. Revise y confirme desde su ficha.';
+  SErrorMotivoCoincidenciasCliente =
+    'Indique un motivo de entre 1 y 500 caracteres.';
   SCaptionPropiedadesArticuloDocumento = 'Propiedades del artículo';
   STituloMovimientosVentasFacturadas =
     'Movimientos de ventas facturadas por artículos y fechas';
