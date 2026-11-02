@@ -1,0 +1,113 @@
+Simulacion de stock multitienda ViraCash (semilla 2026, 1800 s, 3 tiendas, 30 articulos)
+
+--- Fase 1: operacion con red inestable (30 min) ---
+   5:00  TIENDA2 PIERDE LA CONEXION
+  10:00  TIENDA2 RECUPERA LA CONEXION: 93 eventos pendientes, cursor 445 de 629
+  10:10  CENTRAL detecta SOBREVENTA: ART024 en CENTRAL queda en -1 por una venta de TIENDA2 hecha a las 6:07 sin respuesta de la central
+  10:10  CENTRAL detecta SOBREVENTA: ART020 en CENTRAL queda en -1 por una venta de TIENDA2 hecha a las 7:25 sin respuesta de la central
+  10:10  CENTRAL detecta SOBREVENTA: ART020 en CENTRAL queda en -2 por una venta de TIENDA2 hecha a las 7:34 sin respuesta de la central
+  10:10  CENTRAL detecta SOBREVENTA: ALM1-NUEVO02 en CENTRAL queda en -1 por una venta de TIENDA2 hecha a las 8:16 sin respuesta de la central
+  10:10  CENTRAL detecta SOBREVENTA: ART001 en CENTRAL queda en -2 por una venta de TIENDA2 hecha a las 8:17 sin respuesta de la central
+  10:10  CENTRAL detecta SOBREVENTA: ALM1-NUEVO02 en CENTRAL queda en -2 por una venta de TIENDA2 hecha a las 8:22 sin respuesta de la central
+  10:10  CENTRAL detecta SOBREVENTA: ART021 en CENTRAL queda en -1 por una venta de TIENDA2 hecha a las 8:32 sin respuesta de la central
+  10:10  CENTRAL detecta SOBREVENTA: ART010 en CENTRAL queda en -1 por una venta de TIENDA2 hecha a las 9:06 sin respuesta de la central
+  10:10  CENTRAL detecta SOBREVENTA: ALM1-NUEVO01 en CENTRAL queda en -1 por una venta de TIENDA2 hecha a las 9:31 sin respuesta de la central
+  10:10  CENTRAL detecta SOBREVENTA: ALM1-NUEVO02 en CENTRAL queda en -3 por una venta de TIENDA2 hecha a las 9:43 sin respuesta de la central
+  15:00  TIENDA1 PIERDE LA CONEXION
+  16:00  TIENDA1 RECUPERA LA CONEXION: 18 eventos pendientes, cursor 982 de 1027
+  16:00  CENTRAL detecta SOBREVENTA: ART029 en CENTRAL queda en -1 por una venta de TIENDA1 hecha a las 15:39 sin respuesta de la central
+  16:00  CENTRAL detecta SOBREVENTA: ALM1-NUEVO07 en CENTRAL queda en -1 por una venta de TIENDA1 hecha a las 15:43 sin respuesta de la central
+  16:00  CENTRAL detecta SOBREVENTA: ART018 en CENTRAL queda en -1 por una venta de TIENDA1 hecha a las 15:54 sin respuesta de la central
+  18:24  CENTRAL detecta SOBREVENTA: ALM2-NUEVO05 en CENTRAL queda en -1 por una venta de TIENDA2 hecha a las 18:24 sin respuesta de la central
+  25:00  TIENDA3 PIERDE LA CONEXION
+  25:30  TIENDA3 SE REINICIA: 7 eventos pendientes, cursor 1515, 0 traspasos por recibir
+  26:00  TIENDA3 RECUPERA LA CONEXION: 13 eventos pendientes, cursor 1515 de 1546
+  26:06  CENTRAL detecta SOBREVENTA: ART004 en CENTRAL queda en -1 por una venta de TIENDA3 hecha a las 25:07 sin respuesta de la central
+  26:06  CENTRAL detecta SOBREVENTA: ALM1-NUEVO09 en CENTRAL queda en -1 por una venta de TIENDA3 hecha a las 25:08 sin respuesta de la central
+
+--- Fase 2: red restablecida, drenaje ---
+Drenaje completado en 2 ronda(s)
+
+--- Fase 3: integridad ---
+  [ OK  ] Central: stock = suma de movimientos en 237 articulo/almacen (1617 movimientos)
+  [ OK  ] Central: ningun traspaso en transito y almacen TRANSITO a cero
+  [ OK  ] Central: 16 sobreventas, todas de ventas sin conexion; ninguna con reserva
+  [ OK  ] TIENDA1: 459 eventos, todos confirmados por la central
+  [ OK  ] TIENDA1: stock propio de ALM1 identico al de la central en los 67 articulos
+  [ OK  ] TIENDA1: copia local de los otros almacenes identica a la central (147 cifras)
+  [ OK  ] TIENDA1: catalogo y precios identicos (67 articulos)
+  [ OK  ] TIENDA1: ha recibido los 16 avisos de sobreventa
+  [ OK  ] TIENDA2: 477 eventos, todos confirmados por la central
+  [ OK  ] TIENDA2: stock propio de ALM2 identico al de la central en los 67 articulos
+  [ OK  ] TIENDA2: copia local de los otros almacenes identica a la central (143 cifras)
+  [ OK  ] TIENDA2: catalogo y precios identicos (67 articulos)
+  [ OK  ] TIENDA2: ha recibido los 16 avisos de sobreventa
+  [ OK  ] TIENDA3: 463 eventos, todos confirmados por la central
+  [ OK  ] TIENDA3: stock propio de ALM3 identico al de la central en los 67 articulos
+  [ OK  ] TIENDA3: copia local de los otros almacenes identica a la central (145 cifras)
+  [ OK  ] TIENDA3: catalogo y precios identicos (67 articulos)
+  [ OK  ] TIENDA3: ha recibido los 16 avisos de sobreventa
+
+--- Vigencia: cuanto tarda un cambio en verse en otra tienda ---
+(latencia de las novedades de stock originadas por otras tiendas o la central)
+TIENDA1: 1039 novedades de stock recibidas
+   todas:         mediana 1 s, p95 2 s, maximo 55 s
+   con conexion:  mediana 1 s, p95 2 s, maximo 3 s, media 1.06 s (882 muestras)
+   reparto:       <= 1 s: 954 (92%) 2-5 s: 50 (5%) 6-30 s: 14 (1%) 31-120 s: 21 (2%) > 2 min: 0 (0%)
+TIENDA2: 1013 novedades de stock recibidas
+   todas:         mediana 1 s, p95 209 s, maximo 301 s
+   con conexion:  mediana 1 s, p95 1 s, maximo 3 s, media 0.57 s (739 muestras)
+   reparto:       <= 1 s: 839 (83%) 2-5 s: 22 (2%) 6-30 s: 10 (1%) 31-120 s: 47 (5%) > 2 min: 95 (9%)
+TIENDA3: 1026 novedades de stock recibidas
+   todas:         mediana 0 s, p95 1 s, maximo 53 s
+   con conexion:  mediana 0 s, p95 1 s, maximo 1 s, media 0.07 s (879 muestras)
+   reparto:       <= 1 s: 1001 (98%) 2-5 s: 1 (0%) 6-30 s: 9 (1%) 31-120 s: 15 (1%) > 2 min: 0 (0%)
+
+--- Vigencia: exactitud de las consultas de stock de otros almacenes ---
+TIENDA1: 567 consultas
+   en linea:      524, exactas 524 (100.0%)
+   copia local:    36, exactas 36 (100.0%), desactualizadas 0; desviacion maxima 0 uds
+                 antiguedad mostrada: media 17 s, maxima 58 s
+   sin dato:        7
+TIENDA2: 546 consultas
+   en linea:      433, exactas 433 (100.0%)
+   copia local:   102, exactas 61 (59.8%), desactualizadas 41; desviacion maxima 20 uds
+                 antiguedad mostrada: media 108 s, maxima 294 s
+   sin dato:       11
+TIENDA3: 519 consultas
+   en linea:      465, exactas 465 (100.0%)
+   copia local:    40, exactas 39 (97.5%), desactualizadas 1; desviacion maxima 2 uds
+                 antiguedad mostrada: media 9 s, maxima 57 s
+   sin dato:       14
+
+--- Actividad ---
+Central: eventos aceptados por tipo: ALTA_ARTICULO=37 COMPRA=134 VENTA=952 DEVOLUCION=114 TRASPASO_SALIDA=73 TRASPASO_RECEPCION=73 INVENTARIO=16
+Central: lotes=1187 aceptados=1399 repetidos=52 rechazados=0 fuera_de_orden=0 reservas=49/209 denegadas consultas=1466 novedades=1745
+TIENDA1: ventas propias=281 de CENTRAL con reserva=22 de CENTRAL sin respuesta=3 bloqueadas sin disponible=60 omitidas sin stock propio=55 | traspasos=28 inventarios=5 (ajustes 2) altas=19 reinicios=0
+TIENDA1: red llamadas=3753 sin_conexion=41 perdidas=128 respuestas_perdidas=94 duplicados=27
+TIENDA2: ventas propias=304 de CENTRAL con reserva=11 de CENTRAL sin respuesta=15 bloqueadas sin disponible=66 omitidas sin stock propio=65 | traspasos=19 inventarios=5 (ajustes 2) altas=10 reinicios=0
+TIENDA2: red llamadas=3395 sin_conexion=177 perdidas=97 respuestas_perdidas=99 duplicados=31
+TIENDA3: ventas propias=298 de CENTRAL con reserva=15 de CENTRAL sin respuesta=3 bloqueadas sin disponible=74 omitidas sin stock propio=68 | traspasos=26 inventarios=6 (ajustes 1) altas=8 reinicios=1
+TIENDA3: red llamadas=3717 sin_conexion=40 perdidas=120 respuestas_perdidas=114 duplicados=34
+
+--- Stock final en la central (primeros articulos) ---
+ARTICULO        ALM1    ALM2    ALM3 CENTRAL   TOTAL
+ALM1-NUEVO01      19       1       2      -1      21
+ALM1-NUEVO02       7       5      18      -3      27
+ALM2-NUEVO01       0       9      17       0      26
+ALM2-NUEVO02       0       7       8       0      15
+ALM3-NUEVO01       0      23       7       0      30
+ALM3-NUEVO02       0       2      21       0      23
+ART001            55      21      24      -2      98
+ART002             0      29      11       0      40
+ART003            14      30       0       0      44
+ART004            24       1       0      -1      24
+ART005            42       2      30       0      74
+ART006            28      40      32       0     100
+ART007            20      22      29       0      71
+ART008             3       6       2       0      11
+ART009            21      46      19       0      86
+ART010            44      12       3      -1      58
+(un valor negativo en CENTRAL es una sobreventa de una venta sin conexion, ya avisada a todas las tiendas)
+
+RESULTADO: todas las invariantes de integridad se cumplen

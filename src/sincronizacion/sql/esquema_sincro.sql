@@ -125,3 +125,202 @@ CREATE TABLE IF NOT EXISTS srv_sincro_terminales (
 --     FROM srv_sincro_ventas GROUP BY TERMINAL HAVING HUECOS > 0;
 -- Ojo: una venta RECHAZADA no se guarda y aparece como hueco; el terminal
 -- la tiene marcada con su motivo.
+
+-- =============================================================================
+--  AMPLIACION: stock multitienda (SimulacionStock / PruebasStock)
+--  Version 1.1.0 - 02/11/2026
+-- =============================================================================
+
+-- -----------------------------------------------------------------------------
+--  LADO TERMINAL
+-- -----------------------------------------------------------------------------
+
+-- Bandeja de salida generica: cualquier documento que mueva stock o cree
+-- articulos. Complementa a fza_ventas_ws_cola para los eventos que no son
+-- ventas. SECUENCIA es correlativa por terminal y el envio se hace siempre
+-- en ese orden (la central responde FUERA_DE_ORDEN a los huecos, que el
+-- terminal trata como "reintentar", no como error).
+CREATE TABLE IF NOT EXISTS fza_sincro_salida (
+  ID_SNCS              BIGINT        NOT NULL AUTO_INCREMENT,
+  ID_EVENTO_SNCS       CHAR(36)      NOT NULL,
+  SECUENCIA_SNCS       BIGINT        NOT NULL,
+  TIPO_SNCS            VARCHAR(25)   NOT NULL, -- ALTA_ARTICULO, COMPRA, VENTA,
+                                               -- DEVOLUCION, TRASPASO_SALIDA,
+                                               -- TRASPASO_RECEPCION, INVENTARIO
+  ARTICULO_SNCS        VARCHAR(40)   NOT NULL,
+  ALMACEN_SNCS         VARCHAR(20)   NOT NULL,
+  ALMACEN_DEST_SNCS    VARCHAR(20)   NULL,
+  ID_TRASPASO_SNCS     CHAR(36)      NULL,
+  CANTIDAD_SNCS        INT           NOT NULL, -- en INVENTARIO es el AJUSTE
+  CONTADO_SNCS         INT           NULL,     -- INVENTARIO: unidades contadas
+  PRECIO_SNCS          DECIMAL(15,2) NULL,
+  ID_RESERVA_SNCS      CHAR(36)      NULL,
+  ESTADO_SNCS          VARCHAR(12)   NOT NULL DEFAULT 'PENDIENTE',
+                                               -- PENDIENTE|CONFIRMADO|RECHAZADO
+  INTENTOS_SNCS        INT           NOT NULL DEFAULT 0,
+  PROXIMO_INTENTO_SNCS DATETIME      NULL,
+  MOTIVO_SNCS          VARCHAR(255)  NULL,
+  INSTANTE_ALTA        DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (ID_SNCS),
+  UNIQUE KEY UK_SNCS_EVENTO (ID_EVENTO_SNCS),
+  UNIQUE KEY UK_SNCS_SECUENCIA (SECUENCIA_SNCS),
+  KEY IX_SNCS_PENDIENTES (ESTADO_SNCS, PROXIMO_INTENTO_SNCS, SECUENCIA_SNCS)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Regla 1: el INSERT en fza_sincro_salida va en la transaccion del
+-- documento (factura, albaran, traspaso, inventario). El stock propio
+-- (el almacen de la tienda) se actualiza en esa misma transaccion y es
+-- EXACTO con o sin conexion: nadie mas mueve ese almacen.
+
+-- Lote a enviar (en orden, sin saltarse ninguno en espera):
+--   SELECT ... FROM fza_sincro_salida
+--    WHERE ESTADO_SNCS = 'PENDIENTE'
+--    ORDER BY SECUENCIA_SNCS LIMIT :MAXIMO;
+--   (se corta en el primer registro con PROXIMO_INTENTO_SNCS > NOW())
+
+-- Copia local del stock de los OTROS almacenes: lo que se muestra sin
+-- conexion, siempre con su antiguedad.
+CREATE TABLE IF NOT EXISTS fza_sincro_stock_copia (
+  ARTICULO_SNCP      VARCHAR(40)  NOT NULL,
+  ALMACEN_SNCP       VARCHAR(20)  NOT NULL,
+  CANTIDAD_SNCP      INT          NOT NULL,
+  VERSION_SNCP       BIGINT       NOT NULL,
+  INSTANTE_CENTRAL   DATETIME     NOT NULL, -- cuando lo publico la central
+  INSTANTE_APLICADO  DATETIME     NOT NULL, -- cuando lo aplico la tienda
+  PRIMARY KEY (ARTICULO_SNCP, ALMACEN_SNCP)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- La antiguedad que ve el usuario es NOW() - ULTIMA_BAJADA_COMPLETA del
+-- cursor, no la de la fila: una fila vieja es correcta si no ha cambiado
+-- desde entonces.
+ALTER TABLE fza_sincro_cursor
+  ADD COLUMN IF NOT EXISTS ULTIMA_BAJADA_COMPLETA_SNCC DATETIME NULL;
+
+-- Traspasos que esta tienda tiene pendientes de recibir (los avisa la
+-- central con TRASPASO_EN_TRANSITO).
+CREATE TABLE IF NOT EXISTS fza_sincro_traspasos_pendientes (
+  ID_TRASPASO_SNCT    CHAR(36)     NOT NULL,
+  ARTICULO_SNCT       VARCHAR(40)  NOT NULL,
+  ALMACEN_ORIGEN_SNCT VARCHAR(20)  NOT NULL,
+  CANTIDAD_SNCT       INT          NOT NULL,
+  INSTANTE_AVISO      DATETIME     NOT NULL,
+  PRIMARY KEY (ID_TRASPASO_SNCT)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- -----------------------------------------------------------------------------
+--  LADO SERVIDOR
+-- -----------------------------------------------------------------------------
+
+-- Eventos recibidos (idempotencia + decision tomada).
+CREATE TABLE IF NOT EXISTS srv_sincro_eventos (
+  ID_EVENTO      CHAR(36)     NOT NULL,
+  TERMINAL       VARCHAR(40)  NOT NULL,
+  SECUENCIA      BIGINT       NOT NULL,
+  TIPO           VARCHAR(25)  NOT NULL,
+  RESULTADO      VARCHAR(12)  NOT NULL, -- ACEPTADO | RECHAZADO
+  MOTIVO         VARCHAR(255) NULL,
+  CONTENIDO      LONGTEXT     NULL,
+  INSTANTE_ALTA  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (ID_EVENTO),
+  UNIQUE KEY UK_SRV_EVENTOS_SECUENCIA (TERMINAL, SECUENCIA)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Ultima secuencia procesada por terminal (orden estricto).
+ALTER TABLE srv_sincro_terminales
+  ADD COLUMN IF NOT EXISTS ULTIMA_SECUENCIA BIGINT NOT NULL DEFAULT 0;
+
+-- Movimientos: el stock es su suma. Nunca se actualizan ni se borran.
+CREATE TABLE IF NOT EXISTS srv_sincro_movimientos (
+  ID             BIGINT       NOT NULL AUTO_INCREMENT,
+  ID_EVENTO      CHAR(36)     NOT NULL,
+  ARTICULO       VARCHAR(40)  NOT NULL,
+  ALMACEN        VARCHAR(20)  NOT NULL, -- incluye el pseudoalmacen TRANSITO
+  CANTIDAD       INT          NOT NULL, -- con signo
+  INSTANTE       DATETIME     NOT NULL,
+  PRIMARY KEY (ID),
+  KEY IX_SRV_MOV_ARTICULO (ARTICULO, ALMACEN)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Stock materializado (cache de la suma) y reservas activas.
+CREATE TABLE IF NOT EXISTS srv_sincro_stock (
+  ARTICULO       VARCHAR(40)  NOT NULL,
+  ALMACEN        VARCHAR(20)  NOT NULL,
+  STOCK          INT          NOT NULL DEFAULT 0,
+  RESERVADO      INT          NOT NULL DEFAULT 0,
+  VERSION        BIGINT       NOT NULL DEFAULT 0, -- ultima novedad publicada
+  PRIMARY KEY (ARTICULO, ALMACEN)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Comprobacion periodica de integridad (debe devolver cero filas):
+--   SELECT s.ARTICULO, s.ALMACEN, s.STOCK, SUM(m.CANTIDAD) AS SUMA
+--     FROM srv_sincro_stock s
+--     LEFT JOIN srv_sincro_movimientos m
+--       ON m.ARTICULO = s.ARTICULO AND m.ALMACEN = s.ALMACEN
+--    GROUP BY s.ARTICULO, s.ALMACEN, s.STOCK
+--   HAVING s.STOCK <> IFNULL(SUMA, 0);
+
+-- Traspasos en transito.
+CREATE TABLE IF NOT EXISTS srv_sincro_transito (
+  ID_TRASPASO     CHAR(36)     NOT NULL,
+  ARTICULO        VARCHAR(40)  NOT NULL,
+  ORIGEN          VARCHAR(20)  NOT NULL,
+  DESTINO         VARCHAR(20)  NOT NULL,
+  CANTIDAD        INT          NOT NULL,
+  INSTANTE_SALIDA DATETIME     NOT NULL,
+  PRIMARY KEY (ID_TRASPASO)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Reservas del almacen compartido. Una reserva descuenta del DISPONIBLE
+-- (STOCK - RESERVADO) pero no del STOCK, hasta que llega la venta que la
+-- consume. Conviene caducarlas (p. ej. a los 15 min) por si la venta se
+-- anulo en la tienda sin llegar a enviarse.
+CREATE TABLE IF NOT EXISTS srv_sincro_reservas (
+  ID_RESERVA     CHAR(36)     NOT NULL,
+  TERMINAL       VARCHAR(40)  NOT NULL,
+  ARTICULO       VARCHAR(40)  NOT NULL,
+  ALMACEN        VARCHAR(20)  NOT NULL,
+  CANTIDAD       INT          NOT NULL,
+  CONSUMIDA      TINYINT(1)   NOT NULL DEFAULT 0,
+  INSTANTE_ALTA  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (ID_RESERVA)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Reservar (atomico; idempotente por ID_RESERVA):
+--   -- si ya existe ID_RESERVA -> CONCEDIDA (es un reintento)
+--   UPDATE srv_sincro_stock SET RESERVADO = RESERVADO + :N
+--    WHERE ARTICULO = :ART AND ALMACEN = :ALM AND STOCK - RESERVADO >= :N;
+--   ROW_COUNT() = 1 -> INSERT INTO srv_sincro_reservas ...; CONCEDIDA
+--   ROW_COUNT() = 0 -> SIN_STOCK
+
+-- Procesar un evento (dentro de la transaccion del lote, en orden):
+--   1. Si ID_EVENTO existe en srv_sincro_eventos -> devolver su RESULTADO.
+--   2. Si SECUENCIA <> ULTIMA_SECUENCIA + 1 del terminal:
+--        < : RECHAZADO 'secuencia ya consumida'
+--        > : FUERA_DE_ORDEN (no se guarda; el terminal reintenta)
+--   3. ULTIMA_SECUENCIA = SECUENCIA (se consume aunque se rechace).
+--   4. Segun TIPO, insertar movimientos y actualizar srv_sincro_stock:
+--        VENTA con ID_RESERVA existente: RESERVADO = RESERVADO - N y
+--          CONSUMIDA = 1 (una reserva desconocida se ignora: la peticion
+--          de reserva nunca llego).
+--        TRASPASO_SALIDA: -N en ORIGEN, +N en TRANSITO, alta en transito.
+--        TRASPASO_RECEPCION: -N en TRANSITO, +N en DESTINO, baja en transito.
+--        INVENTARIO: +AJUSTE (nunca se sobrescribe con el recuento).
+--   5. Publicar novedades (contador bloqueado): STOCK por cada almacen
+--      tocado, ARTICULO en altas, TRASPASO_EN_TRANSITO / RECIBIDO, y
+--      SOBREVENTA si un STOCK queda negativo.
+
+-- Novedades: se amplia con los campos del nuevo protocolo.
+ALTER TABLE srv_sincro_novedades
+  ADD COLUMN IF NOT EXISTS ALMACEN         VARCHAR(20)   NULL,
+  ADD COLUMN IF NOT EXISTS ALMACEN_ORIGEN  VARCHAR(20)   NULL,
+  ADD COLUMN IF NOT EXISTS TERMINAL        VARCHAR(40)   NULL,
+  ADD COLUMN IF NOT EXISTS ID_TRASPASO     CHAR(36)      NULL,
+  ADD COLUMN IF NOT EXISTS CANTIDAD        INT           NULL,
+  ADD COLUMN IF NOT EXISTS PRECIO          DECIMAL(15,2) NULL;
+-- TIPO pasa a admitir: ARTICULO | STOCK | TRASPASO_EN_TRANSITO |
+--                      TRASPASO_RECIBIDO | SOBREVENTA
+
+-- Espera larga en novedades.php (vigencia de segundos sin martillear):
+--   el PHP comprueba cada 500 ms, hasta 25 s, si ULTIMA_VERSION del
+--   contador supera :DESDE; responde en cuanto haya algo o al agotar el
+--   tiempo con una lista vacia. El terminal vuelve a pedir de inmediato.
