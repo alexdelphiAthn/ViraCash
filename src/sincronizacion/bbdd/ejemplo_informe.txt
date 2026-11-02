@@ -1,0 +1,115 @@
+Simulacion ViraCash con bases de datos reales (semilla 11, 150 s, 3 tiendas, 30 articulos)
+
+[   0.0s] Creando bases de datos central y webservice
+[   0.4s] Catalogo inicial: 30 articulos con stock en cada almacen y poco en CENTRAL
+[   0.6s] Arrancando el webservice en http://127.0.0.1:8085 (8 trabajadores: la espera larga lo exige)
+[   1.6s] Carga inicial de cada tienda (catalogo y copia de stock)
+17:13:42 TIENDA1/inicial arranca (cursor 0)
+17:13:43 TIENDA1/inicial carga inicial completa: version 150
+17:13:43 TIENDA2/inicial arranca (cursor 0)
+17:13:43 TIENDA2/inicial carga inicial completa: version 150
+17:13:43 TIENDA3/inicial arranca (cursor 0)
+17:13:43 TIENDA3/inicial carga inicial completa: version 150
+[   2.1s] Arrancando agentes (subida + escucha) y cajas; internet con 40 ms y 3% de perdidas
+
+--- Fase 1: operacion (150 s) ---
+[  34.1s] TIENDA2 PIERDE LA CONEXION
+[  79.1s] TIENDA2 RECUPERA LA CONEXION: 47 eventos pendientes, cursor 276
+[  97.1s] TIENDA1 PIERDE LA CONEXION
+[ 112.1s] TIENDA1 RECUPERA LA CONEXION: 18 eventos pendientes, cursor 509
+[ 121.1s] TIENDA3 PIERDE LA CONEXION
+[ 129.3s] TIENDA3 SE REINICIA (agentes muertos y relanzados): 9 pendientes, cursor 565, 2 traspasos por recibir
+[ 136.3s] TIENDA3 RECUPERA LA CONEXION: 17 eventos pendientes, cursor 565
+
+--- Fase 2: red perfecta, cierre de cajas y drenaje ---
+[ 158.5s] Drenaje completo
+
+--- Fase 3: integridad ---
+  [ OK  ] Central: stock = suma de movimientos en 154 articulo/almacen (639 movimientos); nada en TRANSITO; ningun traspaso abierto
+  [ OK  ] Central: 29 sobreventas, 29 de ventas sin respuesta de la central y 0 con reserva pero causadas por ventas sin conexion anteriores
+  [ OK  ] Central: ninguna reserva activa sin consumir (sin reservas huerfanas)
+  [ OK  ] TIENDA1: 167 eventos, todos confirmados y presentes en la central
+  [ OK  ] TIENDA1: stock propio de ALM1 identico al de la central en los 35 articulos (4 en negativo: se vendio lo que paso por el lector)
+  [ OK  ] TIENDA1: copia local de los otros almacenes identica a la central (101 cifras)
+  [ OK  ] TIENDA1: catalogo y precios identicos (35 articulos)
+  [ OK  ] TIENDA1: todos sus traspasos enviados constan como recibidos y no le queda ninguno por recibir
+  [ OK  ] TIENDA1: los 10 pedidos tienen confirmacion de registro de la central
+  [ OK  ] TIENDA1: ha recibido los 29 avisos de sobreventa
+  [ OK  ] TIENDA2: 167 eventos, todos confirmados y presentes en la central
+  [ OK  ] TIENDA2: stock propio de ALM2 identico al de la central en los 35 articulos (4 en negativo: se vendio lo que paso por el lector)
+  [ OK  ] TIENDA2: copia local de los otros almacenes identica a la central (101 cifras)
+  [ OK  ] TIENDA2: catalogo y precios identicos (35 articulos)
+  [ OK  ] TIENDA2: todos sus traspasos enviados constan como recibidos y no le queda ninguno por recibir
+  [ OK  ] TIENDA2: los 7 pedidos tienen confirmacion de registro de la central
+  [ OK  ] TIENDA2: ha recibido los 29 avisos de sobreventa
+  [ OK  ] TIENDA3: 165 eventos, todos confirmados y presentes en la central
+  [ OK  ] TIENDA3: stock propio de ALM3 identico al de la central en los 35 articulos (2 en negativo: se vendio lo que paso por el lector)
+  [ OK  ] TIENDA3: copia local de los otros almacenes identica a la central (101 cifras)
+  [ OK  ] TIENDA3: catalogo y precios identicos (35 articulos)
+  [ OK  ] TIENDA3: todos sus traspasos enviados constan como recibidos y no le queda ninguno por recibir
+  [ OK  ] TIENDA3: los 7 pedidos tienen confirmacion de registro de la central
+  [ OK  ] TIENDA3: ha recibido los 29 avisos de sobreventa
+
+--- Vigencia: cuanto tarda un cambio de la central o de otra tienda en aplicarse ---
+TIENDA1: 314 novedades de stock recibidas durante la operacion
+   todas:         mediana 108 ms, p95 1800 ms, maximo 14.1 s
+   con conexion:  mediana 93 ms, p95 1100 ms, maximo 2383 ms, media 190 ms (253 muestras)
+   reparto:       <= 1 s: 291 (93%) 1-3 s: 14 (4%) 3-30 s: 9 (3%) 30-120 s: 0 (0%) > 2 min: 0 (0%)
+TIENDA2: 311 novedades de stock recibidas durante la operacion
+   todas:         mediana 137 ms, p95 38132 ms, maximo 44.2 s
+   con conexion:  mediana 101 ms, p95 600 ms, maximo 1647 ms, media 161 ms (204 muestras)
+   reparto:       <= 1 s: 208 (67%) 1-3 s: 8 (3%) 3-30 s: 58 (19%) 30-120 s: 37 (12%) > 2 min: 0 (0%)
+TIENDA3: 315 novedades de stock recibidas durante la operacion
+   todas:         mediana 251 ms, p95 9136 ms, maximo 13.5 s
+   con conexion:  mediana 146 ms, p95 1377 ms, maximo 2852 ms, media 501 ms (247 muestras)
+   reparto:       <= 1 s: 181 (57%) 1-3 s: 70 (22%) 3-30 s: 64 (20%) 30-120 s: 0 (0%) > 2 min: 0 (0%)
+
+--- Vigencia: exactitud de las consultas de stock de otros almacenes hechas en caja ---
+TIENDA1: 100 consultas
+   copia:       18, exactas 18 (100.0%), desactualizadas 0, desviacion maxima 0 uds; antiguedad mostrada media 5 s, maxima 14 s
+   en linea:    81, exactas 81 (100.0%)
+   sin dato:     1
+TIENDA2: 110 consultas
+   copia:       38, exactas 21 (55.3%), desactualizadas 17, desviacion maxima 19 uds; antiguedad mostrada media 19 s, maxima 44 s
+   en linea:    70, exactas 70 (100.0%)
+   sin dato:     2
+TIENDA3: 93 consultas
+   copia:       16, exactas 15 (93.8%), desactualizadas 1, desviacion maxima 9 uds; antiguedad mostrada media 3 s, maxima 13 s
+   en linea:    76, exactas 76 (100.0%)
+   sin dato:     1
+
+--- Actividad ---
+Central: eventos aceptados por tipo: ALBARAN_COMPRA=29 ALTA_ARTICULO=5 DEVOLUCION=26 INVENTARIO=6 PEDIDO=24 TRASPASO_RECEPCION=25 TRASPASO_SALIDA=25 VENTA=359
+Central: 756 novedades publicadas, 35 reservas concedidas, 35 consumidas, 29 sobreventas, 24 pedidos registrados
+Webservice: TIENDA1 eventos aceptados=167 rechazados=0 reenvios recibidos=8 ultima secuencia=167 version confirmada=756
+Webservice: TIENDA2 eventos aceptados=167 rechazados=0 reenvios recibidos=51 ultima secuencia=167 version confirmada=756
+Webservice: TIENDA3 eventos aceptados=165 rechazados=0 reenvios recibidos=4 ultima secuencia=165 version confirmada=756
+Webservice: peticiones HTTP atendidas: eventos 269 (media 8 ms, max 78 ms, errores 0); novedades 639 (media 579 ms, max 20091 ms, errores 0); novedades_ack 79 (media 2 ms, max 6 ms, errores 0); reservas 71 (media 3 ms, max 6 ms, errores 0); stock 236 (media 2 ms, max 6 ms, errores 0)
+TIENDA1 caja: ventas propias=109 de CENTRAL con reserva=11 sin respuesta=2 bloqueadas=12 | devoluciones=8 albaranes=10 pedidos=10 traspasos=7 recepciones=4 inventarios=1 altas=1 consultas=100
+TIENDA1 red (caja): llamadas=128 sin conexion=16 peticiones perdidas=4 respuestas perdidas=4
+TIENDA1 bandeja: 18 eventos necesitaron reintento (maximo 3 intentos); la central recibio 8 reenvios
+TIENDA2 caja: ventas propias=97 de CENTRAL con reserva=12 sin respuesta=9 bloqueadas=10 | devoluciones=12 albaranes=8 pedidos=7 traspasos=9 recepciones=6 inventarios=3 altas=1 consultas=110
+TIENDA2 red (caja): llamadas=151 sin conexion=53 peticiones perdidas=3 respuestas perdidas=3
+TIENDA2 bandeja: 51 eventos necesitaron reintento (maximo 6 intentos); la central recibio 51 reenvios
+TIENDA3 caja: ventas propias=104 de CENTRAL con reserva=12 sin respuesta=3 bloqueadas=12 | devoluciones=6 albaranes=6 pedidos=7 traspasos=9 recepciones=6 inventarios=2 altas=3 consultas=93
+TIENDA3 red (caja): llamadas=124 sin conexion=16 peticiones perdidas=4 respuestas perdidas=4
+TIENDA3 bandeja: 23 eventos necesitaron reintento (maximo 4 intentos); la central recibio 4 reenvios
+
+--- Stock final en la central (muestra) ---
+ARTICULO           ALM1     ALM2     ALM3  CENTRAL
+ALM1-NUEVO01          1        7        0        0
+ALM2-NUEVO01         -3        8       -4       -1
+ALM3-NUEVO01         -2       -2        5        0
+ALM3-NUEVO02         -1       -2        9        0
+ALM3-NUEVO03         -2       -1        8        0
+ART001               30       18       -2        1
+ART002               13       17       14        0
+ART003               42       17       11        0
+ART004               18       18       14        0
+ART005                8       18       22        0
+ART006               16       24       15        1
+ART007               26        5       17        1
+ART008               29       11       16        0
+(negativo en CENTRAL: sobreventa de una venta sin respuesta de la central, ya avisada; negativo en ALMn: se vendio por el lector mas de lo que constaba)
+
+RESULTADO: todas las invariantes de integridad se cumplen

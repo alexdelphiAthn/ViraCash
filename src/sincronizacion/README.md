@@ -11,12 +11,13 @@ Igual que `pruebaventasws`, son proyectos **independientes**: no se
 compilan dentro de `vcash.dproj`. El código es Object Pascal sin VCL ni
 UniDAC y compila tanto en Delphi como en Free Pascal.
 
-Hay dos niveles:
+Hay tres niveles:
 
 | Nivel | Qué cubre | Programas |
 |---|---|---|
 | **Ventas** (`inLibSincro*`) | Subida de ventas y bajada de novedades genéricas. Es el protocolo mínimo. | `SimulacionSincro`, `PruebasSincro` |
 | **Stock multitienda** (`inLibSincroStock*`) | Ventas, compras, devoluciones, traspasos, inventarios, altas de artículo, precios, stock por almacén, reserva en línea, consulta de stock con respaldo local. | `SimulacionStock`, `PruebasStock` |
+| **Bases de datos reales** (`bbdd/`) | Lo mismo con tres bases MariaDB (central, webservice, tienda) y procedimientos almacenados, webservice PHP por HTTP, agentes de tienda como procesos y "internet" simulada. Mide la vigencia con reloj real. Ver [`bbdd/README.md`](bbdd/README.md). | `bbdd/simulacion/simular.php` |
 
 ## Arquitectura
 
