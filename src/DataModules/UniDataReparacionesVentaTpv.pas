@@ -27,6 +27,11 @@ type
       const AArticulo: string);
     procedure VincularOrden(AId: Int64; const ALinea: TLineaServicioVenta;
       const AVenta: TVentaServiciosReparacion);
+    procedure CobrarOrdenExistente(const ALinea: TLineaServicioVenta;
+      const AVenta: TVentaServiciosReparacion;
+      const ASeleccion: TPrendaVentaReparacion);
+    procedure CrearOrdenNueva(const ALinea: TLineaServicioVenta;
+      const AVenta: TVentaServiciosReparacion);
     procedure CrearOrden(const ALinea: TLineaServicioVenta;
       const AVenta: TVentaServiciosReparacion);
     procedure BloquearTicket(const AVenta: TVentaServiciosReparacion);
@@ -39,6 +44,8 @@ type
     destructor Destroy; override;
     // Participa en la transacción del ticket: no confirma por su cuenta.
     procedure CrearOrdenes(const AVenta: TVentaServiciosReparacion);
+    function OrdenesPendientes(const AArticulo, ACliente,
+      AAlmacen: string): TArray<TPrendaVentaReparacion>;
     function ClaseArticuloServicio(const AArticulo: string): string;
     function CodigosServicio: TArray<string>;
     function HayServicios(ALineas: TDataSet): Boolean;
@@ -65,7 +72,8 @@ type
 implementation
 
 uses
-  System.SysUtils, inLibMsgReparaciones, UniDataReparacionesPrendas,
+  System.SysUtils, UniDataReparacionesImputaciones,
+  inLibMsgReparaciones, UniDataReparacionesPrendas,
   UniDataTrabajosCortinas, inLibTrabajosCortinas;
 
 constructor TReparacionesVentaTpv.Create(AConexion: TUniConnection);
@@ -182,7 +190,8 @@ begin
   for Prenda in AVenta.Prendas do
     if (Prenda.LineaServicio=ALinea.Linea) and
        ((Prenda.LineaPrenda<>'') or
-        (Prenda.Trabajo.Clase=CLASE_SERVICIO_TALLER)) then
+        (Prenda.Trabajo.Clase=CLASE_SERVICIO_TALLER) or
+        (Prenda.Trabajo.Clase=CLASE_SERVICIO_TRAJE)) then
     begin
       if Result.ReferenciaObjeto=sArticulo then
       begin
@@ -194,6 +203,18 @@ begin
       Result.DescripcionObjeto := Copy(Result.DescripcionObjeto+
         Prenda.Descripcion,1,200);
     end;
+  for Prenda in AVenta.Prendas do
+    if (Prenda.LineaServicio = ALinea.Linea) and
+       (Prenda.Trabajo.Clase = CLASE_SERVICIO_TRAJE) then
+    begin
+      if (Result.IdMedicionCliente <> '') and
+         (Result.IdMedicionCliente <> Prenda.Trabajo.IdMedicionCliente) then
+        raise EArgumentException.Create(SErrorClaseServicio);
+      Result.IdMedicionCliente := Prenda.Trabajo.IdMedicionCliente;
+    end;
+  if (ClaseArticuloServicio(ALinea.Articulo) = CLASE_SERVICIO_TRAJE) and
+     (Result.IdMedicionCliente = '') then
+    raise EArgumentException.Create(SErrorClaseServicio);
   Result.SerieVenta := AVenta.Serie;
   Result.NumeroVenta := AVenta.Numero;
   Result.EsPresupuesto := False;
@@ -246,7 +267,14 @@ procedure TReparacionesVentaTpv.VincularOrden(AId: Int64;
   const AVenta: TVentaServiciosReparacion);
 var
   oConsulta: TUniQuery;
+  rPrenda: TPrendaVentaReparacion;
+  sDeposito: string;
 begin
+  sDeposito := ALinea.IdDeposito;
+  for rPrenda in AVenta.Prendas do
+    if (rPrenda.LineaServicio = ALinea.Linea) and
+       (rPrenda.IdDeposito <> '') then
+      sDeposito := rPrenda.IdDeposito;
   if TieneEnlaceDeposito then
     oConsulta := Consulta('INSERT INTO fza_reparaciones_ventas ' +
       '(SERIE_FAC_GARVEN, NUMERO_FAC_GARVEN, LINEA_FACLIN_GARVEN, ' +
@@ -264,7 +292,7 @@ begin
     oConsulta.ParamByName('LINEA').AsString := ALinea.Linea;
     oConsulta.ParamByName('ARTICULO').AsString := ALinea.Articulo;
     if Assigned(oConsulta.Params.FindParam('DEPOSITO')) then
-      oConsulta.ParamByName('DEPOSITO').AsString := ALinea.IdDeposito;
+      oConsulta.ParamByName('DEPOSITO').AsString := sDeposito;
     oConsulta.ExecSQL;
     oConsulta.SQL.Text := 'UPDATE fza_garantias_reclamaciones ' +
       'SET EMAIL_CLIENTE_GAR = NULLIF(:EMAIL, ''''), ' +
@@ -282,7 +310,112 @@ begin
   end;
 end;
 
+function TReparacionesVentaTpv.OrdenesPendientes(
+  const AArticulo, ACliente, AAlmacen: string): TArray<TPrendaVentaReparacion>;
+var
+  oConsulta: TUniQuery;
+  rPrenda: TPrendaVentaReparacion;
+  i: Integer;
+begin
+  Result := nil;
+  oConsulta := Consulta('SELECT G.ID_GAR,L.ID_GARLIN,' +
+    'G.DESCRIPCION_OBJETO_GAR,L.DESCRIPCION_GARLIN ' +
+    'FROM fza_garantias_reclamaciones G JOIN fza_garantias_lineas L ' +
+    'ON L.ID_GAR_GARLIN=G.ID_GAR JOIN fza_garantias_tipos T ' +
+    'ON T.CODIGO_GARTIP=L.CODIGO_GARTIP_GARLIN ' +
+    'WHERE G.CODIGO_CLI_GAR=:CLI AND G.CODIGO_ALM_GAR=:ALM ' +
+    'AND G.ESTADO_GAR IN (''ABIERTA'',''EN_SAT'') ' +
+    'AND G.FECHA_ENTREGA_CLI_GAR IS NULL AND T.CODIGO_ART_GARTIP=:ART ' +
+    'AND L.CANTIDAD_GARLIN=1 AND L.PRECIO_CLIENTE_GARLIN>0 ' +
+    'AND NOT EXISTS(SELECT 1 FROM fza_reparaciones_imputaciones I ' +
+    'WHERE I.ID_GARLIN_RCI=L.ID_GARLIN AND I.TIPO_RCI IN (''CL'',''TC'')) ' +
+    'ORDER BY G.ID_GAR,L.ID_GARLIN', Default(TVentaServiciosReparacion));
+  try
+    oConsulta.ParamByName('CLI').AsString := ACliente;
+    oConsulta.ParamByName('ALM').AsString := AAlmacen;
+    oConsulta.ParamByName('ART').AsString := AArticulo;
+    oConsulta.Open;
+    while not oConsulta.Eof do
+    begin
+      rPrenda := Default(TPrendaVentaReparacion);
+      rPrenda.OrdenExistente := oConsulta.Fields[0].AsLargeInt;
+      rPrenda.LineaOrden := oConsulta.Fields[1].AsLargeInt;
+      rPrenda.Descripcion := Format('%d: %s - %s',
+        [rPrenda.OrdenExistente,oConsulta.Fields[2].AsString,
+         oConsulta.Fields[3].AsString]);
+      i := Length(Result);
+      SetLength(Result,i + 1);
+      Result[i] := rPrenda;
+      oConsulta.Next;
+    end;
+  finally
+    oConsulta.Free;
+  end;
+end;
+
+procedure TReparacionesVentaTpv.CobrarOrdenExistente(
+  const ALinea: TLineaServicioVenta; const AVenta: TVentaServiciosReparacion;
+  const ASeleccion: TPrendaVentaReparacion);
+var
+  oConsulta: TUniQuery;
+  oImputaciones: TRepositorioImputacionesOrden;
+  rImputacion: TImputacionOrden;
+begin
+  oConsulta := Consulta('SELECT G.ID_GAR FROM fza_garantias_reclamaciones G '+
+    'JOIN fza_garantias_lineas L ON L.ID_GAR_GARLIN=G.ID_GAR ' +
+    'JOIN fza_garantias_tipos T ' +
+    'ON T.CODIGO_GARTIP=L.CODIGO_GARTIP_GARLIN ' +
+    'WHERE G.ID_GAR=:ID AND L.ID_GARLIN=:LINEA AND ' +
+    'G.CODIGO_CLI_GAR=:CLI AND G.CODIGO_ALM_GAR=:ALM ' +
+    'AND G.ESTADO_GAR IN (''ABIERTA'',''EN_SAT'') ' +
+    'AND G.FECHA_ENTREGA_CLI_GAR IS NULL AND T.CODIGO_ART_GARTIP=:ART ' +
+    'AND L.CANTIDAD_GARLIN=:CANTIDAD FOR UPDATE', AVenta);
+  oImputaciones := TRepositorioImputacionesOrden.Create(FConexion,
+    AVenta.Usuario);
+  try
+    oConsulta.ParamByName('ID').AsLargeInt := ASeleccion.OrdenExistente;
+    oConsulta.ParamByName('LINEA').AsLargeInt := ASeleccion.LineaOrden;
+    oConsulta.ParamByName('CLI').AsString := AVenta.Cliente;
+    oConsulta.ParamByName('ALM').AsString := AVenta.Almacen;
+    oConsulta.ParamByName('ART').AsString := ALinea.Articulo;
+    oConsulta.ParamByName('CANTIDAD').AsFloat := ALinea.Cantidad;
+    oConsulta.Open;
+    if oConsulta.IsEmpty then
+      raise EArgumentException.Create(SPrendaVentaInvalida);
+    rImputacion := Default(TImputacionOrden);
+    rImputacion.Orden := ASeleccion.OrdenExistente;
+    rImputacion.Linea := ASeleccion.LineaOrden;
+    rImputacion.Tipo := 'TC';
+    rImputacion.Serie := AVenta.Serie;
+    rImputacion.Numero := AVenta.Numero;
+    rImputacion.LineaDocumento := ALinea.Linea;
+    rImputacion.Importe := ALinea.Total;
+    rImputacion.Cantidad := ALinea.Cantidad;
+    oImputaciones.Imputar(rImputacion);
+    VincularOrden(ASeleccion.OrdenExistente, ALinea, AVenta);
+  finally
+    oImputaciones.Free;
+    oConsulta.Free;
+  end;
+end;
+
 procedure TReparacionesVentaTpv.CrearOrden(
+  const ALinea: TLineaServicioVenta; const AVenta: TVentaServiciosReparacion);
+var
+  rPrenda, rSeleccion: TPrendaVentaReparacion;
+begin
+  rSeleccion := Default(TPrendaVentaReparacion);
+  for rPrenda in AVenta.Prendas do
+    if (rPrenda.LineaServicio = ALinea.Linea) and
+       (rPrenda.OrdenExistente > 0) then
+      rSeleccion := rPrenda;
+  if rSeleccion.OrdenExistente > 0 then
+    CobrarOrdenExistente(ALinea, AVenta, rSeleccion)
+  else
+    CrearOrdenNueva(ALinea, AVenta);
+end;
+
+procedure TReparacionesVentaTpv.CrearOrdenNueva(
   const ALinea: TLineaServicioVenta;
   const AVenta: TVentaServiciosReparacion);
 var
@@ -430,6 +563,7 @@ begin
   Result := False;
   if TieneMarca and not ALineas.IsEmpty then
   begin
+    FTipos := FRepositorio.Tipos('');
     oConsulta := Consulta('SELECT 1 FROM fza_articulos ' +
       'WHERE CODIGO_ART_ART = :ARTICULO AND TIPO_ART = ''SERVICIO'' ' +
       'AND ESSERVICIO_REPARACION_ART = ''S''',
@@ -440,11 +574,11 @@ begin
       ALineas.First;
       while not ALineas.Eof and not Result do
       begin
-        bVenta := (Texto('VIENE_DE_DEPOSITO') <> 'A') and
-          (Texto('ACCION_DEPOSITO') <> 'NUEVO_DEP') and
-          (Texto('ACCION_DEPOSITO') <> 'AUMENTAR_DEP') and
-          not ((Texto('VIENE_DE_DEPOSITO') = 'S') and
-               DepositoConOrden(Texto('ID_DEPOSITO_DEP')));
+        bVenta := PedirDatosServicio(
+          ClaseArticuloServicio(Texto('CODIGO_ART_FACLIN')),
+          Texto('VIENE_DE_DEPOSITO'), Texto('ACCION_DEPOSITO'),
+          (Texto('VIENE_DE_DEPOSITO') = 'S') and
+          DepositoConOrden(Texto('ID_DEPOSITO_DEP')));
         if bVenta and (ALineas.FieldByName('CANTIDAD_FACLIN').AsFloat > 0)
            and (Texto('CODIGO_ART_FACLIN') <> '') then
         begin

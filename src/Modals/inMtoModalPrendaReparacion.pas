@@ -15,13 +15,14 @@ type
   private
     FPrenda: TcxComboBox;
     procedure CrearSelector(const ATitulo: string;
-      const APrendas: TArray<TPrendaVentaReparacion>);
+      const APrendas: TArray<TPrendaVentaReparacion>;
+      const AEntradaNueva: string);
     procedure CerrarSinLiberar(Sender: TObject; var Action: TCloseAction);
   public
     function CloseQuery: Boolean; override;
     class function Elegir(AOwner: TComponent; const ATitulo: string;
       const APrendas: TArray<TPrendaVentaReparacion>;
-      out ASeleccion: Integer): Boolean;
+      out ASeleccion: Integer; const AEntradaNueva: string = ''): Boolean;
   end;
 
 implementation
@@ -31,7 +32,8 @@ uses
   inLibMensajesVcl;
 
 procedure TfrmModalPrendaReparacion.CrearSelector(const ATitulo: string;
-  const APrendas: TArray<TPrendaVentaReparacion>);
+  const APrendas: TArray<TPrendaVentaReparacion>;
+  const AEntradaNueva: string);
 var
   oRotulo: TcxLabel;
   Prenda: TPrendaVentaReparacion;
@@ -49,7 +51,10 @@ begin
   FPrenda.SetBounds(ScaleValue(12),ScaleValue(48),ScaleValue(640),
     ScaleValue(28));
   FPrenda.Properties.DropDownListStyle := lsFixedList;
-  FPrenda.Properties.Items.Add(SPrendaFueraVenta);
+  if AEntradaNueva = '' then
+    FPrenda.Properties.Items.Add(SPrendaFueraVenta)
+  else
+    FPrenda.Properties.Items.Add(AEntradaNueva);
   for Prenda in APrendas do
     FPrenda.Properties.Items.Add(Prenda.Descripcion);
   FPrenda.ItemIndex := -1;
@@ -73,7 +78,7 @@ end;
 
 class function TfrmModalPrendaReparacion.Elegir(AOwner: TComponent;
   const ATitulo: string; const APrendas: TArray<TPrendaVentaReparacion>;
-  out ASeleccion: Integer): Boolean;
+  out ASeleccion: Integer; const AEntradaNueva: string): Boolean;
 var
   oFormulario: TfrmModalPrendaReparacion;
 begin
@@ -81,7 +86,7 @@ begin
   oFormulario := TfrmModalPrendaReparacion.Create(AOwner);
   try
     oFormulario.OnClose := oFormulario.CerrarSinLiberar;
-    oFormulario.CrearSelector(ATitulo,APrendas);
+    oFormulario.CrearSelector(ATitulo, APrendas, AEntradaNueva);
     oFormulario.ShowModal;
     Result := oFormulario.sFicha='S';
     if Result then

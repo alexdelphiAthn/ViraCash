@@ -6262,66 +6262,6 @@ begin
     @inLibMsgReparacionesCircuito.SCircuitoCobroExistente);
 end;
 
-procedure RegistrarMedidasCliente(
-  const ARegistrar: TRegistrarResourcestringTraduccion);
-
-  procedure Registrar(const ANombre: string; ARecurso: PResStringRec);
-  begin
-    ARegistrar('inLibMsgMedidasCliente.' + ANombre,
-      'src/Lib/inLibMsgMedidasCliente.pas', ARecurso);
-  end;
-
-begin
-  Registrar('SMedidasTitulo', @SMedidasTitulo);
-  Registrar('SMedidasNueva', @SMedidasNueva);
-  Registrar('SMedidasCorregir', @SMedidasCorregir);
-  Registrar('SMedidasVincular', @SMedidasVincular);
-  Registrar('SMedidasCerrar', @SMedidasCerrar);
-  Registrar('SMedidasFecha', @SMedidasFecha);
-  Registrar('SMedidasPersona', @SMedidasPersona);
-  Registrar('SMedidasObservaciones', @SMedidasObservaciones);
-  Registrar('SMedidasMotivo', @SMedidasMotivo);
-  Registrar('SMedidasDesconocida', @SMedidasDesconocida);
-  Registrar('SMedidasVacia', @SMedidasVacia);
-  Registrar('SMedidasDatosObligatorios', @SMedidasDatosObligatorios);
-  Registrar('SMedidasMotivoCorreccion', @SMedidasMotivoCorreccion);
-  Registrar('SMedidasMagnitudInvalida', @SMedidasMagnitudInvalida);
-  Registrar('SMedidasValorNegativo', @SMedidasValorNegativo);
-  Registrar('SMedidasFueraRango', @SMedidasFueraRango);
-  Registrar('SMedidasConfirmarRango', @SMedidasConfirmarRango);
-  Registrar('SMedidasSinPermiso', @SMedidasSinPermiso);
-  Registrar('SMedidasClienteInexistente', @SMedidasClienteInexistente);
-  Registrar('SMedidasOrigenInvalido', @SMedidasOrigenInvalido);
-  Registrar('SMedidasOrdenInvalida', @SMedidasOrdenInvalida);
-  Registrar('SMedidasMigracionPendiente', @SMedidasMigracionPendiente);
-  Registrar('SMedidasFechaInvalida', @SMedidasFechaInvalida);
-  Registrar('SMedidasValorInvalido', @SMedidasValorInvalido);
-  Registrar('SMedidasSesionInexistente', @SMedidasSesionInexistente);
-  Registrar('SMedidasGuardadas', @SMedidasGuardadas);
-  Registrar('SMedidasVinculadas', @SMedidasVinculadas);
-end;
-
-procedure RegistrarCoincidenciasCliente(
-  const ARegistrar: TRegistrarResourcestringTraduccion);
-
-  procedure Registrar(const ANombre: string; ARecurso: PResStringRec);
-  begin
-    ARegistrar('inLibMsgVentas.' + ANombre,
-      'src/Lib/inLibMsgVentas.pas', ARecurso);
-  end;
-
-begin
-  Registrar('STituloCoincidenciasCliente', @STituloCoincidenciasCliente);
-  Registrar('SResumenCoincidenciasCliente', @SResumenCoincidenciasCliente);
-  Registrar('SPreguntaCoincidenciasCliente', @SPreguntaCoincidenciasCliente);
-  Registrar('SIdentificacionCoincidenteCliente', @SIdentificacionCoincidenteCliente);
-  Registrar('SContactoCoincidenteCliente', @SContactoCoincidenteCliente);
-  Registrar('SPreguntaMotivoCoincidenciasCliente', @SPreguntaMotivoCoincidenciasCliente);
-  Registrar('SPreguntaAbrirCoincidenciaCliente', @SPreguntaAbrirCoincidenciaCliente);
-  Registrar('SErrorConfirmarCoincidenciasCliente', @SErrorConfirmarCoincidenciasCliente);
-  Registrar('SErrorMotivoCoincidenciasCliente', @SErrorMotivoCoincidenciasCliente);
-end;
-
 procedure RegistrarCambiosTrabajo(
   const ARegistrar: TRegistrarResourcestringTraduccion);
 
@@ -6356,8 +6296,186 @@ procedure EnumerarResourcestringsTraduccion(
   const ARegistrar: TRegistrarResourcestringTraduccion);
 begin
   RegistrarCambiosTrabajo(ARegistrar);
-  RegistrarMedidasCliente(ARegistrar);
-  RegistrarCoincidenciasCliente(ARegistrar);
+  ARegistrar('inLibMsgMedidasCliente.' +
+    'SMedidasClaseTraje',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasClaseTraje);
+  ARegistrar('inLibMsgMedidasCliente.' +
+    'SMedidasEnviar',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasEnviar);
+  ARegistrar('inLibMsgMedidasCliente.' +
+    'SMedidasCompletar',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasCompletar);
+  ARegistrar('inLibMsgMedidasCliente.' +
+    'SMedidasTitulo',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasTitulo);
+  ARegistrar('inLibMsgMedidasCliente.' +
+    'SMedidasNueva',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasNueva);
+  ARegistrar('inLibMsgMedidasCliente.' +
+    'SMedidasCorregir',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasCorregir);
+  ARegistrar('inLibMsgMedidasCliente.' +
+    'SMedidasVincular',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasVincular);
+  ARegistrar('inLibMsgMedidasCliente.' +
+    'SMedidasCerrar',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasCerrar);
+  ARegistrar('inLibMsgMedidasCliente.' +
+    'SMedidasFecha',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasFecha);
+  ARegistrar('inLibMsgMedidasCliente.' +
+    'SMedidasPersona',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasPersona);
+  ARegistrar('inLibMsgMedidasCliente.' +
+    'SMedidasObservaciones',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasObservaciones);
+  ARegistrar('inLibMsgMedidasCliente.' +
+    'SMedidasMotivo',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasMotivo);
+  ARegistrar('inLibMsgMedidasCliente.' +
+    'SMedidasDesconocida',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasDesconocida);
+  ARegistrar('inLibMsgMedidasCliente.' +
+    'SMedidasVacia',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasVacia);
+  ARegistrar('inLibMsgMedidasCliente.' +
+    'SMedidasDatosObligatorios',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasDatosObligatorios);
+  ARegistrar('inLibMsgMedidasCliente.' +
+    'SMedidasMotivoCorreccion',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasMotivoCorreccion);
+  ARegistrar('inLibMsgMedidasCliente.' +
+    'SMedidasMagnitudInvalida',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasMagnitudInvalida);
+  ARegistrar('inLibMsgMedidasCliente.' +
+    'SMedidasValorNegativo',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasValorNegativo);
+  ARegistrar('inLibMsgMedidasCliente.' +
+    'SMedidasFueraRango',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasFueraRango);
+  ARegistrar('inLibMsgMedidasCliente.' +
+    'SMedidasConfirmarRango',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasConfirmarRango);
+  ARegistrar('inLibMsgMedidasCliente.' +
+    'SMedidasSinPermiso',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasSinPermiso);
+  ARegistrar('inLibMsgMedidasCliente.' +
+    'SMedidasClienteInexistente',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasClienteInexistente);
+  ARegistrar('inLibMsgMedidasCliente.' +
+    'SMedidasOrigenInvalido',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasOrigenInvalido);
+  ARegistrar('inLibMsgMedidasCliente.' +
+    'SMedidasOrdenInvalida',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasOrdenInvalida);
+  ARegistrar('inLibMsgMedidasCliente.' +
+    'SMedidasMigracionPendiente',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasMigracionPendiente);
+  ARegistrar('inLibMsgMedidasCliente.' +
+    'SMedidasFechaInvalida',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasFechaInvalida);
+  ARegistrar('inLibMsgMedidasCliente.' +
+    'SMedidasValorInvalido',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasValorInvalido);
+  ARegistrar('inLibMsgMedidasCliente.' +
+    'SMedidasSesionInexistente',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasSesionInexistente);
+  ARegistrar('inLibMsgMedidasCliente.' +
+    'SMedidasGuardadas',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasGuardadas);
+  ARegistrar('inLibMsgMedidasCliente.' +
+    'SMedidasVinculadas',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasVinculadas);
+  ARegistrar('inLibMsgVentas.' +
+    'STituloCoincidenciasCliente',
+    'src/Lib/inLibMsgVentas.pas',
+    @inLibMsgVentas.STituloCoincidenciasCliente);
+  ARegistrar('inLibMsgVentas.' +
+    'SResumenCoincidenciasCliente',
+    'src/Lib/inLibMsgVentas.pas',
+    @inLibMsgVentas.SResumenCoincidenciasCliente);
+  ARegistrar('inLibMsgVentas.' +
+    'SPreguntaCoincidenciasCliente',
+    'src/Lib/inLibMsgVentas.pas',
+    @inLibMsgVentas.SPreguntaCoincidenciasCliente);
+  ARegistrar('inLibMsgVentas.' +
+    'SIdentificacionCoincidenteCliente',
+    'src/Lib/inLibMsgVentas.pas',
+    @inLibMsgVentas.SIdentificacionCoincidenteCliente);
+  ARegistrar('inLibMsgVentas.' +
+    'SContactoCoincidenteCliente',
+    'src/Lib/inLibMsgVentas.pas',
+    @inLibMsgVentas.SContactoCoincidenteCliente);
+  ARegistrar('inLibMsgVentas.' +
+    'SPreguntaMotivoCoincidenciasCliente',
+    'src/Lib/inLibMsgVentas.pas',
+    @inLibMsgVentas.SPreguntaMotivoCoincidenciasCliente);
+  ARegistrar('inLibMsgVentas.' +
+    'SPreguntaAbrirCoincidenciaCliente',
+    'src/Lib/inLibMsgVentas.pas',
+    @inLibMsgVentas.SPreguntaAbrirCoincidenciaCliente);
+  ARegistrar('inLibMsgVentas.' +
+    'SErrorConfirmarCoincidenciasCliente',
+    'src/Lib/inLibMsgVentas.pas',
+    @inLibMsgVentas.SErrorConfirmarCoincidenciasCliente);
+  ARegistrar('inLibMsgVentas.' +
+    'SErrorMotivoCoincidenciasCliente',
+    'src/Lib/inLibMsgVentas.pas',
+    @inLibMsgVentas.SErrorMotivoCoincidenciasCliente);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoGrupoCondiciones',
+    'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoGrupoCondiciones);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoGrupoTrabajo',
+    'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoGrupoTrabajo);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoGrupoAlbaranes',
+    'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoGrupoAlbaranes);
+  ARegistrar('inLibMsgReparacionesCircuito.' +
+    'SCircuitoGrupoExternos',
+    'src/Lib/inLibMsgReparacionesCircuito.pas',
+    @inLibMsgReparacionesCircuito.SCircuitoGrupoExternos);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SOrdenCobrarExistente',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SOrdenCobrarExistente);
+  ARegistrar('inLibMsgReparaciones.' +
+    'SOrdenCrearNueva',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SOrdenCrearNueva);
   ARegistrar('inLibMsgReparacionesCircuito.' +
     'SCircuitoTodos', 'src/Lib/inLibMsgReparacionesCircuito.pas',
     @inLibMsgReparacionesCircuito.SCircuitoTodos);
@@ -33791,6 +33909,15 @@ begin
     'src/Lib/inLibMsgReparaciones.pas',
     @inLibMsgReparaciones.SRecepcionCopiaPrenda);
 
+  ARegistrar('inLibMsgReparaciones.SParametrosArreglosAlbaran',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SParametrosArreglosAlbaran);
+  ARegistrar('inLibMsgReparaciones.SParametrosArreglosSerie',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SParametrosArreglosSerie);
+  ARegistrar('inLibMsgReparaciones.SParametrosArreglosSerieObligatoria',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SParametrosArreglosSerieObligatoria);
   ARegistrar('inLibMsgReparaciones.SParametrosArreglosTitulo',
     'src/Lib/inLibMsgReparaciones.pas',
     @inLibMsgReparaciones.SParametrosArreglosTitulo);

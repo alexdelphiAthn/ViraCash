@@ -101,7 +101,8 @@ type
 implementation
 
 uses
-  System.SysUtils, cxLabel, inLibMsgReparaciones, inLibMensajesVcl;
+  System.SysUtils, cxLabel, inLibMsgReparaciones, inLibMensajesVcl,
+  inLibTrabajosCortinas, inMtoModalMedidasCliente;
 
 const
   ANCHO_ROTULO = 150;
@@ -436,10 +437,15 @@ begin
   FReparacion := NormalizarCobroReparacion(FReparacion);
   sError := ValidarReparacionNueva(FReparacion);
   Result := sError = '';
-  if Result then
-    FId := FRepositorio.Alta(FReparacion)
-  else
+  if not Result then
     ShowMessage_fza(sError);
+  FReparacion.IdMedicionCliente := '';
+  if Result and (FTipo.ItemIndex > 0) then
+    if FTipos[FTipo.ItemIndex - 1].ClaseServicio = CLASE_SERVICIO_TRAJE then
+      Result := TfrmModalMedidasCliente.Elegir(Self, FReparacion.Cliente,
+        FReparacion.IdMedicionCliente);
+  if Result then
+    FId := FRepositorio.Alta(FReparacion);
 end;
 
 function TfrmModalReparacion.CloseQuery: Boolean;

@@ -110,6 +110,8 @@ type
     tsParametrosArreglos: TcxTabSheet;
     cbbFaseEmpezar: TcxComboBox;
     cbbFaseTerminar: TcxComboBox;
+    chkAlbaranExterno: TcxCheckBox;
+    edtSerieAlbaranExterno: TcxTextEdit;
     FCatalogoParametros: TArray<TFaseReparacionCatalogo>;
     procedure CrearParametrosArreglos;
     procedure CargarParametrosArreglos(Sender: TObject);
@@ -1702,7 +1704,7 @@ begin
   CrearOpcion(menuMasOpciones, '-', nil);
   btnAnularReparacion := CrearOpcion(menuMasOpciones,
     SCaptionAnularReparacion, btnAnularReparacionClick);
-  CrearOpcion(menuMasOpciones, SMedidasTitulo, MedidasClienteClick);
+  CrearOpcion(menuMasOpciones, SMedidasEnviar, MedidasClienteClick);
 end;
 
 procedure TfrmMtoGarantiasReclamaciones.MedidasClienteClick(Sender: TObject);
@@ -1749,6 +1751,12 @@ begin
   oBoton.SetBounds(EscalarDpi(12),EscalarDpi(230),EscalarDpi(220),
     EscalarDpi(32));
   oBoton.OnClick := MedidasInstalacionClick;
+  oBoton := TcxButton.Create(Self);
+  oBoton.Parent := tsReparacion;
+  oBoton.Caption := SMedidasEnviar;
+  oBoton.SetBounds(EscalarDpi(245), EscalarDpi(230), EscalarDpi(240),
+    EscalarDpi(32));
+  oBoton.OnClick := MedidasClienteClick;
 end;
 
 procedure TfrmMtoGarantiasReclamaciones.MedidasInstalacionClick(
@@ -1791,18 +1799,28 @@ begin
   cbbFaseTerminar := TcxComboBox.Create(Self);
   ColocarEditor(cbbFaseTerminar, tsParametrosArreglos, 0, 4, 350, False);
   cbbFaseTerminar.Properties.DropDownListStyle := lsFixedList;
+  chkAlbaranExterno := TcxCheckBox.Create(Self);
+  chkAlbaranExterno.Parent := tsParametrosArreglos;
+  chkAlbaranExterno.Caption := SParametrosArreglosAlbaran;
+  chkAlbaranExterno.SetBounds(EscalarDpi(16), EscalarDpi(160),
+    EscalarDpi(900), EscalarDpi(26));
+  ColocarRotulo(tsParametrosArreglos, SParametrosArreglosSerie, 0, 6);
+  edtSerieAlbaranExterno := TcxTextEdit.Create(Self);
+  ColocarEditor(edtSerieAlbaranExterno, tsParametrosArreglos, 0, 6,
+    150, False);
+  edtSerieAlbaranExterno.Left := EscalarDpi(320);
   cbbFaseEmpezar.Left := EscalarDpi(320);
   cbbFaseTerminar.Left := EscalarDpi(320);
   Boton := TcxButton.Create(Self);
   Boton.Parent := tsParametrosArreglos;
   Boton.Caption := SParametrosArreglosGuardar;
-  Boton.SetBounds(EscalarDpi(16), EscalarDpi(200),
+  Boton.SetBounds(EscalarDpi(16), EscalarDpi(260),
     EscalarDpi(180), EscalarDpi(34));
   Boton.OnClick := GuardarParametrosArreglos;
   Boton := TcxButton.Create(Self);
   Boton.Parent := tsParametrosArreglos;
   Boton.Caption := SCaptionGarantiaRefrescar;
-  Boton.SetBounds(EscalarDpi(210), EscalarDpi(200),
+  Boton.SetBounds(EscalarDpi(210), EscalarDpi(260),
     EscalarDpi(130), EscalarDpi(34));
   Boton.OnClick := CargarParametrosArreglos;
 end;
@@ -1815,6 +1833,8 @@ var
   i: Integer;
 begin
   Parametros := dmmGarantias.Reparaciones.Fases.LeerParametrosArreglos;
+  chkAlbaranExterno.Checked := Parametros.AlbaranExternoEntrega;
+  edtSerieAlbaranExterno.Text := Parametros.SerieAlbaranExterno;
   cbbFaseEmpezar.Properties.Items.Clear;
   cbbFaseTerminar.Properties.Items.Clear;
   Fase := Default(TFaseReparacionCatalogo);
@@ -1847,6 +1867,8 @@ begin
     if (cbbFaseEmpezar.ItemIndex < 0) or
       (cbbFaseTerminar.ItemIndex < 0) then
       raise EArgumentException.Create(SFaseSeleccionar);
+    Parametros.AlbaranExternoEntrega := chkAlbaranExterno.Checked;
+    Parametros.SerieAlbaranExterno := edtSerieAlbaranExterno.Text;
     Parametros.FaseEmpezar :=
       FCatalogoParametros[cbbFaseEmpezar.ItemIndex].Codigo;
     Parametros.FaseTerminar :=
@@ -2160,6 +2182,9 @@ begin
   ASerie := '';
   ANumero := '';
   Result := True;
+  if dmmGarantias.Reparaciones.Circuito.Disponible then
+    dmmGarantias.Reparaciones.Circuito.Cierre.DocumentarTicketAnotado(
+      IdActual);
   if dmmGarantias.Reparaciones.Circuito.Disponible and
      (dmmGarantias.Reparaciones.Circuito.Gestionada(IdActual) or
       dmmGarantias.Reparaciones.Circuito.Cierre.

@@ -29,6 +29,8 @@ type
     function CrearInterno(const ASolicitud: TDocumentoOrdenNuevo):
       TDocumentoOrdenCreado;
   public
+    procedure CrearExternosEntrega(AOrden: Int64; AFecha: TDateTime;
+      const ASerie: string);
     function CrearPendientes(const APlantilla: TDocumentoOrdenNuevo):
       TDocumentoOrdenCreado;
     function Crear(const ASolicitud: TDocumentoOrdenNuevo):
@@ -43,6 +45,64 @@ uses
   inLibReparacionesCircuito, UniDataImpuestosRepositorio,
   inLibVentasImpuestos, inLibComprasImpuestos,
   inLibMsgReparacionesCircuito;
+
+procedure TGeneradorAlbaranOrden.CrearExternosEntrega(AOrden: Int64;
+  AFecha: TDateTime; const ASerie: string);
+begin
+  Transaccion(
+    procedure
+    var
+      Lineas: TUniQuery;
+      Solicitudes: TArray<TDocumentoOrdenNuevo>;
+      Solicitud: TDocumentoOrdenNuevo;
+      Proveedor: string;
+    begin
+      BloquearOrden(AOrden, False);
+      Lineas := Consulta('SELECT L.ID_GARLIN,L.CODIGO_PRV_GARLIN,' +
+        'L.CANTIDAD_GARLIN,L.PRECIO_COSTE_GARLIN ' +
+        'FROM fza_garantias_lineas L JOIN fza_garantias_reclamaciones G ' +
+        'ON G.ID_GAR=L.ID_GAR_GARLIN WHERE G.ID_GAR=:ORDEN ' +
+        'AND G.CATEGORIA_GAR=''ARREGLOS'' ' +
+        'AND L.TIPO_EJECUTOR_GARLIN=''EXTERNO'' ' +
+        'AND COALESCE(L.CODIGO_EMPL_GARLIN,'''')='''' ' +
+        'AND COALESCE(L.CODIGO_PRV_GARLIN,'''')<>'''' ' +
+        'AND L.CANTIDAD_GARLIN>0 ' +
+        'AND NOT EXISTS (SELECT 1 FROM fza_reparaciones_imputaciones I ' +
+        'WHERE I.ID_GARLIN_RCI=L.ID_GARLIN AND I.TIPO_RCI=''PR'') ' +
+        'ORDER BY L.CODIGO_PRV_GARLIN,L.ID_GARLIN FOR UPDATE');
+      try
+        Lineas.ParamByName('ORDEN').AsLargeInt := AOrden;
+        Lineas.Open;
+        while not Lineas.Eof do
+        begin
+          Proveedor := Lineas.FieldByName('CODIGO_PRV_GARLIN').AsString;
+          Solicitudes := nil;
+          while not Lineas.Eof and
+            (Lineas.FieldByName('CODIGO_PRV_GARLIN').AsString = Proveedor) do
+          begin
+            Solicitud := Default(TDocumentoOrdenNuevo);
+            Solicitud.Orden := AOrden;
+            Solicitud.Linea := Lineas.FieldByName('ID_GARLIN').AsLargeInt;
+            Solicitud.Tipo := 'PR';
+            Solicitud.Proveedor := Proveedor;
+            Solicitud.Serie := Trim(ASerie);
+            Solicitud.Fecha := AFecha;
+            Solicitud.Cantidad :=
+              Lineas.FieldByName('CANTIDAD_GARLIN').AsFloat;
+            Solicitud.Importe := SimpleRoundTo(Solicitud.Cantidad *
+              Lineas.FieldByName('PRECIO_COSTE_GARLIN').AsCurrency, -2);
+            if (Solicitud.Serie = '') or (Solicitud.Importe < 0) then
+              raise EArgumentException.Create(SCircuitoDatosDocumento);
+            Solicitudes := Solicitudes + [Solicitud];
+            Lineas.Next;
+          end;
+          CrearLoteInterno(Solicitudes);
+        end;
+      finally
+        Lineas.Free;
+      end;
+    end);
+end;
 
 function Sufijo(const ATipo: string): string;
 begin
@@ -365,7 +425,8 @@ var
 begin
   if ((ASolicitud.Tipo <> 'CL') and (ASolicitud.Tipo <> 'AS') and
       (ASolicitud.Tipo <> 'PR')) or
-     (ASolicitud.Importe <= 0) or (ASolicitud.Cantidad <= 0) or
+     ((ASolicitud.Importe < 0) or
+      ((ASolicitud.Importe = 0) and (ASolicitud.Tipo <> 'PR'))) or (ASolicitud.Cantidad <= 0) or
      (Trim(ASolicitud.Serie) = '') or (ASolicitud.Fecha <= 0) then
     raise EArgumentException.Create(SCircuitoDatosDocumento);
   Transaccion(

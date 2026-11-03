@@ -105,7 +105,9 @@ begin
   begin
     Result.Sufijo := 'FACLIN';
     Result.Tabla := 'fza_facturas_lineas';
-    Result.Total := 'ROUND(L.TOTAL_FACLIN*(1+L.PORCENTAJE_IVA_FACLIN/100),2)';
+    Result.Total := 'ROUND(L.TOTAL_FACLIN*IF(' +
+      'COALESCE(L.ESIMP_INCL_TARIFA_FACLIN,''S'')=''S'',1,' +
+      '1+L.PORCENTAJE_IVA_FACLIN/100),2)';
     Result.Filtro := 'I.TIPO_RCI=''TC''';
     Result.Cabecera := 'FAC';
     Result.TablaCabecera := 'fza_facturas';
@@ -194,7 +196,8 @@ end;
 procedure TRepositorioImputacionesOrden.Imputar(
   const AImputacion: TImputacionOrden);
 begin
-  if (AImputacion.Importe <= 0) or (AImputacion.Cantidad <= 0) or
+  if ((AImputacion.Importe < 0) or
+      ((AImputacion.Importe = 0) and (AImputacion.Tipo <> 'PR'))) or (AImputacion.Cantidad <= 0) or
      ((AImputacion.Tipo <> 'CL') and (AImputacion.Tipo <> 'AS') and
       (AImputacion.Tipo <> 'PR') and (AImputacion.Tipo <> 'TC')) then
     raise EArgumentException.Create(SCircuitoDatosDocumento);

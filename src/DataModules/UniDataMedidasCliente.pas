@@ -15,6 +15,10 @@ type
     FConexion: TUniConnection;
     FPermisos: IPermisosAplicacion;
     FUsuario: string;
+    constructor CrearInterno(AConexion: TUniConnection;
+      const AUsuario: string);
+    function LeerSesion(const ACliente, AId: string): TSesionMedidasCliente;
+    procedure GuardarVinculo(AOrden: Int64; const ACliente, AId: string);
     function Consulta(const ASql: string): TUniQuery;
     procedure ExigirPermiso(const AAccion: string);
     procedure BloquearCliente(const ACliente: string);
@@ -26,6 +30,11 @@ type
   public
     constructor Create(AConexion: TUniConnection;
       const APermisos: IPermisosAplicacion; const AUsuario: string);
+    // Solo para el alta transaccional, tras la selección autorizada.
+    class procedure VincularAlta(AConexion: TUniConnection; AOrden: Int64;
+      const ACliente, AId, AUsuario: string); static;
+    class function TextoOrden(AConexion: TUniConnection;
+      AOrden: Int64): string; static;
     function Disponible: Boolean;
     function Magnitudes: TMagnitudesCliente;
     function Historial(const ACliente: string): TSesionesMedidasCliente;
@@ -39,6 +48,62 @@ implementation
 
 uses
   System.SysUtils, Data.DB, inLibMsgMedidasCliente;
+
+constructor TRepositorioMedidasCliente.CrearInterno(
+  AConexion: TUniConnection; const AUsuario: string);
+begin
+  inherited Create;
+  FConexion := AConexion;
+  FUsuario := AUsuario;
+end;
+
+class procedure TRepositorioMedidasCliente.VincularAlta(
+  AConexion: TUniConnection; AOrden: Int64;
+  const ACliente, AId, AUsuario: string);
+var
+  oRepositorio: TRepositorioMedidasCliente;
+begin
+  if not AConexion.InTransaction then
+    raise EInvalidOpException.Create(SMedidasOrdenInvalida);
+  oRepositorio := TRepositorioMedidasCliente.CrearInterno(
+    AConexion, AUsuario);
+  try
+    oRepositorio.GuardarVinculo(AOrden, ACliente, AId);
+  finally
+    oRepositorio.Free;
+  end;
+end;
+
+class function TRepositorioMedidasCliente.TextoOrden(
+  AConexion: TUniConnection; AOrden: Int64): string;
+var
+  oConsulta: TUniQuery;
+begin
+  Result := '';
+  oConsulta := TUniQuery.Create(nil);
+  try
+    oConsulta.Connection := AConexion;
+    oConsulta.SQL.Text := 'SELECT 1 FROM INFORMATION_SCHEMA.TABLES' +
+      ' WHERE TABLE_SCHEMA=DATABASE()' +
+      ' AND TABLE_NAME=''fza_reparaciones_medidas''';
+    oConsulta.Open;
+    if not oConsulta.IsEmpty then
+    begin
+      oConsulta.Close;
+      oConsulta.SQL.Text := 'SELECT M.TEXTO_RCMED' +
+        ' FROM fza_reparaciones_medidas M' +
+        ' JOIN fza_clientes_medidas C ON C.ID_CLMED=M.ID_CLMED_RCMED' +
+        ' JOIN fza_garantias_reclamaciones G ON G.ID_GAR=M.ID_GAR_RCMED' +
+        ' AND G.CODIGO_CLI_GAR=C.CODIGO_CLI_CLMED WHERE G.ID_GAR=:ORDEN';
+      oConsulta.ParamByName('ORDEN').AsLargeInt := AOrden;
+      oConsulta.Open;
+      if not oConsulta.IsEmpty then
+        Result := SMedidasTitulo + sLineBreak + oConsulta.Fields[0].AsString;
+    end;
+  finally
+    oConsulta.Free;
+  end;
+end;
 
 constructor TRepositorioMedidasCliente.Create(AConexion: TUniConnection;
   const APermisos: IPermisosAplicacion; const AUsuario: string);
@@ -182,10 +247,16 @@ end;
 
 function TRepositorioMedidasCliente.Leer(const ACliente,
   AId: string): TSesionMedidasCliente;
+begin
+  ExigirPermiso('consultar');
+  Result := LeerSesion(ACliente, AId);
+end;
+
+function TRepositorioMedidasCliente.LeerSesion(const ACliente,
+  AId: string): TSesionMedidasCliente;
 var
   oConsulta: TUniQuery;
 begin
-  ExigirPermiso('consultar');
   oConsulta := Consulta('SELECT ID_CLMED,CODIGO_CLI_CLMED,FECHA_CLMED,' +
     'PERSONA_CLMED,ID_ORIGEN_CLMED,MOTIVO_CLMED,OBSERVACIONES_CLMED,' +
     'USUARIO_ALTA FROM fza_clientes_medidas WHERE CODIGO_CLI_CLMED=:CLI' +
@@ -335,28 +406,63 @@ end;
 
 procedure TRepositorioMedidasCliente.Vincular(AOrden: Int64;
   const ACliente, AId: string);
+begin
+  ExigirPermiso('vincular');
+  ExigirPermiso('consultar');
+  GuardarVinculo(AOrden, ACliente, AId);
+end;
+
+procedure TRepositorioMedidasCliente.GuardarVinculo(AOrden: Int64;
+  const ACliente, AId: string);
 var
   oConsulta: TUniQuery;
   rSesion: TSesionMedidasCliente;
+  bPropia, bExiste: Boolean;
 begin
-  ExigirPermiso('vincular');
-  rSesion := Leer(ACliente, AId);
-  oConsulta := Consulta('INSERT INTO fza_reparaciones_medidas' +
-    ' (ID_GAR_RCMED,ID_CLMED_RCMED,TEXTO_RCMED,INSTANTE_ALTA,USUARIO_ALTA)' +
-    ' SELECT ID_GAR,:ID,:TEXTO,NOW(),:USUARIO' +
-    ' FROM fza_garantias_reclamaciones WHERE ID_GAR=:ORDEN' +
-    ' AND CODIGO_CLI_GAR=:CLI AND ESTADO_GAR=''ABIERTA''');
+  rSesion := LeerSesion(ACliente, AId);
+  bPropia := not FConexion.InTransaction;
+  if bPropia then
+    FConexion.StartTransaction;
   try
-    oConsulta.ParamByName('ORDEN').AsLargeInt := AOrden;
-    oConsulta.ParamByName('CLI').AsString := ACliente;
-    oConsulta.ParamByName('ID').AsString := AId;
-    oConsulta.ParamByName('TEXTO').AsString := TextoSesionMedidas(rSesion);
-    oConsulta.ParamByName('USUARIO').AsString := FUsuario;
-    oConsulta.ExecSQL;
-    if oConsulta.RowsAffected <> 1 then
-      raise EInvalidOpException.Create(SMedidasOrdenInvalida);
-  finally
-    FreeAndNil(oConsulta);
+    oConsulta := Consulta('SELECT ID_GAR FROM fza_garantias_reclamaciones' +
+      ' WHERE ID_GAR=:ORDEN AND CODIGO_CLI_GAR=:CLI' +
+      ' AND ESTADO_GAR=''ABIERTA'' FOR UPDATE');
+    try
+      oConsulta.ParamByName('ORDEN').AsLargeInt := AOrden;
+      oConsulta.ParamByName('CLI').AsString := ACliente;
+      oConsulta.Open;
+      if oConsulta.IsEmpty then
+        raise EInvalidOpException.Create(SMedidasOrdenInvalida);
+      oConsulta.Close;
+      oConsulta.SQL.Text := 'SELECT ID_CLMED_RCMED' +
+        ' FROM fza_reparaciones_medidas WHERE ID_GAR_RCMED=:ORDEN';
+      oConsulta.ParamByName('ORDEN').AsLargeInt := AOrden;
+      oConsulta.Open;
+      bExiste := not oConsulta.IsEmpty;
+      if bExiste and (oConsulta.Fields[0].AsString <> AId) then
+        raise EInvalidOpException.Create(SMedidasOrdenInvalida);
+      oConsulta.Close;
+      if not bExiste then
+      begin
+        oConsulta.SQL.Text := 'INSERT INTO fza_reparaciones_medidas' +
+          ' (ID_GAR_RCMED,ID_CLMED_RCMED,TEXTO_RCMED,' +
+          'INSTANTE_ALTA,USUARIO_ALTA)' +
+          ' VALUES (:ORDEN,:ID,:TEXTO,NOW(),:USUARIO)';
+        oConsulta.ParamByName('ORDEN').AsLargeInt := AOrden;
+        oConsulta.ParamByName('ID').AsString := AId;
+        oConsulta.ParamByName('TEXTO').AsString := TextoSesionMedidas(rSesion);
+        oConsulta.ParamByName('USUARIO').AsString := FUsuario;
+        oConsulta.ExecSQL;
+      end;
+    finally
+      oConsulta.Free;
+    end;
+    if bPropia then
+      FConexion.Commit;
+  except
+    if bPropia then
+      FConexion.Rollback;
+    raise;
   end;
 end;
 

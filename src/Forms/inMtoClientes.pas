@@ -763,6 +763,8 @@ begin
     oBoton.Caption := SMedidasTitulo;
     oBoton.OnClick := MedidasClienteClick;
   end;
+  tsOtros.PageIndex := pcPestanas.PageCount - 1;
+  NumerarPestanasAtajo(pcPestanas);
 end;
 
 procedure TfrmMtoClientes.MedidasClienteClick(Sender: TObject);

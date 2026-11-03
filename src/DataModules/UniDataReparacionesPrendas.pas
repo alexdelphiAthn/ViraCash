@@ -37,6 +37,8 @@ type
     procedure ComprobarPreparacion(const AEmpresa,AAlmacen: string);
     procedure Recibir(AReparacion: Int64; const ALineaServicio: string;
       const AVenta: TVentaServiciosReparacion);
+    procedure RecibirCliente(AReparacion: Int64;
+      const ADatos: TReparacionNueva);
     procedure Entregar(AReparacion: Int64; const AUsuario: string);
   end;
 
@@ -214,7 +216,8 @@ begin
   Movimiento.Usuario := AUsuario;
   Movimiento.Fecha := Now;
   // Ya vendida: entra en custodia a coste cero, sin otra salida de tienda.
-  FEscritor.Guardar(Movimiento);
+  if Trim(Movimiento.Unidad) <> '' then
+    FEscritor.Guardar(Movimiento);
 end;
 
 function TDatosPrendasReparacion.CrearPrenda(ALinea: TUniQuery;
@@ -302,6 +305,59 @@ begin
   AlmacenTaller(Venta);
 end;
 
+procedure TDatosPrendasReparacion.RecibirCliente(AReparacion: Int64;
+  const ADatos: TReparacionNueva);
+var
+  oLinea, oPrenda: TUniQuery;
+  rVenta: TVentaServiciosReparacion;
+  rPrenda: TPrendaVentaReparacion;
+  iId: Int64;
+begin
+  if not FConexion.InTransaction then
+    raise EInvalidOpException.Create(SErrorArticuloServicioTransaccion);
+  rVenta := Default(TVentaServiciosReparacion);
+  rVenta.Serie := 'ORDEN_CLIENTE';
+  rVenta.Numero := IntToStr(AReparacion);
+  rVenta.Almacen := ADatos.Almacen;
+  rVenta.Usuario := ADatos.Usuario;
+  rPrenda := Default(TPrendaVentaReparacion);
+  rPrenda.LineaPrenda := '1';
+  rPrenda.UnidadPrenda := 1;
+  oLinea := Consulta('SELECT A.CODIGO_EMP_ALM AS EMPRESA, ' +
+    'G.CODIGO_UNIDAD_GAR AS CODIGO_UNIDAD_FACLIN, ' +
+    'G.CODIGO_ART_GAR AS CODIGO_ART_FACLIN, ' +
+    'G.DESCRIPCION_OBJETO_GAR AS DESCRIPCION_ARTICULO_FACLIN, ' +
+    'G.LOTE_GAR AS LOTE_FACLIN, CAST(NULL AS DATE) AS ' +
+    'FECHA_CADUCIDAD_FACLIN FROM fza_garantias_reclamaciones G ' +
+    'JOIN fza_almacenes A ON A.CODIGO_ALM_ALM=G.CODIGO_ALM_GAR ' +
+    'WHERE G.ID_GAR=:ID FOR UPDATE');
+  try
+    oLinea.ParamByName('ID').AsLargeInt := AReparacion;
+    oLinea.Open;
+    if oLinea.IsEmpty then
+      raise EArgumentException.Create(SPrendaVentaInvalida);
+    rVenta.Empresa := oLinea.FieldByName('EMPRESA').AsString;
+    oPrenda := BloquearPrenda(rVenta, rPrenda);
+    try
+      if oPrenda.IsEmpty then
+      begin
+        iId := CrearPrenda(oLinea, rVenta, rPrenda);
+        oPrenda.Close;
+        oPrenda.Open;
+        if ADatos.Sku <> '' then
+          Movimiento(oPrenda, 'E', ADatos.Usuario, 1);
+      end
+      else
+        iId := oPrenda.FieldByName('ID_GARPRE').AsLargeInt;
+      Vincular(AReparacion, iId, ADatos.Usuario);
+    finally
+      oPrenda.Free;
+    end;
+  finally
+    oLinea.Free;
+  end;
+end;
+
 procedure TDatosPrendasReparacion.ValidarSelecciones(
   const ALineaServicio: string; const AVenta: TVentaServiciosReparacion);
 var
@@ -372,9 +428,30 @@ begin
         'AND TIPO_ARTICULO_FACLIN=''ESTANDAR'' FOR UPDATE');
       oPrenda := nil;
       try
-        oLinea.ParamByName('SERIE').AsString := AVenta.Serie;
-        oLinea.ParamByName('NUMERO').AsString := AVenta.Numero;
-        oLinea.ParamByName('LINEA').AsString := Prenda.LineaPrenda;
+        if Prenda.IdDeposito <> '' then
+        begin
+          oLinea.SQL.Text := 'SELECT D.CODIGO_UNIDAD_DEP AS ' +
+            'CODIGO_UNIDAD_FACLIN,D.CODIGO_ART_DEP AS CODIGO_ART_FACLIN,' +
+            'A.DESCRIPCION_ART AS DESCRIPCION_ARTICULO_FACLIN,' +
+            'D.CANTIDAD_PENDIENTE_DEP AS CANTIDAD_FACLIN,' +
+            'D.LOTE_DEP AS LOTE_FACLIN,D.FECHA_CADUCIDAD_DEP AS ' +
+            'FECHA_CADUCIDAD_FACLIN,A.TIPO_CANTIDAD_ART AS ' +
+            'TIPO_CANTIDAD_ARTICULO_FACLIN FROM fza_depositos_cliente D ' +
+            'JOIN fza_articulos A ON A.CODIGO_ART_ART=D.CODIGO_ART_DEP ' +
+            'WHERE D.ID_DEPOSITO_DEP=:DEP AND D.CODIGO_EMP_DEP=:EMPRESA ' +
+            'AND D.CODIGO_CLI_DEP=:CLI AND D.CODIGO_ALM_DEP=:ALM ' +
+            'AND D.ESTADO_DEP=''PENDIENTE'' ' +
+            'AND A.TIPO_ART=''ESTANDAR'' FOR UPDATE';
+          oLinea.ParamByName('DEP').AsString := Prenda.IdDeposito;
+          oLinea.ParamByName('CLI').AsString := AVenta.Cliente;
+          oLinea.ParamByName('ALM').AsString := AVenta.Almacen;
+        end
+        else
+        begin
+          oLinea.ParamByName('SERIE').AsString := AVenta.Serie;
+          oLinea.ParamByName('NUMERO').AsString := AVenta.Numero;
+          oLinea.ParamByName('LINEA').AsString := Prenda.LineaPrenda;
+        end;
         oLinea.ParamByName('EMPRESA').AsString := AVenta.Empresa;
         oLinea.Open;
         // FZ-ISSUE-786: en piezas, una prenda por unidad entera de la

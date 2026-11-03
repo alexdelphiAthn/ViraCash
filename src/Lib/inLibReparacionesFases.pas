@@ -19,6 +19,8 @@ type
   TParametrosArreglos = record
     FaseEmpezar: string;
     FaseTerminar: string;
+    AlbaranExternoEntrega: Boolean;
+    SerieAlbaranExterno: string;
   end;
   TFaseReparacionCatalogo = record
     Codigo: string;

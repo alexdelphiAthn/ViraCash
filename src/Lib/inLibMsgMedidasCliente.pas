@@ -5,6 +5,9 @@
 unit inLibMsgMedidasCliente;
 interface
 resourcestring
+  SMedidasClaseTraje = 'Traje (medidas del cliente)';
+  SMedidasEnviar = 'Enviar medidas del cliente';
+  SMedidasCompletar = 'Completar medidas';
   SMedidasTitulo = 'Medidas del cliente';
   SMedidasNueva = 'Nueva medición';
   SMedidasCorregir = 'Corregir seleccionada';

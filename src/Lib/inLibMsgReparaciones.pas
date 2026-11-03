@@ -16,6 +16,14 @@ unit inLibMsgReparaciones;
 interface
 
 resourcestring
+  SParametrosArreglosAlbaran =
+    'Crear albarán de compra al entregar arreglos de proveedores externos';
+  SParametrosArreglosSerie = 'Serie del albarán de compra:';
+  SParametrosArreglosSerieObligatoria =
+    'Indique la serie del albarán de compra automático.';
+
+  SOrdenCobrarExistente = 'Cobrar el trabajo de una orden existente';
+  SOrdenCrearNueva = 'Crear una nueva reparación';
   SReabrirTrabajos = 'Reanudar trabajos pendientes';
   SConfirmarReabrirTrabajos =
     '¿Reabrir esta reparación para terminar sus trabajos pendientes? ' +

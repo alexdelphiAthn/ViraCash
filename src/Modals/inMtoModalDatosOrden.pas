@@ -12,9 +12,13 @@ uses
   System.Classes, Vcl.Forms, cxTextEdit, Vcl.Controls, inMtoModalAceptCancel;
 
 type
+  TValidarDatosOrden = reference to function(const AValores: TArray<string>;
+    out AIndice: Integer): Boolean;
+
   TfrmModalDatosOrden = class(TfrmModalAceptCancel)
   private
     FEditores: TArray<TcxCustomTextEdit>;
+    FValidar: TValidarDatosOrden;
     procedure CrearCampos(const ARotulos: array of string;
       const AValores: TArray<string>; const ALongitudes: array of Integer);
     procedure CerrarSinLiberar(Sender: TObject; var Action: TCloseAction);
@@ -23,6 +27,7 @@ type
       Shift: TShiftState);
     function Opciones(const ARotulo: string): TArray<string>;
   public
+    function CloseQuery: Boolean; override;
     class function Ejecutar(AOwner: TComponent; const ATitulo: string;
       const ARotulos: array of string; var AValores: TArray<string>): Boolean;
       overload;
@@ -31,6 +36,10 @@ type
     class function Ejecutar(AOwner: TComponent; const ATitulo: string;
       const ARotulos: array of string; var AValores: TArray<string>;
       const ALongitudes: array of Integer): Boolean; overload;
+    class function Ejecutar(AOwner: TComponent; const ATitulo: string;
+      const ARotulos: array of string; var AValores: TArray<string>;
+      const ALongitudes: array of Integer;
+      const AValidar: TValidarDatosOrden): Boolean; overload;
   end;
 
 implementation
@@ -38,6 +47,25 @@ implementation
 uses
   System.SysUtils, System.Math, cxLabel, cxDropDownEdit,
   inLibMsgReparacionesCircuito;
+
+function TfrmModalDatosOrden.CloseQuery: Boolean;
+var
+  aValores: TArray<string>;
+  i, iCampo: Integer;
+begin
+  Result := inherited CloseQuery;
+  if Result and (sFicha = 'S') and Assigned(FValidar) then
+  begin
+    SetLength(aValores, Length(FEditores));
+    for i := 0 to High(FEditores) do
+      aValores[i] := Trim(FEditores[i].Text);
+    iCampo := 0;
+    Result := FValidar(aValores, iCampo);
+    if not Result and (iCampo >= 0) and (iCampo < Length(FEditores)) then
+      if FEditores[iCampo].CanFocus then
+        FEditores[iCampo].SetFocus;
+  end;
+end;
 
 function TfrmModalDatosOrden.Opciones(
   const ARotulo: string): TArray<string>;
@@ -141,6 +169,14 @@ end;
 class function TfrmModalDatosOrden.Ejecutar(AOwner: TComponent;
   const ATitulo: string; const ARotulos: array of string;
   var AValores: TArray<string>; const ALongitudes: array of Integer): Boolean;
+begin
+  Result := Ejecutar(AOwner, ATitulo, ARotulos, AValores, ALongitudes, nil);
+end;
+
+class function TfrmModalDatosOrden.Ejecutar(AOwner: TComponent;
+  const ATitulo: string; const ARotulos: array of string;
+  var AValores: TArray<string>; const ALongitudes: array of Integer;
+  const AValidar: TValidarDatosOrden): Boolean;
 var
   oFormulario: TfrmModalDatosOrden;
   i: Integer;
@@ -149,6 +185,7 @@ begin
     raise EArgumentException.Create('ARotulos');
   oFormulario := TfrmModalDatosOrden.Create(AOwner);
   try
+    oFormulario.FValidar := AValidar;
     oFormulario.Caption := ATitulo;
     oFormulario.OnClose := oFormulario.CerrarSinLiberar;
     oFormulario.OnShow := oFormulario.MostrarCampos;

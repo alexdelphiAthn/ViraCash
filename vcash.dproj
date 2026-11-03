@@ -135,7 +135,7 @@
         <VerInfo_Release>20</VerInfo_Release>
         <VerInfo_Build>0</VerInfo_Build>
         <VerInfo_PreRelease>true</VerInfo_PreRelease>
-        <VerInfo_Keys>CompanyName=Alejandro Laorden Hidalgo;FileDescription=ViraCash;FileVersion=1.0.20.0;InternalName=ViraCash;LegalCopyright=All Rights Reserved;LegalTrademarks=ViraCash;OriginalFilename=vcash.exe;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=ViraCash;ProductVersion=1.0.20.0;Comments=1.0.20.202611011939.beta</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=Alejandro Laorden Hidalgo;FileDescription=ViraCash;FileVersion=1.0.20.0;InternalName=ViraCash;LegalCopyright=All Rights Reserved;LegalTrademarks=ViraCash;OriginalFilename=vcash.exe;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=ViraCash;ProductVersion=1.0.20.0;Comments=1.0.20.202611030522.beta</VerInfo_Keys>
         <AppEnableRuntimeThemes>false</AppEnableRuntimeThemes>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
@@ -155,7 +155,7 @@
         <VerInfo_Build>0</VerInfo_Build>
         <VerInfo_Special>true</VerInfo_Special>
         <VerInfo_Private>true</VerInfo_Private>
-        <VerInfo_Keys>CompanyName=ViraCash;FileDescription=ViraCash;FileVersion=1.0.20.0;InternalName=ViraCash;LegalCopyright=All Rights Reserved;LegalTrademarks=ViraCash;OriginalFilename=vcash.exe;ProductName=ViraCash;ProductVersion=1.0.20.0;Comments=1.0.20.202611011939.beta</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=ViraCash;FileDescription=ViraCash;FileVersion=1.0.20.0;InternalName=ViraCash;LegalCopyright=All Rights Reserved;LegalTrademarks=ViraCash;OriginalFilename=vcash.exe;ProductName=ViraCash;ProductVersion=1.0.20.0;Comments=1.0.20.202611030522.beta</VerInfo_Keys>
         <DCC_MapFile>3</DCC_MapFile>
         <DCC_GenerateStackFrames>true</DCC_GenerateStackFrames>
     </PropertyGroup>
@@ -168,7 +168,7 @@
         <VerInfo_MinorVer>0</VerInfo_MinorVer>
         <VerInfo_Release>20</VerInfo_Release>
         <VerInfo_Build>0</VerInfo_Build>
-        <VerInfo_Keys>CompanyName=ViraCash;FileDescription=ViraCash;FileVersion=1.0.20.0;InternalName=ViraCash;LegalCopyright=All Rights Reserved;LegalTrademarks=ViraCash;OriginalFilename=vcash.exe;ProductName=ViraCash;ProductVersion=1.0.20.0;Comments=1.0.20.202611011939.beta</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=ViraCash;FileDescription=ViraCash;FileVersion=1.0.20.0;InternalName=ViraCash;LegalCopyright=All Rights Reserved;LegalTrademarks=ViraCash;OriginalFilename=vcash.exe;ProductName=ViraCash;ProductVersion=1.0.20.0;Comments=1.0.20.202611030522.beta</VerInfo_Keys>
         <VerInfo_Special>true</VerInfo_Special>
         <VerInfo_Private>true</VerInfo_Private>
         <UWP_DelphiLogo44>icon-verde-48.png</UWP_DelphiLogo44>

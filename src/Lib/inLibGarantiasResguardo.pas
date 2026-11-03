@@ -239,6 +239,7 @@ begin
     if EsReparacion(ADatos) then
       AgregarDato(stLineas, SRotuloObjetoResguardo, ADatos.Objeto);
     AgregarDato(stLineas, SRotuloDetallesResguardo, ADatos.Detalles);
+    AgregarDato(stLineas, SMedidasSeccion, ADatos.DetallesServicio);
     AgregarDato(stLineas, SCaptionGarantiaMotivoFicha, ADatos.Motivo);
     AgregarDato(stLineas, SCaptionGarantiaObservacionesFicha,
       ADatos.Observaciones);

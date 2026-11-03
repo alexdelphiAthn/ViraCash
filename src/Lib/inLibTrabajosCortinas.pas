@@ -20,9 +20,12 @@ uses
 
 const
   CLASE_SERVICIO_TALLER = 'TALLER';
+  CLASE_SERVICIO_TRAJE = 'TRAJE';
   CLASE_SERVICIO_ALTURA = 'ARREGLO_ALTURA';
   CLASE_SERVICIO_INSTALACION = 'INSTALACION';
 
+function PedirDatosServicio(const AClase, AOrigenDeposito,
+  AAccionDeposito: string; AConOrden: Boolean): Boolean;
 function TextoClaseServicio(const AClase: string): string;
 function ValidarTrabajoCortina(const ADatos: TDatosTrabajoReparacion): string;
 function TextoTrabajoCortina(const ADatos: TDatosTrabajoReparacion): string;
@@ -33,7 +36,7 @@ function HayPrendaRecibidaVenta(const ALinea: string;
 implementation
 
 uses
-  System.SysUtils, inLibMsgReparaciones;
+  System.SysUtils, inLibMsgReparaciones, inLibMsgMedidasCliente;
 
 function HayPrendaRecibidaVenta(const ALinea: string;
   const AVenta: TVentaServiciosReparacion): Boolean;
@@ -43,15 +46,27 @@ begin
   Result := False;
   for Prenda in AVenta.Prendas do
     if (Prenda.LineaServicio = ALinea) and
-      (Prenda.Trabajo.Clase = CLASE_SERVICIO_TALLER) and
+      ((Prenda.Trabajo.Clase = CLASE_SERVICIO_TALLER) or
+       (Prenda.Trabajo.Clase = CLASE_SERVICIO_TRAJE)) and
       (Trim(Prenda.Descripcion) <> '') then
       Result := True;
+end;
+
+function PedirDatosServicio(const AClase, AOrigenDeposito,
+  AAccionDeposito: string; AConOrden: Boolean): Boolean;
+begin
+  Result := (AOrigenDeposito <> 'A') and
+    (AAccionDeposito <> 'AUMENTAR_DEP') and
+    ((AAccionDeposito <> 'NUEVO_DEP') or (AClase = CLASE_SERVICIO_TRAJE)) and
+    not ((AOrigenDeposito = 'S') and AConOrden);
 end;
 
 function TextoClaseServicio(const AClase: string): string;
 begin
   Result := SClaseTaller;
-  if AClase=CLASE_SERVICIO_ALTURA then
+  if AClase = CLASE_SERVICIO_TRAJE then
+    Result := SMedidasClaseTraje
+  else if AClase=CLASE_SERVICIO_ALTURA then
     Result := SClaseAltura
   else if AClase=CLASE_SERVICIO_INSTALACION then
     Result := SClaseInstalacion;
@@ -71,7 +86,8 @@ begin
     if (Trim(ADatos.Direccion)='') or (ADatos.Cita<=0) then
       Result := SErrorCitaInstalacion;
   end
-  else if (ADatos.Clase<>'') and (ADatos.Clase<>CLASE_SERVICIO_TALLER) then
+  else if (ADatos.Clase<>'') and (ADatos.Clase<>CLASE_SERVICIO_TALLER) and
+    (ADatos.Clase <> CLASE_SERVICIO_TRAJE) then
     Result := SErrorClaseServicio;
   if (Length(ADatos.Acabado)>2000) or (Length(ADatos.Direccion)>500) then
     Result := SErrorClaseServicio;

@@ -44,6 +44,7 @@ type
 implementation
 
 uses
+  UniDataMedidasCliente,
   System.SysUtils, System.Math, Data.DB, inLibTrabajosCortinas,
   inLibMsgReparaciones;
 
@@ -299,6 +300,14 @@ begin
         Format(SDetalleUnidad,[Detalle.UnidadServicio])+sLineBreak+sTexto;
       AResguardo.ClaseServicio := Detalle.Trabajo.Clase;
     end;
+  end;
+  sTexto := TRepositorioMedidasCliente.TextoOrden(FConexion, AReparacion);
+  if sTexto <> '' then
+  begin
+    if AResguardo.DetallesServicio <> '' then
+      AResguardo.DetallesServicio :=
+        AResguardo.DetallesServicio + sLineBreak;
+    AResguardo.DetallesServicio := AResguardo.DetallesServicio + sTexto;
   end;
 end;
 

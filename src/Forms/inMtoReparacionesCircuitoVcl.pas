@@ -765,7 +765,7 @@ begin
     FDatos.Circuito.Entregas.Registrar(rEntrega);
     if not ARetorno then
       FEnlaces.Imprimir(FDatos.HojaEntrega([rEntrega.Linea],
-        FEnlaces.AlmacenActual()));
+        FEnlaces.AlmacenActual(), True));
   end;
 end;
 

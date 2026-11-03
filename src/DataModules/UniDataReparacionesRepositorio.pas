@@ -138,6 +138,7 @@ const
 implementation
 
 uses
+  UniDataMedidasCliente, UniDataReparacionesPrendas,
   UniDataReparacionesCobertura, UniDataReparacionesProteccion,
   System.Generics.Collections, Data.DB, inLibGarantias,
   inLibMsgReparaciones, UniDataReparacionesFases, UniDataTrabajosCortinas;
@@ -391,6 +392,7 @@ begin
     procedure
     var
       oConsulta: TUniQuery;
+      oPrendas: TDatosPrendasReparacion;
     begin
       oConsulta := NuevaConsulta(SQL_ALTA_REPARACION);
       try
@@ -446,8 +448,22 @@ begin
         FreeAndNil(oConsulta);
       end;
       AsignarNumeroOrdenReparacion(FConexion, iId, AReparacion.Usuario);
+      if AReparacion.IdMedicionCliente <> '' then
+        TRepositorioMedidasCliente.VincularAlta(FConexion, iId,
+          AReparacion.Cliente, AReparacion.IdMedicionCliente,
+          AReparacion.Usuario);
       InsertarPrimeraLinea(iId, AReparacion);
       RegistrarFaseAlta(iId, AReparacion.Usuario);
+      if (AReparacion.Origen = ORIGEN_REPARACION_CLIENTE) and
+         (AReparacion.SerieVenta = '') then
+      begin
+        oPrendas := TDatosPrendasReparacion.Create(FConexion);
+        try
+          oPrendas.RecibirCliente(iId, AReparacion);
+        finally
+          oPrendas.Free;
+        end;
+      end;
     end);
   Result := iId;
 end;

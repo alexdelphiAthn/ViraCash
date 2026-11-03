@@ -220,7 +220,9 @@ type
                                         out IdGenerado: string;
                                         out ANumerosMovimiento:
                                           TArray<string>;
-                                        AConStock: Boolean = True);
+                                        AConStock: Boolean = True;
+                                        const ALote: string = '';
+                                        AFechaCaducidad: TDate = 0);
     procedure CerrarDepositoCliente(QryTrx: TUniQuery;
                                     const AIdDeposito, AEmpresa,
                                           AAlmacen, ACaja,
@@ -740,7 +742,7 @@ const
   SQL_DEPOSITOS_PENDIENTES_CAJA =
     'SELECT d.ID_DEPOSITO_DEP, ' +
     '       d.CODIGO_ART_DEP, ' +
-    '       d.CODIGO_UNIDAD_DEP, ' +
+    '       d.CODIGO_UNIDAD_DEP, d.LOTE_DEP, d.FECHA_CADUCIDAD_DEP, ' +
     '       d.CANTIDAD_PENDIENTE_DEP, ' +
     '       d.PRECIO_VENTA_DEP, ' +
     '       d.IMPORTE_ANTICIPO_DEP, ' +
@@ -836,6 +838,10 @@ begin
     AConsulta.FieldByName('CODIGO_ART_DEP').AsString;
   ALineas.FieldByName('CODIGO_UNIDAD_FACLIN').AsString :=
     AConsulta.FieldByName('CODIGO_UNIDAD_DEP').AsString;
+  ALineas.FieldByName('LOTE_FACLIN').AsString :=
+    AConsulta.FieldByName('LOTE_DEP').AsString;
+  ALineas.FieldByName('FECHA_CADUCIDAD_FACLIN').Value :=
+    AConsulta.FieldByName('FECHA_CADUCIDAD_DEP').Value;
   ALineas.FieldByName('DESCRIPCION_ARTICULO_FACLIN').AsString :=
     AConsulta.FieldByName('DESCRIPCION_ART').AsString;
   // Sin el tipo, ProcesarVenta no genera la salida desde el almacén de
@@ -943,6 +949,10 @@ begin
     AConsulta.FieldByName('CODIGO_ART_DEP').AsString;
   ALineas.FieldByName('CODIGO_UNIDAD_FACLIN').AsString :=
     AConsulta.FieldByName('CODIGO_UNIDAD_DEP').AsString;
+  ALineas.FieldByName('LOTE_FACLIN').AsString :=
+    AConsulta.FieldByName('LOTE_DEP').AsString;
+  ALineas.FieldByName('FECHA_CADUCIDAD_FACLIN').Value :=
+    AConsulta.FieldByName('FECHA_CADUCIDAD_DEP').Value;
   ALineas.FieldByName('DESCRIPCION_ARTICULO_FACLIN').AsString :=
     AConsulta.FieldByName('DESCRIPCION_ART').AsString;
   ALineas.FieldByName('VIENE_DE_DEPOSITO').AsString := 'H';
@@ -1595,7 +1605,9 @@ procedure TdmCajaOpe.CrearNuevoDepositoCliente(QryTrx: TUniQuery;
                                                out IdGenerado: string;
                                                out ANumerosMovimiento:
                                                  TArray<string>;
-                                               AConStock: Boolean);
+                                               AConStock: Boolean;
+                                               const ALote: string;
+                                               AFechaCaducidad: TDate);
 var
   NuevoIdDep: string;
   SolicitudMovimiento: TSolicitudMovimientoAlmacenCaja;
@@ -1614,6 +1626,8 @@ begin
     SolicitudMovimiento.Movimiento.Almacen := AAlmacenOrigen;
     SolicitudMovimiento.Movimiento.AlmacenContrapartida := AAlmacenDestino;
     SolicitudMovimiento.Movimiento.Unidad := ASku;
+    SolicitudMovimiento.Lote := ALote;
+    SolicitudMovimiento.FechaCaducidad := AFechaCaducidad;
     SolicitudMovimiento.Movimiento.Articulo := AArticulo;
     SolicitudMovimiento.Movimiento.TipoMovimiento := 'S';
     SolicitudMovimiento.Movimiento.Cantidad := ACantidad;
@@ -1633,6 +1647,8 @@ begin
     SolicitudMovimiento.Movimiento.Almacen := AAlmacenDestino;
     SolicitudMovimiento.Movimiento.AlmacenContrapartida := AAlmacenOrigen;
     SolicitudMovimiento.Movimiento.Unidad := ASku;
+    SolicitudMovimiento.Lote := ALote;
+    SolicitudMovimiento.FechaCaducidad := AFechaCaducidad;
     SolicitudMovimiento.Movimiento.Articulo := AArticulo;
     SolicitudMovimiento.Movimiento.TipoMovimiento := 'E';
     SolicitudMovimiento.Movimiento.Cantidad := ACantidad;
@@ -1671,6 +1687,18 @@ begin
     InsertarDepositoApartado(QryTrx.Connection, Deposito)
   else
     InsertarDepositoPrestamo(QryTrx.Connection, Deposito);
+  QryTrx.SQL.Text := 'UPDATE fza_depositos_cliente SET LOTE_DEP=:LOTE,' +
+    'FECHA_CADUCIDAD_DEP=:CADUCIDAD WHERE ID_DEPOSITO_DEP=:ID ' +
+    'AND CODIGO_EMP_DEP=:EMP';
+  QryTrx.ParamByName('ID').AsString := IdGenerado;
+  QryTrx.ParamByName('EMP').AsString := AEmpresa;
+  QryTrx.ParamByName('LOTE').AsString := ALote;
+  QryTrx.ParamByName('CADUCIDAD').DataType := ftDate;
+  if AFechaCaducidad > 0 then
+    QryTrx.ParamByName('CADUCIDAD').AsDate := AFechaCaducidad
+  else
+    QryTrx.ParamByName('CADUCIDAD').Clear;
+  QryTrx.Execute;
 end;
 
 class function TdmCajaOpe.FechaUltimoTicketSerie(
@@ -2252,7 +2280,8 @@ begin
       ALinea.TipoIva, ALinea.PorcIva, ALinea.EsImpIncl,
       FCaja, FNumeroOperacion, FFechaOperacion,
       FDatosCobro.EsApartado, FDatosCobro.ContactoApartado, sIdDeposito,
-      NumerosMovimiento, SameText(ALinea.TipoArticulo, 'ESTANDAR'));
+      NumerosMovimiento, SameText(ALinea.TipoArticulo, 'ESTANDAR'),
+      ALinea.Lote, ALinea.FechaCaducidad);
     for iIndice := Low(NumerosMovimiento) to High(NumerosMovimiento) do
       RegistrarMovimientoCreado(NumerosMovimiento[iIndice]);
     FPersistencia.GuardarOperacion(
@@ -2261,6 +2290,10 @@ begin
       FNumeroFactura, FSerieGenerada, FCabecera.CodigoCliente,
       'Depósito: ' + ALinea.Descripcion,
       '', '', '', '', '', 'N', sIdDeposito);
+    for iIndice := 0 to High(FDatosCobro.PrendasReparacion) do
+      if FDatosCobro.PrendasReparacion[iIndice].LineaPrenda =
+         ALinea.Linea then
+        FDatosCobro.PrendasReparacion[iIndice].IdDeposito := sIdDeposito;
     AnotarServicioDeposito(ALinea, sIdDeposito, FServiciosDeposito);
   end;
 end;

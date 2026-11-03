@@ -23,6 +23,7 @@ uses
   inLibReparacionesFases, inLibGenBusq,
   System.SysUtils, System.Classes, Vcl.Controls, Data.DB,
   cxGroupBox, cxGrid, cxGridCustomTableView, cxGridDBTableView, cxButtons,
+  cxEdit,
   UniDataReparacionesPantalla, inLibReparacionesDocumentos;
 
 type
@@ -143,6 +144,8 @@ type
     procedure ProveedorClick(Sender: TObject; AButtonIndex: Integer);
     procedure ArticuloClick(Sender: TObject; AButtonIndex: Integer);
     procedure ConfigurarArticulo;
+    procedure PropiedadesArticulo(Sender: TcxCustomGridTableItem;
+      ARecord: TcxCustomGridRecord; var AProperties: TcxCustomEditProperties);
     procedure CrearArticulo;
     procedure CrearArticuloClick(Sender: TObject);
   public
@@ -160,7 +163,7 @@ uses
   inLibMsgReparacionesCircuito,
   inLibTrabajosCortinas,
   Winapi.Windows, System.UITypes, System.Variants, Vcl.Dialogs, Vcl.Forms,
-  cxContainer, cxGridLevel, cxEdit, cxCheckBox, cxImageComboBox, cxCalendar,
+  cxContainer, cxGridLevel, cxCheckBox, cxImageComboBox, cxCalendar,
   cxCurrencyEdit, cxButtonEdit, cxLabel,
   inLibColumnasDocumento, inLibBotonesDetalle,
   inLibMsgGarantias, inLibMsgComun, inLibMensajesVcl, inLibErroresBBDD, inLibReparaciones,
@@ -937,8 +940,8 @@ begin
   CrearColumna(oVista, 'CATEGORIA_GARTIP', SColTipoCategoria, 100);
   CrearColumna(oVista, 'DESCRIPCION_GARTIP', SColTipoDescripcion, 200);
   AgregarOpciones(CrearColumna(oVista,'CLASE_SERVICIO_GARTIP',
-    SClaseServicio,140),[CLASE_SERVICIO_TALLER,CLASE_SERVICIO_ALTURA,
-    CLASE_SERVICIO_INSTALACION],TextoClaseServicio);
+    SClaseServicio,140),[CLASE_SERVICIO_TALLER, CLASE_SERVICIO_TRAJE,
+    CLASE_SERVICIO_ALTURA, CLASE_SERVICIO_INSTALACION],TextoClaseServicio);
   AgregarOpciones(CrearColumna(oVista, 'MODALIDAD_GARTIP', SColModalidad,
     120), [MODALIDAD_REPARACION_PAGO, MODALIDAD_REPARACION_GARANTIA,
     MODALIDAD_REPARACION_CORTESIA], TextoModalidadReparacion);
@@ -986,6 +989,14 @@ begin
   end;
 end;
 
+procedure TPanelConfiguracionReparaciones.PropiedadesArticulo(
+  Sender: TcxCustomGridTableItem; ARecord: TcxCustomGridRecord;
+  var AProperties: TcxCustomEditProperties);
+begin
+  AProperties := Sender.Properties;
+  TcxButtonEditProperties(AProperties).OnButtonClick := ArticuloClick;
+end;
+
 procedure TPanelConfiguracionReparaciones.ConfigurarArticulo;
 var
   oPropiedades: TcxButtonEditProperties;
@@ -997,6 +1008,11 @@ begin
   oBoton.Kind := bkText;
   oBoton.Caption := '+';
   oBoton.Hint := SCrearArticuloServicio;
+  oPropiedades.OnButtonClick := ArticuloClick;
+  FVistaTipos.GetColumnByFieldName('CODIGO_ART_GARTIP').OnGetProperties :=
+    PropiedadesArticulo;
+  FVistaTipos.GetColumnByFieldName('CODIGO_ART_GARTIP').
+    OnGetPropertiesForEdit := PropiedadesArticulo;
 end;
 
 procedure TPanelConfiguracionReparaciones.CrearArticulo;

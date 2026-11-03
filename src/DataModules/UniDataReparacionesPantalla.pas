@@ -50,6 +50,7 @@ type
     procedure TiposBeforePost(DataSet: TDataSet);
     procedure TiposBeforeDelete(DataSet: TDataSet);
     function Tienda(const AAlmacen: string): TTiendaHojaReparacion;
+    procedure CompletarMedidas(var AHoja: THojaReparaciones);
     function LineasHoja(const AWhere: string;
       AId: Int64): TArray<TLineaHojaReparacion>;
   public
@@ -74,7 +75,8 @@ type
       string;
     // Hoja de entrega de las líneas de un externo (AIds, una por línea).
     function HojaEntrega(const AIds: TArray<Int64>;
-      const AAlmacen: string): THojaReparaciones;
+      const AAlmacen: string; AOrdenCompleta: Boolean = False):
+      THojaReparaciones;
     function HojaLiquidacion(ALiquidacion: Int64): THojaReparaciones;
     function HojaInterna(AOrden: Int64;
       const AAlmacen: string): THojaReparaciones;
@@ -89,6 +91,7 @@ type
 implementation
 
 uses
+  UniDataMedidasCliente,
   UniDataCambiosTrabajo,
   UniDataTrabajosCortinas, inLibMsgReparacionesCircuito,
   System.SysUtils, System.Variants, inLibDatasets,
@@ -598,8 +601,24 @@ begin
   end;
 end;
 
+procedure TDatosPantallaReparaciones.CompletarMedidas(
+  var AHoja: THojaReparaciones);
+var
+  i: Integer;
+  sMedidas: string;
+begin
+  for i := 0 to High(AHoja.Lineas) do
+  begin
+    sMedidas := TRepositorioMedidasCliente.TextoOrden(FConexion,
+      AHoja.Lineas[i].Reparacion);
+    if sMedidas <> '' then
+      AHoja.Lineas[i].Detalles := AHoja.Lineas[i].Detalles +
+        sLineBreak + sMedidas;
+  end;
+end;
+
 function TDatosPantallaReparaciones.HojaEntrega(const AIds: TArray<Int64>;
-  const AAlmacen: string): THojaReparaciones;
+  const AAlmacen: string; AOrdenCompleta: Boolean): THojaReparaciones;
 var
   iId: Int64;
   oConsulta: TUniQuery;
@@ -611,8 +630,19 @@ begin
   Result.Titulo := STituloHojaEntregaExterno;
   Result.Fecha := Date;
   for iId in AIds do
-    Result.Lineas := Result.Lineas + LineasHoja('WHERE L.ID_GARLIN = :ID',
-      iId);
+    if AOrdenCompleta then
+      Result.Lineas := Result.Lineas + LineasHoja(
+        'WHERE L.ID_GAR_GARLIN=(SELECT ID_GAR_GARLIN ' +
+        'FROM fza_garantias_lineas WHERE ID_GARLIN=:ID) ' +
+        'AND L.CODIGO_PRV_GARLIN=(SELECT CODIGO_PRV_GARLIN ' +
+        'FROM fza_garantias_lineas WHERE ID_GARLIN=:ID) ' +
+        'AND L.TIPO_EJECUTOR_GARLIN=''EXTERNO'' ' +
+        'AND L.CANTIDAD_GARLIN>0 ' +
+        'AND (L.FECHA_FIN_GARLIN IS NULL OR L.ID_GARLIN=:ID)', iId)
+    else
+      Result.Lineas := Result.Lineas + LineasHoja('WHERE L.ID_GARLIN=:ID',
+        iId);
+  CompletarMedidas(Result);
   oConsulta := NuevaConsulta('SELECT COALESCE(P.RAZON_SOCIAL_PRV, ' +
     'L.CODIGO_PRV_GARLIN) FROM fza_garantias_lineas L ' +
     'LEFT JOIN fza_proveedores P ON P.CODIGO_PRV_PRV = L.CODIGO_PRV_GARLIN ' +
@@ -718,6 +748,7 @@ begin
     oResumen.EnableControls;
     FreeAndNil(oConsulta);
   end;
+  CompletarMedidas(Result);
 end;
 
 end.

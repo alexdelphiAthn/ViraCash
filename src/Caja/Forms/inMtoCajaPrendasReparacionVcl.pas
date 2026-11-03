@@ -10,7 +10,7 @@ uses
   System.Classes, Data.DB, Uni, inLibReparaciones;
 
 function ElegirPrendasReparacion(AOwner: TComponent; AConexion: TUniConnection;
-  ALineas: TDataSet; const AEmpresa,AAlmacen: string;
+  ALineas: TDataSet; const AEmpresa, AAlmacen, ACliente: string;
   out APrendas: TArray<TPrendaVentaReparacion>): Boolean;
 
 implementation
@@ -19,7 +19,7 @@ uses
   System.SysUtils, System.Math, System.StrUtils,
   UniDataReparacionesVentaTpv, UniDataReparacionesPrendas,
   inMtoModalPrendaReparacion, inMtoModalTrabajoCortina,
-  inLibTrabajosCortinas,
+  inLibTrabajosCortinas, inMtoModalMedidasCliente,
   inLibMsgReparaciones, inLibMensajesVcl;
 
 procedure RecogerUnidades(AConexion: TUniConnection; ALineas: TDataSet;
@@ -52,9 +52,9 @@ begin
          ADatos.DepositoConOrden(Texto('ID_DEPOSITO_DEP')) then
         bServicio := False;
       if (ALineas.FieldByName('CANTIDAD_FACLIN').AsFloat>0) and
-         (Texto('VIENE_DE_DEPOSITO')<>'A') and
-         (Texto('ACCION_DEPOSITO')<>'NUEVO_DEP') and
-         (Texto('ACCION_DEPOSITO')<>'AUMENTAR_DEP') then
+         PedirDatosServicio(ADatos.ClaseArticuloServicio(
+           Texto('CODIGO_ART_FACLIN')), Texto('VIENE_DE_DEPOSITO'),
+           Texto('ACCION_DEPOSITO'), False) then
       begin
         iUnidades := Floor(ALineas.FieldByName('CANTIDAD_FACLIN').AsFloat);
         // FZ-ISSUE-786: una tela en metros (o kilos) es una sola prenda,
@@ -75,6 +75,7 @@ begin
           begin
             Item.Trabajo.Clase := ADatos.ClaseArticuloServicio(
               Texto('CODIGO_ART_FACLIN'));
+            Item.ArticuloServicio := Texto('CODIGO_ART_FACLIN');
             Item.LineaServicio := Texto('LINEA_FACLIN');
             Item.UnidadServicio := iUnidad;
             i := Length(AServicios);
@@ -152,7 +153,8 @@ begin
       AEleccion.Trabajo := AServicio.Trabajo;
     end;
   end;
-  if Result and (AServicio.Trabajo.Clase = CLASE_SERVICIO_TALLER) and
+  if Result and ((AServicio.Trabajo.Clase = CLASE_SERVICIO_TALLER) or
+    (AServicio.Trabajo.Clase = CLASE_SERVICIO_TRAJE)) and
     (AEleccion.LineaPrenda = '') then
     Result := PedirPrendaCliente(AServicio, AEleccion);
   if Result and ((AServicio.Trabajo.Clase=CLASE_SERVICIO_ALTURA) or
@@ -194,16 +196,18 @@ begin
 end;
 
 function ElegirPrendasReparacion(AOwner: TComponent; AConexion: TUniConnection;
-  ALineas: TDataSet; const AEmpresa,AAlmacen: string;
+  ALineas: TDataSet; const AEmpresa, AAlmacen, ACliente: string;
   out APrendas: TArray<TPrendaVentaReparacion>): Boolean;
 var
   oDatos: TReparacionesVentaTpv;
-  Candidatas, Servicios: TArray<TPrendaVentaReparacion>;
+  Candidatas, Servicios, Ordenes: TArray<TPrendaVentaReparacion>;
   Servicio, Eleccion: TPrendaVentaReparacion;
-  i: Integer;
+  sMedicion: string;
+  i, j, iSeleccion, iUnidades: Integer;
 begin
   Result := True;
   APrendas := nil;
+  sMedicion := '';
   oDatos := TReparacionesVentaTpv.Create(AConexion);
   try
     RecogerUnidades(AConexion,ALineas,oDatos.CodigosServicio,oDatos,
@@ -211,7 +215,36 @@ begin
     for Servicio in Servicios do
       if Result then
       begin
-        Result := ElegirUnidadServicio(AOwner,Servicio,Candidatas,Eleccion);
+        Eleccion := Servicio;
+        iSeleccion := -1;
+        iUnidades := 0;
+        for j := 0 to High(Servicios) do
+          if Servicios[j].LineaServicio = Servicio.LineaServicio then
+            Inc(iUnidades);
+        Ordenes := nil;
+        if iUnidades = 1 then
+          Ordenes := oDatos.OrdenesPendientes(Servicio.ArticuloServicio,
+            ACliente, AAlmacen);
+        if Length(Ordenes) > 0 then
+        begin
+          Result := TfrmModalPrendaReparacion.Elegir(AOwner,
+            SOrdenCobrarExistente, Ordenes, iSeleccion, SOrdenCrearNueva);
+          if Result and (iSeleccion >= 0) then
+          begin
+            Eleccion.OrdenExistente := Ordenes[iSeleccion].OrdenExistente;
+            Eleccion.LineaOrden := Ordenes[iSeleccion].LineaOrden;
+          end;
+        end;
+        if Result and (Eleccion.OrdenExistente = 0) then
+          Result := ElegirUnidadServicio(AOwner,Servicio,Candidatas,Eleccion);
+        if Result and (Eleccion.OrdenExistente = 0) and
+           (Servicio.Trabajo.Clase = CLASE_SERVICIO_TRAJE) then
+        begin
+          if sMedicion = '' then
+            Result := TfrmModalMedidasCliente.Elegir(AOwner, ACliente,
+              sMedicion);
+          Eleccion.Trabajo.IdMedicionCliente := sMedicion;
+        end;
         if Result then
         begin
           i := Length(APrendas);

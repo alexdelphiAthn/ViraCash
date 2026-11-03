@@ -17,6 +17,7 @@ type
     procedure ExigirRepartoDocumentado(AOrden: Int64);
     procedure ExigirFacturasSaldadas(AOrden: Int64);
   public
+    procedure DocumentarTicketAnotado(AOrden: Int64);
     procedure Cerrar(AOrden: Int64);
     function ImporteCliente(AOrden: Int64): Currency;
     function SaldoCliente(AOrden: Int64): Currency;
@@ -29,6 +30,87 @@ uses
   System.SysUtils, Data.DB, UniDataReparacionesCobertura,
   UniDataReparacionesImputaciones, inLibReparacionesCircuito,
   inLibMsgReparacionesCircuito;
+
+procedure TRepositorioCierreEconomicoOrden.DocumentarTicketAnotado(
+  AOrden: Int64);
+begin
+  Transaccion(
+    procedure
+    var
+      oOrden, oLineas, oTicket: TUniQuery;
+      oImputaciones: TRepositorioImputacionesOrden;
+      rImputacion: TImputacionOrden;
+      sSerie, sNumero: string;
+      dPendiente: Currency;
+    begin
+      oOrden := Consulta('SELECT SERIE_COBRO_GAR,NUMERO_COBRO_GAR ' +
+        'FROM fza_garantias_reclamaciones WHERE ID_GAR=:ORDEN FOR UPDATE');
+      oLineas := Consulta('SELECT L.ID_GARLIN,L.CANTIDAD_GARLIN,' +
+        'T.CODIGO_ART_GARTIP FROM fza_garantias_lineas L ' +
+        'LEFT JOIN fza_garantias_tipos T ' +
+        'ON T.CODIGO_GARTIP=L.CODIGO_GARTIP_GARLIN ' +
+        'WHERE L.ID_GAR_GARLIN=:ORDEN ORDER BY L.ID_GARLIN');
+      oTicket := Consulta('SELECT L.LINEA_FACLIN FROM fza_facturas_lineas L '+
+        'WHERE L.SERIE_FAC_FACLIN=:SERIE AND L.NUMERO_FAC_FACLIN=:NUMERO ' +
+        'AND L.CODIGO_ART_FACLIN=:ART AND L.CANTIDAD_FACLIN=:CANTIDAD ' +
+        'AND ROUND(L.TOTAL_FACLIN*IF(COALESCE(' +
+        'L.ESIMP_INCL_TARIFA_FACLIN,''S'')=''S'',1,' +
+        '1+L.PORCENTAJE_IVA_FACLIN/100),2)-COALESCE((' +
+        'SELECT SUM(I.TOTAL_RCI) FROM fza_reparaciones_imputaciones I ' +
+        'WHERE I.TIPO_RCI=''TC'' AND I.SERIE_RCI=L.SERIE_FAC_FACLIN ' +
+        'AND I.NUMERO_RCI=L.NUMERO_FAC_FACLIN ' +
+        'AND I.LINEA_RCI=L.LINEA_FACLIN),0)>=:IMPORTE-0.001 ' +
+        'ORDER BY L.LINEA_FACLIN LIMIT 1 FOR UPDATE');
+      oImputaciones := TRepositorioImputacionesOrden.Create(FConexion,
+        FUsuario);
+      try
+        oOrden.ParamByName('ORDEN').AsLargeInt := AOrden;
+        oOrden.Open;
+        sSerie := oOrden.Fields[0].AsString;
+        sNumero := oOrden.Fields[1].AsString;
+        if (sSerie <> '') and (sNumero <> '') then
+        begin
+          oLineas.ParamByName('ORDEN').AsLargeInt := AOrden;
+          oLineas.Open;
+          while not oLineas.Eof do
+          begin
+            rImputacion := Default(TImputacionOrden);
+            rImputacion.Orden := AOrden;
+            rImputacion.Linea := oLineas.Fields[0].AsLargeInt;
+            dPendiente := oImputaciones.Pendiente(AOrden,
+              rImputacion.Linea, 'CL');
+            if dPendiente > 0.001 then
+            begin
+              oTicket.Close;
+              oTicket.ParamByName('SERIE').AsString := sSerie;
+              oTicket.ParamByName('NUMERO').AsString := sNumero;
+              oTicket.ParamByName('ART').AsString :=
+                oLineas.Fields[2].AsString;
+              oTicket.ParamByName('CANTIDAD').AsFloat :=
+                oLineas.Fields[1].AsFloat;
+              oTicket.ParamByName('IMPORTE').AsCurrency := dPendiente;
+              oTicket.Open;
+              if oTicket.IsEmpty then
+                raise EArgumentException.Create(SCircuitoDatosDocumento);
+              rImputacion.Tipo := 'TC';
+              rImputacion.Serie := sSerie;
+              rImputacion.Numero := sNumero;
+              rImputacion.LineaDocumento := oTicket.Fields[0].AsString;
+              rImputacion.Importe := dPendiente;
+              rImputacion.Cantidad := oLineas.Fields[1].AsFloat;
+              oImputaciones.Imputar(rImputacion);
+            end;
+            oLineas.Next;
+          end;
+        end;
+      finally
+        oImputaciones.Free;
+        oTicket.Free;
+        oLineas.Free;
+        oOrden.Free;
+      end;
+    end);
+end;
 
 function TRepositorioCierreEconomicoOrden.ImporteCliente(
   AOrden: Int64): Currency;
@@ -82,7 +164,18 @@ begin
     'COALESCE((SELECT SUM(IF(E.ESTADO_EFV=''CONCILIADO'',E.IMPORTE_EFV,' +
     'E.IMPORTE_COBRADO_EFV)) FROM fza_efectos_venta E ' +
     'WHERE E.SERIE_FAC_EFV=F.SERIE_FAC ' +
-    'AND E.NUMERO_FAC_EFV=F.NUMERO_FAC),0))/' +
+    'AND E.NUMERO_FAC_EFV=F.NUMERO_FAC),0),' +
+    'COALESCE((SELECT SUM(P.IMPORTE_ENTREGADO_PAGO-' +
+    'P.IMPORTE_CAMBIO_PAGO) FROM fza_caja_pagos P ' +
+    'WHERE I.TIPO_RCI=''TC'' AND EXISTS (' +
+    'SELECT 1 FROM fza_caja_operaciones O ' +
+    'WHERE O.SERIE_FAC_OPCAJA=F.SERIE_FAC ' +
+    'AND O.NUMERO_FAC_OPCAJA=F.NUMERO_FAC ' +
+    'AND O.TIPO_OPERACION_OPCAJA=''VE'' ' +
+    'AND O.CODIGO_EMP_OPCAJA=P.CODIGO_EMP_PAGO ' +
+    'AND O.CODIGO_ALM_OPCAJA=P.CODIGO_ALM_PAGO ' +
+    'AND O.CODIGO_CAJA_OPCAJA=P.CODIGO_CAJA_PAGO ' +
+    'AND O.NUMERO_OPERACION_OPCAJA=P.NUMERO_OPERACION_PAGO)),0))/' +
     'NULLIF(F.TOTAL_LIQUIDO_FAC,0)))),0) AS COBRADO ' +
     'FROM fza_reparaciones_imputaciones I ' +
     'LEFT JOIN fza_albaranes_lineas L ON I.TIPO_RCI=''CL'' ' +

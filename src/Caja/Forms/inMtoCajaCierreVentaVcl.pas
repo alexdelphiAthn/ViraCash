@@ -365,7 +365,9 @@ begin
         if Result then
           Result := ElegirPrendasReparacion(AContexto.Propietario,
             AContexto.Conexion,AContexto.Lineas,AContexto.CodigoEmpresa,
-            AContexto.CodigoAlmacen,AFormulario.DatosCobro.PrendasReparacion);
+            AContexto.CodigoAlmacen,
+            AContexto.Cabecera.FieldByName('CODIGO_CLI_FAC').AsString,
+            AFormulario.DatosCobro.PrendasReparacion);
         if Result then
         begin
           AFormulario.DatosCobro.NombreReparacion := Trim(Valores[0]);

@@ -69,7 +69,7 @@ const
 implementation
 
 uses
-  UniDataReparacionesPrendas,
+  UniDataReparacionesPrendas, UniDataReparacionesCrearAlbaran,
   System.SysUtils, inLibMsgReparaciones, inLibReparaciones,
   inLibGlobalVar, inLibAppParamPersistenciaIntf, UniDataAppParamRepositorio;
 
@@ -83,7 +83,11 @@ begin
     if Valor.Subclave = 'FaseEmpezar' then
       Result.FaseEmpezar := Valor.Valor
     else if Valor.Subclave = 'FaseTerminar' then
-      Result.FaseTerminar := Valor.Valor;
+      Result.FaseTerminar := Valor.Valor
+    else if Valor.Subclave = 'AlbaranExternoEntrega' then
+      Result.AlbaranExternoEntrega := Valor.Valor = 'S'
+    else if Valor.Subclave = 'SerieAlbaranExterno' then
+      Result.SerieAlbaranExterno := Valor.Valor;
 end;
 
 procedure TDatosFasesReparacion.GuardarParametrosArreglos(
@@ -104,11 +108,20 @@ begin
     if not bValida then
       raise EArgumentException.Create(SFaseSeleccionar);
   end;
-  SetLength(Valores, 2);
+  if AParametros.AlbaranExternoEntrega and
+    (Trim(AParametros.SerieAlbaranExterno) = '') then
+    raise EArgumentException.Create(SParametrosArreglosSerieObligatoria);
+  SetLength(Valores, 4);
   Valores[0].Subclave := 'FaseEmpezar';
   Valores[0].Valor := AParametros.FaseEmpezar;
   Valores[1].Subclave := 'FaseTerminar';
   Valores[1].Valor := AParametros.FaseTerminar;
+  Valores[2].Subclave := 'AlbaranExternoEntrega';
+  Valores[2].Valor := 'N';
+  if AParametros.AlbaranExternoEntrega then
+    Valores[2].Valor := 'S';
+  Valores[3].Subclave := 'SerieAlbaranExterno';
+  Valores[3].Valor := Trim(AParametros.SerieAlbaranExterno);
   bPropia := not FConexion.InTransaction;
   if bPropia then
     FConexion.StartTransaction;
@@ -557,6 +570,8 @@ var
   rCambio: TCambioFaseReparacion;
   sAnterior: string;
   oPrendas: TDatosPrendasReparacion;
+  Parametros: TParametrosArreglos;
+  Generador: TGeneradorAlbaranOrden;
 begin
   rCambio := Default(TCambioFaseReparacion);
   rCambio.Reparacion := AReparacion;
@@ -583,6 +598,17 @@ begin
     oPrendas := TDatosPrendasReparacion.Create(FConexion);
     try
       oPrendas.Entregar(AReparacion,AUsuario);
+      Parametros := LeerParametrosArreglos;
+      if Parametros.AlbaranExternoEntrega then
+      begin
+        Generador := TGeneradorAlbaranOrden.Create(FConexion, AUsuario);
+        try
+          Generador.CrearExternosEntrega(AReparacion, Date,
+            Parametros.SerieAlbaranExterno);
+        finally
+          Generador.Free;
+        end;
+      end;
     finally
       FreeAndNil(oPrendas);
     end;

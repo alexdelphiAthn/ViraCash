@@ -89,6 +89,7 @@ type
 
   TDatosTrabajoReparacion = record
     Clase: string;
+    IdMedicionCliente: string;
     AlturaMedida: Double;
     LargoFinal: Double;
     Acabado: string;
@@ -98,8 +99,11 @@ type
 
   TPrendaVentaReparacion = record
     LineaServicio: string;
+    ArticuloServicio: string;
+    OrdenExistente, LineaOrden: Int64;
     UnidadServicio: Integer;
     LineaPrenda: string;
+    IdDeposito: string;
     UnidadPrenda: Integer;
     Descripcion: string;
     Trabajo: TDatosTrabajoReparacion;
@@ -145,6 +149,7 @@ type
     Tipo: string;
     Categoria: string;
     Cliente: string;
+    IdMedicionCliente: string;
     NombreCliente: string;
     TelefonoCliente: string;
     Origen: string;

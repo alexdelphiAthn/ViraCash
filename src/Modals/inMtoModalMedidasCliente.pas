@@ -17,6 +17,8 @@ type
     FRepositorio: TRepositorioMedidasCliente;
     FCliente: string;
     FOrden: Int64;
+    FElegir: Boolean;
+    FIdElegido: string;
     FSesiones: TSesionesMedidasCliente;
     FSelector: TcxComboBox;
     FDetalle: TcxMemo;
@@ -36,6 +38,8 @@ type
       const AMagnitudes: TMagnitudesCliente; const AValores: TArray<string>);
   public
     destructor Destroy; override;
+    class function Elegir(AOwner: TComponent; const ACliente: string;
+      out AId: string): Boolean;
     class procedure Ejecutar(AOwner: TComponent; const ACliente: string;
       AOrden: Int64 = 0);
   end;
@@ -68,6 +72,41 @@ begin
     oFormulario.ShowModal;
   finally
     FreeAndNil(oFormulario);
+  end;
+end;
+
+class function TfrmModalMedidasCliente.Elegir(AOwner: TComponent;
+  const ACliente: string; out AId: string): Boolean;
+var
+  oFormulario: TfrmModalMedidasCliente;
+begin
+  AId := '';
+  if Trim(ACliente) = '' then
+    raise EArgumentException.Create(SMedidasClienteInexistente);
+  oFormulario := TfrmModalMedidasCliente.Create(AOwner);
+  try
+    oFormulario.FCliente := ACliente;
+    oFormulario.FElegir := True;
+    oFormulario.FRepositorio := TRepositorioMedidasCliente.Create(
+      oFormulario.ConexionPrincipal, oFormulario.Permisos,
+      oFormulario.IdentidadSesion.Usuario);
+    if not oFormulario.Permisos.TienePermiso(
+      'clientes.medidas.vincular', paExigirConcesion) then
+      raise EInvalidOpException.Create(SMedidasSinPermiso);
+    if not oFormulario.FRepositorio.Disponible then
+      raise EInvalidOpException.Create(SMedidasMigracionPendiente);
+    oFormulario.CrearInterfaz;
+    oFormulario.CargarHistorial;
+    if (Length(oFormulario.FSesiones) = 0) and
+       oFormulario.Permisos.TienePermiso('clientes.medidas.alta',
+         paExigirConcesion) then
+      oFormulario.EditarSesion(False);
+    Result := oFormulario.ShowModal = mrOk;
+    if Result then
+      AId := oFormulario.FIdElegido;
+    Result := Result and (AId <> '');
+  finally
+    oFormulario.Free;
   end;
 end;
 
@@ -118,9 +157,13 @@ begin
   oBarra.PanelStyle.Active := True;
   oBarra.Align := alBottom;
   oBarra.Height := ScaleValue(45);
-  Boton(SMedidasNueva, 'alta', NuevaClick, True);
+  if FElegir then
+    Boton(SMedidasCompletar, 'alta', NuevaClick, True)
+  else
+    Boton(SMedidasNueva, 'alta', NuevaClick, True);
   Boton(SMedidasCorregir, 'corregir', CorregirClick, True);
-  Boton(SMedidasVincular, 'vincular', VincularClick, FOrden > 0);
+  Boton(SMedidasEnviar, 'vincular', VincularClick,
+    (FOrden > 0) or FElegir);
   FDetalle := TcxMemo.Create(Self);
   FDetalle.Parent := pnlBody;
   FDetalle.Align := alClient;
@@ -178,21 +221,39 @@ procedure TfrmModalMedidasCliente.VincularClick(Sender: TObject);
 begin
   if FSelector.ItemIndex >= 0 then
   begin
-    FRepositorio.Vincular(FOrden, FCliente,
-      FSesiones[FSelector.ItemIndex].Id);
-    SeleccionCambio(nil);
-    ShowMessage_fza(SMedidasVinculadas);
+    if FElegir then
+    begin
+      FIdElegido := FSesiones[FSelector.ItemIndex].Id;
+      ModalResult := mrOk;
+    end
+    else
+    begin
+      FRepositorio.Vincular(FOrden, FCliente,
+        FSesiones[FSelector.ItemIndex].Id);
+      SeleccionCambio(nil);
+      ShowMessage_fza(SMedidasVinculadas);
+    end;
   end;
 end;
 
 procedure TfrmModalMedidasCliente.EditarSesion(ACorregir: Boolean);
 var
   rSesion: TSesionMedidasCliente;
+  i: Integer;
 begin
   rSesion := Default(TSesionMedidasCliente);
   rSesion.Cliente := FCliente;
   rSesion.Fecha := Date;
   rSesion.Persona := IdentidadSesion.Usuario;
+  if FElegir and not ACorregir and (FSelector.ItemIndex >= 0) then
+  begin
+    rSesion := FRepositorio.Leer(FCliente, FSesiones[FSelector.ItemIndex].Id);
+    rSesion.Id := '';
+    rSesion.Origen := '';
+    rSesion.Motivo := '';
+    rSesion.Fecha := Date;
+    rSesion.Persona := IdentidadSesion.Usuario;
+  end;
   if ACorregir then
   begin
     rSesion := FRepositorio.Leer(FCliente, FSesiones[FSelector.ItemIndex].Id);
@@ -204,6 +265,9 @@ begin
   begin
     FRepositorio.Guardar(rSesion);
     CargarHistorial;
+    for i := 0 to High(FSesiones) do
+      if FSesiones[i].Id = rSesion.Id then
+        FSelector.ItemIndex := i;
     ShowMessage_fza(SMedidasGuardadas);
   end;
 end;
@@ -266,24 +330,67 @@ function TfrmModalMedidasCliente.CapturarSesion(
 var
   aMagnitudes: TMagnitudesCliente;
   aRotulos, aValores: TArray<string>;
-  sAviso: string;
+  rSesion: TSesionMedidasCliente;
 begin
   aMagnitudes := FRepositorio.Magnitudes;
   CamposSesion(ASesion, aMagnitudes, aRotulos, aValores);
+  rSesion := ASesion;
   Result := TfrmModalDatosOrden.Ejecutar(Self,
-    SMedidasTitulo + '. ' + SMedidasVacia, aRotulos, aValores);
-  if Result then
-  begin
-    LeerCampos(ASesion, aMagnitudes, aValores);
-    sAviso := ValidarSesionMedidas(ASesion, aMagnitudes);
-    if sAviso <> '' then
+    SMedidasTitulo + '. ' + SMedidasVacia, aRotulos, aValores, [],
+    function(const AEntrada: TArray<string>; out AIndice: Integer): Boolean
+    var
+      i: Integer;
+      rValor: Currency;
+      sAviso: string;
     begin
-      Result := MessageDlg_fza(SMedidasFueraRango + sLineBreak + sAviso +
-        sLineBreak + SMedidasConfirmarRango, mtWarning,
-        [mbYes, mbNo], 0, mbNo) = mrYes;
-      ASesion.AceptaFueraRango := Result;
-    end;
-  end;
+      Result := True;
+      AIndice := 0;
+      for i := 4 to High(AEntrada) do
+        if Result and (AEntrada[i] <> '') then
+        begin
+          Result := TryStrToCurr(AEntrada[i], rValor);
+          if not Result then
+          begin
+            AIndice := i;
+            ShowMessage_fza(SMedidasValorInvalido);
+          end
+          else if rValor < 0 then
+          begin
+            Result := False;
+            AIndice := i;
+            ShowMessage_fza(SMedidasValorNegativo);
+          end;
+        end;
+      if Result then
+      begin
+        try
+          LeerCampos(rSesion, aMagnitudes, AEntrada);
+          sAviso := ValidarSesionMedidas(rSesion, aMagnitudes);
+          if sAviso <> '' then
+          begin
+            AIndice := -1;
+            for i := 0 to High(aMagnitudes) do
+              if (AIndice < 0) and
+                 rSesion.Valores[i].Conocida and
+                 ((rSesion.Valores[i].Valor < aMagnitudes[i].Minimo) or
+                  (rSesion.Valores[i].Valor > aMagnitudes[i].Maximo)) then
+                AIndice := i + 4;
+            Result := MessageDlg_fza(SMedidasFueraRango + sLineBreak +
+              sAviso + sLineBreak + SMedidasConfirmarRango, mtWarning,
+              [mbYes, mbNo], 0, mbNo) = mrYes;
+            rSesion.AceptaFueraRango := Result;
+          end;
+        except
+          on E: EArgumentException do
+          begin
+            Result := False;
+            ShowMessage_fza(E.Message);
+          end;
+        end;
+      end;
+    end);
+  if Result then
+    ASesion := rSesion;
 end;
 
 end.
