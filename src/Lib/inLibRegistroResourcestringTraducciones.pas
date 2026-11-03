@@ -6281,6 +6281,14 @@ begin
   Registrar('SCambioTrabajoCantidad', @SCambioTrabajoCantidad);
   Registrar('SCambioTrabajoCoste', @SCambioTrabajoCoste);
   Registrar('SCambioTrabajoResponsable', @SCambioTrabajoResponsable);
+  Registrar('SCambioTrabajoFaltaMotivo', @SCambioTrabajoFaltaMotivo);
+  Registrar('SCambioTrabajoFaltaTipo', @SCambioTrabajoFaltaTipo);
+  Registrar('SCambioTrabajoFaltaEjecutor', @SCambioTrabajoFaltaEjecutor);
+  Registrar('SCambioTrabajoFaltaResponsable',
+    @SCambioTrabajoFaltaResponsable);
+  Registrar('SCambioTrabajoCantidadInvalida',
+    @SCambioTrabajoCantidadInvalida);
+  Registrar('SCambioTrabajoCosteInvalido', @SCambioTrabajoCosteInvalido);
   Registrar('SCambioTrabajoConfirmar', @SCambioTrabajoConfirmar);
   Registrar('SCambioTrabajoInvalido', @SCambioTrabajoInvalido);
   Registrar('SCambioTrabajoSinPermiso', @SCambioTrabajoSinPermiso);

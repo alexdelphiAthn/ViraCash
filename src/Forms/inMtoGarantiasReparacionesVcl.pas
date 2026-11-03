@@ -308,7 +308,6 @@ begin
   Boton(SCaptionEmpezarLinea, 80, EmpezarClick);
   Boton(SCaptionTerminarLinea, 80, TerminarClick);
   Boton(SIncidenciaTrabajoTitulo, 90, IncidenciaClick);
-  Boton(SCambioTrabajoReasignar, 100, ReasignarClick);
   Boton(SCambioTrabajoRepetir, 80, RepetirClick);
   NuevoGrupo(SGrupoExternosArreglos);
   Boton(SCaptionDevolverLinea, 120, DevolverClick);

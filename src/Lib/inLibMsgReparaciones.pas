@@ -153,7 +153,7 @@ resourcestring
     'obra o falta la aceptación del presupuesto.';
   SErrorTrabajoSinEjecutor =
     'El trabajo %d necesita un operario o una empresa externa asignados ' +
-    'antes de empezar o terminar. Selecciónelo en Trabajos > Reasignar.';
+    'antes de empezar o terminar. Selecciónelo en Trabajos > Cambiar.';
   SErrorTerminarLineaReparacion =
     'La línea %d no se puede terminar: ya está terminada, no es mano de ' +
     'obra o falta la aceptación del presupuesto.';

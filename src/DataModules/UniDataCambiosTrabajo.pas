@@ -4,7 +4,7 @@ unit UniDataCambiosTrabajo;
 interface
 
 uses
-  Uni, UniDataReparacionesCircuitoBase, inLibCambiosTrabajo,
+  Data.DB, Uni, UniDataReparacionesCircuitoBase, inLibCambiosTrabajo,
   inLibPermisosIntf;
 
 const
@@ -37,12 +37,15 @@ type
     constructor Create(AConexion: TUniConnection;
       const AUsuario: string; const APermisos: IPermisosAplicacion);
     function Guardar(const ACambio: TCambioTrabajo): Int64;
+    // El llamador libera las consultas de los selectores.
+    function ConsultarEjecutores(const ATipo: string): TDataSet;
+    function ConsultarResponsables: TDataSet;
   end;
 
 implementation
 
 uses
-  System.SysUtils, Data.DB, UniDataReparacionesProteccion,
+  System.SysUtils, UniDataReparacionesProteccion,
   UniDataReparacionesFases, inLibReparacionesFases;
 
 constructor TRepositorioCambiosTrabajo.Create(AConexion: TUniConnection;
@@ -50,6 +53,46 @@ constructor TRepositorioCambiosTrabajo.Create(AConexion: TUniConnection;
 begin
   inherited Create(AConexion, AUsuario);
   FPermisos := APermisos;
+end;
+
+function TRepositorioCambiosTrabajo.ConsultarEjecutores(
+  const ATipo: string): TDataSet;
+var
+  oConsulta: TUniQuery;
+begin
+  if (ATipo <> 'OPERARIO') and (ATipo <> 'EXTERNO') then
+    raise EArgumentException.Create(SCambioTrabajoFaltaTipo);
+  if ATipo = 'OPERARIO' then
+    oConsulta := Consulta('SELECT CODIGO_EMPL AS CODIGO, ' +
+      'NOMBRE_EMPL AS NOMBRE FROM fza_empleados ' +
+      'WHERE ESACTIVO_EMPL=''S'' ORDER BY NOMBRE_EMPL')
+  else
+    oConsulta := Consulta('SELECT CODIGO_PRV_PRV AS CODIGO, ' +
+      'RAZON_SOCIAL_PRV AS NOMBRE FROM fza_proveedores ' +
+      'WHERE ESACTIVO_PRV=''S'' ORDER BY RAZON_SOCIAL_PRV');
+  try
+    oConsulta.Open;
+    Result := oConsulta;
+  except
+    FreeAndNil(oConsulta);
+    raise;
+  end;
+end;
+
+function TRepositorioCambiosTrabajo.ConsultarResponsables: TDataSet;
+var
+  oConsulta: TUniQuery;
+begin
+  oConsulta := Consulta('SELECT USUARIO_USU AS USUARIO ' +
+    'FROM fza_usuarios WHERE COALESCE(ESACTIVO_USU,''S'')=''S'' ' +
+    'ORDER BY USUARIO_USU');
+  try
+    oConsulta.Open;
+    Result := oConsulta;
+  except
+    FreeAndNil(oConsulta);
+    raise;
+  end;
 end;
 
 procedure TRepositorioCambiosTrabajo.ExigirEjecutor(

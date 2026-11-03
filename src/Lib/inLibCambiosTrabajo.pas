@@ -20,11 +20,19 @@ resourcestring
   SCambioTrabajoReasignar = 'Reasignar';
   SCambioTrabajoRepetir = 'Repetir';
   SCambioTrabajoMotivo = 'Motivo del cambio';
-  SCambioTrabajoTipo = 'Ejecutor: OPERARIO o EXTERNO';
-  SCambioTrabajoCodigo = 'Código del nuevo ejecutor';
+  SCambioTrabajoTipo = 'Tipo de ejecutor';
+  SCambioTrabajoCodigo = 'Nuevo ejecutor';
   SCambioTrabajoCantidad = 'Cantidad del nuevo tramo';
   SCambioTrabajoCoste = 'Coste adicional TOTAL del nuevo tramo';
-  SCambioTrabajoResponsable = 'Responsable del coste adicional';
+  SCambioTrabajoResponsable = 'Responsable del cambio / coste adicional';
+  SCambioTrabajoFaltaMotivo = 'Indique el motivo del cambio.';
+  SCambioTrabajoFaltaTipo = 'Seleccione Operario o Empresa externa.';
+  SCambioTrabajoFaltaEjecutor = 'Seleccione el nuevo ejecutor con «…».';
+  SCambioTrabajoFaltaResponsable = 'Seleccione el responsable del cambio.';
+  SCambioTrabajoCantidadInvalida =
+    'La cantidad debe ser mayor que cero y no superar 1.000.000.';
+  SCambioTrabajoCosteInvalido =
+    'El coste adicional debe estar entre cero y 1.000.000.';
   SCambioTrabajoConfirmar =
     'Se conservarán el trabajo, tiempos y costes anteriores. El nuevo ' +
     'tramo no se cobrará de nuevo al cliente. ¿Acepta el coste adicional ' +
