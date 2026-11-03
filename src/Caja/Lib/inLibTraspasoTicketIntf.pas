@@ -40,6 +40,7 @@ type
 
   TTraspasoTicketHistorico = record
     Existe: Boolean;
+    Fecha: TDateTime;
     TipoOperacion: string;
     Serie: string;
     NumeroDocumento: string;

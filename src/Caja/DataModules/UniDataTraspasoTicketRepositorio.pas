@@ -155,6 +155,7 @@ const
     'SELECT o.SERIE_FAC_OPCAJA, o.NUMERO_FAC_OPCAJA, ' +
     'o.CODIGO_ALM_OPCAJA, o.CODIGO_ALM_CONTRA_OPCAJA, ' +
     'o.CODIGO_EMPLEADO_OPCAJA, o.TIPO_OPERACION_OPCAJA, ' +
+    'o.FECHA_OPERACION_OPCAJA, ' +
     'CASE WHEN o.TIPO_OPERACION_OPCAJA = ''TA'' AND EXISTS (' +
     'SELECT 1 FROM fza_movimientos_almacen m ' +
     'WHERE m.TIPO_MOV = ''S'' ' +
@@ -267,7 +268,8 @@ begin
     'EMP,ALM,CAJA,NUMOP',
     'SERIE_FAC_OPCAJA,NUMERO_FAC_OPCAJA,CODIGO_ALM_OPCAJA,' +
     'CODIGO_ALM_CONTRA_OPCAJA,CODIGO_EMPLEADO_OPCAJA,' +
-    'FORMATO_DOCUMENTO_EMP,TIPO_OPERACION_OPCAJA,ESRECEPCION');
+    'FORMATO_DOCUMENTO_EMP,TIPO_OPERACION_OPCAJA,ESRECEPCION,' +
+    'FECHA_OPERACION_OPCAJA');
   Result[4] := DefinicionSql(
     'ListarLineasTraspaso',
     SQL_LINEAS_TRASPASO,
@@ -456,6 +458,8 @@ begin
     Result.Existe := not oQuery.IsEmpty;
     if Result.Existe then
     begin
+      Result.Fecha :=
+        oQuery.FieldByName('FECHA_OPERACION_OPCAJA').AsDateTime;
       Result.TipoOperacion :=
         oQuery.FieldByName('TIPO_OPERACION_OPCAJA').AsString;
       Result.Serie :=

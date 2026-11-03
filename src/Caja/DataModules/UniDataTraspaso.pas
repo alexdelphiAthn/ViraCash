@@ -3438,9 +3438,11 @@ begin
     '  CODIGO_EMPLEADO_TRSOL, INSTANTE_VENTAS_DESDE_TRSOL,' +
     '  INSTANTE_VENTAS_HASTA_TRSOL, USUARIO_ALTA,' +
     '  USUARIO_MODIF, INSTANTE_ALTA) ' +
-    'VALUES (:NUM, :SER, CURRENT_TIMESTAMP, :TIPO, :ESTADO, :EMP,' +
+    'VALUES (:NUM, :SER, :FECHA, :TIPO, :ESTADO, :EMP,' +
     '  :ORI, :DES, NULLIF(:EMPC, ''''), :CAJA, :EMPLE,' +
     '  :DESDE, :HASTA, :USU, :USU, NOW())';
+  AConsulta.ParamByName('FECHA').AsDateTime :=
+    FechaCajaConHora(cdsCabecera.FieldByName('FECHA').AsDateTime);
   AConsulta.ParamByName('NUM').AsString := ANumero;
   AConsulta.ParamByName('SER').AsString := ASerie;
   AConsulta.ParamByName('TIPO').AsString := sTipo;
@@ -3601,9 +3603,11 @@ begin
         '  CODIGO_ALM_DESTINO_TRSOL, CODIGO_EMP_CONTRA_TRSOL,' +
         '  CODIGO_CAJA_TRSOL, CODIGO_EMPLEADO_TRSOL,' +
         '  USUARIO_ALTA, USUARIO_MODIF, INSTANTE_ALTA) ' +
-        'VALUES (:NUM, :SER, CURRENT_TIMESTAMP, ''PENDIENTE'', :EMP, :ORI,' +
+        'VALUES (:NUM, :SER, :FECHA, ''PENDIENTE'', :EMP, :ORI,' +
         '  :DES,' +
         '  NULLIF(:EMPC, ''''), :CAJA, :EMPLE, :USU, :USU, NOW())';
+      QryTrx.ParamByName('FECHA').AsDateTime :=
+        FechaCajaConHora(cdsCabecera.FieldByName('FECHA').AsDateTime);
       QryTrx.ParamByName('NUM').AsString := ANumero;
       QryTrx.ParamByName('SER').AsString := ASerie;
       QryTrx.ParamByName('EMP').AsString := sEmpresa;

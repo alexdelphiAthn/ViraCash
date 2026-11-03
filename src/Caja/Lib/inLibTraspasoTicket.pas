@@ -118,7 +118,7 @@ type
                                      IRepositorioTraspasoTicket;
                                      const ADocRef, AOrigen, ADestino,
                                      AEmpleado, AEmpresa, ACaja: string;
-                                     ALineas: TDataSet;
+                                     ALineas: TDataSet; AFecha: TDateTime;
                                      const ANombreImpresora: string = 'DEBUG');
     // Reimprime el ticket de un traspaso ya grabado leyendo la cabecera de la
     // operacion de caja y sus lineas (movimientos de salida) de la BBDD. Lo usa
@@ -672,7 +672,7 @@ class procedure TTraspasoTicket.ImprimirTraspaso(
                                    IRepositorioTraspasoTicket;
                                    const ADocRef, AOrigen, ADestino,
                                    AEmpleado, AEmpresa, ACaja: string;
-                                   ALineas: TDataSet;
+                                   ALineas: TDataSet; AFecha: TDateTime;
                                    const ANombreImpresora: string);
 var
   Ticket: TTicketTermico;
@@ -704,7 +704,7 @@ begin
       Ticket.TextoColumnas(STicketEmpleado, AEmpleado);
       Ticket.TextoColumnas(
         STicketFecha,
-        FormatDateTime('dd/mm/yyyy', Now));
+        FormatDateTime('dd/mm/yyyy hh:nn:ss', AFecha));
       Ticket.LineaSeparadora('-');
       Ticket.EscribirLinea(STicketArticulos);
       Ticket.LineaSeparadora('-');
@@ -743,7 +743,7 @@ begin
       end;
       Ticket.LineaSeparadora('-');
       Ticket.Alinear(alCentro);
-      Ticket.EscribirLinea(FormatDateTime('dd/mm/yyyy hh:nn:ss', Now));
+      Ticket.EscribirLinea(FormatDateTime('dd/mm/yyyy hh:nn:ss', AFecha));
       Ticket.SaltarLineas(2);
       Ticket.CortarPapel;
       // Vista previa (DEBUG) o impresion real. El nombre de archivo no puede
@@ -870,7 +870,8 @@ begin
         end;
         Ticket.LineaSeparadora('-');
         Ticket.Alinear(alCentro);
-        Ticket.EscribirLinea(FormatDateTime('dd/mm/yyyy hh:nn:ss', Now));
+        Ticket.EscribirLinea(
+          FormatDateTime('dd/mm/yyyy hh:nn:ss', Cabecera.Fecha));
         Ticket.SaltarLineas(2);
         Ticket.CortarPapel;
         ComandosESC := Ticket.ObtenerComandos;

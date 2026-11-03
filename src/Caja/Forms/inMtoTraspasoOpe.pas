@@ -4888,7 +4888,7 @@ begin
                 sNumOp,
                 sOrigen,
                 sDestino,
-                sEmpleado, FEmpresa, FCaja, FDatos.cdsLineas,
+                sEmpleado, FEmpresa, FCaja, FDatos.cdsLineas, FFecha,
                 ParametrosCaja.ImpresoraCaja);
             AplicarModo(mtAtender);
           end;
@@ -4926,7 +4926,7 @@ begin
             sNumOp,
             sOrigen,
             sCarga,
-            sEmpleado, FEmpresa, FCaja, FDatos.cdsLineas,
+            sEmpleado, FEmpresa, FCaja, FDatos.cdsLineas, FFecha,
             ParametrosCaja.ImpresoraCaja);
         // FZ-ISSUE-351: el traspaso de la app ya esta en local; ahora se
         // marca RECOGIDO (si falla, se avisa y se reintenta al elegirlo).
