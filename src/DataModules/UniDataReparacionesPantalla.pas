@@ -319,6 +319,13 @@ begin
   else if not EsModoCobroReparacion(
     DataSet.FieldByName('MODO_COBRO_GARTIP').AsString) then
     sError := SErrorModoCobroReparacion;
+  if (sError = '') and (ValidarEjecutorReparacion(
+    DataSet.FieldByName('TIPO_EJECUTOR_GARTIP').AsString,
+    DataSet.FieldByName('CODIGO_EMPL_GARTIP').AsString,
+    DataSet.FieldByName('CODIGO_PRV_GARTIP').AsString) <> '') then
+    sError := Format(SErrorEjecutorTipoServicio, [
+      DataSet.FieldByName('CODIGO_GARTIP').AsString,
+      DataSet.FieldByName('DESCRIPCION_GARTIP').AsString]);
   if sError <> '' then
     raise EValidacionBBDD.Create(sError);
   if DataSet.State = dsInsert then

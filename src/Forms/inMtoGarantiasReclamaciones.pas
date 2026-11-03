@@ -419,8 +419,7 @@ var
 begin
   iIzquierda := EscalarDpi(12);
   for oBoton in TArray<TcxButton>.Create(btnNuevaReparacion, btnNueva,
-    btnAbrirFicha, btnEntregarReparacion, btnCambiarEstado,
-    btnMasOpciones) do
+    btnAbrirFicha, btnCambiarEstado, btnMasOpciones) do
     if oBoton.Visible then
     begin
       oBoton.Left := iIzquierda;
@@ -794,6 +793,12 @@ begin
     'OBSERVACIONES_RECEPCION_FAB_GAR', 1, 3);
   BotonDocumento(tsEntregaCli, SImpresoAlbaran,
     Ord(drAlbaran), 12, 200);
+  btnEntregarReparacion := TcxButton.Create(Self);
+  btnEntregarReparacion.Parent := tsEntregaCli;
+  btnEntregarReparacion.Caption := SCaptionEntregarReparacion;
+  btnEntregarReparacion.SetBounds(EscalarDpi(210), EscalarDpi(200),
+    EscalarDpi(180), EscalarDpi(30));
+  btnEntregarReparacion.OnClick := btnEntregarReparacionClick;
 end;
 
 procedure TfrmMtoGarantiasReclamaciones.CrearFases;
@@ -1699,8 +1704,6 @@ procedure TfrmMtoGarantiasReclamaciones.CrearBotonesReparacion;
 begin
   btnNuevaReparacion := CrearBoton(SCaptionNuevaReparacion, 12, 54, 170,
     btnNuevaReparacionClick);
-  btnEntregarReparacion := CrearBoton(SCaptionEntregarReparacion, 190, 54,
-    150, btnEntregarReparacionClick);
   CrearOpcion(menuMasOpciones, '-', nil);
   btnAnularReparacion := CrearOpcion(menuMasOpciones,
     SCaptionAnularReparacion, btnAnularReparacionClick);

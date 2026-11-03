@@ -151,6 +151,9 @@ resourcestring
   SErrorEmpezarLineaReparacion =
     'La línea %d no se puede empezar: ya está empezada, no es mano de ' +
     'obra o falta la aceptación del presupuesto.';
+  SErrorTrabajoSinEjecutor =
+    'El trabajo %d necesita un operario o una empresa externa asignados ' +
+    'antes de empezar o terminar. Selecciónelo en Trabajos > Reasignar.';
   SErrorTerminarLineaReparacion =
     'La línea %d no se puede terminar: ya está terminada, no es mano de ' +
     'obra o falta la aceptación del presupuesto.';
@@ -356,6 +359,10 @@ resourcestring
   SErrorCodigoTipoServicio = 'El tipo de servicio necesita un código.';
   SErrorDescripcionTipoServicio =
     'El tipo de servicio necesita una descripción.';
+  SErrorEjecutorTipoServicio =
+    'Artículo de arreglo %s (%s): revise Ejecutor, Operario y Proveedor. ' +
+    'Con Operario, deje Proveedor vacío; con Empresa externa, deje ' +
+    'Operario vacío. Elija el ejecutor en la lista.';
   SErrorTipoServicioUsado =
     'Ese tipo de servicio ya se ha usado: desactívelo en lugar de borrarlo.';
   SPreguntaResguardoReparacion =

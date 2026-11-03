@@ -452,11 +452,17 @@ var
 begin
   if HayLinea then
   begin
-    Linea := LineaDeDatos(FDatos.Lineas.DataSet);
-    Linea.Usuario := FEnlaces.Usuario;
-    if TfrmModalLineaReparacion.Ejecutar(Owner, FDatos.Catalogo,
-      FDatos.Reparaciones, Linea) > 0 then
-      FEnlaces.Refrescar(0);
+    if not FDatos.Lineas.DataSet.FieldByName('FECHA_INICIO_GARLIN').IsNull
+       and FDatos.Lineas.DataSet.FieldByName('FECHA_FIN_GARLIN').IsNull then
+      ReasignarClick(Sender)
+    else
+    begin
+      Linea := LineaDeDatos(FDatos.Lineas.DataSet);
+      Linea.Usuario := FEnlaces.Usuario;
+      if TfrmModalLineaReparacion.Ejecutar(Owner, FDatos.Catalogo,
+        FDatos.Reparaciones, Linea) > 0 then
+        FEnlaces.Refrescar(0);
+    end;
   end;
 end;
 

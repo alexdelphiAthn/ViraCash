@@ -225,6 +225,8 @@ function NormalizarCobroReparacion(
 // '' si se puede dar de alta; si no, el motivo.
 function ValidarReparacionNueva(const AReparacion: TReparacionNueva): string;
 function ValidarLineaReparacion(const ALinea: TLineaReparacion): string;
+function ValidarEjecutorReparacion(const ATipoEjecutor, AEmpleado,
+  AProveedor: string): string;
 function FaseReparacion(const ASituacion: TSituacionReparacion): string;
 // Sin presupuesto, o con él aceptado, se puede empezar a trabajar.
 function PuedeEmpezarReparacion(AEsPresupuesto: Boolean;
@@ -311,7 +313,7 @@ begin
     (AValor = ORIGEN_REPARACION_TIENDA);
 end;
 
-function ValidarEjecutor(const ATipoEjecutor, AEmpleado,
+function ValidarEjecutorReparacion(const ATipoEjecutor, AEmpleado,
   AProveedor: string): string;
 begin
   Result := '';
@@ -376,7 +378,7 @@ begin
   if Result = '' then
     Result := ValidarCobro(AReparacion);
   if Result = '' then
-    Result := ValidarEjecutor(AReparacion.TipoEjecutor,
+    Result := ValidarEjecutorReparacion(AReparacion.TipoEjecutor,
       AReparacion.Empleado, AReparacion.Proveedor);
 end;
 
@@ -396,7 +398,7 @@ begin
       Result := SErrorEjecutorReparacion;
   end
   else if ALinea.TipoLinea = LINEA_REPARACION_MANO_OBRA then
-    Result := ValidarEjecutor(ALinea.TipoEjecutor, ALinea.Empleado,
+    Result := ValidarEjecutorReparacion(ALinea.TipoEjecutor, ALinea.Empleado,
       ALinea.Proveedor)
   else
     Result := SErrorTipoLineaReparacion;

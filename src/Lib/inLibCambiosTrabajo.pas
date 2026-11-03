@@ -38,7 +38,7 @@ resourcestring
   SCambioTrabajoEstado =
     'Repetir exige un trabajo terminado; reasignar exige uno pendiente.';
   SCambioTrabajoCostePrevio =
-    'Antes de comenzar solo se cambia el ejecutor: conserve la cantidad ' +
+    'Para asignar el ejecutor en la misma línea, conserve la cantidad ' +
     'y deje el coste adicional en cero.';
   SCambioTrabajoPendiente =
     'Hay tiempo abierto o prendas pendientes del externo. Ciérrelos antes.';

@@ -194,8 +194,13 @@ var
   oConsulta: TUniQuery;
 begin
   Result := ACambio.Linea;
+  // Recuperar trabajos que versiones anteriores dejaron iniciar sin
+  // responsable. Se conserva el inicio y se audita la asignación;
+  // ExigirLineaOrdenEditable impide alterar ejecución documentada.
   if not ACambio.Repetir and
-     AOriginal.FieldByName('FECHA_INICIO_GARLIN').IsNull then
+     (AOriginal.FieldByName('FECHA_INICIO_GARLIN').IsNull or
+      ((Trim(AOriginal.FieldByName('CODIGO_EMPL_GARLIN').AsString) = '') and
+       (Trim(AOriginal.FieldByName('CODIGO_PRV_GARLIN').AsString) = ''))) then
   begin
     ExigirLineaOrdenEditable(FConexion, ACambio.Linea, False);
     if (ACambio.CosteAdicional <> 0) or

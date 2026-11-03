@@ -43,6 +43,7 @@ type
       const AReparacionNueva: TReparacionNueva);
     function InsertarLinea(const ALinea: TLineaReparacion): Int64;
     procedure ModificarLinea(const ALinea: TLineaReparacion);
+    procedure ExigirEjecutorLinea(ALinea: Int64);
     procedure AplicarFaseTrabajo(ALinea: Int64; ATerminado: Boolean;
       const AUsuario: string);
     function CrearLiquidacion(const ASentido, AEmpresa, AProveedor: string;
@@ -628,6 +629,33 @@ begin
     end);
 end;
 
+procedure TRepositorioReparacionesUniDAC.ExigirEjecutorLinea(ALinea: Int64);
+var
+  oConsulta: TUniQuery;
+  sTipo, sOperario, sProveedor: string;
+begin
+  oConsulta := NuevaConsulta('SELECT TIPO_EJECUTOR_GARLIN, ' +
+    'CODIGO_EMPL_GARLIN, CODIGO_PRV_GARLIN FROM fza_garantias_lineas ' +
+    'WHERE ID_GARLIN=:ID FOR UPDATE');
+  try
+    oConsulta.ParamByName('ID').AsLargeInt := ALinea;
+    oConsulta.Open;
+    if not oConsulta.IsEmpty then
+    begin
+      sTipo := oConsulta.Fields[0].AsString;
+      sOperario := Trim(oConsulta.Fields[1].AsString);
+      sProveedor := Trim(oConsulta.Fields[2].AsString);
+      if (ValidarEjecutorReparacion(sTipo, sOperario, sProveedor) <> '') or
+         (sTipo = '') or
+         ((sTipo = EJECUTOR_REPARACION_OPERARIO) and (sOperario = '')) or
+         ((sTipo = EJECUTOR_REPARACION_EXTERNO) and (sProveedor = '')) then
+        raise EFaseReparacion.CreateFmt(SErrorTrabajoSinEjecutor, [ALinea]);
+    end;
+  finally
+    FreeAndNil(oConsulta);
+  end;
+end;
+
 procedure TRepositorioReparacionesUniDAC.EmpezarLinea(ALinea: Int64;
   AFecha: TDateTime; const AUsuario: string);
 begin
@@ -636,6 +664,7 @@ begin
     var
       oConsulta: TUniQuery;
     begin
+      ExigirEjecutorLinea(ALinea);
       oConsulta := NuevaConsulta(
         'UPDATE fza_garantias_lineas L ' +
         '  JOIN fza_garantias_reclamaciones G ' +
@@ -682,6 +711,7 @@ begin
     var
       oConsulta: TUniQuery;
     begin
+      ExigirEjecutorLinea(ALinea);
       ExigirLineaOrdenSinSesiones(FConexion, ALinea);
       oConsulta := NuevaConsulta(
         'UPDATE fza_garantias_lineas L ' +
