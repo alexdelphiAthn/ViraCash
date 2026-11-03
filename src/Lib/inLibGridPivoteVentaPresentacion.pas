@@ -1032,6 +1032,10 @@ procedure TPresentacionPivoteVenta.PublicarTodo;
 var
   iRegistro: Integer;
 begin
+  // La publicacion inmediata ya incluye los Post que armaron la recarga.
+  // Repetirla por el temporizador cerraba el siguiente editor tras Intro
+  // y descartaba su entrada (FZ-ISSUE-836).
+  FTimerRecarga.Enabled := False;
   FVista.Reconstruir;
   RefrescarPestanas;
   AplicarVisibilidadColor;

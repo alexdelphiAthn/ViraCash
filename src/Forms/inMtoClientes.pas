@@ -441,6 +441,8 @@ type
     procedure cxButton4Click(Sender: TObject);
     // Carga perezosa de sub-pestañas detail (Historia, Prestamos).
     procedure PcPestanasChange(Sender: TObject);
+    procedure DesplazarFichaMouseWheel(Sender: TObject; Shift: TShiftState;
+      WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
   private
     FDmmClientes: TDMClientes;
     FRepositorioClientes: IRepositorioClientes;
@@ -491,6 +493,24 @@ uses
 {$R *.dfm}
 
 procedure ForceReferenceToClass(C: TClass); begin end;
+
+procedure TfrmMtoClientes.DesplazarFichaMouseWheel(Sender: TObject;
+  Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint;
+  var Handled: Boolean);
+var
+  oDesplazamiento: TcxScrollBox;
+begin
+  if Sender is TcxScrollBox then
+  begin
+    oDesplazamiento := TcxScrollBox(Sender);
+    Handled := oDesplazamiento.VertScrollBar.Range >
+      oDesplazamiento.ClientHeight;
+    if Handled then
+      oDesplazamiento.VertScrollBar.Position :=
+        oDesplazamiento.VertScrollBar.Position -
+        MulDiv(MulDiv(48, CurrentPPI, 96), WheelDelta, WHEEL_DELTA);
+  end;
+end;
 
 // El cliente tiene articulo en dos pestanas: la historia de facturacion
 // (tsHistoriaFacturacion / tvLineasFacturacion, CODIGO_ART_FACLIN) y los

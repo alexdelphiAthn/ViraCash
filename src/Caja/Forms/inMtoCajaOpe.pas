@@ -318,7 +318,7 @@ type
     property ArticuloResueltoEdicion: string
       read FArticuloResueltoEdicion;
   end;
-  TfrmMtoOpeCaja = class(TfrmBase, IOperacionCaja,
+  TfrmMtoOpeCaja = class(TfrmBase, IOperacionCaja, IContextoOperacionCaja,
     IDevolucionLineasCaja)
     pnlUp: TPanel;
     pnlCli: TPanel;
@@ -655,6 +655,8 @@ type
       const ADependencias: TDependenciasOperacionCaja); reintroduce;
       overload;
     procedure ResolverArtSkuStock(out ACodArt, ACodSku: string); override;
+    function PerteneceCaja(const AEmpresa, AAlmacen,
+      ACaja: string): Boolean;
     function FormularioCaja: TCustomForm;
     // Carga EXTERNA ("Enviar a..." de Documentos de Trabajo): anade
     // una linea con el SKU y cantidad indicados usando el mismo flujo
@@ -4480,6 +4482,13 @@ begin
     OperacionVentaVacia(DatosCaja.cdsLineas);
 end;
 
+function TfrmMtoOpeCaja.PerteneceCaja(const AEmpresa, AAlmacen,
+  ACaja: string): Boolean;
+begin
+  Result := SameText(FCodigoEmpresa, AEmpresa) and
+    SameText(FCodigoAlmacen, AAlmacen) and SameText(FCodigoCaja, ACaja);
+end;
+
 function TfrmMtoOpeCaja.FormularioCaja: TCustomForm;
 begin
   Result := Self;
@@ -4958,6 +4967,7 @@ var
   i: Integer;
   NextIndex: Integer;
   TargetForm: TfrmMtoOpeCaja;
+  Pendiente: IOperacionCaja;
   Found: Boolean;
   const MAX_OPERACIONES = 5;
 begin
@@ -4966,11 +4976,21 @@ begin
     NextIndex := 1;
   Found := False;
   TargetForm := nil;
+  if OperacionVacia then
+  begin
+    Pendiente := BuscarOperacionCajaPendiente(PopupParent, Self,
+      FCodigoEmpresa, FCodigoAlmacen, FCodigoCaja);
+    if Pendiente <> nil then
+      NextIndex := Pendiente.FormularioCaja.Tag;
+  end;
   for i := 0 to Screen.FormCount - 1 do
   begin
     if Screen.Forms[i] is TfrmMtoOpeCaja then
     begin
-      if Screen.Forms[i].Tag = NextIndex then
+      if (Screen.Forms[i].Tag = NextIndex) and
+         (Screen.Forms[i].PopupParent = PopupParent) and
+         TfrmMtoOpeCaja(Screen.Forms[i]).PerteneceCaja(
+           FCodigoEmpresa, FCodigoAlmacen, FCodigoCaja) then
       begin
         TargetForm := TfrmMtoOpeCaja(Screen.Forms[i]);
         Found := True;

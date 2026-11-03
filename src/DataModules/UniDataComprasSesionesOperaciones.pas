@@ -22,6 +22,11 @@ uses
   inLibComprasSesiones, inLibComprasSesionesIntf,
   Data.DB;
 
+function BuscarColorRepetidoSesion(AConn: TUniConnection;
+  const ASerie, ANumero: string; ALinea: TDataSet): Integer;
+procedure ValidarColoresSesion(AConn: TUniConnection;
+  const ASerie, ANumero: string; AIncidencias: TStrings);
+
 // Comprueba que el kit del proveedor se puede aplicar sobre la linea con
 // foco: sesion activa, linea con numero, sistema de tallas asignado, kit
 // existente y tallaje del kit IGUAL al de la linea (ID_AC_TALLAS_PRVKIT =
@@ -99,8 +104,108 @@ procedure CopiarCeldasDistribuidasSesion(AConn: TUniConnection;
 implementation
 
 uses
-  System.StrUtils,
+  System.StrUtils, inLibComprasSesionesReglas,
   inLibMsgArticulos, inLibMsgCompras;
+
+function ClaveColorDataSet(ALinea: TDataSet): string;
+var
+  Articulo: string;
+begin
+  Articulo := ALinea.FieldByName(
+    'CODIGO_ART_TENTATIVO_SESLIN').AsString;
+  if SameText(ALinea.FieldByName('ACCION_DUPLICADO_SESLIN').AsString,
+    'REUSAR') and (Trim(ALinea.FieldByName(
+    'CODIGO_ART_REUSAR_SESLIN').AsString) <> '') then
+    Articulo := ALinea.FieldByName('CODIGO_ART_REUSAR_SESLIN').AsString;
+  Result := ClaveColorLineaSesion(Articulo,
+    ALinea.FieldByName('COLOR_TEXTO_SESLIN').AsString,
+    ALinea.FieldByName('PESTANA_TEXTO_SESLIN').AsString,
+    ALinea.FieldByName('CODIGO_VAR_SESLIN').AsString,
+    ALinea.FieldByName('ID_AC_PIVOT_SESLIN').AsInteger);
+end;
+
+function ConsultarColoresSesion(AConn: TUniConnection;
+  const ASerie, ANumero: string): TUniQuery;
+begin
+  Result := TUniQuery.Create(nil);
+  try
+    Result.Connection := AConn;
+    Result.SQL.Text :=
+      'SELECT LINEA_SESLIN, CODIGO_ART_TENTATIVO_SESLIN, ' +
+      'CODIGO_ART_REUSAR_SESLIN, ACCION_DUPLICADO_SESLIN, ' +
+      'COLOR_TEXTO_SESLIN, PESTANA_TEXTO_SESLIN, ' +
+      'CODIGO_VAR_SESLIN, ID_AC_PIVOT_SESLIN ' +
+      'FROM fza_compras_sesiones_lineas ' +
+      'WHERE SERIE_SES_SESLIN = :s AND NUMERO_SES_SESLIN = :n ' +
+      'ORDER BY LINEA_SESLIN';
+    Result.ParamByName('s').AsString := ASerie;
+    Result.ParamByName('n').AsString := ANumero;
+    Result.Open;
+  except
+    Result.Free;
+    raise;
+  end;
+end;
+
+function BuscarColorRepetidoSesion(AConn: TUniConnection;
+  const ASerie, ANumero: string; ALinea: TDataSet): Integer;
+var
+  Consulta: TUniQuery;
+  Clave: string;
+begin
+  Result := 0;
+  Clave := ClaveColorDataSet(ALinea);
+  if Clave <> '' then
+  begin
+    Consulta := ConsultarColoresSesion(AConn, ASerie, ANumero);
+    try
+      while not Consulta.Eof and (Result = 0) do
+      begin
+        if (Consulta.FieldByName('LINEA_SESLIN').AsInteger <>
+            ALinea.FieldByName('LINEA_SESLIN').AsInteger) and
+           (ClaveColorDataSet(Consulta) = Clave) then
+          Result := Consulta.FieldByName('LINEA_SESLIN').AsInteger;
+        Consulta.Next;
+      end;
+    finally
+      Consulta.Free;
+    end;
+  end;
+end;
+
+procedure ValidarColoresSesion(AConn: TUniConnection;
+  const ASerie, ANumero: string; AIncidencias: TStrings);
+var
+  Consulta: TUniQuery;
+  Claves: TStringList;
+  Clave: string;
+  Indice: Integer;
+begin
+  Consulta := ConsultarColoresSesion(AConn, ASerie, ANumero);
+  Claves := TStringList.Create;
+  try
+    while not Consulta.Eof do
+    begin
+      Clave := ClaveColorDataSet(Consulta);
+      if Clave <> '' then
+      begin
+        Indice := Claves.IndexOfName(Clave);
+        if Indice >= 0 then
+          AIncidencias.Add(Format('Línea %d: ' +
+            SErrorColorRepetidoSesion,
+            [Consulta.FieldByName('LINEA_SESLIN').AsInteger,
+             StrToInt(Claves.ValueFromIndex[Indice])]))
+        else
+          Claves.Values[Clave] :=
+            Consulta.FieldByName('LINEA_SESLIN').AsString;
+      end;
+      Consulta.Next;
+    end;
+  finally
+    Claves.Free;
+    Consulta.Free;
+  end;
+end;
 
 procedure BorrarCeldasLineaSesion(AConn: TUniConnection;
   const ASerie, ANumero: string; ALinea: Integer);

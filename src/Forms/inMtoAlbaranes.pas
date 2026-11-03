@@ -829,6 +829,7 @@ begin
   Cfg.LookupAtributos := FContextoVentas.AtributosArticulos;
   Cfg.UsarCombosAtributos := True;
   Cfg.BuscarSoloPadresEnDesglose := True;
+  Cfg.DesplazamientoHorizontal := True;
   // Precio por SKU para la consolidacion del modo tallas: lineas con
   // precio distinto no fusionan.
   Cfg.ObtenerPrecioSku := PrecioSkuTallasAlb;

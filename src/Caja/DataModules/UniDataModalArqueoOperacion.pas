@@ -52,6 +52,8 @@ type
     epmaVendedorNoIndicado,
     epmaVendedorNoValido,
     epmaArqueoDuplicado,
+    epmaRangoNoCalculado,
+    epmaPendientesAnteriores,
     epmaRecuentoNoDisponible);
   TResultadoPreparacionModalArqueo = record
     Estado: TEstadoPreparacionModalArqueo;
@@ -181,6 +183,9 @@ end;
 function TOperacionModalArqueo.Preparar(
   const AEntrada: TEntradaGrabacionModalArqueo):
   TResultadoPreparacionModalArqueo;
+var
+  UltimoCierre: TDateTime;
+  Operaciones: Integer;
 begin
   Result := Default(TResultadoPreparacionModalArqueo);
   Result.CodigoVendedor := Trim(AEntrada.CodigoVendedor);
@@ -194,6 +199,14 @@ begin
       Result.Estado := epmaVendedorNoValido
     else if FRepositorio.ExisteArqueoCerrado(AEntrada.Solicitud) then
       Result.Estado := epmaArqueoDuplicado
+    else if (AEntrada.Arqueo.FechaDesde <>
+             AEntrada.Solicitud.FechaDesde) or
+            (AEntrada.Arqueo.FechaHasta <>
+             AEntrada.Solicitud.FechaHasta) then
+      Result.Estado := epmaRangoNoCalculado
+    else if FRepositorio.OperacionesSinCerrarAntes(
+      AEntrada.Solicitud, UltimoCierre, Operaciones) then
+      Result.Estado := epmaPendientesAnteriores
     else if Length(AEntrada.Recuento) = 0 then
       Result.Estado := epmaRecuentoNoDisponible
     else

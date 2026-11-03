@@ -467,8 +467,6 @@ type
       ACanvas: TcxCanvas;
       AViewInfo: TcxGridTableDataCellViewInfo;
       var ADone: Boolean);
-    procedure tvSkuAtributosBasicosID_ATB_AVPropertiesEditValueChanged(
-      Sender: TObject);
     procedure tvSkuAtributosBasicosID_ATB_AVPropertiesInitPopup(
       Sender: TObject);
     procedure tvSkuAtributosBasicosID_ATB_AVPropertiesCloseUp(
@@ -478,6 +476,8 @@ type
       var ErrorText: TCaption; var Error: Boolean);
     procedure tvSkuAtributosBasicosHEX_ATBPropertiesButtonClick(
       Sender: TObject; AButtonIndex: Integer);
+    procedure MostrarBasicoPendiente(Sender: TcxCustomGridTableItem;
+      ARecord: TcxCustomGridRecord; var AText: string);
     procedure tvSkuAtributosBasicosDblClick(Sender: TObject);
     procedure tvSkuAtributosBasicosFUENTE_ATBGetDisplayText(
       Sender: TcxCustomGridTableItem;
@@ -533,6 +533,7 @@ type
     FCbbTipoVariacion   : TcxDBLookupComboBox;
     // Colaboradores de presentacion. Cada uno recibe solo los controles,
     // datasets y puertos que necesita; ninguno conoce el formulario.
+    FGuardandoBasicos: Boolean;
     FPresAtributos: TPresentadorAtributosBasicosArticulo;
     FStock: TCoordinadorStockArticuloVcl;
     FPresTarifas: TPresentadorTarifasArticulo;
@@ -1313,6 +1314,7 @@ begin
     cbbFamilia.PostEditValue;
   end;
   try
+    FGuardandoBasicos := True;
     try
       dmmArticulos.ValidarDatosArticulo;
       dmmArticulos.ValidarCodigoArticuloDisponible;
@@ -1347,7 +1349,10 @@ begin
         Resultado.Error = egaNinguno,
         Resultado.Mensaje);
       if Resultado.Error = egaNinguno then
+      begin
+        FPresAtributos.GuardarCambios;
         inherited;
+      end;
     except
       on E: ECodigoArticuloDuplicado do
         bReintentar := AvisarCodigoArticuloDuplicado(E.Message);
@@ -1355,6 +1360,7 @@ begin
         PresentarValidacionDatosArticulo(E.Message, E.Campo);
     end;
   finally
+    FGuardandoBasicos := False;
     dmmArticulos.DescartarVisibilidadPrestaShopAplazada;
     dmmArticulos.LimpiarCambioMarcaWebPreparado;
   end;
@@ -2446,6 +2452,9 @@ end;
 procedure TfrmMtoArticulos.dsTablaGStateChange(Sender: TObject);
 begin
   inherited;
+  if Assigned(FPresAtributos) and (dsTablaG.State = dsBrowse) and
+     not FGuardandoBasicos then
+    FPresAtributos.CancelarCambios;
   if (dsTablaG.state = dsInsert) then
   begin
     txtCODIGO_ARTICULO.Properties.ReadOnly := False;
@@ -2768,7 +2777,7 @@ end;
 procedure TfrmMtoArticulos.tvSkuAtributosBasicosID_ATB_AVPropertiesInitPopup(
   Sender: TObject);
 begin
-  FPresAtributos.AbrirDesplegableBasico;
+  FPresAtributos.AbrirDesplegableBasico(Sender as TcxLookupComboBox);
 end;
 
 procedure TfrmMtoArticulos.tvSkuAtributosBasicosID_ATB_AVPropertiesCloseUp(
@@ -2781,20 +2790,26 @@ procedure TfrmMtoArticulos.tvSkuAtributosBasicosID_ATB_AVPropertiesValidate(
   Sender: TObject; var DisplayValue: Variant;
   var ErrorText: TCaption; var Error: Boolean);
 begin
+  DisplayValue := (Sender as TcxLookupComboBox).Text;
   FPresAtributos.ValidarBasico(DisplayValue, ErrorText, Error);
-end;
-
-procedure TfrmMtoArticulos.
-             tvSkuAtributosBasicosID_ATB_AVPropertiesEditValueChanged(
-  Sender: TObject);
-begin
-  FPresAtributos.CambiarBasico(Sender);
+  if not Error and (dsTablaG.DataSet.State = dsBrowse) then
+    dsTablaG.DataSet.Edit;
 end;
 
 procedure TfrmMtoArticulos.tvSkuAtributosBasicosHEX_ATBPropertiesButtonClick(
   Sender: TObject; AButtonIndex: Integer);
 begin
   FPresAtributos.ElegirColor;
+end;
+
+procedure TfrmMtoArticulos.MostrarBasicoPendiente(
+  Sender: TcxCustomGridTableItem; ARecord: TcxCustomGridRecord;
+  var AText: string);
+begin
+  if Assigned(FPresAtributos) then
+    FPresAtributos.MostrarBasicoPendiente(
+      VarToStr(ARecord.Values[tvSkuAtributosBasicosID_VA_AV.Index]),
+      VarToStr(ARecord.Values[tvSkuAtributosBasicosVALOR_AV.Index]), AText);
 end;
 
 procedure TfrmMtoArticulos.tvSkuAtributosBasicosDblClick(Sender: TObject);

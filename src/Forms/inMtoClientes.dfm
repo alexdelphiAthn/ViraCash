@@ -691,7 +691,10 @@
                 Height = 412
                 Align = alClient
                 BorderStyle = cxcbsNone
+                LookAndFeel.ScrollbarMode = sbmClassic
                 TabOrder = 0
+                VertScrollBar.Tracking = True
+                OnMouseWheel = DesplazarFichaMouseWheel
                 DesignSize = (
                   985
                   412)

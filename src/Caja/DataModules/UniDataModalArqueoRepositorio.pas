@@ -146,10 +146,8 @@ begin
     '    AND o.CODIGO_EMP_OPCAJA = :pEMPRESA ' +
     '    AND o.CODIGO_ALM_OPCAJA = :pALMACEN ' +
     '    AND o.CODIGO_CAJA_OPCAJA = :pCAJA ' +
-    '    AND (o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
-    'OR COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''') ' +
+    '    AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     '    AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
-    'AND COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''' ' +
     SqlExcluirLiquidacionDepositoArqueo +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
@@ -180,10 +178,8 @@ begin
     '    AND o.CODIGO_CAJA_OPCAJA = p.CODIGO_CAJA_PAGO ' +
     '    AND o.NUMERO_OPERACION_OPCAJA = ' +
     '        p.NUMERO_OPERACION_PAGO ' +
-    '    AND (o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
-    'OR COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''') ' +
+    '    AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     '    AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
-    'AND COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''' ' +
     // FZ-ISSUE-407: la entrada de cambio y los gastos de caja no son
     // cobros de ventas (mismo criterio que la pestaña Arqueo, 346).
     '    AND o.TIPO_OPERACION_OPCAJA NOT IN (''EC'', ''GC'') ' +
@@ -220,10 +216,8 @@ begin
     '    AND o.CODIGO_EMP_OPCAJA = :pEMPRESA ' +
     '    AND o.CODIGO_ALM_OPCAJA = :pALMACEN ' +
     '    AND o.CODIGO_CAJA_OPCAJA = :pCAJA ' +
-    '    AND (o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
-    'OR COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''') ' +
+    '    AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     '    AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
-    'AND COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''' ' +
     SqlExcluirLiquidacionDepositoArqueo +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
@@ -301,10 +295,8 @@ begin
     '      WHERE o.CODIGO_EMP_OPCAJA = :pEMPRESA ' +
     '        AND o.CODIGO_ALM_OPCAJA = :pALMACEN ' +
     '        AND o.CODIGO_CAJA_OPCAJA = :pCAJA ' +
-    '        AND (o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
-    'OR COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''') ' +
+    '        AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     '        AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
-    'AND COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''' ' +
     '        AND f.TIPO_FAC IN ' +
     '            (''SIMPLIFICADA'', ''RECTIFICATIVA'') ' +
     SqlExcluirLiquidacionDepositoArqueo +

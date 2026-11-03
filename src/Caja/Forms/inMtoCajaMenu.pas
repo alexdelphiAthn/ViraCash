@@ -713,20 +713,32 @@ var
   oOperacion: IOperacionCaja;
   oFormulario: TCustomForm;
 begin
-  oAnfitrion := ExigirAnfitrionCaja(Application.MainForm);
-  oOperacion := oAnfitrion.CrearOperacionCaja(Application, Permisos);
-  oFormulario := oOperacion.FormularioCaja;
-  try
-    oFormulario.PopupParent := Self;
-    oFormulario.Tag := 1;
-    oFormulario.Caption := Format(STituloOperacionNCajaReal,
-                                  [1, Self.FCaja]);
-    oOperacion.PrepararValores(
-      Self.FEmpresa, Self.FAlmacen, Self.FCaja, Self.FFechaCaja);
+  oOperacion := BuscarOperacionCajaPendiente(Self, nil,
+    FEmpresa, FAlmacen, FCaja);
+  if oOperacion <> nil then
+  begin
+    oFormulario := oOperacion.FormularioCaja;
+    oFormulario.WindowState := wsNormal;
     oFormulario.Show;
-  except
-    FreeAndNil(oFormulario);
-    raise;
+    oFormulario.BringToFront;
+  end
+  else
+  begin
+    oAnfitrion := ExigirAnfitrionCaja(Application.MainForm);
+    oOperacion := oAnfitrion.CrearOperacionCaja(Application, Permisos);
+    oFormulario := oOperacion.FormularioCaja;
+    try
+      oFormulario.PopupParent := Self;
+      oFormulario.Tag := 1;
+      oFormulario.Caption := Format(STituloOperacionNCajaReal,
+                                    [1, Self.FCaja]);
+      oOperacion.PrepararValores(
+        Self.FEmpresa, Self.FAlmacen, Self.FCaja, Self.FFechaCaja);
+      oFormulario.Show;
+    except
+      FreeAndNil(oFormulario);
+      raise;
+    end;
   end;
 end;
 

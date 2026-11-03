@@ -6273,6 +6273,13 @@ procedure RegistrarCambiosTrabajo(
 
 begin
   Registrar('SCambioTrabajoTitulo', @SCambioTrabajoTitulo);
+  Registrar('SCambioTrabajoAsignar', @SCambioTrabajoAsignar);
+  Registrar('SCambioTrabajoCantidadActual', @SCambioTrabajoCantidadActual);
+  Registrar('SCambioTrabajoCosteActual', @SCambioTrabajoCosteActual);
+  Registrar('SCambioTrabajoConservarCantidad',
+    @SCambioTrabajoConservarCantidad);
+  Registrar('SCambioTrabajoConfirmarAsignacion',
+    @SCambioTrabajoConfirmarAsignacion);
   Registrar('SCambioTrabajoReasignar', @SCambioTrabajoReasignar);
   Registrar('SCambioTrabajoRepetir', @SCambioTrabajoRepetir);
   Registrar('SCambioTrabajoMotivo', @SCambioTrabajoMotivo);
@@ -12510,6 +12517,14 @@ begin
     @inLibMsgCaja.
       STituloVendedorArqueoCajaNoValido);
   ARegistrar(
+    'inLibMsgCaja.SErrorArqueoRangoNoCalculado',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.SErrorArqueoRangoNoCalculado);
+  ARegistrar(
+    'inLibMsgCaja.SErrorArqueoPendientesAnteriores',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.SErrorArqueoPendientesAnteriores);
+  ARegistrar(
     'inLibMsgCaja.' +
     'SErrorArqueoCajaDuplicado',
     'src/Lib/inLibMsgCaja.pas',
@@ -13527,6 +13542,10 @@ begin
     'src/Lib/inLibMsgCompras.pas',
     @inLibMsgCompras.
       STipoIncidenciaDuplicadoInterno);
+  ARegistrar(
+    'inLibMsgCompras.SErrorColorRepetidoSesion',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SErrorColorRepetidoSesion);
   ARegistrar(
     'inLibMsgCompras.' +
     'SErrorCodigoDuplicadoInternoSesion',

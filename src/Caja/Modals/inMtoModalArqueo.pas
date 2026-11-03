@@ -1700,6 +1700,12 @@ begin
         PChar(SErrorArqueoCajaDuplicado),
         PChar(STituloArqueoCajaDuplicado),
         MB_OK or MB_ICONWARNING);
+    epmaRangoNoCalculado:
+      MessageDlg_fza(SErrorArqueoRangoNoCalculado,
+        mtWarning, [mbOK], 0);
+    epmaPendientesAnteriores:
+      MessageDlg_fza(SErrorArqueoPendientesAnteriores,
+        mtWarning, [mbOK], 0);
     epmaRecuentoNoDisponible:
       MessageBox_fza(
         PChar(SErrorRecuentoArqueoCajaNoDisponible),

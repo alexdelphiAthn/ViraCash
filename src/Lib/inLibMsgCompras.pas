@@ -16,6 +16,9 @@ unit inLibMsgCompras;
 interface
 
 resourcestring
+  SErrorColorRepetidoSesion =
+    'Este artículo ya tiene ese color y variante en la línea %d. ' +
+    'Cambie el color o cancele y borre la línea nueva.';
   SRegistrarPagoAntesDeRecibo =
     'Registre primero el pago al proveedor o agricultor.';
   STituloRegistrarPagoEfectoFacturaCompra =

@@ -1446,6 +1446,7 @@ begin
   Result.LookupAtributos := FContextoVentas.AtributosArticulos;
   Result.UsarCombosAtributos := True;
   Result.BuscarSoloPadresEnDesglose := True;
+  Result.DesplazamientoHorizontal := True;
   Result.ObtenerPrecioSku := PrecioSkuTallas;
 end;
 

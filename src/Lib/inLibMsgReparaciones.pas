@@ -323,8 +323,8 @@ resourcestring
   SRotuloEntregaAproximada = 'Entrega estimada:';
   SRotuloEjecutorReparacion = 'Lo hace:';
   SRotuloCantidadReparacion = 'Cantidad u horas:';
-  SRotuloPrecioClienteReparacion = 'Precio cliente:';
-  SRotuloPrecioCosteReparacion = 'Coste:';
+  SRotuloPrecioClienteReparacion = 'Precio cliente (IVA incl.):';
+  SRotuloPrecioCosteReparacion = 'Coste (sin IVA):';
   SRotuloPresupuestoReparacion = 'Pide presupuesto';
   SRotuloModoCobroReparacion = 'Cobro al cliente:';
   SRotuloCobradoReparacion = 'Ya cobrado';

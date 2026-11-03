@@ -2068,9 +2068,12 @@ begin
   // debe convertirse en una combinacion de navegacion. En una pestana
   // embebida ActiveControl es nil aunque haya foco: con un desplegable
   // abierto el Enter es suyo (elige de la lista), no un Tab.
+  // Lo mismo en una rejilla: el Tab simulado se encola detras de las
+  // siguientes cifras y desplaza cantidades al teclear rapido (836).
   else if (Key = VK_RETURN) and
           not (ssCtrl in Shift) and not (ssAlt in Shift) and
           (ActiveControl = nil) and
+          not FocoEnRejilla(ControlConFoco) and
           not EsDesplegableAbierto(Screen.ActiveControl) then
   begin
     Key := 0;

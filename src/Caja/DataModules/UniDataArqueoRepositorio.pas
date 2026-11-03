@@ -94,10 +94,8 @@ begin
     'WHERE CODIGO_EMP_OPCAJA = :pEMPRESA ' +
     'AND CODIGO_ALM_OPCAJA = :pALMACEN ' +
     'AND CODIGO_CAJA_OPCAJA = :pCAJA ' +
-    'AND (FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
-    'OR COALESCE(CODIGO_ARQUEO_OPCAJA, '''') = '''') ' +
+    'AND FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     'AND FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
-    'AND COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''' ' +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
       'o.SERIE_FAC_OPCAJA',
@@ -124,10 +122,8 @@ begin
     'AND o.CODIGO_EMP_OPCAJA = :pEMPRESA ' +
     'AND o.CODIGO_ALM_OPCAJA = :pALMACEN ' +
     'AND o.CODIGO_CAJA_OPCAJA = :pCAJA ' +
-    'AND (o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
-    'OR COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''') ' +
+    'AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
-    'AND COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''' ' +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
       'o.SERIE_FAC_OPCAJA',
@@ -163,10 +159,8 @@ begin
     'WHERE o.CODIGO_EMP_OPCAJA = :pEMPRESA ' +
     'AND o.CODIGO_ALM_OPCAJA = :pALMACEN ' +
     'AND o.CODIGO_CAJA_OPCAJA = :pCAJA ' +
-    'AND (o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
-    'OR COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''') ' +
+    'AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
-    'AND COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''' ' +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
       'o.SERIE_FAC_OPCAJA',
@@ -223,10 +217,8 @@ begin
     'WHERE o.CODIGO_EMP_OPCAJA = :pEMPRESA ' +
     'AND o.CODIGO_ALM_OPCAJA = :pALMACEN ' +
     'AND o.CODIGO_CAJA_OPCAJA = :pCAJA ' +
-    'AND (o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
-    'OR COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''') ' +
+    'AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
-    'AND COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''' ' +
     'AND o.TIPO_OPERACION_OPCAJA IN (:pTIPO_CB, :pTIPO_DE) ' +
     'AND o.IMPORTE_TOTAL_OPCAJA > 0 ' +
     'AND o.ID_DEPOSITO_OPCAJA IS NOT NULL ' +
@@ -287,10 +279,8 @@ begin
     'AND o.CODIGO_ALM_OPCAJA = p.CODIGO_ALM_PAGO ' +
     'AND o.CODIGO_CAJA_OPCAJA = p.CODIGO_CAJA_PAGO ' +
     'AND o.NUMERO_OPERACION_OPCAJA = p.NUMERO_OPERACION_PAGO ' +
-    'AND (o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
-    'OR COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''') ' +
+    'AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
-    'AND COALESCE(o.CODIGO_ARQUEO_OPCAJA, '''') = '''' ' +
     // FZ-ISSUE-346: entradas de cambio y gastos de caja van aparte
     // (EfectivoEntradas / EfectivoSalidas); aquí contaban otra vez.
     'AND o.TIPO_OPERACION_OPCAJA NOT IN (:pTIPO_EC, :pTIPO_GC) ' +

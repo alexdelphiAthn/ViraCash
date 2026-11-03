@@ -58,6 +58,12 @@ type
       ANumero: string);
   end;
 
+  IContextoOperacionCaja = interface
+    ['{FAC6FB26-8C4A-46E5-AB08-872C8E5733A5}']
+    function PerteneceCaja(const AEmpresa, AAlmacen,
+      ACaja: string): Boolean;
+  end;
+
   IOperacionCaja = interface
     ['{3C44C353-D264-4F82-8245-6F25AE19E4A0}']
     function FormularioCaja: TCustomForm;
@@ -136,6 +142,9 @@ type
 function ExigirAnfitrionCaja(
   AObjeto: TObject): IAnfitrionCajaVentanas;
 function BuscarOperacionCajaVacia: IOperacionCaja;
+function BuscarOperacionCajaPendiente(APropietario,
+  AExcluir: TCustomForm; const AEmpresa, AAlmacen,
+  ACaja: string): IOperacionCaja;
 function BuscarOperacionCajaVisible: IOperacionCaja;
 procedure ReactivarOperacionCajaVisible;
 function PuedenCerrarOperacionesCaja: Boolean;
@@ -177,6 +186,32 @@ begin
        Supports(Screen.Forms[i], IOperacionCaja, oOperacion) and
        oOperacion.OperacionVacia then
       Result := oOperacion;
+  end;
+end;
+
+function BuscarOperacionCajaPendiente(APropietario,
+  AExcluir: TCustomForm; const AEmpresa, AAlmacen,
+  ACaja: string): IOperacionCaja;
+var
+  i: Integer;
+  Formulario: TCustomForm;
+  Operacion: IOperacionCaja;
+  Contexto: IContextoOperacionCaja;
+begin
+  Result := nil;
+  for i := 0 to Screen.FormCount - 1 do
+  begin
+    Formulario := Screen.Forms[i];
+    if (Formulario <> AExcluir) and
+       (Formulario.PopupParent = APropietario) and
+       not (csDestroying in Formulario.ComponentState) and
+       Supports(Formulario, IContextoOperacionCaja, Contexto) and
+       Contexto.PerteneceCaja(AEmpresa, AAlmacen, ACaja) and
+       Supports(Formulario, IOperacionCaja, Operacion) and
+       not Operacion.OperacionVacia then
+      if (Result = nil) or
+         (Formulario.Tag < Result.FormularioCaja.Tag) then
+        Result := Operacion;
   end;
 end;
 

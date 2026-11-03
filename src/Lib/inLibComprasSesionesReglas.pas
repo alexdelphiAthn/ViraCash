@@ -19,6 +19,8 @@ interface
 uses
   inLibComprasSesionesIntf;
 
+function ClaveColorLineaSesion(const AArticulo, AColor,
+  APestana, AVariacion: string; AConjunto: Integer): string;
 function SanearColorSku(const ATexto: string): string;
 function ResolverCodigoColorBasico(
   const ALiteral: string;
@@ -39,6 +41,16 @@ implementation
 uses
   System.SysUtils, System.Generics.Collections, System.Generics.Defaults,
   inLibGeneracionSkus;
+
+function ClaveColorLineaSesion(const AArticulo, AColor,
+  APestana, AVariacion: string; AConjunto: Integer): string;
+begin
+  Result := '';
+  if (Trim(AArticulo) <> '') and (Trim(AColor) <> '') then
+    Result := AnsiUpperCase(Trim(AArticulo)) + #9 +
+      SanearColorSku(AColor) + #9 + SanearColorSku(APestana) + #9 +
+      AnsiUpperCase(Trim(AVariacion)) + #9 + IntToStr(AConjunto);
+end;
 
 function SanearColorSku(const ATexto: string): string;
 begin

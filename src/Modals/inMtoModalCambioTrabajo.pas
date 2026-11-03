@@ -14,6 +14,9 @@ type
     FCambio: TCambioTrabajo;
     FRepositorio: TRepositorioCambiosTrabajo;
     FResultado: Int64;
+    FMismaLinea: Boolean;
+    FAsignacionInicial: Boolean;
+    FCosteActual: Currency;
     FMotivo: TcxTextEdit;
     FTipo: TcxComboBox;
     FEjecutor: TcxButtonEdit;
@@ -61,6 +64,8 @@ begin
 end;
 
 procedure TfrmModalCambioTrabajo.CrearCampos;
+var
+  sCantidad, sCoste: string;
 begin
   ClientWidth := ScaleValue(460);
   ClientHeight := ScaleValue(354) + pnlButton.Height;
@@ -107,13 +112,22 @@ begin
     FTipo.ItemIndex := 1;
   FCantidad := TcxCurrencyEdit.Create(Self);
   FCantidad.Name := 'edtCantidadCambio';
-  ColocarCampo(FCantidad, SCambioTrabajoCantidad, 3);
+  sCantidad := SCambioTrabajoCantidad;
+  sCoste := SCambioTrabajoCoste;
+  if FMismaLinea then
+  begin
+    sCantidad := SCambioTrabajoCantidadActual;
+    sCoste := SCambioTrabajoCosteActual;
+  end;
+  ColocarCampo(FCantidad, sCantidad, 3);
+  FCantidad.Properties.ReadOnly := FMismaLinea;
   FCantidad.Properties.DecimalPlaces := 6;
   FCantidad.Properties.DisplayFormat := '0.######';
   FCantidad.Value := FCambio.Cantidad;
   FCoste := TcxCurrencyEdit.Create(Self);
   FCoste.Name := 'edtCosteCambio';
-  ColocarCampo(FCoste, SCambioTrabajoCoste, 4);
+  ColocarCampo(FCoste, sCoste, 4);
+  FCoste.Properties.ReadOnly := FMismaLinea and not FAsignacionInicial;
   FCoste.Properties.DecimalPlaces := 6;
   FCoste.Properties.DisplayFormat := '0.00####';
   FCoste.Value := 0;
@@ -244,6 +258,8 @@ begin
 end;
 
 function TfrmModalCambioTrabajo.CloseQuery: Boolean;
+var
+  sConfirmacion: string;
 begin
   Result := inherited CloseQuery;
   if Result and (sFicha = 'S') and (FResultado = 0) then
@@ -252,7 +268,12 @@ begin
       Result := ValidarCampos;
       if Result then
       begin
-        FCambio.Aceptado := MessageDlg_fza(SCambioTrabajoConfirmar,
+        sConfirmacion := SCambioTrabajoConfirmar;
+        if FMismaLinea then
+          sConfirmacion := Format(SCambioTrabajoConfirmarAsignacion, [
+            FormatCurr('0.00', FCambio.CosteAdicional),
+            FormatCurr('0.00', FCosteActual + FCambio.CosteAdicional)]);
+        FCambio.Aceptado := MessageDlg_fza(sConfirmacion,
           mtConfirmation, [mbYes, mbNo], 0, mbNo) = mrYes;
         Result := FCambio.Aceptado;
         if Result then
@@ -306,10 +327,21 @@ begin
       ALinea.FieldByName('TIPO_EJECUTOR_GARLIN').AsString;
     oFormulario.FCambio.Cantidad :=
       ALinea.FieldByName('CANTIDAD_GARLIN').AsCurrency;
+    oFormulario.FAsignacionInicial := not ARepetir and
+      (Trim(ALinea.FieldByName('CODIGO_EMPL_GARLIN').AsString) = '') and
+      (Trim(ALinea.FieldByName('CODIGO_PRV_GARLIN').AsString) = '');
+    oFormulario.FMismaLinea := not ARepetir and
+      (ALinea.FieldByName('FECHA_INICIO_GARLIN').IsNull or
+       oFormulario.FAsignacionInicial);
+    oFormulario.FCosteActual :=
+      ALinea.FieldByName('PRECIO_COSTE_GARLIN').AsCurrency *
+      oFormulario.FCambio.Cantidad;
     oFormulario.FRepositorio := TRepositorioCambiosTrabajo.Create(
       oFormulario.ConexionPrincipal, oFormulario.IdentidadSesion.Usuario,
       oFormulario.Permisos);
     oFormulario.Caption := SCambioTrabajoTitulo;
+    if oFormulario.FAsignacionInicial then
+      oFormulario.Caption := SCambioTrabajoAsignar;
     oFormulario.OnClose := oFormulario.CerrarSinLiberar;
     oFormulario.OnShow := oFormulario.MostrarCampos;
     oFormulario.CrearCampos;

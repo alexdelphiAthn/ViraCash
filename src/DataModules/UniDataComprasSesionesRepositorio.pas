@@ -1491,6 +1491,7 @@ begin
       ValidarCabeceraSesion(oIncidencias);
       ValidarExistenciaLineas(sSerie, sNumero, oIncidencias);
       ValidarDuplicadosInternos(sSerie, sNumero, oIncidencias);
+      ValidarColoresSesion(FConexion, sSerie, sNumero, oIncidencias);
       ValidarDuplicadosExternos(sSerie, sNumero, oIncidencias);
       ValidarPvpArticulos(sSerie, sNumero, oIncidencias);
       ValidarReusoSinArticulo(sSerie, sNumero, oIncidencias);

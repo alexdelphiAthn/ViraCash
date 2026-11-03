@@ -20,6 +20,7 @@ interface
 uses
   Winapi.Windows, System.SysUtils, System.Types, System.Variants,
   System.UITypes, Vcl.Graphics, Vcl.Controls, Vcl.Dialogs, Data.DB,
+  Datasnap.DBClient, System.Generics.Collections,
   cxGraphics, cxEdit, cxDBLookupComboBox, cxGridCustomView,
   cxGridCustomTableView, cxGridTableView,
   inLibArticulosAtributosBasicosIntf;
@@ -30,8 +31,19 @@ type
   TCambiarActivoSkusColor = reference to function(
     const ACodigoArticulo, AColor, AActivo: string): Integer;
 
+  TCambioBasicoPendiente = record
+    Contexto: TContextoAtributoBasicoSku;
+    IdBasico: TEnteroOpcional;
+    Codigo: string;
+  end;
+
   TPresentadorAtributosBasicosArticulo = class
   private
+    FCambios: TDictionary<string, TCambioBasicoPendiente>;
+    FListaBasicos: TClientDataSet;
+    FOrigenLista: TDataSource;
+    FOrigenAnterior: TDataSource;
+    FEditorLista: TcxLookupComboBox;
     FDetalles: TDataSet;
     FLookupBasicos: TDataSet;
     FSkus: TDataSet;
@@ -54,14 +66,18 @@ type
       const AGestor: IGestorAtributosBasicosSku;
       const AUsuario: string;
       const ACambiarActivoSkusColor: TCambiarActivoSkusColor);
+    destructor Destroy; override;
+    procedure GuardarCambios;
+    procedure CancelarCambios;
+    procedure MostrarBasicoPendiente(const AVariacion, AValor: string;
+      var ATexto: string);
     procedure MostrarFuente(var ATexto: string);
     procedure CambiarNombre(ASender: TObject);
     procedure CambiarValorNumerico(ASender: TObject);
     procedure CambiarUnidad(ASender: TObject);
     procedure CambiarDescripcion(ASender: TObject);
-    procedure CambiarBasico(ASender: TObject);
     procedure PrepararListaBasicos(AProperties: TcxLookupComboBoxProperties);
-    procedure AbrirDesplegableBasico;
+    procedure AbrirDesplegableBasico(AEditor: TcxLookupComboBox = nil);
     procedure CerrarDesplegableBasico;
     procedure ValidarBasico(var ADisplayValue: Variant;
       var AErrorText: TCaption; var AError: Boolean);
@@ -97,12 +113,52 @@ begin
     raise EArgumentNilException.Create('ADetalles');
   if not Assigned(AGestor) then
     raise EArgumentNilException.Create('AGestor');
+  FCambios := TDictionary<string, TCambioBasicoPendiente>.Create;
+  FListaBasicos := TClientDataSet.Create(nil);
+  FOrigenLista := TDataSource.Create(nil);
+  FOrigenLista.DataSet := FListaBasicos;
   FDetalles := ADetalles;
   FLookupBasicos := ALookupBasicos;
   FSkus := ASkus;
   FGestor := AGestor;
   FUsuario := AUsuario;
   FCambiarActivoSkusColor := ACambiarActivoSkusColor;
+end;
+
+destructor TPresentadorAtributosBasicosArticulo.Destroy;
+begin
+  FOrigenLista.Free;
+  FListaBasicos.Free;
+  FCambios.Free;
+  inherited;
+end;
+
+procedure TPresentadorAtributosBasicosArticulo.GuardarCambios;
+var
+  Cambio: TCambioBasicoPendiente;
+begin
+  if FCambios.Count > 0 then
+  begin
+    for Cambio in FCambios.Values do
+      FGestor.GuardarOverride(Cambio.Contexto, Cambio.IdBasico);
+    FCambios.Clear;
+    if HayDetalleActivo then
+      RefrescarTrasEdicion;
+  end;
+end;
+
+procedure TPresentadorAtributosBasicosArticulo.CancelarCambios;
+begin
+  FCambios.Clear;
+end;
+
+procedure TPresentadorAtributosBasicosArticulo.MostrarBasicoPendiente(
+  const AVariacion, AValor: string; var ATexto: string);
+var
+  Cambio: TCambioBasicoPendiente;
+begin
+  if FCambios.TryGetValue(AVariacion + #9 + AValor, Cambio) then
+    ATexto := Cambio.Codigo;
 end;
 
 function TPresentadorAtributosBasicosArticulo.HayDetalleActivo: Boolean;
@@ -300,30 +356,6 @@ begin
   end;
 end;
 
-procedure TPresentadorAtributosBasicosArticulo.CambiarBasico(
-  ASender: TObject);
-// La eleccion en el SKU es un override por articulo. Si el usuario limpia
-// el lookup se guarda un bloqueo explicito con ID_ATB_AAB nulo para que no
-// reaparezca un valor heredado.
-var
-  oContexto: TContextoAtributoBasicoSku;
-  oIdBasico: TEnteroOpcional;
-  vNuevo: Variant;
-begin
-  if ObtenerContextoActual(oContexto) then
-  begin
-    vNuevo := (ASender as TcxCustomEdit).EditingValue;
-    if VarIsNull(vNuevo) or (VarToStr(vNuevo) = '') then
-      oIdBasico := EnteroNulo
-    else
-      oIdBasico := EnteroConValor(Integer(vNuevo));
-    FGestor.GuardarOverride(oContexto, oIdBasico);
-    if FDetalles.State in [dsEdit, dsInsert] then
-      FDetalles.Cancel;
-    FDetalles.Refresh;
-  end;
-end;
-
 procedure TPresentadorAtributosBasicosArticulo.PrepararListaBasicos(
   AProperties: TcxLookupComboBoxProperties);
 // La lista (columnas en el DFM) solo muestra el código y el cuadradito de
@@ -333,37 +365,55 @@ begin
     MostrarMuestraPaletaEnLista(AProperties.ListColumns, 'HEX_ATB');
 end;
 
-procedure TPresentadorAtributosBasicosArticulo.AbrirDesplegableBasico;
-// Filtramos el lookup por ID_VA_ATB para que un atributo CO solo vea
-// basicos de color, uno TAL solo tallas, etc.
+procedure TPresentadorAtributosBasicosArticulo.AbrirDesplegableBasico(
+  AEditor: TcxLookupComboBox);
 var
-  sIdVariacion: string;
+  Marca: TBookmark;
 begin
-  if (FLookupBasicos <> nil) and HayDetalleActivo then
+  if Assigned(AEditor) and Assigned(FLookupBasicos) and
+     FLookupBasicos.Active and HayDetalleActivo then
   begin
-    sIdVariacion := FDetalles.FieldByName('ID_VA_AV').AsString;
-    if sIdVariacion = '' then
-    begin
-      FLookupBasicos.Filter := '';
-      FLookupBasicos.Filtered := False;
-    end
-    else
-    begin
-      FLookupBasicos.Filter := 'ID_VA_ATB = ' + QuotedStr(sIdVariacion);
-      FLookupBasicos.Filtered := True;
+    FListaBasicos.Close;
+    FListaBasicos.FieldDefs.Clear;
+    FListaBasicos.FieldDefs.Add('ID_ATB', ftInteger);
+    FListaBasicos.FieldDefs.Add('ID_VA_ATB', ftString, 30);
+    FListaBasicos.FieldDefs.Add('CODIGO_ATB', ftString, 100);
+    FListaBasicos.FieldDefs.Add('HEX_ATB', ftString, 20);
+    FListaBasicos.CreateDataSet;
+    Marca := FLookupBasicos.GetBookmark;
+    FLookupBasicos.DisableControls;
+    try
+      FLookupBasicos.First;
+      while not FLookupBasicos.Eof do
+      begin
+        if SameText(FLookupBasicos.FieldByName('ID_VA_ATB').AsString,
+          FDetalles.FieldByName('ID_VA_AV').AsString) then
+          FListaBasicos.AppendRecord([
+            FLookupBasicos.FieldByName('ID_ATB').Value,
+            FLookupBasicos.FieldByName('ID_VA_ATB').Value,
+            FLookupBasicos.FieldByName('CODIGO_ATB').Value,
+            FLookupBasicos.FieldByName('HEX_ATB').Value]);
+        FLookupBasicos.Next;
+      end;
+    finally
+      if FLookupBasicos.BookmarkValid(Marca) then
+        FLookupBasicos.GotoBookmark(Marca);
+      FLookupBasicos.FreeBookmark(Marca);
+      FLookupBasicos.EnableControls;
     end;
+    FListaBasicos.First;
+    FEditorLista := AEditor;
+    FOrigenAnterior := AEditor.Properties.ListSource;
+    AEditor.Properties.ListSource := FOrigenLista;
   end;
 end;
 
 procedure TPresentadorAtributosBasicosArticulo.CerrarDesplegableBasico;
-// Si el filtro se queda puesto, la grilla no resuelve el CODIGO_ATB de las
-// filas de otro tipo y la columna "Basico" se ve vacia.
 begin
-  if (FLookupBasicos <> nil) and FLookupBasicos.Filtered then
-  begin
-    FLookupBasicos.Filter := '';
-    FLookupBasicos.Filtered := False;
-  end;
+  if Assigned(FEditorLista) then
+    FEditorLista.Properties.ListSource := FOrigenAnterior;
+  FEditorLista := nil;
+  FOrigenAnterior := nil;
 end;
 
 procedure TPresentadorAtributosBasicosArticulo.ValidarBasico(
@@ -376,6 +426,7 @@ var
   sTexto: string;
   sCodigoExistente: string;
   sCodigoNuevo: string;
+  Cambio: TCambioBasicoPendiente;
   eAmbito: TAmbitoAtributoBasico;
   oContexto: TContextoAtributoBasicoSku;
 begin
@@ -399,6 +450,38 @@ begin
     begin
       AError := True;
       AErrorText := 'Sin asignar.';
+    end;
+  end;
+  if not AError and ObtenerContextoActual(oContexto) then
+  begin
+    Cambio.Contexto := oContexto;
+    Cambio.Codigo := Trim(VarToStr(ADisplayValue));
+    Cambio.IdBasico := EnteroNulo;
+    if Cambio.Codigo <> '' then
+    begin
+      if Assigned(FLookupBasicos) and FLookupBasicos.Locate(
+        'ID_VA_ATB;CODIGO_ATB',
+        VarArrayOf([oContexto.IdVariacion, Cambio.Codigo]),
+        [loCaseInsensitive]) then
+        Cambio.IdBasico := EnteroConValor(
+          FLookupBasicos.FieldByName('ID_ATB').AsInteger)
+      else
+      begin
+        AError := True;
+        AErrorText := 'Sin asignar.';
+      end;
+    end;
+    if not AError then
+    begin
+      FCambios.AddOrSetValue(oContexto.IdVariacion + #9 +
+        oContexto.ValorAtributo, Cambio);
+      if FDetalles.State in [dsEdit, dsInsert] then
+        FDetalles.Cancel;
+      FDetalles.Refresh;
+      if Cambio.IdBasico.TieneValor then
+        ADisplayValue := Cambio.IdBasico.Valor
+      else
+        ADisplayValue := Null;
     end;
   end;
 end;

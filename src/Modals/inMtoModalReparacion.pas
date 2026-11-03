@@ -105,9 +105,9 @@ uses
   inLibTrabajosCortinas, inMtoModalMedidasCliente;
 
 const
-  ANCHO_ROTULO = 150;
+  ANCHO_ROTULO = 200;
   ANCHO_EDITOR = 250;
-  ANCHO_COLUMNA = 420;
+  ANCHO_COLUMNA = 470;
   ALTO_FILA = 30;
   MARGEN = 12;
   FILAS = 14;

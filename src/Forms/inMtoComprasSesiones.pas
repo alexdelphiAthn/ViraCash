@@ -753,7 +753,8 @@ begin
   FEditorSeleccionPendiente := nil;
   if (Editor <> nil) and not (csDestroying in ComponentState) and
      tvLineas.Controller.EditingController.IsEditing and
-     (tvLineas.Controller.EditingController.Edit = Editor) then
+     (tvLineas.Controller.EditingController.Edit = Editor) and
+     not Editor.ModifiedAfterEnter then
     SeleccionarTodoEnEditor(Editor);
   AMensaje.Result := 0;
 end;
@@ -2701,7 +2702,9 @@ begin
   SeleccionarTodoEnEditor(AEdit);
   // Con raton el grid entrega el clic al editor despues de este evento y
   // el clic coloca el cursor: se repite la seleccion cuando ya se ha
-  // procesado. Al destruir la ventana Windows descarta el mensaje.
+  // procesado, salvo si ya se ha tecleado: seleccionarlo entonces
+  // sustituiria la primera letra con la siguiente (FZ-ISSUE-836).
+  // Al destruir la ventana Windows descarta el mensaje.
   FEditorSeleccionPendiente := AEdit;
   PostMessage(Handle, WM_SELECCIONAR_CELDA_SESION, 0, 0);
   // 'Modelo prov.': si el editor es el desplegable de busqueda

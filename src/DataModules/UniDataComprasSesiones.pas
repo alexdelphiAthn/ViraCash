@@ -296,6 +296,7 @@ type
 implementation
 
 uses
+  UniDataComprasSesionesOperaciones,
   System.Variants,
   inLibValoresAutomaticos, UniDataValoresAutomaticosRepositorio,
   inLibCodigosSinBarra,
@@ -1559,11 +1560,19 @@ begin
 end;
 
 procedure TdmComprasSesiones.unqrySesionLinBeforePost(DataSet: TDataSet);
+var
+  LineaRepetida: Integer;
 begin
   inherited;
   PrepararLineaSesionParaPost(DataSet);
   NormalizarClasificacionLineaSesion;
   MarcarDuplicadoLineaSesion;
+  LineaRepetida := BuscarColorRepetidoSesion(ConexionPrincipal,
+    unqryTablaG.FieldByName('SERIE_SES').AsString,
+    unqryTablaG.FieldByName('NUMERO_SES').AsString, DataSet);
+  if LineaRepetida > 0 then
+    raise EValidacionBBDD.Create(Format(
+      SErrorColorRepetidoSesion, [LineaRepetida]));
   if not FImportacionMasiva then
     CalcularTotalesLineaActual;
   unqrySesionLin.FieldByName('USUARIO_MODIF').AsString :=

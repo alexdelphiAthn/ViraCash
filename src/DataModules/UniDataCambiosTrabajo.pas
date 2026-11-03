@@ -235,28 +235,34 @@ function TRepositorioCambiosTrabajo.Aplicar(const ACambio: TCambioTrabajo;
   AOriginal: TUniQuery): Int64;
 var
   oConsulta: TUniQuery;
+  bSinEjecutor: Boolean;
 begin
   Result := ACambio.Linea;
+  bSinEjecutor :=
+    (Trim(AOriginal.FieldByName('CODIGO_EMPL_GARLIN').AsString) = '') and
+    (Trim(AOriginal.FieldByName('CODIGO_PRV_GARLIN').AsString) = '');
   // Recuperar trabajos que versiones anteriores dejaron iniciar sin
   // responsable. Se conserva el inicio y se audita la asignación;
   // ExigirLineaOrdenEditable impide alterar ejecución documentada.
   if not ACambio.Repetir and
      (AOriginal.FieldByName('FECHA_INICIO_GARLIN').IsNull or
-      ((Trim(AOriginal.FieldByName('CODIGO_EMPL_GARLIN').AsString) = '') and
-       (Trim(AOriginal.FieldByName('CODIGO_PRV_GARLIN').AsString) = ''))) then
+      bSinEjecutor) then
   begin
     ExigirLineaOrdenEditable(FConexion, ACambio.Linea, False);
-    if (ACambio.CosteAdicional <> 0) or
-       (ACambio.Cantidad <>
-        AOriginal.FieldByName('CANTIDAD_GARLIN').AsCurrency) then
+    if ACambio.Cantidad <>
+       AOriginal.FieldByName('CANTIDAD_GARLIN').AsCurrency then
+      raise EArgumentException.Create(SCambioTrabajoConservarCantidad);
+    if (ACambio.CosteAdicional <> 0) and not bSinEjecutor then
       raise EArgumentException.Create(SCambioTrabajoCostePrevio);
     oConsulta := Consulta('UPDATE fza_garantias_lineas ' +
       'SET TIPO_EJECUTOR_GARLIN=:TIPO,' +
       'CODIGO_EMPL_GARLIN=IF(:TIPO=''OPERARIO'',:EJECUTOR,NULL),' +
       'CODIGO_PRV_GARLIN=IF(:TIPO=''EXTERNO'',:EJECUTOR,NULL),' +
+      'PRECIO_COSTE_GARLIN=PRECIO_COSTE_GARLIN+:COSTE/CANTIDAD_GARLIN,' +
       'INSTANTE_MODIF=NOW(6),USUARIO_MODIF=:USUARIO WHERE ID_GARLIN=:ID');
     oConsulta.ParamByName('TIPO').AsString := ACambio.TipoEjecutor;
     oConsulta.ParamByName('EJECUTOR').AsString := ACambio.Ejecutor;
+    oConsulta.ParamByName('COSTE').AsCurrency := ACambio.CosteAdicional;
   end
   else
   begin

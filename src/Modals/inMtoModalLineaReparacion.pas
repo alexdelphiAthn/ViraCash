@@ -72,7 +72,7 @@ uses
   System.SysUtils, cxLabel, inLibMsgReparaciones, inLibMensajesVcl;
 
 const
-  ANCHO_ROTULO = 150;
+  ANCHO_ROTULO = 200;
   ANCHO_EDITOR = 300;
   ALTO_FILA = 32;
   MARGEN = 12;

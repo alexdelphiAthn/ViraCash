@@ -17,6 +17,15 @@ procedure ValidarCambioTrabajo(const ACambio: TCambioTrabajo);
 
 resourcestring
   SCambioTrabajoTitulo = 'Reasignar o repetir trabajo';
+  SCambioTrabajoAsignar = 'Asignar ejecutor al trabajo';
+  SCambioTrabajoCantidadActual = 'Cantidad del trabajo';
+  SCambioTrabajoCosteActual = 'Coste adicional TOTAL del trabajo';
+  SCambioTrabajoConservarCantidad =
+    'Al asignar el ejecutor, conserve la cantidad del trabajo.';
+  SCambioTrabajoConfirmarAsignacion =
+    'Se asignará el ejecutor en el mismo trabajo, sin duplicarlo. ' +
+    'Coste adicional: %s. Coste total resultante: %s. ' +
+    'El importe del cliente se mantiene. ¿Confirma el cambio?';
   SCambioTrabajoReasignar = 'Reasignar';
   SCambioTrabajoRepetir = 'Repetir';
   SCambioTrabajoMotivo = 'Motivo del cambio';

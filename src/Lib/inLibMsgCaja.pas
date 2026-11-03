@@ -16,6 +16,12 @@ unit inLibMsgCaja;
 interface
 
 resourcestring
+  SErrorArqueoRangoNoCalculado =
+    'Las fechas han cambiado. Pulse Calc y revise el recuento ' +
+    'antes de cerrar.';
+  SErrorArqueoPendientesAnteriores =
+    'Puede consultar este período, pero quedan operaciones anteriores ' +
+    'sin cerrar. Amplíe la fecha de inicio y pulse Calc antes de cerrar.';
   SCaptionViajeHojaRuta = 'Viaje';
   SCaptionAlbaranHojaRuta = 'Albarán de entrega';
   SErrorSeleccionViajeHojaRuta =
@@ -699,8 +705,7 @@ resourcestring
   SPreguntaGrabarArqueoCaja =
     'Se va a grabar el arqueo con los importes recontados.' + sLineBreak +
     'Periodo: %s - %s' + sLineBreak +
-    'Se marcarán las operaciones pendientes hasta el fin indicado,' +
-    sLineBreak + 'incluidas las anteriores al inicio del periodo.' +
+    'Se cerrarán las operaciones pendientes del período indicado.' +
     sLineBreak +
     sLineBreak + '¿Desea continuar?';
   STituloConfirmarArqueoCaja =

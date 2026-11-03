@@ -714,9 +714,9 @@
                       Properties.ListOptions.ShowHeader = False
                       Properties.ListSource = dmArticulos.dsAtributosBasicosLookup
                       Properties.OnCloseUp = tvSkuAtributosBasicosID_ATB_AVPropertiesCloseUp
-                      Properties.OnEditValueChanged = tvSkuAtributosBasicosID_ATB_AVPropertiesEditValueChanged
                       Properties.OnInitPopup = tvSkuAtributosBasicosID_ATB_AVPropertiesInitPopup
                       Properties.OnValidate = tvSkuAtributosBasicosID_ATB_AVPropertiesValidate
+                      OnGetDisplayText = MostrarBasicoPendiente
                       Width = 190
                     end
                     object tvSkuAtributosBasicosDESCRIPCION_AAB: TcxGridDBColumn
