@@ -115,6 +115,7 @@ type
     procedure AplicarSistemaDeLaCelda(AEditor: TcxCustomEdit);
     function BuscarSistemaPorTexto(const ATexto: string): Integer;
     procedure ConfirmarSistemaTecleado(AEditor: TcxCustomEdit);
+    function ConfirmarSistemaConEnter(AEditor: TcxCustomEdit): Boolean;
     procedure ValidarSistemaTecleado(Sender: TObject;
       var DisplayValue: TcxEditValue; var ErrorText: TCaption;
       var Error: Boolean);
@@ -340,7 +341,7 @@ begin
 end;
 
 // La columna esta ligada al ID_AC: el combo muestra NOMBRE_AC y
-// despliega Sistema / Desde / Hasta. Teclear busca por nombre.
+// despliega Sistema / Desde / Hasta. Busca por nombre y acepta codigo o ID.
 procedure TCoordinadorTallasSesion.ConfigurarComboSistema;
 var
   Propiedades: TcxLookupComboBoxProperties;
@@ -848,12 +849,13 @@ function TCoordinadorTallasSesion.BuscarSistemaPorTexto(
 var
   Marca: TBookmark;
   Nombre, Codigo, Texto: string;
-  Coincidencias, Exacto, Separador, Numero: Integer;
+  Coincidencias, Exacto, Separador, Numero, PorId: Integer;
   BuscarPrefijo: Boolean;
 begin
   Result := 0;
   Coincidencias := 0;
   Exacto := 0;
+  PorId := 0;
   Texto := Trim(ATexto);
   // Una cifra suelta no debe elegir un rango de tallas por su comienzo.
   BuscarPrefijo := not TryStrToInt(Texto, Numero);
@@ -870,6 +872,9 @@ begin
         Codigo := Copy(Nombre, 1, Separador - 1);
       if SameText(Texto, Nombre) or SameText(Texto, Codigo) then
         Exacto := FConjuntos.FieldByName('ID_AC').AsInteger;
+      if not BuscarPrefijo and
+         (Numero = FConjuntos.FieldByName('ID_AC').AsInteger) then
+        PorId := Numero;
       if BuscarPrefijo and (StartsText(Texto, Nombre) or
          ((Separador > 0) and
           StartsText(Texto, Copy(Nombre, Separador + 3, MaxInt)))) then
@@ -881,6 +886,8 @@ begin
     end;
     if Exacto > 0 then
       Result := Exacto
+    else if PorId > 0 then
+      Result := PorId
     else if Coincidencias <> 1 then
       Result := 0;
   finally
@@ -937,6 +944,35 @@ begin
         AplicarSistemaElegido(AEditor, Sistema);
       finally
         FAplicandoSistema := False;
+      end;
+    end;
+  end;
+end;
+
+// Resolver antes de cerrar la lista: su candidato puede ser otro sistema.
+// Sin texto nuevo, Enter conserva la eleccion hecha con las flechas.
+function TCoordinadorTallasSesion.ConfirmarSistemaConEnter(
+  AEditor: TcxCustomEdit): Boolean;
+var
+  Texto, NombreActual: string;
+  Numero: Integer;
+begin
+  Result := False;
+  if Assigned(AEditor) and not FAplicandoSistema and
+     not EsLineaReusada then
+  begin
+    Texto := Trim(TDesplegableAcceso(AEditor).Text);
+    NombreActual := VarToStr(FConjuntos.Lookup('ID_AC',
+      AEditor.EditValue, 'NOMBRE_AC'));
+    if (Texto <> '') and not SameText(Texto, NombreActual) then
+    begin
+      // Una descripcion parcial sigue permitiendo elegir en la lista.
+      // Un numero debe existir; no se acepta un rango que lo contenga.
+      if (BuscarSistemaPorTexto(Texto) > 0) or
+         TryStrToInt(Texto, Numero) then
+      begin
+        ConfirmarSistemaTecleado(AEditor);
+        Result := True;
       end;
     end;
   end;
@@ -1234,6 +1270,12 @@ begin
   // elegir (con el raton si elegia). Con la lista abierta se acepta aqui
   // el sistema marcado y el grid no se mueve.
   if (AItem = FEntorno.ColumnaSelector) and (AKey = VK_RETURN) and
+     (AShift = []) and ConfirmarSistemaConEnter(AEdit) then
+  begin
+    AKey := 0;
+    Result := True;
+  end
+  else if (AItem = FEntorno.ColumnaSelector) and (AKey = VK_RETURN) and
      (AShift = []) and (AEdit is TcxCustomDropDownEdit) and
      TcxCustomDropDownEdit(AEdit).DroppedDown then
   begin
@@ -1300,7 +1342,13 @@ begin
   if (Columna = FEntorno.ColumnaSelector) and (AKey = VK_TAB) and
      ((AShift = []) or (AShift = [ssShift])) then
     ConfirmarSistemaTecleado(Editor);
-  if (Columna = FEntorno.ColumnaSelector) and (not bDesplegado) and
+  if (Columna = FEntorno.ColumnaSelector) and (AKey = VK_RETURN) and
+     (AShift = []) and ConfirmarSistemaConEnter(Editor) then
+  begin
+    AKey := 0;
+    Result := True;
+  end
+  else if (Columna = FEntorno.ColumnaSelector) and (not bDesplegado) and
      DebeDesplegarSelector(AKey, AShift, Editor) then
   begin
     Editor := EditorActivo;
