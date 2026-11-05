@@ -46,12 +46,24 @@ function MessageDlg_fza(const AMensaje: string; ATipo: TMsgDlgType;
 function MessageDlg_fza(const AMensaje: string; ATipo: TMsgDlgType;
   ABotones: TMsgDlgButtons; AContextoAyuda: Longint;
   ABotonPorDefecto: TMsgDlgBtn): Integer; overload;
+// Propietario explícito para confirmaciones sobre otro modal.
+function MessageDlg_fza(AOwner: TComponent; const AMensaje: string;
+  ATipo: TMsgDlgType; ABotones: TMsgDlgButtons;
+  AContextoAyuda: Longint): Integer; overload;
+function MessageDlg_fza(AOwner: TComponent; const AMensaje: string;
+  ATipo: TMsgDlgType; ABotones: TMsgDlgButtons;
+  AContextoAyuda: Longint; ABotonPorDefecto: TMsgDlgBtn): Integer;
+  overload;
 // Como MessageDlg_fza, con otro texto en los botones: ATextos va en el
 // orden de TMsgDlgBtn (el de izquierda a derecha); un texto vacío deja el
 // de la VCL. Los botones se ensanchan lo que pida su texto.
 function MessageDlgTextos_fza(const AMensaje: string; ATipo: TMsgDlgType;
   ABotones: TMsgDlgButtons; const ATextos: array of string;
-  ABotonPorDefecto: TMsgDlgBtn): Integer;
+  ABotonPorDefecto: TMsgDlgBtn): Integer; overload;
+function MessageDlgTextos_fza(AOwner: TComponent;
+  const AMensaje: string; ATipo: TMsgDlgType; ABotones: TMsgDlgButtons;
+  const ATextos: array of string; ABotonPorDefecto: TMsgDlgBtn): Integer;
+  overload;
 // Sustituto de Application.MessageBox: indicadores MB_OK, MB_YESNO,
 // MB_ICONINFORMATION, MB_DEFBUTTON2... y resultados IDOK, IDYES, IDNO...
 function MessageBox_fza(const ATexto, ATitulo: string;
@@ -393,6 +405,26 @@ begin
     AMensaje, ATipo, ABotones, ABotonPorDefecto, AContextoAyuda));
 end;
 
+function MessageDlg_fza(AOwner: TComponent; const AMensaje: string;
+  ATipo: TMsgDlgType; ABotones: TMsgDlgButtons;
+  AContextoAyuda: Longint): Integer;
+begin
+  Result := MessageDlg_fza(AOwner, AMensaje, ATipo, ABotones,
+    AContextoAyuda, BotonPorDefectoDeBotones(ABotones));
+end;
+
+function MessageDlg_fza(AOwner: TComponent; const AMensaje: string;
+  ATipo: TMsgDlgType; ABotones: TMsgDlgButtons;
+  AContextoAyuda: Longint; ABotonPorDefecto: TMsgDlgBtn): Integer;
+var
+  oDialogo: TForm;
+begin
+  oDialogo := CrearDialogo(
+    AMensaje, ATipo, ABotones, ABotonPorDefecto, AContextoAyuda);
+  AsociarVentanaPropietaria(oDialogo, AOwner);
+  Result := MostrarDialogo(oDialogo);
+end;
+
 // CreateMessageDialog crea los botones en el orden de TMsgDlgBtn y los
 // coloca de izquierda a derecha, todos del mismo ancho y centrados.
 procedure PonerTextosBotones(ADialogo: TForm;
@@ -435,11 +467,20 @@ end;
 function MessageDlgTextos_fza(const AMensaje: string; ATipo: TMsgDlgType;
   ABotones: TMsgDlgButtons; const ATextos: array of string;
   ABotonPorDefecto: TMsgDlgBtn): Integer;
+begin
+  Result := MessageDlgTextos_fza(nil, AMensaje, ATipo, ABotones,
+    ATextos, ABotonPorDefecto);
+end;
+
+function MessageDlgTextos_fza(AOwner: TComponent;
+  const AMensaje: string; ATipo: TMsgDlgType; ABotones: TMsgDlgButtons;
+  const ATextos: array of string; ABotonPorDefecto: TMsgDlgBtn): Integer;
 var
   oDialogo: TForm;
 begin
   oDialogo := CrearDialogo(AMensaje, ATipo, ABotones, ABotonPorDefecto, 0);
   try
+    AsociarVentanaPropietaria(oDialogo, AOwner);
     PonerTextosBotones(oDialogo, ATextos);
   except
     oDialogo.Free;

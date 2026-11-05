@@ -49,6 +49,11 @@ function NombreScriptComparacion(const AVersion: string): string;
 function CarpetaComparacionActualizacion(
   AConexion: TUniConnection;
   const AVersion: string): string;
+// Cada intento conserva sus propios ejecutable, modelo, salida y script.
+// Reintentar no sobrescribe archivos que siga utilizando el intento previo.
+function CrearCarpetaIntentoComparacion(
+  AConexion: TUniConnection;
+  const AVersion: string): string;
 // Ejecuta DBComparer --modelo contra la base de AConexion y espera a que
 // termine: llamar desde un hilo de trabajo. La contraseña viaja en la
 // variable de entorno DBCOMPARER_PASSWORD, no en la línea de órdenes.
@@ -126,6 +131,16 @@ begin
       CarpetaDescargasActualizacion(AVersion),
       cNombreCarpetaComparacion),
     ClaveCarpetaConexion(AConexion));
+end;
+
+function CrearCarpetaIntentoComparacion(
+  AConexion: TUniConnection;
+  const AVersion: string): string;
+begin
+  Result := TPath.Combine(
+    CarpetaComparacionActualizacion(AConexion, AVersion),
+    'intento_' + TGUID.NewGuid.ToString);
+  TDirectory.CreateDirectory(Result);
 end;
 
 function EntreComillas(const ATexto: string): string;

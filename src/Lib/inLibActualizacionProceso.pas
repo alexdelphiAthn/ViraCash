@@ -30,7 +30,8 @@ type
   TModoPantallaActualizacion = (
     mpaComprobar,
     mpaAplicarPendientes,
-    mpaRevertir);
+    mpaRevertir,
+    mpaCompararModelo);
 
   TDecisionScriptsActualizacion = (
     dsaAplazar,
@@ -130,6 +131,9 @@ function ComprobarEInstalarActualizacion(
   const AContexto: TContextoActualizacion;
   const AInteraccion: TInteraccionActualizacion;
   AAlArrancar: Boolean = False): TResultadoActualizacion;
+function CompararBaseConModeloPublicado(
+  const AContexto: TContextoActualizacion;
+  const AInteraccion: TInteraccionActualizacion): TResultadoActualizacion;
 function AplicarScriptsPendientesActualizacion(
   AConexion: TUniConnection;
   const AInteraccion: TInteraccionActualizacion): TResultadoActualizacion;
@@ -186,7 +190,6 @@ begin
     Tarea,
     procedure
     begin
-      AtenderMinimizarYRestaurar;
       if Assigned(AVigilar) then
         AVigilar();
     end);
@@ -838,7 +841,7 @@ begin
       AInteraccion,
       SInfoComprobandoScriptsAplicados);
     try
-      // Si no se puede volver a mirar, queda lo que dijo la tanda.
+      // No dar por completada una actualización sin poder verificarla.
       if ConsultarFaltantes(
            AContexto,
            AManifiesto,
@@ -870,6 +873,12 @@ begin
             AError := sError;
           end;
         end;
+      end
+      else
+      begin
+        AOk := False;
+        ACancelado := bCancelado;
+        AError := sError;
       end;
     finally
       CerrarVentanaEspera(Ventana);
@@ -934,12 +943,11 @@ begin
     AError := Format(SErrorComparacionNoPublicada, [AManifiesto.Version])
   else
   begin
-    // Cada base compara en su carpeta: con dos programas abiertos contra
-    // bases distintas, uno borraba el script que el otro iba a aplicar.
-    sCarpeta := CarpetaComparacionActualizacion(
+    // Aislar también los reintentos de una misma base: el ejecutable o
+    // la salida anterior pueden seguir abiertos en el propio proceso.
+    sCarpeta := CrearCarpetaIntentoComparacion(
       AContexto.Conexion,
       AManifiesto.Version);
-    TDirectory.CreateDirectory(sCarpeta);
     sModelo := TPath.Combine(sCarpeta, AManifiesto.Modelo.Nombre);
     sComparador := TPath.Combine(sCarpeta, AManifiesto.Comparador.Nombre);
     sScript := TPath.Combine(
@@ -1053,7 +1061,8 @@ procedure AplicarFaltantesSinInstalacion(
   const AInteraccion: TInteraccionActualizacion;
   const AFaltantes: TArray<TScriptFaltante>;
   var AEstado: TEstadoActualizacion;
-  var AResultado: TResultadoActualizacion);
+  var AResultado: TResultadoActualizacion;
+  ACompararDirectamente: Boolean = False);
 var
   bCancelado: Boolean;
   Decision: TDecisionScriptsActualizacion;
@@ -1061,7 +1070,11 @@ var
 begin
   AResultado.Ok := True;
   bCancelado := False;
-  Decision := DecidirAplicacion(AInteraccion, AManifiesto, AFaltantes, False);
+  if ACompararDirectamente then
+    Decision := dsaComparacion
+  else
+    Decision := DecidirAplicacion(
+      AInteraccion, AManifiesto, AFaltantes, False);
   if Decision = dsaAplazar then
     AResultado.Mensaje := MensajeScriptsSinAplicar(
       False,
@@ -1116,12 +1129,64 @@ begin
         AResultado.Mensaje := SInfoScriptsPendientesAplicados;
     end;
   end;
-  if AEstado.HayScriptsPendientes then
+  if AEstado.HayScriptsPendientes or not AResultado.Ok or
+     AResultado.Cancelado then
     AEstado.Estado := cEstadoActualizacionPendiente
   else
     AEstado.Estado := cEstadoActualizacionCompletada;
   if not GuardarEstadoActualizacion(AEstado, sError) then
     AResultado.Mensaje := AResultado.Mensaje + sLineBreak + sError;
+end;
+
+function PrepararEstadoDeLaBase(
+  const AContexto: TContextoActualizacion;
+  const AManifiesto: TManifiestoActualizacion): TEstadoActualizacion;
+begin
+  Result := EstadoParaScriptsSinInstalacion(
+    LeerEstadoActualizacion, AContexto.VersionInstalada,
+    AManifiesto.Version, AManifiesto.Arquitectura);
+  if not Result.CorrespondeABase(AContexto.Conexion.Server,
+       AContexto.Conexion.Port, AContexto.Conexion.Database) then
+  begin
+    Result.Aplicados := nil;
+    Result.RutaCopiaPrevia := '';
+  end;
+  Result.ServidorBase := AContexto.Conexion.Server;
+  Result.PuertoBase := AContexto.Conexion.Port;
+  Result.NombreBase := AContexto.Conexion.Database;
+  Result.Instante := FormatDateTime('yyyy-mm-dd hh:nn:ss', Now);
+end;
+
+function CompararBaseConModeloPublicado(
+  const AContexto: TContextoActualizacion;
+  const AInteraccion: TInteraccionActualizacion): TResultadoActualizacion;
+var
+  Manifiesto: TManifiestoActualizacion;
+  Estado: TEstadoActualizacion;
+begin
+  Result := Default(TResultadoActualizacion);
+  if not AInteraccion.Completa or
+     not Assigned(AInteraccion.ConfirmarScriptComparacion) then
+    raise EArgumentException.Create(SErrorInteraccionActualizacionIncompleta);
+  Manifiesto := AContexto.Servicio.ConsultarUltima(
+    AContexto.VersionInstalada);
+  Result.Version := Manifiesto.Version;
+  if not Manifiesto.Ok then
+    Result.Mensaje := Manifiesto.Mensaje
+  else if not Manifiesto.HayVersion then
+    Result.Mensaje := SInfoSinVersionesPublicadas
+  else if not Manifiesto.ComparacionDisponible then
+    Result.Mensaje := Format(SErrorComparacionNoPublicada,
+      [Manifiesto.Version])
+  else
+  begin
+    // No ejecutar el comprobador contra un esquema todavía antiguo.
+    // Se vuelve a comprobar después de aplicar el modelo, con copia
+    // previa y confirmación explícita del script generado.
+    Estado := PrepararEstadoDeLaBase(AContexto, Manifiesto);
+    AplicarFaltantesSinInstalacion(AContexto, Manifiesto,
+      AInteraccion, nil, Estado, Result, True);
+  end;
 end;
 
 { No hay versión nueva que instalar, pero la base de datos puede seguir
@@ -1180,22 +1245,8 @@ begin
       begin
         // El estado que hubiera se conserva: aquí no se sustituye ningún
         // ejecutable, así que no hay por qué perder con qué revertir.
-        Estado := EstadoParaScriptsSinInstalacion(
-          LeerEstadoActualizacion,
-          AContexto.VersionInstalada,
-          AManifiesto.Version,
-          AManifiesto.Arquitectura);
+        Estado := PrepararEstadoDeLaBase(AContexto, AManifiesto);
         Estado.RutaComprobacion := sRutaComprobacion;
-        if not Estado.CorrespondeABase(AContexto.Conexion.Server,
-             AContexto.Conexion.Port, AContexto.Conexion.Database) then
-        begin
-          Estado.Aplicados := nil;
-          Estado.RutaCopiaPrevia := '';
-        end;
-        Estado.ServidorBase := AContexto.Conexion.Server;
-        Estado.PuertoBase := AContexto.Conexion.Port;
-        Estado.NombreBase := AContexto.Conexion.Database;
-        Estado.Instante := FormatDateTime('yyyy-mm-dd hh:nn:ss', Now);
         bDescargados := DescargarScriptsFaltantes(
           AContexto,
           AManifiesto,

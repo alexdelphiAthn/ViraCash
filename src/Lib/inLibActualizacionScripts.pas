@@ -56,6 +56,7 @@ uses
   System.IOUtils,
   System.SyncObjs,
   System.SysUtils,
+  Data.DB,
   UniScript,
   inLibMsgIntegraciones;
 
@@ -76,6 +77,7 @@ type
     FSql: string;
     FUltimoCorte: UInt64;
     procedure AnotarConsulta(AConsulta: TUniQuery);
+    function ComprobarDatos(const ASql: string): Boolean;
   public
     constructor Create(
       AConexion: TUniConnection;
@@ -141,6 +143,28 @@ begin
   end;
 end;
 
+function TConsultaScriptsFaltantes.ComprobarDatos(
+  const ASql: string): Boolean;
+var
+  oConsulta: TUniQuery;
+begin
+  if Cancelada then
+    raise EAbort.Create(SInfoComprobacionScriptsCancelada);
+  oConsulta := TUniQuery.Create(nil);
+  try
+    oConsulta.Connection := FConexion;
+    oConsulta.SQL.Text := ASql;
+    AnotarConsulta(oConsulta);
+    oConsulta.Open;
+    Result := not oConsulta.IsEmpty and
+      not oConsulta.Fields[0].IsNull and
+      (oConsulta.Fields[0].AsInteger = 1);
+  finally
+    AnotarConsulta(nil);
+    oConsulta.Free;
+  end;
+end;
+
 function TConsultaScriptsFaltantes.Ejecutar(
   out AFaltantes: TArray<TScriptFaltante>;
   out AError: string): Boolean;
@@ -163,8 +187,16 @@ begin
         oConsulta.SQL.Text := FSql;
         AnotarConsulta(oConsulta);
         oConsulta.Open;
-        AFaltantes := LeerScriptsFaltantes(oConsulta);
-        Result := True;
+        // Materializar las filas antes de abrir consultas de datos en
+        // la misma conexion. El lector vuelve a la primera fila.
+        oConsulta.Last;
+        AnotarConsulta(nil);
+        AFaltantes := LeerScriptsFaltantes(oConsulta,
+          function(ASql: string): Boolean
+          begin
+            Result := ComprobarDatos(ASql);
+          end);
+        Result := not Cancelada;
       except
         on E: Exception do
           AError := E.ClassName + ': ' + E.Message;

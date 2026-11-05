@@ -59,6 +59,7 @@ implementation
 
 uses
   inLibMensajesVcl,
+  inLibPosicionFormulario,
   System.SysUtils,
   System.UITypes,
   Vcl.Clipbrd,
@@ -101,6 +102,7 @@ var
 begin
   oDialogo := TfrmModalMensajeTexto.Create(AOwner);
   try
+    AsociarVentanaPropietaria(oDialogo, AOwner);
     // Sin título se queda el del formulario ('Información').
     if ATitulo <> '' then
       oDialogo.Caption := ATitulo;
@@ -123,6 +125,7 @@ var
 begin
   oDialogo := TfrmModalMensajeTexto.Create(AOwner);
   try
+    AsociarVentanaPropietaria(oDialogo, AOwner);
     oDialogo.Caption := ATitulo;
     oDialogo.mTexto.Properties.ReadOnly := False;
     oDialogo.mTexto.Text := ATexto;

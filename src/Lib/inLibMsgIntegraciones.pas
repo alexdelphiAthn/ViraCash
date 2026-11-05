@@ -371,6 +371,13 @@ resourcestring
     'No se conserva la copia previa, así que esos cambios no se pueden ' +
     'deshacer automáticamente.';
   SInfoProcesoActualizacionTerminado = 'Proceso terminado.';
+  SErrorActualizacionDetenida =
+    'La actualización se ha detenido por un error. Puede consultar ' +
+    'el detalle o cerrar esta ventana.';
+  SBotonReintentarActualizacion = 'Reintentar';
+  SBotonCompararModeloActualizacion = 'Comparar con modelo';
+  SBotonDetalleActualizacion = 'Ver detalle';
+  SBotonCerrarActualizacion = 'Cerrar';
   SErrorIntegridadEjecutableActualizado =
     'La huella SHA-256 de %s no coincide con la que publicó la versión ' +
     '%s. El archivo puede estar dañado o haber sido manipulado: ' +
@@ -391,6 +398,9 @@ resourcestring
   SErrorInteraccionActualizacionIncompleta =
     'La pantalla de actualizacion no ha facilitado todas las respuestas ' +
     'que el proceso necesita.';
+  SErrorComprobacionDatosNoDisponible =
+    'El comprobador necesita verificar datos y no dispone del servicio ' +
+    'para hacerlo. Actualice el programa antes de continuar.';
   SPreguntaAplicarScriptsPendientesArranque =
     'La última actualización dejó %d scripts pendientes de aplicar en ' +
     'la base de datos.' + sLineBreak + sLineBreak +

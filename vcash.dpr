@@ -1827,4 +1827,10 @@ begin
       ExitProcess(CodigoSalidaComandoImpresion);
     end;
   end;
+  // Si el login o la integridad impiden el arranque, no se entra en
+  // Application.Run ni en su cierre garantizado. Las tareas usadas por
+  // el actualizador pueden bloquear la finalizacion de System.Threading.
+  // El login y sus conexiones ya se han liberado al llegar aqui.
+  CerrarLogAplicacionSeguro(RegistroLogAplicacion);
+  ExitProcess(Cardinal(System.ExitCode));
 end.

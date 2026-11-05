@@ -24,6 +24,7 @@ uses
   Uni,
   cxGraphics, cxControls, cxLookAndFeels, cxLookAndFeelPainters,
   cxContainer, cxEdit, cxLabel, cxProgressBar,
+  cxButtons,
   inMtoFrmBase,
   inLibActualizacionEstado,
   inLibActualizacionIntf,
@@ -43,8 +44,15 @@ type
     lblTitulo: TcxLabel;
     lblEstado: TcxLabel;
     prgProceso: TcxProgressBar;
+    btnReintentar: TcxButton;
+    btnCompararModelo: TcxButton;
+    btnDetalle: TcxButton;
+    btnCerrar: TcxButton;
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
     procedure FormShow(Sender: TObject);
+    procedure btnReintentarClick(Sender: TObject);
+    procedure btnDetalleClick(Sender: TObject);
+    procedure btnCompararModeloClick(Sender: TObject);
   private
     FAnfitrion: IAnfitrionMantenimiento;
     FContexto: TContextoActualizacion;
@@ -56,6 +64,7 @@ type
     FResultado: TResultadoActualizacion;
     FSolicitarCopiaPrevia: TSolicitarCopiaPreviaActualizacion;
     FAlArrancar: Boolean;
+    FErrorMostrado: Boolean;
     function TextoScriptsFaltantes(
       const AFaltantes: TArray<TScriptFaltante>): string;
     function TextoEstadoReversion(
@@ -69,6 +78,7 @@ type
     function AvisarMotorNoAdmitido(const AVersion: string): Boolean;
     function RevisarMotorBaseDatos: Boolean;
     procedure EjecutarProceso;
+    procedure MostrarErrorProceso;
     procedure MensajeEjecutarActualizacion(
       var AMensaje: TMessage); message cMensajeEjecutarActualizacion;
     procedure WMSysCommand(
@@ -166,6 +176,8 @@ begin
       oFormulario.Progreso);
     oFormulario.ShowModal;
     AResultado := oFormulario.FResultado;
+    if oFormulario.FErrorMostrado then
+      AResultado.Mensaje := '';
     Result := AResultado.Ok;
   finally
     FreeAndNil(oFormulario);
@@ -179,6 +191,10 @@ begin
   // sin clave propia dejaría 'frmBase'. El modo todavía no está asignado,
   // así que el título definitivo se pone en FormShow.
   Caption := STituloComprobarActualizaciones;
+  btnReintentar.Caption := SBotonReintentarActualizacion;
+  btnCompararModelo.Caption := SBotonCompararModeloActualizacion;
+  btnDetalle.Caption := SBotonDetalleActualizacion;
+  btnCerrar.Caption := SBotonCerrarActualizacion;
 end;
 
 procedure TfrmModalActualizacion.Progreso(
@@ -219,7 +235,7 @@ begin
     sTexto := SPreguntaInstalarActualizacionArranque
   else
     sTexto := SPreguntaInstalarActualizacion;
-  Result := MessageDlg_fza(
+  Result := MessageDlg_fza(Self,
     Format(sTexto, [AManifiesto.Version]),
     mtConfirmation,
     [mbYes, mbNo],
@@ -255,7 +271,7 @@ begin
     sPregunta := SPreguntaAplicarScriptsAhora
   else
     sPregunta := SPreguntaAplicarScriptsAhoraMismaVersion;
-  if MessageDlg_fza(
+  if MessageDlg_fza(Self,
        Format(sPregunta, [Length(AFaltantes)]),
        mtWarning,
        [mbYes, mbNo],
@@ -278,7 +294,7 @@ begin
   sSalir := '';
   if AHayVersionNueva then
     sSalir := SAvisoSalirTrasScripts;
-  case MessageDlgTextos_fza(
+  case MessageDlgTextos_fza(Self,
          Format(
            SPreguntaModoActualizacionBBDD,
            [Length(AFaltantes), AVersion, sSalir]),
@@ -316,8 +332,8 @@ begin
     sPregunta := SPreguntaAplicarScriptComparacionConAvisos
   else
     sPregunta := SPreguntaAplicarScriptComparacion;
-  Result := MessageDlg_fza(sPregunta, mtConfirmation, [mbYes, mbNo], 0) =
-    mrYes;
+  Result := MessageDlg_fza(
+    Self, sPregunta, mtConfirmation, [mbYes, mbNo], 0, mbYes) = mrYes;
 end;
 
 // La misma ventana que el generador de procesos: cronómetro, se puede
@@ -331,16 +347,15 @@ begin
     ATitulo);
 end;
 
-// La espera en movimiento de lo que tarda sin poder decir cuánto: mirar
-// qué le falta a la base y las descargas. Vigila la ventana principal: si
-// se minimiza el programa este modal se va con ella y la espera también,
-// en vez de quedarse sola sobre el escritorio; al restaurarlo vuelven.
+// La espera sigue a este modal, que también existe durante el arranque.
+// La ventana principal todavía puede estar oculta: vigilarla escondería
+// la animación y el cronómetro mientras el comparador sigue trabajando.
 function TfrmModalActualizacion.CrearVentanaEsperaPantalla: IVentanaEspera;
 begin
   Result := CrearVentanaEspera(
     Self.BoundsRect,
     Self.CurrentPPI,
-    Application.MainFormHandle);
+    Self.Handle);
 end;
 
 function TfrmModalActualizacion.SolicitarCopiaPrevia(
@@ -349,14 +364,15 @@ begin
   ARutaCopia := '';
   Result := Assigned(FAnfitrion) or Assigned(FSolicitarCopiaPrevia);
   if not Result then
-    MessageDlg_fza(
+    MessageDlg_fza(Self,
       SErrorAnfitrionCopiaPreviaNoDisponible,
       mtError,
       [mbOk],
       0)
   else
   begin
-    MessageDlg_fza(SAvisoCopiaPreviaObligatoria, mtInformation, [mbOk], 0);
+    MessageDlg_fza(Self, SAvisoCopiaPreviaObligatoria,
+      mtInformation, [mbOk], 0);
     if Assigned(FSolicitarCopiaPrevia) then
       Result := FSolicitarCopiaPrevia(ARutaCopia)
     else
@@ -392,7 +408,7 @@ function TfrmModalActualizacion.ConfirmarReversion(
   const AEstado: TEstadoActualizacion): Boolean;
 begin
   TfrmModalMensajeTexto.Mostrar(Self, TextoEstadoReversion(AEstado));
-  Result := MessageDlg_fza(
+  Result := MessageDlg_fza(Self,
     Format(SPreguntaRevertirActualizacion, [AEstado.VersionOrigen]),
     mtWarning,
     [mbYes, mbNo],
@@ -411,13 +427,13 @@ begin
     sTexto := sTexto + sLineBreak + '  ' + ASinRollback[iIndice];
   TfrmModalMensajeTexto.Mostrar(Self, sTexto);
   Result := (Trim(ARutaCopia) <> '') and TFile.Exists(ARutaCopia) and
-    (MessageDlg_fza(
+    (MessageDlg_fza(Self,
        Format(SPreguntaRestaurarCopiaPrevia, [ARutaCopia]),
        mtWarning,
        [mbYes, mbNo],
        0) = mrYes);
   if (Trim(ARutaCopia) = '') or not TFile.Exists(ARutaCopia) then
-    MessageDlg_fza(
+    MessageDlg_fza(Self,
       SAvisoSinCopiaPreviaParaRevertir,
       mtWarning,
       [mbOk],
@@ -482,7 +498,7 @@ begin
     PARAMETRO_MOTOR_BASE_DATOS,
     MOTOR_BASE_DATOS_MARIADB1213);
   if MotorBaseDatosDeTexto(sVigente) <> AMotor then
-    MessageDlg_fza(
+    MessageDlg_fza(Self,
       Format(
         SAvisoMotorValorPropioUsuario,
         [sVigente, TextoMotorBaseDatos(AMotor)]),
@@ -507,7 +523,7 @@ begin
      DescripcionMotorBaseDatos(AMotorServidor)]);
   if SameText(IdentidadSesion.GrupoRaiz, 'S') then
   begin
-    case MessageDlgTextos_fza(
+    case MessageDlgTextos_fza(Self,
            sAviso + sLineBreak + sLineBreak +
              Format(
                SPreguntaCambiarMotorServidor,
@@ -534,7 +550,7 @@ begin
     end;
   end
   else
-    Result := MessageDlgTextos_fza(
+    Result := MessageDlgTextos_fza(Self,
       sAviso + sLineBreak + sLineBreak +
         Format(
           SPreguntaMotorSoloAdministrador,
@@ -551,7 +567,7 @@ end;
 function TfrmModalActualizacion.AvisarMotorNoAdmitido(
   const AVersion: string): Boolean;
 begin
-  Result := MessageDlgTextos_fza(
+  Result := MessageDlgTextos_fza(Self,
     Format(
       SAvisoMotorNoAdmitido,
       [AVersion, TextoMotorBaseDatos(FContexto.Motor)]),
@@ -581,6 +597,51 @@ begin
   end;
 end;
 
+procedure TfrmModalActualizacion.MostrarErrorProceso;
+begin
+  lblEstado.Caption := SErrorActualizacionDetenida;
+  btnReintentar.Visible := (FModo in [mpaComprobar, mpaCompararModelo]) and
+    not FResultado.RequiereSalir and not FResultado.SolicitaRestaurarCopia;
+  btnCompararModelo.Visible := btnReintentar.Visible;
+  btnDetalle.Visible := True;
+  btnCerrar.Visible := True;
+  RegistroLog.RegistrarError(
+    'Actualización de la aplicación: ' + FResultado.Mensaje);
+  FErrorMostrado := True;
+  btnDetalleClick(nil);
+end;
+
+procedure TfrmModalActualizacion.btnDetalleClick(Sender: TObject);
+begin
+  TfrmModalMensajeTexto.Mostrar(Self, STituloComprobarActualizaciones,
+    FResultado.Mensaje);
+end;
+
+procedure TfrmModalActualizacion.btnReintentarClick(Sender: TObject);
+begin
+  if not FProcesando then
+  begin
+    FProcesando := True;
+    FErrorMostrado := False;
+    FResultado := Default(TResultadoActualizacion);
+    btnReintentar.Visible := False;
+    btnCompararModelo.Visible := False;
+    btnDetalle.Visible := False;
+    btnCerrar.Visible := False;
+    prgProceso.Position := 0;
+    PostMessage(Handle, cMensajeEjecutarActualizacion, 0, 0);
+  end;
+end;
+
+procedure TfrmModalActualizacion.btnCompararModeloClick(Sender: TObject);
+begin
+  if not FProcesando then
+  begin
+    FModo := mpaCompararModelo;
+    btnReintentarClick(Sender);
+  end;
+end;
+
 procedure TfrmModalActualizacion.EjecutarProceso;
 var
   Interaccion: TInteraccionActualizacion;
@@ -588,11 +649,16 @@ begin
   try
     Interaccion := CrearInteraccion;
     case FModo of
-      mpaComprobar:
+      mpaComprobar, mpaCompararModelo:
         if RevisarMotorBaseDatos then
-          FResultado := ComprobarEInstalarActualizacion(
-            FContexto,
-            Interaccion, FAlArrancar)
+        begin
+          if FModo = mpaCompararModelo then
+            FResultado := CompararBaseConModeloPublicado(
+              FContexto, Interaccion)
+          else
+            FResultado := ComprobarEInstalarActualizacion(
+              FContexto, Interaccion, FAlArrancar);
+        end
         else
         begin
           FResultado := Default(TResultadoActualizacion);
@@ -607,21 +673,20 @@ begin
       mpaRevertir:
         FResultado := RevertirActualizacion(FContexto, Interaccion);
     end;
-    Progreso(SInfoProcesoActualizacionTerminado, 100);
+    if FResultado.Ok then
+      Progreso(SInfoProcesoActualizacionTerminado, 100);
   except
     on E: Exception do
     begin
       FResultado.Ok := False;
       FResultado.Mensaje := E.Message;
-      RegistroLog.RegistrarError(
-        'Actualización de la aplicación: ' + E.Message);
     end;
   end;
   FProcesando := False;
   if FResultado.Ok then
     ModalResult := mrOk
   else
-    ModalResult := mrCancel;
+    MostrarErrorProceso;
 end;
 
 procedure TfrmModalActualizacion.FormCloseQuery(

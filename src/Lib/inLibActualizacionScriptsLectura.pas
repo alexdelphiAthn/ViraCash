@@ -17,6 +17,7 @@ unit inLibActualizacionScriptsLectura;
 interface
 
 uses
+  System.SysUtils,
   Data.DB;
 
 const
@@ -25,6 +26,7 @@ const
   cCampoNombreScriptComprobacion = 'script';
   cCampoEstadoScriptComprobacion = 'estado';
   cCampoObjetoScriptComprobacion = 'objeto';
+  cCampoConsultaDatosComprobacion = 'consulta_datos';
 
 type
   TScriptFaltante = record
@@ -35,7 +37,9 @@ type
 
 // Recorre el resultado de la comprobación y se queda con las filas
 // marcadas como pendientes, en el orden de aplicación.
-function LeerScriptsFaltantes(ADataSet: TDataSet): TArray<TScriptFaltante>;
+function LeerScriptsFaltantes(ADataSet: TDataSet;
+  const AComprobarDatos: TFunc<string, Boolean> = nil):
+  TArray<TScriptFaltante>;
 // Deja el contenido de un script listo para el cuadro de la ventana del
 // proceso: saltos de línea de Windows (un .sql puede traerlos de Unix y
 // se vería todo en una línea) y recorte de los muy largos.
@@ -46,7 +50,6 @@ implementation
 uses
   System.Generics.Collections,
   System.Generics.Defaults,
-  System.SysUtils,
   inLibMsgIntegraciones;
 
 const
@@ -82,7 +85,30 @@ begin
     Result := StrToIntDef(Trim(oCampo.AsString), 0);
 end;
 
-function LeerScriptsFaltantes(ADataSet: TDataSet): TArray<TScriptFaltante>;
+function ScriptPendiente(ADataSet: TDataSet;
+  const AComprobarDatos: TFunc<string, Boolean>): Boolean;
+var
+  sConsulta: string;
+begin
+  Result := SameText(
+    TextoCampo(ADataSet, cCampoEstadoScriptComprobacion),
+    cEstadoScriptFalta);
+  if Result then
+  begin
+    // El comprobador solo entrega esta consulta cuando su estructura
+    // existe. Las tablas ausentes se detectan con INFORMATION_SCHEMA.
+    sConsulta := TextoCampo(ADataSet, cCampoConsultaDatosComprobacion);
+    if sConsulta <> '' then
+    begin
+      if not Assigned(AComprobarDatos) then
+        raise EInvalidOpException.Create(SErrorComprobacionDatosNoDisponible);
+      Result := not AComprobarDatos(sConsulta);
+    end;
+  end;
+end;
+
+function LeerScriptsFaltantes(ADataSet: TDataSet;
+  const AComprobarDatos: TFunc<string, Boolean>): TArray<TScriptFaltante>;
 var
   oFaltantes: TList<TScriptFaltante>;
   Faltante: TScriptFaltante;
@@ -94,9 +120,7 @@ begin
       ADataSet.First;
       while not ADataSet.Eof do
       begin
-        if SameText(
-             TextoCampo(ADataSet, cCampoEstadoScriptComprobacion),
-             cEstadoScriptFalta) then
+        if ScriptPendiente(ADataSet, AComprobarDatos) then
         begin
           Faltante.Nombre := TextoCampo(
             ADataSet, cCampoNombreScriptComprobacion);

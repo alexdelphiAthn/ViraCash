@@ -86,7 +86,8 @@ function CrearVentanaProcesoSegundoPlano(
   APixelesPorPulgada: Integer;
   const ATitulo: string): IVentanaEspera;
 
-// Espera a que termine ATarea sin despachar teclado ni ratón (no hay
+// Espera a que termine ATarea atendiendo la barra de título, pero sin
+// despachar teclado ni ratón del área de trabajo (no hay
 // reentrada en la pantalla) pero atendiendo lo que otros hilos piden al
 // principal: SendMessage a sus ventanas (el monitor SQL escribe en un memo
 // desde el hilo de la consulta) y Synchronize/Queue. Un WaitForAll a secas
@@ -307,18 +308,6 @@ begin
     Result := oHilo.Procesar(AVentana, AMensaje, AWParam, ALParam)
   else
     Result := DefWindowProc(AVentana, AMensaje, AWParam, ALParam);
-end;
-
-// True si la ventana en primer plano es de este programa. Mientras lo
-// sea, la espera se mantiene sobre las ventanas propias; si el usuario
-// se va a otra aplicacion, se queda donde esta y no la tapa.
-function ProcesoEnPrimerPlano: Boolean;
-var
-  idProceso: DWORD;
-begin
-  idProceso := 0;
-  GetWindowThreadProcessId(GetForegroundWindow, idProceso);
-  Result := idProceso = GetCurrentProcessId;
 end;
 
 // Vacía la cola de teclado y ratón del hilo que llama. Devuelve cuántos
@@ -700,6 +689,8 @@ end;
 procedure THiloVentanaEspera.AjustarAVentanaVigilada;
 var
   bDebeVerse: Boolean;
+  hAnterior: HWND;
+  oReferencia, oVentana: TRect;
 begin
   if not IsIconic(FVentana) then
   begin
@@ -711,10 +702,23 @@ begin
       else
         ShowWindow(FVentana, SW_HIDE);
     end;
-    if bDebeVerse and ProcesoEnPrimerPlano and
-       (FEstilo = eveAcompaniaVentana) then
-      SetWindowPos(FVentana, HWND_TOP, 0, 0, 0, 0,
-        SWP_NOMOVE or SWP_NOSIZE or SWP_NOACTIVATE);
+    if bDebeVerse and (FEstilo = eveAcompaniaVentana) and
+       IsWindow(FVentanaVigilada) then
+    begin
+      // Justo sobre la vigilada, sin adelantar otras aplicaciones ni
+      // enlazar las colas de entrada de ambos hilos mediante un owner.
+      hAnterior := GetWindow(FVentanaVigilada, GW_HWNDPREV);
+      if hAnterior = FVentana then
+        hAnterior := GetWindow(FVentana, GW_HWNDPREV);
+      if hAnterior = 0 then
+        hAnterior := HWND_TOP;
+      GetWindowRect(FVentanaVigilada, oReferencia);
+      GetWindowRect(FVentana, oVentana);
+      SetWindowPos(FVentana, hAnterior,
+        oReferencia.Left + (oReferencia.Width - oVentana.Width) div 2,
+        oReferencia.Top + (oReferencia.Height - oVentana.Height) div 2,
+        0, 0, SWP_NOSIZE or SWP_NOACTIVATE or SWP_NOOWNERZORDER);
+    end;
   end;
 end;
 
@@ -950,6 +954,77 @@ begin
     eveProcesoSegundoPlano, ATitulo);
 end;
 
+type
+  TArrastreDuranteEspera = record
+    Ventana: HWND;
+    Inicio: TPoint;
+    Limites: TRect;
+  end;
+
+procedure TerminarArrastre(var AArrastre: TArrastreDuranteEspera);
+begin
+  if AArrastre.Ventana <> 0 then
+  begin
+    if GetCapture = AArrastre.Ventana then
+      ReleaseCapture;
+    AArrastre.Ventana := 0;
+  end;
+end;
+
+procedure AtenderBarraTitulo(var AArrastre: TArrastreDuranteEspera);
+var
+  oMensaje: TMsg;
+  oPunto: TPoint;
+begin
+  // No se despacha WM_NCLBUTTONDOWN: DefWindowProc abriría un bucle
+  // modal de movimiento que también despacha acciones de negocio.
+  while PeekMessage(oMensaje, 0,
+    WM_NCMOUSEMOVE, WM_NCXBUTTONDBLCLK, PM_REMOVE) do
+    if (oMensaje.message = WM_NCLBUTTONDOWN) and
+       IsWindowEnabled(oMensaje.hwnd) then
+    begin
+      if oMensaje.wParam = HTMINBUTTON then
+      begin
+        TerminarArrastre(AArrastre);
+        SendMessage(oMensaje.hwnd, WM_SYSCOMMAND, SC_MINIMIZE, 0);
+      end
+      else if oMensaje.wParam = HTCAPTION then
+      begin
+        TerminarArrastre(AArrastre);
+        AArrastre.Ventana := oMensaje.hwnd;
+        AArrastre.Inicio.X := SmallInt(LoWord(oMensaje.lParam));
+        AArrastre.Inicio.Y := SmallInt(HiWord(oMensaje.lParam));
+        GetWindowRect(oMensaje.hwnd, AArrastre.Limites);
+        SetCapture(oMensaje.hwnd);
+      end;
+    end;
+  if AArrastre.Ventana <> 0 then
+  begin
+    if GetCapture <> AArrastre.Ventana then
+      TerminarArrastre(AArrastre)
+    else
+      while PeekMessage(oMensaje, 0,
+        WM_MOUSEFIRST, WM_MOUSELAST, PM_REMOVE) do
+      begin
+        if (AArrastre.Ventana <> 0) and
+           (oMensaje.message = WM_MOUSEMOVE) then
+        begin
+          oPunto.X := SmallInt(LoWord(oMensaje.lParam));
+          oPunto.Y := SmallInt(HiWord(oMensaje.lParam));
+          ClientToScreen(oMensaje.hwnd, oPunto);
+          SetWindowPos(AArrastre.Ventana, 0,
+            AArrastre.Limites.Left + oPunto.X - AArrastre.Inicio.X,
+            AArrastre.Limites.Top + oPunto.Y - AArrastre.Inicio.Y,
+            0, 0, SWP_NOSIZE or SWP_NOZORDER or SWP_NOACTIVATE);
+        end;
+        if oMensaje.message = WM_LBUTTONUP then
+          TerminarArrastre(AArrastre);
+      end;
+  end;
+  while PeekMessage(oMensaje, 0, WM_PAINT, WM_PAINT, PM_REMOVE) do
+    DispatchMessage(oMensaje);
+end;
+
 procedure EsperarTareaAtendiendoMensajes(const ATarea: ITask);
 begin
   EsperarTareaAtendiendoMensajes(ATarea, nil);
@@ -960,17 +1035,25 @@ procedure EsperarTareaAtendiendoMensajes(
   const AVigilar: TProc);
 var
   oMensaje: TMsg;
+  oArrastre: TArrastreDuranteEspera;
 begin
-  if Assigned(ATarea) then
-    while not (ATarea.Status in [TTaskStatus.Completed,
-      TTaskStatus.Canceled, TTaskStatus.Exception]) do
-    begin
-      // PeekMessage sin extraer entrega los SendMessage de otros hilos.
-      PeekMessage(oMensaje, 0, 0, 0, PM_NOREMOVE);
-      CheckSynchronize(INTERVALO_SONDEO_TAREA_MS);
-      if Assigned(AVigilar) then
-        AVigilar();
-    end;
+  oArrastre := Default(TArrastreDuranteEspera);
+  try
+    if Assigned(ATarea) then
+      while not (ATarea.Status in [TTaskStatus.Completed,
+        TTaskStatus.Canceled, TTaskStatus.Exception]) do
+      begin
+        // PeekMessage sin extraer entrega SendMessage de otros hilos.
+        PeekMessage(oMensaje, 0, 0, 0, PM_NOREMOVE);
+        CheckSynchronize(INTERVALO_SONDEO_TAREA_MS);
+        AtenderBarraTitulo(oArrastre);
+        AtenderMinimizarYRestaurar;
+        if Assigned(AVigilar) then
+          AVigilar();
+      end;
+  finally
+    TerminarArrastre(oArrastre);
+  end;
 end;
 
 procedure AtenderMinimizarYRestaurar;

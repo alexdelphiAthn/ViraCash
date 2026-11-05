@@ -2,7 +2,7 @@
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
   Caption = 'Comprobar actualizaciones'
-  ClientHeight = 168
+  ClientHeight = 216
   ClientWidth = 560
   Position = poOwnerFormCenter
   OnCloseQuery = FormCloseQuery
@@ -42,5 +42,45 @@
     TabOrder = 2
     Height = 28
     Width = 512
+  end
+  object btnReintentar: TcxButton [3]
+    Left = 24
+    Top = 164
+    Width = 100
+    Height = 32
+    Caption = 'Reintentar'
+    TabOrder = 3
+    Visible = False
+    OnClick = btnReintentarClick
+  end
+  object btnDetalle: TcxButton [4]
+    Left = 328
+    Top = 164
+    Width = 100
+    Height = 32
+    Caption = 'Ver detalle'
+    TabOrder = 5
+    Visible = False
+    OnClick = btnDetalleClick
+  end
+  object btnCerrar: TcxButton [5]
+    Left = 436
+    Top = 164
+    Width = 100
+    Height = 32
+    Caption = 'Cerrar'
+    ModalResult = 2
+    TabOrder = 6
+    Visible = False
+  end
+  object btnCompararModelo: TcxButton [6]
+    Left = 132
+    Top = 164
+    Width = 188
+    Height = 32
+    Caption = 'Comparar con modelo'
+    TabOrder = 4
+    Visible = False
+    OnClick = btnCompararModeloClick
   end
 end
