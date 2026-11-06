@@ -371,37 +371,20 @@ begin
 end;
 
 procedure TdmEmpresas.unqryTablaGAfterDelete(DataSet: TDataSet);
-var
-  qryBorrarLineas : TUniQuery;
 begin
-  qryBorrarLineas := TUniQuery.Create(Self);
-  qryBorrarLineas.Connection := ConexionPrincipal;
-  qryBorrarLineas.SQL.Text := 'DELETE ' +
-    '  FROM fza_empresas_retenciones ' +
-    ' WHERE CODIGO_EMP_EMPRET = :Empresa ;';
-  qryBorrarLineas.Params.ParamByName('Empresa').AsString :=
-    unqryTablaG.FieldByName('CODIGO_EMP_EMP').AsString;
-  qryBorrarLineas.ExecSQL;
-  qryBorrarLineas.SQL.Text := 'DELETE ' +
-    '  FROM fza_empresas_series ' +
-    ' WHERE CODIGO_EMP_EMPSER = :Empresa ;';
-  qryBorrarLineas.Params.ParamByName('Empresa').AsString :=
-    unqryTablaG.FieldByName('CODIGO_EMP_EMP').AsString;
-  qryBorrarLineas.ExecSQL;
-  qryBorrarLineas.SQL.Text := 'DELETE ' +
-    '  FROM fza_empresas_bancos ' +
-    ' WHERE CODIGO_EMP_EMPBAN = :Empresa ;';
-  qryBorrarLineas.Params.ParamByName('Empresa').AsString :=
-    unqryTablaG.FieldByName('CODIGO_EMP_EMP').AsString;
-  qryBorrarLineas.ExecSQL;
-  qryBorrarLineas.Free;
   try
-    if FEncolarPrecioPrestaShop then
-      EncolarTodosWebPrestaShop(
-        TUniQuery(DataSet).Connection,
-        True,
-        False,
-        IdentidadSesion.Usuario);
+    try
+      if FEncolarPrecioPrestaShop then
+        EncolarTodosWebPrestaShop(
+          TUniQuery(DataSet).Connection,
+          True,
+          False,
+          IdentidadSesion.Usuario);
+      ConfirmarBorradoTransaccional(DataSet);
+    except
+      RevertirBorradoTransaccional;
+      raise;
+    end;
   finally
     FEncolarPrecioPrestaShop := False;
   end;
@@ -739,6 +722,7 @@ begin
   unqryTablaG.AfterPost                  := unqryTablaGAfterPost;
   unqryTablaG.BeforeInsert               := unqryTablaGBeforeInsert;
   unqryTablaG.BeforeEdit                 := unqryTablaGBeforeEdit;
+  unqryTablaG.OnDeleteError := ErrorBorradoTransaccional;
   FClientesTraspasos := TUniQuery.Create(Self);
   FClientesTraspasos.Connection := ConexionPrincipal;
   FClientesTraspasos.SQL.Text := SQL_CLIENTES_TRASPASOS_EMPRESA;
@@ -889,6 +873,9 @@ begin
 end;
 
 procedure TdmEmpresas.unqryTablaGBeforeDelete(DataSet: TDataSet);
+var
+  sEmpresa: string;
+  qryBorrarLineas: TUniQuery;
 begin
   inherited;
   FEncolarPrecioPrestaShop := False;
@@ -908,6 +895,37 @@ begin
     TUniQuery(DataSet).Connection,
     DataSet.FieldByName('CODIGO_EMP_EMP').AsString,
     '');
+  // AfterDelete ya puede apuntar a otra empresa. Limpiar los detalles
+  // mientras conservamos la clave, en la misma transaccion del maestro.
+  sEmpresa := DataSet.FieldByName('CODIGO_EMP_EMP').AsString;
+  IniciarBorradoTransaccional;
+  try
+    qryBorrarLineas := TUniQuery.Create(nil);
+    try
+      qryBorrarLineas.Connection := TUniQuery(DataSet).Connection;
+      qryBorrarLineas.SQL.Text :=
+        'DELETE FROM fza_empresas_retenciones ' +
+        'WHERE CODIGO_EMP_EMPRET = :EMPRESA';
+      qryBorrarLineas.ParamByName('EMPRESA').AsString := sEmpresa;
+      qryBorrarLineas.ExecSQL;
+      qryBorrarLineas.SQL.Text :=
+        'DELETE FROM fza_empresas_series ' +
+        'WHERE CODIGO_EMP_EMPSER = :EMPRESA';
+      qryBorrarLineas.ParamByName('EMPRESA').AsString := sEmpresa;
+      qryBorrarLineas.ExecSQL;
+      qryBorrarLineas.SQL.Text :=
+        'DELETE FROM fza_empresas_bancos ' +
+        'WHERE CODIGO_EMP_EMPBAN = :EMPRESA';
+      qryBorrarLineas.ParamByName('EMPRESA').AsString := sEmpresa;
+      qryBorrarLineas.ExecSQL;
+    finally
+      qryBorrarLineas.Free;
+    end;
+  except
+    RevertirBorradoTransaccional;
+    FEncolarPrecioPrestaShop := False;
+    raise;
+  end;
 end;
 
 procedure TdmEmpresas.unqryTablaGBeforeEdit(DataSet: TDataSet);

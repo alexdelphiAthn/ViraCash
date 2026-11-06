@@ -24,6 +24,8 @@ type
     FicheroJson: string;
     DirectorioTrabajo: string;
     SalidaProceso: string;
+    Paginas: TArray<string>;
+    ErrorImportacion: string;
   end;
   TProcesoPedidoOcr = class
   private
@@ -42,7 +44,9 @@ implementation
 uses
   Winapi.Windows,
   System.Classes,
-  System.IOUtils;
+  System.IOUtils,
+  inLibPedidoOcr,
+  inLibArchivosPedidoSesion;
 
 resourcestring
   SErrorPdfPedidoOcrNoExiste = 'No existe el PDF: %s';
@@ -128,6 +132,7 @@ var
   sFicheroLog: string;
   sPaginas: string;
   hLog: THandle;
+  Pedido: TPedidoOcr;
 begin
   Result := Default(TResultadoProcesoPedidoOcr);
   if not TFile.Exists(AFicheroPdf) then
@@ -208,12 +213,19 @@ begin
     end;
     if TFile.Exists(sFicheroLog) then
       Result.SalidaProceso := LeerSalidaProceso(sFicheroLog);
+    // Las paginas se generan antes de reconocer el proveedor. Aunque
+    // falle el parser, sirven para introducir el pedido manualmente.
+    Pedido := Default(TPedidoOcr);
+    Pedido.FicheroJson := Result.FicheroJson;
+    Result.Paginas := ResolverPaginasFuentePedido(Pedido);
     if iCodigo <> 0 then
-      raise Exception.CreateFmt(
-        SErrorExtractorPedidoOcr,
-        [iCodigo, sLineBreak, Result.SalidaProceso]);
-    if not TFile.Exists(Result.FicheroJson) then
-      raise Exception.Create(SErrorExtractorPedidoOcrSinJson);
+      Result.ErrorImportacion := Format(SErrorExtractorPedidoOcr,
+        [iCodigo, sLineBreak, Result.SalidaProceso])
+    else if not TFile.Exists(Result.FicheroJson) then
+      Result.ErrorImportacion := SErrorExtractorPedidoOcrSinJson;
+    if (Result.ErrorImportacion <> '') and
+       (Length(Result.Paginas) = 0) then
+      raise Exception.Create(Result.ErrorImportacion);
   except
     EliminarTrabajo(Result.DirectorioTrabajo);
     raise;

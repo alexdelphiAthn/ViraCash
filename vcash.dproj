@@ -11,7 +11,6 @@
         <AppType>Application</AppType>
         <ProjectName Condition="'$(ProjectName)'==''">vcash</ProjectName>
     </PropertyGroup>
-    <Import Project="$(MSBuildProjectDirectory)\eng\ViraCash.Dependencias.props"/>
     <PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
         <Base>true</Base>
     </PropertyGroup>
@@ -135,7 +134,7 @@
         <VerInfo_Release>20</VerInfo_Release>
         <VerInfo_Build>0</VerInfo_Build>
         <VerInfo_PreRelease>true</VerInfo_PreRelease>
-        <VerInfo_Keys>CompanyName=Alejandro Laorden Hidalgo;FileDescription=ViraCash;FileVersion=1.0.20.0;InternalName=ViraCash;LegalCopyright=All Rights Reserved;LegalTrademarks=ViraCash;OriginalFilename=vcash.exe;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=ViraCash;ProductVersion=1.0.20.0;Comments=1.0.20.202611042011.beta</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=Alejandro Laorden Hidalgo;FileDescription=ViraCash;FileVersion=1.0.20.0;InternalName=ViraCash;LegalCopyright=All Rights Reserved;LegalTrademarks=ViraCash;OriginalFilename=vcash.exe;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=ViraCash;ProductVersion=1.0.20.0;Comments=1.0.20.202611060630.beta</VerInfo_Keys>
         <AppEnableRuntimeThemes>false</AppEnableRuntimeThemes>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
@@ -155,7 +154,7 @@
         <VerInfo_Build>0</VerInfo_Build>
         <VerInfo_Special>true</VerInfo_Special>
         <VerInfo_Private>true</VerInfo_Private>
-        <VerInfo_Keys>CompanyName=ViraCash;FileDescription=ViraCash;FileVersion=1.0.20.0;InternalName=ViraCash;LegalCopyright=All Rights Reserved;LegalTrademarks=ViraCash;OriginalFilename=vcash.exe;ProductName=ViraCash;ProductVersion=1.0.20.0;Comments=1.0.20.202611042011.beta</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=ViraCash;FileDescription=ViraCash;FileVersion=1.0.20.0;InternalName=ViraCash;LegalCopyright=All Rights Reserved;LegalTrademarks=ViraCash;OriginalFilename=vcash.exe;ProductName=ViraCash;ProductVersion=1.0.20.0;Comments=1.0.20.202611060630.beta</VerInfo_Keys>
         <DCC_MapFile>3</DCC_MapFile>
         <DCC_GenerateStackFrames>true</DCC_GenerateStackFrames>
     </PropertyGroup>
@@ -168,13 +167,14 @@
         <VerInfo_MinorVer>0</VerInfo_MinorVer>
         <VerInfo_Release>20</VerInfo_Release>
         <VerInfo_Build>0</VerInfo_Build>
-        <VerInfo_Keys>CompanyName=ViraCash;FileDescription=ViraCash;FileVersion=1.0.20.0;InternalName=ViraCash;LegalCopyright=All Rights Reserved;LegalTrademarks=ViraCash;OriginalFilename=vcash.exe;ProductName=ViraCash;ProductVersion=1.0.20.0;Comments=1.0.20.202611042011.beta</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=ViraCash;FileDescription=ViraCash;FileVersion=1.0.20.0;InternalName=ViraCash;LegalCopyright=All Rights Reserved;LegalTrademarks=ViraCash;OriginalFilename=vcash.exe;ProductName=ViraCash;ProductVersion=1.0.20.0;Comments=1.0.20.202611060630.beta</VerInfo_Keys>
         <VerInfo_Special>true</VerInfo_Special>
         <VerInfo_Private>true</VerInfo_Private>
         <UWP_DelphiLogo44>icon-verde-48.png</UWP_DelphiLogo44>
         <UWP_DelphiLogo150>icon-verde-128.png</UWP_DelphiLogo150>
         <DCC_MapFile>3</DCC_MapFile>
     </PropertyGroup>
+    <Import Project="$(MSBuildProjectDirectory)\eng\ViraCash.Dependencias.props"/>
     <ItemGroup>
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
@@ -182,7 +182,6 @@
         <DCCReference Include="src\Lib\inLibReparacionesEvidencias.pas"/>
         <DCCReference Include="src\Lib\inLibReparacionesMovimientos.pas"/>
         <DCCReference Include="src\DataModules\UniDataReparacionesMovimientos.pas"/>
-        <DCCReference Include="src\DataModules\UniDataReparacionesArticuloServicio.pas"/>
         <DCCReference Include="src\Lib\inLibTrabajosCortinas.pas"/>
         <DCCReference Include="src\DataModules\UniDataTrabajosCortinas.pas"/>
         <DCCReference Include="src\Modals\inMtoModalTrabajoCortina.pas"/>
@@ -190,6 +189,7 @@
         <DCCReference Include="src\Caja\Forms\inMtoCajaPrendasReparacionVcl.pas"/>
         <DCCReference Include="src\Modals\inMtoModalPrendaReparacion.pas"/>
         <DCCReference Include="src\DataModules\UniDataReparacionesVentaTpv.pas"/>
+        <DCCReference Include="src\DataModules\UniDataReparacionesArticuloServicio.pas"/>
         <DCCReference Include="src\Modals\inMtoModalAvisoReparacion.pas"/>
         <DCCReference Include="src\Lib\inLibCorreoReparaciones.pas"/>
         <DCCReference Include="src\Forms\inMtoReparacionesFasesVcl.pas"/>
@@ -1807,7 +1807,6 @@
         <DCCReference Include="src\Lib\inLibResolucionSku.pas"/>
         <DCCReference Include="src\Lib\inLibPestanasEje.pas"/>
         <DCCReference Include="src\Lib\inLibPestanasEjeVcl.pas"/>
-        <DCCReference Include="src\DataModules\UniDataResolucionSku.pas"/>
         <DCCReference Include="src\Lib\inLibCodigosSinBarra.pas"/>
         <DCCReference Include="src\Lib\inLibPedidoOcr.pas"/>
         <DCCReference Include="src\Lib\inLibArchivosPedidoSesion.pas"/>
@@ -2004,6 +2003,7 @@
         <DCCReference Include="src\DataModules\UniDataBusquedasCompraRepositorio.pas"/>
         <DCCReference Include="src\DataModules\UniDataColumnasDocumentoRepositorio.pas"/>
         <DCCReference Include="src\DataModules\UniDataEjesVariacion.pas"/>
+        <DCCReference Include="src\DataModules\UniDataResolucionSku.pas"/>
         <DCCReference Include="src\DataModules\UniDataCodigosBarrasLote.pas"/>
         <DCCReference Include="src\DataModules\UniDataConfigCamposRepositorio.pas"/>
         <DCCReference Include="src\DataModules\UniDataCorreoTicketsRepositorio.pas"/>
@@ -3236,11 +3236,8 @@
     <Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Delphi.Targets')"/>
     <Import Project="$(APPDATA)\Embarcadero\$(BDSAPPDATABASEDIR)\$(PRODUCTVERSION)\UserTools.proj" Condition="Exists('$(APPDATA)\Embarcadero\$(BDSAPPDATABASEDIR)\$(PRODUCTVERSION)\UserTools.proj')"/>
     <Import Project="$(MSBuildProjectName).deployproj" Condition="Exists('$(MSBuildProjectName).deployproj')"/>
-    <Target Name="CompilarMarcaViraCash" BeforeTargets="_PasCoreCompile"
-        Inputs="$(MSBuildProjectDirectory)\fondo.rc;$(MSBuildProjectDirectory)\fondo_viracash.png;$(MSBuildProjectDirectory)\fondo_viracash_oscuro.png"
-        Outputs="$(MSBuildProjectDirectory)\fondo.res">
-        <Exec WorkingDirectory="$(MSBuildProjectDirectory)"
-            Command="&quot;$(BDS)\bin\brcc32.exe&quot; -fofondo.res fondo.rc"/>
+    <Target Name="CompilarMarcaViraCash" BeforeTargets="_PasCoreCompile" Inputs="$(MSBuildProjectDirectory)\fondo.rc;$(MSBuildProjectDirectory)\fondo_viracash.png;$(MSBuildProjectDirectory)\fondo_viracash_oscuro.png" Outputs="$(MSBuildProjectDirectory)\fondo.res">
+        <Exec WorkingDirectory="$(MSBuildProjectDirectory)" Command="&quot;$(BDS)\bin\brcc32.exe&quot; -fofondo.res fondo.rc"/>
     </Target>
     <Target Name="CopiarLicenciaWebView2" AfterTargets="CoreBuild">
         <PropertyGroup>

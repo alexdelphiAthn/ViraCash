@@ -601,6 +601,7 @@ uses
   inLibMsgArticulos, inLibMsgCompras,
   inLibContextoSesionIntf,
   inLibProcesoPedidoOcr,
+  inLibArchivosPedidoSesion,
   inLibComprasSesionesIntf,
   inLibComprasSesionesReglas,
   inLibDatasets,
@@ -682,6 +683,9 @@ end;
 resourcestring
   SErrorImportarPedidoSesionCompra =
     'No se pudo importar el pedido: %s';
+  SAvisoPedidoOriginalConservado =
+    'El PDF se ha conservado en Pedido original como guía. ' +
+    'Puede introducir las líneas manualmente.';
   SFiltroDocumentoPdfPedidoSesionCompra =
     'Documento PDF (*.pdf)|*.pdf';
   SErrorImportacionOcrSesionConLineas =
@@ -1339,6 +1343,8 @@ var
   sAlmacen: string;
   sEmpresa: string;
   sSerie: string;
+  bOriginalGuardado: Boolean;
+  sError: string;
 begin
   inherited;
   dlgImportarPedido.Filter := SFiltroDocumentoPdfPedidoSesionCompra;
@@ -1390,6 +1396,7 @@ begin
         raise Exception.Create(
           SErrorGuardarSesionAntesImportacionOcr);
     end;
+    bOriginalGuardado := False;
     Screen.Cursor := crHourGlass;
     btnImportarPedido.Enabled := False;
     try
@@ -1401,6 +1408,19 @@ begin
             Application.ProcessMessages;
           end);
         try
+          if Length(ResultadoOcr.Paginas) > 0 then
+          begin
+            GuardarOriginalPedidoSesion(DirectorioFotosAplicacion,
+              Dmm.unqryTablaG.FieldByName('SERIE_SES').AsString,
+              Dmm.unqryTablaG.FieldByName('NUMERO_SES').AsString,
+              dlgImportarPedido.FileName, ResultadoOcr.Paginas);
+            bOriginalGuardado := True;
+            FVisorPedidoOriginal.Cargar;
+            cxPageControl1.ActivePage := tsPedidoOriginal;
+            cxPageControl1Change(cxPageControl1);
+          end;
+          if ResultadoOcr.ErrorImportacion <> '' then
+            raise Exception.Create(ResultadoOcr.ErrorImportacion);
           ImportarPedidoOcr(ResultadoOcr.FicheroJson);
         finally
           TProcesoPedidoOcr.EliminarTrabajo(
@@ -1408,8 +1428,13 @@ begin
         end;
       except
         on E: Exception do
-          ShowMessage_fza(
-            Format(SErrorImportarPedidoSesionCompra, [E.Message]));
+        begin
+          sError := Format(SErrorImportarPedidoSesionCompra, [E.Message]);
+          if bOriginalGuardado then
+            sError := SAvisoPedidoOriginalConservado + sLineBreak +
+              sLineBreak + sError;
+          ShowMessage_fza(sError);
+        end;
       end;
     finally
       btnImportarPedido.Enabled := True;

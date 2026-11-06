@@ -26,6 +26,8 @@ function ResolverPaginasFuentePedido(
 procedure GuardarArchivosPedidoSesion(const ADirectorioFotos,
   ASerie, ANumero: string; const APedido: TPedidoOcr;
   const APaginas: TArray<string>);
+procedure GuardarOriginalPedidoSesion(const ADirectorioFotos,
+  ASerie, ANumero, AFicheroPdf: string; const APaginas: TArray<string>);
 function ListarPaginasPedidoSesion(const ADirectorioFotos,
   ASerie, ANumero: string): TArray<string>;
 
@@ -39,10 +41,13 @@ uses
 resourcestring
   SErrorDirectorioFotosPedidoSesionNoConfigurado =
     'El parámetro appDirFotos no está configurado.';
+  SErrorOriginalPedidoSinPaginas =
+    'El PDF no tiene páginas disponibles para el visor.';
 
 const
   cCarpetaPedidosSesiones = 'pedidos_sesiones';
   cNombreJsonGuardado = 'pedido.json';
+  cCarpetaOriginal = 'original';
 
 function SanearSegmentoRuta(const AValor: string): string;
 var
@@ -191,19 +196,67 @@ begin
   end;
 end;
 
+// Preparar una copia completa antes de sustituir el original anterior.
+// La carpeta propia evita mezclar paginas de dos pedidos distintos y
+// permite conservar el documento aunque no exista ningun JSON de OCR.
+procedure GuardarOriginalPedidoSesion(const ADirectorioFotos,
+  ASerie, ANumero, AFicheroPdf: string; const APaginas: TArray<string>);
+var
+  sDirectorio: string;
+  sPreparacion: string;
+  sDestino: string;
+  sRespaldo: string;
+  Id: TGUID;
+  i: Integer;
+begin
+  sDirectorio := DirectorioArchivosPedidoSesion(
+    ADirectorioFotos, ASerie, ANumero);
+  if sDirectorio = '' then
+    raise Exception.Create(SErrorDirectorioFotosPedidoSesionNoConfigurado);
+  if Length(APaginas) = 0 then
+    raise Exception.Create(SErrorOriginalPedidoSinPaginas);
+  CreateGUID(Id);
+  sPreparacion := TPath.Combine(sDirectorio, GUIDToString(Id));
+  sDestino := TPath.Combine(sDirectorio, cCarpetaOriginal);
+  sRespaldo := sPreparacion + '.anterior';
+  TDirectory.CreateDirectory(sPreparacion);
+  try
+    TFile.Copy(AFicheroPdf, TPath.Combine(sPreparacion, 'pedido.pdf'));
+    for i := 0 to High(APaginas) do
+      TFile.Copy(APaginas[i], TPath.Combine(sPreparacion,
+        Format('pagina-%.3d.tif', [i + 1])));
+    if TDirectory.Exists(sDestino) then
+      TDirectory.Move(sDestino, sRespaldo);
+    try
+      TDirectory.Move(sPreparacion, sDestino);
+    except
+      if TDirectory.Exists(sRespaldo) then
+        TDirectory.Move(sRespaldo, sDestino);
+      raise;
+    end;
+    if TDirectory.Exists(sRespaldo) then
+      TDirectory.Delete(sRespaldo, True);
+  finally
+    if TDirectory.Exists(sPreparacion) then
+      TDirectory.Delete(sPreparacion, True);
+  end;
+end;
+
 function ListarPaginasPedidoSesion(const ADirectorioFotos,
   ASerie, ANumero: string): TArray<string>;
 var
   oLista: TList<string>;
+  sDirectorio: string;
+  sOriginal: string;
 begin
   oLista := TList<string>.Create;
   try
-    AnadirTiffsDirectorio(
-      DirectorioArchivosPedidoSesion(
-        ADirectorioFotos,
-        ASerie,
-        ANumero),
-      oLista);
+    sDirectorio := DirectorioArchivosPedidoSesion(
+      ADirectorioFotos, ASerie, ANumero);
+    sOriginal := TPath.Combine(sDirectorio, cCarpetaOriginal);
+    if (sDirectorio <> '') and TDirectory.Exists(sOriginal) then
+      sDirectorio := sOriginal;
+    AnadirTiffsDirectorio(sDirectorio, oLista);
     Result := oLista.ToArray;
   finally
     oLista.Free;
