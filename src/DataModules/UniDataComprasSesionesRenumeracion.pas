@@ -28,7 +28,8 @@ function RenumerarLineasSesion(AConexion: TUniConnection;
 implementation
 
 uses
-  System.SysUtils, Data.DB, inLibComprasSesionesReglas;
+  System.SysUtils, Data.DB, inLibComprasSesionesReglas,
+  UniDataCodigosBarrasSesion;
 
 type
   TTablaLineaSesion = record
@@ -39,7 +40,7 @@ type
   end;
 
 const
-  TABLAS_LINEA: array[0..6] of TTablaLineaSesion = (
+  TABLAS_LINEA: array[0..7] of TTablaLineaSesion = (
     (Tabla: 'fza_compras_sesiones_lineas'; Serie: 'SERIE_SES_SESLIN';
      Numero: 'NUMERO_SES_SESLIN'; Linea: 'LINEA_SESLIN'),
     (Tabla: 'fza_compras_sesiones_celdas'; Serie: 'SERIE_SES_SESCEL';
@@ -57,7 +58,10 @@ const
      Linea: 'LINEA_SES_SESLPROP'),
     (Tabla: 'fza_compras_sesiones_lineas_skus_precios';
      Serie: 'SERIE_SES_SESLINSKU'; Numero: 'NUMERO_SES_SESLINSKU';
-     Linea: 'LINEA_SES_SESLINSKU'));
+     Linea: 'LINEA_SES_SESLINSKU'),
+    (Tabla: 'fza_compras_sesiones_codigos_barras';
+     Serie: 'SERIE_SES_SESCB'; Numero: 'NUMERO_SES_SESCB';
+     Linea: 'LINEA_SES_SESCB'));
   SQL_LINEAS_ORDEN =
     'SELECT LINEA_SESLIN, ' +
     '       COALESCE(NULLIF(TRIM(CODIGO_ART_TENTATIVO_SESLIN), ''''), ' +
@@ -115,13 +119,20 @@ end;
 
 // Un número con filas hijas huérfanas no se reutiliza: la línea que lo
 // recibiera heredaría fotos o propiedades de otra ya borrada.
+function LimiteTablas(AConsulta: TUniQuery): Integer;
+begin
+  Result := High(TABLAS_LINEA);
+  if not BarrasSesionDisponibles(AConsulta.Connection) then
+    Dec(Result);
+end;
+
 function LeerNumerosReservados(AConsulta: TUniQuery;
   const ASerie, ANumero: string): TArray<Integer>;
 var
   i: Integer;
 begin
   Result := nil;
-  for i := 1 to High(TABLAS_LINEA) do
+  for i := 1 to LimiteTablas(AConsulta) do
   begin
     AConsulta.SQL.Text := SqlTabla(SQL_LINEAS_SIN_DUENO, TABLAS_LINEA[i]);
     AConsulta.ParamByName('s').AsString := ASerie;
@@ -146,7 +157,7 @@ var
   i, iContador, iReservado: Integer;
 begin
   iContador := 0;
-  for i := 0 to High(TABLAS_LINEA) do
+  for i := 0 to LimiteTablas(AConsulta) do
   begin
     AConsulta.SQL.Text := SqlTabla(SQL_APARTAR, TABLAS_LINEA[i]);
     for oCambio in ACambios do
@@ -161,7 +172,7 @@ begin
       end;
     end;
   end;
-  for i := 0 to High(TABLAS_LINEA) do
+  for i := 0 to LimiteTablas(AConsulta) do
   begin
     AConsulta.SQL.Text := SqlTabla(SQL_ASENTAR, TABLAS_LINEA[i]);
     AConsulta.ParamByName('s').AsString := ASerie;

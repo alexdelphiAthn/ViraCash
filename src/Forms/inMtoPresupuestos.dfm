@@ -899,6 +899,8 @@
                   Properties.DisplayFormat = '0.00 %'
                   Properties.EditFormat = '0.00 %'
                   Properties.MaxValue = 100.000000000000000000
+                  Properties.ReadOnly = True
+                  Properties.ValueType = vtFloat
                   TabOrder = 5
                   Width = 133
                 end
@@ -1409,14 +1411,14 @@
           BevelOuter = bvNone
           TabOrder = 3
           object lblTotalBases: TcxLabel
-            Left = 425
+            Left = 330
             Top = 3
             Caption = 'Bases'
             TabOrder = 3
             Transparent = True
           end
           object curTOTAL_BASES_PRE: TcxDBCurrencyEdit
-            Left = 425
+            Left = 330
             Top = 26
             DataBinding.DataField = 'TOTAL_BASES_PRE'
             DataBinding.DataSource = dsTablaG
@@ -1426,20 +1428,37 @@
             Width = 100
           end
           object lblTotalImpuestos: TcxLabel
-            Left = 570
+            Left = 460
             Top = 3
             Caption = 'IVA'
             TabOrder = 4
             Transparent = True
           end
           object curTOTAL_IMPUESTOS_PRE: TcxDBCurrencyEdit
-            Left = 570
+            Left = 460
             Top = 26
             DataBinding.DataField = 'TOTAL_IMPUESTOS_PRE'
             DataBinding.DataSource = dsTablaG
             Properties.DisplayFormat = '#,##0.00 €'
             Properties.ReadOnly = True
             TabOrder = 1
+            Width = 100
+          end
+          object lblTotalRetencion: TcxLabel
+            Left = 590
+            Top = 3
+            Caption = 'Retenci'#243'n'
+            TabOrder = 6
+            Transparent = True
+          end
+          object curTOTAL_RETENCION_PRE: TcxDBCurrencyEdit
+            Left = 590
+            Top = 26
+            DataBinding.DataField = 'TOTAL_RETENCION_PRE'
+            DataBinding.DataSource = dsTablaG
+            Properties.DisplayFormat = '#,##0.00 €'
+            Properties.ReadOnly = True
+            TabOrder = 7
             Width = 100
           end
           object lblTotalLiquido: TcxLabel

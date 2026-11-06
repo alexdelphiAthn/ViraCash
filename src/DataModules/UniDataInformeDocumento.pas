@@ -274,9 +274,17 @@ procedure TDatosInformeDocumento.ConfigurarLineas(
   const AConfig: TConfiguracionDocumento);
 var
   sSufijo, sPrecio, sVariante, sTallas, sDetalle, sPropiedades: string;
+  sDescuento: string;
 begin
   sSufijo := '_' + AConfig.PrefijoLineas;
   sPrecio := PrecioLinea(AConfig);
+  sDescuento := '';
+  if AConfig.TipoDocumento = tdPresupuesto then
+    sDescuento := 'COALESCE(PORCENTAJE_DTO_PRELIN, 0) AS ' +
+      'PORCENTAJE_DTO, COALESCE(PRECIO_SALIDA_PRELIN / ' +
+      '(CASE WHEN ESIMP_INCL_TARIFA_PRELIN = ''S'' THEN ' +
+      '1 + COALESCE(PORCENTAJE_IVA_PRELIN, 0) / 100 ELSE 1 END), ' +
+      sPrecio + ') AS PRECIO_ANTES_DTO, ';
   sVariante := VarianteLinea(AConfig);
   sPropiedades := 'NULL';
   if AConfig.Sentido = sdVenta then
@@ -302,7 +310,8 @@ begin
     sDetalle + ' AS DETALLE, ' +
     'COALESCE(TIPO_CANTIDAD_ARTICULO' + sSufijo + ', '''') AS UNIDAD, ' +
     'CANTIDAD' + sSufijo + ' AS CANTIDAD, ' + sPrecio +
-    ' AS PRECIO, PORCENTAJE_IVA' + sSufijo + ' AS IVA, ' +
+    ' AS PRECIO, ' + sDescuento +
+    'PORCENTAJE_IVA' + sSufijo + ' AS IVA, ' +
     'ROUND(CANTIDAD' + sSufijo + ' * ' + sPrecio +
     ', 2) AS TOTAL FROM ' + AConfig.TablaLineas + ' L' +
     ' WHERE ' + AConfig.CampoSerieLinea + ' = :SERIE AND ' +

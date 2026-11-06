@@ -6281,8 +6281,7 @@ function ThreadWrapper(var P: TThreadParams): Integer; stdcall;
 begin
   with P do
     AES.DoBlocks(bIn,bOut,bIn,bOut,BlockCount,Encrypt);
-  ExitThread(0);
-  result := 0; // make the compiler happy, but won't never be called
+  result := 0;
 end;
 
 procedure TAES.DoBlocksThread(var bIn, bOut: PAESBlock; Count: integer; doEncrypt: boolean);

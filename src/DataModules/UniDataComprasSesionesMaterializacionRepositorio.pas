@@ -207,7 +207,6 @@ const
     ' WHERE C.SERIE_SES_SESCEL = :s ' +
     '   AND C.NUMERO_SES_SESCEL = :n ' +
     '   AND C.LINEA_SES_SESCEL = :l ' +
-    '   AND C.CANTIDAD_SESCEL > 0 ' +
     ' GROUP BY C.SERIE_SES_SESCEL, C.NUMERO_SES_SESCEL, ' +
     '          C.LINEA_SES_SESCEL, C.ID_FILA_SES_SESCEL, ' +
     '          C.ID_AV_PIVOT_SESCEL, AVP.AV, ' +

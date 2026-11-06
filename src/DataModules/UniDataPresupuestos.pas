@@ -80,8 +80,10 @@ type
   private
     FOperacion: TDataSet;
     FCalculandoTotales: Boolean;
+    FAplicandoDescuento: Boolean;
     FDesempaquetandoAtributos: Boolean;
     FLotesLineas: TLotesLineasDocumento;
+    procedure ActualizarRetencionEmpresa;
     procedure LineasPresupuestoDataChange(Sender: TObject; Field: TField);
     // Conexion por la que salen la transaccion, los bloqueos y las
     // lecturas de la operacion: la misma que usan los datasets.
@@ -152,10 +154,18 @@ end;
 procedure TdmPresupuestos.LineasPresupuestoDataChange(Sender: TObject;
   Field: TField);
 begin
-  if (not FDesempaquetandoAtributos) and
-     EsCampoImporteLineaVenta(Field, 'PRELIN') then
-    RecalcularTotalLineaVenta(unqryAlbaranesLineas, 'PRELIN',
-      'TOTAL_PRELIN');
+  if not FDesempaquetandoAtributos and not FAplicandoDescuento then
+  begin
+    FAplicandoDescuento := True;
+    try
+      AplicarDescuentoLineaVenta(Field, 'PRELIN');
+      if EsCampoImporteLineaVenta(Field, 'PRELIN') then
+        RecalcularTotalLineaVenta(unqryAlbaranesLineas, 'PRELIN',
+          'TOTAL_PRELIN');
+    finally
+      FAplicandoDescuento := False;
+    end;
+  end;
 end;
 
 procedure TdmPresupuestos.DataModuleDestroy(Sender: TObject);
@@ -769,12 +779,37 @@ begin
   unqryTablaG.FieldByName('NUMERO_PRE').AsString := sNumero;
 end;
 
+procedure TdmPresupuestos.ActualizarRetencionEmpresa;
+var
+  Porcentaje: Double;
+  Fecha: TDateTime;
+begin
+  Porcentaje := 0;
+  Fecha := Date;
+  if not unqryTablaG.FieldByName('FECHA_PRE').IsNull then
+    Fecha := unqryTablaG.FieldByName('FECHA_PRE').AsDateTime;
+  if unqryTablaG.FieldByName(
+    'ESRETENCIONES_EMPRESA_PRE').AsString = 'S' then
+    Porcentaje := CrearLecturasImpuestos(
+      unqryTablaG.Connection).LeerRetencionEmpresa(
+        unqryTablaG.FieldByName('CODIGO_EMP_PRE').AsString, Fecha);
+  if unqryTablaG.FieldByName(
+    'PORCENTAJE_RETENCION_PRE').AsFloat <> Porcentaje then
+  begin
+    if not (unqryTablaG.State in dsEditModes) then
+      unqryTablaG.Edit;
+    unqryTablaG.FieldByName(
+      'PORCENTAJE_RETENCION_PRE').AsFloat := Porcentaje;
+  end;
+end;
+
 procedure TdmPresupuestos.CalcularTotalesAlbaran;
 begin
   if not FCalculandoTotales then
   begin
     FCalculandoTotales := True;
     try
+      ActualizarRetencionEmpresa;
       CalcularTotalesDocumentoVenta(
         CrearLecturasImpuestos(unqryTablaG.Connection), unqryTablaG,
         unqryAlbaranesLineas, 'PRE', 'TOTAL_PRELIN',
@@ -1009,6 +1044,7 @@ begin
     else
       FieldByName('CODIGO_ALM_PRE').Clear;
   end;
+  ActualizarRetencionEmpresa;
   ProponerSerieEmpresa(DataSet.FindField('CODIGO_EMP_EMP').AsString);
   AplicarPorcentajesIvaVenta(
     CrearLecturasImpuestos(ConexionEscritura), unqryTablaG, 'PRE');

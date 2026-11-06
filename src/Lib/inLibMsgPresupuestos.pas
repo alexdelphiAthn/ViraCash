@@ -64,6 +64,8 @@ resourcestring
     'PVP S/IVA';
   SCaptionPrecioConIvaPresupuesto =
     'PVP C/IVA';
+  SCaptionDescuentoLineaPresupuesto =
+    'Dto. %';
   SCaptionTarifaPresupuesto =
     'Tarifa';
   SCaptionImpuestosIncluidosPresupuesto =

@@ -105,7 +105,7 @@ implementation
 
 uses
   System.StrUtils, inLibComprasSesionesReglas,
-  inLibMsgArticulos, inLibMsgCompras;
+  inLibMsgArticulos, inLibMsgCompras, UniDataCodigosBarrasSesion;
 
 function ClaveColorDataSet(ALinea: TDataSet): string;
 var
@@ -235,6 +235,7 @@ begin
     Consulta.ParamByName('n').AsString := ANumero;
     Consulta.ParamByName('l').AsInteger := ALinea;
     Consulta.ExecSQL;
+    BorrarBarrasSesion(AConn, ASerie, ANumero, ALinea);
   finally
     FreeAndNil(Consulta);
   end;

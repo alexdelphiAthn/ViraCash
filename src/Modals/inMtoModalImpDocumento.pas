@@ -178,7 +178,8 @@ begin
     sTercero := SInformeProveedorDocumento;
   CrearInformeDocumento(frxrprt1, FDatos.Cabecera, FDatos.Lineas,
     FDatos.Impuestos, NombreInformeDocumento(
-      FConfiguracion.TipoDocumento, FConfiguracion.Sentido), sTercero);
+      FConfiguracion.TipoDocumento, FConfiguracion.Sentido), sTercero,
+    FConfiguracion.TipoDocumento = tdPresupuesto);
   frxReportOrigen.AssignAll(frxrprt1);
 end;
 

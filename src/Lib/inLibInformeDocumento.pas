@@ -20,7 +20,8 @@ uses
 // AEtiquetaTercero rotula la caja del cliente o del proveedor.
 procedure CrearInformeDocumento(AInforme: TfrxReport;
   ACabecera, ALineas, AImpuestos: TfrxDBDataset;
-  const ATitulo, AEtiquetaTercero: string);
+  const ATitulo, AEtiquetaTercero: string;
+  AMostrarDescuento: Boolean = False);
 
 // Aplica el formato español también a plantillas de factura guardadas.
 procedure AjustarFormatoBasesFactura(AInforme: TfrxReport);
@@ -149,6 +150,7 @@ type
     FTitulo: string;
     FEtiquetaTercero: string;
     FAncho: Extended;
+    FMostrarDescuento: Boolean;
     function Memo(AParent: TfrxComponent; const ATexto: string;
       ALeft, ATop, AWidth, AHeight: Extended): TfrxMemoView;
     function Importe(const ACampo: string): string;
@@ -281,18 +283,26 @@ procedure TInformeDocumento.CrearDetalle(APagina: TfrxReportPage);
 var
   oCabecera: TfrxHeader;
   oDetalle: TfrxMasterData;
-  Columnas: array[0..6] of Extended;
+  Columnas: array[0..7] of Extended;
+  CampoPrecio: string;
 begin
-  // Bordes de columna: codigo, descripcion, cantidad, precio, IVA,
+  // Bordes: codigo, descripcion, cantidad, precio, descuento, IVA,
   // importe y final de la tabla. El codigo admite 15 caracteres en
   // mayusculas (COMPLEMENTOS003) sin partirse (FZ-ISSUE-102.5).
   Columnas[0] := 0;
   Columnas[1] := ANCHO_CODIGO;
   Columnas[2] := FAncho - 322;
   Columnas[3] := FAncho - 247;
-  Columnas[4] := FAncho - 167;
-  Columnas[5] := FAncho - 112;
-  Columnas[6] := FAncho;
+  Columnas[5] := FAncho - 167;
+  Columnas[4] := Columnas[5];
+  if FMostrarDescuento then
+  begin
+    Columnas[2] := Columnas[2] - 50;
+    Columnas[3] := Columnas[3] - 50;
+    Columnas[4] := Columnas[4] - 50;
+  end;
+  Columnas[6] := FAncho - 112;
+  Columnas[7] := FAncho;
   oCabecera := TfrxHeader.Create(APagina);
   oCabecera.CreateUniqueName;
   oCabecera.Top := 270;
@@ -306,10 +316,13 @@ begin
     Columnas[3] - Columnas[2], haRight);
   CeldaTitulo(oCabecera, SInformePrecioDocumento, Columnas[3],
     Columnas[4] - Columnas[3], haRight);
-  CeldaTitulo(oCabecera, SInformeIvaDocumento, Columnas[4],
-    Columnas[5] - Columnas[4], haRight);
-  CeldaTitulo(oCabecera, SInformeImporteDocumento, Columnas[5],
+  if FMostrarDescuento then
+    CeldaTitulo(oCabecera, SCaptionDescuentoLineaPresupuesto,
+      Columnas[4], Columnas[5] - Columnas[4], haRight);
+  CeldaTitulo(oCabecera, SInformeIvaDocumento, Columnas[5],
     Columnas[6] - Columnas[5], haRight);
+  CeldaTitulo(oCabecera, SInformeImporteDocumento, Columnas[6],
+    Columnas[7] - Columnas[6], haRight);
   oDetalle := TfrxMasterData.Create(APagina);
   oDetalle.CreateUniqueName;
   oDetalle.Top := 310;
@@ -325,12 +338,19 @@ begin
   CeldaLinea(oDetalle,
     '[FormatFloat(''#,##0.##'', <Lineas."CANTIDAD">)] [Lineas."UNIDAD"]',
     Columnas[2], Columnas[3] - Columnas[2], haRight);
-  CeldaLinea(oDetalle, Importe('Lineas."PRECIO"'), Columnas[3],
+  CampoPrecio := 'Lineas."PRECIO"';
+  if FMostrarDescuento then
+    CampoPrecio := 'Lineas."PRECIO_ANTES_DTO"';
+  CeldaLinea(oDetalle, Importe(CampoPrecio), Columnas[3],
     Columnas[4] - Columnas[3], haRight);
+  if FMostrarDescuento then
+    CeldaLinea(oDetalle,
+      '[FormatFloat(''0.##'', <Lineas."PORCENTAJE_DTO">)]',
+      Columnas[4], Columnas[5] - Columnas[4], haRight);
   CeldaLinea(oDetalle, '[FormatFloat(''0.##'', <Lineas."IVA">)]',
-    Columnas[4], Columnas[5] - Columnas[4], haRight);
-  CeldaLinea(oDetalle, Importe('Lineas."TOTAL"'), Columnas[5],
-    Columnas[6] - Columnas[5], haRight);
+    Columnas[5], Columnas[6] - Columnas[5], haRight);
+  CeldaLinea(oDetalle, Importe('Lineas."TOTAL"'), Columnas[6],
+    Columnas[7] - Columnas[6], haRight);
 end;
 
 // Desglose guardado por tipo; las dos columnas de R.E. son condicionales.
@@ -399,6 +419,7 @@ var
   oResumen: TfrxReportSummary;
   oTotal: TfrxMemoView;
   oTexto: TfrxMemoView;
+  EventoRetencion: string;
 begin
   oResumen := TfrxReportSummary.Create(APagina);
   oResumen.CreateUniqueName;
@@ -412,8 +433,11 @@ begin
     Importe('Cabecera."TOTAL_IVA"'), 32, '');
   CrearFilaTotal(oResumen, SInformeTotalRecargoDocumento,
     Importe('Cabecera."RECARGO"'), 52, 'RecargoCabecera');
+  EventoRetencion := 'RetencionOnBeforePrint';
+  if FMostrarDescuento then
+    EventoRetencion := '';
   CrearFilaTotal(oResumen, SInformeRetencionIrpfDocumento,
-    '-' + Importe('Cabecera."RETENCION"'), 72, 'RetencionOnBeforePrint');
+    '-' + Importe('Cabecera."RETENCION"'), 72, EventoRetencion);
   oTotal := Memo(oResumen, SInformeTotalLiquidoDocumento, FAncho - 280, 100,
     280, 28);
   oTotal.Font.Size := 11;
@@ -498,7 +522,8 @@ end;
 
 procedure CrearInformeDocumento(AInforme: TfrxReport;
   ACabecera, ALineas, AImpuestos: TfrxDBDataset;
-  const ATitulo, AEtiquetaTercero: string);
+  const ATitulo, AEtiquetaTercero: string;
+  AMostrarDescuento: Boolean);
 var
   oConstructor: TInformeDocumento;
 begin
@@ -508,6 +533,7 @@ begin
     oConstructor.FCabecera := ACabecera;
     oConstructor.FLineas := ALineas;
     oConstructor.FImpuestos := AImpuestos;
+    oConstructor.FMostrarDescuento := AMostrarDescuento;
     oConstructor.FTitulo := ATitulo;
     oConstructor.FEtiquetaTercero := AEtiquetaTercero;
     oConstructor.CrearInforme;

@@ -29,7 +29,7 @@ uses
   inLibMsgListasRegalos,
   inLibMsgReparaciones, inLibMsgReparacionesCircuito,
   inLibMsgLotesConsultas,
-  inLibMsgCompras,
+  inLibMsgCompras, inLibMsgBarrasSesion,
   inLibMsgComun,
   inLibMsgColaTurno,
   inLibMsgConexion,
@@ -6307,9 +6307,59 @@ begin
   Registrar('SCambioTrabajoGrabado', @SCambioTrabajoGrabado);
 end;
 
+procedure RegistrarTextosBarrasSesion(
+  const ARegistrar: TRegistrarResourcestringTraduccion);
+
+  procedure Registrar(const ANombre: string; ARecurso: PResStringRec);
+  begin
+    ARegistrar('inLibMsgBarrasSesion.' + ANombre,
+      'src/Lib/inLibMsgBarrasSesion.pas', ARecurso);
+  end;
+
+begin
+  Registrar('SBarrasTitulo', @SBarrasTitulo);
+  Registrar('SBarrasImportar', @SBarrasImportar);
+  Registrar('SBarrasAutomatico', @SBarrasAutomatico);
+  Registrar('SBarrasActualizar', @SBarrasActualizar);
+  Registrar('SBarrasCodigo', @SBarrasCodigo);
+  Registrar('SBarrasArticulo', @SBarrasArticulo);
+  Registrar('SBarrasColor', @SBarrasColor);
+  Registrar('SBarrasTalla', @SBarrasTalla);
+  Registrar('SBarrasSinColor', @SBarrasSinColor);
+  Registrar('SBarrasSinTalla', @SBarrasSinTalla);
+  Registrar('SBarrasColumna', @SBarrasColumna);
+  Registrar('SBarrasCabecera', @SBarrasCabecera);
+  Registrar('SBarrasAsignar', @SBarrasAsignar);
+  Registrar('SBarrasQuitar', @SBarrasQuitar);
+  Registrar('SBarrasAyuda', @SBarrasAyuda);
+  Registrar('SBarrasCodigoLargo', @SBarrasCodigoLargo);
+  Registrar('SBarrasCodigoControl', @SBarrasCodigoControl);
+  Registrar('SBarrasCsvComillas', @SBarrasCsvComillas);
+  Registrar('SBarrasCsvVacio', @SBarrasCsvVacio);
+  Registrar('SBarrasDuplicado', @SBarrasDuplicado);
+  Registrar('SBarrasOcupada', @SBarrasOcupada);
+  Registrar('SBarrasSeleccion', @SBarrasSeleccion);
+  Registrar('SBarrasSinAsignar', @SBarrasSinAsignar);
+  Registrar('SBarrasVacio', @SBarrasVacio);
+  Registrar('SBarrasAmbigua', @SBarrasAmbigua);
+  Registrar('SBarrasCerrada', @SBarrasCerrada);
+  Registrar('SBarrasCambios', @SBarrasCambios);
+  Registrar('SBarrasConflicto', @SBarrasConflicto);
+  Registrar('SBarrasPrefijo', @SBarrasPrefijo);
+  Registrar('SBarrasBloqueo', @SBarrasBloqueo);
+  Registrar('SBarrasGenerados', @SBarrasGenerados);
+  Registrar('SBarrasColumnaNumero', @SBarrasColumnaNumero);
+  Registrar('SBarrasSeparador', @SBarrasSeparador);
+  Registrar('SBarrasLinea', @SBarrasLinea);
+  Registrar('SBarrasDescripcion', @SBarrasDescripcion);
+  Registrar('SBarrasFiltroCsv', @SBarrasFiltroCsv);
+  Registrar('SBarrasMigracion', @SBarrasMigracion);
+end;
+
 procedure EnumerarResourcestringsTraduccion(
   const ARegistrar: TRegistrarResourcestringTraduccion);
 begin
+  RegistrarTextosBarrasSesion(ARegistrar);
   RegistrarCambiosTrabajo(ARegistrar);
   ARegistrar('inLibMsgMedidasCliente.' +
     'SMedidasClaseTraje',

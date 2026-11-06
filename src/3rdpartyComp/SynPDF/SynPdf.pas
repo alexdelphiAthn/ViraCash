@@ -432,6 +432,9 @@ const
   PDF_MAX_ZOOMSIZE = 10;
   PDF_MAX_LEADING = 300;
 
+  PDF_WINANSI_FIRST = AnsiChar(32);
+  PDF_WINANSI_LAST = AnsiChar(255);
+
   /// list of common fonts available by default since Windows 2000
   // - to not embedd these fonts in the PDF document, and save some KB,
   // just use the EmbeddedTTFIgnore property of TPdfDocument/TPdfDocumentGDI:
@@ -2183,7 +2186,7 @@ type
   end;
 
   PPdfWinAnsiWidth = ^TPdfWinAnsiWidth;
-  TPdfWinAnsiWidth = array[#32..#255] of word;
+  TPdfWinAnsiWidth = array[PDF_WINANSI_FIRST..PDF_WINANSI_LAST] of word;
 
   /// a generic PDF font object, handling at least WinAnsi encoding
   // - TPdfFontTrueType descendent will handle also Unicode chars,

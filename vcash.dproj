@@ -209,6 +209,11 @@
         <DCCReference Include="src\Modals\inMtoModalPreciosTallaSesion.pas"/>
         <DCCReference Include="src\Lib\inLibComprasSesionesTrazabilidad.pas"/>
         <DCCReference Include="src\DataModules\UniDataComprasSesionesPropiedades.pas"/>
+        <DCCReference Include="src\Lib\inLibMsgBarrasSesion.pas"/>
+        <DCCReference Include="src\Lib\inLibCodigosBarrasSesion.pas"/>
+        <DCCReference Include="src\DataModules\UniDataCodigosBarrasSesion.pas"/>
+        <DCCReference Include="src\Modals\inMtoModalCsvBarrasSesion.pas"/>
+        <DCCReference Include="src\Forms\inMtoComprasSesionesBarrasVcl.pas"/>
         <DCCReference Include="src\Forms\inMtoComprasSesionesPropiedadesVcl.pas"/>
         <DCCReference Include="src\Forms\inMtoComprasSesionesTrazabilidadVcl.pas"/>
         <DCCReference Include="src\Lib\inLibMsgPresupuestos.pas"/>

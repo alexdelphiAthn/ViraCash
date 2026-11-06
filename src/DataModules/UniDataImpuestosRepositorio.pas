@@ -329,10 +329,11 @@ begin
         'SELECT IFNULL(PORCENTAJE_EMPRET, 0) AS PORCENTAJE ' +
         '  FROM fza_empresas_retenciones ' +
         ' WHERE CODIGO_EMP_EMPRET = :EMPRESA ' +
-        '   AND FECHA_DESDE_EMPRET <= :FECHA ' +
+        '   AND (FECHA_DESDE_EMPRET <= :FECHA ' +
+        '        OR FECHA_DESDE_EMPRET IS NULL) ' +
         '   AND (FECHA_HASTA_EMPRET >= :FECHA ' +
         '        OR FECHA_HASTA_EMPRET IS NULL) ' +
-        ' LIMIT 1';
+        ' ORDER BY FECHA_DESDE_EMPRET DESC LIMIT 1';
       oConsulta.ParamByName('EMPRESA').AsString := ACodigoEmpresa;
       oConsulta.ParamByName('FECHA').AsDateTime := AFecha;
       oConsulta.Open;

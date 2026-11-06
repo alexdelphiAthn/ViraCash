@@ -161,6 +161,7 @@ type
     procedure DataModuleCreate(Sender: TObject);
     procedure unqryTablaGAfterInsert(DataSet: TDataSet);
     procedure unqryTablaGBeforePost(DataSet: TDataSet);
+    procedure AntesBorrarSesionBarras(DataSet: TDataSet);
     procedure unqrySesionLinAfterInsert(DataSet: TDataSet);
     procedure unqrySesionLinBeforePost(DataSet: TDataSet);
     procedure unqrySesionLinAfterPost(DataSet: TDataSet);
@@ -297,6 +298,7 @@ implementation
 
 uses
   UniDataComprasSesionesOperaciones,
+  UniDataCodigosBarrasSesion,
   System.Variants,
   inLibValoresAutomaticos, UniDataValoresAutomaticosRepositorio,
   inLibCodigosSinBarra,
@@ -1135,6 +1137,9 @@ end;
 procedure TdmComprasSesiones.DataModuleCreate(Sender: TObject);
 begin
   inherited;
+  unqryTablaG.BeforeDelete := AntesBorrarSesionBarras;
+  unqryTablaG.AfterDelete := ConfirmarBorradoTransaccional;
+  unqryTablaG.OnDeleteError := ErrorBorradoTransaccional;
   FGeneracionesCodigoArticulo :=
     TDictionary<string, TGeneracionCodigoArticuloSesion>.Create;
   ConfigurarSqlCabecera;
@@ -1143,6 +1148,19 @@ begin
   ConfigurarConsultaKitsProveedor;
   ConectarCatalogos;
   AbrirCatalogos;
+end;
+
+procedure TdmComprasSesiones.AntesBorrarSesionBarras(DataSet: TDataSet);
+begin
+  IniciarBorradoTransaccional;
+  try
+    BorrarBarrasSesion(unqryTablaG.Connection,
+      DataSet.FieldByName('SERIE_SES').AsString,
+      DataSet.FieldByName('NUMERO_SES').AsString);
+  except
+    RevertirBorradoTransaccional;
+    raise;
+  end;
 end;
 
 procedure TdmComprasSesiones.RefrescarAlmacenes(

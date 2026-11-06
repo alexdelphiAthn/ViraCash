@@ -58,6 +58,11 @@ uses
     'src\Lib\inLibComprasSesionesTrazabilidad.pas',
   UniDataComprasSesionesPropiedades in
     'src\DataModules\UniDataComprasSesionesPropiedades.pas',
+  inLibMsgBarrasSesion in 'src\Lib\inLibMsgBarrasSesion.pas',
+  inLibCodigosBarrasSesion in 'src\Lib\inLibCodigosBarrasSesion.pas',
+  UniDataCodigosBarrasSesion in 'src\DataModules\UniDataCodigosBarrasSesion.pas',
+  inMtoModalCsvBarrasSesion in 'src\Modals\inMtoModalCsvBarrasSesion.pas',
+  inMtoComprasSesionesBarrasVcl in 'src\Forms\inMtoComprasSesionesBarrasVcl.pas',
   inMtoComprasSesionesPropiedadesVcl in
     'src\Forms\inMtoComprasSesionesPropiedadesVcl.pas',
   inMtoComprasSesionesTrazabilidadVcl in

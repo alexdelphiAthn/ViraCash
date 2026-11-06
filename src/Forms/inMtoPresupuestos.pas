@@ -120,6 +120,8 @@ type
     curTOTAL_BASES_PRE: TcxDBCurrencyEdit;
     lblTotalImpuestos: TcxLabel;
     curTOTAL_IMPUESTOS_PRE: TcxDBCurrencyEdit;
+    lblTotalRetencion: TcxLabel;
+    curTOTAL_RETENCION_PRE: TcxDBCurrencyEdit;
     lblTotalLiquido: TcxLabel;
     curTOTAL_LIQUIDO_PRE: TcxDBCurrencyEdit;
     tsTotales: TcxTabSheet;
@@ -980,7 +982,8 @@ procedure TfrmMtoPresupuestos.CrearColumnasHostAlbaran;
 var
   ColCant, ColTipo, ColLinea, ColLote, ColCad: TcxGridDBColumn;
   ColPrecioSinIva, ColPrecioConIva, ColTotal: TcxGridDBColumn;
-  ColImpIncl: TcxGridDBColumn;
+  ColImpIncl, ColDescuento: TcxGridDBColumn;
+  PropiedadesDescuento: TcxSpinEditProperties;
   bHayTrazables: Boolean;
   ds: TDataSet;
   Bm: TBookmark;
@@ -1012,6 +1015,15 @@ begin
   PropiedadesCheck.ReadOnly := True;
   PropiedadesCheck.ValueChecked := 'S';
   PropiedadesCheck.ValueUnchecked := 'N';
+  ColDescuento := Col(SCaptionDescuentoLineaPresupuesto,
+    'PORCENTAJE_DTO_PRELIN', 75, True);
+  ColDescuento.PropertiesClass := TcxSpinEditProperties;
+  PropiedadesDescuento := TcxSpinEditProperties(ColDescuento.Properties);
+  PropiedadesDescuento.ValueType := vtFloat;
+  PropiedadesDescuento.MinValue := 0;
+  PropiedadesDescuento.MaxValue := 100;
+  PropiedadesDescuento.DisplayFormat := '0.00 %';
+  PropiedadesDescuento.EditFormat := '0.00';
   ColTotal := Col(SCaptionTotalPresupuesto, 'TOTAL_PRELIN', 95, False);
   Col(SCaptionAlmacenPresupuesto, 'CODIGO_ALMACEN_PRELIN', 75, True);
   ColLote := Col(SCaptionLotePresupuesto, 'LOTE_PRELIN', 80, True);

@@ -51,6 +51,7 @@ uses
   Data.DB, DBAccess,
   inLibEAN13,
   UniDataComprasSesionesPropiedades,
+  UniDataCodigosBarrasSesion,
   UniDataValoresAutomaticosRepositorio,
   UniDataComprasSesionesColores,
   UniDataPrestaShopEncolado,
@@ -70,6 +71,7 @@ type
   end;
   TPreciosArticulosSesion = TArray<TPreciosArticuloSesion>;
 function GenerarEAN13Local(
+                           AConexion: TUniConnection;
                            const ALecturas:
                            ILecturasArticulosMaterializacion;
                            const APrefijo: string): string;
@@ -77,6 +79,7 @@ var
   sPref   : string;
   iLenSeq : Integer;
   iNext   : Int64;
+  iReserva: Int64;
   sBase   : string;
   cCheck  : Char;
 begin
@@ -92,6 +95,9 @@ begin
   iNext := ALecturas.ObtenerSiguienteSecuenciaEan(
     sPref,
     iLenSeq);
+  iReserva := SiguienteSecuenciaBarrasSesion(AConexion, sPref);
+  if iReserva > iNext then
+    iNext := iReserva;
   sBase  := sPref + Format('%.*d', [iLenSeq, iNext]);
   cCheck := inLibEAN13.CalcularDigitoEAN13(sBase);
   Result := sBase + cCheck;
@@ -420,9 +426,9 @@ procedure AsegurarEan13Sku(
 var
   sEan13: string;
 begin
-  if not ALecturas.ExisteEan13Sku(ACodigoSku) then
+  if not SkuTieneCodigoBarras(AQuery.Connection, ACodigoSku) then
   begin
-    sEan13 := GenerarEAN13Local(ALecturas, APrefijoEan);
+    sEan13 := GenerarEAN13Local(AQuery.Connection, ALecturas, APrefijoEan);
     AQuery.SQL.Text :=
       'INSERT INTO fza_codigos_barras ' +
       '  (CODIGO_BARRAS_CB, CODIGO_UNIDAD_CB, TIPO_CODIGO_CB, ' +
@@ -445,7 +451,7 @@ function ProcesarSkuSesion(
   const ASku: TSkuSesionMaterializacion;
   AOperacion: TUniQuery;
   const ACodigoArticulo, ACodigoVariacion, AUsuario, APrefijoEan,
-        AValorColor, AValorPestana: string;
+        AValorColor, AValorPestana, ACodigoBarras: string;
   AIdColor, AIdPestana, AIdPropiedadTemporada: Integer): TPrecioSkuSesion;
 var
   sCodigoSku: string;
@@ -483,8 +489,12 @@ begin
   InsertarTemporadaColorSku(
     AOperacion, ACodigoArticulo, sCodigoSku, AUsuario,
     AIdPropiedadTemporada);
-  AsegurarEan13Sku(
-    ALecturas, AOperacion, sCodigoSku, APrefijoEan, AUsuario);
+  if ACodigoBarras <> '' then
+    AsociarBarrasSkuSesion(AOperacion.Connection, ACodigoBarras,
+      sCodigoSku, AUsuario)
+  else
+    AsegurarEan13Sku(
+      ALecturas, AOperacion, sCodigoSku, APrefijoEan, AUsuario);
   Result.CodigoSku := sCodigoSku;
   Result.ClaveColor := '';
   if sValorFila <> '' then
@@ -496,7 +506,7 @@ end;
 
 procedure AsegurarSkuBaseSesion(AConexion: TUniConnection;
   const ALecturas: ILecturasArticulosMaterializacion;
-  const ACodigoArticulo, APrefijoEan, AUsuario: string);
+  const ACodigoArticulo, APrefijoEan, AUsuario, ACodigoBarras: string);
 var
   oConsulta: TUniQuery;
 begin
@@ -505,8 +515,12 @@ begin
     oConsulta.Connection := AConexion;
     InsertarSkuMaterializado(oConsulta, ACodigoArticulo,
       ACodigoArticulo, '-', AUsuario);
-    AsegurarEan13Sku(ALecturas, oConsulta, ACodigoArticulo,
-      APrefijoEan, AUsuario);
+    if ACodigoBarras <> '' then
+      AsociarBarrasSkuSesion(AConexion, ACodigoBarras,
+        ACodigoArticulo, AUsuario)
+    else
+      AsegurarEan13Sku(ALecturas, oConsulta, ACodigoArticulo,
+        APrefijoEan, AUsuario);
   finally
     FreeAndNil(oConsulta);
   end;
@@ -552,7 +566,9 @@ begin
     begin
       oPrecio := ProcesarSkuSesion(
         ALecturas, oSkus[iSku], qOperacion, ACodigoArt, ACodigoVariacion,
-        AUsuario, APrefijoEAN, sValorColor, sValorPestana, iIdColor,
+        AUsuario, APrefijoEAN, sValorColor, sValorPestana,
+        LeerCodigoBarrasCelda(AConn, ASerieSes, ANumSes, ALinea,
+          oSkus[iSku].IdFila, oSkus[iSku].IdAvPivot), iIdColor,
         iIdPestana, AIdPvTemporada);
       // Sin PVP el SKU no entra en el patrón: hereda la tarifa.
       if oPrecio.Pvp > 0 then
@@ -881,13 +897,14 @@ begin
         iIdTemporadaLinea,
         oPreciosLinea);
     end
-    else if (oLineas[iIndice].TipoLinea = 'ESCALAR') and
-            (oLineas[iIndice].AccionDuplicado <> 'REUSAR') then
+    else if oLineas[iIndice].TipoLinea = 'ESCALAR' then
     begin
       // Sin variación: SKU único, con el mismo código del artículo.
       // Usa la conexión de materialización para participar en su rollback.
       AsegurarSkuBaseSesion(AConexion, ALecturas, sCodigoArt,
-        sPrefijoEan, AUsuario);
+        sPrefijoEan, AUsuario,
+        LeerCodigoBarrasCelda(AConexion, sSerieSesion, sNumeroSesion,
+          iLin, 0, 0));
     end;
     InsertarPropiedadesFijas(
       AConexion,

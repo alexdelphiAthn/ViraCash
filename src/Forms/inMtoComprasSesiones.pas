@@ -100,6 +100,7 @@ uses
   inMtoComprasSesionesPresentacionProveedor,
   inMtoComprasSesionesPresentacionTallas,
   inMtoComprasSesionesPropiedadesVcl,
+  inMtoComprasSesionesBarrasVcl,
   inLibArticulosPropiedadesPersistenciaIntf,
   UniDataComprasSesionesPropiedades,
   inMtoComprasSesionesTrazabilidadVcl, inLibTrazabilidadAlta,
@@ -479,6 +480,7 @@ type
     FAplicacionMaterializacion:
       IAplicacionMaterializacionCompraSesion;
     FEstiloRecepcionVencida: TcxStyle;
+    FBarrasSesion: TBarrasSesionVcl;
     // Colaboradores de presentacion. Cada uno recibe por constructor
     // solo las capacidades que usa (datasets, columnas y callbacks);
     // ninguno conserva una referencia a este formulario completo.
@@ -1445,6 +1447,8 @@ end;
 
 procedure TfrmMtoComprasSesiones.cxPageControl2Change(Sender: TObject);
 begin
+  if FBarrasSesion <> nil then
+    FBarrasSesion.ActualizarPagina;
   if FPropiedadesFamilia <> nil then
     FPropiedadesFamilia.Actualizar;
   if Assigned(FTrazabilidadSesion) then
@@ -1811,6 +1815,8 @@ end;
 procedure TfrmMtoComprasSesiones.dsTablaGDataChangeHook(Sender: TObject;
                                                           Field: TField);
 begin
+  if (Field = nil) and (FBarrasSesion <> nil) then
+    FBarrasSesion.ActualizarPagina;
   if ((Field = nil) or SameText(Field.FieldName, 'CODIGO_EMP_SES')) and
      (Dmm <> nil) and Dmm.unqryTablaG.Active and
      (not Dmm.unqryTablaG.IsEmpty) then
@@ -2213,6 +2219,16 @@ begin
       Result := CrearServiciosPropiedadesSesion(
         ConexionTrabajo, ASerie, ANumero, ALinea);
     end);
+  FBarrasSesion := TBarrasSesionVcl.Create(Self, cxPageControl2,
+    ConexionTrabajo, Dmm.unqryTablaG, IdentidadSesion.Usuario,
+    procedure
+    begin
+      Dmm.unqrySesionLin.CheckBrowseMode;
+    end,
+    function: Boolean
+    begin
+      Result := PuedeAccionMto(apmModificar);
+    end);
   AplicarModoPrecioDefecto;
   chkDescripcionBlanco.Caption := SComprasDejarDescripcionBlanco;
   chkESVARIOS_TIPOS_VARIACION_SES.Caption :=
@@ -2306,6 +2322,7 @@ procedure TfrmMtoComprasSesiones.FormDestroy(Sender: TObject);
 var
   GestorContexto: IGestorContextoSesion;
 begin
+  FreeAndNil(FBarrasSesion);
   FreeAndNil(FPropiedadesFamilia);
   FreeAndNil(FTrazabilidadSesion);
   if Dmm <> nil then

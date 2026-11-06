@@ -96,6 +96,7 @@
         TabOrder = 0
         object tvCuadr: TcxGridDBTableView
           DataController.DataSource = dsCuadr
+          OptionsBehavior.FocusCellOnCycle = True
           OptionsBehavior.FocusCellOnTab = True
           OptionsBehavior.GoToNextCellOnEnter = True
           OptionsBehavior.ImmediateEditor = True

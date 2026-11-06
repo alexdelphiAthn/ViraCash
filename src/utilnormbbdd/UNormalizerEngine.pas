@@ -214,6 +214,8 @@ procedure TViraCashNormalizer.InitDefaults;
   end;
 
 begin
+  AddSuf('fza_compras_sesiones_codigos_barras', 'SESCB');
+  AddOwn('fza_compras_sesiones_codigos_barras', ['CODIGO_BARRAS']);
   AddSuf('fza_presupuestos', 'PRE');
   AddSuf('fza_presupuestos_lineas', 'PRELIN');
   AddSuf('fza_presupuestos_celdas', 'PRECEL');
