@@ -205,7 +205,7 @@
               object lblPedidoOrigen: TcxLabel
                 Left = 486
                 Top = 12
-                Caption = 'Documento creado (número / serie)'
+                Caption = 'Documento creado'
                 TabOrder = 13
                 Transparent = True
                 Visible = True
@@ -216,6 +216,9 @@
                 DataBinding.DataField = 'NUMERO_DESTINO_PRE'
                 DataBinding.DataSource = dsTablaG
                 Properties.ReadOnly = True
+                Hint = 'Número del documento creado'
+                ParentShowHint = False
+                ShowHint = True
                 TabOrder = 4
                 Visible = True
                 Width = 90
@@ -226,6 +229,9 @@
                 DataBinding.DataField = 'SERIE_DESTINO_PRE'
                 DataBinding.DataSource = dsTablaG
                 Properties.ReadOnly = True
+                Hint = 'Serie del documento creado'
+                ParentShowHint = False
+                ShowHint = True
                 TabOrder = 5
                 Visible = True
                 Width = 80

@@ -268,17 +268,7 @@ end;
 
 procedure TfrmMtoFamilias.btnNuevaFamiliaClick(Sender: TObject);
 begin
-  inherited;
-  if ( (dmmFamilias.unqryTablaG.State = dsInsert) or
-       (dmmFamilias.unqryTablaG.State = dsEdit)) then
-  begin
-    dmmFamilias.unqryTablaG.Post;
-  end;
-  dmmFamilias.unqryTablaG.Insert;
-  pcPantalla.Properties.ActivePage := tsFicha;
-//  tsFicha.SetFocus;
-  ResetForm;
-//  txtNOMBRE_FAMILIA.SetFocus;
+  actInsertarRegistroExecute(Sender);
 end;
 
 procedure TfrmMtoFamilias.ConfigurarTrazabilidadFamilia;

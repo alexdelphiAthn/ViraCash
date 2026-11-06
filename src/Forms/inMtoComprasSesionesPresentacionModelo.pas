@@ -151,15 +151,18 @@ type
       const ANombreFamilia: string = '';
       AReemplazarDescripcion: Boolean = False);
     // Abre el picker jerarquico de familias y expande la eleccion.
-    procedure ElegirFamiliaConModal;
+    function ElegirFamiliaConModal: Boolean;
     procedure ResolverCodigoPropuestoPendiente;
     procedure ProponerPrecioVenta;
+    procedure ValidarPrecioCompra(Sender: TObject;
+      var DisplayValue: Variant; var ErrorText: TCaption;
+      var Error: Boolean);
   end;
 
 implementation
 
 uses
-  Vcl.Dialogs,
+  Vcl.Dialogs, cxCurrencyEdit,
   inLibComprasSesionesCodigoArticulo,
   inLibMensajesVcl,
   inLibMsgCompras,
@@ -777,13 +780,14 @@ begin
   end;
 end;
 
-procedure TBuscadorModeloProveedorSesion.ElegirFamiliaConModal;
+function TBuscadorModeloProveedorSesion.ElegirFamiliaConModal: Boolean;
 var
   Modal: TfrmModalSelFamilia;
 begin
   Modal := TfrmModalSelFamilia.Create(FEntorno.Propietario);
   try
-    if Modal.ShowModal = mrOk then
+    Result := Modal.ShowModal = mrOk;
+    if Result then
       ExpandirCodigoFamiliaActiva(Modal.CodigoFamilia, Modal.NombreFamilia);
   finally
     FreeAndNil(Modal);
@@ -940,6 +944,33 @@ begin
   end
   else
     FDuplicadoCodigo.Encontrado := False;
+end;
+
+procedure TBuscadorModeloProveedorSesion.ValidarPrecioCompra(
+  Sender: TObject; var DisplayValue: Variant;
+  var ErrorText: TCaption; var Error: Boolean);
+var
+  vCoste: TcxEditValue;
+begin
+  // Validar tambien si se vuelve a escribir el mismo coste: el
+  // coeficiente puede haber cambiado desde el calculo anterior.
+  if not Error and (Sender is TcxCustomCurrencyEdit) and
+     TcxCustomCurrencyEdit(Sender).ModifiedAfterEnter then
+  begin
+    TcxCustomCurrencyEdit(Sender).PrepareEditValue(DisplayValue,
+      vCoste, True);
+    if not VarIsNull(vCoste) and not VarIsEmpty(vCoste) and
+       HayLineaEditable then
+    begin
+      // Publicar el coste validado antes del PVP: cambiar otro campo
+      // puede refrescar el editor y recuperar el coste anterior.
+      if not (FEntorno.Lineas.State in [dsEdit, dsInsert]) then
+        FEntorno.Lineas.Edit;
+      FEntorno.Lineas.FieldByName('PRECIO_COMPRA_SESLIN').AsFloat :=
+        vCoste;
+      ProponerPrecioVenta;
+    end;
+  end;
 end;
 
 procedure TBuscadorModeloProveedorSesion.ProponerPrecioVenta;

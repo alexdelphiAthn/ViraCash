@@ -251,7 +251,7 @@
                     DataBinding.FieldName = 'PRECIO_COMPRA_SESLIN'
                     PropertiesClassName = 'TcxCurrencyEditProperties'
                     Properties.DisplayFormat = '#,##0.00 '#8364
-                    Properties.OnEditValueChanged = dbcLinPrecioCompraPropertiesEditValueChanged
+                    Properties.OnValidate = dbcLinPrecioCompraPropertiesValidate
                     Width = 136
                   end
                   object dbcLinPrecioVenta: TcxGridDBColumn

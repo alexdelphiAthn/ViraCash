@@ -967,7 +967,7 @@
       Properties.DropDownRows = 15
       Properties.DropDownSizeable = True
       Properties.DropDownWidth = 750
-      Properties.ImmediateDropDownWhenActivated = True
+      Properties.ImmediateDropDownWhenActivated = False
       Properties.ImmediateDropDownWhenKeyPressed = False
       Properties.IncrementalFiltering = False
       Properties.View = dbtvBusq

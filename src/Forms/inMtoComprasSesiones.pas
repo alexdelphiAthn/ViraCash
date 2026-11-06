@@ -445,7 +445,9 @@ type
     procedure dbcLinColorBasicoPropertiesValidate(Sender: TObject;
                 var DisplayValue: Variant; var ErrorText: TCaption;
                 var Error: Boolean);
-    procedure dbcLinPrecioCompraPropertiesEditValueChanged(Sender: TObject);
+    procedure dbcLinPrecioCompraPropertiesValidate(Sender: TObject;
+      var DisplayValue: Variant; var ErrorText: TCaption;
+      var Error: Boolean);
     procedure dbcLinFamiliaPropertiesEditValueChanged(Sender: TObject);
     procedure dbcLinCodArtPropertiesValidate(Sender: TObject;
       var DisplayValue: Variant; var ErrorText: TCaption;
@@ -501,6 +503,8 @@ type
     procedure AplicarModoPrecioDefecto;
     procedure ReintentarFotosSesion;
     procedure EditarPreciosTallaLinea;
+    procedure ElegirFamiliaLinea;
+    procedure AjustarAltoBarraLineas(Sender: TObject);
     procedure CopiarPreciosTallaCopia(ALineaOrigen,
       ALineaDestino: Integer);
     procedure RefrescarRotulosVariacion(AForzar: Boolean = False);
@@ -556,6 +560,7 @@ type
     function CancelarEdicionConEscape: Boolean; override;
   protected
     procedure AsegurarColumnaVariacionLinea;
+    procedure ConfigurarDesplazamientoFicha;
     // Interceptamos a nivel de form (KeyPreview heredado = True) para
     // que Ctrl+Enter abra el selector de la columna editbutton enfocada
     // ANTES de que la navegacion Enter->Tab del grid / FormKeyDown base
@@ -2058,6 +2063,76 @@ begin
   FVisorPedidoOriginal.Cargar;
 end;
 
+// Las zonas de controles fijos se desplazan sin ensanchar la rejilla.
+procedure TfrmMtoComprasSesiones.ConfigurarDesplazamientoFicha;
+var
+  aTabulacion: TArray<TWinControl>;
+  oCabecera: TcxScrollBox;
+  oBarra: TcxScrollBox;
+  oControl: TControl;
+  i: Integer;
+  iAncho: Integer;
+begin
+  SetLength(aTabulacion, gbCabecera.ControlCount);
+  for i := 0 to gbCabecera.ControlCount - 1 do
+    if gbCabecera.Controls[i] is TWinControl then
+    begin
+      oControl := gbCabecera.Controls[i];
+      aTabulacion[TWinControl(oControl).TabOrder] := TWinControl(oControl);
+    end;
+  oCabecera := TcxScrollBox.Create(Self);
+  oCabecera.Parent := gbCabecera;
+  oCabecera.Align := alClient;
+  oCabecera.BorderStyle := cxcbsNone;
+  oCabecera.HorzScrollBar.Tracking := True;
+  oCabecera.VertScrollBar.Tracking := True;
+  oCabecera.HorzScrollBar.Margin := ScaleValue(8);
+  oCabecera.VertScrollBar.Margin := ScaleValue(8);
+  // Cada campo conserva su posicion y orden de tabulacion. Al recibir
+  // el foco, el contenedor tambien desplaza el campo a la zona visible.
+  for i := gbCabecera.ControlCount - 1 downto 0 do
+  begin
+    oControl := gbCabecera.Controls[i];
+    if oControl <> oCabecera then
+      oControl.Parent := oCabecera;
+  end;
+
+  for i := 0 to High(aTabulacion) do
+    if Assigned(aTabulacion[i]) then
+      aTabulacion[i].TabOrder := i;
+
+  iAncho := 0;
+  for i := 0 to pnlLineasTop.ControlCount - 1 do
+  begin
+    oControl := pnlLineasTop.Controls[i];
+    if oControl.Visible and
+       (oControl.Left + oControl.Width > iAncho) then
+      iAncho := oControl.Left + oControl.Width;
+  end;
+  oBarra := TcxScrollBox.Create(Self);
+  oBarra.Parent := pnlLineasTop.Parent;
+  oBarra.Top := pnlLineasTop.Top;
+  oBarra.Align := alTop;
+  oBarra.BorderStyle := cxcbsNone;
+  oBarra.HorzScrollBar.Tracking := True;
+  oBarra.VertScrollBar.Visible := False;
+  pnlLineasTop.Parent := oBarra;
+  pnlLineasTop.Align := alNone;
+  pnlLineasTop.SetBounds(0, 0, iAncho + ScaleValue(8),
+    pnlLineasTop.Height);
+  // El presentador de copas cambia el alto de esta barra al mostrar
+  // sus botones; conservar tambien entonces espacio para desplazarla.
+  pnlLineasTop.OnResize := AjustarAltoBarraLineas;
+  AjustarAltoBarraLineas(nil);
+end;
+
+procedure TfrmMtoComprasSesiones.AjustarAltoBarraLineas(Sender: TObject);
+begin
+  if not (csDestroying in ComponentState) and
+     Assigned(pnlLineasTop.Parent) then
+    pnlLineasTop.Parent.Height := pnlLineasTop.Height + ScaleValue(20);
+end;
+
 procedure TfrmMtoComprasSesiones.FormCreate(Sender: TObject);
 var
   EntornoVisor: TEntornoVisorPedidoOriginalSesion;
@@ -2121,6 +2196,7 @@ begin
     cbbProveedor,
     cbbProveedorPropertiesButtonClick);
   FFotos.ConfigurarCabecera;
+  ConfigurarDesplazamientoFicha;
   cxPageControl2.OnChange := cxPageControl2Change;
   FEstiloRecepcionVencida := TcxStyle.Create(Self);
   FEstiloRecepcionVencida.AssignedValues := [svTextColor];
@@ -2588,8 +2664,8 @@ begin
     if (Key = VK_F3) and (Shift = []) and
        ((AItem = dbcLinFamilia) or (AItem = dbcLinCodArt)) then
     begin
-      FModeloPrv.ElegirFamiliaConModal;
       Key := 0;
+      ElegirFamiliaLinea;
     end;
   end;
 end;
@@ -2637,6 +2713,20 @@ begin
     inherited KeyDown(Key, Shift);
 end;
 
+procedure TfrmMtoComprasSesiones.ElegirFamiliaLinea;
+begin
+  if FModeloPrv.ElegirFamiliaConModal then
+  begin
+    // El modal ya esta cerrado: continuar escribiendo en la descripcion.
+    if cxgrdLineas.CanFocus then
+    begin
+      cxgrdLineas.SetFocus;
+      tvLineas.Controller.FocusedColumn := dbcLinDescripcion;
+      tvLineas.Controller.EditingController.ShowEdit;
+    end;
+  end;
+end;
+
 procedure TfrmMtoComprasSesiones.btnArbolFamiliasClick(Sender: TObject);
 begin
   inherited;
@@ -2646,7 +2736,7 @@ begin
     MessageDlg_fza(SErrorLineaSesionAsignarFamiliaNoSeleccionada,
                mtInformation, [mbOk], 0)
   else
-    FModeloPrv.ElegirFamiliaConModal;
+    ElegirFamiliaLinea;
 end;
 
 procedure TfrmMtoComprasSesiones.dbcLinFamiliaPropertiesEditValueChanged(
@@ -2764,13 +2854,12 @@ end;
 //   Auto-PVP
 // ===========================================================================
 
-procedure TfrmMtoComprasSesiones.dbcLinPrecioCompraPropertiesEditValueChanged(
-  Sender: TObject);
+procedure TfrmMtoComprasSesiones.dbcLinPrecioCompraPropertiesValidate(
+  Sender: TObject; var DisplayValue: Variant;
+  var ErrorText: TCaption; var Error: Boolean);
 begin
   inherited;
-  if Sender is TcxCustomEdit then
-    TcxCustomEdit(Sender).PostEditValue;
-  FModeloPrv.ProponerPrecioVenta;
+  FModeloPrv.ValidarPrecioCompra(Sender, DisplayValue, ErrorText, Error);
 end;
 
 procedure TfrmMtoComprasSesiones.dbcFotoUnidadGetDisplayText(

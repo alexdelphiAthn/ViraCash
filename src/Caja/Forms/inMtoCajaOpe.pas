@@ -89,6 +89,8 @@ const
   // Aviso de precio tomado de la tarifa por defecto: se muestra cuando la
   // línea ya está grabada, nunca dentro de la edición de la rejilla.
   WM_AVISO_TARIFA_DEFECTO_CAJA = WM_APP + 111;
+  // La busqueda modal se abre cuando termina la apertura del combo.
+  WM_BUSCAR_ARTICULO_VACIO_CAJA = WM_APP + 112;
 type
   TServiciosLecturaOperacionCaja = record
     ConsultaStock: IResultadoConsultaCaja;
@@ -526,6 +528,7 @@ type
     FEditorLineas: TEditorLineasCajaVcl;
     FPresentacion: TVentanaOperacionCajaVcl;
     FSubsanacion: TModoSubsanacionCajaVcl;
+    FBusquedaArticuloVacioPendiente: Boolean;
     FOperacionSubsanacion: TOperacionSubsanacionCaja;
     FServicioSubsanacion: IServicioSubsanacionCaja;
     // Cuenta del cliente (F2): se muestran tambien los depositos cerrados.
@@ -596,6 +599,8 @@ type
     procedure CerrarComboAtributo(Sender: TObject);
     procedure WMRevisarEnterAsTabCaja(var Msg: TMessage);
                                        message WM_REVISAR_ENTER_AS_TAB_CAJA;
+    procedure WMBuscarArticuloVacioCaja(var Msg: TMessage);
+                                       message WM_BUSCAR_ARTICULO_VACIO_CAJA;
     procedure WMEnfocarArticuloCaja(var Msg: TMessage);
                                        message WM_ENFOCAR_ARTICULO_CAJA;
     procedure WMRecargarLineasCaja(var Msg: TMessage);
@@ -1731,7 +1736,45 @@ end;
 procedure TfrmMtoOpeCaja.repComboBoxPropertiesInitPopup(
   Sender: TObject);
 begin
-  FEditorLineas.InicializarPopupBusqueda(Sender);
+  if (Sender is TcxExtLookupComboBox) and
+     (Trim(TcxExtLookupComboBox(Sender).Text) = '') and
+     not Assigned(FSubsanacion) then
+  begin
+    tmrBusq.Enabled := False;
+    // Sin datos, DevExpress no abre el desplegable vacio ni reutiliza
+    // resultados de una busqueda anterior mientras se prepara la modal.
+    dbtvBusq.DataController.DataSource := nil;
+    if not FBusquedaArticuloVacioPendiente then
+    begin
+      FBusquedaArticuloVacioPendiente := True;
+      PostMessage(Handle, WM_BUSCAR_ARTICULO_VACIO_CAJA, 0, 0);
+    end;
+  end
+  else
+    FEditorLineas.InicializarPopupBusqueda(Sender);
+end;
+
+procedure TfrmMtoOpeCaja.WMBuscarArticuloVacioCaja(var Msg: TMessage);
+var
+  Editor: TcxCustomEdit;
+begin
+  try
+    if FBusquedaArticuloVacioPendiente and
+       not Assigned(FSubsanacion) and
+       (tvLineasOpe.Controller.FocusedItem = tvArticulo) and
+       tvLineasOpe.Controller.EditingController.IsEditing then
+    begin
+      Editor := tvLineasOpe.Controller.EditingController.Edit;
+      if (Editor is TcxExtLookupComboBox) and
+         (Trim(TcxExtLookupComboBox(Editor).Text) = '') then
+      begin
+        tmrBusq.Enabled := False;
+        actBuscarEmpleados.Execute;
+      end;
+    end;
+  finally
+    FBusquedaArticuloVacioPendiente := False;
+  end;
 end;
 
 procedure TfrmMtoOpeCaja.cxGrid1DBTableView1CanFocusRecord(

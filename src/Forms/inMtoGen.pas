@@ -247,6 +247,7 @@ type
     function FocoEnEditorTexto: Boolean;
     function PuedeCambiarRegistroPorTecla: Boolean;
     procedure MoverFocoGridBloque(AAvanzar: Boolean);
+    procedure EnfocarPrimerControlFicha;
     procedure ActivarFichaDesdeDM(Sender: TObject);
     procedure NotificarMensajeDesdeDM(Sender: TObject;
       const AMensaje: string; ASeveridad: TSeveridadMensajeDatos);
@@ -837,55 +838,44 @@ begin
   RecorrerControles(Self);
 end;
 
-procedure TfrmMtoGen.tsFichaShow(Sender: TObject);
+procedure TfrmMtoGen.EnfocarPrimerControlFicha;
 var
-  FocusControl: TWinControl;
-  function FindNextFocusableControl(AParent: TWinControl): TWinControl;
-  var
-    I: Integer;
-    Control: TControl;
-    MinTabOrder: Integer;
+  oControles: System.Classes.TList;
+  oControl: TWinControl;
+  oPrimero: TWinControl;
+  i: Integer;
+begin
+  if pcPantalla.ActivePage = tsFicha then
   begin
-    Result := nil;
-    MinTabOrder := High(Integer);
-    for I := 0 to AParent.ControlCount - 1 do
-    begin
-      Control := AParent.Controls[I];
-      if (Control is TWinControl) and
-         not (Control is TPanel) and          // Excluir TPanels
-         not (Control is TcxPageControl) and  // Excluir TcxPageControl
-         not (Control is TcxTabSheet) and     // Excluir TcxTabSheet
-         TWinControl(Control).CanFocus and
-         (TWinControl(Control).TabOrder > AParent.TabOrder) and
-         (TWinControl(Control).TabOrder < MinTabOrder) then
+    oControles := System.Classes.TList.Create;
+    try
+      // VCL ordena cada contenedor por su propio TabOrder, incluido el 0.
+      tsFicha.GetTabOrderList(oControles);
+      oPrimero := nil;
+      i := 0;
+      while (i < oControles.Count) and not Assigned(oPrimero) do
       begin
-        Result := TWinControl(Control);
-        MinTabOrder := Result.TabOrder;
+        oControl := TWinControl(oControles[i]);
+        if oControl.TabStop and oControl.CanFocus and
+           not (oControl is TPanel) and
+           not (oControl is TcxPageControl) and
+           not (oControl is TcxTabSheet) and
+           not (oControl is TcxScrollBox) then
+          oPrimero := oControl;
+        Inc(i);
       end;
-      if (Control is TWinControl) and
-         (TWinControl(Control).ControlCount > 0) then
-      begin
-        Control := FindNextFocusableControl(TWinControl(Control));
-        if Assigned(Control) and
-           (TWinControl(Control).TabOrder > AParent.TabOrder) and
-           (TWinControl(Control).TabOrder < MinTabOrder) then
-        begin
-          Result := TWinControl(Control);
-          MinTabOrder := Result.TabOrder;
-        end;
-      end;
+      if Assigned(oPrimero) then
+        oPrimero.SetFocus;
+    finally
+      oControles.Free;
     end;
   end;
+end;
+
+procedure TfrmMtoGen.tsFichaShow(Sender: TObject);
 begin
-    FGuardianBorrado.Instalar;
-    FocusControl := FindNextFocusableControl(tsFicha);
-    if Assigned(FocusControl) then
-    begin
-      if FocusControl.CanFocus then
-      begin
-        FocusControl.SetFocus;
-      end;
-    end;
+  FGuardianBorrado.Instalar;
+  EnfocarPrimerControlFicha;
 end;
 
 procedure TfrmMtoGen.OcultarComponentesPorTexto(
@@ -1091,7 +1081,10 @@ end;
 procedure TfrmMtoGen.ActivarFichaDesdeDM(Sender: TObject);
 begin
   if tsFicha.TabVisible then
+  begin
     pcPantalla.ActivePage := tsFicha;
+    EnfocarPrimerControlFicha;
+  end;
 end;
 
 procedure TfrmMtoGen.NotificarMensajeDesdeDM(Sender: TObject;
@@ -2466,6 +2459,8 @@ begin
   oDataSet := dsTablaG.DataSet;
   try
     oDataSet.Insert;
+    // Reafirmar ficha y foco tras completar los valores del alta.
+    ActivarFichaDesdeDM(Self);
   except
     if oDataSet.State = dsInsert then
       oDataSet.Cancel;
