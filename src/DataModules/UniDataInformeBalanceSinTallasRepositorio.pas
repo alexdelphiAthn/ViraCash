@@ -7,12 +7,16 @@ uses
 
 function CrearRepositorioInformeBalanceSinTallasUniDAC(
   AConexion: TUniConnection): IRepositorioInformeBalanceSinTallas;
+function CompletarResumenBalanceUniDAC(AConexion: TUniConnection;
+  const AOrigen: IResultadoInformeBalanceSinTallas;
+  const ACriterios: TCriteriosInformeBalanceSinTallas):
+  IResultadoInformeBalanceSinTallas;
 
 implementation
 
 uses
   System.SysUtils, Data.DB, System.Generics.Collections,
-  UniDataBalanceUnidades;
+  UniDataBalanceUnidades, UniDataBalanceComplementos;
 
 type
   TResultadoInformeBalanceSinTallasUniDAC = class(
@@ -108,6 +112,24 @@ begin
       oConsulta, PrecargarUnidadesBalance(FConexion, oConsulta));
   except
     FreeAndNil(oConsulta);
+    raise;
+  end;
+end;
+
+function CompletarResumenBalanceUniDAC(AConexion: TUniConnection;
+  const AOrigen: IResultadoInformeBalanceSinTallas;
+  const ACriterios: TCriteriosInformeBalanceSinTallas):
+  IResultadoInformeBalanceSinTallas;
+var
+  oDatos: TDataSet;
+begin
+  oDatos := CompletarDatosResumenBalance(AConexion, AOrigen.DataSet,
+    ACriterios);
+  try
+    Result := TResultadoInformeBalanceSinTallasUniDAC.Create(oDatos,
+      PrecargarUnidadesBalance(AConexion, oDatos));
+  except
+    oDatos.Free;
     raise;
   end;
 end;

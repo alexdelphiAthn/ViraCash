@@ -65,6 +65,8 @@ type
     // Crea el control de "Inicio compras" sobre la pestaña de fechas.
     procedure CrearControlesPropios;
     procedure CrearControlesOrdenacion;
+    procedure CrearAccesosRanking;
+    procedure AplicarRanking(Sender: TObject);
     procedure chkIniComprasChange(Sender: TObject);
     procedure OrdenClickCheck(Sender: TObject; AIndex: Integer;
       APrevState, ANewState: TcxCheckBoxState);
@@ -105,6 +107,7 @@ implementation
 {$R *.dfm}
 
 uses
+  inLibMsgInformesCliente,
   System.Math, System.StrUtils, System.Threading,
   inLibMovVentasArtExcel, inLibMsgVentas,
   inLibMsgComun, inLibConexionesIntf,
@@ -216,6 +219,43 @@ begin
      SCaptionColorAgrupacionMovimientosVentas,
      SCaptionCopaAgrupacionMovimientosVentas,
      SCaptionTallaAgrupacionMovimientosVentas], True);
+  CrearAccesosRanking;
+end;
+
+procedure TfrmPrintMovVentasArt.CrearAccesosRanking;
+var
+  oBoton: TcxButton;
+begin
+  oBoton := TcxButton.Create(Self);
+  oBoton.Parent := TabFechas;
+  oBoton.SetBounds(620, 16, 260, 30);
+  oBoton.Caption := SInformeRankingProveedor;
+  oBoton.Tag := 0;
+  oBoton.OnClick := AplicarRanking;
+  oBoton := TcxButton.Create(Self);
+  oBoton.Parent := TabFechas;
+  oBoton.SetBounds(620, 56, 260, 30);
+  oBoton.Caption := SInformeRankingFamilia;
+  oBoton.Tag := 1;
+  oBoton.OnClick := AplicarRanking;
+end;
+
+procedure TfrmPrintMovVentasArt.AplicarRanking(Sender: TObject);
+var
+  i: Integer;
+begin
+  if TComponent(Sender).Tag = 0 then
+    SeleccionarAgrupaciones(['PRV'])
+  else
+    SeleccionarAgrupaciones(['FAM']);
+  FchkIniCompras.Checked := True;
+  FdteIniCompras.Date := DteDesde.Date;
+  // Incluye grupos con entradas y ninguna venta, como el modelo del cliente.
+  FchkSoloVentas.Checked := False;
+  for i := 0 to FclbOrden.Items.Count - 1 do
+    FclbOrden.Items[i].Checked := False;
+  FclbOrden.Items[Ord(omvaUnidadesVenta)].Checked := True;
+  FrgSentidoOrden.ItemIndex := 0;
 end;
 
 procedure TfrmPrintMovVentasArt.CrearControlesOrdenacion;

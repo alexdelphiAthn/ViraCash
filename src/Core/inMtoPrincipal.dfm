@@ -765,6 +765,10 @@
           ShortCut = 57431
           OnClick = mnuMovVentasArtClick
         end
+        object mnuComparativaVentas: TMenuItem
+          Caption = 'Comparativa de ventas entre períodos'
+          OnClick = mnuComparativaVentasClick
+        end
       end
     end
     object Utilidades1: TMenuItem

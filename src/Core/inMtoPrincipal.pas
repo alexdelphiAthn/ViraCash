@@ -148,6 +148,7 @@ type
     mnuBalanceAlmacenHorizontal: TMenuItem;
     mnuBalanceAlmacenSinTallas: TMenuItem;
     mnuMovVentasArt: TMenuItem;
+    mnuComparativaVentas: TMenuItem;
     EfectosVenta1: TMenuItem;
     RemesasVenta1: TMenuItem;
     CargarEfectosVenta1: TMenuItem;
@@ -168,6 +169,7 @@ type
     procedure mnuBalanceAlmacenHorizontalClick(Sender: TObject);
     procedure mnuBalanceAlmacenSinTallasClick(Sender: TObject);
     procedure mnuMovVentasArtClick(Sender: TObject);
+    procedure mnuComparativaVentasClick(Sender: TObject);
     procedure mnuListadoDocsProveedorClick(Sender: TObject);
     procedure mnuListadoEfectosPagoClick(Sender: TObject);
     procedure mnuListadoLibrosIvaClick(Sender: TObject);
@@ -2745,6 +2747,12 @@ begin
   // bandas y agrupaciones.
   if mnuBalanceAlmacenSinTallas.Visible then
     MostrarBalanceAlmacenSinTallas;
+end;
+
+procedure TfrmMtoPrincipal.mnuComparativaVentasClick(Sender: TObject);
+begin
+  if mnuComparativaVentas.Visible then
+    MostrarComparativaVentas;
 end;
 
 procedure TfrmMtoPrincipal.mnuMovVentasArtClick(Sender: TObject);

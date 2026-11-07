@@ -41,6 +41,7 @@ uses
   System.Classes, System.Types, System.Generics.Collections, Vcl.Graphics,
   Vcl.Controls,
   Vcl.Forms, Vcl.Dialogs, Vcl.ExtCtrls, Vcl.StdCtrls,
+  Data.DB, inLibInformeTabular,
   inMtoModalGenImp, inLibInformeMultiFiltroPersistenciaIntf,
   inLibFamiliasArbolVcl, inLibResumenSeleccionesInforme,
   cxGraphics, cxControls, cxLookAndFeels, cxLookAndFeelPainters, cxContainer,
@@ -143,6 +144,9 @@ type
     procedure DescribirFamilias(AResumen: TResumenSeleccionesInforme);
     procedure DescribirAgrupacion(AResumen: TResumenSeleccionesInforme);
   protected
+    procedure ExportarExcelTabular(ADatos: TDataSet;
+      const ATitulo, ANombreArchivo: string;
+      const AColumnas: TColumnasInformeTabular);
     procedure CrearUIFiltros;
     procedure ValidarFechas;
     procedure AvisarAntesDeConsulta; override;
@@ -173,6 +177,7 @@ type
                                  TcxCheckListBox;
     function  NivelesAgrupacion: TArray<string>;
     function  NivelFamilia: Integer;
+    procedure SeleccionarAgrupaciones(const ACodigos: array of string);
     // Para que el descendiente añada controles propios (modo/detalle) sobre
     // la pestaña de fechas o gestione su habilitado.
     property TabFechas: TcxTabSheet read FtsFechas;
@@ -198,10 +203,41 @@ implementation
 
 uses
   System.DateUtils, inLibMsgComun, UniDataInformeMultiFiltroRepositorio,
-  inLibMenuIconos;
+  inLibMenuIconos, inMtoPreviewExcel, inLibInformeTabularExcel;
 
 const
   MAX_NIVELES_AGRUPACION = 3;
+
+procedure TfrmPrintMultiFiltro.ExportarExcelTabular(ADatos: TDataSet;
+  const ATitulo, ANombreArchivo: string;
+  const AColumnas: TColumnasInformeTabular);
+var
+  oPreview: TfrmMtoPreviewExcel;
+  oCursor: TCursor;
+begin
+  oPreview := nil;
+  oCursor := Screen.Cursor;
+  Screen.Cursor := crHourGlass;
+  try
+    IniciarEspera(SCaptionEsperaConsultandoDatosInforme);
+    IniciarMedicionDatos;
+    preparar_consulta;
+    PausarMedicionDatos;
+    oPreview := TfrmMtoPreviewExcel.Create(Self);
+    oPreview.DialogoGuardar.InitialDir :=
+      ParametrosApp.GetPath('appDirExcel');
+    oPreview.DialogoGuardar.FileName := ANombreArchivo;
+    IniciarEspera(SCaptionEsperaGenerandoHojaCalculo);
+    ExportarInformeTabularExcel(oPreview.dxSpreadSheet1, ADatos,
+      ATitulo, AColumnas, LineasResumenSelecciones);
+    TerminarEspera;
+    oPreview.ShowModal;
+  finally
+    TerminarEspera;
+    oPreview.Free;
+    Screen.Cursor := oCursor;
+  end;
+end;
 
 { TFiltroChecklist }
 
@@ -850,6 +886,28 @@ begin
 end;
 
 // Códigos marcados en el orden elegido (el primero = grupo más externo).
+procedure TfrmPrintMultiFiltro.SeleccionarAgrupaciones(
+  const ACodigos: array of string);
+var
+  i, j: Integer;
+begin
+  if FAgrupItems <> nil then
+  begin
+    for i := 0 to FAgrupItems.Count - 1 do
+      FAgrupItems[i].Marcado := False;
+    for i := 0 to High(ACodigos) do
+      for j := i to FAgrupItems.Count - 1 do
+        if FAgrupItems[j].Codigo = ACodigos[i] then
+        begin
+          FAgrupItems[j].Marcado := True;
+          FAgrupItems.Move(j, i);
+        end;
+    if FseNivelFam <> nil then
+      FseNivelFam.Value := 0;
+    AgrupRefrescar;
+  end;
+end;
+
 function TfrmPrintMultiFiltro.NivelesAgrupacion: TArray<string>;
 var
   i  : Integer;

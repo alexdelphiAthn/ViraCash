@@ -27,7 +27,7 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.DateUtils, System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms,
-  Vcl.Dialogs,
+  Vcl.Dialogs, Datasnap.DBClient,
   inMtoModalImpMultiFiltro, cxGraphics, cxLookAndFeels, cxLookAndFeelPainters,
   Vcl.Menus, frxDesgn, Data.DB, MemDS, DBAccess, Uni,
   frxExportXLSX, frxClass, frxDBSet, frxExportBaseDialog, frxExportPDF,
@@ -45,6 +45,10 @@ type
     fxdsBalance: TfrxDBDataset;
   private
     FInicializado: Boolean;
+    FchkResumen: TcxCheckBox;
+    FDatosResumen: TClientDataSet;
+    FInformeResumen: TfrxDBDataset;
+    FPlantillaBalance: TMemoryStream;
     FIndiceCantidades: TIndiceCantidadesBalance;
     FUnidadArticuloBalance: TUnidadArticuloBalance;
     FRepositorioBalance: IRepositorioInformeBalanceSinTallas;
@@ -55,6 +59,8 @@ type
     FrgDetalle: TcxRadioGroup;    // 0 = Simplificado, 1 = Desglosado
     FclbBandas: TcxCheckListBox;  // qué bandas mostrar (sin marcar = todas)
     procedure CrearControlesModo;
+    procedure CambiarResumen(Sender: TObject);
+    procedure ExportarExcelDetalle(Sender: TObject);
     procedure CargarBandas;
     procedure ActualizarHabilitacion;
     procedure rgConfigChange(Sender: TObject);
@@ -87,11 +93,13 @@ implementation
 {$R *.dfm}
 
 uses
+  inLibMsgInformesCliente,
   System.StrUtils, inLibMsgArticulos, inLibMsgComun,
   inLibBalanceSinTallasExcel, inLibBalanceAvisos,
   UniDataDecimalesArticulo, inLibBalanceCantidadesInforme,
   dxSpreadSheet, inLibFotos,
   UniDataInformeBalanceSinTallasRepositorio,
+  inLibBalanceResumenInforme, inLibInformeTabular,
   inLibResumenSeleccionesVcl, UniDataColumnasDocumentoRepositorio;
 
 { TfrmPrintBalanceSinTallas }
@@ -108,6 +116,13 @@ begin
   if not FInicializado then
   begin
     CrearControlesModo;
+    FDatosResumen := TClientDataSet.Create(Self);
+    FInformeResumen := TfrxDBDataset.Create(Self);
+    FInformeResumen.Name := 'fxdsResumenBalance';
+    FInformeResumen.UserName := 'ResumenBalance';
+    FInformeResumen.DataSet := FDatosResumen;
+    FPlantillaBalance := TMemoryStream.Create;
+    frxReportOrigen.SaveToStream(FPlantillaBalance);
     // El botón Excel del base exporta el FastReport a XLSX (farragoso); lo
     // redirigimos a una exportación limpia con el mismo layout que el informe.
     btnExcel.OnClick := ExportarExcelBalance;
@@ -154,6 +169,32 @@ begin
      SCaptionProveedorBalanceSinTallas,
      SCaptionFamiliaBalanceSinTallas,
      SCaptionTemporadaBalanceSinTallas], True);
+  FchkResumen := TcxCheckBox.Create(Self);
+  FchkResumen.Parent := TabFechas;
+  FchkResumen.SetBounds(500, 16, 430, 28);
+  FchkResumen.Caption := SInformeResumenColumnas;
+  FchkResumen.Properties.OnEditValueChanged := CambiarResumen;
+end;
+
+procedure TfrmPrintBalanceSinTallas.CambiarResumen(Sender: TObject);
+begin
+  if FchkResumen.Checked then
+  begin
+    SeleccionarAgrupaciones(['ALM', 'PRV']);
+    FrgModo.ItemIndex := 0;
+    FrgDetalle.ItemIndex := 0;
+    CrearInformeTabular(frxReportOrigen, FInformeResumen,
+      SInformeTituloResumenBalance, ColumnasResumenBalance);
+  end
+  else
+  begin
+    FPlantillaBalance.Position := 0;
+    frxReportOrigen.LoadFromStream(FPlantillaBalance);
+  end;
+  FrgModo.Enabled := not FchkResumen.Checked;
+  FclbBandas.Enabled := not FchkResumen.Checked;
+  btnEditar.Enabled := not FchkResumen.Checked;
+  ActualizarHabilitacion;
 end;
 
 procedure TfrmPrintBalanceSinTallas.ActualizarHabilitacion;
@@ -166,7 +207,8 @@ begin
   if DteHasta <> nil then
     DteHasta.Enabled := bFechas;
   if FrgDetalle <> nil then
-    FrgDetalle.Enabled := bFechas;
+    FrgDetalle.Enabled := bFechas and
+      ((FchkResumen = nil) or not FchkResumen.Checked);
 end;
 
 procedure TfrmPrintBalanceSinTallas.rgConfigChange(Sender: TObject);
@@ -234,17 +276,30 @@ begin
   // Por acumulados el detalle está deshabilitado y no se describe.
   AnadirOpcionRadio(AResumen, FrgDetalle);
   // Sin marcar, el procedimiento devuelve todas las bandas.
-  AnadirMarcados(
-    AResumen,
-    SCaptionBandasBalanceSinTallas,
-    FclbBandas,
-    SResumenSeleccionesTodas);
+  if (FchkResumen <> nil) and FchkResumen.Checked then
+    AResumen.Anadir(SCaptionBandasBalanceSinTallas,
+      SResumenSeleccionesTodas)
+  else
+    AnadirMarcados(
+      AResumen,
+      SCaptionBandasBalanceSinTallas,
+      FclbBandas,
+      SResumenSeleccionesTodas);
   AResumen.Anadir(
     SResumenSeleccionesTarifa,
     ParametrosCaja.TarifaDefecto);
   AResumen.Anadir(
     SResumenBalanceValoracion,
     SResumenBalanceValoracionCriterio);
+  if (FchkResumen <> nil) and FchkResumen.Checked then
+  begin
+    AResumen.Anadir(SInformePresentacion, SInformeResumenColumnas);
+    AResumen.Anadir(SInformeMagnitudes,
+      SInformeMagnitudesBalance);
+    AResumen.Anadir(SInformeMedidas,
+      SInformeMedidasIncompatibles);
+    AResumen.Anadir(SInformeCriterio, SInformeCriterioComplementos);
+  end;
 end;
 
 procedure TfrmPrintBalanceSinTallas.preparar_consulta;
@@ -279,6 +334,8 @@ begin
   else
     criterios.Desglosado := 'N';
   criterios.Bandas := SeleccionadosCSV(FclbBandas);
+  if FchkResumen.Checked then
+    criterios.Bandas := '';
   criterios.Nivel1 := NivelN(0);
   criterios.Nivel2 := NivelN(1);
   criterios.Nivel3 := NivelN(2);
@@ -288,6 +345,9 @@ begin
       ConexionPrincipal);
   FreeAndNil(FIndiceCantidades);
   FResultadoBalance := FRepositorioBalance.Preparar(criterios);
+  if FchkResumen.Checked then
+    FResultadoBalance := CompletarResumenBalanceUniDAC(
+      ConexionPrincipal, FResultadoBalance, criterios);
   FUnidadArticuloBalance :=
     function(const ACodigoArticulo: string): string
     begin
@@ -295,29 +355,43 @@ begin
     end;
   FIndiceCantidades := PrepararIndiceCantidadesBalance(
     FResultadoBalance.DataSet, FUnidadArticuloBalance);
+  if FchkResumen.Checked then
+    CargarResumenBalance(FResultadoBalance.DataSet, FDatosResumen,
+      FUnidadArticuloBalance);
   fxdsBalance.UpdateBounds;
 end;
 
 procedure TfrmPrintBalanceSinTallas.AfterReportLoaded;
 begin
   inherited;
-  // La foto necesita el DataSet directo del TfrxDBDataset (no solo el
-  // DataSource): ver inLibFotos.ObtenerDataSetDeBandaPadre.
-  fxdsBalance.DataSet := FResultadoBalance.DataSet;
-  frxrprt1.DataSets.Clear;
-  frxrprt1.DataSets.Add(fxdsBalance);
-  // Las filas de aviso del SP (facturado distinto de vendido, stock sin
-  // movimientos) salen en rojo.
-  ResaltarAvisosBalance(frxrprt1, fxdsBalance);
-  // Sustituimos el OnBeforePrint del base (fotos) por el nuestro, que encadena
-  // las fotos y oculta las bandas de grupo de los niveles inactivos.
-  frxrprt1.OnBeforePrint := ReportBeforePrint;
-  // Precarga de fotos a nivel artículo en UNA consulta (evita el N+1).
-  PrecargarFotosArticulos;
+  if (FchkResumen <> nil) and FchkResumen.Checked then
+  begin
+    CrearInformeTabular(frxrprt1, FInformeResumen,
+      SInformeTituloResumenBalance, ColumnasResumenBalance);
+    frxrprt1.OnBeforePrint := nil;
+  end
+  else
+  begin
+    // La foto necesita el DataSet directo del TfrxDBDataset (no solo el
+    // DataSource): ver inLibFotos.ObtenerDataSetDeBandaPadre.
+    fxdsBalance.DataSet := FResultadoBalance.DataSet;
+    frxrprt1.DataSets.Clear;
+    frxrprt1.DataSets.Add(fxdsBalance);
+    // Las filas de aviso del SP (facturado distinto de vendido, stock sin
+    // movimientos) salen en rojo.
+    ResaltarAvisosBalance(frxrprt1, fxdsBalance);
+    // Sustituimos el OnBeforePrint del base (fotos) por el nuestro, que
+    // encadena
+    // las fotos y oculta las bandas de grupo de los niveles inactivos.
+    frxrprt1.OnBeforePrint := ReportBeforePrint;
+    // Precarga de fotos a nivel artículo en UNA consulta (evita el N+1).
+    PrecargarFotosArticulos;
+  end;
 end;
 
 destructor TfrmPrintBalanceSinTallas.Destroy;
 begin
+  FreeAndNil(FPlantillaBalance);
   FreeAndNil(FIndiceCantidades);
   FotosArticulos.LimpiarPrecargaFotos;
   inherited Destroy;
@@ -456,6 +530,15 @@ begin
 end;
 
 procedure TfrmPrintBalanceSinTallas.ExportarExcelBalance(Sender: TObject);
+begin
+  if FchkResumen.Checked then
+    ExportarExcelTabular(FDatosResumen, SInformeTituloResumenBalance,
+      'Balance_resumen.xlsx', ColumnasResumenBalance)
+  else
+    ExportarExcelDetalle(Sender);
+end;
+
+procedure TfrmPrintBalanceSinTallas.ExportarExcelDetalle(Sender: TObject);
 var
   crCursorAnterior: TCursor;
   fPreview: TfrmMtoPreviewExcel;

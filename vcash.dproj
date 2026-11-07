@@ -763,6 +763,19 @@
         <DCCReference Include="src\DataModules\UniDataInformeEfectosPagoRepositorio.pas"/>
         <DCCReference Include="src\DataModules\UniDataInformeFacturaRepositorio.pas"/>
         <DCCReference Include="src\DataModules\UniDataInformeMovimientosVentasArticuloRepositorio.pas"/>
+        <DCCReference Include="src\Modals\inMtoModalImpComparativaVentas.pas">
+            <Form>frmPrintComparativaVentas</Form>
+        </DCCReference>
+        <DCCReference Include="src\Lib\inLibComparativaVentasIntf.pas"/>
+        <DCCReference Include="src\Lib\inLibComparativaVentas.pas"/>
+        <DCCReference Include="src\Lib\inLibComparativaVentasInforme.pas"/>
+        <DCCReference Include="src\Lib\inLibInformeTabular.pas"/>
+        <DCCReference Include="src\Lib\inLibInformeTabularExcel.pas"/>
+        <DCCReference Include="src\Lib\inLibMsgInformesCliente.pas"/>
+        <DCCReference Include="src\Lib\inLibBalanceResumenInforme.pas"/>
+        <DCCReference Include="src\DataModules\UniDataBalanceComplementos.pas"/>
+        <DCCReference Include="src\DataModules\UniDataBalanceComplementosSql.pas"/>
+        <DCCReference Include="src\DataModules\UniDataComparativaVentasRepositorio.pas"/>
         <DCCReference Include="src\DataModules\UniDataInformeMultiFiltroRepositorio.pas"/>
         <DCCReference Include="src\DataModules\UniDataInformeRecibosFacturaRepositorio.pas"/>
         <DCCReference Include="src\DataModules\UniDataInformeVerifactuDeclaracionRepositorio.pas"/>

@@ -38,6 +38,7 @@ procedure MostrarAyudaWeb(AOwner: TComponent;
 procedure MostrarBalanceAlmacenHorizontal;
 procedure MostrarBalanceAlmacenSinTallas;
 procedure MostrarMovimientosVentasArticulos;
+procedure MostrarComparativaVentas;
 procedure MostrarAcercaDe(
   AOwner: TComponent;
   const ARegistroLog: IRegistroLog);
@@ -74,6 +75,7 @@ uses
   inMtoModalImpBalanceTallas,
   inMtoModalImpBalanceSinTallas,
   inMtoModalImpMovVentasArt,
+  inMtoModalImpComparativaVentas,
   inMtoSplash,
   inMtoFrmBase, inMtoStockConsulta,
   inMtoBusquedaDatos,
@@ -207,6 +209,19 @@ begin
     Formulario.ShowModal;
   finally
     FreeAndNil(Formulario);
+  end;
+end;
+
+procedure MostrarComparativaVentas;
+var
+  Formulario: TfrmPrintComparativaVentas;
+begin
+  Formulario := TfrmPrintComparativaVentas.Create(Application);
+  try
+    Formulario.NombreIconoMenu := 'mnuComparativaVentas';
+    Formulario.ShowModal;
+  finally
+    Formulario.Free;
   end;
 end;
 
