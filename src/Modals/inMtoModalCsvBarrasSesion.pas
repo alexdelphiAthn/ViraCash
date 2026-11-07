@@ -23,33 +23,25 @@ type
     FTexto: string;
     FFilas: TFilasCsvBarras;
     FOriginales: TCombinacionesBarrasSesion;
-    FAsignaciones: TArray<Integer>;
+    FResultado: TCombinacionesBarrasSesion;
     FVista: TcxGridTableView;
     FColumna: TcxComboBox;
     FSeparador: TcxComboBox;
     FCabecera: TcxCheckBox;
     FArticulo: TcxComboBox;
+    FIdentificar: TcxComboBox;
     FColor: TcxComboBox;
     FTalla: TcxComboBox;
-    FNumeroColumnas: Integer;
+    FColorFijo: TcxComboBox;
     FPreparando: Boolean;
     procedure CrearControles;
-    procedure CrearRejilla;
     procedure CargarCsv;
-    procedure MostrarCsv;
     procedure OpcionesCambiadas(Sender: TObject);
-    procedure ColumnaCambiada(Sender: TObject);
-    procedure ArticuloCambiado(Sender: TObject);
-    procedure ColorCambiado(Sender: TObject);
-    procedure AsignarClick(Sender: TObject);
-    procedure AsignarFila(AFila: Integer);
-    procedure QuitarClick(Sender: TObject);
+    procedure ColumnaColorCambiada(Sender: TObject);
+    procedure IdentificacionCambiada(Sender: TObject);
     procedure CerrarSinLiberar(Sender: TObject; var Action: TCloseAction);
-    function ArticuloCombo(const AValor: TCombinacionBarrasSesion): string;
-    function TallaCombo(const AValor: TCombinacionBarrasSesion): string;
-    function CodigoFila(AFila: Integer): string;
-    function Recoger: TCombinacionesBarrasSesion;
-    procedure MostrarAsignacion(AFila: Integer);
+    procedure LlenarColumnas(ACombo: TcxComboBox;
+      const ANombres: array of string; AOpcional: Boolean);
   public
     class function Ejecutar(AOwner: TComponent; const ATexto: string;
       const AValores: TCombinacionesBarrasSesion;
@@ -60,15 +52,10 @@ type
 implementation
 
 uses
-  System.SysUtils, System.Variants, System.Math,
-  cxGrid, cxCustomData, cxDataStorage, cxButtons, cxLabel, cxGroupBox,
+  System.SysUtils, System.Math, Vcl.Graphics,
+  cxGrid, cxGridCustomTableView, cxCustomData, cxDataStorage,
+  cxLabel, cxGroupBox,
   inLibMsgBarrasSesion, inLibMensajesVcl;
-
-procedure AnadirUnico(ACombo: TcxComboBox; const ATexto: string);
-begin
-  if ACombo.Properties.Items.IndexOf(ATexto) < 0 then
-    ACombo.Properties.Items.Add(ATexto);
-end;
 
 function CrearCombo(AOwner: TComponent; AParent: TWinControl;
   const ATitulo: string; AIzquierda, AArriba, AAncho: Integer): TcxComboBox;
@@ -78,68 +65,70 @@ begin
   oEtiqueta := TcxLabel.Create(AOwner);
   oEtiqueta.Parent := AParent;
   oEtiqueta.Transparent := True;
-  oEtiqueta.SetBounds(AIzquierda, AArriba, AAncho, 22);
+  oEtiqueta.SetBounds(AIzquierda, AArriba, AAncho, 20);
   oEtiqueta.Caption := ATitulo;
   Result := TcxComboBox.Create(AOwner);
   Result.Parent := AParent;
-  Result.SetBounds(AIzquierda, AArriba + 24, AAncho, 26);
+  Result.SetBounds(AIzquierda, AArriba + 22, AAncho, 24);
   Result.Properties.DropDownListStyle := lsFixedList;
 end;
 
 procedure TfrmModalCsvBarrasSesion.CrearControles;
 var
   oPanel: TcxGroupBox;
-  oBoton: TcxButton;
   oAyuda: TcxLabel;
+  oRejilla: TcxGrid;
+  v: TCombinacionBarrasSesion;
+  sColor: string;
 begin
   oPanel := TcxGroupBox.Create(Self);
   oPanel.Parent := pnlBody;
   oPanel.PanelStyle.Active := True;
   oPanel.Align := alTop;
-  oPanel.Height := 205;
-  FColumna := CrearCombo(Self, oPanel, SBarrasColumna, 12, 8, 240);
+  oPanel.Height := 210;
+  FColumna := CrearCombo(Self, oPanel, SBarrasColumna, 12, 6, 260);
   FColumna.Name := 'cbbColumnaBarras';
-  FSeparador := CrearCombo(Self, oPanel, SBarrasSeparador, 270, 8, 130);
+  FSeparador := CrearCombo(Self, oPanel, SBarrasSeparador, 290, 6, 130);
   FSeparador.Name := 'cbbSeparadorCsv';
   FSeparador.Properties.Items.Add(';');
   FSeparador.Properties.Items.Add(',');
   FSeparador.Properties.Items.Add('TAB');
   FCabecera := TcxCheckBox.Create(Self);
   FCabecera.Parent := oPanel;
-  FCabecera.SetBounds(420, 32, 310, 26);
+  FCabecera.SetBounds(440, 28, 310, 24);
   FCabecera.Caption := SBarrasCabecera;
   FCabecera.Checked := True;
-  FArticulo := CrearCombo(Self, oPanel, SBarrasArticulo, 12, 66, 300);
+  FIdentificar := CrearCombo(Self, oPanel, SBarrasIdentificarPor,
+    752, 6, 210);
+  FIdentificar.Name := 'cbbIdentificarArticuloCsv';
+  FIdentificar.Properties.Items.Add(SBarrasModeloProveedor);
+  FIdentificar.Properties.Items.Add(SBarrasCodigoInterno);
+  FIdentificar.ItemIndex := 0;
+  FIdentificar.Properties.OnChange := IdentificacionCambiada;
+  FArticulo := CrearCombo(Self, oPanel, SBarrasColumnaArticulo,
+    12, 60, 300);
   FArticulo.Name := 'cbbArticuloBarras';
-  FColor := CrearCombo(Self, oPanel, SBarrasColor, 330, 66, 230);
+  FColor := CrearCombo(Self, oPanel, SBarrasColor, 330, 60, 300);
   FColor.Name := 'cbbColorBarras';
-  FTalla := CrearCombo(Self, oPanel, SBarrasTalla, 578, 66, 130);
+  FTalla := CrearCombo(Self, oPanel, SBarrasTalla, 648, 60, 300);
   FTalla.Name := 'cbbTallaBarras';
-  oBoton := TcxButton.Create(Self);
-  oBoton.Parent := oPanel;
-  oBoton.SetBounds(12, 125, 300, 30);
-  oBoton.Caption := SBarrasAsignar;
-  oBoton.Name := 'btnAsignarBarras';
-  oBoton.OnClick := AsignarClick;
-  oBoton := TcxButton.Create(Self);
-  oBoton.Parent := oPanel;
-  oBoton.SetBounds(330, 125, 230, 30);
-  oBoton.Caption := SBarrasQuitar;
-  oBoton.Name := 'btnQuitarBarras';
-  oBoton.OnClick := QuitarClick;
+  FColorFijo := CrearCombo(Self, oPanel, SBarrasColorFijo, 12, 114, 400);
+  FColorFijo.Name := 'cbbColorFijoBarras';
+  FColorFijo.Properties.Items.Add(SBarrasColorAutomatico);
+  for v in FOriginales do
+  begin
+    sColor := ColorCombinacionBarras(v);
+    if FColorFijo.Properties.Items.IndexOf(sColor) < 0 then
+      FColorFijo.Properties.Items.Add(sColor);
+  end;
+  FColorFijo.ItemIndex := 0;
+  FColor.Properties.OnChange := ColumnaColorCambiada;
   oAyuda := TcxLabel.Create(Self);
   oAyuda.Parent := oPanel;
   oAyuda.Transparent := True;
-  oAyuda.SetBounds(12, 163, 950, 38);
+  oAyuda.SetBounds(12, 168, 936, 38);
   oAyuda.Properties.WordWrap := True;
   oAyuda.Caption := SBarrasAyuda;
-  CrearRejilla;
-end;
-
-procedure TfrmModalCsvBarrasSesion.CrearRejilla;
-var
-  oRejilla: TcxGrid;
-begin
   oRejilla := TcxGrid.Create(Self);
   oRejilla.Name := 'cxgrdCsvBarras';
   oRejilla.Parent := pnlBody;
@@ -149,30 +138,45 @@ begin
   oRejilla.Levels.Add.GridView := FVista;
   FVista.OptionsData.Editing := False;
   FVista.OptionsView.GroupByBox := False;
+  FVista.OptionsView.ColumnAutoWidth := True;
   FVista.OptionsCustomize.ColumnSorting := False;
 end;
 
-function TfrmModalCsvBarrasSesion.ArticuloCombo(
-  const AValor: TCombinacionBarrasSesion): string;
+function NormalizarCabecera(const ATexto: string): string;
 begin
-  Result := AValor.Articulo + ' - ' + AValor.Descripcion;
-  if AValor.Articulo = '' then
-    Result := Format('[%d] %s', [AValor.Linea, AValor.Descripcion]);
+  Result := LowerCase(Trim(ATexto));
+  Result := StringReplace(Result, 'ó', 'o', [rfReplaceAll]);
+  Result := StringReplace(Result, 'í', 'i', [rfReplaceAll]);
+  Result := StringReplace(Result, '_', ' ', [rfReplaceAll]);
 end;
 
-function TfrmModalCsvBarrasSesion.TallaCombo(
-  const AValor: TCombinacionBarrasSesion): string;
+procedure TfrmModalCsvBarrasSesion.LlenarColumnas(ACombo: TcxComboBox;
+  const ANombres: array of string; AOpcional: Boolean);
+var
+  i: Integer;
+  sNombre: string;
 begin
-  Result := AValor.Talla;
-  if Result = '' then
-    Result := SBarrasSinTalla;
+  ACombo.Properties.Items.Clear;
+  ACombo.Properties.Items.Add(SBarrasSinColumna);
+  for i := 0 to FVista.ItemCount - 1 do
+    ACombo.Properties.Items.Add(FVista.Items[i].Caption);
+  ACombo.ItemIndex := 0;
+  if FCabecera.Checked then
+    for sNombre in ANombres do
+      for i := 0 to High(FFilas[0]) do
+        if (ACombo.ItemIndex = 0) and
+          (NormalizarCabecera(FFilas[0][i]) = sNombre) then
+          ACombo.ItemIndex := i + 1;
+  if not AOpcional and (ACombo.ItemIndex = 0) and
+    (ACombo = FColumna) and (FVista.ItemCount > 0) then
+    ACombo.ItemIndex := 1;
 end;
 
 procedure TfrmModalCsvBarrasSesion.CargarCsv;
 var
   c: Char;
-  i, j: Integer;
-  sTitulo: string;
+  i, j, n, nColumnas: Integer;
+  oColumna: TcxGridColumn;
 begin
   c := ';';
   case FSeparador.ItemIndex of
@@ -180,57 +184,55 @@ begin
     2: c := #9;
   end;
   FFilas := LeerCsvBarras(FTexto, c);
-  if Length(FFilas) = 0 then
-    raise Exception.Create(SBarrasCsvVacio);
-  FNumeroColumnas := 0;
+  n := Ord(FCabecera.Checked);
+  if Length(FFilas) <= n then
+    raise EArgumentException.Create(SBarrasCsvVacio);
+  nColumnas := 0;
   for i := 0 to High(FFilas) do
-    FNumeroColumnas := Max(FNumeroColumnas, Length(FFilas[i]));
-  FColumna.Properties.Items.Clear;
-  for j := 0 to FNumeroColumnas - 1 do
-  begin
-    sTitulo := Format(SBarrasColumnaNumero, [j + 1]);
-    if FCabecera.Checked and (j < Length(FFilas[0])) then
-      sTitulo := sTitulo + ' - ' + FFilas[0][j];
-    FColumna.Properties.Items.Add(sTitulo);
-  end;
-  FColumna.ItemIndex := 0;
-  MostrarCsv;
-end;
-
-procedure TfrmModalCsvBarrasSesion.MostrarCsv;
-var
-  i, j, n: Integer;
-  oColumna: TcxGridColumn;
-begin
+    nColumnas := Max(nColumnas, Length(FFilas[i]));
   FVista.BeginUpdate;
   try
     FVista.ClearItems;
-    for j := 0 to FNumeroColumnas + 2 do
+    for j := 0 to nColumnas - 1 do
     begin
       oColumna := FVista.CreateColumn;
       oColumna.DataBinding.ValueType := 'String';
-      oColumna.Width := 160;
-      if j < FNumeroColumnas then
-        oColumna.Caption := FColumna.Properties.Items[j]
-      else
-        case j - FNumeroColumnas of
-          0: oColumna.Caption := SBarrasArticulo;
-          1: oColumna.Caption := SBarrasColor;
-          2: oColumna.Caption := SBarrasTalla;
-        end;
+      oColumna.Width := 200;
+      oColumna.Caption := Format(SBarrasColumnaNumero, [j + 1]);
+      if FCabecera.Checked and (j < Length(FFilas[0])) then
+        oColumna.Caption := oColumna.Caption + ' - ' + FFilas[0][j];
     end;
-    n := Ord(FCabecera.Checked);
     FVista.DataController.RecordCount := Length(FFilas) - n;
-    SetLength(FAsignaciones, Length(FFilas) - n);
-    for i := 0 to High(FAsignaciones) do
-    begin
-      FAsignaciones[i] := -1;
-      for j := 0 to High(FFilas[i + n]) do
-        FVista.DataController.Values[i, j] := FFilas[i + n][j];
-    end;
+    for i := n to High(FFilas) do
+      for j := 0 to High(FFilas[i]) do
+        FVista.DataController.Values[i - n, j] := FFilas[i][j];
   finally
     FVista.EndUpdate;
   end;
+  LlenarColumnas(FColumna,
+    ['codigo de barras', 'codigo barras', 'ean', 'ean13', 'barcode'], False);
+  IdentificacionCambiada(nil);
+  LlenarColumnas(FColor, ['color / variante', 'color', 'variante'], True);
+  LlenarColumnas(FTalla, ['talla'], True);
+  ColumnaColorCambiada(nil);
+end;
+
+procedure TfrmModalCsvBarrasSesion.IdentificacionCambiada(Sender: TObject);
+begin
+  if FIdentificar.ItemIndex = 0 then
+    LlenarColumnas(FArticulo, ['modelo', 'modelo proveedor', 'modelo prov.',
+      'modelo del proveedor', 'referencia proveedor',
+      'referencia del proveedor', 'ref proveedor', 'ref. proveedor',
+      'referencia', 'articulo', 'codigo de articulo', 'codigo articulo'],
+      False)
+  else
+    LlenarColumnas(FArticulo, ['codigo interno', 'codigo de articulo',
+      'codigo articulo', 'articulo'], False);
+end;
+
+procedure TfrmModalCsvBarrasSesion.ColumnaColorCambiada(Sender: TObject);
+begin
+  FColorFijo.Enabled := FColor.ItemIndex = 0;
 end;
 
 procedure TfrmModalCsvBarrasSesion.OpcionesCambiadas(Sender: TObject);
@@ -246,155 +248,21 @@ begin
   end;
 end;
 
-procedure TfrmModalCsvBarrasSesion.ColumnaCambiada(Sender: TObject);
-var
-  i: Integer;
-begin
-  if not FPreparando then
-    for i := 0 to High(FAsignaciones) do
-    begin
-      FAsignaciones[i] := -1;
-      MostrarAsignacion(i);
-    end;
-end;
-
-procedure TfrmModalCsvBarrasSesion.ArticuloCambiado(Sender: TObject);
-var
-  v: TCombinacionBarrasSesion;
-begin
-  FColor.Properties.Items.Clear;
-  FColor.ItemIndex := -1;
-  FTalla.Properties.Items.Clear;
-  FTalla.ItemIndex := -1;
-  for v in FOriginales do
-    if ArticuloCombo(v) = FArticulo.Text then
-      AnadirUnico(FColor, ColorCombinacionBarras(v));
-end;
-
-procedure TfrmModalCsvBarrasSesion.ColorCambiado(Sender: TObject);
-var
-  v: TCombinacionBarrasSesion;
-begin
-  FTalla.Properties.Items.Clear;
-  FTalla.ItemIndex := -1;
-  for v in FOriginales do
-    if (ArticuloCombo(v) = FArticulo.Text) and
-      (ColorCombinacionBarras(v) = FColor.Text) then
-      AnadirUnico(FTalla, TallaCombo(v));
-end;
-
-function TfrmModalCsvBarrasSesion.CodigoFila(AFila: Integer): string;
-var
-  n, iColumna: Integer;
-begin
-  n := AFila + Ord(FCabecera.Checked);
-  iColumna := FColumna.ItemIndex;
-  Result := '';
-  if (n >= 0) and (n < Length(FFilas)) and (iColumna >= 0) then
-    if iColumna < Length(FFilas[n]) then
-      Result := Trim(FFilas[n][iColumna]);
-end;
-
-procedure TfrmModalCsvBarrasSesion.MostrarAsignacion(AFila: Integer);
-var
-  n: Integer;
-begin
-  n := FAsignaciones[AFila];
-  FVista.DataController.Values[AFila, FNumeroColumnas] := '';
-  FVista.DataController.Values[AFila, FNumeroColumnas + 1] := '';
-  FVista.DataController.Values[AFila, FNumeroColumnas + 2] := '';
-  if n >= 0 then
-  begin
-    FVista.DataController.Values[AFila, FNumeroColumnas] :=
-      ArticuloCombo(FOriginales[n]);
-    FVista.DataController.Values[AFila, FNumeroColumnas + 1] :=
-      ColorCombinacionBarras(FOriginales[n]);
-    FVista.DataController.Values[AFila, FNumeroColumnas + 2] :=
-      TallaCombo(FOriginales[n]);
-  end;
-end;
-
-procedure TfrmModalCsvBarrasSesion.AsignarClick(Sender: TObject);
-begin
-  AsignarFila(FVista.Controller.FocusedRecordIndex);
-end;
-
-procedure TfrmModalCsvBarrasSesion.AsignarFila(AFila: Integer);
-var
-  i, n, iFila: Integer;
-  sCodigo: string;
-begin
-  iFila := AFila;
-  if (iFila >= 0) and (iFila < Length(FAsignaciones)) then
-  begin
-    n := -1;
-    for i := 0 to High(FOriginales) do
-      if (ArticuloCombo(FOriginales[i]) = FArticulo.Text) and
-        (ColorCombinacionBarras(FOriginales[i]) = FColor.Text) and
-        (TallaCombo(FOriginales[i]) = FTalla.Text) then
-      begin
-        if n >= 0 then
-          raise Exception.Create(SBarrasAmbigua);
-        n := i;
-      end;
-    if n < 0 then
-      raise Exception.Create(SBarrasSeleccion);
-    sCodigo := CodigoFila(iFila);
-    if sCodigo = '' then
-      raise Exception.Create(SBarrasVacio);
-    ValidarCodigoBarrasSesion(sCodigo);
-    if (FOriginales[n].Codigo <> '') and
-      (FOriginales[n].Codigo <> sCodigo) then
-      raise Exception.Create(SBarrasOcupada);
-    for i := 0 to High(FAsignaciones) do
-      if (i <> iFila) and (FAsignaciones[i] >= 0) then
-        if (FAsignaciones[i] = n) or SameText(CodigoFila(i), sCodigo) then
-          raise Exception.CreateFmt(SBarrasDuplicado, [sCodigo]);
-    FAsignaciones[iFila] := n;
-    MostrarAsignacion(iFila);
-  end;
-end;
-
-procedure TfrmModalCsvBarrasSesion.QuitarClick(Sender: TObject);
-var
-  i: Integer;
-begin
-  i := FVista.Controller.FocusedRecordIndex;
-  if (i >= 0) and (i < Length(FAsignaciones)) then
-  begin
-    FAsignaciones[i] := -1;
-    MostrarAsignacion(i);
-  end;
-end;
-
-function TfrmModalCsvBarrasSesion.Recoger: TCombinacionesBarrasSesion;
-var
-  i, j, n: Integer;
-begin
-  Result := Copy(FOriginales);
-  n := 0;
-  for i := 0 to High(FAsignaciones) do
-    if FAsignaciones[i] >= 0 then
-    begin
-      Result[FAsignaciones[i]].Codigo := CodigoFila(i);
-      Inc(n);
-    end;
-  if n = 0 then
-    raise Exception.Create(SBarrasSinAsignar);
-  for i := 0 to High(Result) do
-    if Result[i].Codigo <> '' then
-      for j := 0 to i - 1 do
-        if SameText(Result[i].Codigo, Result[j].Codigo) then
-          raise Exception.CreateFmt(SBarrasDuplicado, [Result[i].Codigo]);
-end;
-
 function TfrmModalCsvBarrasSesion.CloseQuery: Boolean;
+var
+  sColorFijo: string;
 begin
   Result := inherited CloseQuery;
   if Result and (sFicha = 'S') then
   begin
     try
-      Recoger;
+      sColorFijo := '';
+      if FColorFijo.Enabled and (FColorFijo.ItemIndex > 0) then
+        sColorFijo := FColorFijo.Text;
+      FResultado := ImportarCsvBarrasSesion(FFilas, FOriginales,
+        Ord(FCabecera.Checked), FColumna.ItemIndex - 1,
+        FArticulo.ItemIndex - 1, FColor.ItemIndex - 1,
+        FTalla.ItemIndex - 1, sColorFijo, FIdentificar.ItemIndex = 0);
     except
       on E: Exception do
       begin
@@ -416,7 +284,6 @@ class function TfrmModalCsvBarrasSesion.Ejecutar(AOwner: TComponent;
   out AResultado: TCombinacionesBarrasSesion): Boolean;
 var
   oFormulario: TfrmModalCsvBarrasSesion;
-  v: TCombinacionBarrasSesion;
 begin
   oFormulario := TfrmModalCsvBarrasSesion.Create(AOwner);
   try
@@ -424,8 +291,11 @@ begin
     oFormulario.FTexto := ATexto;
     oFormulario.FOriginales := Copy(AValores);
     oFormulario.Caption := SBarrasImportar;
-    oFormulario.ClientWidth := 1000;
-    oFormulario.ClientHeight := 650;
+    oFormulario.Font.Name := 'Segoe UI';
+    oFormulario.Font.Size := 9;
+    oFormulario.Font.Style := [];
+    oFormulario.ClientWidth := 980;
+    oFormulario.ClientHeight := 600;
     oFormulario.OnClose := oFormulario.CerrarSinLiberar;
     oFormulario.CrearControles;
     oFormulario.FSeparador.ItemIndex := 0;
@@ -434,13 +304,6 @@ begin
       #9: oFormulario.FSeparador.ItemIndex := 2;
     end;
     oFormulario.CargarCsv;
-    for v in AValores do
-      AnadirUnico(oFormulario.FArticulo, oFormulario.ArticuloCombo(v));
-    oFormulario.FArticulo.Properties.OnChange :=
-      oFormulario.ArticuloCambiado;
-    oFormulario.FColor.Properties.OnChange := oFormulario.ColorCambiado;
-    oFormulario.FColumna.Properties.OnChange :=
-      oFormulario.ColumnaCambiada;
     oFormulario.FSeparador.Properties.OnChange :=
       oFormulario.OpcionesCambiadas;
     oFormulario.FCabecera.Properties.OnChange :=
@@ -449,7 +312,7 @@ begin
     oFormulario.ShowModal;
     Result := oFormulario.sFicha = 'S';
     if Result then
-      AResultado := oFormulario.Recoger;
+      AResultado := oFormulario.FResultado;
   finally
     FreeAndNil(oFormulario);
   end;

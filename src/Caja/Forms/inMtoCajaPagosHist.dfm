@@ -190,7 +190,7 @@
         end
       end
       inherited tsFicha: TcxTabSheet
-        Caption = '&2_Ficha'
+        Caption = '&Ficha'
         TabVisible = True
         object pcFichaDetalle: TcxPageControl
           Left = 0

@@ -6317,48 +6317,105 @@ procedure RegistrarTextosBarrasSesion(
   end;
 
 begin
-  Registrar('SBarrasTitulo', @SBarrasTitulo);
-  Registrar('SBarrasImportar', @SBarrasImportar);
-  Registrar('SBarrasAutomatico', @SBarrasAutomatico);
-  Registrar('SBarrasActualizar', @SBarrasActualizar);
-  Registrar('SBarrasCodigo', @SBarrasCodigo);
-  Registrar('SBarrasArticulo', @SBarrasArticulo);
-  Registrar('SBarrasColor', @SBarrasColor);
-  Registrar('SBarrasTalla', @SBarrasTalla);
-  Registrar('SBarrasSinColor', @SBarrasSinColor);
-  Registrar('SBarrasSinTalla', @SBarrasSinTalla);
-  Registrar('SBarrasColumna', @SBarrasColumna);
-  Registrar('SBarrasCabecera', @SBarrasCabecera);
-  Registrar('SBarrasAsignar', @SBarrasAsignar);
-  Registrar('SBarrasQuitar', @SBarrasQuitar);
-  Registrar('SBarrasAyuda', @SBarrasAyuda);
-  Registrar('SBarrasCodigoLargo', @SBarrasCodigoLargo);
-  Registrar('SBarrasCodigoControl', @SBarrasCodigoControl);
-  Registrar('SBarrasCsvComillas', @SBarrasCsvComillas);
-  Registrar('SBarrasCsvVacio', @SBarrasCsvVacio);
-  Registrar('SBarrasDuplicado', @SBarrasDuplicado);
-  Registrar('SBarrasOcupada', @SBarrasOcupada);
-  Registrar('SBarrasSeleccion', @SBarrasSeleccion);
-  Registrar('SBarrasSinAsignar', @SBarrasSinAsignar);
-  Registrar('SBarrasVacio', @SBarrasVacio);
-  Registrar('SBarrasAmbigua', @SBarrasAmbigua);
-  Registrar('SBarrasCerrada', @SBarrasCerrada);
-  Registrar('SBarrasCambios', @SBarrasCambios);
-  Registrar('SBarrasConflicto', @SBarrasConflicto);
-  Registrar('SBarrasPrefijo', @SBarrasPrefijo);
-  Registrar('SBarrasBloqueo', @SBarrasBloqueo);
-  Registrar('SBarrasGenerados', @SBarrasGenerados);
-  Registrar('SBarrasColumnaNumero', @SBarrasColumnaNumero);
-  Registrar('SBarrasSeparador', @SBarrasSeparador);
-  Registrar('SBarrasLinea', @SBarrasLinea);
-  Registrar('SBarrasDescripcion', @SBarrasDescripcion);
-  Registrar('SBarrasFiltroCsv', @SBarrasFiltroCsv);
-  Registrar('SBarrasMigracion', @SBarrasMigracion);
+  Registrar('SBarrasTitulo', @inLibMsgBarrasSesion.SBarrasTitulo);
+  Registrar('SBarrasImportar', @inLibMsgBarrasSesion.SBarrasImportar);
+  Registrar('SBarrasAutomatico', @inLibMsgBarrasSesion.SBarrasAutomatico);
+  Registrar('SBarrasActualizar', @inLibMsgBarrasSesion.SBarrasActualizar);
+  Registrar('SBarrasCodigo', @inLibMsgBarrasSesion.SBarrasCodigo);
+  Registrar('SBarrasArticulo', @inLibMsgBarrasSesion.SBarrasArticulo);
+  Registrar('SBarrasIdentificadorVacio',
+    @inLibMsgBarrasSesion.SBarrasIdentificadorVacio);
+  Registrar('SBarrasColumnaArticulo',
+    @inLibMsgBarrasSesion.SBarrasColumnaArticulo);
+  Registrar('SBarrasIdentificarPor',
+    @inLibMsgBarrasSesion.SBarrasIdentificarPor);
+  Registrar('SBarrasCodigoInterno',
+    @inLibMsgBarrasSesion.SBarrasCodigoInterno);
+  Registrar('SBarrasModeloProveedor',
+    @inLibMsgBarrasSesion.SBarrasModeloProveedor);
+  Registrar('SBarrasColor', @inLibMsgBarrasSesion.SBarrasColor);
+  Registrar('SBarrasTalla', @inLibMsgBarrasSesion.SBarrasTalla);
+  Registrar('SBarrasSinColor', @inLibMsgBarrasSesion.SBarrasSinColor);
+  Registrar('SBarrasSinTalla', @inLibMsgBarrasSesion.SBarrasSinTalla);
+  Registrar('SBarrasColumna', @inLibMsgBarrasSesion.SBarrasColumna);
+  Registrar('SBarrasCabecera', @inLibMsgBarrasSesion.SBarrasCabecera);
+  Registrar('SBarrasAsignar', @inLibMsgBarrasSesion.SBarrasAsignar);
+  Registrar('SBarrasQuitar', @inLibMsgBarrasSesion.SBarrasQuitar);
+  Registrar('SBarrasAyuda', @inLibMsgBarrasSesion.SBarrasAyuda);
+  Registrar('SBarrasCodigoLargo', @inLibMsgBarrasSesion.SBarrasCodigoLargo);
+  Registrar('SBarrasCodigoControl', @inLibMsgBarrasSesion.SBarrasCodigoControl);
+  Registrar('SBarrasCsvComillas', @inLibMsgBarrasSesion.SBarrasCsvComillas);
+  Registrar('SBarrasCsvVacio', @inLibMsgBarrasSesion.SBarrasCsvVacio);
+  Registrar('SBarrasDuplicado', @inLibMsgBarrasSesion.SBarrasDuplicado);
+  Registrar('SBarrasOcupada', @inLibMsgBarrasSesion.SBarrasOcupada);
+  Registrar('SBarrasSeleccion', @inLibMsgBarrasSesion.SBarrasSeleccion);
+  Registrar('SBarrasSinAsignar', @inLibMsgBarrasSesion.SBarrasSinAsignar);
+  Registrar('SBarrasVacio', @inLibMsgBarrasSesion.SBarrasVacio);
+  Registrar('SBarrasAmbigua', @inLibMsgBarrasSesion.SBarrasAmbigua);
+  Registrar('SBarrasCerrada', @inLibMsgBarrasSesion.SBarrasCerrada);
+  Registrar('SBarrasCambios', @inLibMsgBarrasSesion.SBarrasCambios);
+  Registrar('SBarrasConflicto', @inLibMsgBarrasSesion.SBarrasConflicto);
+  Registrar('SBarrasPrefijo', @inLibMsgBarrasSesion.SBarrasPrefijo);
+  Registrar('SBarrasBloqueo', @inLibMsgBarrasSesion.SBarrasBloqueo);
+  Registrar('SBarrasGenerados', @inLibMsgBarrasSesion.SBarrasGenerados);
+  Registrar('SBarrasColumnaNumero', @inLibMsgBarrasSesion.SBarrasColumnaNumero);
+  Registrar('SBarrasSeparador', @inLibMsgBarrasSesion.SBarrasSeparador);
+  Registrar('SBarrasLinea', @inLibMsgBarrasSesion.SBarrasLinea);
+  Registrar('SBarrasDescripcion', @inLibMsgBarrasSesion.SBarrasDescripcion);
+  Registrar('SBarrasFiltroCsv', @inLibMsgBarrasSesion.SBarrasFiltroCsv);
+  Registrar('SBarrasColorAutomatico',
+    @inLibMsgBarrasSesion.SBarrasColorAutomatico);
+  Registrar('SBarrasColorFijo', @inLibMsgBarrasSesion.SBarrasColorFijo);
+  Registrar('SBarrasAmbiguaCsv', @inLibMsgBarrasSesion.SBarrasAmbiguaCsv);
+  Registrar('SBarrasErrorFila', @inLibMsgBarrasSesion.SBarrasErrorFila);
+  Registrar('SBarrasSinCoincidencia',
+    @inLibMsgBarrasSesion.SBarrasSinCoincidencia);
+  Registrar('SBarrasFilaIncompleta',
+    @inLibMsgBarrasSesion.SBarrasFilaIncompleta);
+  Registrar('SBarrasColumnasRepetidas',
+    @inLibMsgBarrasSesion.SBarrasColumnasRepetidas);
+  Registrar('SBarrasColumnasObligatorias',
+    @inLibMsgBarrasSesion.SBarrasColumnasObligatorias);
+  Registrar('SBarrasSinColumna', @inLibMsgBarrasSesion.SBarrasSinColumna);
+  Registrar('SBarrasMigracion', @inLibMsgBarrasSesion.SBarrasMigracion);
+end;
+
+procedure RegistrarTextosPublicacion20261106(
+  const ARegistrar: TRegistrarResourcestringTraduccion);
+begin
+  ARegistrar('inLibMsgPresupuestos.SCaptionDescuentoLineaPresupuesto',
+    'src/Lib/inLibMsgPresupuestos.pas',
+    @inLibMsgPresupuestos.SCaptionDescuentoLineaPresupuesto);
+  ARegistrar('inLibMsgIntegraciones.SErrorActualizacionDetenida',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.SErrorActualizacionDetenida);
+  ARegistrar('inLibMsgIntegraciones.SBotonReintentarActualizacion',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.SBotonReintentarActualizacion);
+  ARegistrar('inLibMsgIntegraciones.SBotonCompararModeloActualizacion',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.SBotonCompararModeloActualizacion);
+  ARegistrar('inLibMsgIntegraciones.SBotonDetalleActualizacion',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.SBotonDetalleActualizacion);
+  ARegistrar('inLibMsgIntegraciones.SBotonCerrarActualizacion',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.SBotonCerrarActualizacion);
+  ARegistrar('inLibMsgIntegraciones.SErrorComprobacionDatosNoDisponible',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.SErrorComprobacionDatosNoDisponible);
+  ARegistrar('inLibMsgReparaciones.SErrorTrabajoSinEjecutor',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorTrabajoSinEjecutor);
+  ARegistrar('inLibMsgReparaciones.SErrorEjecutorTipoServicio',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SErrorEjecutorTipoServicio);
 end;
 
 procedure EnumerarResourcestringsTraduccion(
   const ARegistrar: TRegistrarResourcestringTraduccion);
 begin
+  RegistrarTextosPublicacion20261106(ARegistrar);
   RegistrarTextosBarrasSesion(ARegistrar);
   RegistrarCambiosTrabajo(ARegistrar);
   ARegistrar('inLibMsgMedidasCliente.' +

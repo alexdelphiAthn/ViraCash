@@ -14,7 +14,7 @@
       ClientRectBottom = 739
       ClientRectRight = 1096
       inherited tsLista: TcxTabSheet
-        Caption = '&1. Lista'
+        Caption = '&Lista'
         ExplicitWidth = 943
         ExplicitHeight = 485
         inherited cxGrdPrincipal: TcxGrid
@@ -127,7 +127,7 @@
         end
       end
       inherited tsFicha: TcxTabSheet
-        Caption = '&2. Ficha'
+        Caption = '&Ficha'
         ExplicitWidth = 943
         ExplicitHeight = 485
         object pnlBottFich: TPanel

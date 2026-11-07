@@ -147,7 +147,7 @@ begin
   oRejilla.Levels.Add.GridView := FVista;
   FVista.OptionsView.GroupByBox := False;
   FVista.OptionsView.ColumnAutoWidth := True;
-  for i := 0 to 5 do
+  for i := 0 to 6 do
   begin
     oColumna := FVista.CreateColumn;
     oColumna.DataBinding.ValueType := 'String';
@@ -160,6 +160,7 @@ begin
       3: oColumna.Caption := SBarrasColor;
       4: oColumna.Caption := SBarrasTalla;
       5: oColumna.Caption := SBarrasCodigo;
+      6: oColumna.Caption := SBarrasModeloProveedor;
     end;
   end;
   FVista.DataController.OnRecordChanged := CeldaCambiada;
@@ -238,6 +239,7 @@ begin
         ColorCombinacionBarras(FValores[i]);
       FVista.DataController.Values[i, 4] := FValores[i].Talla;
       FVista.DataController.Values[i, 5] := FValores[i].Codigo;
+      FVista.DataController.Values[i, 6] := FValores[i].ModeloProveedor;
     end;
   finally
     FVista.EndUpdate;

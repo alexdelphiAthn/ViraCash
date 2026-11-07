@@ -5,7 +5,7 @@
     inherited pcPantalla: TcxPageControl
       Properties.ActivePage = tsLista
       inherited tsLista: TcxTabSheet
-        Caption = '&1_Lista'
+        Caption = '&Lista'
         ExplicitLeft = 4
         ExplicitTop = 30
         ExplicitWidth = 943
@@ -120,7 +120,7 @@
         end
       end
       inherited tsFicha: TcxTabSheet
-        Caption = '&2_Recuento'
+        Caption = '&Ficha'
         TabVisible = True
         ExplicitLeft = 4
         ExplicitTop = 30

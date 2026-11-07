@@ -7,7 +7,7 @@
     inherited pcPantalla: TcxPageControl
       Properties.ActivePage = tsLista
       inherited tsLista: TcxTabSheet
-        Caption = '&1_Lista'
+        Caption = '&Lista'
         inherited cxGrdPrincipal: TcxGrid
           inherited cxGrdDBTabPrin: TcxGridDBTableView
             OptionsCustomize.ColumnGrouping = False
@@ -216,7 +216,7 @@
         end
       end
       inherited tsFicha: TcxTabSheet
-        Caption = '&2_Ficha'
+        Caption = '&Ficha'
         TabVisible = True
         object pnlCabeceraSolicitud: TPanel
           Left = 0

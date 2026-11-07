@@ -51,6 +51,7 @@ const
     ' L.CODIGO_ART_REUSAR_SESLIN ELSE ' +
     ' L.CODIGO_ART_TENTATIVO_SESLIN END AS ARTICULO, ' +
     ' L.DESCRIPCION_SESLIN AS DESCRIPCION, ' +
+    ' COALESCE(L.REF_PRV_SESLIN, '''') AS MODELO_PROVEEDOR, ' +
     ' COALESCE(NULLIF((SELECT GROUP_CONCAT(V.AV ORDER BY V.ID_AV ' +
     ' SEPARATOR ''/'') FROM fza_compras_sesiones_lineas_filas_atr F ' +
     ' JOIN fza_atributos_valores V ON V.ID_AV = F.ID_AV_SESFILAT ' +
@@ -82,7 +83,7 @@ const
     ' AND (L.TIPO_LINEA_SESLIN = ''ESCALAR'' ' +
     ' OR C.ID_AV_PIVOT_SESCEL IS NOT NULL) ' +
     ' GROUP BY L.LINEA_SESLIN, FILA, PIVOT, ARTICULO, DESCRIPCION, ' +
-    ' COLOR, PESTANA, TALLA, CODIGO ' +
+    ' COLOR, PESTANA, TALLA, CODIGO, MODELO_PROVEEDOR ' +
     ' ORDER BY L.LINEA_SESLIN, FILA, PIVOT';
 
 procedure ParametrosSesion(AConsulta: TUniQuery;
@@ -116,6 +117,8 @@ begin
       Result[i].IdFila := q.FieldByName('FILA').AsInteger;
       Result[i].IdPivot := q.FieldByName('PIVOT').AsInteger;
       Result[i].Articulo := q.FieldByName('ARTICULO').AsString;
+      Result[i].ModeloProveedor :=
+        q.FieldByName('MODELO_PROVEEDOR').AsString;
       Result[i].Descripcion := q.FieldByName('DESCRIPCION').AsString;
       Result[i].Color := q.FieldByName('COLOR').AsString;
       Result[i].Pestana := q.FieldByName('PESTANA').AsString;
@@ -154,6 +157,7 @@ begin
       (AActuales[i].IdFila <> AValores[i].IdFila) or
       (AActuales[i].IdPivot <> AValores[i].IdPivot) or
       (AActuales[i].Articulo <> AValores[i].Articulo) or
+      (AActuales[i].ModeloProveedor <> AValores[i].ModeloProveedor) or
       (AActuales[i].Color <> AValores[i].Color) or
       (AActuales[i].Pestana <> AValores[i].Pestana) or
       (AActuales[i].Talla <> AValores[i].Talla) then

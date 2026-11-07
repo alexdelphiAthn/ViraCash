@@ -21,6 +21,7 @@ type
     IdFila: Integer;
     IdPivot: Integer;
     Articulo: string;
+    ModeloProveedor: string;
     Descripcion: string;
     Color: string;
     Pestana: string;
@@ -37,10 +38,107 @@ procedure ValidarCodigoBarrasSesion(const ACodigo: string);
 function TipoCodigoBarrasSesion(const ACodigo: string): string;
 function ColorCombinacionBarras(const AValor: TCombinacionBarrasSesion): string;
 
+function ImportarCsvBarrasSesion(const AFilas: TFilasCsvBarras;
+  const AOriginales: TCombinacionesBarrasSesion; APrimeraFila,
+  AColCodigo, AColArticulo, AColColor, AColTalla: Integer;
+  const AColorFijo: string = '';
+  AUsarModeloProveedor: Boolean = False): TCombinacionesBarrasSesion;
+
 implementation
 
 uses
   System.Generics.Collections, inLibEAN13, inLibMsgBarrasSesion;
+
+function ImportarCsvBarrasSesion(const AFilas: TFilasCsvBarras;
+  const AOriginales: TCombinacionesBarrasSesion; APrimeraFila,
+  AColCodigo, AColArticulo, AColColor, AColTalla: Integer;
+  const AColorFijo: string;
+  AUsarModeloProveedor: Boolean): TCombinacionesBarrasSesion;
+var
+  i, j, k, n: Integer;
+  sCodigo, sArticulo, sColor, sTalla: string;
+  aUsadas: TArray<Boolean>;
+
+  function CoincideArticulo(const AValor: TCombinacionBarrasSesion): Boolean;
+  begin
+    if AUsarModeloProveedor then
+      Result := SameText(Trim(AValor.ModeloProveedor), sArticulo)
+    else
+      Result := SameText(Trim(AValor.Articulo), sArticulo);
+  end;
+
+  function Campo(AColumna: Integer): string;
+  begin
+    Result := '';
+    if AColumna >= 0 then
+    begin
+      if AColumna >= Length(AFilas[i]) then
+        raise EArgumentException.Create(SBarrasFilaIncompleta);
+      Result := Trim(AFilas[i][AColumna]);
+    end;
+  end;
+
+begin
+  if (AColCodigo < 0) or (AColArticulo < 0) then
+    raise EArgumentException.Create(SBarrasColumnasObligatorias);
+  if (AColCodigo = AColArticulo) or
+    ((AColColor >= 0) and ((AColColor = AColCodigo) or
+      (AColColor = AColArticulo))) or
+    ((AColTalla >= 0) and ((AColTalla = AColCodigo) or
+      (AColTalla = AColArticulo) or (AColTalla = AColColor))) then
+    raise EArgumentException.Create(SBarrasColumnasRepetidas);
+  if (APrimeraFila < 0) or (APrimeraFila >= Length(AFilas)) then
+    raise EArgumentException.Create(SBarrasCsvVacio);
+  Result := Copy(AOriginales);
+  SetLength(aUsadas, Length(AOriginales));
+  for i := APrimeraFila to High(AFilas) do
+  begin
+    try
+      sCodigo := Campo(AColCodigo);
+      sArticulo := Campo(AColArticulo);
+      if sArticulo = '' then
+        raise EArgumentException.Create(SBarrasIdentificadorVacio);
+      sColor := Campo(AColColor);
+      if AColColor < 0 then
+        sColor := Trim(AColorFijo);
+      sTalla := Campo(AColTalla);
+      if sCodigo = '' then
+        raise EArgumentException.Create(SBarrasVacio);
+      ValidarCodigoBarrasSesion(sCodigo);
+      n := -1;
+      for j := 0 to High(AOriginales) do
+        if CoincideArticulo(AOriginales[j]) and
+          (((AColColor < 0) and (sColor = '')) or
+            SameText(Trim(ColorCombinacionBarras(AOriginales[j])), sColor)
+            or ((sColor = '') and (AOriginales[j].Color = '') and
+              (AOriginales[j].Pestana = ''))) and
+          ((AColTalla < 0) or
+            SameText(Trim(AOriginales[j].Talla), sTalla)) then
+        begin
+          if n >= 0 then
+            raise EArgumentException.Create(SBarrasAmbiguaCsv);
+          n := j;
+        end;
+      if n < 0 then
+        raise EArgumentException.CreateFmt(SBarrasSinCoincidencia,
+          [sArticulo, sColor, sTalla]);
+      if aUsadas[n] then
+        raise EArgumentException.CreateFmt(SBarrasDuplicado, [sCodigo]);
+      if (Result[n].Codigo <> '') and
+        not SameText(Result[n].Codigo, sCodigo) then
+        raise EArgumentException.Create(SBarrasOcupada);
+      for k := 0 to High(Result) do
+        if (k <> n) and SameText(Result[k].Codigo, sCodigo) then
+          raise EArgumentException.CreateFmt(SBarrasDuplicado, [sCodigo]);
+      Result[n].Codigo := sCodigo;
+      aUsadas[n] := True;
+    except
+      on E: EArgumentException do
+        raise EArgumentException.CreateFmt(SBarrasErrorFila,
+          [i + 1, E.Message]);
+    end;
+  end;
+end;
 
 procedure ValidarCodigoBarrasSesion(const ACodigo: string);
 var

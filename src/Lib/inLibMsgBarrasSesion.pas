@@ -19,6 +19,11 @@ resourcestring
   SBarrasActualizar = 'Actualizar';
   SBarrasCodigo = 'Código de barras';
   SBarrasArticulo = 'Artículo';
+  SBarrasModeloProveedor = 'Modelo del proveedor';
+  SBarrasCodigoInterno = 'Código interno';
+  SBarrasIdentificarPor = 'Identificar artículos por';
+  SBarrasColumnaArticulo = 'Columna del modelo / artículo';
+  SBarrasIdentificadorVacio = 'Falta el modelo o código de artículo.';
   SBarrasColor = 'Color / variante';
   SBarrasTalla = 'Talla';
   SBarrasSinColor = '(sin color)';
@@ -27,8 +32,8 @@ resourcestring
   SBarrasCabecera = 'Primera fila contiene títulos';
   SBarrasAsignar = 'Asignar a la fila seleccionada';
   SBarrasQuitar = 'Quitar asignación';
-  SBarrasAyuda = 'Seleccione una fila del CSV y su artículo, color y talla. ' +
-    'Al aceptar se guardan solo las filas asignadas.';
+  SBarrasAyuda = 'Indique las columnas del fichero. Al aceptar se importan ' +
+    'todas las filas por modelo o código interno, color y talla.';
   SBarrasCodigoLargo = 'El código de barras admite como máximo 50 caracteres.';
   SBarrasCodigoControl = 'El código contiene caracteres de control.';
   SBarrasCsvComillas = 'El CSV contiene comillas sin cerrar o mal colocadas.';
@@ -53,6 +58,18 @@ resourcestring
   SBarrasLinea = 'Línea';
   SBarrasDescripcion = 'Descripción';
   SBarrasFiltroCsv = 'CSV (*.csv;*.txt)|*.csv;*.txt';
+  SBarrasSinColumna = '(sin columna)';
+  SBarrasColorFijo = 'Color / variante si falta la columna';
+  SBarrasColorAutomatico = 'Automático (si es único)';
+  SBarrasColumnasObligatorias =
+    'Seleccione las columnas del código de barras y del modelo / artículo.';
+  SBarrasColumnasRepetidas = 'Seleccione columnas diferentes para cada dato.';
+  SBarrasFilaIncompleta = 'Faltan columnas en esta fila del CSV.';
+  SBarrasSinCoincidencia =
+    'No existe en la sesión: modelo / artículo %s, color %s, talla %s.';
+  SBarrasErrorFila = 'Fila %d: %s';
+  SBarrasAmbiguaCsv = 'Hay varias combinaciones posibles. ' +
+    'Indique el color fijo o las columnas de color / variante y talla.';
   SBarrasMigracion = 'Para usar los códigos de barras de sesiones, ' +
     'actualice la base de datos con la migración ' +
     '20261106_sesiones_codigos_barras.sql.';
