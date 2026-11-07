@@ -15,6 +15,8 @@ type
   TCriterioComparativaVentas = (ccvFacturadoSinImpuestos,
     ccvFacturadoConImpuestos, ccvIngresosCaja);
 
+  TPeriodoComparativaVentas = (pcvPrimero, pcvSegundo);
+
   TFiltroComparativaVentas = record
     Desde: TDateTime;
     Hasta: TDateTime;
@@ -24,6 +26,9 @@ type
     Almacenes: string;
     Familias: string;
     Articulos: string;
+    Proveedores: string;
+    Temporadas: string;
+    TemporadasAnteriores: string;
     Criterio: TCriterioComparativaVentas;
   end;
 
@@ -53,7 +58,9 @@ type
   IRepositorioComparativaVentas = interface
     ['{45002B4C-F710-4E4E-9681-A8B291DF88A6}']
     function Consultar(const AFiltro: TFiltroComparativaVentas;
-      ADesde, AHasta: TDateTime): TVentasDiariasComparativa;
+      ADesde, AHasta: TDateTime;
+      APeriodo: TPeriodoComparativaVentas = pcvPrimero):
+      TVentasDiariasComparativa;
   end;
 
 implementation

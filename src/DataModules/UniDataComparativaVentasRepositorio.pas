@@ -33,7 +33,9 @@ type
   public
     constructor Create(AConexion: TUniConnection);
     function Consultar(const AFiltro: TFiltroComparativaVentas;
-      ADesde, AHasta: TDateTime): TVentasDiariasComparativa;
+      ADesde, AHasta: TDateTime;
+      APeriodo: TPeriodoComparativaVentas = pcvPrimero):
+      TVentasDiariasComparativa;
   end;
 
 function SqlOrigenIngresosComparativa: string;
@@ -68,6 +70,29 @@ begin
     ' AND PG.CODIGO_ALM_PAGO = O.CODIGO_ALM_OPCAJA' +
     ' AND PG.CODIGO_CAJA_PAGO = O.CODIGO_CAJA_OPCAJA' +
     ' AND PG.NUMERO_OPERACION_PAGO = O.NUMERO_OPERACION_OPCAJA';
+end;
+
+function SqlFiltrosCatalogoComparativa: string;
+begin
+  // EXISTS evita multiplicar ventas si hay varios proveedores del artículo.
+  // Temporada vigente: SKU, color y artículo, por ese orden.
+  Result :=
+    ' AND (:PROVEEDORES = '''' OR EXISTS (' +
+    ' SELECT 1 FROM fza_articulos_proveedores AP' +
+    ' WHERE AP.CODIGO_ART_AP = FL.CODIGO_ART_FACLIN' +
+    ' AND FIND_IN_SET(AP.CODIGO_PRV_AP, :PROVEEDORES) > 0))' +
+    ' AND (:TEMPORADAS = '''' OR FIND_IN_SET(COALESCE((' +
+    ' SELECT COALESCE(PV.PV, AP.VALOR_LIBRE_ARTPROP, '''')' +
+    ' FROM fza_articulos_propiedades AP' +
+    ' LEFT JOIN fza_propiedades_valores PV' +
+    ' ON PV.ID_PV_ARTPROP = AP.ID_PV_ARTPROP' +
+    ' WHERE AP.CODIGO_ART_ART = FL.CODIGO_ART_FACLIN' +
+    ' AND AP.CODIGO_PROP_ARTPROP = ''TEMPORADA''' +
+    ' AND AP.CODIGO_UNIDAD_ARTPROP IN ('''',' +
+    ' NULLIF(FL.CODIGO_UNIDAD_FACLIN, ''''),' +
+    ' SUBSTRING_INDEX(NULLIF(FL.CODIGO_UNIDAD_FACLIN, ''''), ''/'', 2))' +
+    ' ORDER BY LENGTH(AP.CODIGO_UNIDAD_ARTPROP) DESC LIMIT 1), ''''),' +
+    ' :TEMPORADAS) > 0)';
 end;
 
 function SqlComparativaVentas(ACriterio: TCriterioComparativaVentas): string;
@@ -112,6 +137,7 @@ begin
     ' :FAMILIAS) > 0)' +
     ' AND (:ARTICULOS = '''' OR FIND_IN_SET(FL.CODIGO_ART_FACLIN,' +
     ' :ARTICULOS) > 0)' +
+    SqlFiltrosCatalogoComparativa +
     ' AND COALESCE(F.FASE_FAC, '''') NOT IN' +
     ' (''BORRADOR'', ''ERROR_BORRADOR'', ''CANCELADA'',' +
     ' ''SIN_VERIF_ANULADA'', ''VERIFACTU_ANULADA'',' +
@@ -131,8 +157,8 @@ begin
 end;
 
 function TRepositorioComparativaVentas.Consultar(
-  const AFiltro: TFiltroComparativaVentas; ADesde, AHasta: TDateTime):
-  TVentasDiariasComparativa;
+  const AFiltro: TFiltroComparativaVentas; ADesde, AHasta: TDateTime;
+  APeriodo: TPeriodoComparativaVentas): TVentasDiariasComparativa;
 var
   oConsulta: TUniQuery;
   oLista: TList<TVentaDiariaComparativa>;
@@ -149,6 +175,12 @@ begin
     oConsulta.ParamByName('ALMACENES').AsString := AFiltro.Almacenes;
     oConsulta.ParamByName('FAMILIAS').AsString := AFiltro.Familias;
     oConsulta.ParamByName('ARTICULOS').AsString := AFiltro.Articulos;
+    oConsulta.ParamByName('PROVEEDORES').AsString := AFiltro.Proveedores;
+    if APeriodo = pcvSegundo then
+      oConsulta.ParamByName('TEMPORADAS').AsString :=
+        AFiltro.TemporadasAnteriores
+    else
+      oConsulta.ParamByName('TEMPORADAS').AsString := AFiltro.Temporadas;
     oConsulta.Open;
     while not oConsulta.Eof do
     begin

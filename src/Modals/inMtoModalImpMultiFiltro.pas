@@ -122,7 +122,6 @@ type
     function  CodigoDeItem(const AText: string): string;
     function  FiltroPorClb(AClb: TObject): TFiltroChecklist;
     function  FiltroPorEdt(AEdt: TObject): TFiltroChecklist;
-    function  CSVDe(AFc: TFiltroChecklist): string;
     procedure ClbFiltroClickCheck(Sender: TObject; AIndex: Integer;
                                    APrevState, ANewState: TcxCheckBoxState);
     procedure SearchChange(Sender: TObject);
@@ -138,12 +137,15 @@ type
     procedure FamiliasSearchChange(Sender: TObject);
     // Resumen de selecciones: marcados de un filtro (con su nombre) y
     // niveles de agrupación en orden.
-    procedure DescribirFiltro(
-      AResumen: TResumenSeleccionesInforme;
-      AFc: TFiltroChecklist);
     procedure DescribirFamilias(AResumen: TResumenSeleccionesInforme);
     procedure DescribirAgrupacion(AResumen: TResumenSeleccionesInforme);
   protected
+    function CrearFiltroTemporadas(
+      const ATitulo: string): TFiltroChecklist;
+    function CSVDe(AFc: TFiltroChecklist): string;
+    procedure DescribirFiltro(
+      AResumen: TResumenSeleccionesInforme;
+      AFc: TFiltroChecklist);
     procedure ExportarExcelTabular(ADatos: TDataSet;
       const ATitulo, ANombreArchivo: string;
       const AColumnas: TColumnasInformeTabular);
@@ -473,6 +475,13 @@ begin
 end;
 
 // Pestaña de filtro con buscador (TcxTextEdit alTop) + checklist (alClient).
+function TfrmPrintMultiFiltro.CrearFiltroTemporadas(
+  const ATitulo: string): TFiltroChecklist;
+begin
+  Result := CrearTabFiltro(ATitulo);
+  CargarFiltro(Result, FRepositorioFiltros.ListarTemporadas);
+end;
+
 function TfrmPrintMultiFiltro.CrearTabFiltro(
   const ACaption: string): TFiltroChecklist;
 var

@@ -39,7 +39,7 @@ begin
       AServicios.Escritor.Escribir(AFila, AColumna, ACampo.AsFloat);
       AServicios.Formateador.Alinear(AFila, AColumna, acDerecha);
       if ADefinicion.Formato = '%g' then
-        AServicios.Formateador.AplicarFormato(AFila, AColumna, '0.####')
+        AServicios.Formateador.AplicarFormato(AFila, AColumna, 'General')
       else
         AServicios.Formateador.AplicarFormato(AFila, AColumna, '#,##0.00');
     end
@@ -74,6 +74,10 @@ begin
   for iColumna := 0 to High(AColumnas) do
   begin
     AServicios.Escritor.Escribir(0, iColumna, AColumnas[iColumna].Titulo);
+    if AColumnas[iColumna].Numerica or
+      (AColumnas[iColumna].Campo = 'FECHA') or
+      (AColumnas[iColumna].Campo = 'FECHA_ANT') then
+      AServicios.Formateador.Alinear(0, iColumna, acDerecha);
     AServicios.Formateador.Negrita(0, iColumna);
     AServicios.Formateador.FondoCelda(0, iColumna, $00EEEEEE);
     AServicios.Formateador.AnchoColumna(iColumna,

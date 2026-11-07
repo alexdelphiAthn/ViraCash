@@ -76,8 +76,11 @@ begin
     oColumna := AColumnas[i];
     dAncho := AAncho * oColumna.Peso / dPesos;
     oMemo := CrearMemo(ACabecera, 'Cabecera' + IntToStr(i),
-      oColumna.Titulo, dX, 30, dAncho - 3, 32);
+      oColumna.Titulo, dX, 30, dAncho - 3, 40);
     oMemo.Font.Style := [fsBold];
+    oMemo.VAlign := vaBottom;
+    if oColumna.Numerica then
+      oMemo.HAlign := haRight;
     oMemo := CrearMemo(ADetalle, 'Dato' + IntToStr(i), '',
       dX, 0, dAncho - 3, 22);
     oMemo.DataSet := ADatos;
@@ -120,7 +123,7 @@ begin
   dAncho := 277 * fr01cm;
   oCabecera := TfrxPageHeader.Create(oPagina);
   oCabecera.Name := 'CabeceraTabla';
-  oCabecera.Height := 66;
+  oCabecera.Height := 78;
   oMemo := CrearMemo(oCabecera, 'TituloTabla', ATitulo, 0, 0, dAncho, 24);
   oMemo.Font.Size := 12;
   oMemo.Font.Style := [fsBold];

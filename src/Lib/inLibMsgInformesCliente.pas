@@ -12,6 +12,8 @@ unit inLibMsgInformesCliente;
 interface
 
 resourcestring
+  SInformeTemporadaP1 = 'Temporada P1';
+  SInformeTemporadaP2 = 'Temporada P2';
   SInformeHojaDatos = 'Datos';
   SInformeHojaSeleccion = 'Selección';
   SInformeFechasAmbosPeriodos = 'Indique las fechas de ambos períodos.';

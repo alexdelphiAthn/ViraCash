@@ -24,6 +24,8 @@ type
     FDesdeAnterior: TcxDateEdit;
     FHastaAnterior: TcxDateEdit;
     FCriterio: TcxComboBox;
+    FTemporadasP1: TFiltroChecklist;
+    FTemporadasP2: TFiltroChecklist;
     FDatos: TClientDataSet;
     FDatosInforme: TfrxDBDataset;
     FRepositorio: IRepositorioComparativaVentas;
@@ -46,7 +48,8 @@ implementation
 
 uses
   inLibMsgInformesCliente,
-  System.SysUtils, System.DateUtils, System.Variants, cxLabel, cxTextEdit,
+  System.SysUtils, System.DateUtils, System.Variants, System.Math,
+  cxLabel, cxTextEdit,
   inLibComparativaVentas, inLibComparativaVentasInforme,
   inLibInformeTabular, UniDataComparativaVentasRepositorio;
 
@@ -54,7 +57,7 @@ uses
 
 function TfrmPrintComparativaVentas.FiltrosUsados: TFiltrosReport;
 begin
-  Result := [frFechas, frAlmacenes, frFamilias, frArticulos];
+  Result := [frFechas, frAlmacenes, frFamilias, frProveedores, frArticulos];
 end;
 
 procedure TfrmPrintComparativaVentas.CrearControles;
@@ -91,7 +94,10 @@ begin
   oEtiqueta.Parent := TabFechas;
   oEtiqueta.Transparent := True;
   oEtiqueta.AutoSize := False;
-  oEtiqueta.SetBounds(220, 166, 650, 100);
+  oEtiqueta.SetBounds(220, 166,
+    Max(200, TabFechas.ClientWidth - 236),
+    Max(140, TabFechas.ClientHeight - 182));
+  oEtiqueta.Anchors := [akLeft, akTop, akRight, akBottom];
   oEtiqueta.Properties.WordWrap := True;
   oEtiqueta.Caption :=
     SInformeAyudaComparacion + sLineBreak +
@@ -105,6 +111,8 @@ begin
   if not FInicializado then
   begin
     CrearControles;
+    FTemporadasP1 := CrearFiltroTemporadas(SInformeTemporadaP1);
+    FTemporadasP2 := CrearFiltroTemporadas(SInformeTemporadaP2);
     btnExcel.OnClick := ExportarExcelComparativa;
     FDatos := TClientDataSet.Create(Self);
     FDatosInforme := TfrxDBDataset.Create(Self);
@@ -146,6 +154,9 @@ begin
   Result.Almacenes := CSVAlmacenes;
   Result.Familias := CSVFamilias;
   Result.Articulos := CSVArticulos;
+  Result.Proveedores := CSVProveedores;
+  Result.Temporadas := CSVDe(FTemporadasP1);
+  Result.TemporadasAnteriores := CSVDe(FTemporadasP2);
   Result.Criterio := TCriterioComparativaVentas(FCriterio.ItemIndex);
   ValidarComparativaVentas(Result);
 end;
@@ -158,7 +169,7 @@ begin
   FFiltro := LeerFiltro;
   oActual := FRepositorio.Consultar(FFiltro, FFiltro.Desde, FFiltro.Hasta);
   oAnterior := FRepositorio.Consultar(FFiltro,
-    FFiltro.DesdeAnterior, FFiltro.HastaAnterior);
+    FFiltro.DesdeAnterior, FFiltro.HastaAnterior, pcvSegundo);
   CargarComparativaInforme(FDatos,
     CalcularComparativaVentas(FFiltro, oActual, oAnterior));
 end;
@@ -183,6 +194,8 @@ procedure TfrmPrintComparativaVentas.DescribirSelecciones(
   AResumen: TResumenSeleccionesInforme);
 begin
   inherited;
+  DescribirFiltro(AResumen, FTemporadasP1);
+  DescribirFiltro(AResumen, FTemporadasP2);
   AResumen.Anadir(SInformeEmpresa, FFiltro.Empresa);
   AResumen.Anadir(SInformeSegundoPeriodo, DateToStr(FFiltro.DesdeAnterior) +
     ' - ' + DateToStr(FFiltro.HastaAnterior));
