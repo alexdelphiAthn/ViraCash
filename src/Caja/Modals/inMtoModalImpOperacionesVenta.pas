@@ -644,6 +644,7 @@ procedure TfrmPrintOperacionesVenta.PrepararCantidadesInforme(
   ADatos: TDataSet);
 var
   Marca: TBookmark;
+  Unidad: string;
 begin
   FreeAndNil(FIndiceCantidades);
   FIndiceCantidades := TIndiceCantidadesBalance.Create;
@@ -656,11 +657,16 @@ begin
     while not ADatos.Eof do
     begin
       if ADatos.FieldByName('CANTIDAD').AsFloat <> 0 then
-        FIndiceCantidades.Agregar(
-          ADatos.FieldByName('UNIDAD_CANTIDAD').AsString,
+      begin
+        Unidad := UpperCase(Trim(
+          ADatos.FieldByName('UNIDAD_CANTIDAD').AsString));
+        if (Unidad = 'UDS.') or (Unidad = 'UD') or
+           (Unidad = 'UNIDADES') then Unidad := 'UDS';
+        FIndiceCantidades.Agregar(Unidad,
           [FormatDateTime('yyyymmdd',
             ADatos.FieldByName('FECHA_DIA').AsDateTime),
            ADatos.FieldByName('CLAVE_CAJA').AsString]);
+      end;
       ADatos.Next;
     end;
   finally
@@ -724,6 +730,7 @@ procedure TfrmPrintOperacionesVenta.ReportBeforePrintConColor(
 var
   ColorBasico: TColor;
   MemoColorBasico: TfrxMemoView;
+  ObjetoCantidad: TfrxComponent;
 begin
   ReportBeforePrintConQR(Component);
   if Assigned(FIndiceCantidades) and Assigned(Component) then
@@ -734,14 +741,20 @@ begin
     if SameText(Component.Name, 'GroupHeaderCaja') then
       FCajaGrupoCantidad :=
         dsVentasPrint.DataSet.FieldByName('CLAVE_CAJA').AsString;
-    if Component is TfrxMemoView then
+    if SameText(Component.Name, 'GroupFooterCaja') then
     begin
-      if SameText(Component.Name, 'MemoTotalCajaCantidad') then
-        TfrxMemoView(Component).Visible := FIndiceCantidades.GrupoSumable(
-          [FFechaGrupoCantidad, FCajaGrupoCantidad], 2);
-      if SameText(Component.Name, 'MemoTotalFechaCantidad') then
-        TfrxMemoView(Component).Visible := FIndiceCantidades.GrupoSumable(
-          [FFechaGrupoCantidad], 1);
+      ObjetoCantidad := frxrprt1.FindObject('MemoTotalCajaCantidad');
+      if ObjetoCantidad is TfrxMemoView then
+        TfrxMemoView(ObjetoCantidad).Visible :=
+          FIndiceCantidades.GrupoSumable(
+            [FFechaGrupoCantidad, FCajaGrupoCantidad], 2);
+    end;
+    if SameText(Component.Name, 'GroupFooterFecha') then
+    begin
+      ObjetoCantidad := frxrprt1.FindObject('MemoTotalFechaCantidad');
+      if ObjetoCantidad is TfrxMemoView then
+        TfrxMemoView(ObjetoCantidad).Visible :=
+          FIndiceCantidades.GrupoSumable([FFechaGrupoCantidad], 1);
     end;
   end;
 

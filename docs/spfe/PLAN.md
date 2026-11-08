@@ -342,10 +342,46 @@ Pruebas previstas del generador: varias referencias, importes por origen,
 sumas por categoría, duplicados en entrada, cliente/empresa distintos y
 coherencia I/S, sin describir fixtures derivadas como ejemplos oficiales.
 
-Siguiente duda documental: disponibilidad del modelo semántico UNE-EN
-16931:2026 y su correspondencia UBL, o reglas oficiales equivalentes. Los
-XSD OASIS y el ejemplo básico no cubren esas reglas; el paquete público
-ConnectingEurope localizado declara UBL 2.1 y no acredita por sí solo SPFE.
+Material semántico añadido por el usuario y verificado en
+`ViraCash_web/docs/spfe/en16931-ubl-1.3.17`: 27 archivos, 5.077.180 bytes.
+Los 27 coinciden por SHA-256 con la carpeta UBL de la release fuente ya
+descargada. Se han comprobado XML bien formados, includes locales y XSLT
+version 2.0/queryBinding xslt2. La hoja compilada no importa otras hojas.
+Informe: [verificación del paquete](../../doc/spfe/help/VERIFICACION_EN16931_1_3_17_LOCAL.json).
+No se ha ejecutado la transformación ni comenzado la Fase 2.
+
+Los 19 ejemplos contienen 18 Invoice y 1 CreditNote. Son ejemplos del
+estándar europeo, no ejemplos SPFE de rectificativas. El generador SPFE
+seguirá produciendo Invoice incluso para rectificativas; tampoco copiará
+anexos u otros elementos de los ejemplos si el contrato SPFE no los admite.
+
+El paquete 1.3.17 es referencia de EN 16931-1:2017+A1 sobre UBL 2.1, no un
+validador acreditado de EN 16931:2026/SPFE sobre UBL 2.5. Hay divergencias
+concretas: UBL-CR-002 aconseja UBLVersionID 2.1 u omisión y UBL-CR-513
+advierte contra WithholdingTaxTotal, mientras el anexo SPFE utiliza ese
+bloque para retenciones. Conservar originales y todos sus diagnósticos;
+no modificar reglas para forzar un resultado favorable ni usar su resultado
+como único criterio de aceptación SPFE. Se requiere una matriz de aplicabilidad
+por versión/perfil, apoyada en el BOE y documentación oficial, que distinga
+incumplimientos aplicables de diferencias de versión documentadas.
+
+Pipeline de validación previsto: XSD canónico UBL 2.5, comprobaciones propias
+explícitamente derivadas del BOE/SPFE y ejecución separada identificable de
+los artefactos EN 1.3.17. Registrar versión, perfil, fallos y cobertura; no
+mostrar «validación EN 2026 completa» por haber superado la capa antigua.
+La ejecución de la hoja requiere un motor XSLT 2.0+, por ejemplo Saxon.
+No utilizar XslCompiledTransform ni lxml/libxslt como motor XSLT 2.0.
+La elección/instalación del motor y su invocación por DUnitX están pendientes;
+no introducir proceso pesado ni nuevas consultas en cada emisión.
+
+Los textos UNE-EN 16931-1:2026 y UNE-CEN/TS 16931-3-2:2026 siguen pendientes.
+Se localizaron fichas oficiales de AENOR, guardadas como HTML de catálogo
+(no textos de norma), y se intentó acceso al catálogo UNE: respuesta 403.
+No se completó compra, registro, autenticación ni descarga del texto licenciado.
+La página de la Comisión sobre acceso gratuito referencia expresamente la
+edición 2017 y está en revisión; no acredita por sí sola una descarga anónima
+gratuita de las dos publicaciones de 2026. Registro: ACCESO_UNE_2026.json.
+Siguiente pregunta: disponibilidad de acceso de descarga autorizado a UNE/AENOR.
 
 Revisión de la documentación ampliada, a petición del usuario: releído
 ViraCash_web/docs/spfe/README.md y comprobada la carpeta ubl-2.5. Contiene
@@ -950,10 +986,11 @@ suposición. FES §§5.3-5.9 siguen pendientes de publicación en la versión lo
 1. ¿La copia documental suministrada es el contrato aprobado para implementar?
    Aportar concordancia con la Orden definitiva si existe; faltan reglas
    detalladas AEAT y el contenido semántico/sintáctico UNE referenciado.
-2. Para pruebas sin red, incorporar a `docs/spfe/` los XSD UBL 2.5 completos,
-   Schematron/reglas aplicables y catálogos externos usados (UNECE, UNTDID,
-   VATEX). ¿Hay ejemplos oficiales de rectificativas? No están en esta copia.
-   No los descargaré ni sustituiré por otra versión sin indicación.
+2. XSD UBL 2.5 y paquete EN UBL 1.3.17 disponibles y verificados. El segundo
+   cubre la edición 2017+A1/UBL 2.1, no acredita equivalencia con 2026/SPFE.
+   Faltan los textos UNE 2026 y artefactos adaptados o criterios oficiales de
+   aplicabilidad. Los ejemplos incluyen una CreditNote europea, no una
+   rectificativa SPFE Invoice oficial. Mantener los catálogos versionados.
 3. Entorno resuelto: RAD Delphi 13.2; Win64 como principal y Win32 usado
    ocasionalmente para desarrollo. Validar DUnitX principalmente en Win64
    y mantener compilación Win32. Falta localizar el proyecto de pruebas

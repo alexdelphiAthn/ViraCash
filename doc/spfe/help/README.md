@@ -259,8 +259,28 @@ antecesora. Mantener el módulo y hash intactos; falta resolver compatibilidad
 antes de habilitar la nueva operación real. No implica permiso para modificar
 VERI*FACTU ni para comenzar Fase 2.
 
-Siguiente pregunta documental: ¿dispone el usuario del modelo semántico
-UNE-EN 16931:2026 y su correspondencia UBL, o reglas oficiales equivalentes?
+Nuevo paquete proporcionado y verificado:
+**ViraCash_web/docs/spfe/en16931-ubl-1.3.17**, 27 archivos/5.077.180 bytes.
+Todos coinciden por SHA-256 con la release fuente descargada. Includes locales
+resueltos; hoja compilada XSLT 2.0 sin imports; Schematron queryBinding xslt2.
+Ejemplos: 18 Invoice y 1 CreditNote, que no es tipo de remisión SPFE.
+Informe: VERIFICACION_EN16931_1_3_17_LOCAL.json. No se ha ejecutado el XSLT.
+
+La capa EN está disponible para su edición, pero **no queda acreditada la
+cobertura completa de EN 2026/SPFE**. UBL-CR-002 y UBL-CR-513 ilustran
+diferencias con UBL 2.5 y las retenciones SPFE. Conservar las reglas y sus
+diagnósticos; separar cobertura aplicable de diferencias de versión con
+trazabilidad, sin desactivar errores arbitrariamente. Motor XSLT 2.0+
+pendiente de elegir; XslCompiledTransform no sirve para esa hoja.
+
+Intentada la obtención de las normas UNE 2026: UNE responde 403. Se guardaron
+solo fichas AENOR, sin texto de las normas ni compra/autenticación. Véase
+ACCESO_UNE_2026.json. La página de la Comisión sobre acceso gratuito sigue
+referenciando 2017 y está en revisión, de modo que no confirma descarga
+gratuita anónima de ambas ediciones 2026.
+
+Siguiente pregunta pendiente: ¿dispone el usuario de acceso de descarga
+autorizado a UNE/AENOR para los dos textos de 2026?
 
 Nueva revisión del README original y la carpeta local ubl-2.5:
 **116 XSD canónicos comprobados**, idénticos a OASIS por SHA-256 (101 maindoc,
