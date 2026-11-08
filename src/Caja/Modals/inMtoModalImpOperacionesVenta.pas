@@ -30,7 +30,8 @@ uses
   frLanguageSpanish, frxExportBaseImageSettingsDialog, frCoreClasses,
   JvComponentBase, JvEnterTab, Vcl.Menus, System.Actions, Vcl.ActnList,
   inLibInformesCajaPersistenciaIntf, inLibCajaPantallaInyeccion,
-  inLibResumenSeleccionesInforme;
+  inLibResumenSeleccionesInforme, inLibInformeTabular,
+  inLibBalanceCantidades;
 
 type
   TfrmPrintOperacionesVenta = class(TfrmPrint)
@@ -69,6 +70,9 @@ type
     FRepositorioPersistencia: IRepositorioInformesCaja;
     FResultado: IResultadoInformeCaja;
     FDatos: TDataSet;
+    FIndiceCantidades: TIndiceCantidadesBalance;
+    FFechaGrupoCantidad: string;
+    FCajaGrupoCantidad: string;
     // Títulos de las columnas de los dos ejes cuando hay variaciones que
     // los llaman de otra forma («Color / Aroma»); vacío = el del formato.
     FRotuloEjeColor: string;
@@ -79,6 +83,7 @@ type
     procedure RecortarTextosDetalle;
     function FocoEnUbicaciones: Boolean;
     procedure CMDialogKey(var Msg: TCMDialogKey); message CM_DIALOGKEY;
+    procedure ExportarExcelDatos;
     procedure ComponerDependencias;
     procedure AsegurarUbicacionSeleccionada;
     procedure CargarUbicaciones;
@@ -94,6 +99,8 @@ type
     procedure ReportBeforePrintConColor(
       Component: TfrxReportComponent);
   public
+    procedure PrepararCantidadesInforme(ADatos: TDataSet);
+    class function ColumnasExcel: TColumnasInformeTabular; static;
     class procedure AjustarTextosDetalle(AInforme: TfrxReport;
       const ANombreDatos: string); static;
     constructor Create(
@@ -110,7 +117,8 @@ implementation
 
 uses
   inLibFiltroUsuario, inLibMsgCaja, inLibResumenSeleccionesCaja,
-  frBaseGraphicsTypes, UniDataColumnasDocumentoRepositorio;
+  frBaseGraphicsTypes, UniDataColumnasDocumentoRepositorio,
+  inMtoPreviewExcel, inLibInformeTabularExcel, inLibMsgComun;
 
 {$R *.dfm}
 
@@ -149,9 +157,65 @@ begin
   else if Sender = btnImprimir then
     inherited btnImprimirClick(Sender)
   else if Sender = btnExcel then
-    inherited btnExcelClick(Sender)
+    ExportarExcelDatos
   else if Sender = btnEditar then
     inherited btnEditarClick(Sender);
+end;
+
+class function TfrmPrintOperacionesVenta.ColumnasExcel:
+  TColumnasInformeTabular;
+begin
+  Result := [
+    ColumnaInforme('FECHA_DIA', 'Fecha', 1),
+    ColumnaInforme('CODIGO_EMP_OPCAJA', 'Empresa', 0.6),
+    ColumnaInforme('CODIGO_ALM_OPCAJA', 'Almacén', 0.6),
+    ColumnaInforme('CODIGO_CAJA_OPCAJA', 'Caja', 0.5),
+    ColumnaInforme('NUMERO_OPERACION_OPCAJA', 'Operación', 0.9),
+    ColumnaInforme('DOCUMENTO', 'Documento', 1.6),
+    ColumnaInforme('LINEA_FACLIN', 'Línea', 0.5),
+    ColumnaInforme('ARTICULO', 'Artículo', 1),
+    ColumnaInforme('COLOR', 'Color / Aroma', 1),
+    ColumnaInforme('COPA', 'Copa', 0.5),
+    ColumnaInforme('TALLA', 'Talla / Medida', 0.8),
+    ColumnaInforme('PROVEEDOR', 'Proveedor', 0.8),
+    ColumnaInforme('MODELO', 'Modelo', 1),
+    ColumnaInforme('DESCRIPCION', 'Descripción', 2),
+    ColumnaInforme('CANTIDAD', 'Cantidad', 0.7, '%g'),
+    ColumnaInforme('BRUTO', 'Bruto', 0.8, '%2.2n'),
+    ColumnaInforme('PORCENTAJE_DTO', '% descuento', 0.7, '%g'),
+    ColumnaInforme('NETO_ARTICULO', 'Neto artículo', 0.8, '%2.2n'),
+    ColumnaInforme('INGRESOS', 'Ingresos', 0.8, '%2.2n'),
+    ColumnaInforme('VENDEDOR', 'Vendedor', 0.8),
+    ColumnaInforme('FORMA_PAGO', 'Forma de pago', 1)];
+end;
+
+procedure TfrmPrintOperacionesVenta.ExportarExcelDatos;
+var
+  Preview: TfrmMtoPreviewExcel;
+  CursorAnterior: TCursor;
+begin
+  // FZ-ISSUE-872: exportar lineas, nunca bandas ni subtotales de impresion.
+  Preview := nil;
+  CursorAnterior := Screen.Cursor;
+  Screen.Cursor := crHourGlass;
+  try
+    IniciarEspera(SCaptionEsperaConsultandoDatosInforme);
+    IniciarMedicionDatos;
+    preparar_consulta;
+    PausarMedicionDatos;
+    Preview := TfrmMtoPreviewExcel.Create(Self);
+    Preview.DialogoGuardar.InitialDir :=
+      ParametrosApp.GetPath('appDirExcel');
+    Preview.DialogoGuardar.FileName := 'Operaciones_venta.xlsx';
+    ExportarInformeTabularExcel(Preview.dxSpreadSheet1, FDatos,
+      Caption, ColumnasExcel, LineasResumenSelecciones);
+    TerminarEspera;
+    Preview.ShowModal;
+  finally
+    TerminarEspera;
+    Preview.Free;
+    Screen.Cursor := CursorAnterior;
+  end;
 end;
 
 function TfrmPrintOperacionesVenta.CloseQuery: Boolean;
@@ -467,6 +531,7 @@ end;
 
 destructor TfrmPrintOperacionesVenta.Destroy;
 begin
+  FreeAndNil(FIndiceCantidades);
   FreeAndNil(FEmpresasUbicacion);
   FreeAndNil(FAlmacenesUbicacion);
   FreeAndNil(FCajasUbicacion);
@@ -572,6 +637,36 @@ begin
   end;
   FDatos := NuevoResultado.DataSet;
   FResultado := NuevoResultado;
+  PrepararCantidadesInforme(FDatos);
+end;
+
+procedure TfrmPrintOperacionesVenta.PrepararCantidadesInforme(
+  ADatos: TDataSet);
+var
+  Marca: TBookmark;
+begin
+  FreeAndNil(FIndiceCantidades);
+  FIndiceCantidades := TIndiceCantidadesBalance.Create;
+  FFechaGrupoCantidad := '';
+  FCajaGrupoCantidad := '';
+  Marca := ADatos.Bookmark;
+  ADatos.DisableControls;
+  try
+    ADatos.First;
+    while not ADatos.Eof do
+    begin
+      if ADatos.FieldByName('CANTIDAD').AsFloat <> 0 then
+        FIndiceCantidades.Agregar(
+          ADatos.FieldByName('UNIDAD_CANTIDAD').AsString,
+          [FormatDateTime('yyyymmdd',
+            ADatos.FieldByName('FECHA_DIA').AsDateTime),
+           ADatos.FieldByName('CLAVE_CAJA').AsString]);
+      ADatos.Next;
+    end;
+  finally
+    if ADatos.BookmarkValid(Marca) then ADatos.Bookmark := Marca;
+    ADatos.EnableControls;
+  end;
 end;
 
 procedure TfrmPrintOperacionesVenta.DescribirSelecciones(
@@ -631,6 +726,25 @@ var
   MemoColorBasico: TfrxMemoView;
 begin
   ReportBeforePrintConQR(Component);
+  if Assigned(FIndiceCantidades) and Assigned(Component) then
+  begin
+    if SameText(Component.Name, 'GroupHeaderFecha') then
+      FFechaGrupoCantidad := FormatDateTime('yyyymmdd',
+        dsVentasPrint.DataSet.FieldByName('FECHA_DIA').AsDateTime);
+    if SameText(Component.Name, 'GroupHeaderCaja') then
+      FCajaGrupoCantidad :=
+        dsVentasPrint.DataSet.FieldByName('CLAVE_CAJA').AsString;
+    if Component is TfrxMemoView then
+    begin
+      if SameText(Component.Name, 'MemoTotalCajaCantidad') then
+        TfrxMemoView(Component).Visible := FIndiceCantidades.GrupoSumable(
+          [FFechaGrupoCantidad, FCajaGrupoCantidad], 2);
+      if SameText(Component.Name, 'MemoTotalFechaCantidad') then
+        TfrxMemoView(Component).Visible := FIndiceCantidades.GrupoSumable(
+          [FFechaGrupoCantidad], 1);
+    end;
+  end;
+
   if (Component <> nil) and
      SameText(Component.Name, 'MemoColorBasico') and
      (Component is TfrxMemoView) then

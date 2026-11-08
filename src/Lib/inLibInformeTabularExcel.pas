@@ -34,7 +34,16 @@ var
 begin
   if not ACampo.IsNull then
   begin
-    if ADefinicion.Numerica then
+    // Mantener las fechas nativas como numeros Excel con formato de fecha,
+    // con independencia del nombre o del idioma del campo.
+    if ACampo.DataType in [ftDate, ftDateTime, ftTimeStamp] then
+    begin
+      AServicios.Escritor.Escribir(AFila, AColumna,
+        VarFromDateTime(ACampo.AsDateTime));
+      AServicios.Formateador.AplicarFormato(AFila, AColumna,
+        'dd/mm/yyyy');
+    end
+    else if ADefinicion.Numerica then
     begin
       AServicios.Escritor.Escribir(AFila, AColumna, ACampo.AsFloat);
       AServicios.Formateador.Alinear(AFila, AColumna, acDerecha);

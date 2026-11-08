@@ -56,6 +56,7 @@ type
     function PropuestaEnfocadaPendiente(out AIdPropuesta: Int64): Boolean;
     procedure AbrirEditor(AIdDocumento: Int64);
     procedure RefrescarTodo;
+    procedure btnAgregarSkuClick(Sender: TObject);
     procedure btnDistribuirClick(Sender: TObject);
     procedure btnAbrirClick(Sender: TObject);
     procedure btnConfirmarClick(Sender: TObject);
@@ -79,7 +80,7 @@ uses
   inLibMsgDistribucionTiendas,
   inMtoModalDistribucionTiendas,
   inMtoModalPrioridadesDistribucion,
-  inMtoModalImpPropuestasTraspaso;
+  inMtoModalImpPropuestasTraspaso, UniDataDistribucionTiendasRepositorio;
 
 {$R *.dfm}
 
@@ -145,7 +146,7 @@ begin
     pnlDistribucion := TPanel.Create(Self);
     pnlDistribucion.Parent := tsLista;
     pnlDistribucion.Align := alTop;
-    pnlDistribucion.Height := EscalarDpi(136);
+    pnlDistribucion.Height := EscalarDpi(176);
     pnlDistribucion.BevelOuter := bvNone;
     oEtiqueta := TcxLabel.Create(Self);
     oEtiqueta.Parent := pnlDistribucion;
@@ -175,10 +176,12 @@ begin
       btnPrioridadesClick);
     CrearBoton(SCaptionRefrescarHistorialDistribucion, 802, 54, 110,
       btnRefrescarClick);
+    CrearBoton('Añadir SKU y unidades...', 12, 98, 240,
+      btnAgregarSkuClick);
     oEtiqueta := TcxLabel.Create(Self);
     oEtiqueta.Parent := pnlDistribucion;
     oEtiqueta.Left := EscalarDpi(12);
-    oEtiqueta.Top := EscalarDpi(98);
+    oEtiqueta.Top := EscalarDpi(142);
     oEtiqueta.Caption := STextoAyudaHistorialDistribucion;
     oEtiqueta.Transparent := True;
     FControlesCreados := True;
@@ -301,6 +304,35 @@ begin
   Configuracion.PuedeImprimir := True;
   TfrmModalDistribucionTiendas.Ejecutar(Self, Configuracion);
   RefrescarTodo;
+end;
+
+procedure TfrmMtoDistribucionTiendas.btnAgregarSkuClick(Sender: TObject);
+var
+  Valores: TArray<string>;
+  Cantidad: Double;
+begin
+  if VarIsNull(cbbDocumento.EditValue) or
+     VarIsEmpty(cbbDocumento.EditValue) then
+    ShowMessage_fza(SInfoElegirDocumentoDistribucion)
+  else
+  begin
+    Valores := TArray<string>.Create('', '1', UbicacionSesion.Almacen);
+    if InputQuery_fza('Añadir SKU al documento de distribución',
+      ['SKU', 'Unidades', 'Almacén de origen'], Valores, nil) then
+    begin
+      if not TryStrToFloat(Valores[1], Cantidad) then
+        ShowMessage_fza('Indique un número de unidades válido')
+      else
+        try
+          AgregarSkuManualDistribucion(dmmDistribucion.ConexionPrincipal,
+            cbbDocumento.EditValue, UbicacionSesion.Empresa, Trim(Valores[2]),
+            Trim(Valores[0]), Cantidad, IdentidadSesion.Usuario);
+          ShowMessage_fza('SKU añadido. Puede añadir otro o pulsar Distribuir.');
+        except
+          on E: EArgumentException do ShowMessage_fza(E.Message);
+        end;
+    end;
+  end;
 end;
 
 procedure TfrmMtoDistribucionTiendas.btnDistribuirClick(Sender: TObject);

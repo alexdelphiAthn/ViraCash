@@ -139,6 +139,7 @@ procedure TfrmMtoCajaValesHist.CrearTablaPrincipal;
 begin
   inherited;
   dmmCajaValesHist := tdmDataModule as TdmCajaValesHist;
+  dmmCajaValesHist.AplicarRestriccionUsuario(SqlRestriccionUsuario);
   pkFieldName := 'CODIGO_VL';
   actReimprimirVale.Visible := PuedeImprimir;
 end;

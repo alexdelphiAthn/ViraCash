@@ -188,8 +188,7 @@ begin
   W(AHoja, AFila, COL_PMPN, SCaptionPmpNuevoExcelInventario, True, ssahRight);
   W(AHoja, AFila, COL_COSTE, SCaptionCosteExcelInventario, True, ssahRight);
   W(AHoja, AFila, COL_FECHA_RECUENTO,
-    SCaptionFechaRecuentoExcelInventario + ' [' +
-      ID_COLUMNA_FECHA_RECUENTO + ']',
+    SCaptionFechaRecuentoExcelInventario,
     True,
     ssahCenter);
   for iColumna := 0 to COL_MAX do

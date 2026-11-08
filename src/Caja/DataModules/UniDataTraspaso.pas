@@ -3757,14 +3757,16 @@ begin
     '       S.CODIGO_ALM_DESTINO_TRSOL,' +
     '       S.CODIGO_ALM_ORIGEN_TRSOL, S.TIPO_TRSOL,' +
     '       S.ESTADO_TRSOL,' +
-    '       CASE WHEN S.TIPO_TRSOL = ''AUTO'' THEN 0 ELSE' +
     '       (SELECT COUNT(*) FROM fza_traspasos_solicitudes_lineas L' +
     '         WHERE L.NUMERO_TRSOL_TRSOLLIN = S.NUMERO_TRSOL' +
     '           AND L.SERIE_TRSOL_TRSOLLIN = S.SERIE_TRSOL' +
-    '           AND COALESCE(L.ESATENDIDA_TRSOLLIN, ''N'') <> ''S''' +
+    '           AND ((S.TIPO_TRSOL = ''AUTO'' AND' +
+    '             L.CANTIDAD_PEDIDA_TRSOLLIN >' +
+    '               COALESCE(L.CANTIDAD_SERVIDA_TRSOLLIN, 0)) OR' +
+    '             (S.TIPO_TRSOL <> ''AUTO'' AND' +
+    '               COALESCE(L.ESATENDIDA_TRSOLLIN, ''N'') <> ''S''))' +
     '           AND NULLIF(TRIM(' +
     '               L.MOTIVO_RECHAZO_TRSOLLIN), '''') IS NULL)' +
-    '       END' +
     '         AS LINEAS_PEND_TRSOL' +
     '  FROM fza_traspasos_solicitudes S' +
     ' WHERE S.CODIGO_ALM_DESTINO_TRSOL = :PROPIO' +

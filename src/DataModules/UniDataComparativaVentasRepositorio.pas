@@ -102,7 +102,23 @@ var
 begin
   bCaja := ACriterio = ccvIngresosCaja;
   sFecha := 'F.FECHA_FAC';
-  sAlmacen := 'COALESCE(FL.CODIGO_ALM_FACLIN, F.CODIGO_ALM_FAC)';
+  // FZ-ISSUE-870: la factura que sustituye a un ticket puede no tener
+  // almacen propio. Recuperarlo del origen, sin asumir el de la sesion.
+  sAlmacen := 'COALESCE(NULLIF(FL.CODIGO_ALM_FACLIN, ''''),' +
+    ' NULLIF(F.CODIGO_ALM_FAC, ''''), (SELECT MIN(COALESCE(' +
+    ' NULLIF(OL.CODIGO_ALM_FACLIN, ''''),' +
+    ' NULLIF(OFAC.CODIGO_ALM_FAC, '''')))' +
+    ' FROM fza_facturas_relaciones R JOIN fza_facturas OFAC' +
+    ' ON OFAC.SERIE_FAC = R.SERIE_FAC_ORIGEN_FACREL' +
+    ' AND OFAC.NUMERO_FAC = R.NUMERO_FAC_ORIGEN_FACREL' +
+    ' AND OFAC.CODIGO_EMP_FAC = F.CODIGO_EMP_FAC' +
+    ' LEFT JOIN fza_facturas_lineas OL' +
+    ' ON OL.SERIE_FAC_FACLIN = OFAC.SERIE_FAC' +
+    ' AND OL.NUMERO_FAC_FACLIN = OFAC.NUMERO_FAC' +
+    ' AND OL.CODIGO_UNIDAD_FACLIN = FL.CODIGO_UNIDAD_FACLIN' +
+    ' WHERE R.SERIE_FAC_FACREL = F.SERIE_FAC' +
+    ' AND R.NUMERO_FAC_FACREL = F.NUMERO_FAC' +
+    ' AND R.TIPO_RELACION_FACREL = ''SUSTITUYE''))';
   sImporte := 'FL.TOTAL_FAC_SIVA_FACLIN';
   if ACriterio = ccvFacturadoConImpuestos then
     sImporte := 'FL.TOTAL_FACLIN';
@@ -112,16 +128,14 @@ begin
     sAlmacen := 'O.CODIGO_ALM_OPCAJA';
     sImporte := 'COALESCE(PG.INGRESOS * FL.TOTAL_FACLIN / ' +
       'NULLIF((SELECT SUM(FT.TOTAL_FACLIN) FROM fza_facturas_lineas FT' +
-      ' WHERE FT.CODIGO_EMP_FACLIN = FL.CODIGO_EMP_FACLIN' +
-      ' AND FT.SERIE_FAC_FACLIN = FL.SERIE_FAC_FACLIN' +
+      ' WHERE FT.SERIE_FAC_FACLIN = FL.SERIE_FAC_FACLIN' +
       ' AND FT.NUMERO_FAC_FACLIN = FL.NUMERO_FAC_FACLIN), 0), 0)';
   end;
   Result := 'SELECT DATE(' + sFecha + ') FECHA_DIA,' +
     ' SUM(' + sImporte + ') VENTA,' +
     ' SUM(FL.CANTIDAD_FACLIN) UNIDADES' +
     ' FROM fza_facturas F JOIN fza_facturas_lineas FL' +
-    ' ON FL.CODIGO_EMP_FACLIN = F.CODIGO_EMP_FAC' +
-    ' AND FL.SERIE_FAC_FACLIN = F.SERIE_FAC' +
+    ' ON FL.SERIE_FAC_FACLIN = F.SERIE_FAC' +
     ' AND FL.NUMERO_FAC_FACLIN = F.NUMERO_FAC';
   if bCaja then
     Result := Result + SqlOrigenIngresosComparativa;

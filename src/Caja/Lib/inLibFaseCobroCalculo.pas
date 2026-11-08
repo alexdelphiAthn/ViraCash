@@ -371,7 +371,8 @@ begin
     else
       ALineas[AIndice].PrecioSinIva := ADineroDisponible /
         (1 + (ALineas[AIndice].PorcentajeIva / 100));
-    ALineas[AIndice].TotalSinIva := ALineas[AIndice].PrecioSinIva;
+    ALineas[AIndice].TotalSinIva :=
+      RedondearACentimos(ALineas[AIndice].PrecioSinIva);
     ALineas[AIndice].Total := ADineroDisponible;
     ALineas[AIndice].Modificada := True;
     MarcarAbonoParaEliminar(ALineas, ALineas[AIndice].IdDeposito);

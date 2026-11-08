@@ -720,7 +720,11 @@ begin
   ALineas.Add('       CONCAT_WS(''.'', o.CODIGO_EMP_OPCAJA,');
   ALineas.Add('                 o.TIPO_OPERACION_OPCAJA,');
   ALineas.Add('                 o.SERIE_FAC_OPCAJA,');
-  ALineas.Add('                 o.NUMERO_FAC_OPCAJA) AS DOCUMENTO');
+  ALineas.Add('                 o.NUMERO_FAC_OPCAJA) AS DOCUMENTO,');
+  ALineas.Add(' COALESCE(NULLIF(fl.TIPO_CANTIDAD_ARTICULO_FACLIN, ''''),');
+  ALineas.Add('   (SELECT a.TIPO_CANTIDAD_ART FROM fza_articulos a');
+  ALineas.Add('    WHERE a.CODIGO_ART_ART = fl.CODIGO_ART_FACLIN), '''')');
+  ALineas.Add('   AS UNIDAD_CANTIDAD');
 end;
 
 procedure TRepositorioInformesCajaUniDAC.AnadirOrigenOperacionesVenta(
@@ -867,7 +871,10 @@ begin
   ALineas.Add('   AS NETO_ARTICULO,');
   ALineas.Add(' 0 AS INGRESOS, COALESCE(fl.USUARIO_ALTA, '''') AS VENDEDOR,');
   ALineas.Add(' ''CREDITO'' AS FORMA_PAGO,');
-  ALineas.Add(' CONCAT(''PRESTAMO '', fl.ID_DEPOSITO_DEP) AS DOCUMENTO');
+  ALineas.Add(' CONCAT(''PRESTAMO '', fl.ID_DEPOSITO_DEP) AS DOCUMENTO,');
+  ALineas.Add(' COALESCE((SELECT a.TIPO_CANTIDAD_ART FROM fza_articulos a');
+  ALineas.Add('   WHERE a.CODIGO_ART_ART = fl.CODIGO_ART_FACLIN), '''')');
+  ALineas.Add('   AS UNIDAD_CANTIDAD');
   ALineas.Add(' FROM (SELECT d.ID_DEPOSITO_DEP, d.CODIGO_EMP_DEP,');
   ALineas.Add(' d.CODIGO_ALM_DEP, d.CODIGO_CAJA_DEP, d.NUMERO_OPERACION_DEP,');
   ALineas.Add(' d.FECHA_CREACION_DEP, d.PRECIO_VENTA_DEP,');

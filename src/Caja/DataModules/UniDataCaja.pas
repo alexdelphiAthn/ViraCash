@@ -25,6 +25,12 @@ uses
   inLibParametrosIntf, inLibTicketsCajaIntf, inLibPreviewTicket,
   inLibMovimientosAlmacenAplicacion, inLibLogIntf;
 
+function TotalSinIvaAnticipoCaja(AImporte, AIva: Currency): Currency;
+function TipoFiscalFacturaCaja(const ATipo, ATipoOriginal: string): string;
+procedure CompletarTipoFiscalFacturaCaja(AConsulta: TUniQuery;
+  const AEmpresa, ASerie, ANumero, ATipo, ASerieOrigen,
+    ANumeroOrigen: string);
+
 type
   TTipoRectificativaCaja = inLibCajaTipos.TTipoRectificativaCaja;
   TTratamientoMovimientosRectificativa =
@@ -368,7 +374,7 @@ implementation
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 
 uses
-  UniDataReparacionesVentaTpv, inLibReparaciones,
+  UniDataReparacionesVentaTpv, inLibReparaciones, inLibRedondeo,
   inLibFormatoDocumento, UniDataFormatoDocumentoRepositorio,
   System.Variants, inLibTotalMaximoLinea, UniDataTotalMaximoLinea,
   UniDataValoresAutomaticosRepositorio,
@@ -2590,6 +2596,8 @@ var
 begin
   if FRequiereFactura then
   begin
+    CompletarTipoFiscalFacturaCaja(FQuery, FEmpresa, FSerieGenerada,
+      FNumeroFactura, FTipoFactura, FSerieRectificada, FNumeroRectificado);
     if SameText(FTipoFactura, 'RECTIFICATIVA') then
     begin
       if (Trim(FSerieRectificada) = '') or
@@ -3929,6 +3937,64 @@ begin
   qryVales.Connection := FConexion;
   ConfigurarEstructuraCabecera;
   ConfigurarEstructuraLineas;
+end;
+
+function TotalSinIvaAnticipoCaja(AImporte, AIva: Currency): Currency;
+begin
+  Result := RedondearACentimos(AImporte / (1 + AIva / 100));
+end;
+
+function TipoFiscalFacturaCaja(const ATipo, ATipoOriginal: string): string;
+begin
+  Result := '';
+  if SameText(ATipo, 'SIMPLIFICADA') then Result := 'F2';
+  if SameText(ATipo, 'NORMAL') then Result := 'F1';
+  if SameText(ATipo, 'RECTIFICATIVA') then
+  begin
+    if Trim(ATipoOriginal) = '' then
+      raise EArgumentException.Create('Falta la factura rectificada');
+    if SameText(ATipoOriginal, 'SIMPLIFICADA') then Result := 'R5'
+    else Result := 'R1';
+  end;
+  if Result = '' then
+    raise EArgumentException.Create('Tipo de factura de caja desconocido');
+end;
+
+procedure CompletarTipoFiscalFacturaCaja(AConsulta: TUniQuery;
+  const AEmpresa, ASerie, ANumero, ATipo, ASerieOrigen,
+    ANumeroOrigen: string);
+var
+  TipoOriginal, TipoFiscal: string;
+begin
+  TipoOriginal := '';
+  if SameText(ATipo, 'RECTIFICATIVA') then
+  begin
+    AConsulta.Close;
+    AConsulta.SQL.Text := 'SELECT TIPO_FAC, TIPO_FACTURA_VERIFACTU_FAC ' +
+      'FROM fza_facturas WHERE CODIGO_EMP_FAC=:EMP ' +
+      'AND SERIE_FAC=:SER AND NUMERO_FAC=:NUM';
+    AConsulta.ParamByName('EMP').AsString := AEmpresa;
+    AConsulta.ParamByName('SER').AsString := ASerieOrigen;
+    AConsulta.ParamByName('NUM').AsString := ANumeroOrigen;
+    AConsulta.Open;
+    if not AConsulta.IsEmpty then
+    begin
+      TipoOriginal := AConsulta.FieldByName('TIPO_FAC').AsString;
+      if AConsulta.FieldByName('TIPO_FACTURA_VERIFACTU_FAC').AsString = 'R5' then
+        TipoOriginal := 'SIMPLIFICADA';
+    end;
+  end;
+  TipoFiscal := TipoFiscalFacturaCaja(ATipo, TipoOriginal);
+  AConsulta.Close;
+  AConsulta.SQL.Text := 'UPDATE fza_facturas ' +
+    'SET TIPO_FACTURA_VERIFACTU_FAC=:TIPO ' +
+    'WHERE CODIGO_EMP_FAC=:EMP AND SERIE_FAC=:SER AND NUMERO_FAC=:NUM ' +
+    'AND NULLIF(TRIM(TIPO_FACTURA_VERIFACTU_FAC), '''') IS NULL';
+  AConsulta.ParamByName('TIPO').AsString := TipoFiscal;
+  AConsulta.ParamByName('EMP').AsString := AEmpresa;
+  AConsulta.ParamByName('SER').AsString := ASerie;
+  AConsulta.ParamByName('NUM').AsString := ANumero;
+  AConsulta.Execute;
 end;
 
 procedure ConfigurarSqlInsertarCabeceraFacturaCaja(AConsulta: TUniQuery);
