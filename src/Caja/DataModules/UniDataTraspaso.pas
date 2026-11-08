@@ -140,6 +140,7 @@ type
     // FZ-ISSUE-324: unidad de medida por artículo (cache de la sesión)
     FUnidadesArticulo: TDictionary<string, TUnidadLineaTicketTraspaso>;
     FConsultaUnidad: TUniQuery;
+    procedure ActualizarHoraOperacion;
     procedure CompletarUnidadLinea;
     function GetIdentidadSesion: TIdentidadSesion;
     function LotesLineasActivos: Boolean;
@@ -985,6 +986,20 @@ begin
   cdsCabecera.FieldByName('FECHA').AsDateTime := AFecha;
   cdsCabecera.FieldByName('CONTADOR_LINEAS').AsInteger := 0;
   cdsCabecera.FieldByName('TOTAL').AsCurrency := 0;
+  cdsCabecera.Post;
+end;
+
+procedure TdmTraspaso.ActualizarHoraOperacion;
+var
+  dtFechaCaja, dtAhora: TDateTime;
+begin
+  // FZ-ISSUE-881: cada emision conserva el dia de caja y toma su hora.
+  dtFechaCaja := cdsCabecera.FieldByName('FECHA').AsDateTime;
+  dtAhora := Now;
+  if dtFechaCaja > 0 then
+    dtAhora := Trunc(dtFechaCaja) + Frac(dtAhora);
+  cdsCabecera.Edit;
+  cdsCabecera.FieldByName('FECHA').AsDateTime := dtAhora;
   cdsCabecera.Post;
 end;
 
@@ -3349,6 +3364,7 @@ function TdmTraspaso.GrabarTraspaso(const AAlmacenDestino: string;
 var
   oContexto: TContextoGrabacionTraspaso;
 begin
+  ActualizarHoraOperacion;
   LimpiarLineasIncompletas;
   if cdsLineas.IsEmpty then
     raise EValidacionTraspaso.Create(SErrorLineasTraspasoNoDisponibles);
@@ -3520,6 +3536,7 @@ var
   oConsulta: TUniQuery;
   sAlmacenDestino: string;
 begin
+  ActualizarHoraOperacion;
   ValidarLineasReposicionAuto;
   if ADesde >= AHasta then
     raise EValidacionTraspaso.Create(
@@ -3572,6 +3589,7 @@ var
   sEmpleado: string;
   iLinea: Integer;
 begin
+  ActualizarHoraOperacion;
   // Quita la linea en blanco y la fantasma antes de grabar la solicitud.
   LimpiarLineasIncompletas;
   if cdsLineas.IsEmpty then
