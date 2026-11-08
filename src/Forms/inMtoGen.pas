@@ -62,6 +62,7 @@ uses
   inMtoGenPresentacionFiltrosVcl, inLibVentanaSeparadaVcl;
 type
   TcxPageControlPropertiesAccess = class(TcxPageControlProperties);
+  TAccesoBotonCancelar = class(TcxButton);
   THackWinControl = class(TWinControl);
   TfrmMtoGen = class(TfrmBase, IMantenimientoEmbebido,
     IVentanaSeparable)
@@ -133,6 +134,10 @@ type
     procedure FormCreate(Sender: TObject);
     procedure btnGrabarClick(Sender: TObject);
     procedure btnCancelarClick(Sender: TObject);
+    procedure btnCancelarMouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure btnCancelarMouseUp(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
     procedure cxGrdDBTabPrinDblClick(Sender: TObject);
     procedure dsTablaGStateChange(Sender: TObject);
     procedure sbExportExcelClick(Sender: TObject);
@@ -173,6 +178,7 @@ type
     procedure actRefrescarExecute(Sender: TObject);
     procedure actRefrescarUpdate(Sender: TObject);
   private
+    FCancelarPulsado: Boolean;
     FConn: TUniConnection;
     FCasoUsoGuardado: ICasoUsoGuardadoMtoGen;
     FGuardianBorrado: TGestorGuardianBorradoMto;
@@ -2870,6 +2876,38 @@ begin
   // El boton pertenece a esta ficha; no depender del formulario que el
   // anfitrion considere activo despues de un clic en la barra lateral.
   CancelarGridsFormulario(Self);
+end;
+
+procedure TfrmMtoGen.btnCancelarMouseDown(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+begin
+  FCancelarPulsado := Button = mbLeft;
+  // El boton no toma el foco para no validar al descartar. DevExpress
+  // exige el estado hot para generar Click al soltar: tras un repintado
+  // puede faltar aunque el raton ya este encima (FZ-ISSUE-850).
+  if (Button = mbLeft) and (Sender is TcxButton) then
+    TcxButton(Sender).Perform(WM_MOUSEMOVE, MK_LBUTTON,
+      MakeLParam(X, Y));
+end;
+
+procedure TfrmMtoGen.btnCancelarMouseUp(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+var
+  Boton: TAccesoBotonCancelar;
+begin
+  if FCancelarPulsado and (Button = mbLeft) and
+     (Sender is TcxButton) then
+  begin
+    FCancelarPulsado := False;
+    Boton := TAccesoBotonCancelar(Sender);
+    // DevExpress calcula si emitira Click antes de llamar a MouseUp.
+    // Si el repintado perdio hot/pressed, completar el clic aqui, sin
+    // tomar foco ni duplicar el Click normal (FZ-ISSUE-850).
+    if not Boton.SpeedButtonOptions.CanBeFocused and Boton.Enabled and
+       PtInRect(Boton.ClientRect, Point(X, Y)) and
+       not ([bisHot, bisPressed] <= Boton.InternalStates) then
+      Boton.Click;
+  end;
 end;
 
 procedure TfrmMtoGen.sbExportExcelClick(Sender: TObject);

@@ -51,6 +51,12 @@
   inherited frxrprt1: TfrxReport
     ReportOptions.LastChange = 46196.500000000000000000
     ScriptText.Strings = (
+      'procedure LineaCompraAntesDeImprimir(Sender: TfrxComponent);'
+      'begin'
+      '  BandaTrazabilidad.Visible :='
+      '    (<LineasFactura."LOTE"> <> '''') or'
+      '    (<LineasFactura."FECHA_CADUCIDAD"> > 0);'
+      'end;'
       'begin'
       'end.')
     Left = 8
@@ -1058,6 +1064,9 @@
         DataSetName = 'LineasFactura'
         RowCount = 0
         Stretched = True
+        Child = BandaTrazabilidad
+        KeepChild = True
+        OnBeforePrint = 'LineaCompraAntesDeImprimir'
         object LinCodArt: TfrxMemoView
           AllowVectorExport = True
           StretchMode = smMaxHeight
@@ -1102,7 +1111,7 @@
         end
         object LinDescr: TfrxMemoView
           AllowVectorExport = True
-          StretchMode = smActualHeight
+          StretchMode = smDontStretch
           Left = 174.500000000000000000
           Width = 96.000000000000000000
           Height = 22.677180000000000000
@@ -1115,7 +1124,7 @@
           Font.Style = []
           Frame.Typ = [ftLeft, ftRight, ftTop, ftBottom]
           Memo.UTF8W = (
-            '[LineasFactura."DESCRIPCION"]')
+            '[LineasFactura."DESCRIPCION_BASE"]')
           ParentFont = False
           VAlign = vaCenter
         end
@@ -1665,6 +1674,26 @@
             '[LineasFactura."TOTAL_LINEA"]')
           ParentFont = False
           VAlign = vaCenter
+        end
+      end
+      object BandaTrazabilidad: TfrxChild
+        Height = 20.000000000000000000
+        Top = 346.000000000000000000
+        Width = 1046.929810000000000000
+        object LinTrazabilidad: TfrxMemoView
+          AllowVectorExport = True
+          Left = 174.500000000000000000
+          Top = 1.000000000000000000
+          Width = 760.000000000000000000
+          Height = 18.000000000000000000
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -12
+          Font.Name = 'Arial'
+          Font.Style = []
+          Frame.Typ = []
+          Memo.UTF8W = ('[IIF(<LineasFactura."LOTE"> <> '''', ''Lote: '' + <LineasFactura."LOTE">, '''')][IIF(<LineasFactura."FECHA_CADUCIDAD"> > 0, ''  Caducidad: '' + FormatDateTime(''dd/mm/yyyy'', <LineasFactura."FECHA_CADUCIDAD">), '''')]')
+          ParentFont = False
         end
       end
       object ReportSummaryTotalesFiscales: TfrxReportSummary

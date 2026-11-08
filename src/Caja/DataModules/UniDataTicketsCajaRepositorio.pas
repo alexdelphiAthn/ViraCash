@@ -111,7 +111,7 @@ const
     'FROM fza_empresas ' +
     'WHERE CODIGO_EMP_EMP = :EMP';
   SQL_FECHA_RESGUARDO =
-    'SELECT FECHA_OPERACION_OPCAJA ' +
+    'SELECT FECHA_OPERACION_OPCAJA, CODIGO_CLI_OPCAJA ' +
     'FROM fza_caja_operaciones ' +
     'WHERE CODIGO_EMP_OPCAJA = :EMP ' +
     'AND CODIGO_ALM_OPCAJA = :ALM ' +
@@ -329,7 +329,7 @@ begin
     'ObtenerFechaResguardo',
     SQL_FECHA_RESGUARDO,
     PARAMETROS_OPERACION,
-    'FECHA_OPERACION_OPCAJA');
+    'FECHA_OPERACION_OPCAJA,CODIGO_CLI_OPCAJA');
   Result[2] := DefinicionSql(
     'ListarNuevosDepositosResguardo',
     SQL_NUEVOS_DEPOSITOS_RESGUARDO,
@@ -543,7 +543,7 @@ var
   oContexto: TContextoOperacionTicketCaja;
   oQuery: TUniQuery;
 begin
-  Result.Encontrada := False;
+  Result := Default(TFechaResguardoTicketCaja);
   oContexto := AContexto;
   oQuery := AbrirConsulta(
     1,
@@ -557,6 +557,8 @@ begin
       Result.Encontrada := True;
       Result.FechaOperacion :=
         oQuery.FieldByName('FECHA_OPERACION_OPCAJA').AsDateTime;
+      Result.CodigoCliente :=
+        Trim(oQuery.FieldByName('CODIGO_CLI_OPCAJA').AsString);
     end;
   finally
     FreeAndNil(oQuery);

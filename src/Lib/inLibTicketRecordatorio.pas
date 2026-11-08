@@ -34,7 +34,8 @@ procedure ImprimirRecordatorioTicket(
   const ACodigoEmpresa, ACodigoCliente: string;
   const ANombreImpresora: string;
   ARutasPDF: TStrings;
-  ASoloPDF: Boolean);
+  ASoloPDF: Boolean;
+  AFecha: TDateTime = 0);
 
 implementation
 
@@ -54,6 +55,7 @@ type
     FNombreImpresora: string;
     FRutasPDF: TStrings;
     FSoloPDF: Boolean;
+    FFecha: TDateTime;
     FDepositos: TArray<TDepositoPendienteTicketCaja>;
     FEmpresa: TEmpresaRecordatorioTicketCaja;
     FTicket: TTicketTermico;
@@ -74,7 +76,8 @@ type
       const ACodigoEmpresa, ACodigoCliente: string;
       const ANombreImpresora: string;
       ARutasPDF: TStrings;
-      ASoloPDF: Boolean);
+      ASoloPDF: Boolean;
+      AFecha: TDateTime);
     procedure Ejecutar;
   end;
 
@@ -122,7 +125,8 @@ constructor TGeneradorRecordatorioTicket.Create(
   const ACodigoEmpresa, ACodigoCliente: string;
   const ANombreImpresora: string;
   ARutasPDF: TStrings;
-  ASoloPDF: Boolean);
+  ASoloPDF: Boolean;
+  AFecha: TDateTime);
 begin
   inherited Create;
   FPreview := APreview;
@@ -132,6 +136,9 @@ begin
   FNombreImpresora := ANombreImpresora;
   FRutasPDF := ARutasPDF;
   FSoloPDF := ASoloPDF;
+  FFecha := AFecha;
+  if FFecha = 0 then
+    FFecha := Now;
 end;
 
 function TGeneradorRecordatorioTicket.CargarDatos: Boolean;
@@ -156,7 +163,7 @@ begin
   FTicket.SaltarLineas(3);
   FTicket.EscribirLinea(STicketEstadoCuentaDepositos);
   FTicket.EscribirLinea(
-    FormatDateTime(STicketFormatoFechaLarga, Now));
+    FormatDateTime(STicketFormatoFechaLarga, FFecha));
   FTicket.Negrita(False);
   FTicket.LineaSeparadora('-');
   FTicket.Alinear(alIzquierda);
@@ -299,7 +306,8 @@ procedure ImprimirRecordatorioTicket(
   const ACodigoEmpresa, ACodigoCliente: string;
   const ANombreImpresora: string;
   ARutasPDF: TStrings;
-  ASoloPDF: Boolean);
+  ASoloPDF: Boolean;
+  AFecha: TDateTime);
 var
   oGenerador: TGeneradorRecordatorioTicket;
 begin
@@ -310,7 +318,7 @@ begin
     ACodigoCliente,
     ANombreImpresora,
     ARutasPDF,
-    ASoloPDF);
+    ASoloPDF, AFecha);
   try
     oGenerador.Ejecutar;
   finally

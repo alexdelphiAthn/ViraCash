@@ -2713,6 +2713,8 @@ begin
 end;
 
 function TfrmMtoComprasSesiones.CancelarEdicionConEscape: Boolean;
+var
+  Lineas: TDataSet;
 begin
   Result := Assigned(cxgrdLineas) and Assigned(tvLineas) and
     ((Screen.ActiveControl = cxgrdLineas) or
@@ -2720,7 +2722,18 @@ begin
     tvLineas.Controller.EditingController.IsEditing and
     not EsDesplegableAbierto(Screen.ActiveControl);
   if Result then
+  begin
     tvLineas.Controller.EditingController.HideEdit(False);
+    // Cerrar la celda no deshace los campos ya enviados al dataset.
+    // Tras un rechazo por color duplicado, recuperamos la fila guardada.
+    if Assigned(tvLineas.DataController.DataSource) then
+    begin
+      Lineas := tvLineas.DataController.DataSource.DataSet;
+      if Assigned(Lineas) and Lineas.Active and
+         (Lineas.State in dsEditModes) then
+        Lineas.Cancel;
+    end;
+  end;
   // Tras cancelar la celda, otro Escape tampoco debe abandonar una
   // sesión cuya cabecera sigue editándose, incluso fuera de la rejilla.
   if not Result and not EsDesplegableAbierto(Screen.ActiveControl) then

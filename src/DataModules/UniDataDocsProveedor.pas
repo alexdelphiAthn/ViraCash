@@ -19,7 +19,7 @@ uses
   Uni;
 
 function ListarSeriesDocumentosCompra(
-  AConexion: TUniConnection): TArray<string>;
+  AConexion: TUniConnection; const AEmpresa: string): TArray<string>;
 
 implementation
 
@@ -28,7 +28,7 @@ uses
   UniDataDocsProveedorSql;
 
 function ListarSeriesDocumentosCompra(
-  AConexion: TUniConnection): TArray<string>;
+  AConexion: TUniConnection; const AEmpresa: string): TArray<string>;
 var
   oConsulta: TUniQuery;
   oSeries: TList<string>;
@@ -41,6 +41,7 @@ begin
     try
       oConsulta.Connection := AConexion;
       oConsulta.SQL.Text := SqlSeriesDocumentosCompra;
+      oConsulta.ParamByName('pEMPRESA').AsString := Trim(AEmpresa);
       oConsulta.Open;
       while not oConsulta.Eof do
       begin

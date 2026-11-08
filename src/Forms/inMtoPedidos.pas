@@ -17,6 +17,7 @@ unit inMtoPedidos;
 interface
 
 uses
+  inLibContextoSesionIntf,
   inLibRegistroPantallas, inLibPivoteVentaCalculo,
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, inMtoDocumento, dxSkinsCore, dxSkinBlue,
@@ -376,7 +377,6 @@ type
   end;
 
 implementation
-
 
 uses
   inMtoModalImpDocumento,

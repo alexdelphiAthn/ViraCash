@@ -98,6 +98,28 @@ begin
     for I := 0 to AInforme.AllObjects.Count - 1 do
     begin
       Componente := AInforme.AllObjects[I];
+      // FZ-ISSUE-856: normaliza tambien las plantillas guardadas.
+      if (Componente is TfrxMemoView) and
+         (Pos('DOCUMENTO_FACTURA_FORMATO',
+           string(TfrxMemoView(Componente).Text)) > 0) and
+         (Pos('NUMERO_PLAZO_REC',
+           string(TfrxMemoView(Componente).Text)) > 0) then
+      begin
+        TfrxMemoView(Componente).Text := StringReplace(
+          TfrxMemoView(Componente).Text, ']\[', ']/[', [rfReplaceAll]);
+        TfrxMemoView(Componente).WordWrap := False;
+        if Componente.Name = 'Memo2' then
+        begin
+          TfrxMemoView(Componente).Font.Height := -11;
+          if AInforme.FindObject('Memo1') is TfrxView then
+          begin
+            TfrxMemoView(Componente).Left :=
+              TfrxView(AInforme.FindObject('Memo1')).Left + 2;
+            TfrxMemoView(Componente).Width :=
+              TfrxView(AInforme.FindObject('Memo1')).Width - 4;
+          end;
+        end;
+      end;
       if (Componente is TfrxMemoView) and
          (Pos('<IBAN>', string(TfrxMemoView(Componente).Text)) > 0) then
         TfrxMemoView(Componente).Text :=

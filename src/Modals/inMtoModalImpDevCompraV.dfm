@@ -84,7 +84,7 @@
         FillGap.Bottom = 0
         FillGap.Right = 0
         Frame.Typ = []
-        Height = 110.000000000000000000
+        Height = 146.000000000000000000
         Top = 18.897650000000000000
         Width = 718.110700000000000000
         object MemoTituloV: TfrxMemoView
@@ -277,7 +277,7 @@
           AllowVectorExport = True
           Left = 360.000000000000000000
           Top = 92.000000000000000000
-          Width = 200.000000000000000000
+          Width = 358.000000000000000000
           Height = 18.000000000000000000
           DataSet = dmDevolucionesCompra.fxdsCabDevc
           DataSetName = 'Devolucion'
@@ -296,10 +296,10 @@
         end
         object MemoRefPrvV: TfrxMemoView
           AllowVectorExport = True
-          Left = 560.000000000000000000
-          Top = 92.000000000000000000
-          Width = 158.000000000000000000
-          Height = 18.000000000000000000
+          Left = 0.000000000000000000
+          Top = 112.000000000000000000
+          Width = 718.000000000000000000
+          Height = 32.000000000000000000
           DataSet = dmDevolucionesCompra.fxdsCabDevc
           DataSetName = 'Devolucion'
           Font.Charset = DEFAULT_CHARSET
@@ -308,7 +308,8 @@
           Font.Name = 'Arial'
           Font.Style = []
           Frame.Typ = [ftLeft, ftRight, ftTop, ftBottom]
-          HAlign = haCenter
+          HAlign = haLeft
+          VAlign = vaCenter
           Memo.UTF8W = (
             'Ref. prov.: [Devolucion."REF_PROVEEDOR_DEVC"]')
           ParentFont = False

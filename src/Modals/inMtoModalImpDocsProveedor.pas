@@ -135,7 +135,8 @@ begin
   if FclbSeries <> nil then
   begin
     FclbSeries.Items.Clear;
-    aSeries := ListarSeriesDocumentosCompra(ConexionPrincipal);
+    aSeries := ListarSeriesDocumentosCompra(ConexionPrincipal,
+      UbicacionSesion.Empresa);
     for sSerie in aSeries do
     begin
       oElemento := FclbSeries.Items.Add;
@@ -170,6 +171,7 @@ var
   criterios: TCriteriosInformeDocumentosProveedor;
 begin
   inherited;
+  criterios.Empresa := UbicacionSesion.Empresa;
   criterios.FechaDesde := FechaDesde;
   criterios.FechaHasta := FechaHasta;
   criterios.Almacenes := CSVAlmacenes;

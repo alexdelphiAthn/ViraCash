@@ -78,6 +78,11 @@
               DataBinding.FieldName = 'IMPORTE_DIVISA_PAGO'
               Width = 120
             end
+            object colTipoOperacion: TcxGridDBColumn
+              Caption = 'Tipo Op.'
+              DataBinding.FieldName = 'TIPO_OPERACION_PAGO'
+              Width = 75
+            end
             object cxGrdDBTabPrinIMPORTE_ENTREGADO_PAGO: TcxGridDBColumn
               Caption = 'Importe Entregado'
               DataBinding.FieldName = 'IMPORTE_ENTREGADO_PAGO'

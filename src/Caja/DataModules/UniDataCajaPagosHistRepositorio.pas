@@ -78,7 +78,53 @@ begin
       sAnyos := sAnyos + IntToStr(nAnyo);
     end;
   end;
-  Result := 'SELECT * FROM vi_caja_pagos WHERE 1 = 1';
+  // FZ-ISSUE-861: los gastos se guardan positivos, pero son salidas.
+  Result := 'SELECT ' +
+    'CODIGO_EMP_PAGO, ' +
+    'CODIGO_ALM_PAGO, ' +
+    'CODIGO_CAJA_PAGO, ' +
+    'SERIE_OPERACION_PAGO, ' +
+    'NUMERO_OPERACION_PAGO, ' +
+    'NUMERO_LINEA_PAGO, ' +
+    'CODIGO_FP_CFP, ' +
+    'CODIGO_DIVISA_PAGO, ' +
+    'RED_BLOCKCHAIN_PAGO, ' +
+    'FACTOR_CAMBIO_PAGO, ' +
+    'CASE WHEN TIPO_OPERACION_PAGO = ''GC'' THEN ' +
+    '-ABS(IMPORTE_DIVISA_PAGO) ELSE IMPORTE_DIVISA_PAGO ' +
+    'END AS IMPORTE_DIVISA_PAGO, ' +
+    'CASE WHEN TIPO_OPERACION_PAGO = ''GC'' THEN ' +
+    '-ABS(IMPORTE_ENTREGADO_PAGO) ELSE IMPORTE_ENTREGADO_PAGO ' +
+    'END AS IMPORTE_ENTREGADO_PAGO, ' +
+    'CASE WHEN TIPO_OPERACION_PAGO = ''GC'' THEN ' +
+    '-ABS(IMPORTE_CAMBIO_PAGO) ELSE IMPORTE_CAMBIO_PAGO ' +
+    'END AS IMPORTE_CAMBIO_PAGO, ' +
+    'REFERENCIA_FACPAG, ' +
+    'OBSERVACIONES_PAGO, ' +
+    'INSTANTE_MODIF, ' +
+    'INSTANTE_ALTA, ' +
+    'USUARIO_ALTA, ' +
+    'FECHA_PAGO, ' +
+    'NUMERO_FAC_PAGO, ' +
+    'SERIE_FAC_PAGO, ' +
+    'DESCRIPCION_FP_PAGO, ' +
+    'TIPO_OPERACION_PAGO, ' +
+    'EMPLEADO_PAGO, ' +
+    'CODIGO_CLI_PAGO, ' +
+    'CASE WHEN TIPO_OPERACION_PAGO = ''GC'' THEN ' +
+    '-ABS(IMPORTE_OPERACION_PAGO) ELSE IMPORTE_OPERACION_PAGO ' +
+    'END AS IMPORTE_OPERACION_PAGO, ' +
+    'ARQUEO_PAGO, ' +
+    'SERIE_ORIGEN_PAGO, ' +
+    'NUMERO_ORIGEN_PAGO, ' +
+    'MOTIVO_DEVOLUCION_PAGO, ' +
+    'TIPO_FAC_PAGO, ' +
+    'FASE_FAC_PAGO, ' +
+    'ESCONSOLIDADA_FAC_PAGO, ' +
+    'TOTAL_FAC_PAGO, ' +
+    'CODIGO_CLI_FAC_PAGO, ' +
+    'CLIENTE_FAC_PAGO ' +
+    'FROM vi_caja_pagos WHERE 1 = 1';
   if sAnyos <> '' then
   begin
     Result := Result + ' AND YEAR(FECHA_PAGO) IN (' + sAnyos + ')';
@@ -127,6 +173,9 @@ procedure TRepositorioCajaPagosHistUniDAC.PrepararConsulta(
   const AFiltros: TFiltrosCajaPagosHist);
 begin
   FConsulta.Close;
+  // Refrescar debe releer el importe firmado, no el SELECT crudo del DFM.
+  FConsulta.SQLRefresh.Clear;
+  FConsulta.ReadOnly := True;
   FConsulta.SQL.Text := ConstruirSql(AFiltros);
 end;
 

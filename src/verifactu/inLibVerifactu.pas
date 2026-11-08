@@ -1346,11 +1346,17 @@ begin
 end;
 
 procedure SustituirTituloFacturaEnReport(Component: TfrxReportComponent);
+var
+  Datos: TDataSet;
 begin
   if Component is TfrxMemoView then
-    AjustarTituloMemo(TfrxMemoView(Component),
-                      DataSetFacturaDeReport(Component),
-                      False);
+  begin
+    Datos := DataSetFacturaDeReport(Component);
+    // El evento del memo llega despues del de la banda: debe conservar
+    // el titulo de proforma que ya se aplico (FZ-ISSUE-860).
+    AjustarTituloMemo(TfrxMemoView(Component), Datos,
+      EsFacturaPendienteConsolidar(Datos));
+  end;
 end;
 
 // Recorre recursivamente los hijos de una banda aplicando el QR y el
@@ -1398,8 +1404,7 @@ begin
         AParametrosApp,
         Component,
         oDataSet,
-        not SinVerifactuActivo(AParametrosApp) and
-          EsFacturaPendienteConsolidar(oDataSet));
+        EsFacturaPendienteConsolidar(oDataSet));
   end;
 end;
 
@@ -1417,8 +1422,7 @@ begin
   // (vista previa / impresión / PDF) el QR y el título salen por defecto.
   if (AReport <> nil) and TieneCamposFactura(ADataSet) then
   begin
-    bProforma := not SinVerifactuActivo(AParametrosApp) and
-      EsFacturaPendienteConsolidar(ADataSet);
+    bProforma := EsFacturaPendienteConsolidar(ADataSet);
     // El QR por nombre (FindObject recorre todo el informe; más fiable
     // que la jerarquía Objects para un objeto recién cargado)
     oObj := AReport.FindObject('qrverifactu');
@@ -1478,8 +1482,7 @@ var
 begin
   if (AReport <> nil) and TieneCamposFactura(ADataSet) then
   begin
-    bProforma := not SinVerifactuActivo(AParametrosApp) and
-      EsFacturaPendienteConsolidar(ADataSet);
+    bProforma := EsFacturaPendienteConsolidar(ADataSet);
     sUrl := ObtenerUrlQRFactura(AParametrosApp, ADataSet);
     oPage := nil;
     for i := 0 to AReport.PagesCount - 1 do

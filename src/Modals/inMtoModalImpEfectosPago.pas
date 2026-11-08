@@ -343,6 +343,7 @@ var
   criterios: TCriteriosInformeEfectosPago;
 begin
   inherited;
+  criterios.Empresa := UbicacionSesion.Empresa;
   criterios.FechaDesde := DateOf(FechaDesde);
   criterios.FechaHasta := DateOf(FechaHasta);
   criterios.Almacenes := CSVAlmacenes;

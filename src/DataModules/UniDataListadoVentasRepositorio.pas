@@ -88,6 +88,45 @@ var
 begin
   Lineas := TStringList.Create;
   try
+    // FZ-ISSUE-864: repartir la cuota historica por tramo, antes de
+    // filtrar articulos. El acumulado conserva hasta el ultimo centimo.
+    Anyadir('WITH BASES_RECARGO AS (');
+    // La empresa de la linea puede ser NULL en documentos historicos.
+    // Usar siempre la cabecera, igual que en el filtro de empresa.
+    Anyadir(' SELECT f.CODIGO_EMP_FAC AS CODIGO_EMP_FACLIN,');
+    Anyadir('        l.SERIE_FAC_FACLIN,');
+    Anyadir('        l.NUMERO_FAC_FACLIN, l.LINEA_FACLIN,');
+    Anyadir('        COALESCE(l.TOTAL_FAC_SIVA_FACLIN, 0) AS BASE_LINEA,');
+    Anyadir('        CASE COALESCE(NULLIF(TRIM(');
+    Anyadir('          l.TIPO_IVA_ARTICULO_FACLIN), ''''), ''N'')');
+    Anyadir('          WHEN ''N'' THEN COALESCE(f.TOTAL_REN_FAC, 0)');
+    Anyadir('          WHEN ''R'' THEN COALESCE(f.TOTAL_RER_FAC, 0)');
+    Anyadir('          WHEN ''S'' THEN COALESCE(f.TOTAL_RES_FAC, 0)');
+    Anyadir('          WHEN ''E'' THEN COALESCE(f.TOTAL_REE_FAC, 0)');
+    Anyadir('          ELSE 0 END AS CUOTA_GRUPO,');
+    Anyadir('        SUM(COALESCE(l.TOTAL_FAC_SIVA_FACLIN, 0)) OVER W_GRUPO');
+    Anyadir('          AS BASE_GRUPO,');
+    Anyadir('        SUM(COALESCE(l.TOTAL_FAC_SIVA_FACLIN, 0)) OVER');
+    Anyadir('          (W_GRUPO ORDER BY l.LINEA_FACLIN');
+    Anyadir('            ROWS UNBOUNDED PRECEDING)');
+    Anyadir('          AS BASE_ACUMULADA');
+    Anyadir(' FROM fza_facturas_lineas l JOIN fza_facturas f');
+    Anyadir('   ON f.SERIE_FAC = l.SERIE_FAC_FACLIN');
+    Anyadir('  AND f.NUMERO_FAC = l.NUMERO_FAC_FACLIN');
+    Anyadir(' WHERE f.FECHA_FAC >= :pDESDE AND f.FECHA_FAC < :pHASTA');
+    Anyadir('   AND f.CODIGO_EMP_FAC = :pEMPRESA');
+    Anyadir(' WINDOW W_GRUPO AS (PARTITION BY f.CODIGO_EMP_FAC,');
+    Anyadir('   l.SERIE_FAC_FACLIN, l.NUMERO_FAC_FACLIN,');
+    Anyadir('   COALESCE(NULLIF(TRIM(l.TIPO_IVA_ARTICULO_FACLIN),');
+    Anyadir('     ''''), ''N''))');
+    Anyadir('), RECARGOS_ASIGNADOS AS (');
+    Anyadir(' SELECT CODIGO_EMP_FACLIN, SERIE_FAC_FACLIN, NUMERO_FAC_FACLIN,');
+    Anyadir('   LINEA_FACLIN, COALESCE(');
+    Anyadir('     ROUND(CUOTA_GRUPO * BASE_ACUMULADA');
+    Anyadir('       / NULLIF(BASE_GRUPO, 0), 2)');
+    Anyadir('     - ROUND(CUOTA_GRUPO * (BASE_ACUMULADA - BASE_LINEA)');
+    Anyadir('       / NULLIF(BASE_GRUPO, 0), 2), 0) AS IMPORTE_RE');
+    Anyadir(' FROM BASES_RECARGO)');
     Anyadir('SELECT L.*');
     Anyadir('  FROM (');
     Anyadir('SELECT f.`FECHA_FAC`,');
@@ -157,11 +196,17 @@ begin
     Anyadir('       fl.`PRECIO_VENTA_SIVA_ARTICULO_FACLIN`,');
     Anyadir('       fl.`PRECIO_VENTA_CIVA_ARTICULO_FACLIN`,');
     Anyadir('       fl.`TOTAL_FAC_SIVA_FACLIN`,');
-    Anyadir('       fl.`TOTAL_FACLIN`');
+    Anyadir('       COALESCE(fl.`TOTAL_FACLIN`, 0) +');
+    Anyadir('         COALESCE(re.IMPORTE_RE, 0) AS `TOTAL_FACLIN`');
     Anyadir('  FROM `fza_facturas_lineas` fl');
     Anyadir('  JOIN `fza_facturas` f');
     Anyadir('    ON f.`NUMERO_FAC` = fl.`NUMERO_FAC_FACLIN`');
     Anyadir('   AND f.`SERIE_FAC` = fl.`SERIE_FAC_FACLIN`');
+    Anyadir('  LEFT JOIN RECARGOS_ASIGNADOS re');
+    Anyadir('    ON re.CODIGO_EMP_FACLIN = f.CODIGO_EMP_FAC');
+    Anyadir('   AND re.SERIE_FAC_FACLIN = fl.SERIE_FAC_FACLIN');
+    Anyadir('   AND re.NUMERO_FAC_FACLIN = fl.NUMERO_FAC_FACLIN');
+    Anyadir('   AND re.LINEA_FACLIN = fl.LINEA_FACLIN');
     Anyadir('  LEFT JOIN `fza_empleados` ven');
     Anyadir('    ON ven.`CODIGO_EMPL` = ' + SQL_CODIGO_VENDEDOR);
     Anyadir('  LEFT JOIN `fza_articulos` art');
@@ -210,6 +255,7 @@ begin
     Anyadir('    ON pvart.`ID_PV_ARTPROP` = tart.`ID_PV_ARTPROP`');
     Anyadir(' WHERE f.`FECHA_FAC` >= :pDESDE');
     Anyadir('   AND f.`FECHA_FAC` < :pHASTA');
+    Anyadir('   AND f.CODIGO_EMP_FAC = :pEMPRESA');
     Anyadir('   AND (:pFAM = '''' OR');
     Anyadir('        COALESCE(NULLIF(TRIM(fl.`CODIGO_FAM_FACLIN`), ''''),');
     Anyadir('                 art.`CODIGO_FAM_ART`) = :pFAM)');
@@ -308,10 +354,13 @@ function TRepositorioListadoVentasUniDAC.ConsultarVentas(
 var
   Consulta: TUniQuery;
 begin
+  if Trim(AFiltro.Empresa) = '' then
+    raise EArgumentException.Create('Debe indicar la empresa de sesion');
   Consulta := TUniQuery.Create(nil);
   try
     Consulta.Connection := FConexion;
     Consulta.SQL.Text := ConstruirSqlListadoVentas;
+    Consulta.ParamByName('pEMPRESA').AsString := AFiltro.Empresa;
     Consulta.ParamByName('pDESDE').AsDateTime := AFiltro.FechaDesde;
     Consulta.ParamByName('pHASTA').AsDateTime := AFiltro.FechaHastaExclusiva;
     Consulta.ParamByName('pFAM').AsString := AFiltro.Familia;

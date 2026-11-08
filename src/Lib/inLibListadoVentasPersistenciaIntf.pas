@@ -24,6 +24,7 @@ type
   TOpcionesListadoVentas = TArray<TOpcionListadoVentas>;
 
   TFiltroListadoVentas = record
+    Empresa: string;
     FechaDesde: TDateTime;
     FechaHastaExclusiva: TDateTime;
     Familia: string;

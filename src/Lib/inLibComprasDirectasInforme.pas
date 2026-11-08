@@ -16,6 +16,7 @@ procedure AdaptarInformeCompraDirecta(AInforme: TfrxReport;
   ACabecera: TDataSet);
 procedure AdaptarExcelCompraDirecta(ACabecera: TDataSet;
   var AConfiguracion: TDocCompraCabCfg);
+procedure EnlazarTrazabilidadCompra(AInforme: TfrxReport);
 procedure AplicarResumenCantidadesCompra(AInforme: TfrxReport;
   ALineas: TDataSet);
 
@@ -31,6 +32,21 @@ resourcestring
   SDestinatario = 'DESTINATARIO';
   SEmisorBeneficiario = 'EMISOR / BENEFICIARIO';
   SCompensacionImpresa = 'Compensación REAGP %s%% de %s = %s EUR';
+
+procedure EnlazarTrazabilidadCompra(AInforme: TfrxReport);
+var
+  Lineas, Trazabilidad: TfrxComponent;
+begin
+  // El lector del DFM heredado no resuelve esta referencia entre bandas.
+  // Reconstruirla tambien al cargar formatos guardados (FZ-ISSUE-847).
+  Lineas := AInforme.FindObject('DataBandLineas');
+  Trazabilidad := AInforme.FindObject('BandaTrazabilidad');
+  if (Lineas is TfrxMasterData) and (Trazabilidad is TfrxChild) then
+  begin
+    TfrxMasterData(Lineas).Child := TfrxChild(Trazabilidad);
+    TfrxMasterData(Lineas).KeepChild := True;
+  end;
+end;
 
 procedure AplicarResumenCantidadesCompra(AInforme: TfrxReport;
   ALineas: TDataSet);

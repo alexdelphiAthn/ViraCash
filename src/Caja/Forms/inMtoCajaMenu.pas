@@ -325,7 +325,8 @@ begin
   Self.Position := poScreenCenter;
   // forzar mes actual (evita fecha cacheada en DFM)
   calMes.ConfigurarIdioma(Traducciones);
-  calMes.Date := Date;
+  FFechaCaja := FechaOperacionSesion(ContextoSesion);
+  calMes.Date := Trunc(FFechaCaja);
 
   Application.ShowHint     := True;
   Application.HintPause    := 500;

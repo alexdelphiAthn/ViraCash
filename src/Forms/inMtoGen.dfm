@@ -1,4 +1,4 @@
-inherited frmMtoGen: TfrmMtoGen
+﻿inherited frmMtoGen: TfrmMtoGen
   BorderStyle = bsNone
   Caption = 'Ventana Gen'#233'rica'
   ClientHeight = 558
@@ -651,6 +651,8 @@ inherited frmMtoGen: TfrmMtoGen
         SpeedButtonOptions.CanBeFocused = False
         TabOrder = 1
         OnClick = btnCancelarClick
+        OnMouseDown = btnCancelarMouseDown
+        OnMouseUp = btnCancelarMouseUp
       end
       object btnSalir: TcxButton
         Left = -1

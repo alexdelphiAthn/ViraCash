@@ -7,6 +7,7 @@ uses
 
 type
   TCriteriosInformeDocumentosProveedor = record
+    Empresa: string;
     FechaDesde: TDateTime;
     FechaHasta: TDateTime;
     Almacenes: string;

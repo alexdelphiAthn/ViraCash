@@ -105,13 +105,12 @@ end;
 
 function TfrmMtoCajaArqueosHist.SqlRestriccionUsuario: string;
 begin
-  // Arqueos: empresa, almacén y caja del terminal
-  Result := SqlFiltroEmpAlmCaja(
-    ContextoSesion,
-    ParametrosApp,
-    'CODIGO_EMP_ARQ',
-                                'CODIGO_ALM_ARQ',
-                                'CODIGO_CAJA_ARQ');
+  // La empresa es obligatoria; el parametro solo amplia la restriccion
+  // a almacen y caja, tambien cuando el usuario es administrador.
+  Result := ' AND CODIGO_EMP_ARQ = ' +
+    QuotedStr(UbicacionSesion.Empresa) + SqlFiltroEmpAlmCaja(
+      ContextoSesion, ParametrosApp, '',
+      'CODIGO_ALM_ARQ', 'CODIGO_CAJA_ARQ');
 end;
 
 procedure TfrmMtoCajaArqueosHist.CrearTablaPrincipal;

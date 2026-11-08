@@ -147,6 +147,7 @@ end;
 procedure TfrmPrintAlbCompra.AfterReportLoaded;
 begin
   inherited;
+  EnlazarTrazabilidadCompra(frxrprt1);
   if dmAlbc <> nil then
   begin
     RebindReportDataSetsByDataModule(frxrprt1, dmAlbc);

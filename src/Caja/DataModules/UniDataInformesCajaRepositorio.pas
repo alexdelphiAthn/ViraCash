@@ -66,6 +66,9 @@ type
     procedure AnadirAtributosOperacionesVenta(ALineas: TStrings);
     procedure AnadirImportesOperacionesVenta(ALineas: TStrings);
     procedure AnadirOrigenOperacionesVenta(ALineas: TStrings);
+    procedure AnadirProveedorOperacionesVenta(ALineas: TStrings);
+    procedure AnadirPrestamosOperacionesVenta(ALineas: TStrings;
+      const AFiltroUbicaciones: string);
     procedure AnadirColoresOperacionesVenta(ALineas: TStrings);
     procedure AnadirPagosOperacionesVenta(ALineas: TStrings);
     procedure AnadirFiltrosOperacionesVenta(
@@ -728,6 +731,12 @@ begin
   ALineas.Add('    ON fl.SERIE_FAC_FACLIN = o.SERIE_FAC_OPCAJA');
   ALineas.Add('   AND fl.NUMERO_FAC_FACLIN = o.NUMERO_FAC_OPCAJA');
   ALineas.Add('   AND fl.CODIGO_EMP_FACLIN = o.CODIGO_EMP_OPCAJA');
+  AnadirProveedorOperacionesVenta(ALineas);
+end;
+
+procedure TRepositorioInformesCajaUniDAC.AnadirProveedorOperacionesVenta(
+  ALineas: TStrings);
+begin
   ALineas.Add('  LEFT JOIN fza_articulos_proveedores ap');
   ALineas.Add('    ON ap.CODIGO_ART_AP = fl.CODIGO_ART_FACLIN');
   ALineas.Add('   AND ap.CODIGO_PRV_AP =');
@@ -799,6 +808,14 @@ procedure TRepositorioInformesCajaUniDAC.AnadirFiltrosOperacionesVenta(
 begin
   ALineas.Add(' WHERE o.TIPO_OPERACION_OPCAJA IN ' +
     '(''VE'', ''DV'', ''DE'')');
+  // El anticipo inicial de un prestamo es un cobro, no otra venta.
+  ALineas.Add('   AND NOT (o.TIPO_OPERACION_OPCAJA = ''DE'' AND EXISTS (');
+  ALineas.Add('     SELECT 1 FROM fza_depositos_cliente dp');
+  ALineas.Add('      WHERE dp.CODIGO_EMP_DEP = o.CODIGO_EMP_OPCAJA');
+  ALineas.Add('        AND dp.CODIGO_ALM_DEP = o.CODIGO_ALM_OPCAJA');
+  ALineas.Add('        AND dp.CODIGO_CAJA_DEP = o.CODIGO_CAJA_OPCAJA');
+  ALineas.Add('        AND dp.NUMERO_OPERACION_DEP =');
+  ALineas.Add('            o.NUMERO_OPERACION_OPCAJA))');
   // FZ-ISSUE-343: una factura puede tener varias filas de caja (VE + DE
   // al liquidar un apartado, VE + DV en un cambio de talla). Sus líneas
   // se cuentan una sola vez: con la VE, o con la DV o la DE si es la
@@ -822,10 +839,63 @@ begin
     'o.CODIGO_EMP_OPCAJA',
     'o.SERIE_FAC_OPCAJA',
     'o.NUMERO_FAC_OPCAJA'));
-  ALineas.Add(' ORDER BY FECHA_DIA, o.CODIGO_EMP_OPCAJA,');
-  ALineas.Add('          o.CODIGO_ALM_OPCAJA,');
-  ALineas.Add('          o.CODIGO_CAJA_OPCAJA,');
-  ALineas.Add('          o.NUMERO_OPERACION_OPCAJA, fl.LINEA_FACLIN');
+
+end;
+
+procedure TRepositorioInformesCajaUniDAC.AnadirPrestamosOperacionesVenta(
+  ALineas: TStrings; const AFiltroUbicaciones: string);
+var
+  Filtro: string;
+  I: Integer;
+begin
+  // FZ-ISSUE-865: el prestamo no tiene factura al entregar la mercancia.
+  // Valor y fecha siguen el criterio de prestamos del arqueo.
+  ALineas.Add('UNION ALL');
+  ALineas.Add('SELECT DATE(fl.FECHA_CREACION_DEP) AS FECHA_DIA,');
+  ALineas.Add(' DATE(:pDESDE), DATE(:pHASTA), fl.CODIGO_EMP_DEP,');
+  ALineas.Add(' fl.CODIGO_ALM_DEP, fl.CODIGO_CAJA_DEP,');
+  ALineas.Add(' CONCAT_WS(''/'', fl.CODIGO_EMP_DEP, fl.CODIGO_ALM_DEP,');
+  ALineas.Add('   fl.CODIGO_CAJA_DEP), fl.NUMERO_OPERACION_DEP,');
+  ALineas.Add(' fl.ID_DEPOSITO_DEP, fl.CODIGO_ART_FACLIN AS ARTICULO,');
+  AnadirAtributosOperacionesVenta(ALineas);
+  ALineas.Add(' COALESCE(fl.CANTIDAD_PENDIENTE_DEP, 1) AS CANTIDAD,');
+  ALineas.Add(' ROUND(fl.PRECIO_VENTA_DEP *');
+  ALineas.Add('   COALESCE(fl.CANTIDAD_PENDIENTE_DEP, 1), 2) AS BRUTO,');
+  ALineas.Add(' 0 AS PORCENTAJE_DTO,');
+  ALineas.Add(' ROUND(fl.PRECIO_VENTA_DEP *');
+  ALineas.Add('   COALESCE(fl.CANTIDAD_PENDIENTE_DEP, 1), 2)');
+  ALineas.Add('   AS NETO_ARTICULO,');
+  ALineas.Add(' 0 AS INGRESOS, COALESCE(fl.USUARIO_ALTA, '''') AS VENDEDOR,');
+  ALineas.Add(' ''CREDITO'' AS FORMA_PAGO,');
+  ALineas.Add(' CONCAT(''PRESTAMO '', fl.ID_DEPOSITO_DEP) AS DOCUMENTO');
+  ALineas.Add(' FROM (SELECT d.ID_DEPOSITO_DEP, d.CODIGO_EMP_DEP,');
+  ALineas.Add(' d.CODIGO_ALM_DEP, d.CODIGO_CAJA_DEP, d.NUMERO_OPERACION_DEP,');
+  ALineas.Add(' d.FECHA_CREACION_DEP, d.PRECIO_VENTA_DEP,');
+  ALineas.Add(' d.CANTIDAD_PENDIENTE_DEP, d.USUARIO_ALTA,');
+  ALineas.Add(' d.CODIGO_ART_DEP AS CODIGO_ART_FACLIN,');
+  ALineas.Add(' d.CODIGO_UNIDAD_DEP AS CODIGO_UNIDAD_FACLIN,');
+  ALineas.Add(' '''' AS CODIGO_PRV_FACLIN,');
+  ALineas.Add(' COALESCE(a.DESCRIPCION_ART, d.CODIGO_ART_DEP) AS');
+  ALineas.Add('   DESCRIPCION_ARTICULO_FACLIN,');
+  for I := 1 to 5 do
+    ALineas.Add(Format('%s AS ATTR%d_NOMBRE_FACLIN, ' +
+      '%s AS ATTR%d_VALOR_FACLIN,', [QuotedStr(''), I, QuotedStr(''), I]));
+  ALineas.Add(' 1 AS ES_PRESTAMO');
+  ALineas.Add(' FROM fza_depositos_cliente d');
+  ALineas.Add(' LEFT JOIN fza_articulos a');
+  ALineas.Add('   ON a.CODIGO_ART_ART = d.CODIGO_ART_DEP');
+  ALineas.Add(') fl');
+  AnadirProveedorOperacionesVenta(ALineas);
+  AnadirColoresOperacionesVenta(ALineas);
+  ALineas.Add(' WHERE fl.FECHA_CREACION_DEP >= :pDESDE');
+  ALineas.Add(' AND fl.FECHA_CREACION_DEP < DATE_ADD(:pHASTA, INTERVAL 1 DAY)');
+  Filtro := StringReplace(AFiltroUbicaciones, 'o.CODIGO_EMP_OPCAJA',
+    'fl.CODIGO_EMP_DEP', [rfReplaceAll]);
+  Filtro := StringReplace(Filtro, 'o.CODIGO_ALM_OPCAJA',
+    'fl.CODIGO_ALM_DEP', [rfReplaceAll]);
+  Filtro := StringReplace(Filtro, 'o.CODIGO_CAJA_OPCAJA',
+    'fl.CODIGO_CAJA_DEP', [rfReplaceAll]);
+  ALineas.Add(Filtro);
 end;
 
 function TRepositorioInformesCajaUniDAC.ConstruirSqlOperacionesVenta(
@@ -842,6 +912,10 @@ begin
     AnadirColoresOperacionesVenta(slSQL);
     AnadirPagosOperacionesVenta(slSQL);
     AnadirFiltrosOperacionesVenta(slSQL, AFiltroUbicaciones);
+    AnadirPrestamosOperacionesVenta(slSQL, AFiltroUbicaciones);
+    slSQL.Add(' ORDER BY FECHA_DIA, CODIGO_EMP_OPCAJA,');
+    slSQL.Add('   CODIGO_ALM_OPCAJA, CODIGO_CAJA_OPCAJA,');
+    slSQL.Add('   NUMERO_OPERACION_OPCAJA, LINEA_FACLIN');
     Result := slSQL.Text;
   finally
     FreeAndNil(slSQL);

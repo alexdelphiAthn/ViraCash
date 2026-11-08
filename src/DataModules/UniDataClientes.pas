@@ -90,7 +90,7 @@ uses
   System.Variants,
   UniDataAperturaConsultas,
   inLibMsgComun, inLibMsgFacturas,
-  inLibMsgVentas;
+  inLibMsgVentas, inLibErroresBBDD;
 
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 
@@ -459,6 +459,15 @@ var
   ConsultaTarifa: TUniQuery;
   Tarifa: string;
 begin
+  // FZ-ISSUE-859: validar antes de auditar o reservar la numeracion.
+  // El alta completamente vacia conserva su cancelacion habitual.
+  if (Trim(DataSet.FieldByName('RAZON_SOCIAL_CLI').AsString) <> '') and
+     (Trim(DataSet.FieldByName('CODIGO_PAI_CLI').AsString) = '') then
+  begin
+    DataSet.FieldByName('CODIGO_PAI_CLI').FocusControl;
+    raise ECampoObligatorioBBDD.Create('CODIGO_PAI_CLI',
+      SErrorPaisAltaRapidaCliente);
+  end;
   inherited;
   // Insert vacío (accidental): cancelar sin error
   if (DataSet.State = dsInsert) and

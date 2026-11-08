@@ -133,8 +133,7 @@ begin
   end;
   // Mientras el borrador no este consolidado no es una factura
   // emitida: sale como proforma, igual que en el informe.
-  if not SinVerifactuActivo(FParametrosApp) and
-     EsFacturaPendienteConsolidar(FMaster) then
+  if EsFacturaPendienteConsolidar(FMaster) then
     Result := 'FACTURA PROFORMA';
 end;
 

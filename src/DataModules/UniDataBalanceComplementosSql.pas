@@ -98,7 +98,8 @@ begin
     ' M.CODIGO_ALM_MOV,0,SUM(CASE WHEN M.TIPO_MOV=''E''' +
     ' THEN -M.TOTAL_COSTE_MOV ELSE M.TOTAL_COSTE_MOV END)' +
     ' FROM fza_movimientos_almacen M' +
-    ' WHERE M.TIPO_DOC_MOV IN (''VE'',''AV'')' +
+    // FZ-ISSUE-868: incluir facturacion directa y su devolucion neta.
+    ' WHERE M.TIPO_DOC_MOV IN (''VE'',''AV'',''FC'')' +
     ' AND M.ESACTIVO_MOV=''S'' AND M.FECHA_MOV>=:DESDE' +
     ' AND M.FECHA_MOV<:HASTA' +
     ' GROUP BY M.CODIGO_ART_MOV,M.CODIGO_UNIDAD_MOV,M.CODIGO_ALM_MOV)';

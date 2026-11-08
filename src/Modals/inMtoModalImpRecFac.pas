@@ -138,7 +138,7 @@ begin
     TfrxMemoView(oNumero).Font.Height := -11;
     TfrxMemoView(oNumero).WordWrap := False;
     // Todo el ancho interior de la casilla «RECIBO NRO»: centrado en su
-    // hueco original, «ADE09DCC1761.000001\1» se salía por los lados.
+    // hueco original, «ADE09DCC1761.000001/1» se salía por los lados.
     if oCasilla is TfrxView then
     begin
       TfrxMemoView(oNumero).Left := TfrxView(oCasilla).Left + 2;

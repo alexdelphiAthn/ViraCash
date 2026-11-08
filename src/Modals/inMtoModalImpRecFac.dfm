@@ -136,20 +136,21 @@
         end
         object Memo2: TfrxMemoView
           AllowVectorExport = True
-          Left = 35.354360000000000000
+          Left = 29.795300000000000000
           Top = 36.354360000000000000
-          Width = 124.724490000000000000
+          Width = 154.740260000000000000
           Height = 15.118120000000000000
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
-          Font.Height = -14
+          Font.Height = -11
           Font.Name = 'Arial'
           Font.Style = []
           Frame.Typ = []
           HAlign = haCenter
+          WordWrap = False
           Memo.UTF8W = (
             
-              '[Recibos."DOCUMENTO_FACTURA_FORMATO"]\[IntToStr(<Recibos."NUMERO' +
+              '[Recibos."DOCUMENTO_FACTURA_FORMATO"]/[IntToStr(<Recibos."NUMERO' +
               '_PLAZO_REC">)]')
           ParentFont = False
           Formats = <
@@ -661,20 +662,21 @@
         end
         object Memo2: TfrxMemoView
           AllowVectorExport = True
-          Left = 35.354360000000000000
+          Left = 29.795300000000000000
           Top = 36.354360000000000000
-          Width = 124.724490000000000000
+          Width = 154.740260000000000000
           Height = 15.118120000000000000
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
-          Font.Height = -14
+          Font.Height = -11
           Font.Name = 'Arial'
           Font.Style = []
           Frame.Typ = []
           HAlign = haCenter
+          WordWrap = False
           Memo.UTF8W = (
             
-              '[Recibos."DOCUMENTO_FACTURA_FORMATO"]\[IntToStr(<Recibos."NUMERO' +
+              '[Recibos."DOCUMENTO_FACTURA_FORMATO"]/[IntToStr(<Recibos."NUMERO' +
               '_PLAZO_REC">)]')
           ParentFont = False
           Formats = <

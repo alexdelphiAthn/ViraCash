@@ -354,6 +354,7 @@ begin
     if bEmpresasBancos and bBancos then
       Anadir('LEFT JOIN fza_bancos B ' +
         'ON B.CODIGO_BAN = EB.CODIGO_BAN_EMPBAN');
+    Anadir('WHERE E.CODIGO_EMP_EFEC = :pEMPRESA');
     Anadir(') D');
     Anadir('WHERE D.FECHA_FILTRO_EFEC >= :pDESDE');
     Anadir('AND D.FECHA_FILTRO_EFEC <= :pHASTA');
@@ -385,10 +386,13 @@ function TRepositorioInformeEfectosPagoUniDAC.Preparar(
 var
   oConsulta: TUniQuery;
 begin
+  if Trim(ACriterios.Empresa) = '' then
+    raise EArgumentException.Create('Debe indicar la empresa de sesion');
   oConsulta := TUniQuery.Create(nil);
   try
     oConsulta.Connection := FConexion;
     oConsulta.SQL.Text := ConstruirSql(ACriterios);
+    oConsulta.ParamByName('pEMPRESA').AsString := ACriterios.Empresa;
     oConsulta.ParamByName('pDESDE').AsDateTime := ACriterios.FechaDesde;
     oConsulta.ParamByName('pHASTA').AsDateTime := ACriterios.FechaHasta;
     oConsulta.ParamByName('pALM').AsString := ACriterios.Almacenes;

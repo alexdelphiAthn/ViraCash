@@ -37,6 +37,7 @@ type
   TFechaResguardoTicketCaja = record
     Encontrada: Boolean;
     FechaOperacion: TDateTime;
+    CodigoCliente: string;
   end;
 
   TDepositoResguardoTicketCaja = record

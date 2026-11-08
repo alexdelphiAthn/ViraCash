@@ -46,6 +46,7 @@ type
     cxGrdDBTabPrinNUMERO_LINEA_PAGO: TcxGridDBColumn;
     cxGrdDBTabPrinFECHA_PAGO: TcxGridDBColumn;
     cxGrdDBTabPrinCODIGO_FORMAP: TcxGridDBColumn;
+    colTipoOperacion: TcxGridDBColumn;
     cxGrdDBTabPrinCODIGO_DIVISA_PAGO: TcxGridDBColumn;
     cxGrdDBTabPrinDESCRIPCION_FORMAP: TcxGridDBColumn;
     lblFpCodigo: TcxLabel;

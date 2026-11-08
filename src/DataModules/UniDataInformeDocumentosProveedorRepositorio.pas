@@ -77,11 +77,15 @@ function TRepositorioInformeDocumentosProveedorUniDAC.Preparar(
 var
   oConsulta: TUniQuery;
 begin
+  if Trim(ACriterios.Empresa) = '' then
+    raise EArgumentException.Create('Falta la empresa de la sesion.');
   oConsulta := TUniQuery.Create(nil);
   try
     oConsulta.Connection := FConexion;
     oConsulta.SQL.Text := SqlListadoDocumentosProveedor(
       NombresTiposDocumentoProveedor);
+    oConsulta.ParamByName('pEMPRESA').AsString :=
+      Trim(ACriterios.Empresa);
     oConsulta.ParamByName('pDESDE').AsDateTime := ACriterios.FechaDesde;
     oConsulta.ParamByName('pHASTA').AsDateTime := ACriterios.FechaHasta;
     oConsulta.ParamByName('pALM').AsString := ACriterios.Almacenes;

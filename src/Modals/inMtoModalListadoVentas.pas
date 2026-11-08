@@ -436,6 +436,7 @@ begin
   if dteHasta.Date < dteDesde.Date then
     dteHasta.Date := dteDesde.Date;
   Filtro := Default(TFiltroListadoVentas);
+  Filtro.Empresa := UbicacionSesion.Empresa;
   Filtro.FechaDesde := Trunc(dteDesde.Date);
   Filtro.FechaHastaExclusiva := Trunc(dteHasta.Date) + 1;
   Filtro.Familia := CodigoCombo(cbbFamilia);

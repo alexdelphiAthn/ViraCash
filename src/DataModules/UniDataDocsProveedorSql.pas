@@ -56,9 +56,13 @@ begin
   Result :=
     'SELECT SERIE AS COD FROM (' +
     ' SELECT SERIE_PEDC AS SERIE FROM fza_pedidos_compra ' +
+    ' WHERE CODIGO_EMP_PEDC = :pEMPRESA ' +
     ' UNION SELECT SERIE_ALBC FROM fza_albaranes_compra ' +
+    ' WHERE CODIGO_EMP_ALBC = :pEMPRESA ' +
     ' UNION SELECT SERIE_FACC FROM fza_facturas_compra ' +
-    ' UNION SELECT SERIE_DEVC FROM fza_devoluciones_compra) S ' +
+    ' WHERE CODIGO_EMP_FACC = :pEMPRESA ' +
+    ' UNION SELECT SERIE_DEVC FROM fza_devoluciones_compra ' +
+    ' WHERE CODIGO_EMP_DEVC = :pEMPRESA) S ' +
     'WHERE COALESCE(SERIE, '''') <> '''' ORDER BY SERIE';
 end;
 
@@ -198,6 +202,7 @@ procedure AgregarPedido(AConstructor: TConstructorSql;
   end;
 begin
   Agregar('  SELECT ''PED'' AS TIPO_DOC,');
+    Agregar('         P.CODIGO_EMP_PEDC AS CODIGO_EMP,');
     Agregar('         ' + QuotedStr(ANombre) + ' AS TIPO_DOC_NOMBRE,');
     Agregar('         1 AS ORDEN_TIPO_DOC,');
     Agregar('         P.CODIGO_PRV_PEDC AS CODIGO_PRV,');
@@ -285,6 +290,7 @@ procedure AgregarAlbaran(AConstructor: TConstructorSql;
   end;
 begin
   Agregar('  SELECT ''ALB'' AS TIPO_DOC,');
+    Agregar('         A.CODIGO_EMP_ALBC AS CODIGO_EMP,');
     Agregar('         ' + QuotedStr(ANombre) + ' AS TIPO_DOC_NOMBRE,');
     Agregar('         2 AS ORDEN_TIPO_DOC,');
     Agregar('         A.CODIGO_PRV_ALBC AS CODIGO_PRV,');
@@ -373,6 +379,7 @@ procedure AgregarFactura(AConstructor: TConstructorSql;
   end;
 begin
   Agregar('  SELECT ''FAC'' AS TIPO_DOC,');
+    Agregar('         F.CODIGO_EMP_FACC AS CODIGO_EMP,');
     Agregar('         ' + QuotedStr(ANombre) + ' AS TIPO_DOC_NOMBRE,');
     Agregar('         3 AS ORDEN_TIPO_DOC,');
     Agregar('         F.CODIGO_PRV_FACC AS CODIGO_PRV,');
@@ -474,6 +481,7 @@ procedure AgregarDevolucion(AConstructor: TConstructorSql;
   end;
 begin
   Agregar('  SELECT ''DEV'' AS TIPO_DOC,');
+    Agregar('         V.CODIGO_EMP_DEVC AS CODIGO_EMP,');
     Agregar('         ' + QuotedStr(ANombre) + ' AS TIPO_DOC_NOMBRE,');
     Agregar('         4 AS ORDEN_TIPO_DOC,');
     Agregar('         V.CODIGO_PRV_DEVC AS CODIGO_PRV,');
@@ -580,7 +588,7 @@ procedure AgregarFiltrosYOrden(AConstructor: TConstructorSql);
     AConstructor.Agregar(ATexto);
   end;
 begin
-  Agregar(' WHERE 1 = 1');
+  Agregar(' WHERE D.CODIGO_EMP = :pEMPRESA');
     Agregar('   AND (:pTIP = '''' OR FIND_IN_SET(D.TIPO_DOC, :pTIP))');
     Agregar('   AND (:pSER = '''' OR FIND_IN_SET(D.SERIE_DOC, :pSER))');
     Agregar('   AND (:pALM = '''' OR FIND_IN_SET(D.CODIGO_ALM, :pALM))');

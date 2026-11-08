@@ -49,7 +49,8 @@ procedure ImprimirRecordatorio(
   const ACodigoEmpresa, ACodigoCliente: string;
   const ANombreImpresora: string = 'DEBUG';
   ARutasPDF: TStrings = nil;
-  ASoloPDF: Boolean = False);
+  ASoloPDF: Boolean = False;
+  AFecha: TDateTime = 0);
 
 implementation
 
@@ -115,6 +116,7 @@ type
     FNombreEmpresa: string;
     FFormatoDocumento: string;
     FFechaOperacion: TDateTime;
+    FCodigoCliente: string;
     FNuevosDepositos: TArray<TDepositoResguardoTicketCaja>;
     FTotalNuevos: Currency;
     FTotalEntregas: Currency;
@@ -230,6 +232,7 @@ var
   oFecha: TFechaResguardoTicketCaja;
 begin
   FFechaOperacion := 0;
+  FCodigoCliente := '';
   oEmpresa := FRepositorio.ObtenerEmpresaResguardo(
     FContexto.Empresa);
   if oEmpresa.Encontrada then
@@ -239,7 +242,10 @@ begin
   end;
   oFecha := FRepositorio.ObtenerFechaResguardo(FContexto);
   if oFecha.Encontrada then
+  begin
     FFechaOperacion := oFecha.FechaOperacion;
+    FCodigoCliente := oFecha.CodigoCliente;
+  end;
 end;
 
 procedure TGeneradorResguardoDeposito.EscribirTituloSeccion(
@@ -258,8 +264,9 @@ procedure TGeneradorResguardoDeposito.EscribirCabecera;
 var
   sCodigoCliente: string;
 begin
-  sCodigoCliente := '';
-  if Length(FNuevosDepositos) > 0 then
+  // FZ-ISSUE-862: un cobro a cuenta puede no crear depositos nuevos.
+  sCodigoCliente := FCodigoCliente;
+  if (Trim(sCodigoCliente) = '') and (Length(FNuevosDepositos) > 0) then
     sCodigoCliente := FNuevosDepositos[0].CodigoCliente;
   FTicket.Inicializar;
   FTicket.Alinear(alCentro);
@@ -971,7 +978,8 @@ procedure ImprimirRecordatorio(
   const ACodigoEmpresa, ACodigoCliente: string;
   const ANombreImpresora: string;
   ARutasPDF: TStrings;
-  ASoloPDF: Boolean);
+  ASoloPDF: Boolean;
+  AFecha: TDateTime);
 begin
   ImprimirRecordatorioTicket(
     APreview,
@@ -980,7 +988,7 @@ begin
     ACodigoCliente,
     ANombreImpresora,
     ARutasPDF,
-    ASoloPDF);
+    ASoloPDF, AFecha);
 end;
 
 end.

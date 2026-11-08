@@ -968,7 +968,7 @@ begin
       '' + 'ESIVA_RECARGO_CLI, MOVIL_CLI, ' +
       '' + 'NIF_CLI, NOMBRE_PAI_CLI, ' +
       '' + 'POBLACION_CLI, PROVINCIA_CLI, ' +
-      '' + 'RAZON_SOCIAL_CLI, TARIFA_ARTICULO_CLI, ' +
+      '' + 'RAZON_SOCIAL_CLI, TARIFA_ARTICULO_CLI, CODIGO_FP_CLI, ' +
       '' + 'ESRETENCIONES_CLI, ESREGIMENESPECIALAGRICOLA_CLI ' +
                     '  FROM fza_clientes ' +
                     ' WHERE CODIGO_CLI_CLI = :cliente';

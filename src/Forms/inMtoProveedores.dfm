@@ -527,7 +527,7 @@
                 Top = 245
                 Width = 400
                 Height = 26
-                Caption = 'Proveedor de reparaciones y/o arreglos'
+                Caption = 'Facturaci'#243'n directa'
                 DataBinding.DataField = 'ESFACTURACION_DIRECTA_PRV'
                 DataBinding.DataSource = dsTablaG
                 Properties.ValueChecked = 'S'

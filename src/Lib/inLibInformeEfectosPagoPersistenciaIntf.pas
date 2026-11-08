@@ -14,6 +14,7 @@ type
   TOpcionesInformeEfectosPago = TArray<TOpcionInformeEfectosPago>;
 
   TCriteriosInformeEfectosPago = record
+    Empresa: string;
     FechaDesde: TDateTime;
     FechaHasta: TDateTime;
     Almacenes: string;

@@ -121,28 +121,18 @@ var
   sEmision: string;
   sRedencion: string;
 begin
-  // Vales emitidos o canjeados en el terminal del usuario: los canjeados
-  // de otra empresa son los que ésta compensa por VR (FZ-364). Las
-  // columnas RED admiten NULL (vale sin canjear), así que la rama de
-  // redención exige que el vale esté canjeado.
-  sEmision := SqlFiltroEmpAlmCaja(
-    ContextoSesion,
-    ParametrosApp,
-    'CODIGO_EMP_EMI_VL',
-    'CODIGO_ALM_EMI_VL',
-    'CODIGO_CAJA_EMI_VL');
-  Result := '';
-  if sEmision <> '' then
-  begin
-    sRedencion := SqlFiltroEmpAlmCaja(
-      ContextoSesion,
-      ParametrosApp,
-      'CODIGO_EMP_RED_VL',
-      'CODIGO_ALM_RED_VL',
-      'CODIGO_CAJA_RED_VL');
-    Result := ' AND ((1 = 1' + sEmision + ')' +
-      ' OR (CODIGO_EMP_RED_VL IS NOT NULL' + sRedencion + '))';
-  end;
+  // Siempre limitar por empresa emisora o redentora. Las restricciones
+  // opcionales de terminal se aplican dentro de su rama correspondiente.
+  sEmision := ' AND CODIGO_EMP_EMI_VL = ' +
+    QuotedStr(UbicacionSesion.Empresa) + SqlFiltroEmpAlmCaja(
+      ContextoSesion, ParametrosApp, '',
+      'CODIGO_ALM_EMI_VL', 'CODIGO_CAJA_EMI_VL');
+  sRedencion := ' AND CODIGO_EMP_RED_VL = ' +
+    QuotedStr(UbicacionSesion.Empresa) + SqlFiltroEmpAlmCaja(
+      ContextoSesion, ParametrosApp, '',
+      'CODIGO_ALM_RED_VL', 'CODIGO_CAJA_RED_VL');
+  Result := ' AND ((1 = 1' + sEmision + ')' +
+    ' OR (CODIGO_EMP_RED_VL IS NOT NULL' + sRedencion + '))';
 end;
 
 procedure TfrmMtoCajaValesHist.CrearTablaPrincipal;

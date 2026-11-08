@@ -1906,7 +1906,8 @@ begin
       FDataModule.FRepositorioTicketsCaja.Recordatorios,
       FDataModule.FContextoSesion.Ubicacion.Empresa,
       FCabecera.CodigoCliente,
-      FDataModule.FParametrosCaja.ImpresoraCaja);
+      FDataModule.FParametrosCaja.ImpresoraCaja, nil, False,
+      FFechaOperacion);
 end;
 
 procedure TGrabacionFacturaCaja.DeterminarSiRequiereFactura;
@@ -2868,7 +2869,8 @@ begin
         FDataModule.FRepositorioTicketsCaja.Recordatorios,
         FDataModule.FContextoSesion.Ubicacion.Empresa,
         FCabecera.CodigoCliente,
-        FDataModule.FParametrosCaja.ImpresoraCaja);
+        FDataModule.FParametrosCaja.ImpresoraCaja, nil, False,
+      FFechaOperacion);
   end;
 end;
 
