@@ -14,7 +14,8 @@ unit UniDataInformesCajaRepositorio;
 interface
 
 uses
-  System.Classes, Uni, inLibInformesCajaPersistenciaIntf;
+  System.Classes, Uni, inLibInformesCajaPersistenciaIntf,
+  inLibFaseCobroPersistenciaIntf;
 
 function CrearRepositorioInformesCajaUniDAC(
   AConexion: TUniConnection): IRepositorioInformesCaja;
@@ -23,7 +24,8 @@ implementation
 
 uses
   System.SysUtils, Data.DB,
-  UniDataRectificativasSql, inLibArqueoIntf;
+  UniDataRectificativasSql, inLibArqueoIntf,
+  UniDataFaseCobroRepositorio;
 
 const
   // Rango pedido, ya formateado, para el subtitulo de los informes A4
@@ -125,7 +127,8 @@ type
       const AEmpresa, AAlmacen, ACaja: string
     ): IResultadoInformeCaja;
     function ConsultarValesPendientes(
-      const AFiltro, APin: string
+      const AFiltro, APin: string;
+      const ARestriccion: TRestriccionCanjeVale
     ): IResultadoInformeCaja;
   end;
 
@@ -1212,7 +1215,8 @@ begin
 end;
 
 function TRepositorioInformesCajaUniDAC.ConsultarValesPendientes(
-  const AFiltro, APin: string
+  const AFiltro, APin: string;
+  const ARestriccion: TRestriccionCanjeVale
 ): IResultadoInformeCaja;
 var
   oConsulta: TUniQuery;
@@ -1236,7 +1240,8 @@ begin
   begin
     sSql := sSql + ' AND PIN_SEGURIDAD_VL = :PIN';
   end;
-  sSql := sSql + ' ORDER BY FECHA_EMISION_VL DESC';
+  sSql := sSql + FiltroAmbitoCanjeVale(ARestriccion) +
+    ' ORDER BY FECHA_EMISION_VL DESC';
   oConsulta := TUniQuery.Create(nil);
   try
     oConsulta.Connection := FConexion;
@@ -1249,6 +1254,7 @@ begin
     begin
       oConsulta.ParamByName('PIN').AsString := APin;
     end;
+    AsignarAmbitoCanjeVale(oConsulta, ARestriccion);
     oConsulta.Open;
     Result := TResultadoInformeCajaUniDAC.Create(oConsulta);
     oConsulta := nil;

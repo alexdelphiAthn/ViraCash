@@ -20,6 +20,11 @@ function CrearRepositorioFaseCobroUniDAC(
   AConexion: TUniConnection
 ): IRepositorioFaseCobro;
 
+function FiltroAmbitoCanjeVale(
+  const ARestriccion: TRestriccionCanjeVale): string;
+procedure AsignarAmbitoCanjeVale(AConsulta: TUniQuery;
+  const ARestriccion: TRestriccionCanjeVale);
+
 function ValidarAlmacenDepositoCredito(AConexion: TUniConnection;
   const AEmpresa: string; out AMensaje: string): Boolean;
 
@@ -33,6 +38,31 @@ uses
   System.SysUtils, Data.DB, UniDataValoresAutomaticosRepositorio,
   UniDataAlmacenesEmpresaRepositorio, inLibAlmacenesEmpresaPersistenciaIntf,
   inLibMsgCaja;
+
+function FiltroAmbitoCanjeVale(
+  const ARestriccion: TRestriccionCanjeVale): string;
+begin
+  Result := '';
+  if ARestriccion.Ambito <> acvTodos then
+  begin
+    Result := ' AND CODIGO_EMP_EMI_VL = :EMP_CANJE' +
+      ' AND CODIGO_ALM_EMI_VL = :ALM_CANJE';
+    if ARestriccion.Ambito = acvCaja then
+      Result := Result + ' AND CODIGO_CAJA_EMI_VL = :CAJA_CANJE';
+  end;
+end;
+
+procedure AsignarAmbitoCanjeVale(AConsulta: TUniQuery;
+  const ARestriccion: TRestriccionCanjeVale);
+begin
+  if ARestriccion.Ambito <> acvTodos then
+  begin
+    AConsulta.ParamByName('EMP_CANJE').AsString := ARestriccion.Empresa;
+    AConsulta.ParamByName('ALM_CANJE').AsString := ARestriccion.Almacen;
+    if ARestriccion.Ambito = acvCaja then
+      AConsulta.ParamByName('CAJA_CANJE').AsString := ARestriccion.Caja;
+  end;
+end;
 
 function ValidarAlmacenDepositoCredito(AConexion: TUniConnection;
   const AEmpresa: string; out AMensaje: string): Boolean;
@@ -193,7 +223,9 @@ type
       out ACliente: TClienteFaseCobro
     ): Boolean;
     function ExisteValePendiente(
-      const ACodigoVale: string
+      const ACodigoVale: string;
+      const ARestriccion: TRestriccionCanjeVale;
+      out AMensaje: string
     ): Boolean;
     function ConsultarValesOrigen(
       const AEmpresa, ASerie, ANumero: string
@@ -363,25 +395,41 @@ begin
 end;
 
 function TRepositorioFaseCobroUniDAC.ExisteValePendiente(
-  const ACodigoVale: string
+  const ACodigoVale: string;
+  const ARestriccion: TRestriccionCanjeVale;
+  out AMensaje: string
 ): Boolean;
 var
   oConsulta: TUniQuery;
 begin
+  AMensaje := Format(SErrorValeCanjeNoDisponible, [ACodigoVale]);
   oConsulta := TUniQuery.Create(nil);
   try
     oConsulta.Connection := FConexion;
     oConsulta.SQL.Text :=
-      'SELECT 1 ' +
-      '  FROM fza_caja_vales ' +
+      'SELECT CODIGO_EMP_EMI_VL, CODIGO_ALM_EMI_VL, ' +
+      '       CODIGO_CAJA_EMI_VL FROM fza_caja_vales ' +
       ' WHERE CODIGO_VL = :CODIGO ' +
       '   AND ESTADO_VL = ''PENDIENTE'' ' +
       '   AND (FECHA_CADUCIDAD_VL IS NULL ' +
-      '        OR FECHA_CADUCIDAD_VL >= CURDATE()) ' +
-      ' LIMIT 1';
+      '        OR FECHA_CADUCIDAD_VL >= CURDATE()) LIMIT 1';
     oConsulta.ParamByName('CODIGO').AsString := ACodigoVale;
     oConsulta.Open;
     Result := not oConsulta.IsEmpty;
+    if Result then
+    begin
+      Result := ARestriccion.Permite(
+        oConsulta.FieldByName('CODIGO_EMP_EMI_VL').AsString,
+        oConsulta.FieldByName('CODIGO_ALM_EMI_VL').AsString,
+        oConsulta.FieldByName('CODIGO_CAJA_EMI_VL').AsString);
+      if not Result then
+        AMensaje := ARestriccion.MensajeRechazo(ACodigoVale,
+          oConsulta.FieldByName('CODIGO_EMP_EMI_VL').AsString,
+          oConsulta.FieldByName('CODIGO_ALM_EMI_VL').AsString,
+          oConsulta.FieldByName('CODIGO_CAJA_EMI_VL').AsString);
+    end;
+    if Result then
+      AMensaje := '';
   finally
     FreeAndNil(oConsulta);
   end;

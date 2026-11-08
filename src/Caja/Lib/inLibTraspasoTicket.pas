@@ -677,12 +677,18 @@ class procedure TTraspasoTicket.ImprimirTraspaso(
                                    const ANombreImpresora: string);
 var
   Ticket: TTicketTermico;
+  Cabecera: TTraspasoTicketHistorico;
   ComandosESC, RutaPDF, sImpresora, sRefArch, sSku: string;
   dPed, dOrg, dDes: Double;
   bm: TBookmark;
 begin
   if Assigned(ARepositorio) and Assigned(ALineas) then
   begin
+    // FZ-ISSUE-881: cabecera y pie usan el instante persistido.
+    Cabecera := ARepositorio.ObtenerTraspasoHistorico(
+      AEmpresa, AOrigen, ACaja, ADocRef);
+    if Cabecera.Existe then
+      AFecha := Cabecera.Fecha;
     sImpresora := ANombreImpresora;
     if Trim(sImpresora) = '' then
       sImpresora := 'DEBUG';

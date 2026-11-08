@@ -16,7 +16,7 @@ unit UniDataCajaCierreVenta;
 interface
 
 uses
-  System.SysUtils, Data.DB, Uni;
+  System.SysUtils, Data.DB, Uni, inLibFaseCobroPersistenciaIntf;
 
 type
   TDatosDecisionCierreVentaCaja = record
@@ -85,7 +85,8 @@ type
       AConsulta: TUniQuery;
       const ACodigoVale, AEmpresa, AAlmacen, ACaja: string;
       const ANumeroOperacion, ASerie, ANumeroFactura: string;
-      AImporteRedimido: Currency);
+      AImporteRedimido: Currency;
+      const ARestriccion: TRestriccionCanjeVale);
   end;
 
 function AccionTieneNovedadCierreVenta(
@@ -102,7 +103,8 @@ implementation
 
 uses
   inLibFormatoDocumento, UniDataFormatoDocumentoRepositorio,
-  inLibMsgCaja, inLibMsgPresupuestos, inLibErroresBBDD;
+  inLibMsgCaja, inLibMsgPresupuestos, inLibErroresBBDD,
+  UniDataFaseCobroRepositorio;
 
 function FechaOperacionCaja(AFecha: TDateTime): TDateTime;
 begin
@@ -425,9 +427,11 @@ procedure TPersistenciaCierreVentaCajaUniDAC.MarcarValeCanjeado(
   AConsulta: TUniQuery;
   const ACodigoVale, AEmpresa, AAlmacen, ACaja: string;
   const ANumeroOperacion, ASerie, ANumeroFactura: string;
-  AImporteRedimido: Currency);
+  AImporteRedimido: Currency;
+  const ARestriccion: TRestriccionCanjeVale);
 var
   iFilasAfectadas: Integer;
+  sMensaje: string;
 begin
   AConsulta.SQL.Text :=
     'UPDATE fza_caja_vales SET ESTADO_VL = ''REDIMIDO'', ' +
@@ -440,7 +444,8 @@ begin
     'USUARIO_MODIF = :USUARIO, INSTANTE_MODIF = NOW() ' +
     'WHERE CODIGO_VL = :CODIGO AND ESTADO_VL = ''PENDIENTE'' ' +
     'AND (FECHA_CADUCIDAD_VL IS NULL ' +
-    '     OR FECHA_CADUCIDAD_VL >= CURDATE())';
+    '     OR FECHA_CADUCIDAD_VL >= CURDATE())' +
+    FiltroAmbitoCanjeVale(ARestriccion);
   AConsulta.ParamByName('CODIGO').AsString := ACodigoVale;
   AConsulta.ParamByName('IMPORTE').AsCurrency := AImporteRedimido;
   AConsulta.ParamByName('EMPRESA').AsString := AEmpresa;
@@ -450,12 +455,16 @@ begin
   AConsulta.ParamByName('SERIE').AsString := ASerie;
   AConsulta.ParamByName('NUMFAC').AsString := ANumeroFactura;
   AConsulta.ParamByName('USUARIO').AsString := FUsuarioAuditoria;
+  AsignarAmbitoCanjeVale(AConsulta, ARestriccion);
   AConsulta.Execute;
   iFilasAfectadas := AConsulta.RowsAffected;
   if iFilasAfectadas <> 1 then
-    raise Exception.CreateFmt(
-      SErrorRedimirValeCaja,
-      [ACodigoVale, iFilasAfectadas]);
+  begin
+    if CrearRepositorioFaseCobroUniDAC(FConexion).ExisteValePendiente(
+         ACodigoVale, ARestriccion, sMensaje) then
+      sMensaje := Format(SErrorValeCanjeNoDisponible, [ACodigoVale]);
+    raise EValidacionBBDD.Create(sMensaje);
+  end;
 end;
 
 end.

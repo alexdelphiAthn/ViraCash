@@ -1,36 +1,36 @@
-﻿# Motor XSLT para validación en segundo plano
+﻿# Decisión: evaluador Delphi nativo
 
-Necesidad: el artefacto EN 1.3.17 suministrado requiere XSLT 2.0. El usuario
-pide validación en clientes y pruebas, fuera de emisión, con dos núcleos de
-servidor. No se ha instalado ni seleccionado todavía un motor definitivo.
+El usuario exige Delphi nativo, sin Java ni DLL añadidas. Se descartan
+SaxonJ, SaxonC y cualquier helper que distribuya esas dependencias a clientes.
+No se precisa descompilar un motor: las 982 comprobaciones están publicadas
+como fuente Schematron/XSLT en el paquete local oficial EN 1.3.17.
 
-| Opción | Evidencia oficial | Implicación de diseño |
-|---|---|---|
-| SaxonJ-HE | SaxonJ 13 requiere Java 17 o posterior según Getting started | Java como requisito adicional; auxiliar persistente para evitar arranque y compilación por factura |
-| SaxonC-HE | Distribución nativa para Windows 64-bit y API C/C++ | Evaluar helper nativo aislado con sus librerías; comprobar redistribución, dependencias y consumo antes de elegir versión |
+Implementación aislada en `src/Spfe/`: catálogo Pascal inmutable generado
+desde el Schematron preprocesado, navegación XML con ADOM del RTL y
+evaluador del subconjunto XPath que utiliza esa versión. Conserva los
+identificadores, mensajes, gravedad, orden de los patrones y trazabilidad
+SHA-256. Las reglas mantienen EUPL-1.2 y su licencia original adjunta.
 
-Propuesta a revisar: priorizar la opción nativa para no exigir instalación
-Java, manteniendo un límite compartido de un trabajo activo por instalación.
-Un proceso Win32 en Windows 64-bit puede usar un helper Win64 externo;
-esto no equivale a cargar una DLL Win64 dentro del proceso Win32. Queda
-pendiente comprobar que no se requiera Windows de 32 bits en clientes.
-El ejecutable transform de SaxonC debe construirse según su documentación;
-no se presupone un ejecutable final listo para redistribuir desde el ZIP.
+El generador de catálogo usa Python exclusivamente en desarrollo. La
+aplicación no necesita Python, Java, Saxon, MSXML ni bibliotecas adicionales.
+El contraste de desarrollo ejecuta la hoja XSLT original con SaxonC/Python
+en un temporal independiente, que no se distribuye con ViraCash.
 
-La configuración de un trabajo no garantiza por sí sola ausencia de impacto:
-medir arranque, hoja compilada, memoria y carga interactiva en dos núcleos.
-Evitar procesos por factura, paralelismo interno no necesario y consultas
-históricas. Capturar todos los diagnósticos y su versión; las reglas EN 2017
-no son un certificado de conformidad 2026/SPFE.
+No es un intérprete completo de XPath/XSLT. Los operadores y funciones
+admitidos corresponden a las expresiones fuente de esta release; cualquier
+cambio requiere regeneración, revisión y pruebas. Errores de evaluación no
+equivalen a factura válida. La API devuelve cobertura incompleta o propaga el
+error de infraestructura; distingue avisos, fallos fatales y errores técnicos.
 
-Fuentes primarias consultadas:
+Esto cubre únicamente la capa de referencia EN 2017+A1 / UBL 2.1. No completa
+la semántica 2026, las reglas SPFE ni la validación XSD UBL 2.5. Se conservan
+los diagnósticos UBL-CR-002 y UBL-CR-513, sin alterarlos para conseguir verde.
 
-- [Plataformas Saxonica](https://www.saxonica.com/html/products/platforms.html).
-- [SaxonC, producto](https://www.saxonica.com/html/saxon-c/index.html).
-- [Descargas nativas Windows 64-bit](https://www.saxonica.com/html/download/c.html).
-- [SaxonJ: requisitos Java](https://www.saxonica.com/html/documentation13/about/gettingstarted/gettingstartedjava.html).
-- [Uso por línea de comandos y construcción de transform](https://www.saxonica.com/html/documentation13/using-xsl/commandline/index.html).
+El ejecutor todavía no está integrado en ViraCash: quedan cola persistente,
+coordinación de un solo trabajador por instalación, prioridades, cancelación,
+recuperación e instrumentación del impacto en equipos de dos núcleos. Las
+pruebas del componente no demuestran por sí solas ausencia de impacto en
+la emisión. No se ha iniciado el generador UBL ni modificado VERI*FACTU.
 
-No se han ejecutado binarios descargados, añadido dependencias a la aplicación
-ni comenzado Fase 2. La versión y el empaquetado deberán verificarse al
-preparar la implementación, manteniendo las licencias y avisos del proveedor.
+Los resultados y la reproducción se describen en
+[README del componente](../../../src/Spfe/README.md).

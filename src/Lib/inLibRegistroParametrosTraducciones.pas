@@ -591,6 +591,10 @@ begin
     'Recuperar Vale sólo con PIN',
     'src/Caja/Lib/inLibCajaParam.pas');
   ARegistrar(
+    'inMtoCajaParam.Parametros.vgerAmbitoCanjeVale.Descripcion',
+    'Canjear vales de: TODOS, ALMACEN o CAJA',
+    'src/Caja/Lib/inLibCajaParam.pas');
+  ARegistrar(
     'inMtoCajaParam.Parametros.vgerCaducidadDefVale.Descripci' +
     'on',
     'Caducidad por defecto en vale',

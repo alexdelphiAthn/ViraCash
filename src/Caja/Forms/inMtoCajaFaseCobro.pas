@@ -319,6 +319,9 @@ begin
   FCodigoEmpresa := AEntrada.CodigoEmpresa;
   FCodigoAlmacen := AEntrada.CodigoAlmacen;
   FCodigoCaja := AEntrada.CodigoCaja;
+  FDatosCobro.RestriccionVales := TRestriccionCanjeVale.Crear(
+    ParametrosCaja.GetString('vgerAmbitoCanjeVale', 'TODOS'),
+    FCodigoEmpresa, FCodigoAlmacen, FCodigoCaja);
   FFecha := AEntrada.Fecha;
   FCodigoCliente := AEntrada.CodigoCliente;
   FEmailCliente := AEntrada.EmailCliente;
@@ -1776,7 +1779,7 @@ var
 begin
   inherited;
   if not FModoSubsanacion and TfrmMtoCajaSeleccionVale.Ejecutar(
-    FRepositorioVales,
+    FRepositorioVales, FDatosCobro.RestriccionVales,
     ValeSeleccionado) then
   begin
     // 1. Averiguamos cuánto se debe antes de aplicar el vale

@@ -279,6 +279,11 @@ begin
                      tpBoolean,
                      'False');
   RegistrarParametro('Devoluciones y Vales',
+                     'vgerAmbitoCanjeVale',
+                     'Canjear vales de: TODOS, ALMACEN o CAJA',
+                     tpString,
+                     'TODOS');
+  RegistrarParametro('Devoluciones y Vales',
                      'vgerCaducidadDefVale',
                      'Caducidad por defecto en vale',
                      tpBoolean,

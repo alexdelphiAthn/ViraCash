@@ -160,6 +160,18 @@ resourcestring
     'No se pudieron quitar de la pantalla las líneas sin importe: %s';
   SAvisoPdfTicketCaja =
     'No se pudo guardar el PDF del ticket: %s';
+  SErrorAmbitoCanjeValeNoValido =
+    'El ámbito de canje de vales debe ser TODOS, ALMACEN o CAJA.';
+  SErrorUbicacionCanjeValeNoConfigurada =
+    'Configure la ubicación de la caja antes de restringir el canje de vales.';
+  SCanjeValeMismoAlmacen =
+    'su mismo almacén';
+  SCanjeValeMismaCaja =
+    'su misma caja';
+  SErrorValeFueraAmbitoCaja =
+    'El vale %s fue emitido en %s/%s/%s. Esta caja solo admite vales de %s.';
+  SErrorValeCanjeNoDisponible =
+    'El vale %s no está disponible: ya fue canjeado, está caducado o anulado.';
   SErrorRedimirValeCaja =
     'No se pudo redimir el vale "%s". Filas afectadas: %d. Posibles causas: ' +
     'el vale no existe, ya fue redimido, está caducado o anulado.';

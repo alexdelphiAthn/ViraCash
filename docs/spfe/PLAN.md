@@ -3,6 +3,12 @@
 Fecha: 12-11-2026. Rama: `analisis/spfe-fase1`.
 Estado: análisis entregado para revisión; no iniciar Fase 2 sin indicación.
 
+Decisión posterior del usuario: desarrollo Delphi nativo, sin Java y sin
+DLL añadidas. Se autoriza expresamente extraer las reglas públicas y obtener
+su código Delphi. Esta tarea acotada no inicia el generador UBL, la integración
+de la cola, las migraciones ni los servicios de las fases siguientes. Véase
+[el evaluador nativo](../../src/Spfe/README.md).
+
 Seguimiento 12-11-2026: a petición del usuario se ha iniciado investigación
 externa para resolver dudas, planteándolas una a una. El cuerpo de la Fase 1
 describe el material disponible al redactarlo; las novedades verificadas se
@@ -348,7 +354,9 @@ Los 27 coinciden por SHA-256 con la carpeta UBL de la release fuente ya
 descargada. Se han comprobado XML bien formados, includes locales y XSLT
 version 2.0/queryBinding xslt2. La hoja compilada no importa otras hojas.
 Informe: [verificación del paquete](../../doc/spfe/help/VERIFICACION_EN16931_1_3_17_LOCAL.json).
-No se ha ejecutado la transformación ni comenzado la Fase 2.
+La revisión documental inicial no ejecutó la transformación ni inició la
+Fase 2. Posteriormente se autoriza el componente nativo y el contraste
+aislado descritos al comienzo de este documento.
 
 Los 19 ejemplos contienen 18 Invoice y 1 CreditNote. Son ejemplos del
 estándar europeo, no ejemplos SPFE de rectificativas. El generador SPFE
@@ -369,10 +377,12 @@ Pipeline de validación previsto: XSD canónico UBL 2.5, comprobaciones propias
 explícitamente derivadas del BOE/SPFE y ejecución separada identificable de
 los artefactos EN 1.3.17. Registrar versión, perfil, fallos y cobertura; no
 mostrar «validación EN 2026 completa» por haber superado la capa antigua.
-La ejecución de la hoja requiere un motor XSLT 2.0+, por ejemplo Saxon.
-No utilizar XslCompiledTransform ni lxml/libxslt como motor XSLT 2.0.
-La elección/instalación del motor y su invocación por DUnitX están pendientes;
-no introducir proceso pesado ni nuevas consultas en cada emisión.
+La ejecución literal de la hoja de referencia requiere XSLT 2.0+; no sirven
+XslCompiledTransform ni lxml/libxslt. Por decisión posterior del usuario,
+producción usará reglas extraídas a Pascal y un evaluador nativo del
+subconjunto XPath utilizado por ese paquete. La hoja original queda como
+referencia independiente de pruebas, sin distribuir su motor a los clientes.
+No introducir procesos pesados ni nuevas consultas en cada emisión.
 
 Los textos UNE-EN 16931-1:2026 y UNE-CEN/TS 16931-3-2:2026 siguen pendientes.
 Se localizaron fichas oficiales de AENOR, guardadas como HTML de catálogo
@@ -403,17 +413,19 @@ en el equipo configurado para la instalación, con prioridad reducida y lotes
 pequeños; las consultas del coordinador serán por estado/próximo intento/ID
 sobre índices de la cola, sin barridos de facturas. No trasladar cálculos XML
 a MariaDB. La emisión solo registra la intención mínima local consistente;
-preparación costosa y XSLT quedan diferidos. No confirmar aceptación por el
+preparación costosa y evaluación semántica quedan diferidas. No confirmar
+aceptación por el
 simple encolado. Un fallo del motor conserva el trabajo y un estado pendiente/
 error visible, sin modificar factura ni VERI*FACTU.
 
-El proceso auxiliar reutilizará el motor y la hoja compilada mientras sea
-posible, sin lanzar múltiples procesos/compilaciones por factura. Límites de
+El ejecutor Delphi reutilizará el catálogo inmutable compilado dentro del
+EXE, sin lanzar procesos ni compilar reglas por factura. Límites de
 memoria/tiempo, reintentos de infraestructura acotados y pausa/reanudación
 para dar prioridad al trabajo interactivo; ante reinicio recupera la cola.
 Invalidar solo resultados cuya versión de XML o de reglas haya cambiado;
-no reprocesar el histórico entero automáticamente. Guardar el SVRL y la
-cobertura de cada resultado. Mantener separados diagnósticos del paquete
+no reprocesar el histórico entero automáticamente. Guardar diagnósticos
+estructurados y cobertura; el SVRL del motor de referencia solo corresponde
+a las pruebas que lo ejecuten. Mantener separados diagnósticos del paquete
 2017 de las comprobaciones normativas 2026/SPFE, conforme a la limitación
 aceptada; el despliegue en clientes no convierte la cobertura en completa.
 
@@ -424,14 +436,15 @@ cola, memoria, tiempo de compilación caliente/frío y consumo con carga real;
 no dar por demostrado el requisito de rendimiento por la mera configuración
 de un trabajador. Mantener compatibilidad de la app Win32 de desarrollo.
 
-Se han consultado opciones oficiales de Saxonica: SaxonJ requiere Java;
-SaxonC dispone de distribución nativa Windows 64-bit y API C/C++. Candidato
-preferido a evaluar: auxiliar nativo Win64 aislado con sus librerías, invocable
-por la app Win64 o Win32 en Windows 64-bit. No se ha elegido versión final,
-compilado helper ni instalado motor, ni afirmado ausencia de otras dependencias
-nativas. Detalles y fuentes en MOTOR_XSLT_OPCIONES.md.
-Siguiente pregunta pendiente: preferencia de despliegue nativo sin instalación
-Java frente a aceptar Java como requisito del validador en los clientes.
+Opciones anteriores SaxonJ/SaxonC descartadas para producción: el usuario
+exige Delphi nativo, sin Java ni DLL añadidas. No hace falta descompilar
+binarios: el Schematron y el XSLT oficiales ya contienen las reglas fuente.
+Se han extraído 982 asertos en 104 contextos, conservando IDs, gravedad,
+expresión, mensaje, procedencia, SHA-256 y licencia EUPL-1.2. El evaluador
+usa ADOM del RTL, compilado estáticamente, y aritmética decimal; no es un
+motor XPath 2.0 general. Nuevas versiones requieren regeneración, revisión
+del subconjunto y contraste. Detalles en MOTOR_XSLT_OPCIONES.md y
+src/Spfe/README.md. La validación semántica EN 2026 continúa incompleta.
 
 Revisión de la documentación ampliada, a petición del usuario: releído
 ViraCash_web/docs/spfe/README.md y comprobada la carpeta ubl-2.5. Contiene
@@ -1090,13 +1103,17 @@ suposición. FES §§5.3-5.9 siguen pendientes de publicación en la versión lo
 
 ## Entrega y comprobaciones
 
-Único archivo creado por esta tarea: `docs/spfe/PLAN.md`. Sin cambios de
-código, esquema, VERI*FACTU ni hash; sin acceso a BD, sin importación WSDL,
-sin llamadas SPFE, sin commit, push ni merge. Los cambios locales ajenos se
-han preservado, incluidos los que aparecieron durante la revisión.
+La entrega documental inicial creó `docs/spfe/PLAN.md`. Posteriormente,
+por petición expresa de obtener el código Delphi nativo, se añaden el
+componente aislado y su catálogo en `src/Spfe/`, junto con material de ayuda
+y pruebas en el repositorio auxiliar. El detalle actualizado de archivos,
+contrato, pruebas y límites consta en `src/Spfe/README.md`. No se modifica
+el esquema, VERI*FACTU ni el hash; sin acceso a BD, importación WSDL,
+llamadas SPFE, commit, push ni merge. Se preservan los cambios ajenos.
 
 Comprobación documental: lectura de los cinco PDF, ejemplo XML y contenido
 de ambos ZIP; revisión visual de la tabla fiscal de A1 p.22 y contraste de
-los IDs BT/BG con la matriz. No procede compilar ni ejecutar DUnitX en esta
-fase documental. La Fase 2 queda pendiente de revisión y de resolver los
+los IDs BT/BG con la matriz. El trabajo nativo posterior sí incluye
+compilación y pruebas DUnitX Win64/Win32, con contraste del XSLT oficial.
+El generador UBL queda pendiente de revisión y de resolver los
 datos/contratos que impiden generar y validar correctamente los casos acordados.

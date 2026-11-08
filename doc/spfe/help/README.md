@@ -264,14 +264,16 @@ Nuevo paquete proporcionado y verificado:
 Todos coinciden por SHA-256 con la release fuente descargada. Includes locales
 resueltos; hoja compilada XSLT 2.0 sin imports; Schematron queryBinding xslt2.
 Ejemplos: 18 Invoice y 1 CreditNote, que no es tipo de remisión SPFE.
-Informe: VERIFICACION_EN16931_1_3_17_LOCAL.json. No se ha ejecutado el XSLT.
+Informe documental: VERIFICACION_EN16931_1_3_17_LOCAL.json. La revisión
+inicial no ejecutó el XSLT; posteriormente se utiliza como referencia de
+contraste del componente nativo indicado al final de este documento.
 
 La capa EN está disponible para su edición, pero **no queda acreditada la
 cobertura completa de EN 2026/SPFE**. UBL-CR-002 y UBL-CR-513 ilustran
 diferencias con UBL 2.5 y las retenciones SPFE. Conservar las reglas y sus
 diagnósticos; separar cobertura aplicable de diferencias de versión con
-trazabilidad, sin desactivar errores arbitrariamente. Motor XSLT 2.0+
-pendiente de elegir; XslCompiledTransform no sirve para esa hoja.
+trazabilidad, sin desactivar errores arbitrariamente. XslCompiledTransform
+no sirve para esa hoja; producción usará el evaluador Delphi nativo.
 
 Intentada la obtención de las normas UNE 2026: UNE responde 403. Se guardaron
 solo fichas AENOR, sin texto de las normas ni compra/autenticación. Véase
@@ -290,14 +292,15 @@ Decisión confirmada: **Schematron en desarrollo, DUnitX y clientes, en
 segundo plano y sin ralentizar emisión**, con servidor de dos núcleos.
 Propuesta: cola persistente y límite compartido inicial de un trabajo activo,
 fuera de UI/transacción fiscal, sin consultas pesadas ni Java/proceso nuevo
-por cada factura; reutilizar motor/hoja compilada. Conservar resultados y
+por cada factura; reutilizar catálogo compilado en el EXE. Conservar resultados y
 cobertura, recuperar errores/reinicios y medir rendimiento real antes de
 considerar cumplida la restricción. No ampliar por ello la cobertura semántica
 2017 a 2026 ni autorizar llamadas de Fase 4.
 
-Opciones de motor documentadas en MOTOR_XSLT_OPCIONES.md, con fuentes
-Saxonica. Siguiente pregunta pendiente: preferencia por auxiliar nativo con
-sus librerías o aceptación de Java como requisito en instalaciones cliente.
+Decisión posterior: **Delphi nativo, sin Java ni DLL añadidas**. Se descartan
+para producción las opciones Saxonica antes investigadas. El usuario pide
+obtener el código: se extraen las reglas públicas Schematron a Pascal,
+conservando procedencia, hash y licencia. Véase MOTOR_XSLT_OPCIONES.md.
 
 Nueva revisión del README original y la carpeta local ubl-2.5:
 **116 XSD canónicos comprobados**, idénticos a OASIS por SHA-256 (101 maindoc,
@@ -315,5 +318,26 @@ y conceptos especiales realmente usados. La discrepancia documental BT-23
 debe aclararse antes de fijar el contrato, sin pedir al usuario que invente
 una regla de la AEAT.
 
-Sin código generado, pruebas DUnitX, migraciones, conexiones de BD ni llamadas
-a servicios SPFE. Sin commit, push ni merge.
+Trabajo posterior autorizado de forma acotada: componente nativo y catálogo
+en `src/Spfe/`; extracción reproducible y pruebas DUnitX/contraste en
+`factuzam_web/scripts` y `factuzam_web/tests/spfe_nativo`. Son 982 asertos,
+104 contextos y 3.576 instrucciones compartidas. Se ha utilizado ADOM del RTL
+por su soporte de Unicode completo, sin modificar ni recompilar terceros.
+SaxonC/Python se utilizan solo como referencia de desarrollo en un temporal;
+no son dependencias de ViraCash ni se distribuyen a los clientes.
+
+Informes nuevos: EXTRACCION_NATIVA_EN16931.json y
+CONTRASTE_NATIVO_EN16931_WIN64.json / WIN32.json. La cobertura semántica 2026
+sigue incompleta. No se ha iniciado el generador UBL ni integrado el
+componente en emisión. Sin migraciones, conexiones de BD, cambios en
+VERI*FACTU, llamadas a servicios SPFE, commit, push ni merge.
+
+Verificación final: VERIFICACION_NATIVA_EN16931.json e
+IMPORTACIONES_NATIVAS_EN16931.json. Pasan 20 tests DUnitX por plataforma y
+el contraste de 2.263 entradas en Win32 y Win64 no muestra discrepancias:
+1.656 con diagnósticos comparables y 607 con error de conversión en el
+XSLT y evaluación incompleta en Delphi. Las 27 fuentes oficiales permanecen
+intactas. El catálogo se regenera idéntico byte a byte; las importaciones
+PE solo incluyen bibliotecas del propio Windows. La comprobación de estilo
+se ha limitado a las nueve units propias; no se ejecuta la batería global
+de trinquetes durante las pruebas, conforme a la excepción del libro de estilo.

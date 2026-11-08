@@ -409,7 +409,8 @@ uses
      inLibArqueoPersistencia,
      System.Generics.Collections,
      inLibEAN13,
-  inLibMsgPresupuestos, inLibMsgCaja, inLibMsgFacturas, inLibCajaVentaIntf;
+  inLibMsgPresupuestos, inLibMsgCaja, inLibMsgFacturas, inLibCajaVentaIntf,
+  inLibFaseCobroPersistenciaIntf;
 
 {$R *.dfm}
 
@@ -2716,7 +2717,11 @@ begin
           FDatosCobro.ValesRecogidos[iVale].CodigoVale,
           FEmpresa, FAlmacen, FCaja, FNumeroOperacion,
           FSerieGenerada, FNumeroFactura,
-          FDatosCobro.ValesRecogidos[iVale].ImporteAplicado);
+          FDatosCobro.ValesRecogidos[iVale].ImporteAplicado,
+          TRestriccionCanjeVale.Crear(
+            FDataModule.FParametrosCaja.GetString(
+              'vgerAmbitoCanjeVale', 'TODOS'),
+            FEmpresa, FAlmacen, FCaja));
       end;
     end;
   end;
@@ -4328,7 +4333,12 @@ begin
   QryTrx.ParamByName('PRECCIVA').AsCurrency := APrecioCIva;
   QryTrx.ParamByName('TIPOIVA').AsString  := ATipoIva;
   QryTrx.ParamByName('PORCIVA').AsFloat   := APorcIva;
-  QryTrx.ParamByName('TOTALSIVA').AsCurrency := ATotalSIva;
+  // FZ-ISSUE-876: tambien los anticipos del cierre parcial.
+  if SameText(AArticulo, 'ANTICIPO') then
+    QryTrx.ParamByName('TOTALSIVA').AsCurrency :=
+      RedondearACentimos(ATotalSIva)
+  else
+    QryTrx.ParamByName('TOTALSIVA').AsCurrency := ATotalSIva;
   QryTrx.ParamByName('TOTALCIVA').AsCurrency := ATotalCIva;
   QryTrx.ParamByName('VENDEDOR').AsString := AVendedor;
   QryTrx.ParamByName('ALM').AsString      := AAlmacen;

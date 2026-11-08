@@ -14,7 +14,7 @@ unit inLibInformesCajaPersistenciaIntf;
 interface
 
 uses
-  Data.DB;
+  Data.DB, inLibFaseCobroPersistenciaIntf;
 
 type
   TSolicitudInformeCaja = record
@@ -73,7 +73,8 @@ type
   IRepositorioValesCaja = interface
     ['{9C40657A-CC5F-45F8-A066-A2C81A04736E}']
     function ConsultarValesPendientes(
-      const AFiltro, APin: string
+      const AFiltro, APin: string;
+      const ARestriccion: TRestriccionCanjeVale
     ): IResultadoInformeCaja;
   end;
 
