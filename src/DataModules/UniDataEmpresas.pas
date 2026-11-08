@@ -116,13 +116,14 @@ uses
   inLibFormatoDocumento, inLibIBAN, inLibMsgComun,
   inLibMsgFacturas, UniDataPrestaShopEncolado,
   inLibClienteTraspasosEmpresa, UniDataClienteTraspasosEmpresaRepositorio,
-  UniDataSeriesEmpresaRepositorio, inLibErroresBBDD;
+  UniDataSeriesEmpresaRepositorio, inLibErroresBBDD, inLibMsgConfiguracion;
 
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 
 {$R *.dfm}
 
 resourcestring
+  SEtiquetaRazonSocialEmpresa = 'Razón Social';
   SErrorFormatoDocumentoConComa =
     'El formato de documentos no puede contener una coma. La coma está ' +
     'reservada para separar facturas en los procesos por lotes.';
@@ -950,7 +951,7 @@ procedure TdmEmpresas.unqryTablaGBeforePost(DataSet: TDataSet);
 var
   bError:Boolean;
   sCodigoAnterior: string;
-  sCodigoEmpresa, sRazonSocial:String;
+  sCodigoEmpresa: String;
   sFormatoDocumento: string;
   function FindField(const ANombre: string): TField;
   begin
@@ -960,10 +961,13 @@ begin
   inherited;
   FEncolarPrecioPrestaShop := False;
   FRecargoCambiado := False;
-  // Insert vacío (accidental): cancelar sin error
-  if (DataSet.State = dsInsert) and
-     (Trim(unqryTablaG.FindField('RAZON_SOCIAL_EMP').AsString) = '') then
-    Abort;
+  // Validar antes de grabar detalles también en altas (FZ-ISSUE-845).
+  if Trim(FindField('RAZON_SOCIAL_EMP').AsString) = '' then
+  begin
+    FindField('RAZON_SOCIAL_EMP').FocusControl;
+    raise ECampoObligatorioBBDD.Create('RAZON_SOCIAL_EMP',
+      Format(SErrorBBDDCampoObligatorio, [SEtiquetaRazonSocialEmpresa]));
+  end;
   bError := False;
   if ((unqryRetenciones.State = dsInsert) or
       (unqryRetenciones.State = dsEdit)) then
@@ -994,12 +998,6 @@ begin
       FindField('TEXTO_PIE_TICKET_CAJA_4_EMP').AsString :=
         Copy(Trim(FindField('TEXTO_PIE_TICKET_CAJA_4_EMP').AsString), 1, 42);
     sCodigoEmpresa := Trim(FindField('CODIGO_EMP_EMP').AsString);
-    sRazonSocial := Trim(FindField('RAZON_SOCIAL_EMP').AsString);
-    if sRazonSocial = '' then
-    begin
-      raise ERangeError.CreateFmt(SErrorRazonSocialEmpresa,
-                                 [sRazonSocial]);
-    end;
     if (sCodigoEmpresa = '') or
        SimbolosProhibidos(sCodigoEmpresa, PerfilesLectura) then
     begin

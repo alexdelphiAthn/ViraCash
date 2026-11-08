@@ -149,6 +149,7 @@ type
     FAvisoTallas: IAvisoTallasHorizontal;
     function  Lineas: TDataSet;
     function HayLineaActiva: Boolean;
+    function PuedeRecargarCantidades: Boolean;
     function  LongConjuntoLineaActiva(ADataSet: TDataSet): Integer;
     function  RecorrerMaxLongConjuntos(ADataSet: TDataSet): Integer;
     procedure LogSes(const ATexto: string);
@@ -713,7 +714,7 @@ begin
   //     con todos los Values[] que hayamos asignado en memoria.
   //   - Leer LINEA por Values[recordIdx, colLinea.Index] saca el dato
   //     sin tocar el cursor del dataset y sin disparar refrescos.
-  if HayLineaActiva then
+  if HayLineaActiva and PuedeRecargarCantidades then
   begin
     colLinea := FCfg.Grid.GetColumnByFieldName(FCfg.FieldLinea);
     if colLinea <> nil then
@@ -745,7 +746,7 @@ var
   i, iCelda: Integer;
   rCantidad: Double;
 begin
-  if (ARecordIndex >= 0) and
+  if PuedeRecargarCantidades and (ARecordIndex >= 0) and
      (ARecordIndex < FCfg.Grid.DataController.RecordCount) then
   begin
     // Values[] es no-bound: antes de reconstruir la fila hay que borrar
@@ -776,6 +777,23 @@ begin
     end;
   end;
 end;
+
+function TGestorGridTallas.PuedeRecargarCantidades: Boolean;
+var
+  Editor: TcxCustomEdit;
+begin
+  Result := True;
+  if FCfg.Grid.Controller.EditingController.IsEditing then
+  begin
+    Editor := FCfg.Grid.Controller.EditingController.Edit;
+    // Una recarga diferida no puede sustituir el texto aun sin confirmar
+    // por el valor anterior de la celda (FZ-ISSUE-836). Al confirmar,
+    // PersistirCeldaActiva publica las cantidades con IsPosting activo.
+    Result := not Assigned(Editor) or not Editor.ModifiedAfterEnter or
+      Editor.IsPosting or Editor.IsEditValidating;
+  end;
+end;
+
 procedure TGestorGridTallas.PersistirCantidad(
   ALinea, AIdAv: Integer; ACantidad: Double);
 begin

@@ -168,6 +168,16 @@ begin
       sColores := sColores + ',';
     sColores := sColores + QuotedStr(AColores[i]);
   end;
+  sFiltroColor := '';
+  if sColores <> '' then
+    sFiltroColor :=
+      ' AND EXISTS (SELECT 1 FROM fza_atributos_sku SAC ' +
+      '   JOIN fza_atributos_valores AVC ON AVC.ID_AV = SAC.ID_AV_SA ' +
+      '   WHERE SAC.CODIGO_UNIDAD_SKU_SA = SKU.CODIGO_UNIDAD_SKU ' +
+      '     AND AVC.ID_VA_AV = (SELECT EJ452.ID_ATB_VA FROM ' +
+      'VI_VARIACIONES_EJES EJ452 WHERE EJ452.ID_VAR_VA = ' +
+      'SKU.CODIGO_VAR_SKU AND EJ452.EJE_VA = ''F'') AND AVC.AV IN (' +
+      sColores + ')) ';
   sSistema := '';
   if AIdConjunto > 0 then
     sSistema :=
@@ -179,19 +189,15 @@ begin
       '  LEFT JOIN fza_articulos_atributos_basicos AAB ' +
       '    ON AAB.CODIGO_ART_AAB = :ARTICULO ' +
       '   AND AAB.ID_AV_AAB = AV.ID_AV ' +
-      ' WHERE ACD.ID_AC_ACD = :CONJUNTO UNION ALL ';
-  sFiltroColor := '';
-  if sColores <> '' then
-    sFiltroColor :=
-      ' AND EXISTS (SELECT 1 FROM fza_atributos_sku SAC ' +
-      '   JOIN fza_atributos_valores AVC ON AVC.ID_AV = SAC.ID_AV_SA ' +
-      '   WHERE SAC.CODIGO_UNIDAD_SKU_SA = SKU.CODIGO_UNIDAD_SKU ' +
-      '     AND AVC.ID_VA_AV = (SELECT EJ452.ID_ATB_VA FROM ' +
-      'VI_VARIACIONES_EJES EJ452 WHERE EJ452.ID_VAR_VA = ' +
-      'SKU.CODIGO_VAR_SKU AND EJ452.EJE_VA = ''F'') AND AVC.AV IN (' +
-      sColores + ')) ';
-  // El sistema completo conserva su orden. Las tallas reales que faltan
-  // se anaden al final, tambien al filtrar los SKU por color.
+      ' WHERE ACD.ID_AC_ACD = :CONJUNTO ' +
+      ' AND EXISTS (SELECT 1 FROM fza_articulos_skus SKU ' +
+      '   JOIN fza_atributos_sku SAT ' +
+      '     ON SAT.CODIGO_UNIDAD_SKU_SA = SKU.CODIGO_UNIDAD_SKU ' +
+      '   WHERE SKU.CODIGO_ART_SKU = :ARTICULO ' +
+      '     AND SAT.ID_AV_SA = ACD.ID_AV_ACD ' + sFiltroColor +
+      ') UNION ALL ';
+  // Solo tallas con SKU, aunque no tengan stock. El conjunto conserva
+  // su orden y las tallas reales ajenas a el se anaden al final (848).
   Result :=
     'SELECT AV, MIN(BLOQUE) AS BLOQUE, ' +
     '       MIN(ORDEN_TALLA) AS ORDEN_TALLA FROM (' + sSistema +
