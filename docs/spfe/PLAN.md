@@ -381,7 +381,57 @@ No se completó compra, registro, autenticación ni descarga del texto licenciad
 La página de la Comisión sobre acceso gratuito referencia expresamente la
 edición 2017 y está en revisión; no acredita por sí sola una descarga anónima
 gratuita de las dos publicaciones de 2026. Registro: ACCESO_UNE_2026.json.
-Siguiente pregunta: disponibilidad de acceso de descarga autorizado a UNE/AENOR.
+Decisión del usuario: no dispone de acceso UNE/AENOR; dejar ambos textos
+2026 pendientes y continuar resolviendo dudas, sin dar por completa la
+validación semántica 2026. El material descargado de GitHub conserva su
+procedencia verificada: los 27 archivos coinciden con la release fuente.
+La fiabilidad de la fuente no amplía la cobertura de versión del artefacto.
+No se realizarán compras ni se solicitará de nuevo acceso UNE para continuar
+este análisis. La limitación debe constar en pruebas e informe final; no
+sustituir requisitos de la Orden por reglas antiguas para conseguir un verde.
+Decisión confirmada: ejecutar Schematron tanto en desarrollo/DUnitX como en
+los equipos cliente, **en segundo plano y sin ralentizar la emisión**, teniendo
+en cuenta el servidor de dos núcleos. La validación no se ejecutará en el hilo
+VCL, dentro de la transacción fiscal ni como proceso nuevo por cada factura.
+El generador y el ejecutor de validación seguirán separados y sin red.
+
+Propuesta de funcionamiento: cola persistente con trabajo por versión de XML,
+referencia al contenido inmutable y a las versiones de motor/reglas; un solo
+trabajo activo inicialmente, límite coordinado entre instancias de la misma
+instalación, no un validador independiente por cada ventana/equipo. Ejecutar
+en el equipo configurado para la instalación, con prioridad reducida y lotes
+pequeños; las consultas del coordinador serán por estado/próximo intento/ID
+sobre índices de la cola, sin barridos de facturas. No trasladar cálculos XML
+a MariaDB. La emisión solo registra la intención mínima local consistente;
+preparación costosa y XSLT quedan diferidos. No confirmar aceptación por el
+simple encolado. Un fallo del motor conserva el trabajo y un estado pendiente/
+error visible, sin modificar factura ni VERI*FACTU.
+
+El proceso auxiliar reutilizará el motor y la hoja compilada mientras sea
+posible, sin lanzar múltiples procesos/compilaciones por factura. Límites de
+memoria/tiempo, reintentos de infraestructura acotados y pausa/reanudación
+para dar prioridad al trabajo interactivo; ante reinicio recupera la cola.
+Invalidar solo resultados cuya versión de XML o de reglas haya cambiado;
+no reprocesar el histórico entero automáticamente. Guardar el SVRL y la
+cobertura de cada resultado. Mantener separados diagnósticos del paquete
+2017 de las comprobaciones normativas 2026/SPFE, conforme a la limitación
+aceptada; el despliegue en clientes no convierte la cobertura en completa.
+
+En Fase 2 se diseñará/probará el ejecutor sin red; la cola de aplicación y su
+UI se integrarán en Fase 3 con migración revisable. Nada de llamadas SPFE
+antes de Fase 4. Medir en entorno de dos núcleos latencia de emisión con/sin
+cola, memoria, tiempo de compilación caliente/frío y consumo con carga real;
+no dar por demostrado el requisito de rendimiento por la mera configuración
+de un trabajador. Mantener compatibilidad de la app Win32 de desarrollo.
+
+Se han consultado opciones oficiales de Saxonica: SaxonJ requiere Java;
+SaxonC dispone de distribución nativa Windows 64-bit y API C/C++. Candidato
+preferido a evaluar: auxiliar nativo Win64 aislado con sus librerías, invocable
+por la app Win64 o Win32 en Windows 64-bit. No se ha elegido versión final,
+compilado helper ni instalado motor, ni afirmado ausencia de otras dependencias
+nativas. Detalles y fuentes en MOTOR_XSLT_OPCIONES.md.
+Siguiente pregunta pendiente: preferencia de despliegue nativo sin instalación
+Java frente a aceptar Java como requisito del validador en los clientes.
 
 Revisión de la documentación ampliada, a petición del usuario: releído
 ViraCash_web/docs/spfe/README.md y comprobada la carpeta ubl-2.5. Contiene

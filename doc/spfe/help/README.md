@@ -279,8 +279,25 @@ ACCESO_UNE_2026.json. La página de la Comisión sobre acceso gratuito sigue
 referenciando 2017 y está en revisión, de modo que no confirma descarga
 gratuita anónima de ambas ediciones 2026.
 
-Siguiente pregunta pendiente: ¿dispone el usuario de acceso de descarga
-autorizado a UNE/AENOR para los dos textos de 2026?
+Decisión confirmada: **normas UNE 2026 pendientes; el usuario no tiene
+acceso UNE/AENOR**. Continuar el análisis con el material disponible, sin
+presentar como completa la validación semántica 2026. El paquete GitHub
+oficial sigue verificado y utilizable dentro de su cobertura 2017/UBL 2.1;
+procedencia fiable no equivale a cubrir la edición 2026. No reiterar la
+petición de acceso ni comprar normas para continuar esta fase.
+
+Decisión confirmada: **Schematron en desarrollo, DUnitX y clientes, en
+segundo plano y sin ralentizar emisión**, con servidor de dos núcleos.
+Propuesta: cola persistente y límite compartido inicial de un trabajo activo,
+fuera de UI/transacción fiscal, sin consultas pesadas ni Java/proceso nuevo
+por cada factura; reutilizar motor/hoja compilada. Conservar resultados y
+cobertura, recuperar errores/reinicios y medir rendimiento real antes de
+considerar cumplida la restricción. No ampliar por ello la cobertura semántica
+2017 a 2026 ni autorizar llamadas de Fase 4.
+
+Opciones de motor documentadas en MOTOR_XSLT_OPCIONES.md, con fuentes
+Saxonica. Siguiente pregunta pendiente: preferencia por auxiliar nativo con
+sus librerías o aceptación de Java como requisito en instalaciones cliente.
 
 Nueva revisión del README original y la carpeta local ubl-2.5:
 **116 XSD canónicos comprobados**, idénticos a OASIS por SHA-256 (101 maindoc,
