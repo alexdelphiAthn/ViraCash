@@ -159,6 +159,7 @@ begin
   if dmFacc <> nil then
   begin
     RebindReportDataSetsByDataModule(frxrprt1, dmFacc);
+    AplicarResumenCantidadesCompra(frxrprt1, dmFacc.unqryLinFaccPrint);
     AdaptarInformeCompraDirecta(frxrprt1, dmFacc.unqryCabFaccPrint);
   end;
 end;

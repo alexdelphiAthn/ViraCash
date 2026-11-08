@@ -11,6 +11,8 @@ uses
   Uni;
 
 function SqlPropiedadesLinea(const AArticulo, AUnidad: string): string;
+function SqlAmbitoPropiedadLinea(const AAlias, AArticulo,
+  AUnidad: string): string;
 procedure ConfigurarPropiedadesLineas(AConsulta: TUniQuery;
   const ASufijo: string);
 
@@ -22,6 +24,22 @@ uses
 // Solo recibe expresiones de campos definidas por el programa.
 // Prevalece el nivel más específico de cada propiedad, sin mezclar
 // valores de otros colores o tallas. No requiere migrar documentos.
+function SqlAmbitoPropiedadLinea(const AAlias, AArticulo,
+  AUnidad: string): string;
+begin
+  Result := AAlias + '.CODIGO_UNIDAD_ARTPROP = COALESCE((' +
+    'SELECT B.CODIGO_UNIDAD_ARTPROP FROM fza_articulos_propiedades B ' +
+    'WHERE B.CODIGO_ART_ART = ' + AArticulo +
+    ' AND B.CODIGO_PROP_ARTPROP = ' + AAlias + '.CODIGO_PROP_ARTPROP ' +
+    'AND (B.CODIGO_UNIDAD_ARTPROP = '''' ' +
+    'OR B.CODIGO_UNIDAD_ARTPROP = ' + AUnidad +
+    ' OR LEFT(' + AUnidad + ', ' +
+    'CHAR_LENGTH(B.CODIGO_UNIDAD_ARTPROP) + 1) = ' +
+    'CONCAT(B.CODIGO_UNIDAD_ARTPROP, ''/'')) ' +
+    'ORDER BY CHAR_LENGTH(B.CODIGO_UNIDAD_ARTPROP) DESC LIMIT 1), ' +
+    ''''')';
+end;
+
 function SqlPropiedadesLinea(const AArticulo, AUnidad: string): string;
 begin
   Result :=
@@ -36,18 +54,7 @@ begin
     'WHERE A.CODIGO_ART_ART = ' + AArticulo +
     ' AND P.ESACTIVO_PROP = ''S'' ' +
     'AND TRIM(COALESCE(V.PV, A.VALOR_LIBRE_ARTPROP, '''')) <> '''' ' +
-    'AND A.CODIGO_UNIDAD_ARTPROP = COALESCE((' +
-    'SELECT B.CODIGO_UNIDAD_ARTPROP ' +
-    'FROM fza_articulos_propiedades B ' +
-    'WHERE B.CODIGO_ART_ART = A.CODIGO_ART_ART ' +
-    'AND B.CODIGO_PROP_ARTPROP = A.CODIGO_PROP_ARTPROP ' +
-    'AND (B.CODIGO_UNIDAD_ARTPROP = '''' ' +
-    'OR B.CODIGO_UNIDAD_ARTPROP = ' + AUnidad +
-    ' OR LEFT(' + AUnidad + ', ' +
-    'CHAR_LENGTH(B.CODIGO_UNIDAD_ARTPROP) + 1) = ' +
-    'CONCAT(B.CODIGO_UNIDAD_ARTPROP, ''/'')) ' +
-    'ORDER BY CHAR_LENGTH(B.CODIGO_UNIDAD_ARTPROP) DESC LIMIT 1), ' +
-    '''''))';
+    'AND ' + SqlAmbitoPropiedadLinea('A', AArticulo, AUnidad) + ')';
 end;
 
 function AgregarPropiedades(const ASql, ASufijo: string): string;

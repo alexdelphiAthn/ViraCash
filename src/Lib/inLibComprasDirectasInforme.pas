@@ -16,6 +16,8 @@ procedure AdaptarInformeCompraDirecta(AInforme: TfrxReport;
   ACabecera: TDataSet);
 procedure AdaptarExcelCompraDirecta(ACabecera: TDataSet;
   var AConfiguracion: TDocCompraCabCfg);
+procedure AplicarResumenCantidadesCompra(AInforme: TfrxReport;
+  ALineas: TDataSet);
 
 implementation
 
@@ -29,6 +31,16 @@ resourcestring
   SDestinatario = 'DESTINATARIO';
   SEmisorBeneficiario = 'EMISOR / BENEFICIARIO';
   SCompensacionImpresa = 'Compensación REAGP %s%% de %s = %s EUR';
+
+procedure AplicarResumenCantidadesCompra(AInforme: TfrxReport;
+  ALineas: TDataSet);
+var
+  Objeto: TfrxComponent;
+begin
+  Objeto := AInforme.FindObject('MemoTotalUds');
+  if Objeto is TfrxMemoView then
+    TfrxMemoView(Objeto).Text := ResumenCantidadesCompra(ALineas);
+end;
 
 function EsCompraDirecta(ACabecera: TDataSet): Boolean;
 begin

@@ -77,10 +77,66 @@ procedure ExportarDocCompraVertical(
   const QMaster, QLineas: TDataSet;
   const ACfg: TDocCompraCabCfg);
 
+function ResumenCantidadesCompra(ALineas: TDataSet): string;
+
 implementation
 
 uses
-  inLibFormatoDocumento;
+  System.Classes, System.Generics.Collections, inLibFormatoDocumento;
+
+function ResumenCantidadesCompra(ALineas: TDataSet): string;
+var
+  Totales: TDictionary<string, Double>;
+  Unidades: TStringList;
+  Marca: TBookmark;
+  Unidad, Etiqueta: string;
+  Total: Double;
+begin
+  Result := '';
+  if Assigned(ALineas) and ALineas.Active and
+     Assigned(ALineas.FindField('TIPO_CANTIDAD')) then
+  begin
+    Totales := TDictionary<string, Double>.Create;
+    Unidades := TStringList.Create;
+    Marca := ALineas.GetBookmark;
+    ALineas.DisableControls;
+    try
+      ALineas.First;
+      while not ALineas.Eof do
+      begin
+        Unidad := UpperCase(Trim(
+          ALineas.FieldByName('TIPO_CANTIDAD').AsString));
+        if Unidad = '' then
+          Unidad := 'UDS';
+        if not Totales.TryGetValue(Unidad, Total) then
+        begin
+          Total := 0;
+          Unidades.Add(Unidad);
+        end;
+        Totales.AddOrSetValue(Unidad, Total +
+          ALineas.FieldByName('TOTAL_UNIDADES').AsFloat);
+        ALineas.Next;
+      end;
+      for Unidad in Unidades do
+      begin
+        Etiqueta := Unidad;
+        if Unidad = 'UDS' then
+          Etiqueta := 'unidades';
+        if Result <> '' then
+          Result := Result + ' + ';
+        Result := Result + FormatFloat('#,##0.######', Totales[Unidad]) +
+          ' ' + Etiqueta;
+      end;
+    finally
+      if ALineas.BookmarkValid(Marca) then
+        ALineas.GotoBookmark(Marca);
+      ALineas.FreeBookmark(Marca);
+      ALineas.EnableControls;
+      Unidades.Free;
+      Totales.Free;
+    end;
+  end;
+end;
 
 // ===== Helpers internos =====================================================
 

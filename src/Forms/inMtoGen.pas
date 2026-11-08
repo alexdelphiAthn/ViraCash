@@ -2865,26 +2865,11 @@ begin
 end;
 
 procedure TfrmMtoGen.btnCancelarClick(Sender: TObject);
-var
-  i: Integer;
 begin
   inherited;
-  // Flujo normal dentro de viracash: cancela el Mto activo del principal.
-  if Assigned(FAnfitrionMto) then
-    FAnfitrionMto.CancelarEdicionesPantallas
-  else
-    // Fuera de viracash (pruebas standalone, DESARROLLOS EN CURSO) Owner no
-    // es el principal y no hay pcPrincipal al que cancelar:
-    // se cancelan los datasets en edicion de los grids de ESTE form.
-    for i := 0 to ComponentCount - 1 do
-      if Components[i] is TcxGridDBTableView then
-        if (TcxGridDBTableView(Components[i]).DataController.DataSource <>
-            nil) and
-           (TcxGridDBTableView(Components[i]).DataController.DataSet <>
-            nil) and
-           (TcxGridDBTableView(Components[i]).DataController.DataSet.State in
-            [dsEdit, dsInsert]) then
-          TcxGridDBTableView(Components[i]).DataController.DataSet.Cancel;
+  // El boton pertenece a esta ficha; no depender del formulario que el
+  // anfitrion considere activo despues de un clic en la barra lateral.
+  CancelarGridsFormulario(Self);
 end;
 
 procedure TfrmMtoGen.sbExportExcelClick(Sender: TObject);

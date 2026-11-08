@@ -961,6 +961,8 @@ begin
   inherited;
   FEncolarPrecioPrestaShop := False;
   FRecargoCambiado := False;
+  FindField('RAZON_SOCIAL_EMP').AsString :=
+    Trim(FindField('RAZON_SOCIAL_EMP').AsString);
   // Validar antes de grabar detalles también en altas (FZ-ISSUE-845).
   if Trim(FindField('RAZON_SOCIAL_EMP').AsString) = '' then
   begin

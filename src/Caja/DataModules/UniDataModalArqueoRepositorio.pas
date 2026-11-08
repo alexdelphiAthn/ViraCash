@@ -23,7 +23,7 @@ implementation
 
 uses
   System.SysUtils, Data.DB, UniDataRectificativasSql,
-  UniDataArqueoRepositorio;
+  UniDataArqueoRepositorio, UniDataPropiedadesLineasDocumento;
 
 type
   TResultadoModalArqueoUniDAC = class(
@@ -210,6 +210,8 @@ begin
     '        o.NUMERO_OPERACION_OPCAJA ' +
     '   JOIN fza_articulos_propiedades ap ' +
     '     ON ap.CODIGO_ART_ART = l.CODIGO_ART_FACLIN ' +
+    '    AND ' + SqlAmbitoPropiedadLinea('ap', 'l.CODIGO_ART_FACLIN',
+      'l.CODIGO_UNIDAD_FACLIN') +
     '   LEFT JOIN fza_propiedades_valores pv ' +
     '     ON pv.ID_PV_ARTPROP = ap.ID_PV_ARTPROP ' +
     '  WHERE o.TIPO_OPERACION_OPCAJA IN (''VE'', ''DV'') ' +

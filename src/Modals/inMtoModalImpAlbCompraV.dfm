@@ -589,8 +589,8 @@
           Frame.Typ = [ftLeft, ftRight, ftTop, ftBottom]
           HAlign = haLeft
           VAlign = vaCenter
-          StretchMode = smMaxHeight
-          Memo.UTF8W = ('[LineasAlbaranSku."DESCRIPCION_ARTICULO_ALBCLIN"]')
+          StretchMode = smActualHeight
+          Memo.UTF8W = ('[LineasAlbaranSku."DESCRIPCION_ARTICULO_ALBCLIN"][IIF(<LineasAlbaranSku."LOTE_ALBCLIN"> <> '''', '' Lote: '' + <LineasAlbaranSku."LOTE_ALBCLIN">, '''')][IIF(<LineasAlbaranSku."FECHA_CADUCIDAD_ALBCLIN"> > 0, '' Cad.: '' + FormatDateTime(''dd/mm/yyyy'', <LineasAlbaranSku."FECHA_CADUCIDAD_ALBCLIN">), '''')]')
           ParentFont = False
         end
         object LinCantV: TfrxMemoView

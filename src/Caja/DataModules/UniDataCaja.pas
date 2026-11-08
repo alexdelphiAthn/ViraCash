@@ -1662,7 +1662,8 @@ begin
       QryTrx, SolicitudMovimiento);
   end;
   // 2. Generar ID único para el depósito (lógica original)
-  NuevoIdDep := 'DP' + FormatDateTime('yymmddhhnnsszzz', Now) +
+  NuevoIdDep := 'DP' + FormatDateTime('yymmddhhnnsszzz',
+    FechaCajaConHora(AFechaOperacion)) +
                 RightStr(ASku, 3);  // máx 20 chars
   NuevoIdDep := Copy(NuevoIdDep, 1, 20); // Aseguramos longitud máxima
   IdGenerado := NuevoIdDep;
@@ -1688,10 +1689,13 @@ begin
   else
     InsertarDepositoPrestamo(QryTrx.Connection, Deposito);
   QryTrx.SQL.Text := 'UPDATE fza_depositos_cliente SET LOTE_DEP=:LOTE,' +
-    'FECHA_CADUCIDAD_DEP=:CADUCIDAD WHERE ID_DEPOSITO_DEP=:ID ' +
+    'FECHA_CADUCIDAD_DEP=:CADUCIDAD, FECHA_CREACION_DEP=:FECHA ' +
+    'WHERE ID_DEPOSITO_DEP=:ID ' +
     'AND CODIGO_EMP_DEP=:EMP';
   QryTrx.ParamByName('ID').AsString := IdGenerado;
   QryTrx.ParamByName('EMP').AsString := AEmpresa;
+  QryTrx.ParamByName('FECHA').AsDateTime :=
+    FechaCajaConHora(AFechaOperacion);
   QryTrx.ParamByName('LOTE').AsString := ALote;
   QryTrx.ParamByName('CADUCIDAD').DataType := ftDate;
   if AFechaCaducidad > 0 then

@@ -23,7 +23,8 @@ type
   TContextoSesionAplicacion = class(
     TInterfacedObject,
     IContextoSesionAplicacion,
-    IGestorContextoSesion
+    IGestorContextoSesion,
+    IFechaCajaSesion
   )
   private
     FBloqueo: TCriticalSection;
@@ -31,6 +32,7 @@ type
     FIdentidad: TIdentidadSesion;
     FLogSesion: TLogSesionProc;
     FUbicacion: TUbicacionSesion;
+    FDesfaseFechaCaja: TDateTime;
   protected
     function GetCerrandoAplicacion: Boolean;
     function GetIdentidad: TIdentidadSesion;
@@ -52,9 +54,36 @@ type
     procedure CambiarUbicacion(
       const AUbicacion: TUbicacionSesion
     ); virtual;
+    function ObtenerFechaCaja: TDateTime;
+    procedure EstablecerFechaCaja(AFecha: TDateTime);
   end;
 
 implementation
+
+uses
+  System.SysUtils;
+
+function TContextoSesionAplicacion.ObtenerFechaCaja: TDateTime;
+begin
+  FBloqueo.Enter;
+  try
+    Result := Now + FDesfaseFechaCaja;
+  finally
+    FBloqueo.Leave;
+  end;
+end;
+
+procedure TContextoSesionAplicacion.EstablecerFechaCaja(AFecha: TDateTime);
+begin
+  FBloqueo.Enter;
+  try
+    FDesfaseFechaCaja := 0;
+    if AFecha > 0 then
+      FDesfaseFechaCaja := AFecha - Now;
+  finally
+    FBloqueo.Leave;
+  end;
+end;
 
 constructor TContextoSesionAplicacion.Create(
   const AIdentidad: TIdentidadSesion;
@@ -145,6 +174,7 @@ begin
   FBloqueo.Acquire;
   try
     FIdentidad := AIdentidad;
+    FDesfaseFechaCaja := 0;
   finally
     FBloqueo.Release;
   end;

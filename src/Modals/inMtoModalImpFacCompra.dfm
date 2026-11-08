@@ -1057,8 +1057,10 @@
         DataSet = dmFacturasCompra.fxdsLinFacc
         DataSetName = 'LineasFactura'
         RowCount = 0
+        Stretched = True
         object LinCodArt: TfrxMemoView
           AllowVectorExport = True
+          StretchMode = smMaxHeight
           Width = 108.500000000000000000
           Height = 22.677180000000000000
           ContentScaleOptions.Constraints.MaxIterationValue = 0
@@ -1079,6 +1081,7 @@
         end
         object LinModelo: TfrxMemoView
           AllowVectorExport = True
+          StretchMode = smMaxHeight
           Left = 108.500000000000000000
           Width = 66.000000000000000000
           Height = 22.677180000000000000
@@ -1099,6 +1102,7 @@
         end
         object LinDescr: TfrxMemoView
           AllowVectorExport = True
+          StretchMode = smActualHeight
           Left = 174.500000000000000000
           Width = 96.000000000000000000
           Height = 22.677180000000000000
@@ -1117,6 +1121,7 @@
         end
         object LinColor: TfrxMemoView
           AllowVectorExport = True
+          StretchMode = smMaxHeight
           Left = 270.500000000000000000
           Width = 88.000000000000000000
           Height = 22.677180000000000000
@@ -1137,6 +1142,7 @@
         end
         object LinSistema: TfrxMemoView
           AllowVectorExport = True
+          StretchMode = smMaxHeight
           Left = 358.500000000000000000
           Width = 46.000000000000000000
           Height = 22.677180000000000000
@@ -1156,6 +1162,7 @@
         end
         object LinT01: TfrxMemoView
           AllowVectorExport = True
+          StretchMode = smMaxHeight
           Left = 404.500000000000000000
           Width = 25.500000000000000000
           Height = 22.677180000000000000
@@ -1177,6 +1184,7 @@
         end
         object LinT02: TfrxMemoView
           AllowVectorExport = True
+          StretchMode = smMaxHeight
           Left = 430.000000000000000000
           Width = 25.500000000000000000
           Height = 22.677180000000000000
@@ -1198,6 +1206,7 @@
         end
         object LinT03: TfrxMemoView
           AllowVectorExport = True
+          StretchMode = smMaxHeight
           Left = 455.500000000000000000
           Width = 25.500000000000000000
           Height = 22.677180000000000000
@@ -1219,6 +1228,7 @@
         end
         object LinT04: TfrxMemoView
           AllowVectorExport = True
+          StretchMode = smMaxHeight
           Left = 481.000000000000000000
           Width = 25.500000000000000000
           Height = 22.677180000000000000
@@ -1240,6 +1250,7 @@
         end
         object LinT05: TfrxMemoView
           AllowVectorExport = True
+          StretchMode = smMaxHeight
           Left = 506.500000000000000000
           Width = 25.500000000000000000
           Height = 22.677180000000000000
@@ -1261,6 +1272,7 @@
         end
         object LinT06: TfrxMemoView
           AllowVectorExport = True
+          StretchMode = smMaxHeight
           Left = 532.000000000000000000
           Width = 25.500000000000000000
           Height = 22.677180000000000000
@@ -1282,6 +1294,7 @@
         end
         object LinT07: TfrxMemoView
           AllowVectorExport = True
+          StretchMode = smMaxHeight
           Left = 557.500000000000000000
           Width = 25.500000000000000000
           Height = 22.677180000000000000
@@ -1303,6 +1316,7 @@
         end
         object LinT08: TfrxMemoView
           AllowVectorExport = True
+          StretchMode = smMaxHeight
           Left = 583.000000000000000000
           Width = 25.500000000000000000
           Height = 22.677180000000000000
@@ -1324,6 +1338,7 @@
         end
         object LinT09: TfrxMemoView
           AllowVectorExport = True
+          StretchMode = smMaxHeight
           Left = 608.500000000000000000
           Width = 25.500000000000000000
           Height = 22.677180000000000000
@@ -1345,6 +1360,7 @@
         end
         object LinT10: TfrxMemoView
           AllowVectorExport = True
+          StretchMode = smMaxHeight
           Left = 634.000000000000000000
           Width = 25.500000000000000000
           Height = 22.677180000000000000
@@ -1366,6 +1382,7 @@
         end
         object LinT11: TfrxMemoView
           AllowVectorExport = True
+          StretchMode = smMaxHeight
           Left = 659.500000000000000000
           Width = 25.500000000000000000
           Height = 22.677180000000000000
@@ -1387,6 +1404,7 @@
         end
         object LinT12: TfrxMemoView
           AllowVectorExport = True
+          StretchMode = smMaxHeight
           Left = 685.000000000000000000
           Width = 25.500000000000000000
           Height = 22.677180000000000000
@@ -1408,6 +1426,7 @@
         end
         object LinT13: TfrxMemoView
           AllowVectorExport = True
+          StretchMode = smMaxHeight
           Left = 710.500000000000000000
           Width = 25.500000000000000000
           Height = 22.677180000000000000
@@ -1429,6 +1448,7 @@
         end
         object LinT14: TfrxMemoView
           AllowVectorExport = True
+          StretchMode = smMaxHeight
           Left = 736.000000000000000000
           Width = 25.500000000000000000
           Height = 22.677180000000000000
@@ -1450,6 +1470,7 @@
         end
         object LinT15: TfrxMemoView
           AllowVectorExport = True
+          StretchMode = smMaxHeight
           Left = 761.500000000000000000
           Width = 25.500000000000000000
           Height = 22.677180000000000000
@@ -1471,6 +1492,7 @@
         end
         object LinT16: TfrxMemoView
           AllowVectorExport = True
+          StretchMode = smMaxHeight
           Left = 787.000000000000000000
           Width = 25.500000000000000000
           Height = 22.677180000000000000
@@ -1492,6 +1514,7 @@
         end
         object LinT17: TfrxMemoView
           AllowVectorExport = True
+          StretchMode = smMaxHeight
           Left = 812.500000000000000000
           Width = 25.500000000000000000
           Height = 22.677180000000000000
@@ -1513,6 +1536,7 @@
         end
         object LinT18: TfrxMemoView
           AllowVectorExport = True
+          StretchMode = smMaxHeight
           Left = 838.000000000000000000
           Width = 25.500000000000000000
           Height = 22.677180000000000000
@@ -1534,6 +1558,7 @@
         end
         object LinT19: TfrxMemoView
           AllowVectorExport = True
+          StretchMode = smMaxHeight
           Left = 863.500000000000000000
           Width = 25.500000000000000000
           Height = 22.677180000000000000
@@ -1555,6 +1580,7 @@
         end
         object LinT20: TfrxMemoView
           AllowVectorExport = True
+          StretchMode = smMaxHeight
           Left = 889.000000000000000000
           Width = 25.500000000000000000
           Height = 22.677180000000000000
@@ -1576,6 +1602,7 @@
         end
         object LinT21: TfrxMemoView
           AllowVectorExport = True
+          StretchMode = smMaxHeight
           Left = 914.500000000000000000
           Width = 25.500000000000000000
           Height = 22.677180000000000000
@@ -1597,6 +1624,7 @@
         end
         object LinTotalUds: TfrxMemoView
           AllowVectorExport = True
+          StretchMode = smMaxHeight
           Left = 940.000000000000000000
           Width = 45.000000000000000000
           Height = 22.677180000000000000
@@ -1618,6 +1646,7 @@
         end
         object LinImporte: TfrxMemoView
           AllowVectorExport = True
+          StretchMode = smMaxHeight
           Left = 985.000000000000000000
           Width = 61.929500000000000000
           Height = 22.677180000000000000
@@ -1729,7 +1758,7 @@
           Frame.Typ = []
           HAlign = haRight
           Memo.UTF8W = (
-            'TOTAL: [Factura."TOTAL_UNIDADES_FACC"] unidades')
+            'Cantidades por unidad de medida')
           ParentFont = False
           VAlign = vaCenter
         end

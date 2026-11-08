@@ -149,7 +149,12 @@ end;
 
 procedure TPresentadorAtributosBasicosArticulo.CancelarCambios;
 begin
-  FCambios.Clear;
+  if FCambios.Count > 0 then
+  begin
+    FCambios.Clear;
+    if HayDetalleActivo then
+      RefrescarTrasEdicion;
+  end;
 end;
 
 procedure TPresentadorAtributosBasicosArticulo.MostrarBasicoPendiente(

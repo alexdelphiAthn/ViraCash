@@ -75,10 +75,30 @@ type
       read GetContextoSesion;
   end;
 
+  IFechaCajaSesion = interface
+    ['{E972A117-F92C-4F79-A901-5542D7131D48}']
+    function ObtenerFechaCaja: TDateTime;
+    procedure EstablecerFechaCaja(AFecha: TDateTime);
+  end;
+
+function FechaOperacionSesion(
+  const AContexto: IContextoSesionAplicacion): TDateTime;
+
 implementation
 
 uses
   System.SysUtils;
+
+function FechaOperacionSesion(
+  const AContexto: IContextoSesionAplicacion): TDateTime;
+var
+  FechaCaja: IFechaCajaSesion;
+begin
+  if Supports(AContexto, IFechaCajaSesion, FechaCaja) then
+    Result := FechaCaja.ObtenerFechaCaja
+  else
+    Result := Now;
+end;
 
 class function TIdentidadSesion.Crear(
   const AUsuario, AGrupo, AGrupoRaiz: string): TIdentidadSesion;

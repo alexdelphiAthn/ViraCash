@@ -32,7 +32,7 @@ uses
   inLibVentasCalendario, System.Actions, Vcl.ActnList, dxGDIPlusClasses,
   cxImage, inLibPermisosIntf, inLibCajaPantallaInyeccion,
   inLibCajaMenuTarjetaVcl, inLibCajaMenuMaquetaVcl,
-  inLibIndicadoresColasVcl;
+  inLibIndicadoresColasVcl, inLibContextoSesionIntf;
 
 const
   WM_REACTIVAR_OPERACION_CAJA = WM_APP + 107;
@@ -376,7 +376,7 @@ begin
   if bContinuar then
   begin
     calMes.Invalidate;
-    ActualizarFechaCaja(Now);
+    ActualizarFechaCaja(FechaOperacionSesion(ContextoSesion));
     clkHora.OnDblClick := clkHoraDblClick;
     FSelectedIndex := -1;
     SetSelectedIndex(0);
@@ -445,10 +445,14 @@ begin
 end;
 
 procedure TfrmMtoMenuCaja.ActualizarFechaCaja(AFechaCaja: TDateTime);
+var
+  FechaSesion: IFechaCajaSesion;
 begin
   if AFechaCaja = 0 then
     AFechaCaja := Now;
   FFechaCaja := AFechaCaja;
+  if Supports(ContextoSesion, IFechaCajaSesion, FechaSesion) then
+    FechaSesion.EstablecerFechaCaja(AFechaCaja);
   FUltimoTickReloj := Now;
   calMes.Date := DateOf(FFechaCaja);
   lblFecha.Caption := FormatearFechaHoraIdioma(

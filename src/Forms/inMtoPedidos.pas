@@ -377,6 +377,7 @@ type
 
 implementation
 
+
 uses
   inMtoModalImpDocumento,
   inLibMensajesVcl,
@@ -1922,7 +1923,7 @@ begin
   oConfig.Propuesta.Empresa := ds.FieldByName('CODIGO_EMP_PED').AsString;
   oConfig.Propuesta.Almacen := APreparacion.AlmacenDefecto;
   oConfig.Propuesta.Tipo := 'AV';
-  oConfig.Propuesta.Fecha := Date;
+  oConfig.Propuesta.Fecha := Trunc(FechaOperacionSesion(ContextoSesion));
   oConfig.Propuesta.FormaPago := ds.FieldByName('FORMA_PAGO_PED').AsString;
   oExistente := Default(TCampoAdicionalOpcionesDocumento);
   oExistente.Clave := CLAVE_ALBARAN_EXISTENTE;

@@ -1846,7 +1846,9 @@ procedure TfrmMtoOpeTraspaso.InicializarRangoVentasReposicion;
 var
   dtDia: TDateTime;
 begin
-  dtDia := Date;
+  dtDia := Trunc(FFecha);
+  if dtDia = 0 then
+    dtDia := Date;
   dteVentasDesde.Date := dtDia;
   dteVentasHasta.Date := dtDia + EncodeTime(23, 59, 59, 0);
 end;

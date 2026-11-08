@@ -57,7 +57,7 @@ type
 implementation
 
 uses
-  inMtoPreviewExcel, inLibDocCompraExcel;
+  inMtoPreviewExcel, inLibDocCompraExcel, inLibComprasDirectasInforme;
 
 {$R *.dfm}
 
@@ -148,7 +148,10 @@ procedure TfrmPrintAlbCompra.AfterReportLoaded;
 begin
   inherited;
   if dmAlbc <> nil then
+  begin
     RebindReportDataSetsByDataModule(frxrprt1, dmAlbc);
+    AplicarResumenCantidadesCompra(frxrprt1, dmAlbc.unqryLinAlbcPrint);
+  end;
 end;
 
 end.

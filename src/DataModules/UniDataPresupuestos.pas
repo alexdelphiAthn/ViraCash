@@ -106,6 +106,8 @@ type
     procedure ProponerSerieEmpresa(const AEmpresa: string);
   end;
 
+procedure ProponerFormaPagoPresupuesto(ACliente, APresupuesto: TDataSet);
+
 implementation
 
 uses
@@ -1076,6 +1078,19 @@ begin
   end;
 end;
 
+procedure ProponerFormaPagoPresupuesto(ACliente, APresupuesto: TDataSet);
+var
+  FormaPago: string;
+begin
+  FormaPago := Trim(ACliente.FieldByName('CODIGO_FP_CLI').AsString);
+  if not (APresupuesto.State in dsEditModes) then
+    APresupuesto.Edit;
+  if FormaPago = '' then
+    APresupuesto.FieldByName('FORMA_PAGO_PRE').Clear
+  else
+    APresupuesto.FieldByName('FORMA_PAGO_PRE').AsString := FormaPago;
+end;
+
 procedure TdmPresupuestos.CopiarClienteaAlbaran(DataSet: TDataSet);
 var
   sTarifa: string;
@@ -1126,6 +1141,7 @@ begin
     if sTarifa = '' then
       sTarifa := ParametrosCaja.TarifaDefecto;
   FindField('TARIFA_ARTICULO_CLIENTE_PRE').AsString := sTarifa;
+  ProponerFormaPagoPresupuesto(DataSet, unqryTablaG);
   ActualizarImpuestosTarifaCabecera(sTarifa);
   AplicarPorcentajesIvaVenta(
     CrearLecturasImpuestos(ConexionEscritura), unqryTablaG, 'PRE');

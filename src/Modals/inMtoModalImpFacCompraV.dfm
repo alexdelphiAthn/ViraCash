@@ -589,8 +589,8 @@
           Frame.Typ = [ftLeft, ftRight, ftTop, ftBottom]
           HAlign = haLeft
           VAlign = vaCenter
-          StretchMode = smMaxHeight
-          Memo.UTF8W = ('[LineasFacturaSku."DESCRIPCION_ARTICULO_FACCLIN"]')
+          StretchMode = smActualHeight
+          Memo.UTF8W = ('[LineasFacturaSku."DESCRIPCION_ARTICULO_FACCLIN"][IIF(<LineasFacturaSku."LOTE_FACCLIN"> <> '''', '' Lote: '' + <LineasFacturaSku."LOTE_FACCLIN">, '''')][IIF(<LineasFacturaSku."FECHA_CADUCIDAD_FACCLIN"> > 0, '' Cad.: '' + FormatDateTime(''dd/mm/yyyy'', <LineasFacturaSku."FECHA_CADUCIDAD_FACCLIN">), '''')]')
           ParentFont = False
         end
         object LinCantV: TfrxMemoView
