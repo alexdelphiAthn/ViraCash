@@ -95,3 +95,6 @@ tests/fpc/build/
 *.pem
 *.log
 *.bak
+
+# Archivo de referencia conservado solo en disco
+/doc/spfe/help/oasis/UBL-2.5.zip

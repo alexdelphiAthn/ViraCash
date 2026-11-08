@@ -29,6 +29,10 @@ type
 function CrearRepositorioDistribucionTiendasUniDAC(
   AConexion: TUniConnection): IRepositorioDistribucionTiendas;
 
+procedure AgregarSkuManualDistribucion(AConexion: TUniConnection;
+  AIdDocumento: Int64; const AEmpresa, AAlmacen, ASku: string;
+  ACantidad: Double; const AUsuario: string);
+
 // SQL expuesto para las pruebas de contrato e integración.
 function SqlUnidadesDocumentoDistribucion: string;
 function SqlAlmacenesDistribucion: string;
@@ -57,7 +61,8 @@ implementation
 
 uses
   System.Generics.Collections, Data.DB,
-  inLibMsgDistribucionTiendas;
+  inLibMsgDistribucionTiendas, System.Math,
+  inLibDocumentosTrabajo, UniDataDocumentosTrabajoRepositorio;
 
 const
   TOLERANCIA_CANTIDAD = 0.000001;
@@ -144,6 +149,82 @@ type
       const AAsignaciones: TAsignacionesDistribucion;
       const AUsuario: string);
   end;
+
+procedure AgregarSkuManualDistribucion(AConexion: TUniConnection;
+  AIdDocumento: Int64; const AEmpresa, AAlmacen, ASku: string;
+  ACantidad: Double; const AUsuario: string);
+var
+  Consulta: TUniQuery;
+  Propia: Boolean;
+  Linea: TDocTrabajoLineaOrigen;
+  Repos: TRepositoriosDocumentosTrabajo;
+  Solicitado: Double;
+begin
+  if (ACantidad <= 0) or IsNan(ACantidad) or IsInfinite(ACantidad) then
+    raise EArgumentException.Create('Las unidades deben ser positivas');
+  if (Trim(AEmpresa) = '') or (Trim(AAlmacen) = '') or (Trim(ASku) = '') then
+    raise EArgumentException.Create('Indique empresa, almacen y SKU');
+  Propia := not AConexion.InTransaction;
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := AConexion;
+    if Propia then AConexion.StartTransaction;
+    try
+      Consulta.SQL.Text := 'SELECT ESTADO_DTR FROM fza_documentos_trabajo ' +
+        'WHERE ID_DTR=:ID AND CODIGO_EMP_DTR=:EMP FOR UPDATE';
+      Consulta.ParamByName('ID').AsLargeInt := AIdDocumento;
+      Consulta.ParamByName('EMP').AsString := AEmpresa;
+      Consulta.Open;
+      if Consulta.IsEmpty or
+         not SameText(Consulta.FieldByName('ESTADO_DTR').AsString,'CREADO') then
+        raise EArgumentException.Create('El documento debe estar creado');
+      Consulta.Close;
+      Consulta.SQL.Text := 'SELECT SK.CODIGO_ART_SKU, A.DESCRIPCION_ART, ' +
+        '(SELECT COALESCE(SUM(S.CANTIDAD_STK),0) ' +
+        ' FROM fza_articulos_stockactual S WHERE S.CODIGO_UNIDAD_STK=:SKU ' +
+        ' AND S.CODIGO_ALM_STK=:ALM) AS STOCK ' +
+        'FROM fza_articulos_skus SK JOIN fza_articulos A ' +
+        'ON A.CODIGO_ART_ART=SK.CODIGO_ART_SKU ' +
+        'WHERE SK.CODIGO_UNIDAD_SKU=:SKU AND A.ESACTIVO_ART=''S'' ' +
+        'AND EXISTS (SELECT 1 FROM fza_almacenes AL ' +
+        'WHERE AL.CODIGO_ALM_ALM=:ALM AND AL.CODIGO_EMP_ALM=:EMP ' +
+        'AND AL.ESACTIVO_ALM=''S'')';
+      Consulta.ParamByName('SKU').AsString := ASku;
+      Consulta.ParamByName('ALM').AsString := AAlmacen;
+      Consulta.ParamByName('EMP').AsString := AEmpresa;
+      Consulta.Open;
+      if Consulta.IsEmpty then
+        raise EArgumentException.Create('SKU o almacen no disponible');
+      Linea := Default(TDocTrabajoLineaOrigen);
+      Linea.CodigoArticulo := Consulta.FieldByName('CODIGO_ART_SKU').AsString;
+      Linea.DescripcionArticulo :=
+        Consulta.FieldByName('DESCRIPCION_ART').AsString;
+      Linea.CodigoSku := ASku;
+      Linea.CodigoAlmacen := AAlmacen;
+      Linea.CantidadStock := Consulta.FieldByName('STOCK').AsFloat;
+      Linea.Cantidad := ACantidad;
+      Linea.Origen := 'MANUAL';
+      Consulta.Close;
+      Consulta.SQL.Text := 'SELECT COALESCE(SUM(CANTIDAD_DTL),0) AS CANT ' +
+        'FROM fza_documentos_trabajo_lineas WHERE ID_DTR_DTL=:ID ' +
+        'AND CODIGO_UNIDAD_DTL=:SKU AND CODIGO_ALM_DTL=:ALM';
+      Consulta.ParamByName('ID').AsLargeInt := AIdDocumento;
+      Consulta.ParamByName('SKU').AsString := ASku;
+      Consulta.ParamByName('ALM').AsString := AAlmacen;
+      Consulta.Open;
+      Solicitado := Consulta.FieldByName('CANT').AsFloat;
+      if ACantidad + Solicitado > Linea.CantidadStock + TOLERANCIA_CANTIDAD then
+        raise EArgumentException.Create('No hay stock suficiente para el SKU');
+      Repos := CrearRepositoriosDocumentosTrabajo(AConexion);
+      Repos.Lecturas.CompletarDatosArticulo(Linea);
+      Repos.Escritura.InsertarLinea(AIdDocumento, Linea, AUsuario);
+      if Propia then AConexion.Commit;
+    except
+      if Propia and AConexion.InTransaction then AConexion.Rollback;
+      raise;
+    end;
+  finally Consulta.Free; end;
+end;
 
 function ClavePareja(const AOrigen, ADestino: string): string;
 begin

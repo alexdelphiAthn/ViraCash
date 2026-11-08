@@ -1,0 +1,31 @@
+﻿[
+  {
+    "archivo": "une_modelo_2026_ficha.html",
+    "url": "https://tienda.aenor.com/p/norma-une-en-16931-1-2026-n0076402",
+    "fecha_contexto_cliente": "2026-11-08",
+    "http": 200,
+    "url_final": "https://tienda.aenor.com/p/norma-une-en-16931-1-2026-n0076402",
+    "bytes": 706971,
+    "sha256": "8fbd8c508ad325160fd748ddf9cfdac88058ef03d47f3bc995d5db9f11b8c058",
+    "tipo": "text/html;charset=UTF-8",
+    "estado": "ficha_descargada_no_texto_norma"
+  },
+  {
+    "archivo": "une_binding_2026_ficha.html",
+    "url": "https://tienda.aenor.com/p/norma-une-cen-ts-16931-3-2-2026-n0076558",
+    "fecha_contexto_cliente": "2026-11-08",
+    "http": 200,
+    "url_final": "https://tienda.aenor.com/p/norma-une-cen-ts-16931-3-2-2026-n0076558",
+    "bytes": 700013,
+    "sha256": "9185766f8fc68d1c317662cc70afb7711285e0e69be6ec49f0e4658ed8bbd0b1",
+    "tipo": "text/html;charset=UTF-8",
+    "estado": "ficha_descargada_no_texto_norma"
+  },
+  {
+    "archivo": "une_modelo_2026_acceso.html",
+    "url": "https://www.une.org/encuentra-tu-norma/busca-tu-norma/norma?c=N0076402",
+    "fecha_contexto_cliente": "2026-11-08",
+    "estado": "error_acceso",
+    "error": "HTTP Error 403: Forbidden"
+  }
+]

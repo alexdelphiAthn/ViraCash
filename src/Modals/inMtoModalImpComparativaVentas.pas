@@ -35,6 +35,7 @@ type
     procedure AplicarAnioAnterior(Sender: TObject);
     function LeerFiltro: TFiltroComparativaVentas;
   protected
+    procedure ValidarFiltro(const AFiltro: TFiltroComparativaVentas);
     procedure DoShow; override;
     function FiltrosUsados: TFiltrosReport; override;
     procedure DescribirSelecciones(
@@ -49,7 +50,7 @@ implementation
 uses
   inLibMsgInformesCliente,
   System.SysUtils, System.DateUtils, System.Variants, System.Math,
-  cxLabel, cxTextEdit,
+  cxLabel, cxTextEdit, cxEdit,
   inLibComparativaVentas, inLibComparativaVentasInforme,
   inLibInformeTabular, UniDataComparativaVentasRepositorio;
 
@@ -147,7 +148,11 @@ begin
   Result.Hasta := FechaHasta;
   if VarIsNull(FDesdeAnterior.EditValue) or
      VarIsNull(FHastaAnterior.EditValue) then
-    raise EArgumentException.Create(SInformeIndicarSegundo);
+  begin
+    TabFechas.PageControl.ActivePage := TabFechas;
+    if FDesdeAnterior.CanFocus then FDesdeAnterior.SetFocus;
+    raise EcxEditValidationError.Create(SInformeIndicarSegundo);
+  end;
   Result.DesdeAnterior := FDesdeAnterior.Date;
   Result.HastaAnterior := FHastaAnterior.Date;
   Result.Empresa := UbicacionSesion.Empresa;
@@ -158,7 +163,32 @@ begin
   Result.Temporadas := CSVDe(FTemporadasP1);
   Result.TemporadasAnteriores := CSVDe(FTemporadasP2);
   Result.Criterio := TCriterioComparativaVentas(FCriterio.ItemIndex);
-  ValidarComparativaVentas(Result);
+  ValidarFiltro(Result);
+end;
+
+procedure TfrmPrintComparativaVentas.ValidarFiltro(
+  const AFiltro: TFiltroComparativaVentas);
+var
+  Editor: TcxDateEdit;
+begin
+  try
+    ValidarComparativaVentas(AFiltro);
+  except
+    on E: EArgumentException do
+    begin
+      // FZ-ISSUE-871: entrada de datos, no fallo interno de la aplicacion.
+      Editor := FDesdeAnterior;
+      if (Trunc(AFiltro.Desde) <= 0) or
+         (Trunc(AFiltro.Hasta) <= 0) or
+         (Trunc(AFiltro.Hasta) < Trunc(AFiltro.Desde)) or
+         (DaysBetween(AFiltro.Desde, AFiltro.Hasta) > 3660) then
+        Editor := DteDesde;
+      if Assigned(TabFechas) then
+        TabFechas.PageControl.ActivePage := TabFechas;
+      if Assigned(Editor) and Editor.CanFocus then Editor.SetFocus;
+      raise EcxEditValidationError.Create(E.Message);
+    end;
+  end;
 end;
 
 procedure TfrmPrintComparativaVentas.preparar_consulta;

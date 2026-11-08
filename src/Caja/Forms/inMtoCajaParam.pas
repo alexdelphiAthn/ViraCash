@@ -92,6 +92,8 @@ type
     function ParametrosVisibles: TArray<TParamInfo>;
     procedure GuardarLayout;
     procedure RestaurarLayout;
+    procedure GetAmbitosCanjeValeList(Sender: TJvCustomInspectorItem;
+      Strings: TStrings);
     procedure GetTipoImpresionList(Sender: TJvCustomInspectorItem;
                                    Strings: TStrings);
     procedure GetImpresorasList(Sender: TJvCustomInspectorItem;
@@ -392,7 +394,12 @@ begin
                                                  TypeInfo(string),
                                                  pStr);
             ItemCombo.DisplayName := DescripcionTraducida;
-            if SameText(Param.Nombre, 'vgerTipoImpresion') then
+            if SameText(Param.Nombre, 'vgerAmbitoCanjeVale') then
+            begin
+              ItemCombo.Flags := ItemCombo.Flags + [iifValueList];
+              ItemCombo.OnGetValueList := GetAmbitosCanjeValeList;
+            end
+            else if SameText(Param.Nombre, 'vgerTipoImpresion') then
             begin
               ItemCombo.Flags := ItemCombo.Flags + [iifValueList];
               ItemCombo.OnGetValueList := GetTipoImpresionList;
@@ -678,6 +685,15 @@ begin
   Strings.Add('ESC POS NOQR');
   Strings.Add('EDITOR');
   Strings.Add('DEBUG');
+end;
+
+procedure TfrmMtoCajaParam.GetAmbitosCanjeValeList(
+  Sender: TJvCustomInspectorItem; Strings: TStrings);
+begin
+  Strings.Clear;
+  Strings.Add('TODOS');
+  Strings.Add('ALMACEN');
+  Strings.Add('CAJA');
 end;
 
 procedure TfrmMtoCajaParam.GetFormatosTicketList(

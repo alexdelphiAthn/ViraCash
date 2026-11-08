@@ -11314,6 +11314,30 @@ begin
     @inLibMsgCaja.
       SAvisoPdfTicketCaja);
   ARegistrar(
+    'inLibMsgCaja.SErrorAmbitoCanjeValeNoValido',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.SErrorAmbitoCanjeValeNoValido);
+  ARegistrar(
+    'inLibMsgCaja.SErrorUbicacionCanjeValeNoConfigurada',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.SErrorUbicacionCanjeValeNoConfigurada);
+  ARegistrar(
+    'inLibMsgCaja.SCanjeValeMismoAlmacen',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.SCanjeValeMismoAlmacen);
+  ARegistrar(
+    'inLibMsgCaja.SCanjeValeMismaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.SCanjeValeMismaCaja);
+  ARegistrar(
+    'inLibMsgCaja.SErrorValeFueraAmbitoCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.SErrorValeFueraAmbitoCaja);
+  ARegistrar(
+    'inLibMsgCaja.SErrorValeCanjeNoDisponible',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.SErrorValeCanjeNoDisponible);
+  ARegistrar(
     'inLibMsgCaja.' +
     'SErrorRedimirValeCaja',
     'src/Lib/inLibMsgCaja.pas',

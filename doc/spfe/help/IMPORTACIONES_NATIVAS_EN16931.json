@@ -1,0 +1,26 @@
+﻿[
+  {
+    "archivo": "C:\\DISCO_DURO\\proyectos\\factuzam_web\\tmp\\spfe-nativo\\win64\\ComprobarEnSpfe.exe",
+    "sha256": "d3b8667125ebe8f0f67d3d049cce2652018a59ae60d043e1c2ce5c866772db1a",
+    "plataforma": "Win64",
+    "importaciones": [
+      "advapi32.dll",
+      "kernel32.dll",
+      "ole32.dll",
+      "oleaut32.dll",
+      "user32.dll"
+    ]
+  },
+  {
+    "archivo": "C:\\DISCO_DURO\\proyectos\\factuzam_web\\tmp\\spfe-nativo\\win32\\ComprobarEnSpfe.exe",
+    "sha256": "c07dd51d0bf5327e78fcb33afb4f76091cf9f24dd2f4a232f396d0ffb3d36ef2",
+    "plataforma": "Win32",
+    "importaciones": [
+      "advapi32.dll",
+      "kernel32.dll",
+      "ole32.dll",
+      "oleaut32.dll",
+      "user32.dll"
+    ]
+  }
+]

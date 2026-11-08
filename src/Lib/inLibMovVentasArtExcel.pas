@@ -134,6 +134,7 @@ type
     FDatos: TDataSet;
     FEstado: TEstadoExportacionMovVentas;
     FFila: Integer;
+    FDesplazamientoColumnas: Integer;
     FGrupoCodigos: array[1..N_NIVELES] of string;
     FGrupoEtiquetas: array[1..N_NIVELES] of string;
     FGrupoTipos: array[1..N_NIVELES] of string;
@@ -151,6 +152,7 @@ type
     FLoteIniciado: Boolean;
     FControlesDeshabilitados: Boolean;
     FHayDatos: Boolean;
+    function ColumnaExcel(AColumna: Integer): Integer;
     procedure EscribirValor(AColumna: Integer; const AValor: Variant;
       ANegrita: Boolean = False;
       AAlineacion: TAlineacionCelda = acIzquierda;
@@ -266,6 +268,9 @@ begin
   end;
   FResumenAgrupado :=
     (FNivelDetalle > 0) and (not FAgrupaPorArticulo);
+  FDesplazamientoColumnas := 0;
+  if FResumenAgrupado or not Assigned(FImagenes) then
+    FDesplazamientoColumnas := -1;
 end;
 
 destructor TExportadorMovVentasArt.Destroy;
@@ -282,21 +287,30 @@ begin
   end;
 end;
 
+function TExportadorMovVentasArt.ColumnaExcel(AColumna: Integer): Integer;
+begin
+  Result := AColumna + FDesplazamientoColumnas;
+end;
+
 procedure TExportadorMovVentasArt.EscribirValor(AColumna: Integer;
   const AValor: Variant; ANegrita: Boolean;
   AAlineacion: TAlineacionCelda; const AFormato: string);
 begin
-  if Assigned(FEscritorConFormato) then
-    FEscritorConFormato.EscribirConFormato(
-      FFila, AColumna, AValor, ANegrita, AAlineacion, AFormato)
-  else
+  AColumna := ColumnaExcel(AColumna);
+  if AColumna >= 0 then
   begin
-    FEscritor.Escribir(FFila, AColumna, AValor);
-    if ANegrita then
-      FFormateador.Negrita(FFila, AColumna);
-    FFormateador.Alinear(FFila, AColumna, AAlineacion);
-    if AFormato <> '' then
-      FFormateador.AplicarFormato(FFila, AColumna, AFormato);
+    if Assigned(FEscritorConFormato) then
+      FEscritorConFormato.EscribirConFormato(
+        FFila, AColumna, AValor, ANegrita, AAlineacion, AFormato)
+    else
+    begin
+      FEscritor.Escribir(FFila, AColumna, AValor);
+      if ANegrita then
+        FFormateador.Negrita(FFila, AColumna);
+      FFormateador.Alinear(FFila, AColumna, AAlineacion);
+      if AFormato <> '' then
+        FFormateador.AplicarFormato(FFila, AColumna, AFormato);
+    end;
   end;
 end;
 
@@ -340,17 +354,17 @@ var
 begin
   EscribirValor(COL_FOTO, '', True);
   EscribirValor(COL_ART, TituloColumnaDetalle, True);
-  for iColumna := 0 to COL_MAX do
+  for iColumna := -FDesplazamientoColumnas to COL_MAX do
   begin
     if iColumna > COL_ART then
       EscribirValor(iColumna, TITULOS[iColumna], True);
     if iColumna > COL_ART then
-      FFormateador.Alinear(FFila, iColumna, acDerecha);
-    if FEscritor.CeldaExiste(FFila, iColumna) then
+      FFormateador.Alinear(FFila, ColumnaExcel(iColumna), acDerecha);
+    if FEscritor.CeldaExiste(FFila, ColumnaExcel(iColumna)) then
     begin
-      FFormateador.FondoCelda(FFila, iColumna, CL_CABECERA);
+      FFormateador.FondoCelda(FFila, ColumnaExcel(iColumna), CL_CABECERA);
       FFormateador.BordeCelda(
-        FFila, iColumna, lbInferior, ebFino);
+        FFila, ColumnaExcel(iColumna), lbInferior, ebFino);
     end;
   end;
 end;
@@ -360,7 +374,8 @@ procedure TExportadorMovVentasArt.IncrustarFoto(
 var
   sRuta: string;
 begin
-  if Assigned(FImagenes) and (ACodigoArticulo <> '') then
+  if (FDesplazamientoColumnas = 0) and Assigned(FImagenes) and
+     (ACodigoArticulo <> '') then
   begin
     if not FRutasFoto.TryGetValue(ACodigoArticulo, sRuta) then
     begin
@@ -369,7 +384,7 @@ begin
     end;
     if sRuta <> '' then
       FImagenes.InsertarImagen(
-        FFila, COL_FOTO, sRuta, ANCHO_FOTO, ALTO_FOTO);
+        FFila, ColumnaExcel(COL_FOTO), sRuta, ANCHO_FOTO, ALTO_FOTO);
   end;
 end;
 
@@ -379,7 +394,8 @@ procedure TExportadorMovVentasArt.EscribirTotales(
 var
   iColumna: Integer;
 begin
-  if not FEscritor.CeldaExiste(FFila, COL_FOTO) then
+  if (FDesplazamientoColumnas = 0) and
+     not FEscritor.CeldaExiste(FFila, ColumnaExcel(COL_FOTO)) then
     EscribirValor(COL_FOTO, '');
   EscribirValor(COL_ART, AEtiqueta, True);
   EscribirNumero(COL_UNIENT, AAcumulado.UniEnt, FMT_NUM_HZ, False);
@@ -408,14 +424,14 @@ begin
   if AVentasUnidadesPadre <> 0 then
     EscribirNumero(COL_PCTVLAST,
       AAcumulado.UdsVta / AVentasUnidadesPadre * 100, FMT_PCT, False);
-  for iColumna := 0 to COL_MAX do
+  for iColumna := -FDesplazamientoColumnas to COL_MAX do
   begin
-    if FEscritor.CeldaExiste(FFila, iColumna) then
+    if FEscritor.CeldaExiste(FFila, ColumnaExcel(iColumna)) then
     begin
-      FFormateador.Negrita(FFila, iColumna);
-      FFormateador.FondoCelda(FFila, iColumna, AColorFondo);
+      FFormateador.Negrita(FFila, ColumnaExcel(iColumna));
+      FFormateador.FondoCelda(FFila, ColumnaExcel(iColumna), AColorFondo);
       FFormateador.BordeCelda(
-        FFila, iColumna, lbSuperior, ebFino);
+        FFila, ColumnaExcel(iColumna), lbSuperior, ebFino);
     end;
   end;
   Inc(FFila);
@@ -437,14 +453,14 @@ begin
     EscribirValor(COL_ART,
       StringOfChar(' ', (ANivel - 1) * 2) + FGrupoEtiquetas[ANivel],
       True);
-    FFormateador.TamanoFuente(FFila, COL_ART, 12);
-    for iColumna := 0 to COL_MAX do
+    FFormateador.TamanoFuente(FFila, ColumnaExcel(COL_ART), 12);
+    for iColumna := -FDesplazamientoColumnas to COL_MAX do
     begin
-      if FEscritor.CeldaExiste(FFila, iColumna) then
+      if FEscritor.CeldaExiste(FFila, ColumnaExcel(iColumna)) then
       begin
-        FFormateador.FondoCelda(FFila, iColumna, CL_GRUPO_H);
+        FFormateador.FondoCelda(FFila, ColumnaExcel(iColumna), CL_GRUPO_H);
         FFormateador.BordeCelda(
-          FFila, iColumna, lbInferior, ebFino);
+          FFila, ColumnaExcel(iColumna), lbInferior, ebFino);
       end;
     end;
     Inc(FFila);
@@ -518,12 +534,12 @@ begin
     begin
       dPorcentaje := FGrupoAcumulado[ANivel].UdsVta /
         FGrupoVentasPadre[ANivel] * 100;
-      FEscritor.Escribir(iFila, COL_PCTVLAST, dPorcentaje);
+      FEscritor.Escribir(iFila, ColumnaExcel(COL_PCTVLAST), dPorcentaje);
     end
     else
-      FEscritor.Escribir(iFila, COL_PCTVLAST, Null);
-    FFormateador.Alinear(iFila, COL_PCTVLAST, acDerecha);
-    FFormateador.AplicarFormato(iFila, COL_PCTVLAST, FMT_PCT);
+      FEscritor.Escribir(iFila, ColumnaExcel(COL_PCTVLAST), Null);
+    FFormateador.Alinear(iFila, ColumnaExcel(COL_PCTVLAST), acDerecha);
+    FFormateador.AplicarFormato(iFila, ColumnaExcel(COL_PCTVLAST), FMT_PCT);
   end;
 end;
 
@@ -727,10 +743,11 @@ procedure TExportadorMovVentasArt.ConfigurarAnchos;
 var
   iColumna: Integer;
 begin
-  FFormateador.AnchoColumna(COL_FOTO, ANCHO_FOTO + 8);
-  FFormateador.AnchoColumna(COL_ART, 240);
+  if FDesplazamientoColumnas = 0 then
+    FFormateador.AnchoColumna(COL_FOTO, ANCHO_FOTO + 8);
+  FFormateador.AnchoColumna(ColumnaExcel(COL_ART), 240);
   for iColumna := COL_UNIENT to COL_MAX do
-    FFormateador.AnchoColumna(iColumna, 72);
+    FFormateador.AnchoColumna(ColumnaExcel(iColumna), 72);
 end;
 
 procedure TExportadorMovVentasArt.LiberarRecursos;
@@ -778,10 +795,10 @@ begin
         COL_ART,
         'MOVIMIENTOS DE VENTAS POR ARTÍCULOS Y FECHAS',
         True);
-      FFormateador.TamanoFuente(FFila, COL_ART, 14);
+      FFormateador.TamanoFuente(FFila, ColumnaExcel(COL_ART), 14);
       Inc(FFila, 2);
       FFila := EscribirResumenSeleccionesHoja(
-        FEscritor, FFormateador, FFila, COL_ART, FResumen);
+        FEscritor, FFormateador, FFila, ColumnaExcel(COL_ART), FResumen);
       EscribirCabeceraColumnas;
       Inc(FFila);
       FHayDatos := (FDatos <> nil) and FDatos.Active and
@@ -822,7 +839,7 @@ begin
       EscribirTotales(FTotalAcumulado, 'TOTAL GENERAL', CL_GRUPO_H,
         FTotalAcumulado.UdsVta);
       FFormateador.BordeCelda(
-        FFila - 1, COL_ART, lbInferior, ebFino);
+        FFila - 1, ColumnaExcel(COL_ART), lbInferior, ebFino);
     end;
     ConfigurarAnchos;
   finally

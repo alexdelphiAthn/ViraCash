@@ -195,7 +195,8 @@ begin
     Anyadir('       fl.`PORCENTAJE_DTO_FACLIN`,');
     Anyadir('       fl.`PRECIO_VENTA_SIVA_ARTICULO_FACLIN`,');
     Anyadir('       fl.`PRECIO_VENTA_CIVA_ARTICULO_FACLIN`,');
-    Anyadir('       fl.`TOTAL_FAC_SIVA_FACLIN`,');
+    Anyadir('       ROUND(fl.TOTAL_FAC_SIVA_FACLIN, 2)');
+    Anyadir('         AS TOTAL_FAC_SIVA_FACLIN,');
     Anyadir('       COALESCE(fl.`TOTAL_FACLIN`, 0) +');
     Anyadir('         COALESCE(re.IMPORTE_RE, 0) AS `TOTAL_FACLIN`');
     Anyadir('  FROM `fza_facturas_lineas` fl');

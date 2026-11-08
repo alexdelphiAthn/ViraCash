@@ -50,7 +50,7 @@ uses
   cxGridDBTableView, cxGrid,
   inMtoFrmBase, Vcl.Menus, cxStyles, dxDateRanges,
   dxScrollbarAnnotations, inLibInformesCajaPersistenciaIntf,
-  inLibCajaPantallaInyeccion;
+  inLibCajaPantallaInyeccion, inLibFaseCobroPersistenciaIntf;
 
 type
   // Record con los datos del vale seleccionado que se devuelve al formulario
@@ -102,6 +102,7 @@ type
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
   private
     FDatos: TDataSet;
+    FRestriccionVales: TRestriccionCanjeVale;
     FValeSeleccionado: TValeSeleccionado;
     FRepositorioPersistencia: IRepositorioInformesCaja;
     FResultado: IResultadoInformeCaja;
@@ -112,12 +113,14 @@ type
   public
     constructor Create(
       AOwner: TComponent;
-      const ARepositorio: IRepositorioInformesCaja); reintroduce;
+      const ARepositorio: IRepositorioInformesCaja;
+      const ARestriccion: TRestriccionCanjeVale); reintroduce;
       overload;
     class function Ejecutar(
       out AValeSeleccionado: TValeSeleccionado): Boolean; overload;
     class function Ejecutar(
       const ARepositorio: IRepositorioInformesCaja;
+      const ARestriccion: TRestriccionCanjeVale;
       out AValeSeleccionado: TValeSeleccionado): Boolean; overload;
   end;
 
@@ -133,10 +136,12 @@ uses
 
 constructor TfrmMtoCajaSeleccionVale.Create(
   AOwner: TComponent;
-  const ARepositorio: IRepositorioInformesCaja);
+  const ARepositorio: IRepositorioInformesCaja;
+  const ARestriccion: TRestriccionCanjeVale);
 begin
   ValidarDependenciaCaja(ARepositorio, 'selección de vales');
   FRepositorioPersistencia := ARepositorio;
+  FRestriccionVales := ARestriccion;
   inherited Create(AOwner);
 end;
 
@@ -149,13 +154,15 @@ end;
 
 class function TfrmMtoCajaSeleccionVale.Ejecutar(
   const ARepositorio: IRepositorioInformesCaja;
+  const ARestriccion: TRestriccionCanjeVale;
   out AValeSeleccionado: TValeSeleccionado): Boolean;
 var
   Frm: TfrmMtoCajaSeleccionVale;
 begin
   ValidarDependenciaCaja(ARepositorio, 'selección de vales');
   Result := False;
-  Frm := TfrmMtoCajaSeleccionVale.Create(Application, ARepositorio);
+  Frm := TfrmMtoCajaSeleccionVale.Create(Application, ARepositorio,
+    ARestriccion);
   try
     if Frm.ShowModal = mrOk then
     begin
@@ -244,7 +251,7 @@ begin
   FDatos := nil;
   FResultado := FRepositorioPersistencia.ConsultarValesPendientes(
     AFiltro,
-    sPin);
+    sPin, FRestriccionVales);
   FDatos := FResultado.DataSet;
   dsVales.DataSet := FDatos;
   // FZ-ISSUE-380: reasignar el DataSet mueve el foco de la rejilla y

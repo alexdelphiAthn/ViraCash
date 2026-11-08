@@ -25,6 +25,12 @@ uses
   inLibParametrosIntf, inLibTicketsCajaIntf, inLibPreviewTicket,
   inLibMovimientosAlmacenAplicacion, inLibLogIntf;
 
+function TotalSinIvaAnticipoCaja(AImporte, AIva: Currency): Currency;
+function TipoFiscalFacturaCaja(const ATipo, ATipoOriginal: string): string;
+procedure CompletarTipoFiscalFacturaCaja(AConsulta: TUniQuery;
+  const AEmpresa, ASerie, ANumero, ATipo, ASerieOrigen,
+    ANumeroOrigen: string);
+
 type
   TTipoRectificativaCaja = inLibCajaTipos.TTipoRectificativaCaja;
   TTratamientoMovimientosRectificativa =
@@ -368,7 +374,7 @@ implementation
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 
 uses
-  UniDataReparacionesVentaTpv, inLibReparaciones,
+  UniDataReparacionesVentaTpv, inLibReparaciones, inLibRedondeo,
   inLibFormatoDocumento, UniDataFormatoDocumentoRepositorio,
   System.Variants, inLibTotalMaximoLinea, UniDataTotalMaximoLinea,
   UniDataValoresAutomaticosRepositorio,
@@ -403,7 +409,8 @@ uses
      inLibArqueoPersistencia,
      System.Generics.Collections,
      inLibEAN13,
-  inLibMsgPresupuestos, inLibMsgCaja, inLibMsgFacturas, inLibCajaVentaIntf;
+  inLibMsgPresupuestos, inLibMsgCaja, inLibMsgFacturas, inLibCajaVentaIntf,
+  inLibFaseCobroPersistenciaIntf;
 
 {$R *.dfm}
 
@@ -2590,6 +2597,8 @@ var
 begin
   if FRequiereFactura then
   begin
+    CompletarTipoFiscalFacturaCaja(FQuery, FEmpresa, FSerieGenerada,
+      FNumeroFactura, FTipoFactura, FSerieRectificada, FNumeroRectificado);
     if SameText(FTipoFactura, 'RECTIFICATIVA') then
     begin
       if (Trim(FSerieRectificada) = '') or
@@ -2708,7 +2717,11 @@ begin
           FDatosCobro.ValesRecogidos[iVale].CodigoVale,
           FEmpresa, FAlmacen, FCaja, FNumeroOperacion,
           FSerieGenerada, FNumeroFactura,
-          FDatosCobro.ValesRecogidos[iVale].ImporteAplicado);
+          FDatosCobro.ValesRecogidos[iVale].ImporteAplicado,
+          TRestriccionCanjeVale.Crear(
+            FDataModule.FParametrosCaja.GetString(
+              'vgerAmbitoCanjeVale', 'TODOS'),
+            FEmpresa, FAlmacen, FCaja));
       end;
     end;
   end;
@@ -3931,6 +3944,64 @@ begin
   ConfigurarEstructuraLineas;
 end;
 
+function TotalSinIvaAnticipoCaja(AImporte, AIva: Currency): Currency;
+begin
+  Result := RedondearACentimos(AImporte / (1 + AIva / 100));
+end;
+
+function TipoFiscalFacturaCaja(const ATipo, ATipoOriginal: string): string;
+begin
+  Result := '';
+  if SameText(ATipo, 'SIMPLIFICADA') then Result := 'F2';
+  if SameText(ATipo, 'NORMAL') then Result := 'F1';
+  if SameText(ATipo, 'RECTIFICATIVA') then
+  begin
+    if Trim(ATipoOriginal) = '' then
+      raise EArgumentException.Create('Falta la factura rectificada');
+    if SameText(ATipoOriginal, 'SIMPLIFICADA') then Result := 'R5'
+    else Result := 'R1';
+  end;
+  if Result = '' then
+    raise EArgumentException.Create('Tipo de factura de caja desconocido');
+end;
+
+procedure CompletarTipoFiscalFacturaCaja(AConsulta: TUniQuery;
+  const AEmpresa, ASerie, ANumero, ATipo, ASerieOrigen,
+    ANumeroOrigen: string);
+var
+  TipoOriginal, TipoFiscal: string;
+begin
+  TipoOriginal := '';
+  if SameText(ATipo, 'RECTIFICATIVA') then
+  begin
+    AConsulta.Close;
+    AConsulta.SQL.Text := 'SELECT TIPO_FAC, TIPO_FACTURA_VERIFACTU_FAC ' +
+      'FROM fza_facturas WHERE CODIGO_EMP_FAC=:EMP ' +
+      'AND SERIE_FAC=:SER AND NUMERO_FAC=:NUM';
+    AConsulta.ParamByName('EMP').AsString := AEmpresa;
+    AConsulta.ParamByName('SER').AsString := ASerieOrigen;
+    AConsulta.ParamByName('NUM').AsString := ANumeroOrigen;
+    AConsulta.Open;
+    if not AConsulta.IsEmpty then
+    begin
+      TipoOriginal := AConsulta.FieldByName('TIPO_FAC').AsString;
+      if AConsulta.FieldByName('TIPO_FACTURA_VERIFACTU_FAC').AsString = 'R5' then
+        TipoOriginal := 'SIMPLIFICADA';
+    end;
+  end;
+  TipoFiscal := TipoFiscalFacturaCaja(ATipo, TipoOriginal);
+  AConsulta.Close;
+  AConsulta.SQL.Text := 'UPDATE fza_facturas ' +
+    'SET TIPO_FACTURA_VERIFACTU_FAC=:TIPO ' +
+    'WHERE CODIGO_EMP_FAC=:EMP AND SERIE_FAC=:SER AND NUMERO_FAC=:NUM ' +
+    'AND NULLIF(TRIM(TIPO_FACTURA_VERIFACTU_FAC), '''') IS NULL';
+  AConsulta.ParamByName('TIPO').AsString := TipoFiscal;
+  AConsulta.ParamByName('EMP').AsString := AEmpresa;
+  AConsulta.ParamByName('SER').AsString := ASerie;
+  AConsulta.ParamByName('NUM').AsString := ANumero;
+  AConsulta.Execute;
+end;
+
 procedure ConfigurarSqlInsertarCabeceraFacturaCaja(AConsulta: TUniQuery);
 begin
   AConsulta.SQL.Text :=
@@ -4262,7 +4333,12 @@ begin
   QryTrx.ParamByName('PRECCIVA').AsCurrency := APrecioCIva;
   QryTrx.ParamByName('TIPOIVA').AsString  := ATipoIva;
   QryTrx.ParamByName('PORCIVA').AsFloat   := APorcIva;
-  QryTrx.ParamByName('TOTALSIVA').AsCurrency := ATotalSIva;
+  // FZ-ISSUE-876: tambien los anticipos del cierre parcial.
+  if SameText(AArticulo, 'ANTICIPO') then
+    QryTrx.ParamByName('TOTALSIVA').AsCurrency :=
+      RedondearACentimos(ATotalSIva)
+  else
+    QryTrx.ParamByName('TOTALSIVA').AsCurrency := ATotalSIva;
   QryTrx.ParamByName('TOTALCIVA').AsCurrency := ATotalCIva;
   QryTrx.ParamByName('VENDEDOR').AsString := AVendedor;
   QryTrx.ParamByName('ALM').AsString      := AAlmacen;

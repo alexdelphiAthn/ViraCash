@@ -31,6 +31,7 @@ type
     Importes: array[0..3] of Currency;
     Compatibilidad: TCompatibilidadCantidadBalance;
     Pendiente: Double;
+    CompatibilidadPendiente: TCompatibilidadCantidadBalance;
     CosteSalidas: Currency;
     TieneComplementos: Boolean;
   end;
@@ -120,6 +121,8 @@ begin
       if AOrigen.FindField('PTE_RECIBIR_RESUMEN') <> nil then
       begin
         oTotal.TieneComplementos := True;
+        if AOrigen.FieldByName('PTE_RECIBIR_RESUMEN').AsFloat <> 0 then
+          oTotal.CompatibilidadPendiente.Agregar(AUnidad);
         oTotal.Pendiente := oTotal.Pendiente +
           AOrigen.FieldByName('PTE_RECIBIR_RESUMEN').AsFloat;
         oTotal.CosteSalidas := oTotal.CosteSalidas +
@@ -150,7 +153,7 @@ begin
       ATotal.Importes[3] / ATotal.Cantidades[3];
   if ATotal.TieneComplementos then
   begin
-    if ATotal.Compatibilidad.Sumable then
+    if ATotal.CompatibilidadPendiente.Sumable then
       ADatos.FieldByName('PTE_RECIBIR').AsFloat := ATotal.Pendiente;
     ADatos.FieldByName('COSTE_SALIDAS').AsCurrency := ATotal.CosteSalidas;
     ADatos.FieldByName('RESULTADO').AsCurrency :=

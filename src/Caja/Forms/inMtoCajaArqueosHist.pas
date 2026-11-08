@@ -117,6 +117,7 @@ procedure TfrmMtoCajaArqueosHist.CrearTablaPrincipal;
 begin
   inherited;
   dmmCajaArqueosHist := tdmDataModule as TdmCajaArqueosHist;
+  dmmCajaArqueosHist.AplicarRestriccionUsuario(SqlRestriccionUsuario);
   pkFieldName := 'CODIGO_ARQ';
   cxGrdDBTabPrinFASE_ARQ.OnGetDisplayText := FaseGetDisplayText;
 end;

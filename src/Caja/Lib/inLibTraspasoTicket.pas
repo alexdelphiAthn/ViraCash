@@ -98,7 +98,7 @@ type
       const APreview: IPreviewTicket;
       ATicket: TTicketTermico;
       const ASerie, ANumero, AImpresora: string;
-      AEsReposicion, ADuplicado: Boolean);
+      AEsReposicion, ADuplicado: Boolean; AFecha: TDateTime);
   public
     // Imprime/previsualiza el ticket de una solicitud de traspaso ya grabada.
     class procedure ImprimirSolicitud(
@@ -149,7 +149,7 @@ implementation
 
 uses
   inLibMsgCaja,
-  System.Math,
+  System.Math, System.DateUtils,
   inLibFormatoDocumento, inLibMsgTickets;
 
 function UnidadLineaTicketDesconocida: TUnidadLineaTicketTraspaso;
@@ -474,7 +474,7 @@ begin
     if ACabecera.InstanteVentasHasta > 0 then
       sVentasHasta := FormatDateTime(
         'dd/mm/yyyy hh:nn',
-        ACabecera.InstanteVentasHasta);
+        IncSecond(ACabecera.InstanteVentasHasta, -1));
     ATicket.TextoColumnas(
       STicketVentasDesde,
       sVentasDesde);
@@ -578,13 +578,13 @@ class procedure TTraspasoTicket.CerrarSolicitud(
   const APreview: IPreviewTicket;
   ATicket: TTicketTermico;
   const ASerie, ANumero, AImpresora: string;
-  AEsReposicion, ADuplicado: Boolean);
+  AEsReposicion, ADuplicado: Boolean; AFecha: TDateTime);
 var
   ComandosESC, RutaPDF, sPrefijoPDF: string;
 begin
   ATicket.LineaSeparadora('-');
   ATicket.Alinear(alCentro);
-  ATicket.EscribirLinea(FormatDateTime('dd/mm/yyyy hh:nn:ss', Now));
+  ATicket.EscribirLinea(FormatDateTime('dd/mm/yyyy hh:nn:ss', AFecha));
   ATicket.SaltarLineas(2);
   ATicket.CortarPapel;
   // Vista previa (DEBUG) o impresion real
@@ -658,7 +658,8 @@ begin
           ANumero,
           sImpresora,
           bEsReposicion,
-          ADuplicado);
+          ADuplicado,
+          Cabecera.Fecha);
       finally
         FreeAndNil(Ticket);
       end;
@@ -676,12 +677,18 @@ class procedure TTraspasoTicket.ImprimirTraspaso(
                                    const ANombreImpresora: string);
 var
   Ticket: TTicketTermico;
+  Cabecera: TTraspasoTicketHistorico;
   ComandosESC, RutaPDF, sImpresora, sRefArch, sSku: string;
   dPed, dOrg, dDes: Double;
   bm: TBookmark;
 begin
   if Assigned(ARepositorio) and Assigned(ALineas) then
   begin
+    // FZ-ISSUE-881: cabecera y pie usan el instante persistido.
+    Cabecera := ARepositorio.ObtenerTraspasoHistorico(
+      AEmpresa, AOrigen, ACaja, ADocRef);
+    if Cabecera.Existe then
+      AFecha := Cabecera.Fecha;
     sImpresora := ANombreImpresora;
     if Trim(sImpresora) = '' then
       sImpresora := 'DEBUG';

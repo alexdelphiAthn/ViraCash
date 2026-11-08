@@ -1,0 +1,115 @@
+﻿{
+  "fecha": "2026-11-08T21:16:30.806367+01:00",
+  "rama": "analisis/spfe-fase1",
+  "compilador": "dcc64/dcc32 37.0, DCU RTL/DUnitX suministradas",
+  "archivos": [
+    {
+      "archivo": "src/Spfe/inSpfeMensajes.pas",
+      "sha256": "50d869207795dfcc7f69ffc4d2d313624f6ac945b7f8e562a4627ebe23f396d2"
+    },
+    {
+      "archivo": "src/Spfe/inSpfeReglasEn.inc",
+      "sha256": "af1d549ed982ba1bd40b91de8c9980a49553c7d02eea5e989f6b37a3e4b103d6"
+    },
+    {
+      "archivo": "src/Spfe/inSpfeReglasEn.pas",
+      "sha256": "4c542b4c6ee282a4a6a732b788f25253182e706ee68f36181eff39fe0718cf64"
+    },
+    {
+      "archivo": "src/Spfe/inSpfeValidadorEn.pas",
+      "sha256": "8ca43947a190d33af371f42213c9476e69c433d7e55e0c5832392f298496631a"
+    },
+    {
+      "archivo": "src/Spfe/inSpfeXmlNativo.pas",
+      "sha256": "8d55bfc632972686e7717339dcbc19904ea67c1745e4b1be75f278ff4a5f975d"
+    },
+    {
+      "archivo": "src/Spfe/inSpfeXPathEvaluador.pas",
+      "sha256": "151bcc7d7e31506b37e16917b370547f0b63922a7cb6f8f4d0a5fae382f2243c"
+    },
+    {
+      "archivo": "src/Spfe/inSpfeXPathFunciones.pas",
+      "sha256": "7c12d6f8d468c81674bf407c7698b177aa4ee80a8f5e64a44189122ba65d08fc"
+    },
+    {
+      "archivo": "src/Spfe/inSpfeXPathOperaciones.pas",
+      "sha256": "46fad1f50ff19168aed514fd76fb0594c5202886e190bb5b02b993e990f085a0"
+    },
+    {
+      "archivo": "src/Spfe/inSpfeXPathSeleccion.pas",
+      "sha256": "44b4040bd9f273462d82d423e0ff0722d61ece32b8d87ed38b2362addf581797"
+    },
+    {
+      "archivo": "src/Spfe/inSpfeXPathTipos.pas",
+      "sha256": "7c94657ad28bb3ccd2fa620ebd175d7ed512d1956cee23759b0c57a03a61ef22"
+    },
+    {
+      "archivo": "src/Spfe/LICENSE_EN16931.txt",
+      "sha256": "281eed0c9d46e36be532978deb16e6351025c6ff32d97fe24e8cb190e4e0d923"
+    }
+  ],
+  "extraccion_reproducible": true,
+  "fuentes_oficiales_intactas": 27,
+  "catalogo_asertos": 982,
+  "contextos": 104,
+  "instrucciones_compartidas": 3576,
+  "resultados": {
+    "WIN64": {
+      "casos": 2263,
+      "comparables": 1656,
+      "error_conversion_referencia": 607,
+      "discrepancias": 0,
+      "dunitx": {
+        "encontrados": 20,
+        "correctos": 20,
+        "fallidos": 0,
+        "errores": 0,
+        "ignorados": 0,
+        "fugas_reportadas": 0
+      },
+      "ejecutable_sha256": "d3b8667125ebe8f0f67d3d049cce2652018a59ae60d043e1c2ce5c866772db1a",
+      "ejemplos_oficiales_ms": {
+        "min": 19,
+        "mediana": 28,
+        "max": 172
+      }
+    },
+    "WIN32": {
+      "casos": 2263,
+      "comparables": 1656,
+      "error_conversion_referencia": 607,
+      "discrepancias": 0,
+      "dunitx": {
+        "encontrados": 20,
+        "correctos": 20,
+        "fallidos": 0,
+        "errores": 0,
+        "ignorados": 0,
+        "fugas_reportadas": 0
+      },
+      "ejecutable_sha256": "c07dd51d0bf5327e78fcb33afb4f76091cf9f24dd2f4a232f396d0ffb3d36ef2",
+      "ejemplos_oficiales_ms": {
+        "min": 18,
+        "mediana": 26,
+        "max": 176
+      }
+    }
+  },
+  "nota_tiempos": "Bateria de desarrollo en paralelo, no benchmark del servidor ni de emision.",
+  "sin_dependencias_runtime_anadidas": true,
+  "componentes_integrados_en_aplicacion": false,
+  "cobertura_semantica_2026_completa": false,
+  "pendiente": [
+    "Revision del componente y limites",
+    "XSD nativo UBL 2.5 y reglas BOE/SPFE",
+    "Normas UNE 2026 y matriz de aplicabilidad",
+    "Generador UBL y rectificativas SPFE",
+    "Cola, coordinacion y medicion en dos nucleos"
+  ],
+  "limpieza_temporal": {
+    "estado": "bloqueada_por_politica_automatica",
+    "ruta": "C:\\DISCO_DURO\\proyectos\\factuzam_web\\tmp\\spfe-nativo",
+    "motivo_devuelto": "blocked by policy",
+    "distribuir_en_clientes": false
+  }
+}

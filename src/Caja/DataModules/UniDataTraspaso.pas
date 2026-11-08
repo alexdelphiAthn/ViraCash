@@ -140,6 +140,7 @@ type
     // FZ-ISSUE-324: unidad de medida por artículo (cache de la sesión)
     FUnidadesArticulo: TDictionary<string, TUnidadLineaTicketTraspaso>;
     FConsultaUnidad: TUniQuery;
+    procedure ActualizarHoraOperacion;
     procedure CompletarUnidadLinea;
     function GetIdentidadSesion: TIdentidadSesion;
     function LotesLineasActivos: Boolean;
@@ -985,6 +986,20 @@ begin
   cdsCabecera.FieldByName('FECHA').AsDateTime := AFecha;
   cdsCabecera.FieldByName('CONTADOR_LINEAS').AsInteger := 0;
   cdsCabecera.FieldByName('TOTAL').AsCurrency := 0;
+  cdsCabecera.Post;
+end;
+
+procedure TdmTraspaso.ActualizarHoraOperacion;
+var
+  dtFechaCaja, dtAhora: TDateTime;
+begin
+  // FZ-ISSUE-881: cada emision conserva el dia de caja y toma su hora.
+  dtFechaCaja := cdsCabecera.FieldByName('FECHA').AsDateTime;
+  dtAhora := Now;
+  if dtFechaCaja > 0 then
+    dtAhora := Trunc(dtFechaCaja) + Frac(dtAhora);
+  cdsCabecera.Edit;
+  cdsCabecera.FieldByName('FECHA').AsDateTime := dtAhora;
   cdsCabecera.Post;
 end;
 
@@ -3349,6 +3364,7 @@ function TdmTraspaso.GrabarTraspaso(const AAlmacenDestino: string;
 var
   oContexto: TContextoGrabacionTraspaso;
 begin
+  ActualizarHoraOperacion;
   LimpiarLineasIncompletas;
   if cdsLineas.IsEmpty then
     raise EValidacionTraspaso.Create(SErrorLineasTraspasoNoDisponibles);
@@ -3520,6 +3536,7 @@ var
   oConsulta: TUniQuery;
   sAlmacenDestino: string;
 begin
+  ActualizarHoraOperacion;
   ValidarLineasReposicionAuto;
   if ADesde >= AHasta then
     raise EValidacionTraspaso.Create(
@@ -3572,6 +3589,7 @@ var
   sEmpleado: string;
   iLinea: Integer;
 begin
+  ActualizarHoraOperacion;
   // Quita la linea en blanco y la fantasma antes de grabar la solicitud.
   LimpiarLineasIncompletas;
   if cdsLineas.IsEmpty then
@@ -3757,14 +3775,16 @@ begin
     '       S.CODIGO_ALM_DESTINO_TRSOL,' +
     '       S.CODIGO_ALM_ORIGEN_TRSOL, S.TIPO_TRSOL,' +
     '       S.ESTADO_TRSOL,' +
-    '       CASE WHEN S.TIPO_TRSOL = ''AUTO'' THEN 0 ELSE' +
     '       (SELECT COUNT(*) FROM fza_traspasos_solicitudes_lineas L' +
     '         WHERE L.NUMERO_TRSOL_TRSOLLIN = S.NUMERO_TRSOL' +
     '           AND L.SERIE_TRSOL_TRSOLLIN = S.SERIE_TRSOL' +
-    '           AND COALESCE(L.ESATENDIDA_TRSOLLIN, ''N'') <> ''S''' +
+    '           AND ((S.TIPO_TRSOL = ''AUTO'' AND' +
+    '             L.CANTIDAD_PEDIDA_TRSOLLIN >' +
+    '               COALESCE(L.CANTIDAD_SERVIDA_TRSOLLIN, 0)) OR' +
+    '             (S.TIPO_TRSOL <> ''AUTO'' AND' +
+    '               COALESCE(L.ESATENDIDA_TRSOLLIN, ''N'') <> ''S''))' +
     '           AND NULLIF(TRIM(' +
     '               L.MOTIVO_RECHAZO_TRSOLLIN), '''') IS NULL)' +
-    '       END' +
     '         AS LINEAS_PEND_TRSOL' +
     '  FROM fza_traspasos_solicitudes S' +
     ' WHERE S.CODIGO_ALM_DESTINO_TRSOL = :PROPIO' +

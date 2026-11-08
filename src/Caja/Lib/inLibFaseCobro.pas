@@ -109,6 +109,7 @@ type
   TDatosFaseCobro = class
   private
     FRepositorio: IRepositorioFaseCobro;
+    FRestriccionVales: TRestriccionCanjeVale;
     FTotalesFactura: TFacturaTotales;
     FDatosCliente: TDatosCliente;
     FMemTablePagos: TVirtualTable;
@@ -248,6 +249,8 @@ type
                                    read FOnRequiereReferencia
                                    write FOnRequiereReferencia;
     property MemTablePagos: TVirtualTable read FMemTablePagos;
+    property RestriccionVales: TRestriccionCanjeVale
+      read FRestriccionVales write FRestriccionVales;
     property ValesRecogidos: TList<TValeAplicado> read FValesRecogidos;
     property TotalesFactura:TFacturaTotales read FTotalesFactura;
   end;
@@ -915,7 +918,7 @@ end;
 function TDatosFaseCobro.ValidarVale: TResultadoValidacion;
 var
   Bookmark: TBookmark;
-  CodigoVale: string;
+  CodigoVale, MensajeVale: string;
 begin
   Result := TResultadoValidacion.OK;
   if Assigned(FMemTablePagos) and
@@ -934,10 +937,11 @@ begin
              'IMPORTE_ENTREGADO').AsCurrency <> 0) then
         begin
           CodigoVale := FMemTablePagos.FieldByName('REFERENCIA').AsString;
-          if not FRepositorio.ExisteValePendiente(CodigoVale) then
+          if not FRepositorio.ExisteValePendiente(
+            CodigoVale, FRestriccionVales, MensajeVale) then
           begin
             Result := TResultadoValidacion.Error(
-              Format(SErrorValeNoDisponible, [CodigoVale]));
+              MensajeVale);
             Break;
           end;
         end;
