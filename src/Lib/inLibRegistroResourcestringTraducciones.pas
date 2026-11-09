@@ -13,6 +13,7 @@ procedure EnumerarResourcestringsTraduccion(
 implementation
 
 uses
+  inLibMsgInformesCliente,
   inLibCambiosTrabajo,
   inLibMsgMedidasCliente,
   inLibMsgRetiradaLotes,
@@ -6415,6 +6416,270 @@ end;
 procedure EnumerarResourcestringsTraduccion(
   const ARegistrar: TRegistrarResourcestringTraduccion);
 begin
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeTemporadaP1',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeTemporadaP1);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeTemporadaP2',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeTemporadaP2);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeHojaDatos',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeHojaDatos);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeHojaSeleccion',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeHojaSeleccion);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeFechasAmbosPeriodos',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeFechasAmbosPeriodos);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeFechasInvertidas',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeFechasInvertidas);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformePeriodoMaximo',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformePeriodoMaximo);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeFaltaEmpresa',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeFaltaEmpresa);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeSinImpuestos',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeSinImpuestos);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeConImpuestos',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeConImpuestos);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeIngresosCaja',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeIngresosCaja);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeSegundoDesdeHasta',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeSegundoDesdeHasta);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeAnioAnterior',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeAnioAnterior);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeAyudaComparacion',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeAyudaComparacion);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeAyudaCaja',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeAyudaCaja);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeComparativa',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeComparativa);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeIndicarSegundo',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeIndicarSegundo);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeTituloComparativa',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeTituloComparativa);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeSegundoPeriodo',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeSegundoPeriodo);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeEmpresa',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeEmpresa);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeCriterio',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeCriterio);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeComparacion',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeComparacion);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeDiasPosicion',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeDiasPosicion);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeVariacion',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeVariacion);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeFormulaVariacion',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeFormulaVariacion);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeAlcanceCaja',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeAlcanceCaja);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeCobrosNetos',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeCobrosNetos);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeFechaActual',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeFechaActual);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeFechaAnterior',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeFechaAnterior);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeVenta',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeVenta);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeVentaAcumulada',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeVentaAcumulada);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeUnidades',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeUnidades);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeUnidadesAcumuladas',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeUnidadesAcumuladas);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeVentaAnterior',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeVentaAnterior);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeVentaAcumuladaAnterior',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeVentaAcumuladaAnterior);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeUnidadesAnterior',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeUnidadesAnterior);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeUnidadesAcumuladasAnterior',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeUnidadesAcumuladasAnterior);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeVariacionVenta',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeVariacionVenta);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeVariacionUnidades',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeVariacionUnidades);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeTotal',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeTotal);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeTotalGeneral',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeTotalGeneral);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeAgrupacionTotal',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeAgrupacionTotal);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeInicialUnidades',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeInicialUnidades);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeInicialImporte',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeInicialImporte);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformePendienteRecibir',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformePendienteRecibir);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeCosteSalidas',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeCosteSalidas);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeResultado',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeResultado);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeCriterioComplementos',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeCriterioComplementos);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeEntradasUnidades',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeEntradasUnidades);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeEntradasImporte',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeEntradasImporte);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeVentasUnidades',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeVentasUnidades);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeVentasImporte',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeVentasImporte);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeFinalUnidades',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeFinalUnidades);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeFinalImporte',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeFinalImporte);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeFinalPrecio',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeFinalPrecio);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeAviso',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeAviso);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformePaginas',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformePaginas);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeRankingProveedor',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeRankingProveedor);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeRankingFamilia',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeRankingFamilia);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeResumenColumnas',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeResumenColumnas);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeTituloResumenBalance',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeTituloResumenBalance);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformePresentacion',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformePresentacion);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeMagnitudes',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeMagnitudes);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeMagnitudesBalance',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeMagnitudesBalance);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeMedidas',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeMedidas);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeMedidasIncompatibles',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeMedidasIncompatibles);
   RegistrarTextosPublicacion20261106(ARegistrar);
   RegistrarTextosBarrasSesion(ARegistrar);
   RegistrarCambiosTrabajo(ARegistrar);
