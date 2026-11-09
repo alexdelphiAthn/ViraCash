@@ -18,6 +18,9 @@
 *.dsv
 *.local
 vcash.res
+HuellaEsquema.res
+IconosMenu.res
+fondo.res
 *.identcache
 *.tvsconfig
 *.stat
