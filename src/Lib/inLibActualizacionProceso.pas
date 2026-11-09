@@ -137,6 +137,8 @@ function CompararBaseConModeloPublicado(
 function AplicarScriptsPendientesActualizacion(
   AConexion: TUniConnection;
   const AInteraccion: TInteraccionActualizacion): TResultadoActualizacion;
+function RevalidarScriptsPendientesActualizacion(AConexion: TUniConnection;
+  var AEstado: TEstadoActualizacion; out AError: string): Boolean;
 function RevertirActualizacion(
   const AContexto: TContextoActualizacion;
   const AInteraccion: TInteraccionActualizacion): TResultadoActualizacion;
@@ -1082,9 +1084,7 @@ begin
   else if not AInteraccion.SolicitarCopiaPrevia(AEstado.RutaCopiaPrevia) then
   begin
     AResultado.Cancelado := True;
-    AResultado.Mensaje := MensajeScriptsSinAplicar(
-      False,
-      Length(AEstado.Pendientes));
+    AResultado.Mensaje := SInfoActualizacionSinCopiaPrevia;
   end
   else
   begin
@@ -1202,18 +1202,27 @@ var
   bCancelado: Boolean;
   bDescargados: Boolean;
   Estado: TEstadoActualizacion;
+  sAvisoVersion: string;
   sError: string;
   sRutaComprobacion: string;
   Ventana: IVentanaEspera;
 begin
   Result := Default(TResultadoActualizacion);
   Result.Version := AManifiesto.Version;
+  sAvisoVersion := '';
+  if VersionAplicacionEsMayor(
+       AContexto.VersionInstalada, AManifiesto.Version) then
+    sAvisoVersion := Format(SAvisoVersionInstaladaSuperior,
+      [AContexto.VersionInstalada, AManifiesto.Version]);
   if not AManifiesto.Comprobacion.Declarada then
   begin
     Result.Ok := True;
-    Result.Mensaje := Format(
-      SInfoVersionInstaladaAlDia,
-      [AContexto.VersionInstalada]);
+    if sAvisoVersion <> '' then
+      Result.Mensaje := sAvisoVersion
+    else
+      Result.Mensaje := Format(
+        SInfoVersionInstaladaAlDia,
+        [AContexto.VersionInstalada]);
   end
   else
   begin
@@ -1237,9 +1246,13 @@ begin
       else if Length(aFaltantes) = 0 then
       begin
         Result.Ok := True;
-        Result.Mensaje := Format(
-          SInfoVersionAlDiaSinScripts,
-          [AContexto.VersionInstalada]);
+        if sAvisoVersion <> '' then
+          Result.Mensaje := sAvisoVersion + sLineBreak + sLineBreak +
+            SInfoSinScriptsPendientes
+        else
+          Result.Mensaje := Format(
+            SInfoVersionAlDiaSinScripts,
+            [AContexto.VersionInstalada]);
       end
       else
       begin
@@ -1271,6 +1284,10 @@ begin
         Estado,
         Result);
   end;
+  if (sAvisoVersion <> '') and
+     (Pos(sAvisoVersion, Result.Mensaje) = 0) then
+    Result.Mensaje := sAvisoVersion + sLineBreak + sLineBreak +
+      Result.Mensaje;
 end;
 
 // Todo lo que hay que tener en disco antes de tocar ningún ejecutable: la
@@ -1433,6 +1450,12 @@ begin
             Result.Cancelado := bCancelado;
             Result.Mensaje := sError;
             Result.RequiereSalir := True;
+          end
+          else if Decision <> dsaAplazar then
+          begin
+            Result.Cancelado := True;
+            Result.Mensaje := SInfoActualizacionSinCopiaPrevia;
+            Result.RequiereSalir := True;
           end;
           if Estado.HayScriptsPendientes then
             Estado.Estado := cEstadoActualizacionPendiente;
@@ -1486,6 +1509,57 @@ begin
     end;
 end;
 
+function RevalidarScriptsPendientesActualizacion(AConexion: TUniConnection;
+  var AEstado: TEstadoActualizacion; out AError: string): Boolean;
+var
+  oConsulta: IConsultaScriptsFaltantes;
+  aFaltantes: TArray<TScriptFaltante>;
+  aPendientes: TArray<TScriptPendienteActualizacion>;
+  Pendiente: TScriptPendienteActualizacion;
+  sAplicado: string;
+  sSql, sError: string;
+  bFalta, bOk: Boolean;
+begin
+  Result := True;
+  AError := '';
+  if AEstado.HayScriptsPendientes and
+     AEstado.CorrespondeABase(AConexion.Server, AConexion.Port,
+       AConexion.Database) and TFile.Exists(AEstado.RutaComprobacion) then
+  begin
+    sSql := LeerTextoScriptSql(AEstado.RutaComprobacion);
+    oConsulta := CrearConsultaScriptsFaltantes(AConexion, sSql);
+    bOk := False;
+    EsperarEnSuHilo(
+      procedure
+      begin
+        bOk := oConsulta.Ejecutar(aFaltantes, sError);
+      end, nil);
+    Result := bOk;
+    if Result then
+    begin
+      for Pendiente in AEstado.Pendientes do
+      begin
+        // Solo retirar lo confirmado: conservar desconocidos y los que
+        // el comprobador declare NO VERIFICABLE.
+        bFalta := True;
+        for sAplicado in oConsulta.Aplicados do
+          if SameText(sAplicado, Pendiente.Nombre) then
+            bFalta := False;
+        if bFalta then
+          aPendientes := aPendientes + [Pendiente];
+      end;
+      if Length(aPendientes) <> Length(AEstado.Pendientes) then
+      begin
+        AEstado.Pendientes := aPendientes;
+        if not AEstado.HayScriptsPendientes then
+          AEstado.Estado := cEstadoActualizacionCompletada;
+        Result := GuardarEstadoActualizacion(AEstado, sError);
+      end;
+    end;
+    AError := sError;
+  end;
+end;
+
 function AplicarScriptsPendientesActualizacion(
   AConexion: TUniConnection;
   const AInteraccion: TInteraccionActualizacion): TResultadoActualizacion;
@@ -1498,6 +1572,9 @@ begin
   if not AInteraccion.Completa then
     raise EArgumentException.Create(SErrorInteraccionActualizacionIncompleta);
   Estado := LeerEstadoActualizacion;
+  if not RevalidarScriptsPendientesActualizacion(AConexion, Estado,
+    sError) then
+    raise Exception.Create(sError);
   Result.Version := Estado.VersionDestino;
   if not Estado.Existe or not Estado.HayScriptsPendientes then
   begin
@@ -1511,6 +1588,7 @@ begin
   begin
     Result.Ok := True;
     Result.Cancelado := True;
+    Result.Mensaje := SInfoActualizacionSinCopiaPrevia;
   end
   else
   begin

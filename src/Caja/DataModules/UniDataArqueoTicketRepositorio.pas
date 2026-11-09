@@ -112,6 +112,7 @@ begin
     'AND o.CODIGO_CAJA_OPCAJA = :pCAJA ' +
     'AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
+    SqlExcluirOperacionesArqueadasAntes +
     SqlExcluirLiquidacionDepositoArqueo +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
@@ -135,6 +136,7 @@ begin
     'AND p.CODIGO_CAJA_PAGO = :pCAJA ' +
     'AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
+    SqlExcluirOperacionesArqueadasAntes +
     'AND o.TIPO_OPERACION_OPCAJA = :pTIPO_DV ' +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
@@ -214,6 +216,7 @@ begin
     'AND o.CODIGO_CAJA_OPCAJA = :pCAJA ' +
     'AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
+    SqlExcluirOperacionesArqueadasAntes +
     SqlExcluirLiquidacionDepositoArqueo +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
@@ -245,6 +248,7 @@ begin
     'AND o.CODIGO_CAJA_OPCAJA = :pCAJA ' +
     'AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
+    SqlExcluirOperacionesArqueadasAntes +
     SqlExcluirLiquidacionDepositoArqueo +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
@@ -269,6 +273,7 @@ begin
     'AND o.CODIGO_CAJA_OPCAJA = :pCAJA ' +
     'AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
+    SqlExcluirOperacionesArqueadasAntes +
     SqlExcluirLiquidacionDepositoArqueo +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
@@ -301,6 +306,7 @@ begin
     'AND p.CODIGO_CAJA_PAGO = :pCAJA ' +
     'AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
+    SqlExcluirOperacionesArqueadasAntes +
     'AND o.TIPO_OPERACION_OPCAJA NOT IN (:pTIPO_EC, :pTIPO_GC) ' +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
@@ -330,6 +336,7 @@ begin
     'AND o.CODIGO_CAJA_OPCAJA = :pCAJA ' +
     'AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
+    SqlExcluirOperacionesArqueadasAntes +
     SqlExcluirLiquidacionDepositoArqueo +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',

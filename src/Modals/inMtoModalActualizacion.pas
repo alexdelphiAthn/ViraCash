@@ -61,6 +61,7 @@ type
     FIniciado: Boolean;
     FModo: TModoPantallaActualizacion;
     FProcesando: Boolean;
+    FDespachando: Boolean;
     FResultado: TResultadoActualizacion;
     FSolicitarCopiaPrevia: TSolicitarCopiaPreviaActualizacion;
     FAlArrancar: Boolean;
@@ -213,7 +214,6 @@ begin
   else
     prgProceso.Position := APorcentaje;
   Update;
-  Application.ProcessMessages;
 end;
 
 function TfrmModalActualizacion.ConfirmarInstalacion(
@@ -673,7 +673,7 @@ begin
       mpaRevertir:
         FResultado := RevertirActualizacion(FContexto, Interaccion);
     end;
-    if FResultado.Ok then
+    if FResultado.Ok and not FResultado.Cancelado then
       Progreso(SInfoProcesoActualizacionTerminado, 100);
   except
     on E: Exception do
@@ -713,7 +713,15 @@ end;
 procedure TfrmModalActualizacion.MensajeEjecutarActualizacion(
   var AMensaje: TMessage);
 begin
-  EjecutarProceso;
+  if not FDespachando then
+  begin
+    FDespachando := True;
+    try
+      EjecutarProceso;
+    finally
+      FDespachando := False;
+    end;
+  end;
 end;
 
 // Minimizar esta pantalla minimiza el programa entero: la copia previa

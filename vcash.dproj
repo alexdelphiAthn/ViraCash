@@ -231,6 +231,7 @@
         <DCCReference Include="src\Lib\inLibDevExp.pas"/>
         <DCCReference Include="src\Lib\inLibComboPais.pas"/>
         <DCCReference Include="src\Lib\inLibFuenteFastReport.pas"/>
+        <DCCReference Include="src\Lib\inLibFuenteInterfaz.pas"/>
         <DCCReference Include="src\Lib\inLibTipoCantidad.pas"/>
         <DCCReference Include="src\Lib\inLibCalculadoraVcl.pas"/>
         <DCCReference Include="src\Lib\inLibHojaCalculoIntf.pas"/>

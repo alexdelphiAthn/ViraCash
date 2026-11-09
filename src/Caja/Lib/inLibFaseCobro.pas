@@ -132,7 +132,6 @@ type
     FImporteValeEmitido: Currency;
     FImporteDevueltoDeMas: Currency;
     FImporteValeObligatorio: Currency;
-    FImporteYaCobrado: Currency;
     FCodigoValePadre: string;
     FImporteValesFijos: Currency;
     FHayCliente: Boolean;
@@ -230,9 +229,6 @@ type
     property PinValeEmitido: string read FPinValeEmitido
                                    write FPinValeEmitido;
     property ImporteValeObligatorio: Currency read FImporteValeObligatorio;
-    // FZ-ISSUE-379: líquido de la factura sustituida (0 si no lo es).
-    property ImporteYaCobrado: Currency read FImporteYaCobrado;
-    procedure EstablecerImporteYaCobrado(AImporte: Currency);
     // Vale canjeado en el ticket de origen del que procede el emitido
     property CodigoValePadre: string read FCodigoValePadre;
     property HayCliente: Boolean read FHayCliente;
@@ -382,7 +378,6 @@ begin
   FImporteValeEmitido := 0;
   FImporteDevueltoDeMas := 0;
   FImporteValeObligatorio := 0;
-  FImporteYaCobrado := 0;
   FCodigoValePadre := '';
   FHayCliente := False;
   FPermiteDeuda := False;
@@ -665,12 +660,6 @@ begin
   FCodigoValePadre := ACodigoVale;
 end;
 
-procedure TDatosFaseCobro.EstablecerImporteYaCobrado(AImporte: Currency);
-begin
-  FImporteYaCobrado := AImporte;
-  Recalcular;
-end;
-
 procedure TDatosFaseCobro.AplicarValesOrigen(
   const AVales: TValesOrigenFaseCobro);
 var
@@ -760,7 +749,6 @@ begin
   Result.ImporteDejarCuenta := FImporteDejarCuenta;
   Result.ImporteValeEmitido := FImporteValeEmitido;
   Result.ImporteValeObligatorio := FImporteValeObligatorio;
-  Result.ImporteYaCobrado := FImporteYaCobrado;
   Result.TotalValesRecogidos := FImporteValesFijos;
   FMemTablePagos.DisableControls;
   oMarcador := FMemTablePagos.GetBookmark;
@@ -874,7 +862,6 @@ begin
   Entrada.PorcentajeDescuento := FPorcentajeDescuentoGlobal;
   Entrada.DescuentoPorImporte := FDescuentoPorImporte;
   Entrada.ImporteDescuentoFijado := FImporteDescuentoFijado;
-  Entrada.ImporteYaCobrado := FImporteYaCobrado;
   AplicarResultadoTotales(TCalculadorFaseCobro.CalcularTotales(Entrada));
 
   if Assigned(FOnRecalculado) then

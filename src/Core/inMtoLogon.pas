@@ -1989,7 +1989,9 @@ begin
   saveDialog.FileName := 'viracash_antes_actualizacion_' +
     FormatDateTime('yyyymmdd_hhnnss', Now) +
     oRepositorio.ExtensionCreacion;
-  if saveDialog.Execute then
+  // La copia se solicita desde el modal de actualizacion: el login esta
+  // deshabilitado mientras ese modal sigue abierto.
+  if saveDialog.Execute(GetActiveWindow) then
   begin
     sRuta := saveDialog.FileName;
     eResultado := rcsFallida;

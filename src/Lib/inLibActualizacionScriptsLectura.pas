@@ -38,7 +38,8 @@ type
 // Recorre el resultado de la comprobación y se queda con las filas
 // marcadas como pendientes, en el orden de aplicación.
 function LeerScriptsFaltantes(ADataSet: TDataSet;
-  const AComprobarDatos: TFunc<string, Boolean> = nil):
+  const AComprobarDatos: TFunc<string, Boolean> = nil;
+  const AAnotarAplicado: TProc<string> = nil):
   TArray<TScriptFaltante>;
 // Deja el contenido de un script listo para el cuadro de la ventana del
 // proceso: saltos de línea de Windows (un .sql puede traerlos de Unix y
@@ -107,8 +108,19 @@ begin
   end;
 end;
 
+function ScriptConfirmado(ADataSet: TDataSet): Boolean;
+var
+  sEstado: string;
+begin
+  sEstado := TextoCampo(ADataSet, cCampoEstadoScriptComprobacion);
+  Result := SameText(sEstado, 'OK') or
+    (SameText(sEstado, cEstadoScriptFalta) and
+     (TextoCampo(ADataSet, cCampoConsultaDatosComprobacion) <> ''));
+end;
+
 function LeerScriptsFaltantes(ADataSet: TDataSet;
-  const AComprobarDatos: TFunc<string, Boolean>): TArray<TScriptFaltante>;
+  const AComprobarDatos: TFunc<string, Boolean>;
+  const AAnotarAplicado: TProc<string>): TArray<TScriptFaltante>;
 var
   oFaltantes: TList<TScriptFaltante>;
   Faltante: TScriptFaltante;
@@ -130,7 +142,10 @@ begin
             ADataSet, cCampoObjetoScriptComprobacion);
           if Faltante.Nombre <> '' then
             oFaltantes.Add(Faltante);
-        end;
+        end
+        else if Assigned(AAnotarAplicado) and ScriptConfirmado(ADataSet) then
+          AAnotarAplicado(
+            TextoCampo(ADataSet, cCampoNombreScriptComprobacion));
         ADataSet.Next;
       end;
     end;

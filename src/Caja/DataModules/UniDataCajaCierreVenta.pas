@@ -99,12 +99,41 @@ function PagoDebePersistirseCierreVenta(
   const AFormaPago: string;
   AImporte: Currency): Boolean;
 
+// Tras grabar, solo se ocultan los depositos sin importe facturable.
+// Una venta gratuita conserva su linea para la impresion inmediata.
+procedure LimpiarLineasDepositoSinImporteCaja(ALineas: TDataSet);
+
 implementation
 
 uses
   inLibFormatoDocumento, UniDataFormatoDocumentoRepositorio,
   inLibMsgCaja, inLibMsgPresupuestos, inLibErroresBBDD,
   UniDataFaseCobroRepositorio;
+
+procedure LimpiarLineasDepositoSinImporteCaja(ALineas: TDataSet);
+var
+  Accion: string;
+  EsDeposito: Boolean;
+begin
+  ALineas.DisableControls;
+  try
+    ALineas.First;
+    while not ALineas.Eof do
+    begin
+      Accion := Trim(ALineas.FieldByName('ACCION_DEPOSITO').AsString);
+      EsDeposito := (Accion = 'NUEVO_DEP') or
+        (Accion = 'AUMENTAR_DEP') or
+        (ALineas.FieldByName('VIENE_DE_DEPOSITO').AsString = 'S');
+      if EsDeposito and
+         (Abs(ALineas.FieldByName('TOTAL_FACLIN').AsCurrency) < 0.001) then
+        ALineas.Delete
+      else
+        ALineas.Next;
+    end;
+  finally
+    ALineas.EnableControls;
+  end;
+end;
 
 function FechaOperacionCaja(AFecha: TDateTime): TDateTime;
 begin
@@ -126,6 +155,9 @@ begin
     ADatos.EsDevolucionEconomica or
     ADatos.TieneArticulosDevueltos or
     (ADatos.ImporteValeEmitido > 0) or
+    // Una venta gratuita tambien entrega articulos y requiere ticket.
+    (sAccion = '') or
+    (sAccion = 'COBRAR') or
     (sAccion = 'CANCELAR') or
     (sAccion = 'NUEVO_DEP');
 end;

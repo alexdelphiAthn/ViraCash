@@ -501,7 +501,6 @@ type
     FSerieRectifica:  string;
     FNumeroRectifica: string;
     // FZ-ISSUE-379: líquido de la factura que se sustituye.
-    FLiquidoRectifica: Currency;
     FTipoRectificativa: TTipoRectificativaCaja;
     FTratamientoMovRectificativa:
       TTratamientoMovimientosRectificativa;
@@ -1231,8 +1230,9 @@ begin
     AFormulario.FLecturas.RepositorioFacturas;
   Result.Cabecera := AFormulario.DatosCaja.cdsCabecera;
   Result.Lineas := AFormulario.DatosCaja.cdsLineas;
-  if (AFormulario.FTipoRectificativa <> trcSustitutiva) or
-     (AFormulario.FTratamientoMovRectificativa <> tmrMantenerOriginales) then
+  // La sustituta valida dentro de la transaccion, tras retirar el stock
+  // de la original; antes se contarian las mismas unidades dos veces.
+  if AFormulario.FTipoRectificativa <> trcSustitutiva then
     Result.ValidarStock := AFormulario.FEditorLineas.ComprobarStockTicket;
   if Assigned(AFormulario.FLotesCaja) then
     Result.ValidarLotes :=
@@ -1255,7 +1255,6 @@ begin
     AFormulario.FTratamientoMovRectificativa;
   Result.SerieRectificada := AFormulario.FSerieRectifica;
   Result.NumeroRectificado := AFormulario.FNumeroRectifica;
-  Result.ImporteYaCobrado := AFormulario.FLiquidoRectifica;
   Result.LeerMotivoDevolucion :=
     function: string
     begin
@@ -3856,7 +3855,6 @@ begin
   FAlmacenOrigenDev := AAlmacenOrigen;
   FSerieRectifica := '';
   FNumeroRectifica := '';
-  FLiquidoRectifica := 0;
   FTipoRectificativa := trcNinguna;
   FTratamientoMovRectificativa := tmrMantenerOriginales;
   FMotivoDevolucion := '';
@@ -4419,7 +4417,6 @@ begin
       RefrescarConsultasOperacionesCaja;
     FSerieRectifica := '';
     FNumeroRectifica := '';
-    FLiquidoRectifica := 0;
     FTipoRectificativa := trcNinguna;
     FTratamientoMovRectificativa := tmrMantenerOriginales;
     if FCaptionPrevio <> '' then
@@ -4755,9 +4752,6 @@ begin
     end);
   FSerieRectifica := Resultado.Serie;
   FNumeroRectifica := Resultado.Numero;
-  FLiquidoRectifica := 0;
-  if Resultado.Tipo = trcSustitutiva then
-    FLiquidoRectifica := Resultado.LiquidoOrigen;
   FTipoRectificativa := Resultado.Tipo;
   FTratamientoMovRectificativa :=
     Resultado.TratamientoMovimientos;

@@ -43,6 +43,29 @@ uses
   System.SysUtils, Data.DB;
 
 const
+  // Todas las tallas, aunque no tengan cantidades. Las celdas existentes
+  // conservan las filas de sesiones antiguas o sin sistema de tallas.
+  SQL_CELDAS_PARA_PRECIOS =
+    '(SELECT L.SERIE_SES_SESLIN AS SERIE_SES_SESCEL, ' +
+    '        L.NUMERO_SES_SESLIN AS NUMERO_SES_SESCEL, ' +
+    '        L.LINEA_SESLIN AS LINEA_SES_SESCEL, ' +
+    '        COALESCE(F.ID_FILA_SESFIL, 1) AS ID_FILA_SES_SESCEL, ' +
+    '        D.ID_AV_ACD AS ID_AV_PIVOT_SESCEL ' +
+    '   FROM fza_compras_sesiones_lineas L ' +
+    '   JOIN fza_atributos_conjuntos_det D ' +
+    '     ON D.ID_AC_ACD = L.ID_AC_PIVOT_SESLIN ' +
+    '   LEFT JOIN fza_compras_sesiones_lineas_filas F ' +
+    '     ON F.SERIE_SES_SESFIL = L.SERIE_SES_SESLIN ' +
+    '    AND F.NUMERO_SES_SESFIL = L.NUMERO_SES_SESLIN ' +
+    '    AND F.LINEA_SES_SESFIL = L.LINEA_SESLIN ' +
+    '  WHERE L.SERIE_SES_SESLIN = :SERIE ' +
+    '    AND L.NUMERO_SES_SESLIN = :NUMERO ' +
+    ' UNION ' +
+    ' SELECT SERIE_SES_SESCEL, NUMERO_SES_SESCEL, LINEA_SES_SESCEL, ' +
+    '        ID_FILA_SES_SESCEL, ID_AV_PIVOT_SESCEL ' +
+    '   FROM fza_compras_sesiones_celdas ' +
+    '  WHERE SERIE_SES_SESCEL = :SERIE ' +
+    '    AND NUMERO_SES_SESCEL = :NUMERO) C ';
   SQL_LEER_PRECIOS_CELDAS =
     'SELECT C.ID_FILA_SES_SESCEL AS ID_FILA, ' +
     '       C.ID_AV_PIVOT_SESCEL AS ID_AV_PIVOT, ' +
@@ -57,7 +80,7 @@ const
     '           AND FA.ID_FILA_SESFILAT = C.ID_FILA_SES_SESCEL), ''''), ' +
     '         L.COLOR_TEXTO_SESLIN, '''') AS COLOR, ' +
     '       P.PRECIO_COMPRA_SESLINSKU, P.PRECIO_VENTA_SESLINSKU ' +
-    '  FROM fza_compras_sesiones_celdas C ' +
+    '  FROM ' + SQL_CELDAS_PARA_PRECIOS +
     '  JOIN fza_compras_sesiones_lineas L ' +
     '    ON L.SERIE_SES_SESLIN = C.SERIE_SES_SESCEL ' +
     '   AND L.NUMERO_SES_SESLIN = C.NUMERO_SES_SESCEL ' +
@@ -118,7 +141,7 @@ const
     '       C.ID_AV_PIVOT_SESCEL, ' +
     '       P.PRECIO_COMPRA_SESLINSKU, P.PRECIO_VENTA_SESLINSKU, ' +
     '       NOW(), :USUARIO, NOW(), :USUARIO ' +
-    '  FROM fza_compras_sesiones_celdas C ' +
+    '  FROM ' + SQL_CELDAS_PARA_PRECIOS +
     '  JOIN fza_compras_sesiones_lineas_skus_precios P ' +
     '    ON P.SERIE_SES_SESLINSKU = C.SERIE_SES_SESCEL ' +
     '   AND P.NUMERO_SES_SESLINSKU = C.NUMERO_SES_SESCEL ' +

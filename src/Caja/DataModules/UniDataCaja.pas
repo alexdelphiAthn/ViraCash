@@ -479,6 +479,7 @@ type
     FGenerarMovimientos: Boolean;
     FPersistencia: TPersistenciaCierreVentaCajaUniDAC;
     FTotalVentasNormales: Currency;
+    FHayVentasNormales: Boolean;
     FTotalDevolucionesNormales: Currency;
     FNumeroLineaPago: Integer;
     // Devoluciones: motivo, ticket de origen y traspaso automático
@@ -1791,6 +1792,8 @@ begin
   FSerieRectificada := ASerieRectificada;
   FNumeroRectificado := ANumeroRectificado;
   FTratamientoMovimientos := ATratamientoMovimientos;
+  if FTipoRectificativa = trcSustitutiva then
+    FTratamientoMovimientos := tmrReemplazarOriginales;
   FMotivoDevolucion := AMotivoDevolucion;
   FSerieOrigenDevolucion := ASerieOrigenDevolucion;
   FNumeroOrigenDevolucion := ANumeroOrigenDevolucion;
@@ -2091,9 +2094,8 @@ end;
 
 procedure TGrabacionFacturaCaja.AjustarCobroParcial;
 begin
-  // FZ-ISSUE-379: en la sustitutiva lo cobrado con la factura original
-  // cuenta como entregado; si no, se tomaría por un cobro parcial.
-  if FDatosCobro.ImporteEntregado + FDatosCobro.ImporteYaCobrado <
+  // La factura nueva se cobra completa, sin anticipos de la sustituida.
+  if FDatosCobro.ImporteEntregado <
      FDataModule.cdsCabecera.FieldByName(
        'TOTAL_LIQUIDO_FAC').AsCurrency then
   begin
@@ -2226,8 +2228,10 @@ end;
 procedure TGrabacionFacturaCaja.ProcesarAnticipoPrevio(
   const ALinea: TDatosLineaFactura);
 begin
+  // Los regalos conservan unidades, PVP y descuento en la factura.
   if FRequiereFactura and ((Abs(ALinea.TotalCIva) > 0.001) or
-     (ALinea.TipoArticulo = 'SERVICIO')) then
+     (ALinea.TipoArticulo = 'SERVICIO') or
+     ((ALinea.VieneDeDeposito <> 'S') and (ALinea.Cantidad <> 0))) then
     FDataModule.InsertarLineaFactura(
       FQuery, FSerieGenerada, FNumeroFactura, ALinea.Linea,
       ALinea.Articulo, ALinea.Sku, ALinea.Descripcion,
@@ -2371,6 +2375,7 @@ begin
   else
   begin
     Result := FAlmacen;
+    FHayVentasNormales := FHayVentasNormales or (ALinea.Cantidad > 0);
     if ALinea.TotalCIva > 0 then
       FTotalVentasNormales :=
         FTotalVentasNormales + ALinea.TotalCIva
@@ -2455,8 +2460,10 @@ begin
     LineaFactura.CosteUnitario := RegistrarMovimientoVenta(
       LineaFactura, sNumeroMovimiento, sEmpresaMovimiento,
       sAlmacenOrigen, sTipoMovimiento);
+  // Los regalos conservan unidades, PVP y descuento en la factura.
   if FRequiereFactura and ((Abs(ALinea.TotalCIva) > 0.001) or
-     (ALinea.TipoArticulo = 'SERVICIO')) then
+     (ALinea.TipoArticulo = 'SERVICIO') or
+     ((ALinea.VieneDeDeposito <> 'S') and (ALinea.Cantidad <> 0))) then
     FDataModule.InsertarLineaFactura(
       FQuery, FSerieGenerada, FNumeroFactura, LineaFactura.Linea,
       LineaFactura.Articulo, LineaFactura.Sku,
@@ -2481,6 +2488,7 @@ var
 begin
   FTotalVentasNormales := 0;
   FTotalDevolucionesNormales := 0;
+  FHayVentasNormales := False;
   // Un reintento tras un bloqueo vuelve a recorrer las líneas.
   FServiciosDeposito := nil;
   FServiciosDesdeDeposito := nil;
@@ -2542,15 +2550,13 @@ begin
     // la operación lleve el líquido cobrado (arqueo, devoluciones).
     RepartirAjusteRecargoRetencion(FCabecera, FTotalVentasNormales,
       FTotalDevolucionesNormales);
-    // FZ-ISSUE-379: la sustitutiva solo cobra o devuelve la diferencia
-    // con la original; la operación se graba aunque sea 0 para que la
-    // factura nueva tenga su operación de caja.
+    // La sustitutiva registra los importes completos de la nueva factura.
+    // La original queda excluida por su relación de rectificación.
     bSustitutiva := FTipoRectificativa = trcSustitutiva;
-    if bSustitutiva then
-      NetearSustitutiva(FDatosCobro.ImporteYaCobrado, FTotalVentasNormales,
-        FTotalDevolucionesNormales);
+    // Un regalo tambien necesita operacion para historico y ticket.
     if (FTotalVentasNormales > 0) or
-       (bSustitutiva and (FTotalDevolucionesNormales = 0)) then
+       ((bSustitutiva or FHayVentasNormales) and
+        (FTotalDevolucionesNormales = 0)) then
     begin
       if FTipoRectificativa = trcNinguna then
         FConceptoOperacion := 'Venta';
@@ -2889,20 +2895,7 @@ end;
 
 procedure TGrabacionFacturaCaja.LimpiarLineasSinImporte;
 begin
-  FDataModule.cdsLineas.DisableControls;
-  try
-    FDataModule.cdsLineas.First;
-    while not FDataModule.cdsLineas.Eof do
-    begin
-      if Abs(FDataModule.cdsLineas.FieldByName(
-        'TOTAL_FACLIN').AsCurrency) < 0.001 then
-        FDataModule.cdsLineas.Delete
-      else
-        FDataModule.cdsLineas.Next;
-    end;
-  finally
-    FDataModule.cdsLineas.EnableControls;
-  end;
+  LimpiarLineasDepositoSinImporteCaja(FDataModule.cdsLineas);
 end;
 
 procedure TGrabacionFacturaCaja.AnyadirAvisoTrasGrabacion(
@@ -3069,6 +3062,12 @@ begin
   bConfirmando := False;
   try
     IniciarTransaccion;
+    // La original deja de consumir stock antes de validar y grabar la
+    // sustituta. Un fallo posterior restaura todo con el rollback.
+    if FTipoRectificativa = trcSustitutiva then
+      TVerifactuCola.BorrarMovimientosFactura(
+        CrearServicioVerifactuColaUniDAC(FDataModule.FConexion),
+        FSerieRectificada, FNumeroRectificado);
     if FPresupuestoNumero <> '' then
       FPersistencia.BloquearPresupuesto(FPresupuestoEmpresa,
         FPresupuestoSerie, FPresupuestoNumero);
@@ -3121,7 +3120,7 @@ begin
     if (FPresupuestoNumero <> '') and
        ((not FRequiereFactura) or
         (FDatosCobro.ImporteDejarCuenta > 0.001) or
-        (FDatosCobro.ImporteEntregado + FDatosCobro.ImporteYaCobrado <
+        (FDatosCobro.ImporteEntregado <
          FDataModule.cdsCabecera.FieldByName(
            'TOTAL_LIQUIDO_FAC').AsCurrency - 0.001)) then
       raise EValidacionBBDD.Create(SErrorPresupuestoCajaCobroCompleto);
@@ -3145,7 +3144,8 @@ begin
   else
   begin
     AtenderOperacionSinNovedad;
-    Result := True;
+    // Un recordatorio no confirma una venta ni habilita su impresion.
+    Result := False;
   end;
   ANumeroGenerado := FNumeroOperacion;
   AValeGenerado := FValeGenerado;

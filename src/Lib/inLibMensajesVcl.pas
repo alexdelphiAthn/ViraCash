@@ -90,7 +90,7 @@ implementation
 
 uses
   System.SysUtils, System.Math, Vcl.Forms, Vcl.StdCtrls,
-  Vcl.Menus, Vcl.Controls, inLibPosicionFormulario;
+  Vcl.Menus, Vcl.Controls, inLibPosicionFormulario, inLibFuenteInterfaz;
 
 type
   TOrdenBotones = array of TMsgDlgBtn;
@@ -264,7 +264,7 @@ var
 begin
   sFuenteAnterior := Screen.MessageFont.Name;
   iTamanoAnterior := Screen.MessageFont.Size;
-  Screen.MessageFont.Name := NOMBRE_FUENTE_MENSAJES;
+  Screen.MessageFont.Name := NombreFuenteInterfaz(NOMBRE_FUENTE_MENSAJES);
   Screen.MessageFont.Size := TAMANO_FUENTE_MENSAJES;
   try
     AProceso();

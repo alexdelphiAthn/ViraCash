@@ -61,6 +61,7 @@ type
       ADesde, AHasta: TDateTime;
       APeriodo: TPeriodoComparativaVentas = pcvPrimero):
       TVentasDiariasComparativa;
+    procedure Cancelar;
   end;
 
 implementation

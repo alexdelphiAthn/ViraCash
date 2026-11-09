@@ -34,6 +34,7 @@ type
     // curso y, si todavía no había empezado, lo reintenta más tarde.
     procedure Cancelar;
     function Cancelada: Boolean;
+    function Aplicados: TArray<string>;
   end;
 
 // Lee un .sql sin dar por hecho que viene en UTF-8: los scripts antiguos
@@ -71,6 +72,7 @@ type
     IConsultaScriptsFaltantes)
   private
     FCancelada: Integer;
+    FAplicados: TArray<string>;
     FConexion: TUniConnection;
     FConsulta: TUniQuery;
     FSeccion: TCriticalSection;
@@ -88,6 +90,7 @@ type
       out AError: string): Boolean;
     procedure Cancelar;
     function Cancelada: Boolean;
+    function Aplicados: TArray<string>;
   end;
 
 function LeerTextoScriptSql(const ARuta: string): string;
@@ -173,6 +176,7 @@ var
 begin
   Result := False;
   AFaltantes := nil;
+  FAplicados := nil;
   AError := '';
   if not Assigned(FConexion) then
     AError := SErrorConexionActualizacionNoDisponible
@@ -195,6 +199,10 @@ begin
           function(ASql: string): Boolean
           begin
             Result := ComprobarDatos(ASql);
+          end,
+          procedure(ANombre: string)
+          begin
+            FAplicados := FAplicados + [ANombre];
           end);
         Result := not Cancelada;
       except
@@ -233,6 +241,11 @@ begin
   finally
     FSeccion.Leave;
   end;
+end;
+
+function TConsultaScriptsFaltantes.Aplicados: TArray<string>;
+begin
+  Result := Copy(FAplicados);
 end;
 
 function TConsultaScriptsFaltantes.Cancelada: Boolean;

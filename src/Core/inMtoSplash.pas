@@ -43,6 +43,8 @@ type
   private
     FimgLogo:    TImage;
     FRegistroLog: IRegistroLog;
+  protected
+    procedure Loaded; override;
   public
     constructor Create(
       AOwner: TComponent;
@@ -53,7 +55,7 @@ implementation
 
 uses
   inLibGlobalVar, inLibDir, inLibImagen,
-  inLibTraducciones, inLibMsgComun;
+  inLibTraducciones, inLibMsgComun, inLibFuenteInterfaz;
 
 {$R *.dfm}
 
@@ -67,6 +69,28 @@ begin
     raise EArgumentNilException.Create('ARegistroLog');
   FRegistroLog := ARegistroLog;
   inherited Create(AOwner);
+end;
+
+procedure TfrmSplash.Loaded;
+begin
+  // Las fuentes explícitas de los estilos no heredan la del formulario.
+  // Validarlas antes del escalado evita textos vacíos y franjas negras.
+  if not (csDesigning in ComponentState) then
+  begin
+    Font.Name := NombreFuenteInterfaz(Font.Name);
+    cxLabel1.Style.Font.Name :=
+      NombreFuenteInterfaz(cxLabel1.Style.Font.Name);
+    cxLabel2.Style.Font.Name :=
+      NombreFuenteInterfaz(cxLabel2.Style.Font.Name);
+    hlEmail.Style.Font.Name :=
+      NombreFuenteInterfaz(hlEmail.Style.Font.Name);
+    lblNombreAutor.Style.Font.Name :=
+      NombreFuenteInterfaz(lblNombreAutor.Style.Font.Name);
+    lblVersion.Style.Font.Name :=
+      NombreFuenteInterfaz(lblVersion.Style.Font.Name);
+    btnAceptar.Font.Name := NombreFuenteInterfaz(btnAceptar.Font.Name);
+  end;
+  inherited;
 end;
 
 procedure TfrmSplash.cxLabel1Click(Sender: TObject);

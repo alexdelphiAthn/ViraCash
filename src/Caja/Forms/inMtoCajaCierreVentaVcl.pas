@@ -53,8 +53,6 @@ type
     TratamientoMovimientos: TTratamientoMovimientosRectificativa;
     SerieRectificada: string;
     NumeroRectificado: string;
-    // FZ-ISSUE-379: líquido de la factura que sustituye la sustitutiva.
-    ImporteYaCobrado: Currency;
     LeerMotivoDevolucion: TLeerMotivoDevolucionCaja;
     SerieOrigenDevolucion: string;
     NumeroOrigenDevolucion: string;
@@ -293,9 +291,6 @@ begin
     oEntrada.EmpresaOrigen := AContexto.CodigoEmpresa;
   AFormulario.Configurar(oEntrada);
   AFormulario.CargarDatosDesdeFactura(ATotales);
-  if AContexto.TipoRectificativa = trcSustitutiva then
-    AFormulario.DatosCobro.EstablecerImporteYaCobrado(
-      AContexto.ImporteYaCobrado);
 end;
 
 class procedure TCoordinadorCierreVentaCajaVcl.AplicarDescuento(

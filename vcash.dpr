@@ -96,6 +96,7 @@ uses
   inLibDevExp in 'src\Lib\inLibDevExp.pas',
   inLibComboPais in 'src\Lib\inLibComboPais.pas',
   inLibFuenteFastReport in 'src\Lib\inLibFuenteFastReport.pas',
+  inLibFuenteInterfaz in 'src\Lib\inLibFuenteInterfaz.pas',
   inLibTipoCantidad in 'src\Lib\inLibTipoCantidad.pas',
   inLibCalculadoraVcl in 'src\Lib\inLibCalculadoraVcl.pas',
   inLibHojaCalculoIntf in 'src\Lib\inLibHojaCalculoIntf.pas',
@@ -1647,6 +1648,10 @@ begin
     TdxDiacriticStringOptions.NormalizationMode :=
       TdxDiacriticStringNormalizationMode.System;
     Application.Initialize;
+    Application.DefaultFont.Name := NombreFuenteInterfaz;
+    Application.DefaultFont.Height := -15;
+    Screen.MenuFont.Name := NombreFuenteInterfaz;
+    Screen.MenuFont.Size := 11;
     ConfigurarLecturasAtributosPaleta(LecturasAtributosPaleta);
     ConfigurarSelectorAtributoPaleta(
       CrearSelectorAtributoPaletaVcl);
@@ -1702,13 +1707,13 @@ begin
       ResultadoLicenciaInicial) then
     begin
     // Fuente global para toda la aplicacion
-    Application.DefaultFont.Name   := 'Source Sans 3';
+    Application.DefaultFont.Name   := NombreFuenteInterfaz;
     Application.DefaultFont.Height := -15;
-    Screen.MenuFont.Name := 'Source Sans 3';
+    Screen.MenuFont.Name := NombreFuenteInterfaz;
     Screen.MenuFont.Size := 11;
     // La interfaz propia de FastReport (vista preliminar,
     // dialogos y disenador) trae 'Tahoma' fija en sus DFM.
-    TFuenteFastReport.Activar;
+    TFuenteFastReport.Activar(NombreFuenteInterfaz);
     Application.CreateForm(TfrmMtoPrincipal, Principal);
   Principal.AsignarRegistroLog(RegistroLogAplicacion);
     Principal.InicializarAplicacion(

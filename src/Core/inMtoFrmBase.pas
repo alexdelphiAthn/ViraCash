@@ -183,6 +183,7 @@ type
     procedure WMQueryEndSession(
       var Message: TWMQueryEndSession); message WM_QUERYENDSESSION;
   protected
+    procedure Loaded; override;
     /// Nivel del parámetro appDegradadoBordes (suave si aún no hay
     /// parámetros).
     function IntensidadDegradadoBordes: TIntensidadResplandor;
@@ -328,11 +329,12 @@ implementation
 uses
   inLibRegistroLogNulo, inLibMsgComun, inLibTraducciones,
   inLibPosicionFormulario, inLibEditorCodigoSkin, System.Math,
-  cxLookAndFeelPainters;
+  cxLookAndFeelPainters, inLibFuenteInterfaz;
 
 {$R *.dfm}
 
 type
+  TControlFuenteAcceso = class(TControl);
   TVistaContrasteAcceso = class(TcxCustomGridTableView);
   TContrasteDibujoVista = class(TComponent)
   private
@@ -484,6 +486,26 @@ begin
   Aplicar(Self);
 end;
 {$R CXLOCALIZATION.res}
+
+procedure TfrmBase.Loaded;
+var
+  oControl: TControlFuenteAcceso;
+  i: Integer;
+begin
+  // Antes de que VCL escale el DFM: una altura de texto cero deforma
+  // el formulario completo, no solo sus etiquetas y botones.
+  if not (csDesigning in ComponentState) then
+  begin
+    Font.Name := NombreFuenteInterfaz(Font.Name);
+    for i := 0 to ComponentCount - 1 do
+      if Components[i] is TControl then
+      begin
+        oControl := TControlFuenteAcceso(Components[i]);
+        oControl.Font.Name := NombreFuenteInterfaz(oControl.Font.Name);
+      end;
+  end;
+  inherited;
+end;
 
 constructor TfrmBase.Create(AOwner: TComponent);
 begin

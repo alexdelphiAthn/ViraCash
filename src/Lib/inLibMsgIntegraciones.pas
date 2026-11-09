@@ -179,6 +179,10 @@ resourcestring
     'Comprobando qué scripts faltan en esta base de datos...';
   SInfoSinVersionesPublicadas =
     'El servicio todavía no ha publicado ninguna versión.';
+  SAvisoVersionInstaladaSuperior =
+    'La versión instalada (%s) es superior a la publicada en el ' +
+    'webservice (%s). No hay una versión más reciente del programa ' +
+    'para instalar.';
   SInfoVersionInstaladaAlDia =
     'La versión instalada (%s) ya es la última publicada.';
   SInfoVersionAlDiaSinScripts =
@@ -187,6 +191,9 @@ resourcestring
   SInfoScriptsActualizacionAplazados =
     'Quedan %d scripts sin aplicar. Se ofrecerán en el siguiente ' +
     'arranque o desde Comprobar actualizaciones.';
+  SInfoActualizacionSinCopiaPrevia =
+    'No se ha realizado la copia de seguridad previa. ' +
+    'No se ha aplicado ninguna actualización a la base de datos.';
   SInfoScriptsActualizacionCancelados =
     'Se ha cancelado la aplicación de scripts: quedan %d sin aplicar, ' +
     'que se ofrecerán en el siguiente arranque.';

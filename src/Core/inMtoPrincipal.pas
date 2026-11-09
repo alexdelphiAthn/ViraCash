@@ -2464,10 +2464,14 @@ end;
 procedure TfrmMtoPrincipal.OfrecerScriptsPendientesActualizacion;
 var
   Estado: TEstadoActualizacion;
+  sError: string;
 begin
   if ContextoSesion.Identidad.EsAdministrador then
   begin
     Estado := LeerEstadoActualizacion;
+    if not RevalidarScriptsPendientesActualizacion(ConexionPrincipal,
+      Estado, sError) then
+      RegistroLog.RegistrarAviso(sError);
     if Estado.Existe and Estado.HayScriptsPendientes and
        Estado.CorrespondeABase(ConexionPrincipal.Server,
          ConexionPrincipal.Port, ConexionPrincipal.Database) and

@@ -119,12 +119,6 @@ procedure RepartirAjusteRecargoRetencion(
   const ACabecera: TDatosCabeceraFactura;
   var AVentas, ADevoluciones: Currency);
 
-// FZ-ISSUE-379: la rectificativa sustitutiva reemplaza a la original, que
-// ya se cobró (AYaCobrado). La operación lleva solo la diferencia: venta
-// si la nueva vale más (o 0 si igual), devolución si vale menos.
-procedure NetearSustitutiva(AYaCobrado: Currency;
-  var AVentas, ADevoluciones: Currency);
-
 implementation
 
 uses
@@ -183,24 +177,6 @@ begin
     AVentas := AVentas + cAjuste
   else if ADevoluciones > 0 then
     ADevoluciones := ADevoluciones - cAjuste;
-end;
-
-procedure NetearSustitutiva(AYaCobrado: Currency;
-  var AVentas, ADevoluciones: Currency);
-var
-  cNeto: Currency;
-begin
-  cNeto := AVentas - ADevoluciones - AYaCobrado;
-  if cNeto >= 0 then
-  begin
-    AVentas := cNeto;
-    ADevoluciones := 0;
-  end
-  else
-  begin
-    AVentas := 0;
-    ADevoluciones := -cNeto;
-  end;
 end;
 
 function FormatearTituloFacturaCaja(const ATipo, ADocumento: string): string;

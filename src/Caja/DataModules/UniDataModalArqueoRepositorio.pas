@@ -148,6 +148,7 @@ begin
     '    AND o.CODIGO_CAJA_OPCAJA = :pCAJA ' +
     '    AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     '    AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
+    SqlExcluirOperacionesArqueadasAntes +
     SqlExcluirLiquidacionDepositoArqueo +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
@@ -180,6 +181,7 @@ begin
     '        p.NUMERO_OPERACION_PAGO ' +
     '    AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     '    AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
+    SqlExcluirOperacionesArqueadasAntes +
     // FZ-ISSUE-407: la entrada de cambio y los gastos de caja no son
     // cobros de ventas (mismo criterio que la pestaña Arqueo, 346).
     '    AND o.TIPO_OPERACION_OPCAJA NOT IN (''EC'', ''GC'') ' +
@@ -220,6 +222,7 @@ begin
     '    AND o.CODIGO_CAJA_OPCAJA = :pCAJA ' +
     '    AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     '    AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
+    SqlExcluirOperacionesArqueadasAntes +
     SqlExcluirLiquidacionDepositoArqueo +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
@@ -299,6 +302,7 @@ begin
     '        AND o.CODIGO_CAJA_OPCAJA = :pCAJA ' +
     '        AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     '        AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
+    SqlExcluirOperacionesArqueadasAntes +
     '        AND f.TIPO_FAC IN ' +
     '            (''SIMPLIFICADA'', ''RECTIFICATIVA'') ' +
     SqlExcluirLiquidacionDepositoArqueo +

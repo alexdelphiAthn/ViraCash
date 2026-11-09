@@ -28,12 +28,13 @@ type
     FTemporadasP2: TFiltroChecklist;
     FDatos: TClientDataSet;
     FDatosInforme: TfrxDBDataset;
-    FRepositorio: IRepositorioComparativaVentas;
     FFiltro: TFiltroComparativaVentas;
     procedure CrearControles;
     procedure ExportarExcelComparativa(Sender: TObject);
     procedure AplicarAnioAnterior(Sender: TObject);
     function LeerFiltro: TFiltroComparativaVentas;
+    procedure ConsultarPeriodos(out AActual, AAnterior:
+      TVentasDiariasComparativa);
   protected
     procedure ValidarFiltro(const AFiltro: TFiltroComparativaVentas);
     procedure DoShow; override;
@@ -50,6 +51,7 @@ implementation
 uses
   inLibMsgInformesCliente,
   System.SysUtils, System.DateUtils, System.Variants, System.Math,
+  System.Threading, inLibVentanaEspera,
   cxLabel, cxTextEdit, cxEdit,
   inLibComparativaVentas, inLibComparativaVentasInforme,
   inLibInformeTabular, UniDataComparativaVentasRepositorio;
@@ -123,7 +125,6 @@ begin
     CrearInformeTabular(frxReportOrigen, FDatosInforme,
       SInformeComparativa, ColumnasComparativaInforme);
     frxrprt1.AssignAll(frxReportOrigen);
-    FRepositorio := CrearRepositorioComparativaVentas(ConexionPrincipal);
     FInicializado := True;
   end;
 end;
@@ -197,11 +198,60 @@ var
 begin
   inherited;
   FFiltro := LeerFiltro;
-  oActual := FRepositorio.Consultar(FFiltro, FFiltro.Desde, FFiltro.Hasta);
-  oAnterior := FRepositorio.Consultar(FFiltro,
-    FFiltro.DesdeAnterior, FFiltro.HastaAnterior, pcvSegundo);
+  ConsultarPeriodos(oActual, oAnterior);
   CargarComparativaInforme(FDatos,
     CalcularComparativaVentas(FFiltro, oActual, oAnterior));
+end;
+
+procedure TfrmPrintComparativaVentas.ConsultarPeriodos(
+  out AActual, AAnterior: TVentasDiariasComparativa);
+var
+  oRepositorio: IRepositorioComparativaVentas;
+  oVentana: IVentanaEspera;
+  oTarea: ITask;
+  aVentasActual, aVentasAnterior: TVentasDiariasComparativa;
+  Filtro: TFiltroComparativaVentas;
+  sError: string;
+begin
+  Filtro := FFiltro;
+  oRepositorio := CrearRepositorioComparativaVentas(ConexionPrincipal);
+  oVentana := CrearVentanaProcesoSegundoPlano(
+    BoundsRect, CurrentPPI, SInformeComparativa);
+  oVentana.Mostrar(SInformeComparativa);
+  oVentana.PermitirCancelar(True);
+  try
+    oTarea := TTask.Run(
+      procedure
+      begin
+        try
+          aVentasActual := oRepositorio.Consultar(Filtro, Filtro.Desde,
+            Filtro.Hasta);
+          aVentasAnterior := oRepositorio.Consultar(Filtro,
+            Filtro.DesdeAnterior, Filtro.HastaAnterior, pcvSegundo);
+        except
+          on E: Exception do
+            sError := E.ClassName + ': ' + E.Message;
+        end;
+      end);
+    try
+      EsperarTareaAtendiendoMensajes(oTarea,
+        procedure
+        begin
+          if oVentana.Cancelado then
+            oRepositorio.Cancelar;
+        end);
+    finally
+      EsperarTareaAtendiendoMensajes(oTarea);
+    end;
+    if oVentana.Cancelado then
+      Abort;
+    if sError <> '' then
+      raise Exception.Create(sError);
+    AActual := aVentasActual;
+    AAnterior := aVentasAnterior;
+  finally
+    oVentana.Ocultar;
+  end;
 end;
 
 procedure TfrmPrintComparativaVentas.AfterReportLoaded;

@@ -60,6 +60,7 @@ type
   end;
 
 function SqlExcluirLiquidacionDepositoArqueo: string;
+function SqlExcluirOperacionesArqueadasAntes: string;
 
 implementation
 
@@ -67,6 +68,20 @@ uses
   System.DateUtils, UniDataRectificativasSql,
   inLibCatalogoSqlEjecucion,
   UniDataCatalogoSqlValidacion;
+
+function SqlExcluirOperacionesArqueadasAntes: string;
+begin
+  // La retirada de un cierre pasado puede tener fecha fisica de hoy.
+  // Su arqueo propietario evita volver a contarla en el periodo nuevo.
+  Result :=
+    'AND NOT EXISTS (SELECT 1 FROM fza_caja_arqueos ac ' +
+    'WHERE ac.CODIGO_ARQ = o.CODIGO_ARQUEO_OPCAJA ' +
+    'AND ac.CODIGO_EMP_ARQ = o.CODIGO_EMP_OPCAJA ' +
+    'AND ac.CODIGO_ALM_ARQ = o.CODIGO_ALM_OPCAJA ' +
+    'AND ac.CODIGO_CAJA_ARQ = o.CODIGO_CAJA_OPCAJA ' +
+    'AND ac.FASE_ARQ = ''CERRADO'' ' +
+    'AND ac.FECHA_HASTA_ARQ < :pFDESDE) ';
+end;
 
 function SqlExcluirLiquidacionDepositoArqueo: string;
 begin
@@ -96,6 +111,7 @@ begin
     'AND CODIGO_CAJA_OPCAJA = :pCAJA ' +
     'AND FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     'AND FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
+    SqlExcluirOperacionesArqueadasAntes +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
       'o.SERIE_FAC_OPCAJA',
@@ -124,6 +140,7 @@ begin
     'AND o.CODIGO_CAJA_OPCAJA = :pCAJA ' +
     'AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
+    SqlExcluirOperacionesArqueadasAntes +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
       'o.SERIE_FAC_OPCAJA',
@@ -161,6 +178,7 @@ begin
     'AND o.CODIGO_CAJA_OPCAJA = :pCAJA ' +
     'AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
+    SqlExcluirOperacionesArqueadasAntes +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
       'o.SERIE_FAC_OPCAJA',
@@ -219,6 +237,7 @@ begin
     'AND o.CODIGO_CAJA_OPCAJA = :pCAJA ' +
     'AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
+    SqlExcluirOperacionesArqueadasAntes +
     'AND o.TIPO_OPERACION_OPCAJA IN (:pTIPO_CB, :pTIPO_DE) ' +
     'AND o.IMPORTE_TOTAL_OPCAJA > 0 ' +
     'AND o.ID_DEPOSITO_OPCAJA IS NOT NULL ' +
@@ -281,6 +300,7 @@ begin
     'AND o.NUMERO_OPERACION_OPCAJA = p.NUMERO_OPERACION_PAGO ' +
     'AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
+    SqlExcluirOperacionesArqueadasAntes +
     // FZ-ISSUE-346: entradas de cambio y gastos de caja van aparte
     // (EfectivoEntradas / EfectivoSalidas); aquí contaban otra vez.
     'AND o.TIPO_OPERACION_OPCAJA NOT IN (:pTIPO_EC, :pTIPO_GC) ' +

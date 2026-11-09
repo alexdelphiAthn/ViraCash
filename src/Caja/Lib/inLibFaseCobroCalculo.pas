@@ -32,9 +32,6 @@ type
     // Devolución: parte que debe devolverse en vale porque el ticket de
     // origen se pagó con vales (FZ-363)
     ImporteValeObligatorio: Currency;
-    // FZ-ISSUE-379: rectificativa sustitutiva: líquido de la factura que
-    // sustituye, ya cobrado; solo se cobra o devuelve la diferencia.
-    ImporteYaCobrado: Currency;
   end;
   TResultadoTotalesCobro = record
     ImporteDescuentoGlobal: Currency;
@@ -281,8 +278,7 @@ begin
   else
     Result.ImporteDescuentoGlobal := CalcularDescuento(
       dBase, AEntrada.PorcentajeDescuento);
-  Result.ImporteTotalPagar := dBase - Result.ImporteDescuentoGlobal -
-    AEntrada.ImporteYaCobrado;
+  Result.ImporteTotalPagar := dBase - Result.ImporteDescuentoGlobal;
   Result.ImporteValeRecogido := AEntrada.TotalValesRecogidos;
   Result.ImporteValeEmitido := AEntrada.ImporteValeEmitido;
   if Result.ImporteTotalPagar < -0.001 then

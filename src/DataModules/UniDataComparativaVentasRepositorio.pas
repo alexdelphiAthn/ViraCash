@@ -23,6 +23,7 @@ implementation
 
 uses
   System.SysUtils, System.DateUtils, System.Generics.Collections,
+  System.SyncObjs, System.Classes,
   UniDataRectificativasSql;
 
 type
@@ -30,8 +31,15 @@ type
     IRepositorioComparativaVentas)
   private
     FConexion: TUniConnection;
+    FConsulta: TUniQuery;
+    FCancelada: Integer;
+    FUltimoCorte: UInt64;
+    FSeccion: TCriticalSection;
+    procedure AnotarConsulta(AConsulta: TUniQuery);
   public
     constructor Create(AConexion: TUniConnection);
+    destructor Destroy; override;
+    procedure Cancelar;
     function Consultar(const AFiltro: TFiltroComparativaVentas;
       ADesde, AHasta: TDateTime;
       APeriodo: TPeriodoComparativaVentas = pcvPrimero):
@@ -40,8 +48,9 @@ type
 
 function SqlOrigenIngresosComparativa: string;
 begin
-  // El mismo criterio VE/DV/DE del histórico de operaciones de venta.
-  // Los pagos se suman antes de unir líneas para no multiplicar las unidades.
+  // Numerar solo las facturas con operaciones en el periodo. Se conservan
+  // todas sus operaciones para elegir la primera del historico, aunque
+  // quede fuera del periodo. Los pagos se consultan por su clave completa.
   Result :=
     ' JOIN (SELECT OC.CODIGO_EMP_OPCAJA, OC.CODIGO_ALM_OPCAJA,' +
     ' OC.CODIGO_CAJA_OPCAJA, OC.NUMERO_OPERACION_OPCAJA,' +
@@ -52,24 +61,22 @@ begin
     ' ORDER BY FIELD(OC.TIPO_OPERACION_OPCAJA, ''VE'', ''DV'', ''DE''),' +
     ' OC.FECHA_OPERACION_OPCAJA, OC.CODIGO_ALM_OPCAJA,' +
     ' OC.CODIGO_CAJA_OPCAJA, OC.NUMERO_OPERACION_OPCAJA) POSICION' +
-    ' FROM fza_caja_operaciones OC' +
+    ' FROM (SELECT DISTINCT C.CODIGO_EMP_OPCAJA,' +
+    ' C.SERIE_FAC_OPCAJA, C.NUMERO_FAC_OPCAJA' +
+    ' FROM fza_caja_operaciones C' +
+    ' WHERE C.CODIGO_EMP_OPCAJA = :EMPRESA' +
+    ' AND C.FECHA_OPERACION_OPCAJA >= :DESDE' +
+    ' AND C.FECHA_OPERACION_OPCAJA < :HASTA' +
+    ' AND C.TIPO_OPERACION_OPCAJA IN (''VE'', ''DV'', ''DE'')) C' +
+    ' STRAIGHT_JOIN fza_caja_operaciones OC' +
+    ' ON OC.CODIGO_EMP_OPCAJA = C.CODIGO_EMP_OPCAJA' +
+    ' AND OC.SERIE_FAC_OPCAJA = C.SERIE_FAC_OPCAJA' +
+    ' AND OC.NUMERO_FAC_OPCAJA = C.NUMERO_FAC_OPCAJA' +
     ' WHERE OC.CODIGO_EMP_OPCAJA = :EMPRESA' +
     ' AND OC.TIPO_OPERACION_OPCAJA IN (''VE'', ''DV'', ''DE'')) O' +
     ' ON O.CODIGO_EMP_OPCAJA = F.CODIGO_EMP_FAC' +
     ' AND O.SERIE_FAC_OPCAJA = F.SERIE_FAC' +
-    ' AND O.NUMERO_FAC_OPCAJA = F.NUMERO_FAC AND O.POSICION = 1' +
-    ' LEFT JOIN (' +
-    ' SELECT P.CODIGO_EMP_PAGO, P.CODIGO_ALM_PAGO,' +
-    ' P.CODIGO_CAJA_PAGO, P.NUMERO_OPERACION_PAGO,' +
-    ' SUM(P.IMPORTE_ENTREGADO_PAGO - P.IMPORTE_CAMBIO_PAGO) INGRESOS' +
-    ' FROM fza_caja_pagos P' +
-    ' WHERE P.CODIGO_EMP_PAGO = :EMPRESA' +
-    ' GROUP BY P.CODIGO_EMP_PAGO, P.CODIGO_ALM_PAGO,' +
-    ' P.CODIGO_CAJA_PAGO, P.NUMERO_OPERACION_PAGO) PG' +
-    ' ON PG.CODIGO_EMP_PAGO = O.CODIGO_EMP_OPCAJA' +
-    ' AND PG.CODIGO_ALM_PAGO = O.CODIGO_ALM_OPCAJA' +
-    ' AND PG.CODIGO_CAJA_PAGO = O.CODIGO_CAJA_OPCAJA' +
-    ' AND PG.NUMERO_OPERACION_PAGO = O.NUMERO_OPERACION_OPCAJA';
+    ' AND O.NUMERO_FAC_OPCAJA = F.NUMERO_FAC AND O.POSICION = 1';
 end;
 
 function SqlFiltrosCatalogoComparativa: string;
@@ -126,7 +133,13 @@ begin
   begin
     sFecha := 'O.FECHA_OPERACION_OPCAJA';
     sAlmacen := 'O.CODIGO_ALM_OPCAJA';
-    sImporte := 'COALESCE(PG.INGRESOS * FL.TOTAL_FACLIN / ' +
+    sImporte := 'COALESCE((SELECT SUM(P.IMPORTE_ENTREGADO_PAGO' +
+      ' - P.IMPORTE_CAMBIO_PAGO) FROM fza_caja_pagos P' +
+      ' WHERE P.CODIGO_EMP_PAGO = O.CODIGO_EMP_OPCAJA' +
+      ' AND P.CODIGO_ALM_PAGO = O.CODIGO_ALM_OPCAJA' +
+      ' AND P.CODIGO_CAJA_PAGO = O.CODIGO_CAJA_OPCAJA' +
+      ' AND P.NUMERO_OPERACION_PAGO = O.NUMERO_OPERACION_OPCAJA)' +
+      ' * FL.TOTAL_FACLIN / ' +
       'NULLIF((SELECT SUM(FT.TOTAL_FACLIN) FROM fza_facturas_lineas FT' +
       ' WHERE FT.SERIE_FAC_FACLIN = FL.SERIE_FAC_FACLIN' +
       ' AND FT.NUMERO_FAC_FACLIN = FL.NUMERO_FAC_FACLIN), 0), 0)';
@@ -168,20 +181,65 @@ constructor TRepositorioComparativaVentas.Create(AConexion: TUniConnection);
 begin
   inherited Create;
   FConexion := AConexion;
+  FSeccion := TCriticalSection.Create;
+end;
+
+destructor TRepositorioComparativaVentas.Destroy;
+begin
+  FreeAndNil(FSeccion);
+  inherited;
+end;
+
+procedure TRepositorioComparativaVentas.AnotarConsulta(AConsulta: TUniQuery);
+begin
+  FSeccion.Enter;
+  try
+    FConsulta := AConsulta;
+  finally
+    FSeccion.Leave;
+  end;
+end;
+
+procedure TRepositorioComparativaVentas.Cancelar;
+var
+  iAhora: UInt64;
+begin
+  AtomicExchange(FCancelada, 1);
+  iAhora := TThread.GetTickCount64;
+  FSeccion.Enter;
+  try
+    if Assigned(FConsulta) and
+       ((FUltimoCorte = 0) or (iAhora - FUltimoCorte >= 1000)) then
+    begin
+      FUltimoCorte := iAhora;
+      FConsulta.BreakExec;
+    end;
+  finally
+    FSeccion.Leave;
+  end;
 end;
 
 function TRepositorioComparativaVentas.Consultar(
   const AFiltro: TFiltroComparativaVentas; ADesde, AHasta: TDateTime;
   APeriodo: TPeriodoComparativaVentas): TVentasDiariasComparativa;
 var
+  oConexion: TUniConnection;
   oConsulta: TUniQuery;
   oLista: TList<TVentaDiariaComparativa>;
   oVenta: TVentaDiariaComparativa;
 begin
+  if AtomicCmpExchange(FCancelada, 0, 0) <> 0 then
+    Abort;
+  oConexion := TUniConnection.Create(nil);
   oConsulta := TUniQuery.Create(nil);
   oLista := TList<TVentaDiariaComparativa>.Create;
   try
-    oConsulta.Connection := FConexion;
+    // La cancelacion del driver puede cerrar la conexion de la consulta.
+    // Mantener intacta la sesion principal y sus tablas temporales.
+    oConexion.Assign(FConexion);
+    oConexion.LoginPrompt := False;
+    oConexion.Connect;
+    oConsulta.Connection := oConexion;
     oConsulta.SQL.Text := SqlComparativaVentas(AFiltro.Criterio);
     oConsulta.ParamByName('EMPRESA').AsString := AFiltro.Empresa;
     oConsulta.ParamByName('DESDE').AsDateTime := Trunc(ADesde);
@@ -195,6 +253,9 @@ begin
         AFiltro.TemporadasAnteriores
     else
       oConsulta.ParamByName('TEMPORADAS').AsString := AFiltro.Temporadas;
+    AnotarConsulta(oConsulta);
+    if AtomicCmpExchange(FCancelada, 0, 0) <> 0 then
+      Abort;
     oConsulta.Open;
     while not oConsulta.Eof do
     begin
@@ -206,8 +267,10 @@ begin
     end;
     Result := oLista.ToArray;
   finally
+    AnotarConsulta(nil);
     oLista.Free;
     oConsulta.Free;
+    oConexion.Free;
   end;
 end;
 

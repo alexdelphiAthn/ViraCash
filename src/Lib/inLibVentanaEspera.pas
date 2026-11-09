@@ -117,7 +117,8 @@ implementation
 
 uses
   Winapi.Messages, Winapi.CommCtrl, Winapi.MultiMon,
-  System.Classes, System.Math, System.SyncObjs, inLibMsgComun;
+  System.Classes, System.Math, System.SyncObjs, inLibMsgComun,
+  inLibFuenteInterfaz;
 
 const
   WM_ESPERA_MOSTRAR = WM_APP + 1;
@@ -436,13 +437,15 @@ begin
   oFuente.lfWeight := FW_NORMAL;
   oFuente.lfCharSet := DEFAULT_CHARSET;
   oFuente.lfQuality := CLEARTYPE_QUALITY;
-  StrPLCopy(oFuente.lfFaceName, NOMBRE_FUENTE, LF_FACESIZE - 1);
+  StrPLCopy(oFuente.lfFaceName, NombreFuenteInterfaz(NOMBRE_FUENTE),
+    LF_FACESIZE - 1);
   FFuente := CreateFontIndirect(oFuente);
   oFuente.lfWeight := FW_BOLD;
   FFuenteNegrita := CreateFontIndirect(oFuente);
   oFuente.lfWeight := FW_NORMAL;
   oFuente.lfHeight := -MulDiv(PUNTOS_FUENTE_TEXTO, FPixelesPorPulgada, 72);
-  StrPLCopy(oFuente.lfFaceName, NOMBRE_FUENTE_TEXTO, LF_FACESIZE - 1);
+  StrPLCopy(oFuente.lfFaceName, NombreFuenteInterfaz(NOMBRE_FUENTE_TEXTO),
+    LF_FACESIZE - 1);
   FFuenteTexto := CreateFontIndirect(oFuente);
 end;
 

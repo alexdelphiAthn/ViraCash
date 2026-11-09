@@ -437,8 +437,9 @@ begin
   Result.Serie := ASerie;
   Result.Numero := ANumero;
   Result.Tipo := ATipo;
-  Result.TratamientoMovimientos :=
-    ATratamientoMovimientos;
+  Result.TratamientoMovimientos := ATratamientoMovimientos;
+  if ATipo = trcSustitutiva then
+    Result.TratamientoMovimientos := tmrReemplazarOriginales;
   Result.DescripcionTipo := DescripcionTipo;
 end;
 

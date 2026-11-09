@@ -20352,6 +20352,12 @@ begin
       SInfoSinVersionesPublicadas);
   ARegistrar(
     'inLibMsgIntegraciones.' +
+    'SAvisoVersionInstaladaSuperior',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      SAvisoVersionInstaladaSuperior);
+  ARegistrar(
+    'inLibMsgIntegraciones.' +
     'SInfoVersionInstaladaAlDia',
     'src/Lib/inLibMsgIntegraciones.pas',
     @inLibMsgIntegraciones.
@@ -20368,6 +20374,12 @@ begin
     'src/Lib/inLibMsgIntegraciones.pas',
     @inLibMsgIntegraciones.
       SInfoScriptsActualizacionAplazados);
+  ARegistrar(
+    'inLibMsgIntegraciones.' +
+    'SInfoActualizacionSinCopiaPrevia',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      SInfoActualizacionSinCopiaPrevia);
   ARegistrar(
     'inLibMsgIntegraciones.' +
     'SInfoScriptsActualizacionCancelados',
