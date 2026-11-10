@@ -321,7 +321,6 @@ begin
   FFabricaConexiones := AFabricaConexiones;
   FRegistroLogArranque := ARegistroLog;
   inherited Create(AOwner);
-  FRegistroLogArranque := nil;
 end;
 
 procedure TfrmLogon.AplicarTraduccionesPantalla;
@@ -433,6 +432,7 @@ begin
   inherited;
   if Assigned(FRegistroLogArranque) then
     AsignarRegistroLog(FRegistroLogArranque);
+  FRegistroLogArranque := nil;
   if EsOrdenParametrosNuevoEquipoValido then
   begin
     CrearCasoUsoPreparacionLogon(

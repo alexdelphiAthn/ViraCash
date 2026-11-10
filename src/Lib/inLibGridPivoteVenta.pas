@@ -47,6 +47,7 @@ type
   IPivoteVentaAlbaranar = interface
     ['{8CB98D4C-21BC-47F3-8D83-8E39E876F873}']
     function MarcarTodoAAlbaranar: Integer;
+    function MarcarFilaAAlbaranar: Integer;
     function VolcarAAlbaranar(ALineas: TList<TPair<string, Currency>>;
                               out AAlmacenComun: string;
                               out AAlmacenUnico: Boolean): Integer;
@@ -95,6 +96,7 @@ type
     FieldCantidadEntregada: string;
     FieldCantidadAAlbaranar: string;
     FieldPrecioBase       : string;
+    CampoPorcentajeDto    : string; // Opcional.
     FieldAlmacen          : string;
     FieldAlmacenMaster    : string;
     MaxColumnas           : Integer;
@@ -255,6 +257,7 @@ type
     procedure Desmontar;
     procedure MostrarEditor;
     function MarcarTodoAAlbaranar: Integer;
+    function MarcarFilaAAlbaranar: Integer;
     function VolcarAAlbaranar(ALineas: TList<TPair<string, Currency>>;
                               out AAlmacenComun: string;
                               out AAlmacenUnico: Boolean): Integer;
@@ -548,6 +551,9 @@ begin
         oDatos.LineaTexto := CampoTexto(oDs, FCfg.FieldLinea);
         oDatos.Linea := StrToIntDef(oDatos.LineaTexto, 0);
         oDatos.Precio := CampoFloat(oDs, FCfg.FieldPrecioBase);
+        if FCfg.CampoPorcentajeDto <> '' then
+          oDatos.PorcentajeDto := oDs.FieldByName(
+            FCfg.CampoPorcentajeDto).AsFloat;
         if (oDatos.Articulo <> '') and (oDatos.Linea > 0) then
         begin
           FModelo.ResolverInfoLinea(ObtenerCamposLinea(oDs), sSku,
@@ -751,6 +757,8 @@ var
   oDs: TDataSet;
   sSku: string;
   rPrecioGrupo: Double;
+  oGrupo: TGrupoPivoteVenta;
+  rDescuentoGrupo: Double;
   bFiltrado, bPrecioGrupo: Boolean;
   aLineasGrupo: TArray<string>;
 begin
@@ -775,6 +783,9 @@ begin
       if bPrecioGrupo then
         bPrecioGrupo := PrecioDeGrupo(
           LineaBaseDesdeClaveCelda(AClave), rPrecioGrupo);
+      rDescuentoGrupo := 0;
+      if FModelo.Grupo(LineaBaseDesdeClaveCelda(AClave), oGrupo) then
+        rDescuentoGrupo := oGrupo.PorcentajeDto;
       oDs.Append;
       try
         // El callback del documento puede hacer Post. La identidad SKU y
@@ -786,6 +797,9 @@ begin
           oDs.Edit;
         if bPrecioGrupo then
           PonerFloat(oDs, FCfg.FieldPrecioBase, rPrecioGrupo);
+        if FCfg.CampoPorcentajeDto <> '' then
+          oDs.FieldByName(FCfg.CampoPorcentajeDto).AsFloat :=
+            rDescuentoGrupo;
         PonerFloat(oDs, FCfg.FieldCantidadPedida, ACantidad);
         PonerFloat(oDs, FCfg.FieldCantidadEntregada, 0);
         PonerFloat(oDs, FCfg.FieldCantidadAAlbaranar, 0);
@@ -1005,6 +1019,28 @@ end;
 procedure TGridPivoteVenta.AnadirLineaNueva;
 begin
   FPresentacion.IniciarAltaLinea;
+end;
+
+function TGridPivoteVenta.MarcarFilaAAlbaranar: Integer;
+var
+  aLineas: TArray<string>;
+  oCampos: TCamposRecepcionFilaPivote;
+begin
+  aLineas := FModelo.LineasRealesDeGrupo(FPresentacion.LineaBaseFocada);
+  oCampos.Linea := FCfg.FieldLinea;
+  oCampos.Pedida := FCfg.FieldCantidadPedida;
+  oCampos.Recibida := FCfg.FieldCantidadEntregada;
+  oCampos.ARecibir := FCfg.FieldCantidadAAlbaranar;
+  PonerGuardando(True);
+  FPresentacion.RecargaSuspendida := True;
+  try
+    Result := MarcarPendientesFilaPivote(CdsLineas, oCampos, aLineas);
+  finally
+    FPresentacion.RecargaSuspendida := False;
+    PonerGuardando(False);
+  end;
+  RecargarYPublicar;
+  FPresentacion.RefrescarSite;
 end;
 
 function TGridPivoteVenta.MarcarTodoAAlbaranar: Integer;

@@ -181,6 +181,7 @@ type
     dbcLinColorBasico: TcxGridDBColumn;
     dbcLinPestana: TcxGridDBColumn;
     dbcLinPrecioCompra: TcxGridDBColumn;
+    dbcLinDescuento: TcxGridDBColumn;
     dbcLinPrecioVenta: TcxGridDBColumn;
     dbcLinTallas: TcxGridDBColumn;
     dbcLinVariacion: TcxGridDBColumn;
@@ -1698,6 +1699,10 @@ begin
   AsegurarColumnaVariacionLinea;
   if Assigned(Traducciones) then
     Traducciones.Aplicar(Self);
+  dbcLinDescuento.Caption := SCaptionDescuentoLineaCompra;
+  dbcLinColorBasico.Caption := SCaptionColorBasicoCompra;
+  dbcLinColorBasico.Visible := True;
+  dbcLinColorBasico.VisibleForCustomization := True;
   lblVariacion.Caption := SCaptionSesionVariacionDefecto;
   // Pestañas creadas en código: no las recoge Traducciones.Aplicar
   // (FZ-ISSUE-739).
@@ -1763,8 +1768,9 @@ begin
         dbcLinColor.VisibleForCustomization := FRotulosVariacion.TieneEjeFila;
         dbcFotoColor.Visible := FRotulosVariacion.TieneEjeFila;
         btnNuevoColor.Visible := FRotulosVariacion.TieneEjeFila;
-        dbcLinColorBasico.Visible := FRotulosVariacion.EsColorBasico and
-          FRotulosVariacion.TieneEjeFila;
+        // Columna común de la sesión: navegar por líneas no la oculta.
+        dbcLinColorBasico.Visible := True;
+        dbcLinColorBasico.VisibleForCustomization := True;
         if FPestanasSesion <> nil then
           FPestanasSesion.AplicarRotulos(FRotulosVariacion);
         if bCambiaVariacion then
@@ -2259,7 +2265,8 @@ begin
   dbcLinPrecioCompra.Index := 7;  // Precio de compra
   dbcLinPrecioVenta.Index  := 8;  // Precio de venta
   AsegurarColumnaVariacionLinea;
-  dbcLinTallas.Index       := 10; // Sistema de tallas
+  dbcLinDescuento.Index := dbcLinPrecioCompra.Index + 1;
+  dbcLinTallas.Index       := 11; // Sistema de tallas
   IdxBase := dbcLinTallas.Index;
   FTallas.ReindexarColumnas(IdxBase);
   // Totales y nro de linea, tras el bloque de tallas pivotadas.

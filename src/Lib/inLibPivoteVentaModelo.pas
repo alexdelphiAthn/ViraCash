@@ -30,6 +30,7 @@ type
     LineaTexto  : string;
     Linea       : Integer;
     Precio      : Double;
+    PorcentajeDto: Double;
     TipoCantidad: string;
     Sku         : string;
     Info        : TInfoSkuPivoteVenta;
@@ -63,6 +64,7 @@ type
     SinTalla    : Boolean;
     UdsGrupo    : Double;
     Precio      : Double;
+    PorcentajeDto: Double;
     PreciosDistintos: Boolean;
     Tallas      : TArray<Integer>;
   end;
@@ -186,7 +188,25 @@ type
     property LineasVista: TList<Integer> read FLineasVista;
   end;
 
+procedure OrdenarTallasNumericas(var ATallas: TValoresTallaPivoteVenta);
+
 implementation
+
+procedure OrdenarTallasNumericas(var ATallas: TValoresTallaPivoteVenta);
+var
+  aCodigos: TArray<string>;
+  aOrden: TArray<Integer>;
+  aOriginal: TValoresTallaPivoteVenta;
+  i: Integer;
+begin
+  SetLength(aCodigos, Length(ATallas));
+  for i := 0 to High(ATallas) do
+    aCodigos[i] := ATallas[i].Valor;
+  aOrden := IndicesOrdenNumericoTallas(aCodigos);
+  aOriginal := Copy(ATallas);
+  for i := 0 to High(aOrden) do
+    ATallas[i] := aOriginal[aOrden[i]];
+end;
 
 constructor TModeloPivoteVenta.Create(
   const ARepositorio: IRepositorioModeloPivoteVenta; ABandaUnica: Boolean;
@@ -285,6 +305,8 @@ begin
   // Cada copa es una fila propia; sin copa la clave es la de siempre.
   if ADatos.Info.PestanaTexto <> '' then
     sClaveBase := sClaveBase + '|C' + ADatos.Info.PestanaTexto;
+  sClaveBase := sClaveBase + '|DTO' +
+    FloatToStr(ADatos.PorcentajeDto, TFormatSettings.Invariant);
   Result := sClaveBase;
   iRepeticion := 1;
   repeat
@@ -336,6 +358,7 @@ begin
       oGrupo := Default(TGrupoPivoteVenta);
       oGrupo.Articulo := ADatos.Articulo;
       oGrupo.Precio := ADatos.Precio;
+      oGrupo.PorcentajeDto := ADatos.PorcentajeDto;
       oGrupo.TipoCantidad := sTipoCantidad;
       oGrupo.ColorAv := ADatos.Info.ColorAv;
       oGrupo.ColorTexto := ADatos.Info.ColorTexto;
@@ -476,6 +499,7 @@ begin
       aExtra := FRepositorio.TallasPorIds(aFaltantes);
       AnexarTallasFaltantes(aPosiciones, aExtra);
     end;
+    OrdenarTallasNumericas(aPosiciones);
     // Recortado, el sistema real ya no sirve: sus posiciones no son
     // las que se enseñan y hace falta el conjunto virtual.
     bRecortado := RecortarTallasHorizontal(oGrupo.Articulo, aPosiciones,
@@ -651,6 +675,7 @@ begin
     if (AIdAc > 0) and (FRepositorio <> nil) then
     begin
       Result := FRepositorio.PosicionesConjunto(AIdAc);
+      OrdenarTallasNumericas(Result);
       FPosConjuntos.Add(AIdAc, Result);
     end;
   end;

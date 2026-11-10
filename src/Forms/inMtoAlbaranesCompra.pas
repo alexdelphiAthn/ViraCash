@@ -1440,6 +1440,7 @@ begin
       'ALBC', 'ALBCLIN',
       'PRECIO_COMPRA_SIVA_ARTICULO_ALBCLIN',
       CANT_TALLAS_MAX);
+    CfgPV.CampoPorcentajeDto := 'PORCENTAJE_DTO_ALBCLIN';
     CfgPV.UnidadesMedida := UnidadesMedida;
     // Albaran de compra: UNA sola cantidad por linea -> banda unica.
     CfgPV.BandaUnica := True;

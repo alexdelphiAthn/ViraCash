@@ -254,6 +254,15 @@
                     Properties.OnValidate = dbcLinPrecioCompraPropertiesValidate
                     Width = 136
                   end
+                  object dbcLinDescuento: TcxGridDBColumn
+                    Caption = 'Dto. %'
+                    DataBinding.FieldName = 'PORCENTAJE_DTO_SESLIN'
+                    PropertiesClassName = 'TcxCurrencyEditProperties'
+                    Properties.MinValue = 0.000000000000000000
+                    Properties.MaxValue = 100.000000000000000000
+                    Properties.DisplayFormat = '0.00 "%"'
+                    Width = 75
+                  end
                   object dbcLinPrecioVenta: TcxGridDBColumn
                     Caption = 'Pr. venta'
                     DataBinding.FieldName = 'PRECIO_VENTA_SESLIN'

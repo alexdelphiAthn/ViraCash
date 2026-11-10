@@ -606,6 +606,7 @@ begin
   Configuracion.FieldArticulo := 'CODIGO_ART_REUSAR_SESLIN';
   Configuracion.FieldConjuntoPivot := 'ID_AC_PIVOT_SESLIN';
   Configuracion.FieldPrecioBase := 'PRECIO_COMPRA_SESLIN';
+  Configuracion.CampoPorcentajeDto := 'PORCENTAJE_DTO_SESLIN';
   Configuracion.FieldTotalUds := 'TOTAL_UNIDADES_SESLIN';
   Configuracion.FieldTotalLinea := 'TOTAL_LINEA_SESLIN';
   Configuracion.TablaCeldas := 'fza_compras_sesiones_celdas';

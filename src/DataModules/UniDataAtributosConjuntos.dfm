@@ -97,14 +97,19 @@
       'SELECT COUNT(*) FROM fza_atributos_conjuntos_det')
     Connection = dmConn.conUni
     SQL.Strings = (
-      'SELECT ID_AC_ACD, ID_AV_ACD, ORDEN_ACD, ID_ATB_ACD,'
-      '       (SELECT v.AV FROM fza_atributos_valores v'
-      '         WHERE v.ID_AV = fza_atributos_conjuntos_det.ID_AV_ACD) AS AV,'
-      
-        '       INSTANTE_MODIF, INSTANTE_ALTA, USUARIO_ALTA, USUARIO_MODI' +
-        'F'
-      '  FROM fza_atributos_conjuntos_det'
-      ' ORDER BY ORDEN_ACD, ID_AV_ACD')
+      'SELECT D.ID_AC_ACD, D.ID_AV_ACD, D.ORDEN_ACD, D.ID_ATB_ACD,'
+      '       V.AV, D.INSTANTE_MODIF, D.INSTANTE_ALTA,'
+      '       D.USUARIO_ALTA, D.USUARIO_MODIF'
+      '  FROM fza_atributos_conjuntos_det D'
+      '  JOIN fza_atributos_valores V ON V.ID_AV = D.ID_AV_ACD'
+      ' ORDER BY CASE WHEN NOT EXISTS ('
+      '   SELECT 1 FROM fza_atributos_conjuntos_det N'
+      '   JOIN fza_atributos_valores NV ON NV.ID_AV = N.ID_AV_ACD'
+      '   WHERE N.ID_AC_ACD = D.ID_AC_ACD'
+      '     AND TRIM(NV.AV) NOT REGEXP '
+      '         ''^[+-]?[0-9]+([.,][0-9]+)?$'')'
+      ' THEN CAST(REPLACE(TRIM(V.AV), '','', ''.'') AS DECIMAL(40,10))'
+      ' ELSE NULL END, D.ORDEN_ACD, D.ID_AV_ACD')
     MasterFields = 'ID_AC'
     DetailFields = 'ID_AC_ACD'
     Options.SetFieldsReadOnly = False

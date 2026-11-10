@@ -66,6 +66,7 @@ type
     Almacen: string;
     Cantidad: Double;
     PrecioCompra: Double;
+    PorcentajeDto: Double;
     Descripcion: string;
     CodigoFamilia: string;
     TipoIva: string;

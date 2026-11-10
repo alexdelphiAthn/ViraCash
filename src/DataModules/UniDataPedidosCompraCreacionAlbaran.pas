@@ -436,6 +436,7 @@ begin
     '       IFNULL(P.ESIVA_EXENTO_INTRACOMUNITARIO_PEDC, ''N'') ' +
     '         AS EXENTO_INTRACOM, ' +
     '       L.PRECIO_COMPRA_SIVA_ARTICULO_PEDCLIN, ' +
+    'L.PORCENTAJE_DTO_PEDCLIN, ' +
     '       L.PRECIO_COMPRA_CIVA_ARTICULO_PEDCLIN, ' +
     '       L.CANTIDAD_PEDCLIN, L.CANTIDAD_RECIBIDA_PEDCLIN ' +
     '  FROM fza_pedidos_compra_lineas L ' +
@@ -498,6 +499,7 @@ begin
     '   PORCENTAJE_IVA_ALBCLIN, ' +
     '   PRECIO_COMPRA_SIVA_ARTICULO_ALBCLIN, ' +
     '   PRECIO_COMPRA_CIVA_ARTICULO_ALBCLIN, ' +
+    'PORCENTAJE_DTO_ALBCLIN, ' +
     '   TOTAL_ALBCLIN, CODIGO_ALMACEN_ALBCLIN, ' +
     '   ESFACTURADA_ALBCLIN, LOTE_ALBCLIN, FECHA_CADUCIDAD_ALBCLIN, ' +
     '   INSTANTE_ALTA, USUARIO_ALTA, ' +
@@ -505,7 +507,7 @@ begin
     'VALUES (:nalbc, :salbc, :lalbc, :npedc, :spedc, :lpedc, ' +
     '        :art, :sku, :refprv, :acpivot, :fam, :nfam, ' +
     '        :desc, :tipcant, :cant, :cant, :tiva, :piva, ' +
-    '        :pre, :preciva, :total, :alm, ''N'', ' +
+    '        :pre, :preciva, :dto, :total, :alm, ''N'', ' +
     '        :LOTE, :CADUCIDAD, NOW(), :u, NOW(), :u)';
 end;
 
@@ -556,6 +558,8 @@ begin
     AQueryDestino.ParamByName('piva').AsFloat :=
       AQueryOrigen.FieldByName('PORCENTAJE_IVA_PEDCLIN').AsFloat;
   end;
+  AQueryDestino.ParamByName('dto').AsFloat :=
+    AQueryOrigen.FieldByName('PORCENTAJE_DTO_PEDCLIN').AsFloat;
   AQueryDestino.ParamByName('pre').AsFloat :=
     AQueryOrigen.FieldByName(
       'PRECIO_COMPRA_SIVA_ARTICULO_PEDCLIN').AsFloat;
@@ -566,7 +570,9 @@ begin
   // (125,50 x 4,35 = 545,93, no 545,925).
   AQueryDestino.ParamByName('total').AsFloat := RedondearACentimos(
     ACantidad * AQueryOrigen.FieldByName(
-      'PRECIO_COMPRA_SIVA_ARTICULO_PEDCLIN').AsFloat);
+      'PRECIO_COMPRA_SIVA_ARTICULO_PEDCLIN').AsFloat *
+    (1 - AQueryOrigen.FieldByName('PORCENTAJE_DTO_PEDCLIN').AsFloat /
+      100));
   AQueryDestino.ParamByName('alm').AsString := ACodigoAlmacen;
   AQueryDestino.ParamByName('u').AsString := AUsuario;
   // FZ-ISSUE-434: el lote pedido al recibir manda sobre el de la línea

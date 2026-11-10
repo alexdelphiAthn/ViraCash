@@ -155,6 +155,7 @@ begin
   Result.Linea := FCfgTallas.FieldLinea;
   Result.ConjuntoPivot := FCfgTallas.FieldConjuntoPivot;
   Result.PrecioBase := FCfgTallas.FieldPrecioBase;
+  Result.CampoPorcentajeDto := FCfgTallas.CampoPorcentajeDto;
   Result.TotalUds := FCfgTallas.FieldTotalUds;
   Result.TotalLinea := FCfgTallas.FieldTotalLinea;
 end;

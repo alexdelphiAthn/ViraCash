@@ -213,7 +213,8 @@ begin
           sAlmLinea := AlmacenEfectivo(Linea);
           sClave := TModeloTallas.ClaveConsolidacion(FDistribuido,
             Linea.Articulo, sAlmLinea, Atributos.Valores,
-            Linea.TienePrecio, Linea.Precio);
+            Linea.TienePrecio, Linea.Precio) + '|DTO' +
+            FloatToStr(Linea.PorcentajeDto, TFormatSettings.Invariant);
           // Destino de las cantidades heredadas: en distribuido, el
           // almacen efectivo de la linea; si no, celda sin almacen.
           if FDistribuido then

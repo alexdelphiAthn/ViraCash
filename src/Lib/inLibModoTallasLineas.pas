@@ -229,6 +229,9 @@ begin
     if (FCampos.PrecioBase <> '') and
        (FCds.FindField(FCampos.PrecioBase) <> nil) then
       Result.Precio := FCds.FieldByName(FCampos.PrecioBase).AsFloat;
+    if FCampos.CampoPorcentajeDto <> '' then
+      Result.PorcentajeDto := FCds.FieldByName(
+        FCampos.CampoPorcentajeDto).AsFloat;
     for i := 1 to 5 do
     begin
       Result.Valores[i] := LeerCampo(FCampos.AttrValor[i]);
@@ -298,6 +301,9 @@ begin
   if (FCampos.PrecioBase <> '') and
      (FCds.FindField(FCampos.PrecioBase) <> nil) then
     FCds.FieldByName(FCampos.PrecioBase).AsFloat := ADatos.Precio;
+  if FCampos.CampoPorcentajeDto <> '' then
+    FCds.FieldByName(FCampos.CampoPorcentajeDto).AsFloat :=
+      ADatos.PorcentajeDto;
   for i := 1 to 5 do
   begin
     PonerCampo(FCampos.AttrValor[i], ADatos.Valores[i]);
@@ -325,6 +331,9 @@ begin
     if Result and (FCampos.AttrValor[j] <> '') then
       Result := SameText(Trim(LeerCampo(FCampos.AttrValor[j])),
                          Trim(AValores[j]));
+  if Result and (FCampos.CampoPorcentajeDto <> '') then
+    Result := FCds.FieldByName(
+      FCampos.CampoPorcentajeDto).AsFloat = 0;
   if Result then
     Result := Abs(FCds.FieldByName(
       FCampos.PrecioBase).AsFloat - APrecio) < 0.005;
@@ -635,6 +644,9 @@ begin
     (FCds.FindField(FCampos.PrecioBase) <> nil);
   if Result.TienePrecio then
     Result.Precio := FCds.FieldByName(FCampos.PrecioBase).AsFloat;
+  if FCampos.CampoPorcentajeDto <> '' then
+    Result.PorcentajeDto := FCds.FieldByName(
+      FCampos.CampoPorcentajeDto).AsFloat;
 end;
 
 procedure TLineasDocumentoTallasCds.EscribirLineaActual(

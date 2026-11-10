@@ -833,6 +833,7 @@ begin
     // el contador de lineas. Un 0000 parecia un error (FZ-ISSUE-224).
     FieldByName('LINEA_PEDCLIN').Clear;
     FieldByName('CANTIDAD_PEDCLIN').AsFloat := 1;
+    FieldByName('PORCENTAJE_DTO_PEDCLIN').AsFloat := 0;
     FieldByName('CANTIDAD_RECIBIDA_PEDCLIN').AsFloat := 0;
     // NOT NULL DEFAULT 0 en BBDD pero UniDAC la marca Required: sin
     // inicializarla, el Post de una linea nueva casca con "Field
@@ -909,12 +910,6 @@ begin
     ExigirSkuCompletoEnDataSet(ConexionEscritura,
       unqryPedidosCompraLineas, 'CODIGO_ART_PEDCLIN',
       'CODIGO_UNIDAD_PEDCLIN');
-    if (FindField('CANTIDAD_PEDCLIN') <> nil) and
-       (FindField('PRECIO_COMPRA_SIVA_ARTICULO_PEDCLIN') <> nil) and
-       (FindField('TOTAL_PEDCLIN') <> nil) then
-      FieldByName('TOTAL_PEDCLIN').AsFloat :=
-        FieldByName('CANTIDAD_PEDCLIN').AsFloat *
-        FieldByName('PRECIO_COMPRA_SIVA_ARTICULO_PEDCLIN').AsFloat;
     if FindField('USUARIO_MODIF') <> nil then
       FieldByName('USUARIO_MODIF').AsString   := IdentidadSesion.Usuario;
     if FindField('INSTANTE_MODIF') <> nil then

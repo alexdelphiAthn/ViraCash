@@ -101,6 +101,7 @@ type
     FieldLinea        : string;   // 'LINEA_SESLIN'
     FieldArticulo     : string;
     FieldConjuntoPivot: string;   // 'ID_AC_PIVOT_SESLIN'
+    CampoPorcentajeDto: string;   // Opcional; vacío equivale a 0.
     FieldPrecioBase   : string;   // 'PRECIO_COMPRA_SESLIN'
     FieldTotalUds     : string;   // 'TOTAL_UNIDADES_SESLIN'
     FieldTotalLinea   : string;   // 'TOTAL_LINEA_SESLIN'
@@ -469,6 +470,9 @@ function TGestorGridTallas.GetPosicionesConjunto(AIdAc: Integer;
 var
   aPersistidas: TArray<TPosicionConjuntoTallas>;
   aVisibles: TArray<Integer>;
+  aCodigos: TArray<string>;
+  aOrden: TArray<Integer>;
+  aOriginal: TArray<TPosicionConjuntoTallas>;
   arr: TArrPosConjunto;
   i: Integer;
   sArticulo, sClave: string;
@@ -489,6 +493,13 @@ begin
     begin
       aPersistidas := FCfg.Persistencia.ConsultarPosicionesConjunto(
         AIdAc, sArticulo);
+      SetLength(aCodigos, Length(aPersistidas));
+      for i := 0 to High(aPersistidas) do
+        aCodigos[i] := aPersistidas[i].Valor;
+      aOrden := IndicesOrdenNumericoTallas(aCodigos);
+      aOriginal := Copy(aPersistidas);
+      for i := 0 to High(aOrden) do
+        aPersistidas[i] := aOriginal[aOrden[i]];
       aVisibles := IndicesTallasVisibles(sArticulo, aPersistidas);
       SetLength(arr, Length(aVisibles));
       for i := 0 to High(aVisibles) do
@@ -849,6 +860,9 @@ begin
   if (FCfg.FieldPrecioBase <> '') and
      Assigned(Lineas.FindField(FCfg.FieldPrecioBase)) then
     Result := Lineas.FieldByName(FCfg.FieldPrecioBase).AsFloat;
+  if FCfg.CampoPorcentajeDto <> '' then
+    Result := Result * (1 - Lineas.FieldByName(
+      FCfg.CampoPorcentajeDto).AsFloat / 100);
 end;
 
 // Total que tendrá la línea si la celda pasa a ACantidad: las demás celdas

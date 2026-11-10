@@ -59,6 +59,7 @@ type
     Nombres: TValoresAttrTallas;
     OrdenTalla: Integer;
     Precio: Double;
+    PorcentajeDto: Double;
   end;
   // Atributos calculados de una linea, SIN escribir en el dataset.
   TAtributosLineaTallas = record
@@ -78,6 +79,7 @@ type
     TieneAlmacen: Boolean;
     TienePrecio: Boolean;
     TieneCantidad: Boolean;
+    PorcentajeDto: Double;
   end;
   // Escritura de la linea maestra tras rederivarla.
   TEscrituraLineaTallas = record
@@ -118,6 +120,7 @@ type
     Linea: string;
     ConjuntoPivot: string;
     PrecioBase: string;
+    CampoPorcentajeDto: string;
     TotalUds: string;
     TotalLinea: string;
   end;

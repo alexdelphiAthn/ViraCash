@@ -241,7 +241,8 @@ begin
       'END) ' +
       '            ELSE GREATEST(0, 1 - ' +
       'IFNULL(P.PORCENTAJE_DTO_COMERCIAL_PEDC, 0) / 100) ' +
-      '       END AS PRECIO, ' +
+      '       END * (1 - IFNULL(L.PORCENTAJE_DTO_PEDCLIN, 0) / 100) ' +
+      '       AS PRECIO, ' +
       '       P.CODIGO_PRV_PEDC, P.CODIGO_EMP_PEDC, ' +
       '       P.FECHA_PEDC, P.FECHA_PREVISTA_PEDC ' +
       '  FROM fza_pedidos_compra_lineas L ' +

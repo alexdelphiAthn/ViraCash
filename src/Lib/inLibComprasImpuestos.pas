@@ -21,6 +21,8 @@ uses
   System.SysUtils, Data.DB, inLibImpuestosLecturasIntf,
   inLibUnidadesMedida;
 
+function CalcularPrecioNetoCompra(APrecio, ADescuento: Double): Double;
+
 function ObtenerRecargoComprasEmpresa(
   const ALecturas: ILecturasImpuestos;
   const ACodigoEmp: string): string;
@@ -82,13 +84,20 @@ implementation
 
 uses
   System.Variants, inLibImpuestosComun, inLibMotorFiscalVenta,
-  inLibRedondeo;
+  inLibRedondeo, inLibMsgCompras;
 
 const
   CODIGOS_IVA: array[0..3] of string = ('IVAN', 'IVAR', 'IVAS', 'IVAE');
   CODIGOS_RE : array[0..3] of string = ('REN', 'RER', 'RES', 'REE');
 
 
+
+function CalcularPrecioNetoCompra(APrecio, ADescuento: Double): Double;
+begin
+  if (ADescuento < 0) or (ADescuento > 100) then
+    raise EArgumentOutOfRangeException.Create(SErrorDescuentoLineaCompra);
+  Result := APrecio * (1 - ADescuento / 100);
+end;
 
 function DocumentoCompraSinIva(ACabecera: TDataSet;
   const ASufijoCabecera: string): Boolean;
@@ -415,6 +424,10 @@ begin
     rCantidad := CampoFloat(ALinea, 'CANTIDAD_' + ASufijoLinea);
     rPrecioSiva := CampoFloat(ALinea,
       'PRECIO_COMPRA_SIVA_ARTICULO_' + ASufijoLinea);
+    // El descuento de línea precede a los descuentos de cabecera.
+    if (ASufijoLinea = 'PEDCLIN') or (ASufijoLinea = 'ALBCLIN') then
+      rPrecioSiva := CalcularPrecioNetoCompra(rPrecioSiva,
+        ALinea.FieldByName('PORCENTAJE_DTO_' + ASufijoLinea).AsFloat);
     if not (ALinea.State in dsEditModes) then
       ALinea.Edit;
     PonerString(ALinea, sCampoTipo, sTipoIva);

@@ -171,6 +171,9 @@ function CrearColumnaHostDocumento(
   AAncho: Integer; AEditable: Boolean): TcxGridDBColumn;
 procedure AjustarAnchosTallasPedidoCompra(
   AVista: TcxGridDBTableView; AMaxTallas: Integer);
+function CrearColumnaDescuentoCompra(AVista: TcxGridDBTableView;
+  const ASufijo: string): TcxGridDBColumn;
+
 function CrearColumnasHostDocumentoCompra(
   AVista: TcxGridDBTableView; AModo: TModoColumnasSku;
   const APrefijoLinea: string): TColumnasHostDocumentoCompra;
@@ -918,6 +921,17 @@ begin
   end;
 end;
 
+function CrearColumnaDescuentoCompra(AVista: TcxGridDBTableView;
+  const ASufijo: string): TcxGridDBColumn;
+begin
+  Result := CrearColumnaHostDocumento(AVista,
+    SCaptionDescuentoLineaCompra, 'PORCENTAJE_DTO_' + ASufijo, 75, True);
+  Result.PropertiesClass := TcxCurrencyEditProperties;
+  TcxCurrencyEditProperties(Result.Properties).MinValue := 0;
+  TcxCurrencyEditProperties(Result.Properties).MaxValue := 100;
+  TcxCurrencyEditProperties(Result.Properties).DisplayFormat := '0.00 "%"';
+end;
+
 function CrearColumnasHostDocumentoCompra(
   AVista: TcxGridDBTableView; AModo: TModoColumnasSku;
   const APrefijoLinea: string): TColumnasHostDocumentoCompra;
@@ -943,6 +957,8 @@ begin
     AVista, SCaptionColumnaPedidoPrecioCompra,
     'PRECIO_COMPRA_SIVA_ARTICULO_' + APrefijoLinea, 130, True);
   FormatearColumnaMonetaria(Result.ColPrecioCompra);
+  if APrefijoLinea = 'ALBCLIN' then
+    CrearColumnaDescuentoCompra(AVista, APrefijoLinea);
   CrearColumnaHostDocumento(AVista, SCaptionColumnaPedidoPorcentajeIva,
     'PORCENTAJE_IVA_' + APrefijoLinea, 70, True);
   if AModo = mcsTallasHorPed then
@@ -980,6 +996,7 @@ begin
   Rotular('DESCRIPCION_ARTICULO_', SCaptionColumnaPedidoDescripcion);
   Rotular('CANTIDAD_', SCaptionColCantidad);
   Rotular('PRECIO_COMPRA_SIVA_ARTICULO_', SCaptionColumnaPedidoPrecioCompra);
+  Rotular('PORCENTAJE_DTO_', SCaptionDescuentoLineaCompra);
   Rotular('PORCENTAJE_IVA_', SCaptionColumnaPedidoPorcentajeIva);
   if AModo = mcsTallasHorPed then
     Rotular('TOTAL_', SCaptionColumnaCompraTotalUnidades)

@@ -112,11 +112,13 @@ const
     '       COALESCE(AVP.AV, '''') AS VAL_PIVOT, ' +
     '       COALESCE(L.PRECIO_COMPRA_SESLIN, 0) * GREATEST(0, 1 - ' +
     '       IFNULL(S.PORCENTAJE_DTO_COMERCIAL_SES, 0) / 100) ' +
+    '       * (1 - IFNULL(L.PORCENTAJE_DTO_SESLIN, 0) / 100) ' +
     '       AS COSTE_LINEA, ' +
     '       COALESCE(L.PRECIO_VENTA_SESLIN, 0) AS PVP_LINEA, ' +
     '       COALESCE(P.PRECIO_COMPRA_SESLINSKU, L.PRECIO_COMPRA_SESLIN, 0) ' +
     '       * GREATEST(0, 1 - IFNULL(S.PORCENTAJE_DTO_COMERCIAL_SES, 0) ' +
-    '       / 100) AS COSTE_SKU, ' +
+    '       / 100) * ' +
+    '       (1 - IFNULL(L.PORCENTAJE_DTO_SESLIN, 0) / 100) AS COSTE_SKU, ' +
     '       COALESCE(P.PRECIO_VENTA_SESLINSKU, L.PRECIO_VENTA_SESLIN, 0) ' +
     '       AS PVP_SKU ' +
     '  FROM fza_compras_sesiones_lineas L ' +

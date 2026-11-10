@@ -135,7 +135,8 @@ begin
       // FZ-ISSUE-381: precio del proveedor neto de descuento y sin
       // impuestos, igual para todas las empresas. El IVA y el recargo no
       // deducibles solo son coste de stock (PMP) de la empresa en recargo.
-      '               L.PRECIO_COMPRA_SIVA_ARTICULO_ALBCLIN * ' +
+      '               (L.PRECIO_COMPRA_SIVA_ARTICULO_ALBCLIN * ' +
+    '(1 - IFNULL(L.PORCENTAJE_DTO_ALBCLIN, 0) / 100)) * ' +
       '               CASE WHEN IFNULL(A.TOTAL_BRUTO_ALBC, 0) > 0 THEN ' +
       '                      GREATEST(0, 1 - CASE ' +
       '                        WHEN IFNULL(A.TOTAL_DTO_COMERCIAL_ALBC, 0) <> 0 '
@@ -230,7 +231,8 @@ begin
       // FZ-ISSUE-381: precio del proveedor neto de descuento y sin
       // impuestos, igual para todas las empresas. El IVA y el recargo no
       // deducibles solo son coste de stock (PMP) de la empresa en recargo.
-      '               L.PRECIO_COMPRA_SIVA_ARTICULO_ALBCLIN * ' +
+      '               (L.PRECIO_COMPRA_SIVA_ARTICULO_ALBCLIN * ' +
+    '(1 - IFNULL(L.PORCENTAJE_DTO_ALBCLIN, 0) / 100)) * ' +
       '               CASE WHEN IFNULL(A.TOTAL_BRUTO_ALBC, 0) > 0 THEN ' +
       '                      GREATEST(0, 1 - CASE ' +
       '                        WHEN IFNULL(A.TOTAL_DTO_COMERCIAL_ALBC, 0) <> 0 '

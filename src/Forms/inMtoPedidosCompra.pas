@@ -354,6 +354,7 @@ type
     // recrean en runtime. El pivote de compras (FPivote/ESPIVOTE)
     // queda RETIRADO de esta pantalla (decision 09/07/26).
     FModoEntrada: IModoEntradaGrid;
+    FAccionesPivote: IPivoteVentaAlbaranar;
     FModoEntradaSel: TModoColumnasSku;
     FColsModoConstruido: Boolean;
     FLectorDocumento: TLectorDocumento;
@@ -772,7 +773,7 @@ begin
   // modo Tallas horizontal (tallashorped), cuyas bandas Pedido /
   // A recibir / Pendiente son el "expandido" del pivote antiguo.
   btnExpandirRecibidos.Visible := True;
-  btnRecibirFilaEntera.Visible := False;
+  btnRecibirFilaEntera.Visible := True;
   lblContextoTalla.Visible := False;
   ActualizarCaptionModoLineas;
   // Primera construccion al abrir la pantalla: sin ella, hasta entrar
@@ -801,6 +802,7 @@ begin
   // El modo del contrato se libera ANTES del inherited: su teardown
   // toca el view y el dataset de lineas, que deben seguir vivos (misma
   // leccion que pedidos/facturas de venta, AV al cerrar 08/07/26).
+  FAccionesPivote := nil;
   if FModoEntrada <> nil then
   begin
     // Teardown SILENCIOSO: la expansion del modo tallas postea lineas
@@ -976,6 +978,7 @@ begin
     if ColumnaPedidosCompraExiste('COLOR_TEXTO_PEDCLIN') then
       oBase.CampoColorTexto := 'COLOR_TEXTO_PEDCLIN';
     oConfigTallas := CrearConfigTallasDocumentoCompra(oBase);
+    oConfigTallas.CampoPorcentajeDto := 'PORCENTAJE_DTO_PEDCLIN';
     oConfigTallas.Persistencia := CrearPersistenciaGridTallasInline(
       oBase.Conexion,
       CrearConfigPersistenciaTallasInline(oConfigTallas));
@@ -1155,13 +1158,18 @@ begin
       ConstruirModoEntrada);
 end;
 
-// Rellena el sub-segmento 'A recibir' con el pendiente (Pedido -
-// Recibida) de TODAS las tallas de la fila focused. Solo aplica en
-// pivote expandido — si no, avisa al usuario.
+// Marca todas las tallas de la fila actual para la próxima recepción.
 procedure TfrmMtoPedidosCompra.btnRecibirFilaEnteraClick(Sender: TObject);
 begin
   inherited;
-  if Assigned(FRecepcionVcl) then
+  if Assigned(FAccionesPivote) then
+  begin
+    if FAccionesPivote.MarcarFilaAAlbaranar = 0 then
+      MessageDlg_fza(SInfoFilaPedidoCompraSinPendientes,
+        mtInformation, [mbOk], 0);
+    RefrescarCantidadAAlbaranar;
+  end
+  else if Assigned(FRecepcionVcl) then
     FRecepcionVcl.RecibirFilaEntera(FColsModoConstruido);
 end;
 
@@ -2007,6 +2015,7 @@ begin
   // por cada post de linea (segundos de cascada al entrar al modo).
   dmmPedidosCompra.IniciarReorganizacionLineas;
   try
+  FAccionesPivote := nil;
   PrepararReconstruccionModoDocumento(tvLineasPedido, ds,
     FModoEntrada, FTallaColumns, FAtribColumns, FColColorPivot);
   FColColorProveedorPivot := nil;
@@ -2047,6 +2056,7 @@ begin
     CfgPV.FieldCantidadAAlbaranar := 'CANTIDAD_A_RECIBIR_PEDCLIN';
     CfgPV.BandaUnica := False;
     CfgPV.TextoBandaAAlbaranar := SCaptionColumnaPedidoARecibir;
+    CfgPV.CampoPorcentajeDto := 'PORCENTAJE_DTO_PEDCLIN';
     CfgPV.FieldImporteLinea := 'TOTAL_PEDCLIN';
     CfgPV.Repositorios :=
       CrearRepositorioPivoteVenta(
@@ -2077,6 +2087,7 @@ begin
     CfgT.FieldLinea := 'LINEA_PEDCLIN';
     CfgT.FieldConjuntoPivot := 'ID_AC_PIVOT_PEDCLIN';
     CfgT.FieldPrecioBase := 'PRECIO_COMPRA_SIVA_ARTICULO_PEDCLIN';
+    CfgT.CampoPorcentajeDto := 'PORCENTAJE_DTO_PEDCLIN';
     CfgT.FieldTotalUds := 'CANTIDAD_PEDCLIN';
     CfgT.FieldTotalLinea := 'TOTAL_PEDCLIN';
     CfgT.TablaCeldas := 'fza_pedidos_compra_celdas';
@@ -2104,6 +2115,7 @@ begin
   if not bDegradarASku then
   begin
     CrearColumnasHostPedidoCompra;
+    Supports(FModoEntrada, IPivoteVentaAlbaranar, FAccionesPivote);
     // Rotulo por modo EFECTIVO (Auto puede degradar a SKU si faltan
     // las columnas ATTR) y, en desglose, mostrar Color/Talla con los
     // nombres globales desde el principio (paso de pedidos de venta).
@@ -2154,6 +2166,7 @@ begin
   inherited;
   if Assigned(Traducciones) then
     Traducciones.Aplicar(Self);
+  btnRecibirFilaEntera.Caption := SCaptionRecibirFilaPedidoCompra;
   Rotular('LINEA_PEDCLIN', SCaptionColumnaPedidoLinea);
   Rotular('REF_PRV_PEDCLIN', SCaptionColumnaPedidoModeloProveedor);
   Rotular('DESCRIPCION_ARTICULO_PEDCLIN', SCaptionColumnaPedidoDescripcion);
@@ -2162,6 +2175,7 @@ begin
   Rotular('CANTIDAD_A_RECIBIR_PEDCLIN', SCaptionColumnaPedidoARecibir);
   Rotular('PRECIO_COMPRA_SIVA_ARTICULO_PEDCLIN',
     SCaptionColumnaPedidoPrecioCompra);
+  Rotular('PORCENTAJE_DTO_PEDCLIN', SCaptionDescuentoLineaCompra);
   Rotular('PORCENTAJE_IVA_PEDCLIN', SCaptionColumnaPedidoPorcentajeIva);
   Rotular('TOTAL_PEDCLIN', SCaptionColumnaPedidoTotal);
   Rotular('CODIGO_ALMACEN_PEDCLIN', SCaptionColumnaPedidoAlmacen);
@@ -2224,12 +2238,11 @@ begin
     VincularCantidadesGrid(FTallaColumns, ColTipoCantidad,
       UnidadesMedida, False);
   end;
-  // Precio NETO, como albaranes y facturas de compra: el BeforePost de
-  // la linea deriva el C/IVA y el total del S/IVA, y lo tecleado en el
-  // C/IVA se perdia al grabar (FZ-ISSUE-033).
+  // Precio sin IVA: al grabar se aplican el descuento de línea y el IVA.
   ColPrecioCompra := CrearColumnaHostDocumento(
     tvLineasPedido, SCaptionColumnaPedidoPrecioCompra,
     'PRECIO_COMPRA_SIVA_ARTICULO_PEDCLIN', 130, True);
+  CrearColumnaDescuentoCompra(tvLineasPedido, 'PEDCLIN');
   CrearColumnaHostDocumento(tvLineasPedido, SCaptionColumnaPedidoPorcentajeIva,
     'PORCENTAJE_IVA_PEDCLIN', 70, True);
   ColTotal := CrearColumnaHostDocumento(tvLineasPedido,

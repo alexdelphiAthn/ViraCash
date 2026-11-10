@@ -1411,6 +1411,7 @@ begin
     // falla con 'Field XXX must have a value' antes de llegar al DEFAULT.
     FieldByName('ESTRAZABLE_SESLIN').AsString    := 'N';
     FieldByName('PRECIO_COMPRA_SESLIN').AsFloat  := 0;
+    FieldByName('PORCENTAJE_DTO_SESLIN').AsFloat := 0;
     FieldByName('TOTAL_UNIDADES_SESLIN').AsFloat := 0;
     FieldByName('TOTAL_LINEA_SESLIN').AsFloat    := 0;
     // NOT NULL sin DEFAULT (debe rellenarlos el usuario): default a '' para
@@ -1582,6 +1583,8 @@ var
   LineaRepetida: Integer;
 begin
   inherited;
+  CalcularPrecioNetoCompra(0,
+    DataSet.FieldByName('PORCENTAJE_DTO_SESLIN').AsFloat);
   PrepararLineaSesionParaPost(DataSet);
   NormalizarClasificacionLineaSesion;
   MarcarDuplicadoLineaSesion;
@@ -1776,7 +1779,9 @@ begin
     q.ParamByName('pre').AsFloat := rPrecio;
     q.Open;
     rTotalUds := q.FieldByName('TOTAL').AsFloat;
-    rImporte := q.FieldByName('IMPORTE').AsFloat;
+    rImporte := CalcularPrecioNetoCompra(
+      q.FieldByName('IMPORTE').AsFloat,
+      unqrySesionLin.FieldByName('PORCENTAJE_DTO_SESLIN').AsFloat);
   finally
     FreeAndNil(q);
   end;

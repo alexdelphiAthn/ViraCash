@@ -54,6 +54,7 @@ type
       AUsarCampo: Boolean);
     function Total(AUsarCampo: Boolean): Double;
     function RellenarTodo(AUsarCampo: Boolean): Integer;
+    function RellenarFila(AUsarCampo: Boolean): Integer;
     procedure LimitarCampo(Sender: TObject);
     procedure LimitarVertical(Sender: TObject);
   end;

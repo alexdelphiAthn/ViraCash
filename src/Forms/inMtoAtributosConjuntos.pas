@@ -160,9 +160,8 @@ begin
   pkFieldName := 'ID_AC';
   dmmAtributosConjuntos.dsConjuntoDetalle.OnStateChange :=
                                                    dsConjuntoDetalleStateChange;
-  // Los valores se ven en el orden de la colección y el «+» añade al final:
-  // insertar encima de la fila actual dejaba el valor nuevo arriba.
-  tvValoresORDEN_ACD.SortOrder := soAscending;
+  // La consulta aplica el orden numérico solo a colecciones numéricas.
+  tvValoresORDEN_ACD.SortOrder := soNone;
   tvValores.Navigator.Buttons.OnButtonClick := tvValoresNavigatorButtonClick;
   ActualizarDescripciones;
   // Botones «Añadir» y «Borrar» sobre las rejillas de detalle, además

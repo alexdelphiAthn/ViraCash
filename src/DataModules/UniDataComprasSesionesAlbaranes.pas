@@ -32,6 +32,7 @@ function MaterializarAlbaranSesion(
 
 implementation
 uses
+  inLibComprasImpuestos, inLibRedondeo,
   System.SysUtils,
   Data.DB, DBAccess,
   inLibAlbaranesCompraMovimientos,
@@ -217,7 +218,7 @@ procedure InsertarLineaAlbaranCompra(AConn: TUniConnection;
                                             ALote, AUsuario: string;
                                       ACaducidad: TDateTime;
                                       ACantidad, APrecio,
-                                      APorcIva: Double;
+                                      APorcIva, ADescuento: Double;
                                       AIdAcPivot: Integer);
 var
   q: TUniQuery;
@@ -242,13 +243,14 @@ begin
       '   PORCENTAJE_IVA_ALBCLIN, ' +
       '   PRECIO_COMPRA_SIVA_ARTICULO_ALBCLIN, ' +
       '   PRECIO_COMPRA_CIVA_ARTICULO_ALBCLIN, ' +
+      '   PORCENTAJE_DTO_ALBCLIN, ' +
       '   TOTAL_ALBCLIN, CODIGO_ALMACEN_ALBCLIN, ' +
       '   ESFACTURADA_ALBCLIN, ' +
       '   LOTE_ALBCLIN, FECHA_CADUCIDAD_ALBCLIN, ' +
       '   INSTANTE_ALTA, USUARIO_ALTA, INSTANTE_MODIF, USUARIO_MODIF) ' +
       'VALUES (:n, :s, :l, :art, :sku, :refprv, :acpivot, ' +
       '        :fam, :nomfam, :desc, ''Uds'', ' +
-      '        :cant, :cant, :tiva, :piva, :pre, :preciva, :tot, :alm, ' +
+      '        :cant, :cant, :tiva, :piva, :pre, :preciva, :dto, :tot, :alm, ' +
       '        ''N'', ' +
       '        :LOTE, :CADUCIDAD, NOW(), :u, NOW(), :u)';
     q.ParamByName('n').AsString    := ANumAlbc;
@@ -271,8 +273,12 @@ begin
     q.ParamByName('tiva').AsString := ATipoIva;
     q.ParamByName('piva').AsFloat  := APorcIva;
     q.ParamByName('pre').AsFloat   := APrecio;
-    q.ParamByName('preciva').AsFloat := APrecio * (1 + APorcIva / 100);
-    q.ParamByName('tot').AsFloat   := ACantidad * APrecio;
+    q.ParamByName('dto').AsFloat := ADescuento;
+    q.ParamByName('preciva').AsFloat :=
+      CalcularPrecioNetoCompra(APrecio, ADescuento) *
+      (1 + APorcIva / 100);
+    q.ParamByName('tot').AsFloat := RedondearACentimos(
+      ACantidad * CalcularPrecioNetoCompra(APrecio, ADescuento));
     q.ParamByName('alm').AsString  := ACodigoAlm;
     q.ParamByName('u').AsString    := AUsuario;
     q.ParamByName('LOTE').AsString := ALote;
@@ -370,7 +376,9 @@ begin
       '          WHEN ''E'' THEN IFNULL(C.PORCENTAJE_IVAE_ALBC, 0) ' +
       '          ELSE 0 END END, ' +
       '       L.PRECIO_COMPRA_CIVA_ARTICULO_ALBCLIN = ' +
-      '         L.PRECIO_COMPRA_SIVA_ARTICULO_ALBCLIN * (1 + ' +
+      '         L.PRECIO_COMPRA_SIVA_ARTICULO_ALBCLIN * ' +
+      '         (1 - IFNULL(L.PORCENTAJE_DTO_ALBCLIN, 0) / 100) * ' +
+      '         (1 + ' +
       '           CASE WHEN IFNULL(C.ESIVA_EXENTO_INTRACOMUNITARIO_ALBC, ' +
       '''N'') = ''S'' ' +
       '                THEN 0 ELSE CASE L.TIPO_IVA_ARTICULO_ALBCLIN ' +
@@ -604,6 +612,7 @@ begin
         rCantidad,
         rCoste,
         rPorIva,
+        oLineas[iIndice].PorcentajeDto,
         iIdAcPivot);
     end;
   end;

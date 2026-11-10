@@ -30,6 +30,12 @@ const
   CAMPO_PESTANA_VISTA_PIVOTE = '__PESTANA_VISTA_PV';
 
 type
+  TCamposRecepcionFilaPivote = record
+    Linea: string;
+    Pedida: string;
+    Recibida: string;
+    ARecibir: string;
+  end;
   // DataSource de la copia en memoria que el pivote pone en la rejilla.
   // Recuerda el de las líneas reales, que el pivote mantiene en la línea
   // enfocada: la foto del artículo lo sigue sin depender del modo.
@@ -112,6 +118,10 @@ type
 
 // Posiciona ADs en la línea real ALinea probando los formatos de
 // numeración según documento: 4 dígitos ('0010'), 3 ('010') y entero.
+function MarcarPendientesFilaPivote(ADs: TDataSet;
+  const ACampos: TCamposRecepcionFilaPivote;
+  const ALineas: TArray<string>): Integer;
+
 function LocalizarLineaRealPivote(ADs: TDataSet;
                                   const ACampoLinea: string;
                                   ALinea: Integer): Boolean;
@@ -121,6 +131,49 @@ implementation
 uses
   inLibMensajesVcl,
   System.UITypes, Vcl.Dialogs, inLibMsgArticulos, inLibPivoteVentaCalculo;
+
+function MarcarPendientesFilaPivote(ADs: TDataSet;
+  const ACampos: TCamposRecepcionFilaPivote;
+  const ALineas: TArray<string>): Integer;
+var
+  sLineaFoco, sLinea: string;
+  rPendiente: Double;
+  bFiltrado: Boolean;
+begin
+  Result := 0;
+  if Assigned(ADs) and ADs.Active and (Length(ALineas) > 0) then
+  begin
+    if ADs.State in dsEditModes then
+      ADs.Post;
+    sLineaFoco := ADs.FieldByName(ACampos.Linea).AsString;
+    bFiltrado := ADs.Filtered;
+    ADs.DisableControls;
+    try
+      ADs.Filtered := False;
+      for sLinea in ALineas do
+        if ADs.Locate(ACampos.Linea, sLinea, []) then
+        begin
+          rPendiente := PendienteBasePivoteVenta(
+            ADs.FieldByName(ACampos.Pedida).AsFloat,
+            ADs.FieldByName(ACampos.Recibida).AsFloat);
+          ADs.Edit;
+          try
+            ADs.FieldByName(ACampos.ARecibir).AsFloat := rPendiente;
+            ADs.Post;
+          except
+            ADs.Cancel;
+            raise;
+          end;
+          if rPendiente > 0 then
+            Inc(Result);
+        end;
+    finally
+      ADs.Filtered := bFiltrado;
+      ADs.Locate(ACampos.Linea, sLineaFoco, []);
+      ADs.EnableControls;
+    end;
+  end;
+end;
 
 function LocalizarLineaRealPivote(ADs: TDataSet;
   const ACampoLinea: string; ALinea: Integer): Boolean;

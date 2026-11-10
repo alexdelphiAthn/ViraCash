@@ -64,6 +64,7 @@ type
     TipoIva: string;
     TipoCantidad: string;
     UltimoCoste: Double;
+    PorcentajeDto: Double;
     PrecioVenta: Double;
     PrecioVentaResuelta: Boolean;
     RefProveedor: string;

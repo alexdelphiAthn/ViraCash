@@ -811,6 +811,7 @@ begin
     // el contador de lineas. Un 0000 parecia un error (FZ-ISSUE-224).
     FieldByName('LINEA_ALBCLIN').Clear;
     FieldByName('CANTIDAD_ALBCLIN').AsFloat := 1;
+    FieldByName('PORCENTAJE_DTO_ALBCLIN').AsFloat := 0;
     if FindField('ESFACTURADA_ALBCLIN') <> nil then
       FieldByName('ESFACTURADA_ALBCLIN').AsString := 'N';
     // Auditoria estandar: las 4 columnas del libro de estilo bbdd §3.7
@@ -927,12 +928,6 @@ begin
         DataSet.FieldByName('TOTAL_UNIDADES_ALBCLIN').AsFloat :=
           DataSet.FieldByName('CANTIDAD_ALBCLIN').AsFloat;
     end;
-    if (FindField('CANTIDAD_ALBCLIN') <> nil) and
-       (FindField('PRECIO_COMPRA_SIVA_ARTICULO_ALBCLIN') <> nil) and
-       (FindField('TOTAL_ALBCLIN') <> nil) then
-      FieldByName('TOTAL_ALBCLIN').AsFloat :=
-        FieldByName('CANTIDAD_ALBCLIN').AsFloat *
-        FieldByName('PRECIO_COMPRA_SIVA_ARTICULO_ALBCLIN').AsFloat;
     // Refrescamos auditoria en cada Post (edicion / alta nueva).
     if FindField('USUARIO_MODIF') <> nil then
       FieldByName('USUARIO_MODIF').AsString   := IdentidadSesion.Usuario;

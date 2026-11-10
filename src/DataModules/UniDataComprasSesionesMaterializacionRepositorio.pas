@@ -185,7 +185,8 @@ const
     // línea si no se teclearon.
     '       COALESCE(P.PRECIO_COMPRA_SESLINSKU, L.PRECIO_COMPRA_SESLIN, 0) ' +
     '       * GREATEST(0, 1 - IFNULL(S.PORCENTAJE_DTO_COMERCIAL_SES, 0) ' +
-    '       / 100) AS COSTE_SKU, ' +
+    '       / 100) * ' +
+    '       (1 - IFNULL(L.PORCENTAJE_DTO_SESLIN, 0) / 100) AS COSTE_SKU, ' +
     '       COALESCE(P.PRECIO_VENTA_SESLINSKU, L.PRECIO_VENTA_SESLIN, 0) ' +
     '       AS PVP_SKU ' +
     '  FROM fza_compras_sesiones_celdas C ' +
@@ -212,7 +213,7 @@ const
     '          C.ID_AV_PIVOT_SESCEL, AVP.AV, ' +
     '          P.PRECIO_COMPRA_SESLINSKU, P.PRECIO_VENTA_SESLINSKU, ' +
     '          L.PRECIO_COMPRA_SESLIN, L.PRECIO_VENTA_SESLIN, ' +
-    '          S.PORCENTAJE_DTO_COMERCIAL_SES';
+    '          L.PORCENTAJE_DTO_SESLIN, S.PORCENTAJE_DTO_COMERCIAL_SES';
   SQL_EXISTE_EAN13_SKU =
     'SELECT COUNT(*) AS N FROM fza_codigos_barras ' +
     ' WHERE CODIGO_UNIDAD_CB = :sku ' +
@@ -300,7 +301,9 @@ const
     // de linea. Sin impuestos (FZ-ISSUE-381): es el ultimo precio de
     // compra de la ficha, comun a todas las empresas. El IVA y el recargo
     // no deducibles solo cuentan en el coste de stock.
-    ' L.PRECIO_COMPRA_SESLIN * GREATEST(0, 1 - ' +
+    ' L.PRECIO_COMPRA_SESLIN * ' +
+    ' (1 - IFNULL(L.PORCENTAJE_DTO_SESLIN, 0) / 100) * ' +
+    ' GREATEST(0, 1 - ' +
     ' IFNULL(S.PORCENTAJE_DTO_COMERCIAL_SES, 0) / 100) ' +
     ' AS PRECIO_COSTE_PROVEEDOR ' +
     ' FROM fza_compras_sesiones_lineas L ' +
@@ -341,6 +344,7 @@ const
     // línea.
     '       COALESCE(P.PRECIO_COMPRA_SESLINSKU, L.PRECIO_COMPRA_SESLIN) ' +
     '       AS PRECIO_COMPRA_SESLIN, ' +
+    '       IFNULL(L.PORCENTAJE_DTO_SESLIN, 0) AS PORCENTAJE_DTO, ' +
     '       L.DESCRIPCION_SESLIN AS DESCRIPCION_SESLIN, ' +
     '       S.ESDESCRIPCION_BLANCO_SES, ' +
     '       COALESCE(NULLIF(L.CODIGO_FAM_SESLIN, ''''), ' +
@@ -382,6 +386,7 @@ const
     '          TRAZABILIDAD, ' +
     '          COD_COLOR, COLOR_TEXTO, PESTANA_TEXTO, ALM_EFE, ' +
     '          L.PRECIO_COMPRA_SESLIN, P.PRECIO_COMPRA_SESLINSKU, ' +
+    '          L.PORCENTAJE_DTO_SESLIN, ' +
     '          L.DESCRIPCION_SESLIN, S.ESDESCRIPCION_BLANCO_SES, ' +
     '          CODIGO_FAM_SESLIN, S.CODIGO_FAM_SES, TIPO_IVA, ' +
     '          L.TIPO_LINEA_SESLIN, REF_PRV ' +
@@ -427,7 +432,8 @@ const
     '       WHEN ''S'' THEN IFNULL(V.PORCENTAJE_SUPERREDUCIDO_RE_IVA, 0) ' +
     '       WHEN ''E'' THEN IFNULL(V.PORCENTAJE_EXENTO_RE_IVA, 0) ' +
     '       ELSE 0 END) / 100) ' +
-    '       ELSE L.PRECIO_COMPRA_SESLIN END ' +
+    '       ELSE L.PRECIO_COMPRA_SESLIN END * ' +
+    '       (1 - IFNULL(L.PORCENTAJE_DTO_SESLIN, 0) / 100) ' +
     '       AS PRECIO_COMPRA_SESLIN, ' +
     '       L.TIPO_LINEA_SESLIN, L.ID_VA_FILA_SESLIN, ' +
     '       L.COLOR_TEXTO_SESLIN, L.CODIGO_ATB_COLOR_SESLIN, ' +
@@ -840,7 +846,7 @@ begin
     'alm_cab,falm,s,n',
     'CODIGO_ART,ID_AV_PIVOT_SESCEL,ID_AC_PIVOT,COD_COLOR,' +
     'COLOR_TEXTO,PESTANA_TEXTO,ALM_EFE,CANTIDAD_TOTAL,' +
-    'PRECIO_COMPRA_SESLIN,' +
+    'PRECIO_COMPRA_SESLIN,PORCENTAJE_DTO,' +
     'DESCRIPCION_SESLIN,ESDESCRIPCION_BLANCO_SES,' +
     'CODIGO_FAM_SESLIN,TIPO_IVA,' +
     'TIPO_LINEA_SESLIN,REF_PRV,TRAZABILIDAD,' +
@@ -1453,6 +1459,8 @@ begin
           aResultado[iIndice].PrecioCompra :=
             oConsulta.FieldByName(
               'PRECIO_COMPRA_SESLIN').AsFloat;
+          aResultado[iIndice].PorcentajeDto :=
+            oConsulta.FieldByName('PORCENTAJE_DTO').AsFloat;
           aResultado[iIndice].Descripcion :=
             oConsulta.FieldByName(
               'DESCRIPCION_SESLIN').AsString;

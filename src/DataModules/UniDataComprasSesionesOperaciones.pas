@@ -295,7 +295,8 @@ begin
         '           WHERE SERIE_SES_SESCEL = :s ' +
         '             AND NUMERO_SES_SESCEL = :n ' +
         '             AND LINEA_SES_SESCEL = :l) * ' +
-        '         PRECIO_COMPRA_SESLIN, ' +
+        '         PRECIO_COMPRA_SESLIN * ' +
+        '         (1 - IFNULL(PORCENTAJE_DTO_SESLIN, 0) / 100), ' +
         '       INSTANTE_MODIF = NOW(), USUARIO_MODIF = :u ' +
         ' WHERE SERIE_SES_SESLIN = :s ' +
         '   AND NUMERO_SES_SESLIN = :n ' +
@@ -542,6 +543,8 @@ begin
   // Coste del proveedor del modelo resuelto. Se sobrescribe siempre para
   // no dejar valores de un modelo anterior en la misma linea.
   ds.FieldByName('PRECIO_COMPRA_SESLIN').AsFloat := AResul.UltimoCoste;
+  if AResul.Origen = 'SES' then
+    ds.FieldByName('PORCENTAJE_DTO_SESLIN').AsFloat := AResul.PorcentajeDto;
 
   // PVP de referencia: precio de la tarifa de venta de la cabecera para el
   // articulo reusado. Tambien se sobrescribe siempre para que al cambiar

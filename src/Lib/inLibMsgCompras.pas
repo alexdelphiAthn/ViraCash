@@ -16,6 +16,13 @@ unit inLibMsgCompras;
 interface
 
 resourcestring
+  SCaptionDescuentoLineaCompra = 'Dto. %';
+  SCaptionColorBasicoCompra = 'Color básico';
+  SCaptionRecibirFilaPedidoCompra = 'Recibir fila';
+  SInfoFilaPedidoCompraSinPendientes =
+    'La fila seleccionada no tiene cantidades pendientes de recibir.';
+  SErrorDescuentoLineaCompra =
+    'El descuento de la línea debe estar entre 0 y 100 %.';
   SErrorColorRepetidoSesion =
     'Este artículo ya tiene ese color y variante en la línea %d. ' +
     'Cambie el color o cancele y borre la línea nueva.';

@@ -448,6 +448,7 @@ const
     '       L.ID_VA_PIVOT_SESLIN, L.ID_AC_PIVOT_SESLIN, ' +
     '       L.ID_VA_FILA_SESLIN, L.ID_AC_FILA_SESLIN, ' +
     '       L.PRECIO_COMPRA_SESLIN, L.PRECIO_VENTA_SESLIN, ' +
+    '       L.PORCENTAJE_DTO_SESLIN, ' +
     '       L.REF_PRV_SESLIN, L.LINEA_SESLIN, ' +
     '       L.COLOR_TEXTO_SESLIN, L.CODIGO_ATB_COLOR_SESLIN, ' +
     '       L.PORCENTAJE_MARGEN_SESLIN ' +
@@ -716,6 +717,7 @@ begin
     'TIPO_IVA_SESLIN,TIPO_CANTIDAD_SESLIN,ESTRAZABLE_SESLIN,' +
     'CODIGO_VAR_SESLIN,ID_VA_PIVOT_SESLIN,ID_AC_PIVOT_SESLIN,' +
     'ID_VA_FILA_SESLIN,ID_AC_FILA_SESLIN,PRECIO_COMPRA_SESLIN,' +
+    'PORCENTAJE_DTO_SESLIN,' +
     'PRECIO_VENTA_SESLIN,REF_PRV_SESLIN,LINEA_SESLIN,' +
     'COLOR_TEXTO_SESLIN,CODIGO_ATB_COLOR_SESLIN,' +
     'PORCENTAJE_MARGEN_SESLIN',
@@ -878,6 +880,8 @@ begin
       'MATRIZ');
     Result.UltimoCoste :=
       AConsulta.FieldByName('PRECIO_COMPRA_SESLIN').AsFloat;
+    Result.PorcentajeDto :=
+      AConsulta.FieldByName('PORCENTAJE_DTO_SESLIN').AsFloat;
     Result.PrecioVenta :=
       AConsulta.FieldByName('PRECIO_VENTA_SESLIN').AsFloat;
     Result.RefProveedor :=

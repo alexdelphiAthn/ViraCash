@@ -508,11 +508,11 @@
             OnClick = btnBorrarLineaClick
           end
           object btnRecibirFilaEntera: TcxButton
-            Left = 734
+            Left = 558
             Top = 8
             Width = 162
             Height = 26
-            Caption = 'Recibir fila entera'
+            Caption = 'Recibir fila'
             TabOrder = 5
             OnClick = btnRecibirFilaEnteraClick
           end

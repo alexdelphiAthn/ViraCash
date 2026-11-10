@@ -566,13 +566,13 @@ procedure TRecepcionPedidoCompraVcl.RecibirFilaEntera(
 var
   Celdas: Integer;
 begin
-  if not Assigned(FPivote) or not FPivote.Activo or
-     not FPivote.Expandido then
-    MessageDlg_fza(SErrorExpandirRecibidosNoActivo,
-      mtInformation, [mbOk], 0)
-  else
+  if Assigned(FCantidades) then
   begin
-    Celdas := FPivote.RecibirFilaEntera;
+    if not AUsarCampoCantidades and Assigned(FPivote) and
+       FPivote.Activo and FPivote.Expandido then
+      Celdas := FPivote.RecibirFilaEntera
+    else
+      Celdas := FCantidades.RellenarFila(AUsarCampoCantidades);
     ActualizarTotal(AUsarCampoCantidades);
     if Celdas = 0 then
       MessageDlg_fza(SInfoTallasPendientesRecibirNoDisponibles,

@@ -36,7 +36,8 @@ begin
     '       CASE WHEN IFNULL(A.ESIVA_EXENTO_INTRACOMUNITARIO_ALBC, ''N'') ' +
     '<> ''S'' ' +
     '             AND IFNULL(A.ESIVA_RECARGO_COMPRAS_ALBC, ''N'') = ''S'' ' +
-    '            THEN L.PRECIO_COMPRA_SIVA_ARTICULO_ALBCLIN * ' +
+    '            THEN (L.PRECIO_COMPRA_SIVA_ARTICULO_ALBCLIN * ' +
+    '(1 - IFNULL(L.PORCENTAJE_DTO_ALBCLIN, 0) / 100)) * ' +
     '              (1 + (IFNULL(L.PORCENTAJE_IVA_ALBCLIN, 0) + ' +
     '                CASE IFNULL(L.TIPO_IVA_ARTICULO_ALBCLIN, ''N'') ' +
     '                  WHEN ''N'' THEN ' +
@@ -50,7 +51,8 @@ begin
     'COALESCE(A.PORCENTAJE_REE_ALBC, ' +
     'V.PORCENTAJE_EXENTO_RE_IVA, 0) ' +
     '                  ELSE 0 END) / 100) ' +
-    '            ELSE L.PRECIO_COMPRA_SIVA_ARTICULO_ALBCLIN END * ' +
+    '            ELSE (L.PRECIO_COMPRA_SIVA_ARTICULO_ALBCLIN * ' +
+    '(1 - IFNULL(L.PORCENTAJE_DTO_ALBCLIN, 0) / 100)) END * ' +
     '       CASE WHEN IFNULL(A.TOTAL_BRUTO_ALBC, 0) > 0 THEN ' +
     '              GREATEST(0, 1 - CASE ' +
     '                WHEN IFNULL(A.TOTAL_DTO_COMERCIAL_ALBC, 0) <> 0 ' +
@@ -92,7 +94,8 @@ begin
     '       CASE WHEN IFNULL(A.ESIVA_EXENTO_INTRACOMUNITARIO_ALBC, ''N'') ' +
     '<> ''S'' ' +
     '             AND IFNULL(A.ESIVA_RECARGO_COMPRAS_ALBC, ''N'') = ''S'' ' +
-    '            THEN L.PRECIO_COMPRA_SIVA_ARTICULO_ALBCLIN * ' +
+    '            THEN (L.PRECIO_COMPRA_SIVA_ARTICULO_ALBCLIN * ' +
+    '(1 - IFNULL(L.PORCENTAJE_DTO_ALBCLIN, 0) / 100)) * ' +
     '              (1 + (IFNULL(L.PORCENTAJE_IVA_ALBCLIN, 0) + ' +
     '                CASE IFNULL(L.TIPO_IVA_ARTICULO_ALBCLIN, ''N'') ' +
     '                  WHEN ''N'' THEN ' +
@@ -106,7 +109,8 @@ begin
     'COALESCE(A.PORCENTAJE_REE_ALBC, ' +
     'V.PORCENTAJE_EXENTO_RE_IVA, 0) ' +
     '                  ELSE 0 END) / 100) ' +
-    '            ELSE L.PRECIO_COMPRA_SIVA_ARTICULO_ALBCLIN END * ' +
+    '            ELSE (L.PRECIO_COMPRA_SIVA_ARTICULO_ALBCLIN * ' +
+    '(1 - IFNULL(L.PORCENTAJE_DTO_ALBCLIN, 0) / 100)) END * ' +
     '       CASE WHEN IFNULL(A.TOTAL_BRUTO_ALBC, 0) > 0 THEN ' +
     '              GREATEST(0, 1 - CASE ' +
     '                WHEN IFNULL(A.TOTAL_DTO_COMERCIAL_ALBC, 0) <> 0 ' +

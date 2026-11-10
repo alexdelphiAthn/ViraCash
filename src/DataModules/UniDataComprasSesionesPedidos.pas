@@ -31,6 +31,7 @@ function MaterializarPedidoSesion(
 
 implementation
 uses
+  inLibComprasImpuestos, inLibRedondeo,
   System.SysUtils,
   Data.DB, DBAccess,
   inLibMsgCompras,
@@ -123,7 +124,7 @@ procedure InsertarLineaPedidoCompra(AConn: TUniConnection;
                                            ALote, AUsuario: string;
                                       ACaducidad: TDateTime;
                                      ACantidad, APrecio,
-                                     APorIva: Double;
+                                     APorIva, ADescuento: Double;
                                      AIdAcPivot: Integer);
 var
   q: TUniQuery;
@@ -142,12 +143,13 @@ begin
       '   TIPO_IVA_ARTICULO_PEDCLIN, PORCENTAJE_IVA_PEDCLIN, ' +
       '   PRECIO_COMPRA_SIVA_ARTICULO_PEDCLIN, ' +
       '   PRECIO_COMPRA_CIVA_ARTICULO_PEDCLIN, ' +
+      '   PORCENTAJE_DTO_PEDCLIN, ' +
       '   TOTAL_PEDCLIN, CODIGO_ALMACEN_PEDCLIN, ' +
       '   LOTE_PEDCLIN, CADUCIDAD_PEDCLIN, ' +
       '   INSTANTE_ALTA, USUARIO_ALTA, INSTANTE_MODIF, USUARIO_MODIF) ' +
       'VALUES (:n, :s, :l, :art, :sku, :refprv, :acpivot, ' +
       '        :fam, :nomfam, :coltxt, :desc, ''Uds'', ' +
-      '        :cant, 0, :tiva, :piva, :pre, :preciva, :tot, :alm, ' +
+      '        :cant, 0, :tiva, :piva, :pre, :preciva, :dto, :tot, :alm, ' +
       '        :LOTE, :CADUCIDAD, NOW(), :u, NOW(), :u)';
     q.ParamByName('n').AsString    := ANumPedc;
     q.ParamByName('s').AsString    := ASeriePedc;
@@ -173,8 +175,12 @@ begin
     q.ParamByName('tiva').AsString := ATipoIva;
     q.ParamByName('piva').AsFloat  := APorIva;
     q.ParamByName('pre').AsFloat   := APrecio;
-    q.ParamByName('preciva').AsFloat := APrecio * (1 + APorIva / 100);
-    q.ParamByName('tot').AsFloat   := ACantidad * APrecio;
+    q.ParamByName('dto').AsFloat := ADescuento;
+    q.ParamByName('preciva').AsFloat :=
+      CalcularPrecioNetoCompra(APrecio, ADescuento) *
+      (1 + APorIva / 100);
+    q.ParamByName('tot').AsFloat := RedondearACentimos(
+      ACantidad * CalcularPrecioNetoCompra(APrecio, ADescuento));
     q.ParamByName('alm').AsString  := ACodigoAlm;
     q.ParamByName('u').AsString    := AUsuario;
     q.ParamByName('LOTE').AsString := ALote;
@@ -279,6 +285,7 @@ begin
         rCantidad,
         rCoste,
         rPorIva,
+        oLineas[iIndice].PorcentajeDto,
         iIdAcPivot);
     end;
   end;
@@ -356,7 +363,9 @@ begin
       '          WHEN ''E'' THEN IFNULL(C.PORCENTAJE_IVAE_PEDC, 0) ' +
       '          ELSE 0 END END, ' +
       '       L.PRECIO_COMPRA_CIVA_ARTICULO_PEDCLIN = ' +
-      '         L.PRECIO_COMPRA_SIVA_ARTICULO_PEDCLIN * (1 + ' +
+      '         L.PRECIO_COMPRA_SIVA_ARTICULO_PEDCLIN * ' +
+      '         (1 - IFNULL(L.PORCENTAJE_DTO_PEDCLIN, 0) / 100) * ' +
+      '         (1 + ' +
       '           CASE WHEN IFNULL(C.ESIVA_EXENTO_INTRACOMUNITARIO_PEDC, ' +
       '''N'') = ''S'' ' +
       '                THEN 0 ELSE CASE L.TIPO_IVA_ARTICULO_PEDCLIN ' +

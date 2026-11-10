@@ -66,6 +66,7 @@ type
       AUsarCampo: Boolean);
     function Total(AUsarCampo: Boolean): Double;
     function RellenarTodo(AUsarCampo: Boolean): Integer;
+    function RellenarFila(AUsarCampo: Boolean): Integer;
     procedure LimitarCampo(Sender: TObject);
     procedure LimitarVertical(Sender: TObject);
   end;
@@ -498,6 +499,37 @@ begin
       FLineas.FreeBookmark(Marca);
       FLineas.EnableControls;
     end;
+  end;
+end;
+
+function TCantidadesRecepcionPedidoCompra.RellenarFila(
+  AUsarCampo: Boolean): Integer;
+var
+  rPendiente: Double;
+  iRegistro: Integer;
+begin
+  Result := 0;
+  if TieneLineas then
+  begin
+    if FLineas.State in dsEditModes then
+      FLineas.Post;
+    rPendiente := PendienteActual;
+    if AUsarCampo then
+    begin
+      FLineas.Edit;
+      FLineas.FieldByName('CANTIDAD_A_RECIBIR_PEDCLIN').AsFloat :=
+        rPendiente;
+      FLineas.Post;
+    end
+    else if Assigned(FColumnaVertical) then
+    begin
+      iRegistro := FVista.DataController.FocusedRecordIndex;
+      if iRegistro >= 0 then
+        FVista.DataController.Values[iRegistro, FColumnaVertical.Index] :=
+          rPendiente;
+    end;
+    if rPendiente > 0 then
+      Result := 1;
   end;
 end;
 

@@ -37,6 +37,9 @@ const
 // Clave del grupo artículo+color+precio. Una línea sin talla resoluble
 // recibe fila propia (sufijo '|L'+línea): fusionarla machacaría varias
 // líneas sin SKU del mismo artículo en la celda 'Cantidad'.
+function IndicesOrdenNumericoTallas(
+  const ACodigos: TArray<string>): TArray<Integer>;
+
 function ClaveGrupoPivoteVenta(const AArticulo: string;
                                AColorAv: Integer; APrecio: Double;
                                ATallaAv: Integer;
@@ -86,6 +89,61 @@ implementation
 
 uses
   inLibMsgVentas, inLibMsgArticulos;
+
+function LeerNumeroCodigoTalla(const ATexto: string;
+  out ANumero: Double): Boolean;
+var
+  sCodigo: string;
+  i, iSeparadores, iInicio: Integer;
+begin
+  sCodigo := Trim(ATexto);
+  Result := sCodigo <> '';
+  iSeparadores := 0;
+  iInicio := 1;
+  if Result and CharInSet(sCodigo[1], ['+', '-']) then
+    iInicio := 2;
+  Result := Result and (iInicio <= Length(sCodigo));
+  for i := iInicio to Length(sCodigo) do
+    if not CharInSet(sCodigo[i], ['0'..'9']) then
+    begin
+      Inc(iSeparadores);
+      Result := Result and CharInSet(sCodigo[i], ['.', ',']) and
+        (iSeparadores = 1) and (i > iInicio) and (i < Length(sCodigo));
+    end;
+  if Result then
+    Result := TryStrToFloat(StringReplace(sCodigo, ',', '.', []),
+      ANumero, TFormatSettings.Invariant);
+end;
+
+function IndicesOrdenNumericoTallas(
+  const ACodigos: TArray<string>): TArray<Integer>;
+var
+  aNumeros: TArray<Double>;
+  i, j, iIndice: Integer;
+  bTodosNumericos: Boolean;
+begin
+  SetLength(Result, Length(ACodigos));
+  SetLength(aNumeros, Length(ACodigos));
+  bTodosNumericos := True;
+  for i := 0 to High(ACodigos) do
+  begin
+    Result[i] := i;
+    if not LeerNumeroCodigoTalla(ACodigos[i], aNumeros[i]) then
+      bTodosNumericos := False;
+  end;
+  if bTodosNumericos then
+    for i := 1 to High(Result) do
+    begin
+      iIndice := Result[i];
+      j := i - 1;
+      while (j >= 0) and (aNumeros[Result[j]] > aNumeros[iIndice]) do
+      begin
+        Result[j + 1] := Result[j];
+        Dec(j);
+      end;
+      Result[j + 1] := iIndice;
+    end;
+end;
 
 function IndicesTallasHorizontal(const AIdsTalla,
   AIdsConDatos: TArray<Integer>; AMaximo: Integer): TArray<Integer>;

@@ -44,6 +44,7 @@ type
     ReferenciaProveedor: string;
     Descripcion: string;
     PrecioCompra: Double;
+    PorcentajeDto: Double;
     PrecioVenta: Double;
     IdConjuntoPivot: Integer;
     CodigoVariacion: string;
@@ -136,6 +137,8 @@ begin
     FLineas.FieldByName('DESCRIPCION_SESLIN').AsString;
   Result.PrecioCompra :=
     FLineas.FieldByName('PRECIO_COMPRA_SESLIN').AsFloat;
+  Result.PorcentajeDto :=
+    FLineas.FieldByName('PORCENTAJE_DTO_SESLIN').AsFloat;
   Result.PrecioVenta :=
     FLineas.FieldByName('PRECIO_VENTA_SESLIN').AsFloat;
   Result.IdConjuntoPivot :=
@@ -193,6 +196,8 @@ begin
       ADatos.TipoIva;
   FLineas.FieldByName('PRECIO_COMPRA_SESLIN').AsFloat :=
     ADatos.PrecioCompra;
+  FLineas.FieldByName('PORCENTAJE_DTO_SESLIN').AsFloat :=
+    ADatos.PorcentajeDto;
   FLineas.FieldByName('PRECIO_VENTA_SESLIN').AsFloat :=
     ADatos.PrecioVenta;
   if AModo = mclOtroValorPestana then

@@ -1,4 +1,4 @@
-﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
         <ProjectGuid>{5372F570-A327-4800-98DB-9E38B75C697D}</ProjectGuid>
         <ProjectVersion>20.5</ProjectVersion>
@@ -131,10 +131,10 @@
         <UWP_DelphiLogo44>icon-verde-48.png</UWP_DelphiLogo44>
         <UWP_DelphiLogo150>icon-verde-128.png</UWP_DelphiLogo150>
         <VerInfo_MinorVer>0</VerInfo_MinorVer>
-        <VerInfo_Release>20</VerInfo_Release>
+        <VerInfo_Release>21</VerInfo_Release>
         <VerInfo_Build>0</VerInfo_Build>
         <VerInfo_PreRelease>true</VerInfo_PreRelease>
-        <VerInfo_Keys>CompanyName=Alejandro Laorden Hidalgo;FileDescription=ViraCash;FileVersion=1.0.20.0;InternalName=ViraCash;LegalCopyright=All Rights Reserved;LegalTrademarks=ViraCash;OriginalFilename=vcash.exe;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=ViraCash;ProductVersion=1.0.20.0;Comments=1.0.20.202611071406.beta</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=Alejandro Laorden Hidalgo;FileDescription=ViraCash;FileVersion=1.0.21.0;InternalName=ViraCash;LegalCopyright=All Rights Reserved;LegalTrademarks=ViraCash;OriginalFilename=vcash.exe;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=ViraCash;ProductVersion=1.0.21.0;Comments=1.0.21.202611132125.beta</VerInfo_Keys>
         <AppEnableRuntimeThemes>false</AppEnableRuntimeThemes>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
@@ -150,11 +150,11 @@
         <Icon_MainIcon>vcash.ico</Icon_MainIcon>
         <VerInfo_MajorVer>1</VerInfo_MajorVer>
         <VerInfo_MinorVer>0</VerInfo_MinorVer>
-        <VerInfo_Release>20</VerInfo_Release>
+        <VerInfo_Release>21</VerInfo_Release>
         <VerInfo_Build>0</VerInfo_Build>
         <VerInfo_Special>true</VerInfo_Special>
         <VerInfo_Private>true</VerInfo_Private>
-        <VerInfo_Keys>CompanyName=ViraCash;FileDescription=ViraCash;FileVersion=1.0.20.0;InternalName=ViraCash;LegalCopyright=All Rights Reserved;LegalTrademarks=ViraCash;OriginalFilename=vcash.exe;ProductName=ViraCash;ProductVersion=1.0.20.0;Comments=1.0.20.202611071406.beta</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=ViraCash;FileDescription=ViraCash;FileVersion=1.0.21.0;InternalName=ViraCash;LegalCopyright=All Rights Reserved;LegalTrademarks=ViraCash;OriginalFilename=vcash.exe;ProductName=ViraCash;ProductVersion=1.0.21.0;Comments=1.0.21.202611132125.beta</VerInfo_Keys>
         <DCC_MapFile>3</DCC_MapFile>
         <DCC_GenerateStackFrames>true</DCC_GenerateStackFrames>
     </PropertyGroup>
@@ -165,9 +165,9 @@
         <Icon_MainIcon>vcash.ico</Icon_MainIcon>
         <VerInfo_MajorVer>1</VerInfo_MajorVer>
         <VerInfo_MinorVer>0</VerInfo_MinorVer>
-        <VerInfo_Release>20</VerInfo_Release>
+        <VerInfo_Release>21</VerInfo_Release>
         <VerInfo_Build>0</VerInfo_Build>
-        <VerInfo_Keys>CompanyName=ViraCash;FileDescription=ViraCash;FileVersion=1.0.20.0;InternalName=ViraCash;LegalCopyright=All Rights Reserved;LegalTrademarks=ViraCash;OriginalFilename=vcash.exe;ProductName=ViraCash;ProductVersion=1.0.20.0;Comments=1.0.20.202611071406.beta</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=ViraCash;FileDescription=ViraCash;FileVersion=1.0.21.0;InternalName=ViraCash;LegalCopyright=All Rights Reserved;LegalTrademarks=ViraCash;OriginalFilename=vcash.exe;ProductName=ViraCash;ProductVersion=1.0.21.0;Comments=1.0.21.202611132125.beta</VerInfo_Keys>
         <VerInfo_Special>true</VerInfo_Special>
         <VerInfo_Private>true</VerInfo_Private>
         <UWP_DelphiLogo44>icon-verde-48.png</UWP_DelphiLogo44>
