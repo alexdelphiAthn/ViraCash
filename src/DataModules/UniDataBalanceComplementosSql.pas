@@ -85,22 +85,41 @@ begin
 end;
 
 function SqlMetricasBalance: string;
+const
+  // Entrada positiva y salida negativa.
+  SqlCantidadConSigno =
+    '(CASE WHEN M.TIPO_MOV=''E'' THEN COALESCE(M.CANTIDAD_MOV,0)' +
+    ' ELSE -COALESCE(M.CANTIDAD_MOV,0) END)';
+  SqlCosteConSigno =
+    '(CASE WHEN M.TIPO_MOV=''E'' THEN COALESCE(M.TOTAL_COSTE_MOV,0)' +
+    ' ELSE -COALESCE(M.TOTAL_COSTE_MOV,0) END)';
 begin
   Result :=
     ', METRICA AS (SELECT P.ARTICULO,P.SKU,P.ALMACEN,' +
-    ' GREATEST(P.PEDIDO-COALESCE(R.RECIBIDO,0),0) PENDIENTE,0 COSTE' +
+    ' GREATEST(P.PEDIDO-COALESCE(R.RECIBIDO,0),0) PENDIENTE,0 COSTE,' +
+    ' 0 ENT_UDS,0 ENT_COSTE,0 REG_UDS,0 REG_COSTE' +
     ' FROM PEDIDO P LEFT JOIN (SELECT SERIE,NUMERO,LINEA,ALMACEN,' +
     ' SUM(RECIBIDO) RECIBIDO FROM RECEPCION' +
     ' GROUP BY SERIE,NUMERO,LINEA,ALMACEN) R' +
     ' ON R.SERIE=P.SERIE_PEDC AND R.NUMERO=P.NUMERO_PEDC' +
     ' AND R.LINEA=P.LINEA_PEDCLIN AND R.ALMACEN=P.ALMACEN' +
     ' UNION ALL SELECT M.CODIGO_ART_MOV,M.CODIGO_UNIDAD_MOV,' +
-    ' M.CODIGO_ALM_MOV,0,SUM(CASE WHEN M.TIPO_MOV=''E''' +
-    ' THEN -M.TOTAL_COSTE_MOV ELSE M.TOTAL_COSTE_MOV END)' +
-    ' FROM fza_movimientos_almacen M' +
+    ' M.CODIGO_ALM_MOV,0,' +
     // FZ-ISSUE-868: incluir facturacion directa y su devolucion neta.
-    ' WHERE M.TIPO_DOC_MOV IN (''VE'',''AV'',''FC'')' +
-    ' AND M.ESACTIVO_MOV=''S'' AND M.FECHA_MOV>=:DESDE' +
+    ' SUM(CASE WHEN M.TIPO_DOC_MOV IN (''VE'',''AV'',''FC'')' +
+    ' THEN -' + SqlCosteConSigno + ' ELSE 0 END),' +
+    // FZ-ISSUE-899: entradas y regularizaciones de inventario del periodo
+    // a su coste de movimiento, para que el resumen cuadre con las compras.
+    ' SUM(CASE WHEN M.TIPO_DOC_MOV IN (''VE'',''AV'',''FC'',''IN'')' +
+    ' THEN 0 ELSE ' + SqlCantidadConSigno + ' END),' +
+    ' SUM(CASE WHEN M.TIPO_DOC_MOV IN (''VE'',''AV'',''FC'',''IN'')' +
+    ' THEN 0 ELSE ' + SqlCosteConSigno + ' END),' +
+    ' SUM(CASE WHEN M.TIPO_DOC_MOV=''IN''' +
+    ' THEN ' + SqlCantidadConSigno + ' ELSE 0 END),' +
+    ' SUM(CASE WHEN M.TIPO_DOC_MOV=''IN''' +
+    ' THEN ' + SqlCosteConSigno + ' ELSE 0 END)' +
+    ' FROM fza_movimientos_almacen M' +
+    ' WHERE M.ESACTIVO_MOV=''S'' AND M.FECHA_MOV>=:DESDE' +
     ' AND M.FECHA_MOV<:HASTA' +
     ' GROUP BY M.CODIGO_ART_MOV,M.CODIGO_UNIDAD_MOV,M.CODIGO_ALM_MOV)';
 end;
@@ -125,7 +144,9 @@ begin
     ' (M.SKU,SUBSTRING_INDEX(M.SKU,''/'',2),'''')' +
     ' ORDER BY FIELD(AP.CODIGO_UNIDAD_ARTPROP,M.SKU,' +
     ' SUBSTRING_INDEX(M.SKU,''/'',2),'''') LIMIT 1),'''') TEMPORADA,' +
-    ' SUM(M.PENDIENTE) PENDIENTE,SUM(M.COSTE) COSTE' +
+    ' SUM(M.PENDIENTE) PENDIENTE,SUM(M.COSTE) COSTE,' +
+    ' SUM(M.ENT_UDS) ENT_UDS,SUM(M.ENT_COSTE) ENT_COSTE,' +
+    ' SUM(M.REG_UDS) REG_UDS,SUM(M.REG_COSTE) REG_COSTE' +
     ' FROM METRICA M JOIN fza_articulos A ON A.CODIGO_ART_ART=M.ARTICULO' +
     ' JOIN fza_almacenes AL ON AL.CODIGO_ALM_ALM=M.ALMACEN' +
     // FZ-ISSUE-886: conservar pendientes y costes de articulos de baja.
@@ -133,7 +154,8 @@ begin
     ' AND (:ALMACENES='''' OR FIND_IN_SET(M.ALMACEN,:ALMACENES)>0)' +
     ' GROUP BY M.ARTICULO,M.SKU,M.ALMACEN,A.DESCRIPCION_ART,' +
     ' AL.NOMBRE_ALM_ALM,A.CODIGO_FAM_ART' +
-    ' HAVING PENDIENTE<>0 OR COSTE<>0';
+    ' HAVING PENDIENTE<>0 OR COSTE<>0 OR ENT_UDS<>0 OR ENT_COSTE<>0' +
+    ' OR REG_UDS<>0 OR REG_COSTE<>0';
 end;
 
 end.

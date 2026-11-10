@@ -94,6 +94,12 @@ begin
   ADestino.FieldDefs.Assign(AOrigen.FieldDefs);
   ADestino.FieldDefs.Add('PTE_RECIBIR_RESUMEN', ftFloat);
   ADestino.FieldDefs.Add('COSTE_SALIDAS_RESUMEN', ftCurrency);
+  // FZ-ISSUE-899: nulos salvo en los complementos de un balance entre
+  // fechas; el resumen los usa solo cuando vienen informados.
+  ADestino.FieldDefs.Add('ENT_UDS_RESUMEN', ftFloat);
+  ADestino.FieldDefs.Add('ENT_COSTE_RESUMEN', ftCurrency);
+  ADestino.FieldDefs.Add('REG_UDS_RESUMEN', ftFloat);
+  ADestino.FieldDefs.Add('REG_COSTE_RESUMEN', ftCurrency);
   for i := 0 to ADestino.FieldDefs.Count - 1 do
     ADestino.FieldDefs[i].Attributes :=
       ADestino.FieldDefs[i].Attributes -
@@ -218,6 +224,19 @@ begin
           oConsulta.FieldByName('PENDIENTE').Value;
         ADatos.FieldByName('COSTE_SALIDAS_RESUMEN').Value :=
           oConsulta.FieldByName('COSTE').Value;
+        // En acumulados las entradas del balance no tienen periodo: se
+        // conservan las del procedimiento, valoradas como hasta ahora.
+        if ACriterios.Modo <> 'A' then
+        begin
+          ADatos.FieldByName('ENT_UDS_RESUMEN').AsFloat :=
+            oConsulta.FieldByName('ENT_UDS').AsFloat;
+          ADatos.FieldByName('ENT_COSTE_RESUMEN').AsCurrency :=
+            oConsulta.FieldByName('ENT_COSTE').AsCurrency;
+          ADatos.FieldByName('REG_UDS_RESUMEN').AsFloat :=
+            oConsulta.FieldByName('REG_UDS').AsFloat;
+          ADatos.FieldByName('REG_COSTE_RESUMEN').AsCurrency :=
+            oConsulta.FieldByName('REG_COSTE').AsCurrency;
+        end;
         AsignarGrupos(ADatos, oConsulta, ACriterios, oFamilias, oProveedores);
         ADatos.Post;
       end;

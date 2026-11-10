@@ -91,6 +91,8 @@ resourcestring
     'La empresa debe tener marcado "Hacer coincidir calendario natural ' +
     'con tokens" antes de usar una serie tokenizada. ' +
     'Si no utiliza tokens, añada las series una a una con Añadir Serie.';
+  SInfoCuentaEmpresaSinIban =
+    'La cuenta seleccionada no tiene IBAN. Complétalo en Empresas > Bancos.';
   SErrorIbanEmpresa =
     'IBAN no válido para el banco de la empresa: %s';
   SErrorRazonSocialEmpresa =

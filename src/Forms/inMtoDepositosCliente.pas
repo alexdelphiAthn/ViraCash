@@ -77,6 +77,9 @@ type
     FDependenciasReimpresion: TDependenciasReimpresionCaja;
     function PuedeReimprimirResguardo: Boolean;
     procedure AbrirCuenta(const ACliente: string; AResumen: Boolean);
+    procedure CantidadPendienteGetDisplayText(
+      Sender: TcxCustomGridTableItem; ARecord: TcxCustomGridRecord;
+      var AText: string);
   public
     constructor Create(
       AOwner: TComponent;
@@ -119,6 +122,21 @@ begin
   // Foto embebida del articulo / SKU de la fila activa de dsTablaG.
   FFotoEmb := TFotoEmbebida.Create(
     FotosArticulos, imgFotoDep, dsTablaG);
+  cxGrdDBTabPrinCANTIDAD_PENDIENTE_DEP.OnGetDisplayText :=
+    CantidadPendienteGetDisplayText;
+end;
+
+// FZ-ISSUE-900: un deposito cerrado no tiene nada pendiente. El campo
+// conserva la cantidad del deposito, que usan tickets, arqueos e informes;
+// aqui solo cambia lo que se muestra.
+procedure TfrmMtoDepositosCliente.CantidadPendienteGetDisplayText(
+  Sender: TcxCustomGridTableItem; ARecord: TcxCustomGridRecord;
+  var AText: string);
+begin
+  if (ARecord <> nil) and ARecord.IsData and
+     SameText(Trim(VarToStr(
+       ARecord.Values[cxGrdDBTabPrinESTADO_DEP.Index])), 'CERRADO') then
+    AText := '0';
 end;
 
 procedure TfrmMtoDepositosCliente.FormDestroy(Sender: TObject);

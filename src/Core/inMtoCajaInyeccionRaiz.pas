@@ -98,7 +98,8 @@ uses
   inMtoModalImpOperacionesVenta,
   inMtoCajaFormatosTicket,
   UniDataCajaSubsanacionRepositorio,
-  UniDataVerifactuSubsanacionRepositorio;
+  UniDataVerifactuSubsanacionRepositorio,
+  UniDataMeteorologiaCaja, inLibMeteorologiaCajaHttp, inLibViraCashApi;
 
 procedure NormalizarOwnerPantallaCaja(
   AOwnerSolicitado: TComponent;
@@ -330,6 +331,11 @@ var
 begin
   Caja := Componer('frmMtoMenuCaja');
   Dependencias := Default(TDependenciasMenuCaja);
+  Dependencias.PartesMeteorologia := CrearRepositorioMeteorologiaCaja(
+    FComposicion.Conexiones.ConexionPrincipal);
+  Dependencias.Meteorologia := CrearServicioMeteorologiaCajaHttp(
+    TClienteViraCashApi.UrlBase(FComposicion.ParametrosApp),
+    TClienteViraCashApi.Token(FComposicion.ParametrosApp));
   Dependencias.ConsultarEstadosColas := FComposicion.LeerEstadosColas;
   Dependencias.VentasCalendario :=
     Caja.Consultas.CrearRepositorioVentasCalendario;

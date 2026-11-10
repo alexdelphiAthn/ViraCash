@@ -34,6 +34,12 @@ type
     CompatibilidadPendiente: TCompatibilidadCantidadBalance;
     CosteSalidas: Currency;
     TieneComplementos: Boolean;
+    // FZ-ISSUE-899: entradas y regularizaciones a coste de movimiento.
+    EntradasUnidades: Double;
+    EntradasCoste: Currency;
+    RegularizacionUnidades: Double;
+    RegularizacionCoste: Currency;
+    TieneEntradasCoste: Boolean;
   end;
 
 const
@@ -52,6 +58,9 @@ begin
     ColumnaInforme('PTE_RECIBIR', SInformePendienteRecibir, 0.9, '%g'),
     ColumnaInforme('ENT_UDS', SInformeEntradasUnidades, 0.8, '%g'),
     ColumnaInforme('ENT_IMP', SInformeEntradasImporte, 1.1, '%2.2n'),
+    ColumnaInforme('REG_UDS', SInformeRegularizacionUnidades, 0.8, '%g'),
+    ColumnaInforme('REG_IMP', SInformeRegularizacionImporte, 1.1,
+      '%2.2n'),
     ColumnaInforme('VEN_UDS', SInformeVentasUnidades, 0.8, '%g'),
     ColumnaInforme('VEN_IMP', SInformeVentasImporte, 1.1, '%2.2n'),
     ColumnaInforme('COSTE_SALIDAS', SInformeCosteSalidas, 1.1, '%2.2n'),
@@ -128,6 +137,19 @@ begin
         oTotal.CosteSalidas := oTotal.CosteSalidas +
           AOrigen.FieldByName('COSTE_SALIDAS_RESUMEN').AsCurrency;
       end;
+      if (AOrigen.FindField('ENT_COSTE_RESUMEN') <> nil) and
+         (not AOrigen.FieldByName('ENT_COSTE_RESUMEN').IsNull) then
+      begin
+        oTotal.TieneEntradasCoste := True;
+        oTotal.EntradasUnidades := oTotal.EntradasUnidades +
+          AOrigen.FieldByName('ENT_UDS_RESUMEN').AsFloat;
+        oTotal.EntradasCoste := oTotal.EntradasCoste +
+          AOrigen.FieldByName('ENT_COSTE_RESUMEN').AsCurrency;
+        oTotal.RegularizacionUnidades := oTotal.RegularizacionUnidades +
+          AOrigen.FieldByName('REG_UDS_RESUMEN').AsFloat;
+        oTotal.RegularizacionCoste := oTotal.RegularizacionCoste +
+          AOrigen.FieldByName('REG_COSTE_RESUMEN').AsCurrency;
+      end;
       oTotal.Compatibilidad.Agregar(AUnidad);
       AGrupos.AddOrSetValue(sClave, oTotal);
     end;
@@ -147,6 +169,21 @@ begin
       ADatos.FieldByName(CAMPOS_CANTIDAD[i]).AsFloat :=
         ATotal.Cantidades[i];
     ADatos.FieldByName(CAMPOS_IMPORTE[i]).AsCurrency := ATotal.Importes[i];
+  end;
+  // FZ-ISSUE-899: con complementos, las entradas son las del periodo a su
+  // coste (compras a precio de compra) y las regularizaciones de
+  // inventario van aparte: inicial + entradas + regularizacion - coste
+  // de salidas = final.
+  if ATotal.TieneEntradasCoste then
+  begin
+    if ATotal.Compatibilidad.Sumable then
+    begin
+      ADatos.FieldByName('ENT_UDS').AsFloat := ATotal.EntradasUnidades;
+      ADatos.FieldByName('REG_UDS').AsFloat :=
+        ATotal.RegularizacionUnidades;
+    end;
+    ADatos.FieldByName('ENT_IMP').AsCurrency := ATotal.EntradasCoste;
+    ADatos.FieldByName('REG_IMP').AsCurrency := ATotal.RegularizacionCoste;
   end;
   if ATotal.Compatibilidad.Sumable and (ATotal.Cantidades[3] <> 0) then
     ADatos.FieldByName('FIN_MEDIO').AsCurrency :=

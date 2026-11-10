@@ -80,6 +80,7 @@ type
     FUso:       TUsoBancoEmpresa;
     FResultado: TSeleccionBancoResult;
     procedure CargarCuentas;
+    function ValidarCuentaSeleccionada: Boolean;
   public
     class function Ejecutar(
       AOwner               : TComponent;
@@ -100,7 +101,7 @@ implementation
 {$R *.dfm}
 
 uses
-  inLibMensajesVcl,
+  inLibMensajesVcl, inLibIBAN,
   inLibMsgComun, inLibMsgFacturas,
   UniDataConfiguracionPantalla;
 
@@ -180,24 +181,57 @@ begin
   FDs.DataSet := FDatos;
 end;
 
+function TfrmModalSeleccionarBanco.ValidarCuentaSeleccionada: Boolean;
+var
+  sIban: string;
+  oErrores: TStringList;
+begin
+  Result := True;
+  if not FDatos.IsEmpty then
+  begin
+    sIban := Trim(FDatos.FieldByName('IBAN_EMPBAN').AsString);
+    if sIban = '' then
+    begin
+      Result := False;
+      ShowMessage_fza(SInfoCuentaEmpresaSinIban);
+    end
+    else
+    begin
+      oErrores := TStringList.Create;
+      try
+        Result := TIBAN.ValidarIBAN(sIban, oErrores);
+        if not Result then
+          ShowMessage_fza(Format(SErrorIbanEmpresa, [oErrores.Text]));
+      finally
+        oErrores.Free;
+      end;
+    end;
+  end;
+end;
+
 procedure TfrmModalSeleccionarBanco.btnAceptarClick(Sender: TObject);
 begin
   inherited;
-  FResultado.Aceptado := True;
-  if not FDatos.IsEmpty then
+  FResultado.Aceptado := False;
+  ModalResult := mrNone;
+  if ValidarCuentaSeleccionada then
   begin
-    FResultado.CodigoEmpban  := FDatos.FieldByName('CODIGO_EMPBAN').AsString;
-    FResultado.Iban          := FDatos.FieldByName('IBAN_EMPBAN').AsString;
-    FResultado.Entidad       := FDatos.FieldByName('ENTIDAD_EMPBAN').AsString;
-    FResultado.Oficina       := FDatos.FieldByName('OFICINA_EMPBAN').AsString;
-    FResultado.DigitoControl :=
-                       FDatos.FieldByName('DIGITO_CONTROL_EMPBAN').AsString;
-    FResultado.Cuenta        := FDatos.FieldByName('CUENTA_EMPBAN').AsString;
-    FResultado.Nombre        := FDatos.FieldByName('NOMBRE_EMPBAN').AsString;
-    FResultado.NombreBanco   :=
-                       FDatos.FieldByName('NOMBRE_BAN_VIEW_EMPBAN').AsString;
+    FResultado.Aceptado := True;
+    if not FDatos.IsEmpty then
+    begin
+      FResultado.CodigoEmpban  := FDatos.FieldByName('CODIGO_EMPBAN').AsString;
+      FResultado.Iban          := FDatos.FieldByName('IBAN_EMPBAN').AsString;
+      FResultado.Entidad       := FDatos.FieldByName('ENTIDAD_EMPBAN').AsString;
+      FResultado.Oficina       := FDatos.FieldByName('OFICINA_EMPBAN').AsString;
+      FResultado.DigitoControl :=
+                         FDatos.FieldByName('DIGITO_CONTROL_EMPBAN').AsString;
+      FResultado.Cuenta        := FDatos.FieldByName('CUENTA_EMPBAN').AsString;
+      FResultado.Nombre        := FDatos.FieldByName('NOMBRE_EMPBAN').AsString;
+      FResultado.NombreBanco   :=
+                         FDatos.FieldByName('NOMBRE_BAN_VIEW_EMPBAN').AsString;
+    end;
+    ModalResult := mrOk;
   end;
-  ModalResult := mrOk;
 end;
 
 procedure TfrmModalSeleccionarBanco.btnCancelarClick(Sender: TObject);

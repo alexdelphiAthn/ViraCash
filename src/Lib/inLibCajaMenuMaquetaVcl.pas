@@ -437,7 +437,8 @@ begin
       Max(rMinimo.Width, iAnchoCol), rMinimo.Height)
   else
     AControles.Calendario.SetBounds(XCol(0), iY, iAnchoCol, S(170));
-  iAltoInfo := Max(AControles.Calendario.Height, S(LADO_RELOJ_MIN));
+  // Reserva para fecha, METEO con tres filas y la tarjeta de salida.
+  iAltoInfo := Max(AControles.Calendario.Height, S(200));
 
   // Reloj centrado en el hueco entre el calendario (que puede ser más
   // ancho que su columna) y la tercera columna.

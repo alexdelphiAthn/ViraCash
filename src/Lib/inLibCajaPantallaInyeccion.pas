@@ -18,6 +18,7 @@ interface
 uses
   System.SysUtils, Data.DB, Uni,
   inLibParametrosIntf, inLibEstadoColasIntf,
+  inLibMeteorologiaCajaIntf,
   inLibCajaSubsanacionIntf,
   inLibConsultaFacturasOperacionesPersistenciaIntf,
   inLibVentasCalendarioIntf,
@@ -164,6 +165,8 @@ type
   end;
 
   TDependenciasMenuCaja = record
+    Meteorologia: IServicioMeteorologiaCaja;
+    PartesMeteorologia: IRepositorioMeteorologiaCaja;
     ConsultarEstadosColas: TConsultarEstadosColas;
     VentasCalendario: IRepositorioVentasCalendario;
     CajasDefecto: IRepositorioCajasDefecto;

@@ -117,6 +117,7 @@ begin
       FPestanas.Actualizar(ACodigoArticulo);
       FArticuloCargado := ACodigoArticulo;
     end;
+    FPresentador.AjustarAnchoColor;
   end
   else
   begin
@@ -149,6 +150,7 @@ begin
         begin
           FContexto.Recargar();
           FPestanas.Actualizar(ACodigoArticulo);
+          FPresentador.AjustarAnchoColor;
           FArticuloCargado := ACodigoArticulo;
         end;
       except

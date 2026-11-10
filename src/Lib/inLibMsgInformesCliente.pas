@@ -68,10 +68,14 @@ resourcestring
   SInformeResultado = 'Resultado';
   SInformeCriterioComplementos =
     'Pendientes: pedidos vigentes menos recepciones hasta la fecha final. ' +
+    'Entradas y regularizaciones de inventario entre fechas: ' +
+    'movimientos del periodo a su coste. ' +
     'Coste: movimientos de venta/albarán, netos de devoluciones. ' +
     'Resultado: ventas del balance menos coste de salidas.';
   SInformeEntradasUnidades = 'Entradas uds.';
   SInformeEntradasImporte = 'Entradas importe';
+  SInformeRegularizacionUnidades = 'Regul. uds.';
+  SInformeRegularizacionImporte = 'Regul. importe';
   SInformeVentasUnidades = 'Ventas uds.';
   SInformeVentasImporte = 'Ventas importe';
   SInformeFinalUnidades = 'Final uds.';

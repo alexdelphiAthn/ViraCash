@@ -30,8 +30,13 @@ type
     FAtributos: TDictionary<string, string>;
     FVista: TcxGridDBTableView;
     FConexion: TUniConnection;
+    procedure CrearLeyenda;
     function ResolverIdVariacion(AItem: TcxCustomGridTableItem;
       out AIdVariacion: string): Boolean;
+    function TextoCantidad(AViewInfo: TcxGridTableDataCellViewInfo;
+      AColumna: TcxGridDBColumn): string;
+    function PintarResumen(ACanvas: TcxCanvas;
+      AViewInfo: TcxGridTableDataCellViewInfo): Boolean;
   public
     constructor Create(AVista: TcxGridDBTableView;
       AConexion: TUniConnection);
@@ -42,11 +47,16 @@ type
     function ObtenerHint(AViewInfo: TcxGridTableDataCellViewInfo;
       out AHint: string): Boolean;
     procedure EnsancharColumnasParaSwatch;
+    procedure AjustarAnchoColor;
   end;
 
 implementation
 
 uses
+  Winapi.Windows, System.Variants, System.Math, Data.DB, Vcl.Graphics,
+  Vcl.Controls, cxGroupBox, cxLabel, cxEdit, dxCoreGraphics,
+  inLibMsgArticulos,
+  inLibStockConsultaPersistenciaIntf,
   inLibDevExp,
   inLibAtributosPaleta,
   inLibAtributosPaletaIntf;
@@ -58,6 +68,43 @@ begin
   FVista := AVista;
   FConexion := AConexion;
   FAtributos := TDictionary<string, string>.Create;
+  CrearLeyenda;
+end;
+
+procedure TPresentadorStockArticulo.CrearLeyenda;
+var
+  oPanel: TcxGroupBox;
+
+  procedure AnadirEtiqueta(const ATexto: string; AColor: TColor);
+  var
+    oEtiqueta: TcxLabel;
+  begin
+    oEtiqueta := TcxLabel.Create(oPanel);
+    oEtiqueta.Parent := oPanel;
+    oEtiqueta.Transparent := True;
+    oEtiqueta.Style.Font.Height :=
+      -MulDiv(12, oPanel.CurrentPPI, 96);
+    oEtiqueta.Style.TextColor := AColor;
+    oEtiqueta.Caption := ATexto;
+    oEtiqueta.AutoSize := True;
+    oEtiqueta.AlignWithMargins := True;
+    oEtiqueta.Margins.Left := MulDiv(8, oPanel.CurrentPPI, 96);
+    oEtiqueta.Margins.Right := MulDiv(12, oPanel.CurrentPPI, 96);
+    oEtiqueta.Left := oPanel.Width;
+    oEtiqueta.Align := alLeft;
+  end;
+
+begin
+  oPanel := TcxGroupBox.Create(FVista.Control);
+  oPanel.Parent := FVista.Control.Parent;
+  oPanel.PanelStyle.Active := True;
+  oPanel.Style.BorderStyle := ebsNone;
+  oPanel.Transparent := True;
+  oPanel.Height := MulDiv(24, oPanel.CurrentPPI, 96);
+  oPanel.Align := alBottom;
+  AnadirEtiqueta(SLeyendaVentasStock, clRed);
+  AnadirEtiqueta(SLeyendaRecibirStock, clBlue);
+  AnadirEtiqueta(SLeyendaExistenciasStock, clBlack);
 end;
 
 destructor TPresentadorStockArticulo.Destroy;
@@ -89,6 +136,85 @@ begin
       UpperCase(Trim(GetItemFieldName(AItem))), AIdVariacion);
 end;
 
+function TPresentadorStockArticulo.TextoCantidad(
+  AViewInfo: TcxGridTableDataCellViewInfo;
+  AColumna: TcxGridDBColumn): string;
+var
+  vCantidad: Variant;
+  sMascara: string;
+begin
+  Result := '';
+  if (AColumna <> nil) and (AViewInfo.GridRecord <> nil) then
+  begin
+    vCantidad := AViewInfo.GridRecord.Values[AColumna.Index];
+    if not VarIsNull(vCantidad) and not VarIsEmpty(vCantidad) then
+    begin
+      sMascara := '0.##';
+      if AColumna.DataBinding.Field is TNumericField then
+        sMascara := TNumericField(
+          AColumna.DataBinding.Field).DisplayFormat;
+      if sMascara = '' then
+        sMascara := '0.##';
+      Result := FormatFloat(sMascara, vCantidad);
+    end;
+  end;
+end;
+
+function TPresentadorStockArticulo.PintarResumen(ACanvas: TcxCanvas;
+  AViewInfo: TcxGridTableDataCellViewInfo): Boolean;
+var
+  oVentas, oRecibir: TcxGridDBColumn;
+  rStock, rVentas, rRecibir: TRect;
+  sCampo, sVentas, sRecibir: string;
+  iMargen, iMitad, iAltoFuente: Integer;
+begin
+  sCampo := GetItemFieldName(AViewInfo.Item);
+  oVentas := FVista.GetColumnByFieldName(
+    PREFIJO_VENTAS_CELDA_STOCK + sCampo);
+  oRecibir := FVista.GetColumnByFieldName(
+    PREFIJO_RECIBIR_CELDA_STOCK + sCampo);
+  Result := (oVentas <> nil) and (oRecibir <> nil);
+  if Result then
+  begin
+    sVentas := TextoCantidad(AViewInfo, oVentas);
+    sRecibir := TextoCantidad(AViewInfo, oRecibir);
+    iMargen := MulDiv(4, FVista.Control.CurrentPPI, 96);
+    rStock := AViewInfo.Bounds;
+    InflateRect(rStock, -iMargen, 0);
+    iMitad := (rStock.Top + rStock.Bottom) div 2;
+    rVentas := rStock;
+    rVentas.Bottom := iMitad;
+    rRecibir := rStock;
+    rRecibir.Top := iMitad;
+    ACanvas.Brush.Color := AViewInfo.Params.Color;
+    ACanvas.FillRect(AViewInfo.Bounds);
+    ACanvas.Brush.Style := bsClear;
+    ACanvas.Font.Assign(AViewInfo.Params.Font);
+    try
+      iAltoFuente := Abs(ACanvas.Font.Height);
+      ACanvas.Font.Height := -MulDiv(iAltoFuente, 3, 4);
+      ACanvas.Font.Color := clRed;
+      ACanvas.DrawText(sVentas, rVentas,
+        cxAlignLeft or cxAlignVCenter or cxSingleLine);
+      ACanvas.Font.Color := clBlue;
+      ACanvas.DrawText(sRecibir, rRecibir,
+        cxAlignLeft or cxAlignVCenter or cxSingleLine);
+      // Reservar el ancho real de los secundarios antes del stock grande.
+      rStock.Left := rStock.Left +
+        Max(ACanvas.TextWidth(sVentas), ACanvas.TextWidth(sRecibir)) +
+        iMargen;
+      ACanvas.Font.Assign(AViewInfo.Params.Font);
+      ACanvas.Font.Color := clBlack;
+      ACanvas.DrawText(AViewInfo.Text, rStock,
+        cxAlignRight or cxAlignVCenter or cxSingleLine or
+        cxShowEndEllipsis);
+    finally
+      ACanvas.Font.Assign(AViewInfo.Params.Font);
+      ACanvas.Brush.Style := bsSolid;
+    end;
+  end;
+end;
+
 procedure TPresentadorStockArticulo.PintarCelda(ACanvas: TcxCanvas;
   AViewInfo: TcxGridTableDataCellViewInfo; var AHecho: Boolean);
 var
@@ -97,7 +223,9 @@ var
 begin
   if AViewInfo <> nil then
   begin
-    if ResolverIdVariacion(AViewInfo.Item, sIdVariacion) then
+    if PintarResumen(ACanvas, AViewInfo) then
+      AHecho := True
+    else if ResolverIdVariacion(AViewInfo.Item, sIdVariacion) then
     begin
       if ObtenerInfoBasico(FConexion, sIdVariacion, AViewInfo.Text,
            oInfo) then
@@ -126,6 +254,31 @@ begin
       if Result then
         AHint := oInfo.Nombre;
     end;
+  end;
+end;
+
+procedure TPresentadorStockArticulo.AjustarAnchoColor;
+var
+  oColumna: TcxGridDBColumn;
+  rParametros: TcxViewParams;
+  iRegistro, iAncho, iTexto, iReserva: Integer;
+begin
+  oColumna := FVista.GetColumnByFieldName('Color');
+  if oColumna <> nil then
+  begin
+    // Medir con la fuente efectiva del cliente y reservar la muestra.
+    iReserva := MulDiv(28, FVista.Control.CurrentPPI, 96);
+    oColumna.Styles.GetHeaderParams(rParametros);
+    iAncho := cxTextWidth(rParametros.Font, oColumna.Caption) +
+      MulDiv(24, FVista.Control.CurrentPPI, 96);
+    oColumna.Styles.GetContentParams(nil, rParametros);
+    for iRegistro := 0 to FVista.DataController.RecordCount - 1 do
+    begin
+      iTexto := cxTextWidth(rParametros.Font,
+        FVista.DataController.DisplayTexts[iRegistro, oColumna.Index]);
+      iAncho := Max(iAncho, iTexto + iReserva);
+    end;
+    oColumna.Width := iAncho;
   end;
 end;
 

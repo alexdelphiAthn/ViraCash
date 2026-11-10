@@ -434,6 +434,10 @@
         <DCCReference Include="src\Lib\inLibCambioArticuloColorHistoricoConsultaIntf.pas"/>
         <DCCReference Include="src\DataModules\UniDataCambioArticuloColorHistorico.pas"/>
         <DCCReference Include="src\DataModules\UniDataCambioArticuloColorHistoricoConsulta.pas"/>
+        <DCCReference Include="src\DataModules\UniDataMovimientosArticuloColor.pas"/>
+        <DCCReference Include="src\Modals\inMtoModalMovimientosArticuloColor.pas">
+            <Form>frmModalMovimientosArticuloColor</Form>
+        </DCCReference>
         <DCCReference Include="src\DataModules\UniDataCambioArticuloColorRepositorio.pas"/>
         <DCCReference Include="src\Core\inMtoFrmBase.pas">
             <Form>frmBase</Form>
@@ -2123,6 +2127,18 @@
         <DCCReference Include="src\Lib\inLibMsgProcesosAuxiliaresBBDD.pas"/>
         <DCCReference Include="src\Lib\inLibCajaMenuTarjetaVcl.pas"/>
         <DCCReference Include="src\Lib\inLibCajaMenuMaquetaVcl.pas"/>
+        <DCCReference Include="src\Lib\inLibMeteorologiaCajaIntf.pas"/>
+        <DCCReference Include="src\Lib\inLibMsgMeteorologiaCaja.pas"/>
+        <DCCReference Include="src\Lib\inLibMeteorologiaCajaHttp.pas"/>
+        <DCCReference Include="src\Lib\inLibMeteorologiaCajaTarea.pas"/>
+        <DCCReference Include="src\Lib\inLibMeteorologiaCajaVcl.pas"/>
+        <DCCReference Include="src\DataModules\UniDataMeteorologiaCaja.pas"/>
+        <DCCReference Include="src\Modals\inMtoModalObservacionesCaja.pas">
+            <Form>frmModalObservacionesCaja</Form>
+        </DCCReference>
+        <DCCReference Include="src\Modals\inMtoModalMeteorologiaCaja.pas">
+            <Form>frmModalMeteorologiaCaja</Form>
+        </DCCReference>
         <DCCReference Include="src\Lib\inLibDistribucionTiendasIntf.pas"/>
         <DCCReference Include="src\Lib\inLibDistribucionTiendas.pas"/>
         <DCCReference Include="src\Lib\inLibMsgDistribucionTiendas.pas"/>

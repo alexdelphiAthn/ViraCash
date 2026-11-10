@@ -16,6 +16,41 @@ unit inLibMsgArticulos;
 interface
 
 resourcestring
+  STituloMovimientosArticuloColor = 'Movimientos por artículo/color';
+  SColorSelectorMovimientosArticulo = 'Color:';
+  STodosColoresMovimientosArticulo = 'Todos los colores';
+  SSinColorMovimientosArticulo = '(Sin color)';
+  SAyudaPreciosMovimientosArticulo =
+    'Compra: coste histórico sin IVA. Venta: precio del documento con IVA. ' +
+    'Seleccione el color en el combo superior.';
+  SCerrarMovimientosArticulo = 'Cerrar';
+  SColorMovimientosArticulo = 'Color/variación';
+  STallaMovimientosArticulo = 'Talla';
+  SFechaMovimientosArticulo = 'Fecha';
+  SNumeroMovimientosArticulo = 'Movimiento';
+  SEmpresaMovimientosArticulo = 'Empresa';
+  SAlmacenMovimientosArticulo = 'Almacén';
+  SNombreAlmacenMovimientosArticulo = 'Nombre almacén';
+  STipoMovimientosArticulo = 'E/S';
+  SUnidadesMovimientosArticulo = 'Unidades';
+  SDocumentoMovimientosArticulo = 'Doc.';
+  SDescripcionDocumentoMovimientosArticulo = 'Documento';
+  SSerieMovimientosArticulo = 'Serie';
+  SNumeroDocumentoMovimientosArticulo = 'N.º documento';
+  SCajaMovimientosArticulo = 'Caja';
+  SPrecioCompraMovimientos = 'Precio compra (sin IVA)';
+  SPrecioVentaMovimientos = 'Precio venta (con IVA)';
+  SPrecioVentaSinIvaMovimientos = 'Precio venta (sin IVA)';
+  SDescuentoMovimientosArticulo = '% dto.';
+  STotalCosteMovimientosArticulo = 'Importe coste';
+  SLineaMovimientosArticulo = 'Línea';
+  SOperacionMovimientosArticulo = 'Operación';
+  SSkuMovimientosArticulo = 'SKU';
+  SActivoMovimientosArticulo = 'Activo';
+  SSinMovimientosArticulo = 'Sin movimientos';
+  SLeyendaVentasStock = 'Ventas';
+  SLeyendaRecibirStock = 'Pendiente de recibir';
+  SLeyendaExistenciasStock = 'Stock';
 SLeyendaAvisosBalance =
     'Dif. fact./ventas: unidades facturadas menos salidas por venta. ' +
     'Se excluyen borradores y facturas internas de traspaso.' + sLineBreak +

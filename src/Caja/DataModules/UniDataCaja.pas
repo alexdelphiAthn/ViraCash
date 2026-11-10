@@ -229,10 +229,13 @@ type
                                         AConStock: Boolean = True;
                                         const ALote: string = '';
                                         AFechaCaducidad: TDate = 0);
+    // AFechaOperacion: fecha de la operacion de caja que cierra el
+    // deposito; queda como fecha de entrega (FZ-ISSUE-900).
     procedure CerrarDepositoCliente(QryTrx: TUniQuery;
                                     const AIdDeposito, AEmpresa,
                                           AAlmacen, ACaja,
-                                          AUsuario: string);
+                                          AUsuario: string;
+                                    AFechaOperacion: TDateTime);
     procedure AumentarAnticipoDeposito(QryTrx: TUniQuery;
                                        const AIdDeposito, AEmpresa,
                                              AAlmacen, ACaja,
@@ -1266,7 +1269,8 @@ procedure TdmCajaOpe.CerrarDepositoCliente(QryTrx: TUniQuery;
                                                  AEmpresa,
                                                  AAlmacen,
                                                  ACaja,
-                                                 AUsuario: string);
+                                                 AUsuario: string;
+                                           AFechaOperacion: TDateTime);
 var
   Consulta: TUniQuery;
   Cliente: string;
@@ -1303,12 +1307,18 @@ begin
       Consulta.SQL.Text :=
         'UPDATE fza_depositos_cliente ' +
         'SET ESTADO_DEP = ''CERRADO'', ' +
+        // FZ-ISSUE-900: la entrega es la operacion que lo cierra. La
+        // cantidad no se toca: tickets, arqueos e informes la leen como
+        // cantidad del deposito tambien despues de cerrarlo.
+        '    FECHA_ENTREGA_DEP = :FECHA_ENTREGA, ' +
         '    USUARIO_MODIF = :USUARIO, INSTANTE_MODIF = NOW() ' +
         'WHERE ID_DEPOSITO_DEP = :ID ' +
         'AND CODIGO_EMP_DEP = :EMPRESA ' +
         'AND CODIGO_ALM_DEP = :ALMACEN ' +
         'AND CODIGO_CAJA_DEP = :CAJA ' +
         'AND ESTADO_DEP = ''PENDIENTE''';
+      Consulta.ParamByName('FECHA_ENTREGA').AsDate :=
+        Trunc(AFechaOperacion);
       Consulta.ParamByName('USUARIO').AsString := AUsuario;
       Consulta.ParamByName('ID').AsString := AIdDeposito;
       Consulta.ParamByName('EMPRESA').AsString := AEmpresa;
@@ -2352,7 +2362,7 @@ begin
     Result := AlmacenDeposito;
     FDataModule.CerrarDepositoCliente(
       FQuery, sIdDeposito, FEmpresa, FAlmacen,
-      FCaja, FUsuario);
+      FCaja, FUsuario, FFechaOperacion);
     // PRECIO_ORIGINAL_DEP es unitario: el depósito vale por sus unidades
     dImporteCierre := ALinea.PrecioOriginalDep;
     if ALinea.Cantidad > 0 then

@@ -302,7 +302,7 @@ uses
   inLibMsgArticulos, inLibErroresBBDD,
   inLibTraspasosPendientesTexto,
   inLibTrazabilidad, inLibMsgTrazabilidad, inLibEAN13,
-  UniDataStockConsultaRepositorio;
+  UniDataStockConsultaRepositorio, inLibStockConsultaPersistenciaIntf;
 
 const
   // FZ-ISSUE-444: SKU con variacion (el SKU base lleva el codigo del
@@ -1074,12 +1074,19 @@ begin
     Columna := AVista.Columns[Indice] as TcxGridDBColumn;
     NombreCampo := Columna.DataBinding.FieldName;
     Columna.Caption := RotuloColumnaStock(NombreCampo, Columna.Caption);
-    if SameText(NombreCampo, 'Almacen') then
+    if StartsText(PREFIJO_VENTAS_CELDA_STOCK, NombreCampo) or
+       StartsText(PREFIJO_RECIBIR_CELDA_STOCK, NombreCampo) then
+    begin
+      Columna.Visible := False;
+      Columna.VisibleForCustomization := False;
+    end
+    else if SameText(NombreCampo, 'Almacen') then
       Columna.Width := ANCHO_ALMACEN
     else if SameText(NombreCampo, 'Color') then
       Columna.Width := ANCHO_COLOR
     else if SameText(NombreCampo, 'Total') then
-      Columna.Width := ANCHO_TOTAL
+      Columna.Width := MulDiv(ANCHO_TOTAL + 30,
+        AVista.Control.CurrentPPI, USER_DEFAULT_SCREEN_DPI)
     // FZ-ISSUE-251: pendiente de traspaso y disponible (script 770); el
     // codigo del almacen solo sirve para el detalle del doble clic.
     else if EsColumnaPendienteTraspasoStock(NombreCampo) or
@@ -1091,7 +1098,8 @@ begin
       Columna.VisibleForCustomization := False;
     end
     else
-      Columna.Width := ANCHO_TALLA;
+      Columna.Width := MulDiv(ANCHO_TALLA + 45,
+        AVista.Control.CurrentPPI, USER_DEFAULT_SCREEN_DPI);
   end;
 end;
 
@@ -1138,6 +1146,9 @@ begin
     else if SameText(NombreCampo, CAMPO_STOCK_PTE_TRASPASAR) or
             SameText(NombreCampo, CAMPO_STOCK_PTE_RECIBIR_TRASPASO) or
             SameText(NombreCampo, 'Pte. recibir compra') then
+      Pendientes := Pendientes + [Columna]
+    else if StartsText(PREFIJO_VENTAS_CELDA_STOCK, NombreCampo) or
+            StartsText(PREFIJO_RECIBIR_CELDA_STOCK, NombreCampo) then
       Pendientes := Pendientes + [Columna]
     else if Columna.Visible and
             not SameText(NombreCampo, 'Almacen') and
@@ -1195,7 +1206,7 @@ begin
       begin
         swTramo := TStopwatch.StartNew;
         if not AbrirConsultaStockPorPestanas(
-          unqryStockArticulos, sArt, True) then
+          unqryStockArticulos, sArt, True, True) then
         begin
           unqryStockArticulos.SQL.Text :=
             'CALL PRC_GET_CAJA_STOCK_PIVOTADO_WITHZ(:CODIGO_ART_ART)';

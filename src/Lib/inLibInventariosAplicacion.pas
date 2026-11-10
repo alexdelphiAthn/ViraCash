@@ -89,6 +89,7 @@ uses
   System.Generics.Collections,
   System.Math,
   inLibInventariosEntrada,
+  inLibInventariosPresentacion,
   inLibInventarioRecuentoLote,
   inLibTrazabilidad;
 
@@ -100,6 +101,10 @@ const
   CAMPO_PRECIO_IMPORTACION = 'PRECIO_MEDIO_NUEVO_INVLIN';
   CAMPO_PRECIO_CORREGIDO = 'ESPRECIO_MEDIO_CORREGIDO_INVLIN';
   CAMPO_FECHA_RECUENTO = 'FECHA_RECUENTO_INVLIN';
+  CAMPO_CANTIDAD_TEORICA = 'CANTIDAD_TEORICA_INVLIN';
+  CAMPO_PRECIO_ACTUAL = 'PRECIO_MEDIO_INVLIN';
+  CAMPO_DIFERENCIA_UNIDADES = 'CANTIDAD_DIFERENCIA_INVLIN';
+  CAMPO_DIFERENCIA_COSTE = 'TOTAL_COSTE_DIFERENCIA_INVLIN';
 
 type
   TOperacionesImportacionInventarioDataSet = class(
@@ -110,6 +115,7 @@ type
     FNuevas: TStrings;
     FAlConfirmarLinea: TProc;
     FConsolidar: TProc;
+    procedure RecalcularDiferenciasLinea;
   public
     constructor Create(
       ALineas: TDataSet; ANuevas: TStrings;
@@ -687,8 +693,42 @@ begin
   FLineas.FieldByName(CAMPO_PRECIO_CORREGIDO).AsString := 'N';
 end;
 
+// FZ-ISSUE-895: el recuento importado cambia la cantidad fisica (y, a
+// veces, el PMP nuevo) sin pasar por la rejilla, que es quien recalculaba
+// las diferencias. Se recalculan aqui, con las mismas formulas, antes de
+// grabar la linea; la cabecera suma despues las lineas grabadas.
+procedure TOperacionesImportacionInventarioDataSet.
+  RecalcularDiferenciasLinea;
+var
+  oFisica: TField;
+  oTeorica: TField;
+  oPrecioNuevo: TField;
+  oPrecioActual: TField;
+  oDiferenciaUnidades: TField;
+  oDiferenciaCoste: TField;
+begin
+  oFisica := FLineas.FindField(CAMPO_CANTIDAD_IMPORTACION);
+  oTeorica := FLineas.FindField(CAMPO_CANTIDAD_TEORICA);
+  oPrecioNuevo := FLineas.FindField(CAMPO_PRECIO_IMPORTACION);
+  oPrecioActual := FLineas.FindField(CAMPO_PRECIO_ACTUAL);
+  oDiferenciaUnidades := FLineas.FindField(CAMPO_DIFERENCIA_UNIDADES);
+  oDiferenciaCoste := FLineas.FindField(CAMPO_DIFERENCIA_COSTE);
+  if (oFisica <> nil) and (oTeorica <> nil) then
+  begin
+    if oDiferenciaUnidades <> nil then
+      oDiferenciaUnidades.AsCurrency := DiferenciaUnidadesInventario(
+        oFisica.AsCurrency, oTeorica.AsCurrency);
+    if (oDiferenciaCoste <> nil) and (oPrecioNuevo <> nil) and
+       (oPrecioActual <> nil) then
+      oDiferenciaCoste.AsCurrency := DiferenciaCosteInventario(
+        oFisica.AsCurrency, oTeorica.AsCurrency,
+        oPrecioNuevo.AsCurrency, oPrecioActual.AsCurrency);
+  end;
+end;
+
 procedure TOperacionesImportacionInventarioDataSet.ConfirmarLinea;
 begin
+  RecalcularDiferenciasLinea;
   if Assigned(FAlConfirmarLinea) then
     FAlConfirmarLinea();
   FLineas.Post;

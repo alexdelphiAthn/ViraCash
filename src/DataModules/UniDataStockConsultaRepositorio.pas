@@ -24,7 +24,8 @@ function ConstruirSqlListarTallasStock(
 // Abre el detalle por almacén, color y eje S si el artículo tiene pestañas.
 // False: el llamador mantiene su consulta habitual de dos dimensiones.
 function AbrirConsultaStockPorPestanas(AConsulta: TUniQuery;
-  const ACodigo: string; AConPendientes: Boolean): Boolean;
+  const ACodigo: string; AConPendientes: Boolean;
+  AConResumenCelda: Boolean = False): Boolean;
 function CrearServiciosStockConsultaUniDAC(
   AConexion: TUniConnection): TServiciosStockConsulta;
 
@@ -1176,10 +1177,28 @@ end;
 function SqlDetalleStockConPestanas(
   ARepositorio: TRepositorioStockConsultaUniDAC;
   const ASolicitud: TSolicitudPivoteStock;
-  const ATallas: TArray<TInfoColumna>; AConPendientes: Boolean): string;
+  const ATallas: TArray<TInfoColumna>; AConPendientes: Boolean;
+  AConResumenCelda: Boolean): string;
 var
   sBase, sColumnas, sCodigo, sFiltro, sHaving: string;
   rTalla: TInfoColumna;
+  function ColumnaResumen(const ANombre, AFiltro: string;
+    AEstado: TEstadoStock): string;
+  begin
+    Result := Format(
+      ', COALESCE(SUM(CASE WHEN B.ESTADO_NUM = %d %s ' +
+      'THEN B.CANTIDAD ELSE 0 END), 0) AS `%s`',
+      [Ord(AEstado), AFiltro,
+       StringReplace(ANombre, '`', '``', [rfReplaceAll])]);
+  end;
+
+  function ResumenCelda(const ANombre, AFiltro: string): string;
+  begin
+    Result := ColumnaResumen(PREFIJO_VENTAS_CELDA_STOCK + ANombre,
+      AFiltro, esVentas) +
+      ColumnaResumen(PREFIJO_RECIBIR_CELDA_STOCK + ANombre,
+      AFiltro, esPdteRecibir);
+  end;
 begin
   sBase := ARepositorio.EstadoBaseSelectFor(ASolicitud, esExistencias);
   if AConPendientes then
@@ -1189,13 +1208,23 @@ begin
       ARepositorio.EstadoBaseSelectFor(ASolicitud, esPdteRecTraspaso) +
       ' UNION ALL ' +
       ARepositorio.EstadoBaseSelectFor(ASolicitud, esPdteRecibir);
+  if AConResumenCelda then
+    sBase := sBase + ' UNION ALL ' +
+      ARepositorio.EstadoBaseSelectFor(ASolicitud, esVentas);
   sColumnas := '';
   for rTalla in ATallas do
+  begin
     sColumnas := sColumnas + Format(
       ', COALESCE(SUM(CASE WHEN B.ESTADO_NUM = %d ' +
       'AND B.TALLA_AV = %s THEN B.CANTIDAD ELSE 0 END), 0) AS `%s`',
       [Ord(esExistencias), QuotedStr(rTalla.Codigo),
        StringReplace(rTalla.Texto, '`', '``', [rfReplaceAll])]);
+    if AConResumenCelda then
+      sColumnas := sColumnas + ResumenCelda(rTalla.Texto,
+        'AND B.TALLA_AV = ' + QuotedStr(rTalla.Codigo));
+  end;
+  if AConResumenCelda then
+    sColumnas := sColumnas + ResumenCelda('Total', '');
   sCodigo := 'ALM.NOMBRE_ALM_ALM AS Almacen, ' +
     'COALESCE(D.COLOR_AV, '''') AS Color';
   if not AConPendientes then
@@ -1228,7 +1257,8 @@ begin
 end;
 
 function AbrirConsultaStockPorPestanas(AConsulta: TUniQuery;
-  const ACodigo: string; AConPendientes: Boolean): Boolean;
+  const ACodigo: string; AConPendientes: Boolean;
+  AConResumenCelda: Boolean): Boolean;
 var
   oLectura: TUniQuery;
   oRepositorio: TRepositorioStockConsultaUniDAC;
@@ -1262,7 +1292,8 @@ begin
       aTallas := oRepositorio.ListarTallas(sArticulo, rSolicitud.Colores);
       AConsulta.Close;
       AConsulta.SQL.Text := SqlDetalleStockConPestanas(
-        oRepositorio, rSolicitud, aTallas, AConPendientes);
+        oRepositorio, rSolicitud, aTallas, AConPendientes,
+        AConResumenCelda);
       AConsulta.Open;
       AConsulta.FieldByName('COPA').DisplayLabel := sNombre;
       AConsulta.FieldByName('COPA').Visible := sNombre <> '';

@@ -239,6 +239,8 @@ type
     cxgrdlvlSkus: TcxGridLevel;
     cxTabSheet3: TcxTabSheet;
     tsMovimientos: TcxTabSheet;
+    pnlMovimientosArticuloColor: TcxGroupBox;
+    btnMovimientosArticuloColor: TcxButton;
     tvSkusCODIGO_BARRAS_CB: TcxGridDBColumn;
     tvSkusTIPO_CODIGO_CB: TcxGridDBColumn;
     tvSkusESPRINCIPAL_CB: TcxGridDBColumn;
@@ -501,6 +503,7 @@ type
       ACellViewInfo: TcxGridTableDataCellViewInfo; const MousePos: TPoint;
       var AHintText: TCaption; var AIsHintMultiLine: Boolean;
       var AHintTextRect: TRect);
+    procedure MostrarMovimientosArticuloColor(Sender: TObject);
   private
      procedure BuscarProveedores;
      // Carga perezosa de la pestaña Tarifas: vi_articulos_tarifas tarda
@@ -657,6 +660,8 @@ uses
   UniDataArticulosCodigosBarrasRepositorio,
   UniDataColumnasDocumentoRepositorio,
   UniDataDestinoFacturaRepositorio,
+  UniDataMovimientosArticuloColor,
+  inMtoModalMovimientosArticuloColor,
   UniDataFiltroArticulosRepositorio,
   inMtoArticulosNavegacionFacturasVcl,
   inLibMenuColumnasRejillaVcl,
@@ -664,6 +669,27 @@ uses
   inLibMsgArticulos, inLibMsgComun, inLibErroresBBDD;
 
 {$R *.dfm}
+
+procedure TfrmMtoArticulos.MostrarMovimientosArticuloColor(Sender: TObject);
+var
+  oConsulta: TDataSet;
+  sArticulo, sSku: string;
+begin
+  if dsTablaG.DataSet.Active and not dsTablaG.DataSet.IsEmpty and
+    (dsTablaG.DataSet.State <> dsInsert) then
+  begin
+    ResolverArtSkuActivo(sArticulo, sSku);
+    oConsulta := ConsultarMovimientosArticuloColor(ConexionPrincipal,
+      sArticulo);
+    try
+      TfrmModalMovimientosArticuloColor.Ejecutar(Self, oConsulta,
+        sArticulo + ' - ' +
+        dsTablaG.DataSet.FieldByName('DESCRIPCION_ART').AsString, sSku);
+    finally
+      FreeAndNil(oConsulta);
+    end;
+  end;
+end;
 
 resourcestring
   STituloBuscarProveedoresArticulos =
@@ -1884,6 +1910,11 @@ begin
     CrearResolutorDestinoFacturaUniDAC(ConexionPrincipal);
   // La vista de stock se empuja al DM (ya no la busca con GetOwnerForm).
   dmmArticulos.AsignarVistaStock(tvStock);
+  cxGrdStock.Font.Size := Font.Size + 2;
+  tvStock.OptionsView.DataRowHeight := MulDiv(38, CurrentPPI,
+    USER_DEFAULT_SCREEN_DPI);
+  tvStock.OptionsBehavior.AlwaysShowEditor := False;
+  pnlBotonesTarifas.Font.Size := Font.Size + 2;
   cbbFamilia.Properties.ListSource := dmmArticulos.dsFamiliaArticulos;
   cbbTipoCantidad.Properties.ListSource := dmmArticulos.dsUnidadesMedidaLookup;
   tvTarifas.DataController.DataSource := dmmArticulos.dsTarifasArticulos;

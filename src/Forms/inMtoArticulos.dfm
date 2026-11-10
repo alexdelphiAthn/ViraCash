@@ -2157,6 +2157,24 @@
               ExplicitTop = 0
               ExplicitWidth = 0
               ExplicitHeight = 0
+              object pnlMovimientosArticuloColor: TcxGroupBox
+                Align = alBottom
+                PanelStyle.Active = True
+                Style.BorderStyle = ebsNone
+                TabOrder = 2
+                Transparent = True
+                Height = 48
+                Width = 1061
+                object btnMovimientosArticuloColor: TcxButton
+                  Left = 8
+                  Top = 8
+                  Width = 310
+                  Height = 32
+                  Caption = 'Movimientos por artículo/color'
+                  TabOrder = 0
+                  OnClick = MostrarMovimientosArticuloColor
+                end
+              end
               object cxGrdMovimientos: TcxGrid
                 Left = 0
                 Top = 0

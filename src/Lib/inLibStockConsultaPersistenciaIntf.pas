@@ -19,6 +19,10 @@ uses
   Data.DB,
   inLibPestanasEje;
 
+const
+  PREFIJO_VENTAS_CELDA_STOCK = '__VENTAS_';
+  PREFIJO_RECIBIR_CELDA_STOCK = '__RECIBIR_';
+
 type
   TEstadoStock = (
     esExistencias,

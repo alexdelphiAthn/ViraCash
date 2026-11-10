@@ -225,6 +225,8 @@ begin
   // ========== Sufijos de tabla ==========
   AddSuf('fza_almacenes',                       'ALM');
   AddSuf('fza_almacenes_cajas',                 'ALMCAJ');
+  AddSuf('fza_almacenes_meteorologia',           'ALMET');
+  AddSuf('fza_almacenes_observaciones',         'ALOB');
   AddSuf('fza_articulos',                       'ART');
   AddSuf('fza_articulos_cambios_historico',     'ACH');
   AddSuf('fza_articulos_conjuntos_asign',       'ACA');

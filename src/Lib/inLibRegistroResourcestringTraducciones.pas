@@ -13,6 +13,7 @@ procedure EnumerarResourcestringsTraduccion(
 implementation
 
 uses
+  inLibMsgMeteorologiaCaja,
   inLibMsgInformesCliente,
   inLibCambiosTrabajo,
   inLibMsgMedidasCliente,
@@ -6413,9 +6414,205 @@ begin
     @inLibMsgReparaciones.SErrorEjecutorTipoServicio);
 end;
 
+procedure RegistrarMovimientosArticuloColor(
+  const ARegistrar: TRegistrarResourcestringTraduccion);
+begin
+  RegistrarTextoArticulo(ARegistrar, 'SColorSelectorMovimientosArticulo',
+    @inLibMsgArticulos.SColorSelectorMovimientosArticulo);
+  RegistrarTextoArticulo(ARegistrar, 'STodosColoresMovimientosArticulo',
+    @inLibMsgArticulos.STodosColoresMovimientosArticulo);
+  RegistrarTextoArticulo(ARegistrar, 'SSinColorMovimientosArticulo',
+    @inLibMsgArticulos.SSinColorMovimientosArticulo);
+  RegistrarTextoArticulo(ARegistrar, 'STituloMovimientosArticuloColor',
+    @inLibMsgArticulos.STituloMovimientosArticuloColor);
+  RegistrarTextoArticulo(ARegistrar, 'SAyudaPreciosMovimientosArticulo',
+    @inLibMsgArticulos.SAyudaPreciosMovimientosArticulo);
+  RegistrarTextoArticulo(ARegistrar, 'SCerrarMovimientosArticulo',
+    @inLibMsgArticulos.SCerrarMovimientosArticulo);
+  RegistrarTextoArticulo(ARegistrar, 'SColorMovimientosArticulo',
+    @inLibMsgArticulos.SColorMovimientosArticulo);
+  RegistrarTextoArticulo(ARegistrar, 'STallaMovimientosArticulo',
+    @inLibMsgArticulos.STallaMovimientosArticulo);
+  RegistrarTextoArticulo(ARegistrar, 'SFechaMovimientosArticulo',
+    @inLibMsgArticulos.SFechaMovimientosArticulo);
+  RegistrarTextoArticulo(ARegistrar, 'SNumeroMovimientosArticulo',
+    @inLibMsgArticulos.SNumeroMovimientosArticulo);
+  RegistrarTextoArticulo(ARegistrar, 'SEmpresaMovimientosArticulo',
+    @inLibMsgArticulos.SEmpresaMovimientosArticulo);
+  RegistrarTextoArticulo(ARegistrar, 'SAlmacenMovimientosArticulo',
+    @inLibMsgArticulos.SAlmacenMovimientosArticulo);
+  RegistrarTextoArticulo(ARegistrar, 'SNombreAlmacenMovimientosArticulo',
+    @inLibMsgArticulos.SNombreAlmacenMovimientosArticulo);
+  RegistrarTextoArticulo(ARegistrar, 'STipoMovimientosArticulo',
+    @inLibMsgArticulos.STipoMovimientosArticulo);
+  RegistrarTextoArticulo(ARegistrar, 'SUnidadesMovimientosArticulo',
+    @inLibMsgArticulos.SUnidadesMovimientosArticulo);
+  RegistrarTextoArticulo(ARegistrar, 'SDocumentoMovimientosArticulo',
+    @inLibMsgArticulos.SDocumentoMovimientosArticulo);
+  RegistrarTextoArticulo(ARegistrar, 'SDescripcionDocumentoMovimientosArticulo',
+    @inLibMsgArticulos.SDescripcionDocumentoMovimientosArticulo);
+  RegistrarTextoArticulo(ARegistrar, 'SSerieMovimientosArticulo',
+    @inLibMsgArticulos.SSerieMovimientosArticulo);
+  RegistrarTextoArticulo(ARegistrar, 'SNumeroDocumentoMovimientosArticulo',
+    @inLibMsgArticulos.SNumeroDocumentoMovimientosArticulo);
+  RegistrarTextoArticulo(ARegistrar, 'SCajaMovimientosArticulo',
+    @inLibMsgArticulos.SCajaMovimientosArticulo);
+  RegistrarTextoArticulo(ARegistrar, 'SPrecioCompraMovimientos',
+    @inLibMsgArticulos.SPrecioCompraMovimientos);
+  RegistrarTextoArticulo(ARegistrar, 'SPrecioVentaMovimientos',
+    @inLibMsgArticulos.SPrecioVentaMovimientos);
+  RegistrarTextoArticulo(ARegistrar, 'SPrecioVentaSinIvaMovimientos',
+    @inLibMsgArticulos.SPrecioVentaSinIvaMovimientos);
+  RegistrarTextoArticulo(ARegistrar, 'SDescuentoMovimientosArticulo',
+    @inLibMsgArticulos.SDescuentoMovimientosArticulo);
+  RegistrarTextoArticulo(ARegistrar, 'STotalCosteMovimientosArticulo',
+    @inLibMsgArticulos.STotalCosteMovimientosArticulo);
+  RegistrarTextoArticulo(ARegistrar, 'SLineaMovimientosArticulo',
+    @inLibMsgArticulos.SLineaMovimientosArticulo);
+  RegistrarTextoArticulo(ARegistrar, 'SOperacionMovimientosArticulo',
+    @inLibMsgArticulos.SOperacionMovimientosArticulo);
+  RegistrarTextoArticulo(ARegistrar, 'SSkuMovimientosArticulo',
+    @inLibMsgArticulos.SSkuMovimientosArticulo);
+  RegistrarTextoArticulo(ARegistrar, 'SActivoMovimientosArticulo',
+    @inLibMsgArticulos.SActivoMovimientosArticulo);
+  RegistrarTextoArticulo(ARegistrar, 'SSinMovimientosArticulo',
+    @inLibMsgArticulos.SSinMovimientosArticulo);
+end;
+
 procedure EnumerarResourcestringsTraduccion(
   const ARegistrar: TRegistrarResourcestringTraduccion);
 begin
+  RegistrarMovimientosArticuloColor(ARegistrar);
+  ARegistrar('inLibMsgMeteorologiaCaja.SErrorInicioHistoricoMeteoCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SErrorInicioHistoricoMeteoCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.SErrorFinPrevisionMeteoCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SErrorFinPrevisionMeteoCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.SErrorConsultaMeteoCancelada',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SErrorConsultaMeteoCancelada);
+  ARegistrar('inLibMsgMeteorologiaCaja.SHintLluviaHistoricoMeteoCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SHintLluviaHistoricoMeteoCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.SFuenteHistoricoMeteoCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SFuenteHistoricoMeteoCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.SFuentePrevisionMeteoCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SFuentePrevisionMeteoCaja);
+
+  ARegistrar('inLibMsgMeteorologiaCaja.SColFechaMeteoCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SColFechaMeteoCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.SColCieloMeteoCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SColCieloMeteoCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.SColMediaMeteoCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SColMediaMeteoCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.SColMaximaMeteoCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SColMaximaMeteoCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.SColMinimaMeteoCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SColMinimaMeteoCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.SColNubesMeteoCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SColNubesMeteoCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.SColLluviaMeteoCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SColLluviaMeteoCaja);
+
+  ARegistrar('inLibMsgMeteorologiaCaja.STituloHistoricoMeteoCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.STituloHistoricoMeteoCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.SCiudadHistoricoMeteoCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SCiudadHistoricoMeteoCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.SDesdeHistoricoMeteoCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SDesdeHistoricoMeteoCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.SHastaHistoricoMeteoCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SHastaHistoricoMeteoCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.SConsultarHistoricoMeteoCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SConsultarHistoricoMeteoCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.SNotaHistoricoMeteoCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SNotaHistoricoMeteoCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.SErrorRangoHistoricoMeteoCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SErrorRangoHistoricoMeteoCaja);
+
+  ARegistrar('inLibMsgMeteorologiaCaja.SCaptionMeteoCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SCaptionMeteoCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.SHintConsultarMeteoCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SHintConsultarMeteoCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.SHintTemperaturaMeteoCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SHintTemperaturaMeteoCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.SHintNubesMeteoCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SHintNubesMeteoCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.SHintLluviaMeteoCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SHintLluviaMeteoCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.SHintFuenteMeteoCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SHintFuenteMeteoCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.SEstadoConsultandoMeteoCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SEstadoConsultandoMeteoCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.SEstadoErrorMeteoCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SEstadoErrorMeteoCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.SErrorCiudadMeteoCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SErrorCiudadMeteoCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.SErrorApiMeteoCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SErrorApiMeteoCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.SErrorRespuestaMeteoCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SErrorRespuestaMeteoCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.SErrorLocalidadMeteoCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SErrorLocalidadMeteoCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.SErrorGuardarMeteoCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SErrorGuardarMeteoCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.SErrorEsquemaMeteoCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SErrorEsquemaMeteoCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.STituloObservacionesCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.STituloObservacionesCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.SHintObservacionesCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SHintObservacionesCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.SCabeceraObservacionesCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SCabeceraObservacionesCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.SGuardarObservacionesCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SGuardarObservacionesCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.SCancelarObservacionesCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SCancelarObservacionesCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.SErrorEsquemaObservacionesCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SErrorEsquemaObservacionesCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.SErrorLongitudObservacionesCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SErrorLongitudObservacionesCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.SErrorUbicacionObservacionesCaja',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SErrorUbicacionObservacionesCaja);
+
   ARegistrar('inLibMsgInformesCliente.' +
     'SInformeTemporadaP1',
     'src/Lib/inLibMsgInformesCliente.pas',
@@ -6616,6 +6813,14 @@ begin
     'SInformeEntradasImporte',
     'src/Lib/inLibMsgInformesCliente.pas',
     @inLibMsgInformesCliente.SInformeEntradasImporte);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeRegularizacionUnidades',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeRegularizacionUnidades);
+  ARegistrar('inLibMsgInformesCliente.' +
+    'SInformeRegularizacionImporte',
+    'src/Lib/inLibMsgInformesCliente.pas',
+    @inLibMsgInformesCliente.SInformeRegularizacionImporte);
   ARegistrar('inLibMsgInformesCliente.' +
     'SInformeVentasUnidades',
     'src/Lib/inLibMsgInformesCliente.pas',
@@ -10214,6 +10419,15 @@ begin
     ARegistrar,
     'SAvisoSinPrecioBaseRevalorizacionInventario',
     @inLibMsgArticulos.SAvisoSinPrecioBaseRevalorizacionInventario);
+  ARegistrar('inLibMsgArticulos.SLeyendaVentasStock',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SLeyendaVentasStock);
+  ARegistrar('inLibMsgArticulos.SLeyendaRecibirStock',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SLeyendaRecibirStock);
+  ARegistrar('inLibMsgArticulos.SLeyendaExistenciasStock',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SLeyendaExistenciasStock);
   ARegistrar(
     'inLibMsgArticulos.' +
     'SAvisoLimiteRegistrosMovimientosAlmacen',
@@ -15136,6 +15350,10 @@ begin
     'src/Lib/inLibMsgComun.pas',
     @inLibMsgComun.
       SErrorSerieTokenizadaCalendarioNoNatural);
+  ARegistrar(
+    'inLibMsgComun.SInfoCuentaEmpresaSinIban',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.SInfoCuentaEmpresaSinIban);
   ARegistrar(
     'inLibMsgComun.' +
     'SErrorIbanEmpresa',

@@ -32,7 +32,8 @@ uses
   inLibVentasCalendario, System.Actions, Vcl.ActnList, dxGDIPlusClasses,
   cxImage, inLibPermisosIntf, inLibCajaPantallaInyeccion,
   inLibCajaMenuTarjetaVcl, inLibCajaMenuMaquetaVcl,
-  inLibIndicadoresColasVcl, inLibContextoSesionIntf;
+  inLibIndicadoresColasVcl, inLibContextoSesionIntf,
+  inLibMeteorologiaCajaVcl;
 
 const
   WM_REACTIVAR_OPERACION_CAJA = WM_APP + 107;
@@ -100,6 +101,7 @@ type
   private
     FCerrando: Boolean;
     FIndicadoresColas: TIndicadoresColasVcl;
+    FMeteorologia: TIndicadorMeteorologiaCaja;
     FVentasCal: TVentasCalendarioCache;
     FDependenciasInyeccion: TDependenciasMenuCaja;
     procedure AbrirBuscarModificar;
@@ -112,6 +114,9 @@ type
     FSelectedIndex: Integer;
     procedure CrearTarjetas;
     procedure MaquetarPantalla;
+    procedure UbicarMeteorologia;
+    procedure AbrirHistoricoMeteorologia(Sender: TObject);
+    procedure AbrirObservacionesDia(Sender: TObject);
     procedure TarjetaSeleccionar(Sender: TObject);
     procedure SetSelectedIndex(NewIndex: Integer);
     procedure ExecuteSelectedItem;
@@ -145,7 +150,9 @@ uses
   inLibMensajesVcl, inLibCajaEstiloVcl,
   DateUtils,
   inMtoModalArqueo, inMtoModalEntradaCambio, inMtoModalGastoCaja,
-  inLibMsgCaja, inLibTraducciones, inLibVentanaBarraTareas;
+  inLibMsgCaja, inLibTraducciones, inLibVentanaBarraTareas,
+  inMtoModalMeteorologiaCaja, inMtoModalObservacionesCaja,
+  inLibMeteorologiaCajaIntf;
 
 const
   // Identificador de aplicación propio: botón separado en la barra de
@@ -221,6 +228,16 @@ begin
     ClientHeight := ClientHeight + MulDiv(24, CurrentPPI, 96);
     FIndicadoresColas := TIndicadoresColasVcl.CrearBarra(
       Self, FDependenciasInyeccion.ConsultarEstadosColas);
+  end;
+  if Assigned(FDependenciasInyeccion.PartesMeteorologia) and
+     Assigned(FDependenciasInyeccion.Meteorologia) then
+  begin
+    FMeteorologia := TIndicadorMeteorologiaCaja.Create(Self,
+      FDependenciasInyeccion.PartesMeteorologia,
+      FDependenciasInyeccion.Meteorologia, RegistroLog);
+    FMeteorologia.EstablecerAlmacen(FEmpresa, FAlmacen);
+    FMeteorologia.AlAbrirHistorico := AbrirHistoricoMeteorologia;
+    FMeteorologia.AlEditarObservaciones := AbrirObservacionesDia;
   end;
 end;
 
@@ -374,6 +391,9 @@ begin
     end;
   end;
 
+  if Assigned(FMeteorologia) then
+    FMeteorologia.EstablecerAlmacen(FEmpresa, FAlmacen);
+
   if bContinuar then
   begin
     calMes.Invalidate;
@@ -386,6 +406,7 @@ end;
 
 procedure TfrmMtoMenuCaja.FormDestroy(Sender: TObject);
 begin
+  FreeAndNil(FMeteorologia);
   FreeAndNil(FIndicadoresColas);
   FreeAndNil(FVentasCal);
   FDependenciasInyeccion := Default(TDependenciasMenuCaja);
@@ -551,6 +572,8 @@ begin
       lblEmpresa.Caption := Format(SCaptionEmpresaAlmacenCaja,
                                    [FEmpresa, FAlmacen, FCaja]);
       RecargarCalendario;
+      if Assigned(FMeteorologia) then
+        FMeteorologia.EstablecerAlmacen(FEmpresa, FAlmacen);
     end
     else
       PostMessage(Self.Handle, WM_CLOSE, 0, 0);
@@ -680,6 +703,41 @@ begin
   rControles.Empresa := lblEmpresa;
   rControles.Tarjetas := FTarjetas;
   MaquetarMenuCaja(Self, rControles);
+  UbicarMeteorologia;
+end;
+
+procedure TfrmMtoMenuCaja.UbicarMeteorologia;
+var
+  iArriba, iAlto: Integer;
+begin
+  if Assigned(FMeteorologia) and Assigned(FTarjetas[6]) then
+  begin
+    iArriba := lblFecha.BoundsRect.Bottom + MulDiv(2, CurrentPPI, 96);
+    iAlto := FTarjetas[6].Top - iArriba - MulDiv(4, CurrentPPI, 96);
+    FMeteorologia.Ubicar(lblFecha.Left, iArriba,
+      FTarjetas[6].Width - MulDiv(4, CurrentPPI, 96),
+      Min(iAlto, MulDiv(60, CurrentPPI, 96)));
+  end;
+end;
+
+procedure TfrmMtoMenuCaja.AbrirObservacionesDia(Sender: TObject);
+var
+  oRepositorio: IRepositorioObservacionesCaja;
+begin
+  if Supports(FDependenciasInyeccion.PartesMeteorologia,
+    IRepositorioObservacionesCaja, oRepositorio) then
+  begin
+    CerrarMonitorSQLPendiente;
+    TfrmModalObservacionesCaja.Ejecutar(Self, oRepositorio,
+      FEmpresa, FAlmacen, IdentidadSesion.Usuario, FFechaCaja);
+  end;
+end;
+
+procedure TfrmMtoMenuCaja.AbrirHistoricoMeteorologia(Sender: TObject);
+begin
+  TfrmModalMeteorologiaCaja.Ejecutar(Self,
+    FDependenciasInyeccion.PartesMeteorologia.LeerUbicacion(
+      FEmpresa, FAlmacen), FDependenciasInyeccion.Meteorologia);
 end;
 
 procedure TfrmMtoMenuCaja.TarjetaSeleccionar(Sender: TObject);
