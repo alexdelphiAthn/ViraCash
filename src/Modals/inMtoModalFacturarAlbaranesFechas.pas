@@ -172,18 +172,14 @@ function TfrmModalFacturarAlbaranesFechas.SolicitarOpcionesFacturas(
   out AOpciones: TOpcionesDocumento): Boolean;
 var
   oConfig: TConfiguracionOpcionesDocumento;
-  oTipo: TTipoOpcionesDocumento;
 begin
-  oTipo := Default(TTipoOpcionesDocumento);
-  oTipo.Codigo := 'FC';
-  oTipo.Nombre := SNombreFacturaVentaOpcionesDocumento;
   oConfig := Default(TConfiguracionOpcionesDocumento);
   oConfig.Titulo := STituloFacturasAlbaranesOpcionesDocumento;
-  oConfig.Tipos := [oTipo];
+  oConfig.Tipos := TiposFacturaDesdeAlbaran;
   oConfig.Propuesta.Empresa := UbicacionSesion.Empresa;
   oConfig.Propuesta.Tipo := 'FC';
   oConfig.Propuesta.Fecha := Date;
-  oConfig.Visibles := [codSerie, codNumero, codFecha, codFormaPago];
+  oConfig.Visibles := [codTipo, codSerie, codNumero, codFecha, codFormaPago];
   oConfig.SerieOpcional := True;
   Result := TfrmModalOpcionesDocumento.Solicitar(Self,
     CrearLectorOpcionesDocumentoUniDAC(ConexionPrincipal), oConfig,

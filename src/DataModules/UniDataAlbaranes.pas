@@ -193,7 +193,7 @@ uses
   inLibPrestaShopColaSenal, UniDataClientesRepositorio,
   inLibSqlSeguro, inLibDocumento, inLibDocumentoIntf,
   UniDataAlbaranesVentaMovimientos, UniDataFacturasRecalculoTotales,
-  UniDataDescuentosVenta,
+  UniDataDescuentosVenta, UniDataFacturacionAlbaranesFechasRepositorio,
   inLibErroresBBDD;
 
 {%CLASSGROUP 'Vcl.Controls.TControl'}
@@ -1689,6 +1689,8 @@ begin
   oProc.ExecProc;
   ANumeroFactura := oProc.ParamByName('p_NUMERO_FAC').AsString;
   ASerieFactura := oProc.ParamByName('p_SERIE_FAC').AsString;
+  PrepararTipoFacturaAlbaran(ConexionEscritura, ASerieFactura,
+    ANumeroFactura, AOpciones.Tipo, IdentidadSesion.Usuario);
 end;
 
 procedure TdmAlbaranes.EjecutarCrearFacturaLinea(
@@ -1791,6 +1793,9 @@ begin
     ConexionEscritura.StartTransaction;
   try
 
+  BloquearAlbaranPendienteFacturacion(ConexionEscritura,
+    sSerieAlb, sNumeroAlb);
+
   // 1) Cabecera de la factura
   EjecutarCrearFacturaInicio(
     sNumeroAlb, sSerieAlb, AOpciones, sNumeroFac, sSerieFac);
@@ -1838,6 +1843,8 @@ begin
   EjecutarCrearFacturaFin(
     sNumeroFac, sSerieFac, sNumeroAlb, sSerieAlb);
   RecalcularFacturaCreada(sSerieFac, sNumeroFac);
+  ValidarImporteFacturaAlbaran(ConexionEscritura, sSerieFac,
+    sNumeroFac, AOpciones.Tipo);
 
     if bTransPropia and ConexionEscritura.InTransaction then
       ConexionEscritura.Commit;
@@ -1890,6 +1897,8 @@ begin
                aListaAlbaranes[i], sSer, sNum) and
              ConsultarClienteAlbaran(qCli, sNum, sSer, sCliAlb) then
           begin
+            BloquearAlbaranPendienteFacturacion(ConexionEscritura,
+              sSer, sNum);
             if (not bAgruparPorCliente) or
                (sNumFacActual = '') or
                (sCliAlb <> sCliActual) then
@@ -1920,6 +1929,8 @@ begin
             // Agrupando por cliente, la factura se recalcula tras cada
             // albaran añadido: la ultima vez queda con todas sus lineas.
             RecalcularFacturaCreada(sSerFac, sNumFac);
+            ValidarImporteFacturaAlbaran(ConexionEscritura, sSerFac,
+              sNumFac, AOpciones.Tipo);
           end;
         end;
         if bTransPropia and ConexionEscritura.InTransaction then

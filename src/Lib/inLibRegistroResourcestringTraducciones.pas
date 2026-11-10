@@ -32035,6 +32035,26 @@ begin
     'src/Lib/inLibMsgArticulos.pas',
     @inLibMsgArticulos.SValorTarifaNo);
   ARegistrar(
+    'inLibMsgFacturas.SErrorAlbaranSinPendientesFacturacion',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SErrorAlbaranSinPendientesFacturacion);
+  ARegistrar(
+    'inLibMsgFacturas.SErrorSerieSimplificadaAlbaran',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SErrorSerieSimplificadaAlbaran);
+  ARegistrar(
+    'inLibMsgFacturas.SErrorImporteSimplificadaAlbaran',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SErrorImporteSimplificadaAlbaran);
+  ARegistrar(
+    'inLibMsgFacturas.SErrorEfectivoFacturaAlbaran',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SErrorEfectivoFacturaAlbaran);
+  ARegistrar(
+    'inLibMsgFacturas.STipoSimplificadaAlbaran',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.STipoSimplificadaAlbaran);
+  ARegistrar(
     'inLibMsgFacturas.STipoFacturaSimplificada',
     'src/Lib/inLibMsgFacturas.pas',
     @inLibMsgFacturas.STipoFacturaSimplificada);

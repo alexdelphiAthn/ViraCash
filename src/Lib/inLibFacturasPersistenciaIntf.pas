@@ -80,6 +80,8 @@ type
     ['{2CFE5841-408C-4180-9E1F-DCC23123B7F0}']
     function TieneEfectosCobrados(
       const ASerie, ANumero: string): Boolean;
+    procedure DesvincularAlbaranes(
+      const ASerie, ANumero, AUsuario: string);
     procedure BorrarEfectos(
       const ASerie, ANumero: string);
     procedure BorrarLineas(

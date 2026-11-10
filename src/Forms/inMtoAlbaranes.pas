@@ -1743,16 +1743,12 @@ function TfrmMtoAlbaranes.SolicitarOpcionesFacturaAlbaran(
   out AOpciones: TOpcionesDocumento): Boolean;
 var
   oConfig: TConfiguracionOpcionesDocumento;
-  oTipo: TTipoOpcionesDocumento;
   ds: TDataSet;
 begin
   ds := dmmAlbaranes.unqryTablaG;
-  oTipo := Default(TTipoOpcionesDocumento);
-  oTipo.Codigo := 'FC';
-  oTipo.Nombre := SNombreFacturaVentaOpcionesDocumento;
   oConfig := Default(TConfiguracionOpcionesDocumento);
   oConfig.Titulo := STituloFacturaAlbaranOpcionesDocumento;
-  oConfig.Tipos := [oTipo];
+  oConfig.Tipos := TiposFacturaDesdeAlbaran;
   oConfig.Propuesta.Empresa := ds.FieldByName('CODIGO_EMP_ALB').AsString;
   oConfig.Propuesta.Almacen := ds.FieldByName('CODIGO_ALM_ALB').AsString;
   oConfig.Propuesta.Tipo := 'FC';
@@ -1760,7 +1756,7 @@ begin
   oConfig.Propuesta.FormaPago := ds.FieldByName('FORMA_PAGO_ALB').AsString;
   // Empresa y almacen son los del albaran; el almacen no se muestra pero
   // decide la serie propuesta.
-  oConfig.Visibles := [codEmpresa, codSerie, codNumero, codFecha,
+  oConfig.Visibles := [codEmpresa, codTipo, codSerie, codNumero, codFecha,
     codFormaPago];
   oConfig.Fijos := [codEmpresa];
   oConfig.PermiteNumeroManual := True;
@@ -1855,6 +1851,11 @@ begin
   if not dmmAlbaranes.unqryAlbaranesLineas.Active or
      (dmmAlbaranes.unqryAlbaranesLineas.RecordCount = 0) then
     ShowMessage_fza(SErrorAlbaranVentaSinLineas)
+  else if SameText(dmmAlbaranes.unqryTablaG.FieldByName(
+    'ESTADO_ALB').AsString, 'FACTURADO') or
+    SameText(dmmAlbaranes.unqryTablaG.FieldByName(
+    'ESTADO_ALB').AsString, 'CANCELADO') then
+    ShowMessage_fza(SErrorAlbaranSinPendientesFacturacion)
   else if (MessageDlg_fza(SPreguntaGenerarBorradorTodoAlbaran,
     mtConfirmation, [mbYes, mbNo], 0) = mrYes) and
     SolicitarOpcionesFacturaAlbaran(oOpciones) then

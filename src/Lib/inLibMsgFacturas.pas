@@ -563,6 +563,17 @@ resourcestring
   SPreguntaFacturarTodosAlbaranesListados =
     'No has marcado albaranes (Ctrl/Mayus+clic para elegir).' + sLineBreak +
     'Crear borrador con TODOS los listados?';
+  STipoSimplificadaAlbaran =
+    'Factura simplificada (hasta 3.000 EUR)';
+  SErrorEfectivoFacturaAlbaran =
+    'Las operaciones de 1.000 EUR o mas no admiten pago en efectivo. ' +
+    'Seleccione una forma de pago distinta.';
+  SErrorImporteSimplificadaAlbaran =
+    'La factura simplificada debe tener un importe entre 0 y %s EUR.';
+  SErrorSerieSimplificadaAlbaran =
+    'Seleccione una serie de facturas simplificadas de la empresa.';
+  SErrorAlbaranSinPendientesFacturacion =
+    'El albaran no tiene lineas pendientes o no admite facturacion.';
   SInfoBorradoresGenerados =
     'Proceso finalizado. Borradores generados: %d.';
   SErrorClienteFacturarTicketNoExiste =

@@ -199,10 +199,23 @@ type
     function ListarFormasPago: TElementosOpcionesDocumento;
   end;
 
+function TiposFacturaDesdeAlbaran: TTiposOpcionesDocumento;
+
 implementation
 
 uses
-  System.SysUtils;
+  inLibMsgFacturas, inLibMsgOpcionesDocumento, System.SysUtils;
+
+function TiposFacturaDesdeAlbaran: TTiposOpcionesDocumento;
+begin
+  SetLength(Result, 2);
+  Result[0].Codigo := 'FC';
+  Result[0].Nombre := SNombreFacturaVentaOpcionesDocumento;
+  Result[1].Codigo := 'SIMPLIFICADA';
+  Result[1].Nombre := STipoSimplificadaAlbaran;
+  Result[1].Contador := 'FC';
+  Result[1].Subtipo := 'SIMPLIFICADA';
+end;
 
 function TTipoOpcionesDocumento.TipoContador: string;
 begin

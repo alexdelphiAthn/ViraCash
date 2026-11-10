@@ -54,6 +54,8 @@ type
     { IRepositorioBorradoFactura }
     function TieneEfectosCobrados(
       const ASerie, ANumero: string): Boolean;
+    procedure DesvincularAlbaranes(
+      const ASerie, ANumero, AUsuario: string);
     procedure BorrarEfectos(
       const ASerie, ANumero: string);
     procedure BorrarLineas(
@@ -206,6 +208,70 @@ begin
     finally
       FreeAndNil(Qry);
     end;
+  end;
+end;
+
+procedure TPersistenciaFacturasUniDAC.DesvincularAlbaranes(
+  const ASerie, ANumero, AUsuario: string);
+var
+  Afectados, Qry: TUniQuery;
+begin
+  if not FConexion.InTransaction then
+    raise EInvalidOpException.Create('Falta la transaccion de borrado.');
+  Afectados := NuevaConsulta;
+  Qry := NuevaConsulta;
+  try
+    Afectados.SQL.Text :=
+      'SELECT A.SERIE_ALB, A.NUMERO_ALB FROM fza_albaranes A ' +
+      'WHERE (A.SERIE_FAC_ALB=:SERIE AND A.NUMERO_FAC_ALB=:NUMERO) ' +
+      'OR EXISTS (SELECT 1 FROM fza_albaranes_lineas L ' +
+      'WHERE L.SERIE_ALB_ALBLIN=A.SERIE_ALB ' +
+      'AND L.NUMERO_ALB_ALBLIN=A.NUMERO_ALB ' +
+      'AND L.SERIE_FAC_ALBLIN=:SERIE AND L.NUMERO_FAC_ALBLIN=:NUMERO) ' +
+      'ORDER BY A.SERIE_ALB, A.NUMERO_ALB FOR UPDATE';
+    Afectados.ParamByName('SERIE').AsString := ASerie;
+    Afectados.ParamByName('NUMERO').AsString := ANumero;
+    Afectados.Open;
+    Qry.SQL.Text :=
+      'UPDATE fza_albaranes_lineas SET ESFACTURADA_ALBLIN=''N'', ' +
+      'SERIE_FAC_ALBLIN=NULL, NUMERO_FAC_ALBLIN=NULL, ' +
+      'LINEA_FAC_ALBLIN=NULL, ' +
+      'INSTANTE_MODIF=NOW(), USUARIO_MODIF=:USUARIO ' +
+      'WHERE SERIE_FAC_ALBLIN=:SERIE AND NUMERO_FAC_ALBLIN=:NUMERO';
+    Qry.ParamByName('SERIE').AsString := ASerie;
+    Qry.ParamByName('NUMERO').AsString := ANumero;
+    Qry.ParamByName('USUARIO').AsString := AUsuario;
+    Qry.ExecSQL;
+    Qry.SQL.Text :=
+      'UPDATE fza_albaranes A SET ' +
+      'A.SERIE_FAC_ALB=CASE WHEN A.SERIE_FAC_ALB=:SERIE ' +
+      'AND A.NUMERO_FAC_ALB=:NUMERO THEN NULL ELSE A.SERIE_FAC_ALB END, ' +
+      'A.NUMERO_FAC_ALB=CASE WHEN A.SERIE_FAC_ALB IS NULL ' +
+      'THEN NULL ELSE A.NUMERO_FAC_ALB END, ' +
+      'A.ESTADO_ALB=CASE WHEN A.ESTADO_ALB=''CANCELADO'' ' +
+      'THEN A.ESTADO_ALB WHEN EXISTS (' +
+      'SELECT 1 FROM fza_albaranes_lineas L ' +
+      'WHERE L.SERIE_ALB_ALBLIN=A.SERIE_ALB ' +
+      'AND L.NUMERO_ALB_ALBLIN=A.NUMERO_ALB ' +
+      'AND L.ESFACTURADA_ALBLIN=''S'') THEN ''PARCIAL'' ' +
+      'ELSE ''ABIERTO'' END, A.INSTANTE_MODIF=NOW(), ' +
+      'A.USUARIO_MODIF=:USUARIO ' +
+      'WHERE A.SERIE_ALB=:ALB_SERIE AND A.NUMERO_ALB=:ALB_NUMERO';
+    Qry.ParamByName('SERIE').AsString := ASerie;
+    Qry.ParamByName('NUMERO').AsString := ANumero;
+    Qry.ParamByName('USUARIO').AsString := AUsuario;
+    while not Afectados.Eof do
+    begin
+      Qry.ParamByName('ALB_SERIE').AsString :=
+        Afectados.FieldByName('SERIE_ALB').AsString;
+      Qry.ParamByName('ALB_NUMERO').AsString :=
+        Afectados.FieldByName('NUMERO_ALB').AsString;
+      Qry.ExecSQL;
+      Afectados.Next;
+    end;
+  finally
+    Qry.Free;
+    Afectados.Free;
   end;
 end;
 

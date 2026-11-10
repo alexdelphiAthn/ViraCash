@@ -19,10 +19,133 @@ uses
 function CrearRepositorioFacturacionAlbaranesFechasUniDAC(
   AConexion: TUniConnection): IRepositorioFacturacionAlbaranesFechas;
 
+procedure BloquearAlbaranPendienteFacturacion(AConexion: TUniConnection;
+  const ASerie, ANumero: string);
+procedure PrepararTipoFacturaAlbaran(AConexion: TUniConnection;
+  const ASerie, ANumero, ATipo, AUsuario: string);
+procedure ValidarImporteFacturaAlbaran(AConexion: TUniConnection;
+  const ASerie, ANumero, ATipo: string);
+
 implementation
 
 uses
-  System.SysUtils;
+  System.SysUtils, Data.DB, inLibMsgFacturas;
+
+procedure BloquearAlbaranPendienteFacturacion(AConexion: TUniConnection;
+  const ASerie, ANumero: string);
+var
+  Q: TUniQuery;
+begin
+  Q := TUniQuery.Create(nil);
+  try
+    Q.Connection := AConexion;
+    Q.SQL.Text :=
+      'SELECT ESTADO_ALB FROM fza_albaranes ' +
+      'WHERE SERIE_ALB=:SERIE AND NUMERO_ALB=:NUMERO FOR UPDATE';
+    Q.ParamByName('SERIE').AsString := ASerie;
+    Q.ParamByName('NUMERO').AsString := ANumero;
+    Q.Open;
+    if Q.IsEmpty or
+       SameText(Q.FieldByName('ESTADO_ALB').AsString, 'FACTURADO') or
+       SameText(Q.FieldByName('ESTADO_ALB').AsString, 'CANCELADO') then
+      raise EInvalidOpException.Create(SErrorAlbaranSinPendientesFacturacion);
+    Q.Close;
+    Q.SQL.Text :=
+      'SELECT LINEA_ALBLIN FROM fza_albaranes_lineas ' +
+      'WHERE SERIE_ALB_ALBLIN=:SERIE AND NUMERO_ALB_ALBLIN=:NUMERO ' +
+      'AND COALESCE(ESFACTURADA_ALBLIN,''N'')<>''S'' LIMIT 1 FOR UPDATE';
+    Q.ParamByName('SERIE').AsString := ASerie;
+    Q.ParamByName('NUMERO').AsString := ANumero;
+    Q.Open;
+    if Q.IsEmpty then
+      raise EInvalidOpException.Create(SErrorAlbaranSinPendientesFacturacion);
+  finally
+    Q.Free;
+  end;
+end;
+
+function EsSimplificadaAlbaran(const ATipo: string): Boolean;
+begin
+  Result := SameText(ATipo, 'SIMPLIFICADA');
+end;
+
+procedure PrepararTipoFacturaAlbaran(AConexion: TUniConnection;
+  const ASerie, ANumero, ATipo, AUsuario: string);
+var
+  Q: TUniQuery;
+begin
+  if EsSimplificadaAlbaran(ATipo) then
+  begin
+    Q := TUniQuery.Create(nil);
+    try
+      Q.Connection := AConexion;
+      Q.SQL.Text :=
+        'SELECT F.NUMERO_FAC FROM fza_facturas F ' +
+        'WHERE F.SERIE_FAC=:SERIE AND F.NUMERO_FAC=:NUMERO ' +
+        'AND EXISTS (SELECT 1 FROM vi_empresas_series S ' +
+        'WHERE S.CODIGO_EMP_EMPSER=F.CODIGO_EMP_FAC ' +
+        'AND S.EMPSER=F.SERIE_FAC AND S.TIPO_DOC_EMPSER=''FC'' ' +
+        'AND S.SUBTIPO_EMPSER=''SIMPLIFICADA'')';
+      Q.ParamByName('SERIE').AsString := ASerie;
+      Q.ParamByName('NUMERO').AsString := ANumero;
+      Q.Open;
+      if Q.IsEmpty then
+        raise EInvalidOpException.Create(SErrorSerieSimplificadaAlbaran);
+      Q.Close;
+      Q.SQL.Text :=
+        'UPDATE fza_facturas SET TIPO_FAC=''SIMPLIFICADA'', ' +
+        'ESMUEVE_STOCK_FAC=''N'', INSTANTE_MODIF=NOW(), ' +
+        'USUARIO_MODIF=:USUARIO ' +
+        'WHERE SERIE_FAC=:SERIE AND NUMERO_FAC=:NUMERO ' +
+        'AND COALESCE(FASE_FAC,''BORRADOR'')=''BORRADOR''';
+      Q.ParamByName('SERIE').AsString := ASerie;
+      Q.ParamByName('NUMERO').AsString := ANumero;
+      Q.ParamByName('USUARIO').AsString := AUsuario;
+      Q.ExecSQL;
+    finally
+      Q.Free;
+    end;
+  end;
+end;
+
+procedure ValidarImporteFacturaAlbaran(AConexion: TUniConnection;
+  const ASerie, ANumero, ATipo: string);
+var
+  Q: TUniQuery;
+  Limite, Importe: Currency;
+begin
+  if EsSimplificadaAlbaran(ATipo) then
+  begin
+    Limite := 3000;
+    Q := TUniQuery.Create(nil);
+    try
+      Q.Connection := AConexion;
+      Q.SQL.Text :=
+        'SELECT COALESCE(F.TOTAL_BASES_FAC,0)+' +
+        'COALESCE(F.TOTAL_IMPUESTOS_FAC,0)+' +
+        'COALESCE(F.TOTAL_REN_FAC,0)+COALESCE(F.TOTAL_RER_FAC,0)+' +
+        'COALESCE(F.TOTAL_RES_FAC,0)+COALESCE(F.TOTAL_REE_FAC,0) ' +
+        'AS IMPORTE, EXISTS (SELECT 1 FROM fza_formas_pago P ' +
+        'WHERE P.CODIGO_FP_FP=F.FORMA_PAGO_FAC ' +
+        'AND P.CODIGO_FACTURAE_FP=''01'') AS EFECTIVO ' +
+        'FROM fza_facturas F ' +
+        'WHERE F.SERIE_FAC=:SERIE AND F.NUMERO_FAC=:NUMERO';
+      Q.ParamByName('SERIE').AsString := ASerie;
+      Q.ParamByName('NUMERO').AsString := ANumero;
+      Q.Open;
+      if Q.IsEmpty then
+        raise EInvalidOpException.Create(SErrorCrearBorradorFactura);
+      Importe := Q.FieldByName('IMPORTE').AsCurrency;
+      if (Importe < 0) or (Importe > Limite) then
+        raise EInvalidOpException.CreateFmt(
+          SErrorImporteSimplificadaAlbaran, [FormatFloat('0.00', Limite)]);
+      if (Importe >= 1000) and (Q.FieldByName('EFECTIVO').AsInteger <> 0) then
+        raise EInvalidOpException.Create(SErrorEfectivoFacturaAlbaran);
+    finally
+      Q.Free;
+    end;
+  end;
+end;
 
 const
   SQL_BUSCAR_ALBARANES =

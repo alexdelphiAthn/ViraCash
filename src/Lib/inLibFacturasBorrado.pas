@@ -113,6 +113,7 @@ begin
     Result := Validar(ASerie, ANumero, AFase);
     if Result.Permitido then
     begin
+      FRepositorio.DesvincularAlbaranes(ASerie, ANumero, AUsuario);
       FRepositorio.BorrarEfectos(ASerie, ANumero);
       FRepositorio.BorrarLineas(ASerie, ANumero);
       FRepositorio.BorrarRecibos(ASerie, ANumero);
