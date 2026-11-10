@@ -49,7 +49,7 @@ uses
   inLibConexionPerfilIntf,
   inLibConexionesIntf,
   inLibLogonAplicacionIntf,
-  inLibArranqueAplicacion;
+  inLibArranqueAplicacion, inLibLogIntf;
 
 type
   TfrmLogon = class(TfrmBase, IPasosPreparacionLogon)
@@ -97,7 +97,14 @@ type
     procedure btnCopiaSeguridadClick(Sender: TObject);
     procedure btnRecoverClick(Sender: TObject);
     procedure GetIniValues;
+    procedure EditorConexionMouseUp(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
   private
+    FRegistroLogArranque: IRegistroLog;
+    FEditorUltimoClic: TObject;
+    FClicsEditor: Integer;
+    FMomentoUltimoClic: UInt64;
+    FPosicionUltimoClic: TPoint;
     FProgressPanel: TPanel;
     FProgressBar: TcxProgressBar;
     FProgressLabel: TcxLabel;
@@ -189,7 +196,8 @@ type
   public
     constructor Create(
       AOwner: TComponent;
-      const AFabricaConexiones: IFabricaConexionesUniDAC); reintroduce;
+      const AFabricaConexiones: IFabricaConexionesUniDAC;
+      const ARegistroLog: IRegistroLog = nil); reintroduce;
     destructor Destroy; override;
     function EjecutarAutenticacionAutomatica: Boolean;
     function IsInitializeAuto:Boolean;
@@ -304,13 +312,16 @@ end;
 
 constructor TfrmLogon.Create(
   AOwner: TComponent;
-  const AFabricaConexiones: IFabricaConexionesUniDAC);
+  const AFabricaConexiones: IFabricaConexionesUniDAC;
+  const ARegistroLog: IRegistroLog);
 begin
   if not Assigned(AFabricaConexiones) then
     raise EArgumentNilException.Create(
       SErrorFabricaConexionesNoAsignada);
   FFabricaConexiones := AFabricaConexiones;
+  FRegistroLogArranque := ARegistroLog;
   inherited Create(AOwner);
+  FRegistroLogArranque := nil;
 end;
 
 procedure TfrmLogon.AplicarTraduccionesPantalla;
@@ -420,6 +431,8 @@ end;
 procedure TfrmLogon.FormCreate(Sender: TObject);
 begin
   inherited;
+  if Assigned(FRegistroLogArranque) then
+    AsignarRegistroLog(FRegistroLogArranque);
   if EsOrdenParametrosNuevoEquipoValido then
   begin
     CrearCasoUsoPreparacionLogon(
@@ -937,6 +950,10 @@ begin
   FResultadoLicencia.BBDD := FConexionLogon.Database;
   FResultadoLicencia.Estado := elaInvalida;
   FResultadoLicencia.Mensaje := '';
+  RegistroLog.RegistrarInformacion(Format(
+    'Licencia: INI=%s; servidor=%s; puerto=%d; base=%s',
+    [RutaIniLicenciaAplicacion, FConexionLogon.Server,
+     FConexionLogon.Port, FConexionLogon.Database]));
   if HayConmutadorRegistroLicencia then
   begin
     Result := False;
@@ -1027,6 +1044,37 @@ begin
       end;
     end;
   end;
+end;
+
+procedure TfrmLogon.EditorConexionMouseUp(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+var
+  iMomento: UInt64;
+begin
+  if Button = mbLeft then
+  begin
+    iMomento := GetTickCount64;
+    if (FEditorUltimoClic = Sender) and
+       (iMomento - FMomentoUltimoClic <= GetDoubleClickTime) and
+       (Abs(X - FPosicionUltimoClic.X) <=
+        GetSystemMetrics(SM_CXDOUBLECLK)) and
+       (Abs(Y - FPosicionUltimoClic.Y) <=
+        GetSystemMetrics(SM_CYDOUBLECLK)) then
+      Inc(FClicsEditor)
+    else
+      FClicsEditor := 1;
+    FEditorUltimoClic := Sender;
+    FMomentoUltimoClic := iMomento;
+    FPosicionUltimoClic.X := X;
+    FPosicionUltimoClic.Y := Y;
+    if FClicsEditor = 3 then
+    begin
+      TcxTextEdit(Sender).SelectAll;
+      FClicsEditor := 0;
+    end;
+  end
+  else
+    FClicsEditor := 0;
 end;
 
 procedure TfrmLogon.btnConfClick(Sender: TObject);

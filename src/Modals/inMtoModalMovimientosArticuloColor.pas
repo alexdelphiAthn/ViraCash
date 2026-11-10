@@ -14,6 +14,7 @@ interface
 
 uses
   System.Classes, System.Types, System.Generics.Collections,
+  System.Actions, Vcl.ActnList,
   Data.DB, Vcl.Controls, Vcl.Forms, Vcl.StdCtrls, Vcl.ExtCtrls,
   cxButtons, cxClasses, cxControls, cxCustomData, cxData, cxDataStorage,
   cxDBData, cxDropDownEdit, cxEdit, cxFilter, cxGraphics,
@@ -21,7 +22,8 @@ uses
   cxGridCustomView, cxGridDBTableView, cxGridLevel, cxGridTableView,
   cxGroupBox, cxLabel, cxLookAndFeelPainters, cxLookAndFeels, cxNavigator,
   cxStyles, dxDateRanges, dxScrollbarAnnotations,
-  inMtoFrmBase, inLibAtributosPaletaIntf;
+  inMtoFrmBase, inLibAtributosPaletaIntf,
+  inLibMovimientosArticuloNavegacion;
 
 type
   TfrmModalMovimientosArticuloColor = class(TfrmBase)
@@ -36,7 +38,15 @@ type
     lvlMovimientos: TcxGridLevel;
     pnlBotones: TcxGroupBox;
     btnCerrar: TcxButton;
+    btnIrDocumento: TcxButton;
+    btnIrMovimiento: TcxButton;
+    alNavegacion: TActionList;
+    actIrDocumento: TAction;
+    actIrMovimiento: TAction;
     dsMovimientos: TDataSource;
+    procedure actIrDocumentoExecute(Sender: TObject);
+    procedure actIrMovimientoExecute(Sender: TObject);
+    procedure dsMovimientosDataChange(Sender: TObject; Field: TField);
     procedure cbbColorPropertiesChange(Sender: TObject);
     procedure DibujarColorCombo(AControl: TcxCustomComboBox;
       ACanvas: TcxCanvas; AIndex: Integer; const ARect: TRect;
@@ -47,6 +57,9 @@ type
   private
     FColores: TStringList;
     FPaleta: TDictionary<string, TInfoBasico>;
+    FDestino: TDestinoMovimientoArticulo;
+    function ReferenciaSeleccionada: TReferenciaDocumentoMovimiento;
+    procedure SolicitarNavegacion(ADocumento: Boolean);
     procedure AplicarColorSeleccionado;
     procedure ActualizarMuestraColor;
     procedure AnadirColumna(const ACampo, ATitulo: string;
@@ -55,6 +68,8 @@ type
     procedure RegistrarColor(const AColor, AHex: string);
     procedure PrepararColumnas;
   public
+    function DestinoSeleccionado(ADocumento: Boolean):
+      TDestinoMovimientoArticulo;
     destructor Destroy; override;
     // ADatos pertenece al llamador y debe vivir hasta que cierre el modal.
     class procedure Ejecutar(AOwner: TComponent; ADatos: TDataSet;
@@ -64,8 +79,11 @@ type
 implementation
 
 uses
-  System.SysUtils, System.Variants, Vcl.Graphics, cxCurrencyEdit,
+  System.SysUtils, System.Variants, System.UITypes,
+  Vcl.Graphics, cxCurrencyEdit,
   inLibAtributosPaleta,
+  inLibShowMto, inLibMensajesVcl,
+  UniDataDestinoFacturaRepositorio,
   inLibMsgArticulos;
 
 {$R *.dfm}
@@ -85,14 +103,108 @@ begin
     oFormulario.lblPrecios.Caption := SAyudaPreciosMovimientosArticulo;
     oFormulario.lblColor.Caption := SColorSelectorMovimientosArticulo;
     oFormulario.btnCerrar.Caption := SCerrarMovimientosArticulo;
+    oFormulario.actIrDocumento.Caption := SIrDocumentoMovimientosArticulo;
+    oFormulario.actIrMovimiento.Caption := SIrMovimientoMovimientosArticulo;
     oFormulario.tvMovimientos.OptionsView.NoDataToDisplayInfoText :=
       SSinMovimientosArticulo;
     oFormulario.PrepararColumnas;
     oFormulario.dsMovimientos.DataSet := ADatos;
     oFormulario.CargarColores(ASkuInicial);
     oFormulario.ShowModal;
+    if oFormulario.ModalResult = mrOk then
+      ShowMto(AOwner.Owner, oFormulario.FDestino.Pantalla,
+        oFormulario.FDestino.Clave);
   finally
     FreeAndNil(oFormulario);
+  end;
+end;
+
+procedure TfrmModalMovimientosArticuloColor.actIrDocumentoExecute(
+  Sender: TObject);
+begin
+  SolicitarNavegacion(True);
+end;
+
+procedure TfrmModalMovimientosArticuloColor.actIrMovimientoExecute(
+  Sender: TObject);
+begin
+  SolicitarNavegacion(False);
+end;
+
+procedure TfrmModalMovimientosArticuloColor.dsMovimientosDataChange(
+  Sender: TObject; Field: TField);
+var
+  bHayFila: Boolean;
+begin
+  bHayFila := Assigned(dsMovimientos.DataSet) and
+    dsMovimientos.DataSet.Active and not dsMovimientos.DataSet.IsEmpty;
+  actIrMovimiento.Enabled := bHayFila;
+  actIrDocumento.Enabled := bHayFila;
+end;
+
+function TfrmModalMovimientosArticuloColor.ReferenciaSeleccionada:
+  TReferenciaDocumentoMovimiento;
+var
+  oDatos: TDataSet;
+begin
+  oDatos := dsMovimientos.DataSet;
+  Result.Tipo := Trim(oDatos.FieldByName('TIPO_DOC_MOV').AsString);
+  Result.Serie := Trim(oDatos.FieldByName('SERIE_DOC_MOV').AsString);
+  Result.Numero := Trim(oDatos.FieldByName('NUMERO_DOC_MOV').AsString);
+  Result.Empresa := Trim(oDatos.FieldByName('CODIGO_EMP_MOV').AsString);
+  Result.Almacen := Trim(oDatos.FieldByName('CODIGO_ALM_DOC_MOV').AsString);
+  if Result.Almacen = '' then
+    Result.Almacen := Trim(oDatos.FieldByName('CODIGO_ALM_MOV').AsString);
+  Result.Caja := Trim(oDatos.FieldByName('CODIGO_CAJA_DOC_MOV').AsString);
+  Result.Operacion := Trim(
+    oDatos.FieldByName('NUMERO_OPERACION_DOC_MOV').AsString);
+end;
+
+function TfrmModalMovimientosArticuloColor.DestinoSeleccionado(
+  ADocumento: Boolean): TDestinoMovimientoArticulo;
+var
+  rReferencia: TReferenciaDocumentoMovimiento;
+  oDatos: TDataSet;
+begin
+  Result := Default(TDestinoMovimientoArticulo);
+  Result.Estado := edmSinDocumento;
+  oDatos := dsMovimientos.DataSet;
+  if Assigned(oDatos) and oDatos.Active and not oDatos.IsEmpty then
+  begin
+    if ADocumento then
+    begin
+      rReferencia := ReferenciaSeleccionada;
+      Result := DestinoDocumentoMovimiento(rReferencia);
+      if (Result.Estado = edmValido) and (Result.Pantalla = 'Facturas') then
+        Result.Pantalla := ResolverCallFactura(
+          CrearResolutorDestinoFacturaUniDAC(ConexionPrincipal),
+          rReferencia.Numero, rReferencia.Serie);
+    end
+    else
+    begin
+      Result.Clave := Trim(oDatos.FieldByName('NUMERO_MOV').AsString);
+      if Result.Clave <> '' then
+      begin
+        Result.Estado := edmValido;
+        Result.Pantalla := 'MovimientosAlmacen';
+      end;
+    end;
+  end;
+end;
+
+procedure TfrmModalMovimientosArticuloColor.SolicitarNavegacion(
+  ADocumento: Boolean);
+begin
+  FDestino := DestinoSeleccionado(ADocumento);
+  case FDestino.Estado of
+    edmValido:
+      ModalResult := mrOk;
+    edmSinDocumento:
+      ShowMessage_fza(SSinDocumentoMovimientosArticulo);
+    edmCajaSinClave:
+      ShowMessage_fza(SCajaSinClaveMovimientosArticulo);
+    edmNoSoportado:
+      ShowMessage_fza(SDocumentoNoSoportadoMovimientosArticulo);
   end;
 end;
 

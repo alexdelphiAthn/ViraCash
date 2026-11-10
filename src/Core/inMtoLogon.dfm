@@ -193,24 +193,28 @@ object frmLogon: TfrmLogon
     object edtHostName: TcxTextEdit
       Left = 24
       Top = 54
+      OnMouseUp = EditorConexionMouseUp
       TabOrder = 0
       Width = 234
     end
     object edtPortBD: TcxTextEdit
       Left = 264
       Top = 54
+      OnMouseUp = EditorConexionMouseUp
       TabOrder = 1
       Width = 72
     end
     object edtNomBD: TcxTextEdit
       Left = 24
       Top = 109
+      OnMouseUp = EditorConexionMouseUp
       TabOrder = 2
       Width = 312
     end
     object edtUserBD: TcxTextEdit
       Left = 24
       Top = 164
+      OnMouseUp = EditorConexionMouseUp
       TabOrder = 3
       Width = 312
     end
@@ -219,6 +223,7 @@ object frmLogon: TfrmLogon
       Top = 219
       Properties.EchoMode = eemPassword
       Properties.PasswordChar = '*'
+      OnMouseUp = EditorConexionMouseUp
       TabOrder = 4
       Width = 312
     end

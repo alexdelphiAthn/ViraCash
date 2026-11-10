@@ -297,6 +297,7 @@ uses
   UniDataCambioArticuloColorHistorico in 'src\DataModules\UniDataCambioArticuloColorHistorico.pas',
   UniDataCambioArticuloColorHistoricoConsulta in 'src\DataModules\UniDataCambioArticuloColorHistoricoConsulta.pas',
   UniDataMovimientosArticuloColor in 'src\DataModules\UniDataMovimientosArticuloColor.pas',
+  inLibMovimientosArticuloNavegacion in 'src\Lib\inLibMovimientosArticuloNavegacion.pas',
   inMtoModalMovimientosArticuloColor in 'src\Modals\inMtoModalMovimientosArticuloColor.pas' {frmModalMovimientosArticuloColor},
   UniDataCambioArticuloColorRepositorio in 'src\DataModules\UniDataCambioArticuloColorRepositorio.pas',
   inMtoFrmBase in 'src\Core\inMtoFrmBase.pas' {frmBase},
@@ -1549,8 +1550,8 @@ begin
     TResultadoLicenciaAplicacion.CrearNoComprobada;
   frmLogon := TfrmLogon.Create(
     Application,
-    AFabricaConexiones);
-  frmLogon.AsignarRegistroLog(ARegistroLog);
+    AFabricaConexiones,
+    ARegistroLog);
   try
     if ARutaRestauracionAdministrativa <> '' then
     begin

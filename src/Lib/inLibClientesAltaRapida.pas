@@ -20,6 +20,8 @@ uses
 
 function ErrorDatosAltaRapidaCliente(
   const ADatos: TDatosAltaRapidaCliente): string;
+function ErrorNifCliente(const ANif, ACodigoPais,
+  ANombrePais: string): string;
 function PuedeAltaRapidaCliente(
   const APermisos: IPermisosAplicacion): Boolean;
 
@@ -27,6 +29,15 @@ implementation
 
 uses
   System.SysUtils, inLibDocumentoFiscal, inLibMsgVentas;
+
+function ErrorNifCliente(const ANif, ACodigoPais,
+  ANombrePais: string): string;
+begin
+  Result := '';
+  if (Trim(ANif) <> '') and PaisEsEspana(ACodigoPais, ANombrePais) and
+     not DocumentoFiscalValido(ANif) then
+    Result := MensajeDocumentoFiscalInvalido(ANif);
+end;
 
 function ErrorDatosAltaRapidaCliente(
   const ADatos: TDatosAltaRapidaCliente): string;
@@ -39,10 +50,9 @@ begin
   else if (Trim(ADatos.Pais.Codigo) = '') or
           (Trim(ADatos.Pais.Nombre) = '') then
     Result := SErrorPaisAltaRapidaCliente
-  else if ADatos.ComprobarNif and
-          PaisEsEspana(ADatos.Pais.Codigo, ADatos.Pais.Nombre) and
-          not DocumentoFiscalValido(ADatos.Nif) then
-    Result := MensajeDocumentoFiscalInvalido(ADatos.Nif);
+  else if ADatos.ComprobarNif then
+    Result := ErrorNifCliente(ADatos.Nif, ADatos.Pais.Codigo,
+      ADatos.Pais.Nombre);
 end;
 
 function PuedeAltaRapidaCliente(

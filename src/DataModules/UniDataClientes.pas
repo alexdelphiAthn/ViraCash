@@ -82,7 +82,7 @@ type
 implementation
 
 uses
-  UniDataClientesCoincidencias,
+  UniDataClientesCoincidencias, inLibClientesAltaRapida,
   UniDataValoresAutomaticosRepositorio,
   UniDataVendedoresRepositorio,
 
@@ -458,6 +458,7 @@ procedure TdmClientes.unqryTablaGBeforePost(DataSet: TDataSet);
 var
   ConsultaTarifa: TUniQuery;
   Tarifa: string;
+  sErrorNif: string;
 begin
   // FZ-ISSUE-859: validar antes de auditar o reservar la numeracion.
   // El alta completamente vacia conserva su cancelacion habitual.
@@ -467,6 +468,18 @@ begin
     DataSet.FieldByName('CODIGO_PAI_CLI').FocusControl;
     raise ECampoObligatorioBBDD.Create('CODIGO_PAI_CLI',
       SErrorPaisAltaRapidaCliente);
+  end;
+  if Trim(DataSet.FieldByName('RAZON_SOCIAL_CLI').AsString) <> '' then
+  begin
+    sErrorNif := ErrorNifCliente(
+      DataSet.FieldByName('NIF_CLI').AsString,
+      DataSet.FieldByName('CODIGO_PAI_CLI').AsString,
+      DataSet.FieldByName('NOMBRE_PAI_CLI').AsString);
+    if sErrorNif <> '' then
+    begin
+      DataSet.FieldByName('NIF_CLI').FocusControl;
+      raise EValidacionBBDD.Create(sErrorNif);
+    end;
   end;
   inherited;
   // Insert vacío (accidental): cancelar sin error

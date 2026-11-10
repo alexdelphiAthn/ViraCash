@@ -65,6 +65,22 @@
     Transparent = True
     Height = 48
     Width = 1200
+    object btnIrMovimiento: TcxButton
+      Left = 8
+      Top = 8
+      Width = 230
+      Height = 32
+      Action = actIrMovimiento
+      TabOrder = 1
+    end
+    object btnIrDocumento: TcxButton
+      Left = 246
+      Top = 8
+      Width = 270
+      Height = 32
+      Action = actIrDocumento
+      TabOrder = 2
+    end
     object btnCerrar: TcxButton
       Left = 1080
       Top = 8
@@ -98,7 +114,24 @@
     end
   end
   object dsMovimientos: TDataSource
+    OnDataChange = dsMovimientosDataChange
     Left = 496
     Top = 16
+  end
+  object alNavegacion: TActionList
+    Left = 536
+    Top = 16
+    object actIrMovimiento: TAction
+      Caption = 'Ir a movimiento (Ctrl+M)'
+      Enabled = False
+      ShortCut = 16461
+      OnExecute = actIrMovimientoExecute
+    end
+    object actIrDocumento: TAction
+      Caption = 'Ir a documento (Ctrl+Mayús+A)'
+      Enabled = False
+      ShortCut = 24641
+      OnExecute = actIrDocumentoExecute
+    end
   end
 end

@@ -435,6 +435,7 @@
         <DCCReference Include="src\DataModules\UniDataCambioArticuloColorHistorico.pas"/>
         <DCCReference Include="src\DataModules\UniDataCambioArticuloColorHistoricoConsulta.pas"/>
         <DCCReference Include="src\DataModules\UniDataMovimientosArticuloColor.pas"/>
+        <DCCReference Include="src\Lib\inLibMovimientosArticuloNavegacion.pas"/>
         <DCCReference Include="src\Modals\inMtoModalMovimientosArticuloColor.pas">
             <Form>frmModalMovimientosArticuloColor</Form>
         </DCCReference>

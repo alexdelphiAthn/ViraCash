@@ -15,8 +15,8 @@ unit inLibConfiguracionIni;
 
 interface
 
-// Perfil INI pasado como primer parámetro ('viracash_bazar.ini'); vacío si es
-// un conmutador ('/relogin') o no hay. Quien relanza ViraCash lo reenvía
+// Perfil INI posicional ('viracash_bazar.ini'), antes o después de los
+// conmutadores; vacío si no hay. Quien relanza ViraCash lo reenvía
 // para no caer en el perfil por defecto (FZ-ISSUE-329). Escrito sin
 // extensión ('viracash_bazar') es el mismo perfil: se le añade '.ini'.
 function ParametroPerfilIni(const AParametro: string): string;
@@ -80,8 +80,16 @@ begin
 end;
 
 function PerfilIniArranque: string;
+var
+  i: Integer;
 begin
-  Result := ParametroPerfilIni(ParamStr(1));
+  Result := '';
+  i := 1;
+  while (i <= ParamCount) and (Result = '') do
+  begin
+    Result := ParametroPerfilIni(ParamStr(i));
+    Inc(i);
+  end;
 end;
 
 function ConstruirRutaIni(
@@ -110,7 +118,7 @@ begin
   Result := ConstruirRutaIni(
     ADirectorio,
     ParamStr(0),
-    ParamStr(1));
+    PerfilIniArranque);
 end;
 
 procedure EscribirCadenaIni(

@@ -6479,9 +6479,25 @@ begin
     @inLibMsgArticulos.SSinMovimientosArticulo);
 end;
 
+procedure RegistrarNavegacionMovimientosArticulo(
+  const ARegistrar: TRegistrarResourcestringTraduccion);
+begin
+  RegistrarTextoArticulo(ARegistrar, 'SIrMovimientoMovimientosArticulo',
+    @inLibMsgArticulos.SIrMovimientoMovimientosArticulo);
+  RegistrarTextoArticulo(ARegistrar, 'SIrDocumentoMovimientosArticulo',
+    @inLibMsgArticulos.SIrDocumentoMovimientosArticulo);
+  RegistrarTextoArticulo(ARegistrar, 'SSinDocumentoMovimientosArticulo',
+    @inLibMsgArticulos.SSinDocumentoMovimientosArticulo);
+  RegistrarTextoArticulo(ARegistrar, 'SCajaSinClaveMovimientosArticulo',
+    @inLibMsgArticulos.SCajaSinClaveMovimientosArticulo);
+  RegistrarTextoArticulo(ARegistrar, 'SDocumentoNoSoportadoMovimientosArticulo',
+    @inLibMsgArticulos.SDocumentoNoSoportadoMovimientosArticulo);
+end;
+
 procedure EnumerarResourcestringsTraduccion(
   const ARegistrar: TRegistrarResourcestringTraduccion);
 begin
+  RegistrarNavegacionMovimientosArticulo(ARegistrar);
   RegistrarMovimientosArticuloColor(ARegistrar);
   ARegistrar('inLibMsgMeteorologiaCaja.SErrorInicioHistoricoMeteoCaja',
     'src/Lib/inLibMsgMeteorologiaCaja.pas',

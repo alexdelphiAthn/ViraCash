@@ -71,6 +71,24 @@ type
 
 function ConstruirSqlListadoVentas: string;
 const
+  SQL_MARCA_EMITIDA =
+    'CASE WHEN COALESCE(f.FASE_FAC, '''') IN (' +
+    '''BORRADOR'', ''ERROR_BORRADOR'', ''CANCELADA'', ' +
+    '''SIN_VERIF_ANULADA'', ''VERIFACTU_ANULADA'', ' +
+    '''NOVERIFACTU_ANULADA'') THEN ''N'' ' +
+    'WHEN COALESCE(f.FASE_FAC, '''') <> '''' THEN ''S'' ' +
+    'WHEN NOT EXISTS (SELECT 1 FROM fza_usuarios_perfiles PA ' +
+    'WHERE PA.USUARIO_GRUPO_USUPER = ''Todos'' ' +
+    'AND PA.KEY_USUPER = ''frmMtoAppParam'' ' +
+    'AND PA.SUBKEY_USUPER = ''appVerifactuActivo'' ' +
+    'AND LOWER(PA.VALUE_USUPER) IN (''true'', ''1'') ' +
+    'AND COALESCE((SELECT UPPER(TRIM(PM.VALUE_USUPER)) ' +
+    'FROM fza_usuarios_perfiles PM ' +
+    'WHERE PM.USUARIO_GRUPO_USUPER = ''Todos'' ' +
+    'AND PM.KEY_USUPER = ''frmMtoAppParam'' ' +
+    'AND PM.SUBKEY_USUPER = ''appVerifactuModo''), '''') ' +
+    'IN ('''', ''VERIFACTU'', ''NO_VERIFACTU'', ''SII'')) ' +
+    'THEN ''S'' ELSE ''N'' END';
   // Vendedor de la venta: en la factura simplificada cada línea lleva el
   // suyo; en la normal es el de la factura, que sus líneas heredan. La
   // cabecera cubre las líneas que no lo tengan.
@@ -134,7 +152,7 @@ begin
     Anyadir('              fl.`NUMERO_FAC_FACLIN`) AS `DOCUMENTO_FAC`,');
     Anyadir('       f.`TIPO_FAC`,');
     Anyadir('       f.`FASE_FAC`,');
-    Anyadir('       f.`ESCONSOLIDADA_FAC`,');
+    Anyadir('       ' + SQL_MARCA_EMITIDA + ' AS ESCONSOLIDADA_FAC,');
     Anyadir('       COALESCE(fl.`CODIGO_ALM_FACLIN`,');
     Anyadir('                f.`CODIGO_ALM_FAC`) AS `CODIGO_ALM_FACLIN`,');
     Anyadir('       CASE WHEN TRIM(COALESCE(f.`CODIGO_CLI_FAC`,');
@@ -264,7 +282,7 @@ begin
     Anyadir('        COALESCE(NULLIF(TRIM(fl.`CODIGO_PRV_FACLIN`), ''''),');
     Anyadir('                 ap.`CODIGO_PRV_AP`) = :pPRV)');
     Anyadir('   AND (:pCON = ''N''');
-    Anyadir('        OR COALESCE(f.`ESCONSOLIDADA_FAC`, ''N'') = ''S'')');
+    Anyadir('        OR (' + SQL_MARCA_EMITIDA + ') = ''S'')');
     Anyadir('   AND COALESCE(f.`FASE_FAC`, '''') <> ''CANCELADA''');
     Anyadir(SQLExcluirVentaRetirada(
       'f.CODIGO_EMP_FAC', 'f.SERIE_FAC', 'f.NUMERO_FAC'));

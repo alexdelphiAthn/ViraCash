@@ -17,6 +17,14 @@ interface
 
 resourcestring
   STituloMovimientosArticuloColor = 'Movimientos por artículo/color';
+  SIrMovimientoMovimientosArticulo = 'Ir a movimiento (Ctrl+M)';
+  SIrDocumentoMovimientosArticulo = 'Ir a documento (Ctrl+Mayús+A)';
+  SSinDocumentoMovimientosArticulo =
+    'El movimiento seleccionado no tiene un documento asociado.';
+  SCajaSinClaveMovimientosArticulo =
+    'El movimiento no conserva la clave completa de la operación de caja.';
+  SDocumentoNoSoportadoMovimientosArticulo =
+    'No hay una pantalla asociada al tipo de documento del movimiento.';
   SColorSelectorMovimientosArticulo = 'Color:';
   STodosColoresMovimientosArticulo = 'Todos los colores';
   SSinColorMovimientosArticulo = '(Sin color)';
