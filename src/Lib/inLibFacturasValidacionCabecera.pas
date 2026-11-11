@@ -55,6 +55,9 @@ function FechaMinimaFacturaSustitucionTicket(
 // ticket, o posterior a AFechaActual; '' si es válida.
 function ErrorFechaFacturaSustitucionTicket(
   AFecha, AFechaTicket, AFechaActual: TDateTime): string;
+// La agrupacion de tickets no puede desplazar ventas entre trimestres.
+function ErrorTrimestreFacturaTickets(
+  AFechaFactura, AFechaTicket: TDateTime): string;
 
 implementation
 
@@ -218,6 +221,20 @@ begin
       [DateToStr(Trunc(AFechaTicket))])
   else if Trunc(AFecha) > Trunc(AFechaActual) then
     Result := SErrorFechaFacturarTicketFutura;
+end;
+
+function ErrorTrimestreFacturaTickets(
+  AFechaFactura, AFechaTicket: TDateTime): string;
+var
+  wAnyoFactura, wMesFactura, wDiaFactura: Word;
+  wAnyoTicket, wMesTicket, wDiaTicket: Word;
+begin
+  Result := '';
+  DecodeDate(AFechaFactura, wAnyoFactura, wMesFactura, wDiaFactura);
+  DecodeDate(AFechaTicket, wAnyoTicket, wMesTicket, wDiaTicket);
+  if (wAnyoFactura <> wAnyoTicket) or
+     ((wMesFactura - 1) div 3 <> (wMesTicket - 1) div 3) then
+    Result := SFacturacionSimplificadosOtroTrimestre;
 end;
 
 end.

@@ -690,7 +690,10 @@ begin
       '  LEFT JOIN fza_facturas F ' +
       '    ON F.SERIE_FAC = L.SERIE_FAC_FACLIN ' +
       '   AND F.NUMERO_FAC = L.NUMERO_FAC_FACLIN ' +
-      ' WHERE L.NUMERO_FAC_FACLIN = :numero ' +
+      '  LEFT JOIN fza_articulos A ' +
+      '    ON A.CODIGO_ART_ART = L.CODIGO_ART_FACLIN ' +
+      ' WHERE COALESCE(UPPER(TRIM(A.TIPO_ART)), '''') <> ''SERVICIO'' ' +
+      '   AND L.NUMERO_FAC_FACLIN = :numero ' +
       '   AND L.SERIE_FAC_FACLIN = :serie ' +
       ' ORDER BY L.LINEA_FACLIN';
     Qry.ParamByName('numero').AsString := ANumero;

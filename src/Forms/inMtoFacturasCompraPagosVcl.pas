@@ -58,7 +58,11 @@ var
   BancoPreferido: string;
   Banco: TSeleccionBancoResult;
 begin
-  if Assigned(ACabecera) then
+  if Assigned(ACabecera) and
+     not SameText(ACabecera.FieldByName('ESTADO_FACC').AsString,
+       'CERRADA') then
+    ShowMessage_fza(SAvisoGenerarEfectosFacturaAbierta)
+  else if Assigned(ACabecera) then
   begin
     Empresa := ACabecera.FieldByName('CODIGO_EMP_FACC').AsString;
     Proveedor := ACabecera.FieldByName(
@@ -77,6 +81,8 @@ begin
       Resultado := AGenerarEfectos(Banco.CodigoEmpban, Banco.Iban);
       if Resultado > 0 then
         ShowMessage_fza(Format(SInfoEfectosPagoGenerados, [Resultado]))
+      else if Resultado = -2 then
+        ShowMessage_fza(SAvisoGenerarEfectosFacturaAbierta)
       else if Resultado = 0 then
         ShowMessage_fza(SAvisoEfectosPagoNoGenerados)
       else
@@ -100,6 +106,10 @@ begin
   begin
     NumeroEfecto := AEfectos.FieldByName('NUMERO_EFEC').AsInteger;
     Pendiente := AEfectos.FieldByName('IMPORTE_PENDIENTE_EFEC').AsFloat;
+    if Pendiente < 0 then
+      ShowMessage_fza(SAvisoPagoEfectoNegativo)
+    else
+    begin
     Formulario := TfrmModalRegistrarPago.Create(nil);
     try
       Formulario.SetDatos(
@@ -126,6 +136,7 @@ begin
       end;
     finally
       Formulario.Free;
+    end;
     end;
   end
   else

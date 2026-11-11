@@ -85,10 +85,9 @@ function PropagarVendedorATodasLasLineas(
   ALineas: TDataSet;
   const AVendedor: string): Integer;
 
-// Retira la linea rechazada por una validacion de SKU: la insercion se
-// cancela; la edición se cancela y la fila se borra. También se retira
-// si el recálculo ya la confirmó y dejó el dataset en dsBrowse.
-procedure EliminarLineaVentaPorValidacion(ALineas: TDataSet);
+// Conserva los datos rechazados para corregir articulo, talla o cantidad.
+// Si el recalculo ya publico la linea, la vuelve a dejar en edicion.
+procedure ConservarLineaVentaPorValidacion(ALineas: TDataSet);
 
 // Devolucion de venta: hay lineas en negativo que no sean operaciones
 // de deposito (esas llevan su propio circuito). El flag llega de un
@@ -456,18 +455,16 @@ begin
   end;
 end;
 
-procedure EliminarLineaVentaPorValidacion(ALineas: TDataSet);
+procedure ConservarLineaVentaPorValidacion(ALineas: TDataSet);
 begin
   if Assigned(ALineas) and ALineas.Active then
   begin
-    if ALineas.State = dsInsert then
-      ALineas.Cancel
-    else if ALineas.State in [dsEdit, dsBrowse] then
+    if ALineas.State = dsBrowse then
     begin
-      if ALineas.State = dsEdit then
-        ALineas.Cancel;
-      if not ALineas.IsEmpty then
-        ALineas.Delete;
+      if ALineas.IsEmpty then
+        ALineas.Append
+      else
+        ALineas.Edit;
     end;
   end;
 end;

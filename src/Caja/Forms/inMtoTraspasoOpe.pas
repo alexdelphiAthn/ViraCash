@@ -125,6 +125,8 @@ type
     FModoSku: TModoEntradaSku;
     FModoEntradaSel: TModoColumnasSku;
     FComboCodigos: TStringList;
+    // Taras del propio almacen ofrecidas como destino (FZ-ISSUE-923).
+    FCodigosTaras: TStringList;
     // FZ-ISSUE-215: almacenes TRANSITO del desplegable de destino, el boton
     // «Recepcionar (n)» (creado en codigo) y el destino final de la carga.
     FAlmacenesTransito: TStringList;
@@ -312,6 +314,7 @@ type
     procedure CargarCombo;
     procedure CargarAlmacenesDestino;
     function DestinoSeleccionado: string;
+    function CerrarDesplegablesAbiertos: Boolean;
     // FZ-ISSUE-325: almacén que sirve las líneas en el modo actual
     function AlmacenStockLineas: string;
     // FZ-ISSUE-325: al cambiar el almacén al que se pide, rehace Stock
@@ -599,6 +602,7 @@ begin
   ValidarDependencias;
   KeyPreview := True;
   FComboCodigos := TStringList.Create;
+  FCodigosTaras := TStringList.Create;
   FAlmacenesTransito := TStringList.Create;
   FDatos := TdmTraspaso.Create(Self, ConexionPrincipal);
   CrearBotonRecepcionarTransito;
@@ -635,6 +639,8 @@ end;
 
 procedure TfrmMtoOpeTraspaso.FormDestroy(Sender: TObject);
 begin
+  // FZ-ISSUE-924: ninguna via de cierre deja una lista desplegada.
+  CerrarDesplegablesAbiertos;
   FreeAndNil(FLectorDocumento);
   FreeAndNil(FPestanasStock);
   // Evitar callbacks de stock/foto durante el desmontaje.
@@ -651,6 +657,7 @@ begin
   FRepositorioPersistencia := nil;
   LiberarModoEntrada;
   FreeAndNil(FComboCodigos);
+  FreeAndNil(FCodigosTaras);
   FreeAndNil(FAlmacenesTransito);
   // FDatos y los componentes runtime (grid/foto/datasources) los libera el
   // Owner (Self) automáticamente.
@@ -2783,13 +2790,20 @@ begin
   begin
     AAlmacenCarga := TransitoSeleccionado;
     Result := AAlmacenCarga <> '';
-    if Result then
+    if not Result then
+      ShowMessage_fza(SErrorAlmacenTransitoNoSeleccionado)
+    else if FCodigosTaras.IndexOf(ADestino) >= 0 then
+    begin
+      // FZ-ISSUE-923: una carga en transito la recibe la caja del destino;
+      // un almacen de taras no tiene caja y solo admite traspaso directo.
+      Result := False;
+      ShowMessage_fza(SErrorNuevoDestinoTransitoNoValido);
+    end
+    else
     begin
       FDestinoFinalCarga := ADestino;
       FDatos.EstablecerDestinoFinalTransito(ADestino);
-    end
-    else
-      ShowMessage_fza(SErrorAlmacenTransitoNoSeleccionado);
+    end;
   end;
 end;
 
@@ -3831,6 +3845,17 @@ var
 begin
   // Destinos: cualquier almacen ESTANDAR activo salvo el propio.
   Almacenes := FRepositorioPersistencia.ListarAlmacenesDestino(FAlmacen);
+  // FZ-ISSUE-923: en el traspaso directo, tambien las taras del propio
+  // almacen, para apartar la mercancia defectuosa con su documento y sus
+  // movimientos. No se piden ni se reponen articulos a un almacen de taras.
+  FCodigosTaras.Clear;
+  if FModo = mtTraspaso then
+    for Almacen in FRepositorioPersistencia.ListarAlmacenesTaras(
+      FAlmacen) do
+    begin
+      FCodigosTaras.Add(Almacen.Codigo);
+      Almacenes := Almacenes + [Almacen];
+    end;
   for Almacen in Almacenes do
   begin
     FComboCodigos.Add(Almacen.Codigo);
@@ -5085,10 +5110,27 @@ begin
     VK_ESCAPE:
     begin
       Key := 0;
-      Close;
+      // FZ-ISSUE-924: el formulario ve la tecla antes que el desplegable.
+      // Cerrar con la lista abierta la dejaba dibujada sobre el Menu de
+      // Caja; el primer Esc la cierra y el segundo cierra la ventana.
+      if not CerrarDesplegablesAbiertos then
+        Close;
     end;
   end;
   inherited;
+end;
+
+function TfrmMtoOpeTraspaso.CerrarDesplegablesAbiertos: Boolean;
+var
+  oCombo: TcxComboBox;
+begin
+  Result := False;
+  for oCombo in TArray<TcxComboBox>.Create(cboDestino, cboTransito) do
+    if (oCombo <> nil) and oCombo.DroppedDown then
+    begin
+      oCombo.DroppedDown := False;
+      Result := True;
+    end;
 end;
 
 end.

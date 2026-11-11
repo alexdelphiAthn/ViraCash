@@ -79,6 +79,7 @@ begin
     AFormulario.dbcGrdDBTabPrinNUMERO_FACC_EFEC.Index;
   Result.IndiceEfecto :=
     AFormulario.dbcGrdDBTabPrinNUMERO_EFEC.Index;
+  Result.MensajeConfirmacion := SPreguntaCompensarEfectosCompra;
   Result.MensajeSeleccionInsuficiente :=
     SErrorEfectosCompraFusionInsuficientes;
 end;
@@ -130,6 +131,10 @@ begin
     q     := dmmEfectosCompra.unqryTablaG;
     iEfe  := q.FieldByName('NUMERO_EFEC').AsInteger;
     fPend := q.FieldByName('IMPORTE_PENDIENTE_EFEC').AsFloat;
+    if fPend < 0 then
+      ShowMessage_fza(SAvisoPagoEfectoNegativo)
+    else
+    begin
     frm := TfrmModalRegistrarPago.Create(nil);
     try
       frm.SetDatos(
@@ -148,6 +153,7 @@ begin
       end;
     finally
       frm.Free;
+    end;
     end;
   end
   else

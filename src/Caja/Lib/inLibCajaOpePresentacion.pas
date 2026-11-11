@@ -93,7 +93,7 @@ type
     procedure AsegurarEdicion;
     procedure CancelarLinea;
     procedure GrabarYAnadirLinea;
-    procedure DescartarLineaRechazada;
+    procedure ConservarLineaRechazada;
   end;
 
   TProcesadorTeclaLineaCaja = class(
@@ -196,9 +196,9 @@ begin
   end;
 end;
 
-procedure TLineaVentaCajaDataSet.DescartarLineaRechazada;
+procedure TLineaVentaCajaDataSet.ConservarLineaRechazada;
 begin
-  EliminarLineaVentaPorValidacion(FLineas);
+  ConservarLineaVentaPorValidacion(FLineas);
 end;
 
 constructor TProcesadorTeclaLineaCaja.Create(
@@ -342,7 +342,10 @@ function TProcesadorTeclaLineaCaja.CerrarConSkuResuelto(
 begin
   Result := True;
   if not FArticulo.SkuVendible(ASku) then
-    FLinea.DescartarLineaRechazada
+  begin
+    FLinea.ConservarLineaRechazada;
+    FArticulo.VolcarAtributosDeSku(ASku);
+  end
   else
   begin
     FArticulo.VolcarAtributosDeSku(ASku);

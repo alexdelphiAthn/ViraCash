@@ -168,6 +168,32 @@ resourcestring
     'Remesas de pago.';
   SErrorBorrarEfectoCompraPagado =
     'No se puede borrar el efecto: tiene pago o conciliación registrada.';
+  SPreguntaCompensarEfectosCompra =
+    '¿Procesar la selección? Si contiene abonos, se aplicarán a un ' +
+    'efecto pendiente del mismo proveedor. Si todos son positivos, ' +
+    'se fusionarán en un nuevo efecto.';
+  SAvisoBorrarEfectoConAbonos =
+    'No se puede borrar un efecto con abonos aplicados.';
+  SAvisoActualizarCompensacion =
+    'Actualice la base de datos con el script 926 antes de compensar ' +
+    'abonos. No se ha aplicado ningún abono.';
+  SAvisoCompensacionFacturaAbierta =
+    'Cierre las facturas y los abonos antes de aplicar sus efectos.';
+  SAvisoFusionConAbonosAplicados =
+    'Este efecto ya tiene abonos aplicados. Registre el pago restante ' +
+    'o seleccione otro abono para compensarlo, sin fusionarlo.';
+  SAvisoCompensacionUnEfecto =
+    'Seleccione un único efecto positivo y uno o varios abonos pendientes.';
+  SAvisoCompensacionFracciones =
+    'Los efectos a compensar deben tener importes en céntimos. ' +
+    'Revise los importes con más de dos decimales.';
+  SAvisoCompensacionExcesiva =
+    'Los abonos superan el pendiente del efecto. Seleccione menos abonos.';
+  SAvisoPagoEfectoNegativo =
+    'Para aplicar un abono, selecciónelo junto con un efecto positivo ' +
+    'del mismo proveedor y pulse Fusionar / compensar.';
+  SAvisoGenerarEfectosFacturaAbierta =
+    'Cierre la factura o el abono antes de generar sus efectos.';
   SErrorFusionarEfectosCompraEstado =
     'Solo se pueden fusionar efectos pendientes, sin pagos, sin remesa y ' +
     'sin conciliación previa.';
@@ -1127,6 +1153,33 @@ resourcestring
   STextoReciboAgricola =
     'Recibo de compensación del régimen especial de agricultura, ' +
     'ganadería y pesca. Firma del proveedor: ____________________';
+  // FZ-ISSUE-925: abono de una devolucion a proveedor.
+  SCaptionGenerarAbonoDevolucionCompra =
+    'Generar abono';
+  SHintGenerarAbonoDevolucionCompra =
+    'Crea el borrador de la factura rectificativa de compra (abono) de ' +
+    'esta devolución, con las líneas en negativo.';
+  STituloAbonoDevolucionCompra =
+    'Borrador de abono de la devolución';
+  SNombreAbonoDevolucionCompra =
+    'Abono de compra (borrador)';
+  SErrorAbonoDevolucionSinGrabar =
+    'Grabe la devolución antes de generar su abono.';
+  SErrorAbonoDevolucionYaGenerado =
+    'La devolución %s/%s ya tiene abono: %s/%s.';
+  SErrorAbonoDevolucionCancelada =
+    'La devolución %s/%s está cancelada.';
+  STituloFacturaOrigenAbonoCompra =
+    'Factura que se rectifica';
+  SEtiquetaFacturaOrigenAbonoCompra =
+    'Factura del proveedor que rectifica el abono (opcional):';
+  SSinFacturaOrigenAbonoCompra =
+    '(Sin factura de origen)';
+  SInfoAbonoDevolucionGenerado =
+    'Creado el borrador de abono %s/%s. Indique el número del abono del ' +
+    'proveedor antes de cerrarlo.';
+  SErrorAbonoDevolucionNoGenerado =
+    'No se ha generado el abono de la devolución.';
 
 implementation
 

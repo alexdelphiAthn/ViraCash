@@ -1,4 +1,4 @@
-﻿inherited frmMtoFacturasBase: TfrmMtoFacturasBase
+inherited frmMtoFacturasBase: TfrmMtoFacturasBase
   Margins.Left = 0
   Margins.Top = 0
   Margins.Right = 0
@@ -3149,11 +3149,14 @@
                   Caption = 'Generar movimientos de stock al consolidar'
                   DataBinding.DataField = 'ESMUEVE_STOCK_FAC'
                   DataBinding.DataSource = dsTablaG
+                  Properties.ImmediatePost = True
+                  Properties.NullStyle = nssUnchecked
                   Properties.ValueChecked = 'S'
                   Properties.ValueUnchecked = 'N'
                   Style.TransparentBorder = False
                   TabOrder = 20
                   Transparent = True
+                  OnMouseDown = MueveStockMouseDown
                 end
                 object txtINSTANTECONSOLIDACION: TcxDBTextEdit
                   Left = 325

@@ -196,10 +196,6 @@ begin
   Result.Caja := ADatos.Caja;
   Result.NumeroOperacion := ADatos.NumeroOperacion;
   Result.Fecha := ADatos.Fecha;
-  if SameText(ADatos.TipoFactura, 'RECTIFICATIVA') then
-    // Conservar NOW() del alta: la devolución ocurre al consolidar,
-    // aunque la fecha fiscal corresponda a otro día o no tenga hora.
-    Result.Fecha := 0;
   Result.Usuario := AUsuario;
 end;
 

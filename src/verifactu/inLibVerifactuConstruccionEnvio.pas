@@ -20,6 +20,11 @@ uses
   System.SysUtils;
 
 type
+  TReferenciaFacturaSustituida = record
+    NumSerieFactura: string;
+    Fecha: string;
+  end;
+
   TEntradaConstruccionRegistroAlta = record
     FormatoDocumento: string;
     Serie: string;
@@ -33,6 +38,7 @@ type
     RectNumero: string;
     RectNumSerieFactura: string;
     RectFecha: string;
+    FacturasSustituidas: TArray<TReferenciaFacturaSustituida>;
     RectBase: string;
     RectCuota: string;
     RectCuotaRe: string;
@@ -98,7 +104,7 @@ implementation
 uses
   inLibFormatoDocumento,
   System.Hash, System.StrUtils,
-  inLibMsgFacturas;
+  inLibMsgFacturas, inLibVerifactuTipos;
 
 function EscaparXml(const AValor: string): string;
 begin
@@ -176,9 +182,28 @@ end;
 
 function ConstruirFacturasSustituidas(
   const AEntrada: TEntradaConstruccionRegistroAlta): string;
+var
+  oReferencia: TReferenciaFacturaSustituida;
 begin
   Result := '';
+  if Length(AEntrada.FacturasSustituidas) > MAX_TICKETS_FACTURA_F3 then
+    raise Exception.CreateFmt(SErrorMaxTicketsFacturaF3,
+      [MAX_TICKETS_FACTURA_F3]);
   if (AEntrada.TipoFactura = 'F3') and
+     (Length(AEntrada.FacturasSustituidas) > 0) then
+  begin
+    for oReferencia in AEntrada.FacturasSustituidas do
+      Result := Result + '<sum1:IDFacturaSustituida>' +
+        '<sum1:IDEmisorFactura>' + EscaparXml(AEntrada.NifEmisor) +
+        '</sum1:IDEmisorFactura><sum1:NumSerieFactura>' +
+        EscaparXml(oReferencia.NumSerieFactura) +
+        '</sum1:NumSerieFactura><sum1:FechaExpedicionFactura>' +
+        EscaparXml(oReferencia.Fecha) +
+        '</sum1:FechaExpedicionFactura></sum1:IDFacturaSustituida>';
+    Result := '<sum1:FacturasSustituidas>' + Result +
+      '</sum1:FacturasSustituidas>';
+  end
+  else if (AEntrada.TipoFactura = 'F3') and
      (AEntrada.RectNumero <> '') then
     Result := '<sum1:FacturasSustituidas>' +
       '<sum1:IDFacturaSustituida>' +

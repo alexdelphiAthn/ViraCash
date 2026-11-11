@@ -1,4 +1,4 @@
-﻿inherited frmMtoClientes: TfrmMtoClientes
+inherited frmMtoClientes: TfrmMtoClientes
   Caption = 'Clientes'
   ClientHeight = 703
   ClientWidth = 1141
@@ -616,11 +616,14 @@
                     Caption = 'R'#233'gimen especial agricola/ganadero/pesca'
                     DataBinding.DataField = 'ESREGIMENESPECIALAGRICOLA_CLI'
                     DataBinding.DataSource = dsTablaG
+                    Properties.ImmediatePost = True
+                    Properties.NullStyle = nssUnchecked
                     Properties.ValueChecked = 'S'
                     Properties.ValueUnchecked = 'N'
                     Style.TransparentBorder = False
                     TabOrder = 0
                     Transparent = True
+                    OnMouseDown = CasillaFiscalMouseDown
                   end
                   object chkINTRACOMUNITARIO: TcxDBCheckBox
                     Left = 6
@@ -630,11 +633,14 @@
                     DataBinding.DataSource = dsTablaG
                     Properties.DisplayUnchecked = 'True'
                     Properties.DisplayGrayed = 'False'
+                    Properties.ImmediatePost = True
+                    Properties.NullStyle = nssUnchecked
                     Properties.ValueChecked = 'S'
                     Properties.ValueUnchecked = 'N'
                     Style.TransparentBorder = False
                     TabOrder = 1
                     Transparent = True
+                    OnMouseDown = CasillaFiscalMouseDown
                   end
                   object chkIVAEXENTO: TcxDBCheckBox
                     Left = 6
@@ -644,11 +650,14 @@
                     DataBinding.DataSource = dsTablaG
                     Properties.DisplayUnchecked = 'True'
                     Properties.DisplayGrayed = 'False'
+                    Properties.ImmediatePost = True
+                    Properties.NullStyle = nssUnchecked
                     Properties.ValueChecked = 'S'
                     Properties.ValueUnchecked = 'N'
                     Style.TransparentBorder = False
                     TabOrder = 2
                     Transparent = True
+                    OnMouseDown = CasillaFiscalMouseDown
                   end
                   object chkRECARGO_EQUIV: TcxDBCheckBox
                     Left = 6
@@ -658,11 +667,14 @@
                     DataBinding.DataSource = dsTablaG
                     Properties.DisplayUnchecked = 'True'
                     Properties.DisplayGrayed = 'False'
+                    Properties.ImmediatePost = True
+                    Properties.NullStyle = nssUnchecked
                     Properties.ValueChecked = 'S'
                     Properties.ValueUnchecked = 'N'
                     Style.TransparentBorder = False
                     TabOrder = 3
                     Transparent = True
+                    OnMouseDown = CasillaFiscalMouseDown
                   end
                   object chkRETENCIONES: TcxDBCheckBox
                     Left = 6
@@ -672,11 +684,14 @@
                     DataBinding.DataSource = dsTablaG
                     Properties.DisplayUnchecked = 'True'
                     Properties.DisplayGrayed = 'False'
+                    Properties.ImmediatePost = True
+                    Properties.NullStyle = nssUnchecked
                     Properties.ValueChecked = 'S'
                     Properties.ValueUnchecked = 'N'
                     Style.TransparentBorder = False
                     TabOrder = 4
                     Transparent = True
+                    OnMouseDown = CasillaFiscalMouseDown
                   end
                 end
               end
@@ -926,7 +941,8 @@
                     DataBinding.DataField = 'IBAN_CLI'
                     DataBinding.DataSource = dsTablaG
                     Properties.IgnoreMaskBlank = True
-                    Properties.EditMask = 'aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa'
+                    Properties.EditMask = ''
+                    Properties.CharCase = ecUpperCase
                     TabOrder = 14
                     Width = 151
                   end

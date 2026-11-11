@@ -563,6 +563,8 @@ type
     procedure ctbTOTAL_FACTURASIVA_LINEAPropertiesEditValueChanged(
       Sender: TObject);
     procedure DescuentosDocumentoCambiados(Sender: TObject);
+    procedure MueveStockMouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
   public
     destructor Destroy; override;
     procedure AplicarEtiquetas; override;
@@ -3153,6 +3155,14 @@ begin
       dsTablaG.DataSet);
     ActualizarBotonesSubsanacion;
   end;
+end;
+
+procedure TfrmMtoFacturasBase.MueveStockMouseDown(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+begin
+  if (Button = mbLeft) and (Sender is TcxDBCheckBox) then
+    TcxDBCheckBox(Sender).Perform(WM_MOUSEMOVE, MK_LBUTTON,
+      MakeLParam(X, Y));
 end;
 
 procedure TfrmMtoFacturasBase.DescuentosDocumentoCambiados(Sender: TObject);

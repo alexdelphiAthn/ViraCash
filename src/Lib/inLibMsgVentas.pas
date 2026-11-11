@@ -16,6 +16,10 @@ unit inLibMsgVentas;
 interface
 
 resourcestring
+  STituloDevolucionCliente = 'Registrar devolución al cliente';
+  SInfoDevolucionClienteRegistrada = 'Devolución al cliente registrada.';
+  SAvisoAbonoVentaNoEmitido =
+    'Emita la rectificativa antes de generar su efecto de devolución.';
   STituloCoincidenciasCliente = 'Posibles clientes duplicados';
   SResumenCoincidenciasCliente =
     'Se han encontrado %d fichas con el mismo NIF o contacto.';

@@ -64,7 +64,7 @@ type
     procedure AsegurarEdicion;
     procedure CancelarLinea;
     procedure GrabarYAnadirLinea;
-    procedure DescartarLineaRechazada;
+    procedure ConservarLineaRechazada;
   end;
   IArticuloLineaCaja = interface
     ['{7B2F5C61-3A44-4E0C-9F1D-5D6E8A2B44C7}']

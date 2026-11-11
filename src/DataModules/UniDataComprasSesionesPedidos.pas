@@ -88,7 +88,7 @@ begin
       '       P.DIRECCION1_PRV, P.DIRECCION2_PRV, ' +
       '       P.POBLACION_PRV, P.PROVINCIA_PRV, ' +
       '       P.CODIGO_POSTAL_PRV, ' +
-      '       S.REF_PRV_SES, NULLIF(S.FORMA_PAGO_SES, ''''), ' +
+      '       S.REF_PRV_SES, NULLIF(:forma_pago, ''''), ' +
       '       CASE WHEN :alm_ovr <> '''' THEN :alm_ovr ELSE S.CODIGO_ALM_SES ' +
       'END, ' +
       '       S.ID_PV_TEMPORADA_SES, S.FECHA_TOPE_RECEPCION_SES, ' +
@@ -108,6 +108,9 @@ begin
       ADM.unqryTablaG.FieldByName('NUMERO_SES').AsString;
     q.ParamByName('u').AsString := AUsuario;
     q.ParamByName('alm_ovr').AsString := ACodigoAlmOverride;
+    // Usar el valor aceptado en el dialogo, ya aplicado a la cabecera.
+    q.ParamByName('forma_pago').AsString := Trim(
+      ADM.unqryTablaG.FieldByName('FORMA_PAGO_SES').AsString);
     q.ExecSQL;
   finally
     FreeAndNil(q);

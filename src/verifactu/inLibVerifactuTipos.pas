@@ -15,6 +15,10 @@ unit inLibVerifactuTipos;
 
 interface
 
+const
+  // SuministroInformacion.xsd: IDFacturaSustituida maxOccurs="1000".
+  MAX_TICKETS_FACTURA_F3 = 1000;
+
 type
   TModoVerifactu = (
     mvSinVerifactu,

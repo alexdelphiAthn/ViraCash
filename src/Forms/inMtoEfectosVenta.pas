@@ -134,7 +134,9 @@ begin
     try
       frm.SetDatos(
         Format(STituloRegistrarCobroEfectoVenta, [iEfe, fPend]),
-        fPend);
+        Abs(fPend));
+      if fPend < 0 then
+        frm.Caption := STituloDevolucionCliente;
       if frm.ShowModal = mrOk then
       begin
         iRes := dmmEfectosVenta.RegistrarCobro(
@@ -142,7 +144,12 @@ begin
           q.FieldByName('NUMERO_FAC_EFV').AsString,
           iEfe, frm.Fecha, frm.Importe, frm.Tipo, frm.Referencia);
         if iRes > 0 then
-          ShowMessage_fza(SInfoEfectoConciliado)
+        begin
+          if fPend < 0 then
+            ShowMessage_fza(SInfoDevolucionClienteRegistrada)
+          else
+            ShowMessage_fza(SInfoEfectoConciliado);
+        end
         else
           ShowMessage_fza(SErrorConciliarEfecto);
       end;

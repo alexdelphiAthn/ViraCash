@@ -30,6 +30,17 @@ type
     NombrePais: string;
   end;
 
+  TTicketFacturacion = record
+    Serie: string;
+    Numero: string;
+    Fecha: TDateTime;
+    Total: Currency;
+    Detalle: string;
+    InstanteModificacion: TDateTime;
+  end;
+
+  TTicketsFacturacion = TArray<TTicketFacturacion>;
+
   TSolicitudFacturacionTicket = record
     SerieNueva: string;
     Cliente: string;
@@ -42,6 +53,10 @@ type
     NumeroManual: string;
     // Vacía = la del ticket.
     FormaPago: string;
+    // En la agrupacion se conserva la seleccion revisada por el usuario.
+    Tickets: TTicketsFacturacion;
+    FechaDesde: TDateTime;
+    FechaHasta: TDateTime;
   end;
 
   IServicioFacturacionTicket = interface
@@ -54,6 +69,10 @@ type
     function FormaPagoTicket(const ASerie, ANumero: string): string;
     // Fecha del ticket (0 si no existe).
     function FechaTicket(const ASerie, ANumero: string): TDateTime;
+    function ConsultarTicketsPeriodo(const AEmpresa, ACliente: string;
+      ADesde, AHasta: TDateTime): TTicketsFacturacion;
+    function ConsultarTicketsSinCliente(const AEmpresa: string;
+      ADesde, AHasta: TDateTime): TTicketsFacturacion;
   end;
 
 implementation

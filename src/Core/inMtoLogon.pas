@@ -189,7 +189,8 @@ type
       const AResultado: TResultadoAutenticacionLogon): Boolean;
     procedure IniciarRestauracionAdministrativa;
     procedure ReiniciarServiciosLogonTrasRestauracion;
-    function ActualizarBaseAlArrancar: Boolean;
+    function ActualizarBaseAlArrancar(
+      APorComparacion: Boolean = False): Boolean;
     function CrearCopiaPreviaAlArrancar(out ARutaCopia: string): Boolean;
   protected
     procedure CreateParams(var Params: TCreateParams); override;
@@ -2072,12 +2073,14 @@ begin
   end;
 end;
 
-function TfrmLogon.ActualizarBaseAlArrancar: Boolean;
+function TfrmLogon.ActualizarBaseAlArrancar(
+  APorComparacion: Boolean): Boolean;
 var
   oConexion: TUniConnection;
   oPerfiles: TdmPerfiles;
   oParametros: TServiciosParametrosAplicacion;
   oResultado: TResultadoActualizacion;
+  eModo: TModoPantallaActualizacion;
 begin
   Result := False;
   if FResultadoInicioSesion.Autenticado and
@@ -2098,9 +2101,12 @@ begin
             RegistroLog, IdentidadSesion.Usuario, IdentidadSesion.Grupo);
           try
             AsignarParametros(oParametros.Lectura, nil);
+            eModo := mpaComprobar;
+            if APorComparacion then
+              eModo := mpaCompararModelo;
             TfrmModalActualizacion.Ejecutar(Self, nil,
               oParametros.Lectura, oParametros.Edicion, oConexion,
-              oVersion, mpaComprobar, oResultado,
+              oVersion, eModo, oResultado,
               function(out ARutaCopia: string): Boolean
               begin
                 Result := CrearCopiaPreviaAlArrancar(ARutaCopia);
@@ -2150,6 +2156,10 @@ begin
           function: Boolean
           begin
             Result := ActualizarBaseAlArrancar;
+          end,
+          function: Boolean
+          begin
+            Result := ActualizarBaseAlArrancar(True);
           end)
       else
         Result := ValidarIntegridadEsquemaAlArrancar(

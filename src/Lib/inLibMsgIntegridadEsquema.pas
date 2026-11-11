@@ -27,8 +27,9 @@ resourcestring
   SIntegridadIntercalacionBase = 'Intercalación de la base: %s';
   SIntegridadBotonActualizar = 'Comprobar actualizaciones';
   SIntegridadActualizacionArranque =
-    'Puede pulsar Comprobar actualizaciones para actualizar antes de ' +
-    'entrar. Se solicitará una copia de seguridad. Al terminar se ' +
+    'Puede pulsar Comprobar actualizaciones o Por comparación para ' +
+    'reparar la base antes de entrar, aunque no falten scripts. ' +
+    'Se solicitará una copia de seguridad. Al terminar se ' +
     'volverá a comprobar la integridad de la base de datos.';
   SErrorActualizarIntegridadArranque =
     'No se pudo actualizar la base de datos durante el arranque: %s';
@@ -77,7 +78,7 @@ resourcestring
     'Las tablas, vistas y procedimientos coinciden con los de esta ' +
     'versión, pero el código de %d procedimientos es distinto: alguno se ' +
     'ha modificado a mano o lo ha repuesto un script antiguo. Comprobar ' +
-    'actualizaciones no lo detecta, porque busca scripts que falten: ' +
+    'actualizaciones puede no detectarlo si solo verifica la estructura: ' +
     'vuelva a aplicar los scripts que los definen o actualice por ' +
     'comparación.';
   SIntegridadEsquemaIdealDanado =

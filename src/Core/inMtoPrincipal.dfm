@@ -609,6 +609,10 @@
         ShortCut = 49222
         OnClick = MenuGenericoClick
       end
+      object mnuFacturacionSimplificados: TMenuItem
+        Caption = 'Facturaci'#243'n de borradores simplificados'
+        OnClick = mnuFacturacionSimplificadosClick
+      end
       object mnuGarantiasReclamaciones: TMenuItem
         Caption = 'Reclamaciones de garant'#237'a'
         ShortCut = 57417

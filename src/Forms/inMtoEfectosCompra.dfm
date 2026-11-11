@@ -1,4 +1,4 @@
-﻿inherited frmMtoEfectosCompra: TfrmMtoEfectosCompra
+inherited frmMtoEfectosCompra: TfrmMtoEfectosCompra
   Caption = 'Efectos de Pago a Proveedor'
   TextHeight = 19
   inherited pButtonPage: TPanel
@@ -111,7 +111,7 @@
       Top = 250
       Width = 137
       Height = 44
-      Caption = 'Fusionar efectos'
+      Caption = 'Fusionar / compensar'
       TabOrder = 3
       OnClick = btnFusionarEfectosClick
     end

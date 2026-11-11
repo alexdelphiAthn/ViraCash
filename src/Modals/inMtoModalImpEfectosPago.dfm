@@ -1,4 +1,4 @@
-﻿inherited frmPrintEfectosPago: TfrmPrintEfectosPago
+inherited frmPrintEfectosPago: TfrmPrintEfectosPago
   Caption = 'Listado de efectos de pago'
   ClientWidth = 1040
   StyleElements = [seFont, seClient, seBorder]
@@ -269,7 +269,7 @@
           Frame.Typ = [ftBottom]
           HAlign = haRight
           Memo.UTF8W = (
-            'Importe')
+            'Importe bruto')
           ParentFont = False
         end
         object MemoHPagado: TfrxMemoView
@@ -308,9 +308,27 @@
             'Pendiente')
           ParentFont = False
         end
-        object MemoHRemesa: TfrxMemoView
+        object MemoHPendienteCompensado: TfrxMemoView
           AllowVectorExport = True
           Left = 810.000000000000000000
+          Top = 2.000000000000000000
+          Width = 72.000000000000000000
+          Height = 18.000000000000000000
+          Color = 14540253
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -9
+          Font.Name = 'Arial'
+          Font.Style = [fsBold]
+          Frame.Typ = [ftBottom]
+          HAlign = haRight
+          Memo.UTF8W = (
+            'Compensado')
+          ParentFont = False
+        end
+        object MemoHRemesa: TfrxMemoView
+          AllowVectorExport = True
+          Left = 884.000000000000000000
           Top = 2.000000000000000000
           Width = 84.000000000000000000
           Height = 18.000000000000000000
@@ -327,9 +345,9 @@
         end
         object MemoHBanco: TfrxMemoView
           AllowVectorExport = True
-          Left = 896.000000000000000000
+          Left = 970.000000000000000000
           Top = 2.000000000000000000
-          Width = 150.000000000000000000
+          Width = 76.000000000000000000
           Height = 18.000000000000000000
           Color = 14540253
           Font.Charset = DEFAULT_CHARSET
@@ -653,9 +671,31 @@
             '[EfectosPago."IMPORTE_PENDIENTE_EFEC"]')
           ParentFont = False
         end
-        object MemoRemesa: TfrxMemoView
+        object MemoPendienteCompensado: TfrxMemoView
           AllowVectorExport = True
           Left = 810.000000000000000000
+          Top = 1.000000000000000000
+          Width = 72.000000000000000000
+          Height = 14.000000000000000000
+          DataSet = fxdsEfectosPago
+          DataSetName = 'EfectosPago'
+          DisplayFormat.DecimalSeparator = ','
+          DisplayFormat.FormatStr = '%2.2m'
+          DisplayFormat.Kind = fkNumeric
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -8
+          Font.Name = 'Arial'
+          Font.Style = []
+          Frame.Typ = []
+          HAlign = haRight
+          Memo.UTF8W = (
+            '[EfectosPago."IMPORTE_COMPENSADO_EFEC"]')
+          ParentFont = False
+        end
+        object MemoRemesa: TfrxMemoView
+          AllowVectorExport = True
+          Left = 884.000000000000000000
           Top = 1.000000000000000000
           Width = 84.000000000000000000
           Height = 14.000000000000000000
@@ -673,9 +713,9 @@
         end
         object MemoBanco: TfrxMemoView
           AllowVectorExport = True
-          Left = 896.000000000000000000
+          Left = 970.000000000000000000
           Top = 1.000000000000000000
-          Width = 150.000000000000000000
+          Width = 76.000000000000000000
           Height = 14.000000000000000000
           DataSet = fxdsEfectosPago
           DataSetName = 'EfectosPago'
@@ -732,7 +772,7 @@
           Frame.Typ = [ftTop]
           HAlign = haRight
           Memo.UTF8W = (
-            '[SUM(<EfectosPago."IMPORTE_EFEC">,MasterData1)]')
+            '[SUM(<EfectosPago."IMPORTE_BRUTO_EFEC">,MasterData1)]')
           ParentFont = False
         end
         object MemoTotG3Pag: TfrxMemoView
@@ -772,14 +812,34 @@
           Frame.Typ = [ftTop]
           HAlign = haRight
           Memo.UTF8W = (
-            '[SUM(<EfectosPago."IMPORTE_PENDIENTE_EFEC">,MasterData1)]')
+            '[SUM(<EfectosPago."IMPORTE_PENDIENTE_BRUTO_EFEC">,MasterData1)]')
+          ParentFont = False
+        end
+        object MemoTotG3PenCompensado: TfrxMemoView
+          AllowVectorExport = True
+          Left = 810.000000000000000000
+          Top = 2.000000000000000000
+          Width = 72.000000000000000000
+          Height = 14.000000000000000000
+          DisplayFormat.DecimalSeparator = ','
+          DisplayFormat.FormatStr = '%2.2m'
+          DisplayFormat.Kind = fkNumeric
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -9
+          Font.Name = 'Arial'
+          Font.Style = [fsBold]
+          Frame.Typ = [ftTop]
+          HAlign = haRight
+          Memo.UTF8W = (
+            '[SUM(<EfectosPago."IMPORTE_COMPENSADO_EFEC">,MasterData1)]')
           ParentFont = False
         end
         object MemoTotG3Resto: TfrxMemoView
           AllowVectorExport = True
-          Left = 808.000000000000000000
+          Left = 884.000000000000000000
           Top = 2.000000000000000000
-          Width = 238.000000000000000000
+          Width = 162.000000000000000000
           Height = 14.000000000000000000
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -832,7 +892,7 @@
           Frame.Typ = [ftTop]
           HAlign = haRight
           Memo.UTF8W = (
-            '[SUM(<EfectosPago."IMPORTE_EFEC">,MasterData1)]')
+            '[SUM(<EfectosPago."IMPORTE_BRUTO_EFEC">,MasterData1)]')
           ParentFont = False
         end
         object MemoTotG2Pag: TfrxMemoView
@@ -872,14 +932,34 @@
           Frame.Typ = [ftTop]
           HAlign = haRight
           Memo.UTF8W = (
-            '[SUM(<EfectosPago."IMPORTE_PENDIENTE_EFEC">,MasterData1)]')
+            '[SUM(<EfectosPago."IMPORTE_PENDIENTE_BRUTO_EFEC">,MasterData1)]')
+          ParentFont = False
+        end
+        object MemoTotG2PenCompensado: TfrxMemoView
+          AllowVectorExport = True
+          Left = 810.000000000000000000
+          Top = 2.000000000000000000
+          Width = 72.000000000000000000
+          Height = 14.000000000000000000
+          DisplayFormat.DecimalSeparator = ','
+          DisplayFormat.FormatStr = '%2.2m'
+          DisplayFormat.Kind = fkNumeric
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -9
+          Font.Name = 'Arial'
+          Font.Style = [fsBold]
+          Frame.Typ = [ftTop]
+          HAlign = haRight
+          Memo.UTF8W = (
+            '[SUM(<EfectosPago."IMPORTE_COMPENSADO_EFEC">,MasterData1)]')
           ParentFont = False
         end
         object MemoTotG2Resto: TfrxMemoView
           AllowVectorExport = True
-          Left = 808.000000000000000000
+          Left = 884.000000000000000000
           Top = 2.000000000000000000
-          Width = 238.000000000000000000
+          Width = 162.000000000000000000
           Height = 14.000000000000000000
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -934,7 +1014,7 @@
           Frame.Typ = [ftTop, ftBottom]
           HAlign = haRight
           Memo.UTF8W = (
-            '[SUM(<EfectosPago."IMPORTE_EFEC">,MasterData1)]')
+            '[SUM(<EfectosPago."IMPORTE_BRUTO_EFEC">,MasterData1)]')
           ParentFont = False
         end
         object MemoTotG1Pag: TfrxMemoView
@@ -976,14 +1056,35 @@
           Frame.Typ = [ftTop, ftBottom]
           HAlign = haRight
           Memo.UTF8W = (
-            '[SUM(<EfectosPago."IMPORTE_PENDIENTE_EFEC">,MasterData1)]')
+            '[SUM(<EfectosPago."IMPORTE_PENDIENTE_BRUTO_EFEC">,MasterData1)]')
+          ParentFont = False
+        end
+        object MemoTotG1PenCompensado: TfrxMemoView
+          AllowVectorExport = True
+          Left = 810.000000000000000000
+          Top = 2.000000000000000000
+          Width = 72.000000000000000000
+          Height = 16.000000000000000000
+          Color = 14540253
+          DisplayFormat.DecimalSeparator = ','
+          DisplayFormat.FormatStr = '%2.2m'
+          DisplayFormat.Kind = fkNumeric
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -10
+          Font.Name = 'Arial'
+          Font.Style = [fsBold]
+          Frame.Typ = [ftTop, ftBottom]
+          HAlign = haRight
+          Memo.UTF8W = (
+            '[SUM(<EfectosPago."IMPORTE_COMPENSADO_EFEC">,MasterData1)]')
           ParentFont = False
         end
         object MemoTotG1Resto: TfrxMemoView
           AllowVectorExport = True
-          Left = 808.000000000000000000
+          Left = 884.000000000000000000
           Top = 2.000000000000000000
-          Width = 238.000000000000000000
+          Width = 162.000000000000000000
           Height = 16.000000000000000000
           Color = 14540253
           Font.Charset = DEFAULT_CHARSET
@@ -1018,7 +1119,7 @@
           Font.Style = [fsBold, fsItalic]
           Frame.Typ = [ftTop, ftBottom]
           Memo.UTF8W = (
-            'TOTAL GENERAL')
+            'TOTAL GENERAL (abonos aparte)')
           ParentFont = False
         end
         object MemoTotalGeneralImp: TfrxMemoView
@@ -1039,7 +1140,7 @@
           Frame.Typ = [ftTop, ftBottom]
           HAlign = haRight
           Memo.UTF8W = (
-            '[SUM(<EfectosPago."IMPORTE_EFEC">,MasterData1)]')
+            '[SUM(<EfectosPago."IMPORTE_BRUTO_EFEC">,MasterData1)]')
           ParentFont = False
         end
         object MemoTotalGeneralPag: TfrxMemoView
@@ -1081,14 +1182,35 @@
           Frame.Typ = [ftTop, ftBottom]
           HAlign = haRight
           Memo.UTF8W = (
-            '[SUM(<EfectosPago."IMPORTE_PENDIENTE_EFEC">,MasterData1)]')
+            '[SUM(<EfectosPago."IMPORTE_PENDIENTE_BRUTO_EFEC">,MasterData1)]')
+          ParentFont = False
+        end
+        object MemoTotalGeneralPenCompensado: TfrxMemoView
+          AllowVectorExport = True
+          Left = 810.000000000000000000
+          Top = 3.000000000000000000
+          Width = 72.000000000000000000
+          Height = 16.000000000000000000
+          Color = 14540253
+          DisplayFormat.DecimalSeparator = ','
+          DisplayFormat.FormatStr = '%2.2m'
+          DisplayFormat.Kind = fkNumeric
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -10
+          Font.Name = 'Arial'
+          Font.Style = [fsBold]
+          Frame.Typ = [ftTop, ftBottom]
+          HAlign = haRight
+          Memo.UTF8W = (
+            '[SUM(<EfectosPago."IMPORTE_COMPENSADO_EFEC">,MasterData1)]')
           ParentFont = False
         end
         object MemoTotalGeneralResto: TfrxMemoView
           AllowVectorExport = True
-          Left = 808.000000000000000000
+          Left = 884.000000000000000000
           Top = 3.000000000000000000
-          Width = 238.000000000000000000
+          Width = 162.000000000000000000
           Height = 16.000000000000000000
           Color = 14540253
           Font.Charset = DEFAULT_CHARSET

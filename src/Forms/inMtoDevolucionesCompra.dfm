@@ -1342,6 +1342,17 @@
       TabOrder = 4
       OnClick = btnPegatinasClick
     end
+    object btnGenerarAbono: TcxButton
+      Left = 0
+      Top = 362
+      Width = 137
+      Height = 46
+      Caption = 'Generar abono'
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 5
+      OnClick = btnGenerarAbonoClick
+    end
   end
   object ActionList1: TActionList
     Left = 528

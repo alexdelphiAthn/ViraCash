@@ -320,15 +320,15 @@ begin
       'CODIGO_UNIDAD_FACLIN').AsString;
     bEsSkuCompleto := (Trim(sSkuDetectado) <> '') and
       (sSkuDetectado <> sCodigoArticulo);
+    AContexto.ActualizarColumnas(sCodigoArticulo);
+    iNumeroAtributos := AContexto.NumeroAtributos();
+    if bEsSkuCompleto and (iNumeroAtributos > 0) then
+      AContexto.RellenarAtributos(sSkuDetectado);
+    AContexto.Rejilla.SetFocus;
     if bEsSkuCompleto and not AContexto.ValidarSku(sSkuDetectado) then
-      EliminarLineaVentaPorValidacion(AContexto.Lineas)
+      ConservarLineaVentaPorValidacion(AContexto.Lineas)
     else
     begin
-      AContexto.ActualizarColumnas(sCodigoArticulo);
-      iNumeroAtributos := AContexto.NumeroAtributos();
-      if bEsSkuCompleto and (iNumeroAtributos > 0) then
-        AContexto.RellenarAtributos(sSkuDetectado);
-      AContexto.Rejilla.SetFocus;
       PrepararSiguienteEntrada(
         AContexto,
         iNumeroAtributos,

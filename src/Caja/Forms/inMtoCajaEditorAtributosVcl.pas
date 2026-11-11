@@ -570,18 +570,7 @@ begin
       end;
       if Continuar and not FContexto.ValidarSku(SkuNuevo) then
       begin
-        if FContexto.DatosCaja.cdsLineas.State in [dsEdit, dsInsert] then
-          FContexto.DatosCaja.cdsLineas.Cancel;
-        if not FContexto.DatosCaja.cdsLineas.IsEmpty and
-           (FContexto.DatosCaja.cdsLineas.FieldByName(
-             'CODIGO_UNIDAD_FACLIN').AsString = SkuNuevo) then
-          FContexto.DatosCaja.cdsLineas.Delete;
-        FContexto.DatosCaja.cdsLineas.EnableControls;
-        FContexto.DatosCaja.cdsLineas.Append;
-        FContexto.VistaLineas.Controller.FocusedColumn :=
-          FContexto.ColumnaArticulo;
-        FContexto.VistaLineas.Controller.
-          EditingController.ShowEdit;
+        ConservarLineaVentaPorValidacion(FContexto.DatosCaja.cdsLineas);
         Continuar := False;
       end;
       if Continuar then

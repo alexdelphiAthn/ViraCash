@@ -242,6 +242,8 @@ type
     constructor Create(AConexion: TUniConnection);
     function ListarAlmacenesDestino(
       const AAlmacenPropio: string): TAlmacenesDestinoTraspaso;
+    function ListarAlmacenesTaras(
+      const AAlmacenPropio: string): TAlmacenesDestinoTraspaso;
     function ListarVentasReposicion(
       const AFiltro: TFiltroVentasReposicion): TLineasVentaReposicion;
   end;
@@ -330,6 +332,44 @@ begin
       '   AND TIPO_USO_ALM = ''ESTANDAR'' ' +
       '   AND CODIGO_ALM_ALM <> :PROPIO ' +
       ' ORDER BY ORDEN_ALM, CODIGO_ALM_ALM';
+    oConsulta.ParamByName('PROPIO').AsString := AAlmacenPropio;
+    oConsulta.Open;
+    SetLength(Result, oConsulta.RecordCount);
+    iAlmacen := 0;
+    while not oConsulta.Eof do
+    begin
+      Result[iAlmacen].Codigo :=
+        oConsulta.FieldByName('CODIGO_ALM_ALM').AsString;
+      Result[iAlmacen].Nombre :=
+        oConsulta.FieldByName('NOMBRE_ALM_ALM').AsString;
+      Inc(iAlmacen);
+      oConsulta.Next;
+    end;
+  finally
+    FreeAndNil(oConsulta);
+  end;
+end;
+
+function TRepositorioTraspasoOpeUniDAC.ListarAlmacenesTaras(
+  const AAlmacenPropio: string): TAlmacenesDestinoTraspaso;
+var
+  oConsulta: TUniQuery;
+  iAlmacen: Integer;
+begin
+  SetLength(Result, 0);
+  oConsulta := TUniQuery.Create(nil);
+  try
+    oConsulta.Connection := FConexion;
+    oConsulta.SQL.Text :=
+      'SELECT T.CODIGO_ALM_ALM, T.NOMBRE_ALM_ALM ' +
+      '  FROM fza_almacenes T ' +
+      '  JOIN fza_almacenes P ' +
+      '    ON P.CODIGO_ALM_ALM = T.CODIGO_PADRE_ALM ' +
+      ' WHERE T.ESACTIVO_ALM = ''S'' ' +
+      '   AND T.TIPO_USO_ALM = ''TARAS'' ' +
+      '   AND T.CODIGO_PADRE_ALM = :PROPIO ' +
+      '   AND T.CODIGO_EMP_ALM = P.CODIGO_EMP_ALM ' +
+      ' ORDER BY T.ORDEN_ALM, T.CODIGO_ALM_ALM';
     oConsulta.ParamByName('PROPIO').AsString := AAlmacenPropio;
     oConsulta.Open;
     SetLength(Result, oConsulta.RecordCount);

@@ -90,7 +90,9 @@ end;
 class procedure TCoordinadorCobrosFacturaVcl.MostrarResultadoGeneracion(
   AResultado: Integer);
 begin
-  if AResultado > 0 then
+  if AResultado = -2 then
+    ShowMessage_fza(SAvisoAbonoVentaNoEmitido)
+  else if AResultado > 0 then
     ShowMessage_fza(Format(SInfoEfectosCobroGenerados, [AResultado]))
   else if AResultado = 0 then
     ShowMessage_fza(SAvisoEfectosCobroNoGenerados)
@@ -205,7 +207,7 @@ begin
         'NUMERO_EFV').AsInteger;
       fPendiente := AContexto.Efectos.FieldByName(
         'IMPORTE_PENDIENTE_EFV').AsFloat;
-      if fPendiente <= 0.0001 then
+      if Abs(fPendiente) <= 0.0001 then
       begin
         ShowMessage_fza(SErrorEfectoSinImportePendiente);
       end
@@ -222,7 +224,9 @@ begin
                  AContexto.Efectos.FieldByName(
                    'FECHA_VENCIMIENTO_EFV').AsDateTime),
                fPendiente]),
-            fPendiente);
+            Abs(fPendiente));
+          if fPendiente < 0 then
+            Formulario.Caption := STituloDevolucionCliente;
           if Formulario.ShowModal = mrOk then
           begin
             Solicitud := Default(TSolicitudRegistroCobroFactura);
@@ -237,7 +241,12 @@ begin
             Solicitud.Tipo := Formulario.Tipo;
             Solicitud.Referencia := Formulario.Referencia;
             if AContexto.Aplicacion.Registrar(Solicitud) > 0 then
-              ShowMessage_fza(SInfoEfectoConciliado)
+            begin
+              if fPendiente < 0 then
+                ShowMessage_fza(SInfoDevolucionClienteRegistrada)
+              else
+                ShowMessage_fza(SInfoEfectoConciliado);
+            end
             else
               ShowMessage_fza(SErrorConciliarEfecto);
             if Assigned(AContexto.RefrescarEfectos) then

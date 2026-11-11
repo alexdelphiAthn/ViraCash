@@ -52,7 +52,8 @@ procedure EjecutarContadorDocumentoUniDAC(AProcedimiento: TUniStoredProc;
 implementation
 
 uses
-  inLibErroresBBDD,
+  UniDataOpcionesDocumentoRepositorio, inLibOpcionesDocumento,
+  inLibOpcionesDocumentoIntf, inLibErroresBBDD,
   System.Generics.Collections, inLibDocumento, inLibDocumentoIntf,
   inLibValoresAutomaticos, inLibMsgVentas;
 
@@ -367,10 +368,18 @@ function TRepositorioValoresAutomaticosUniDAC.ObtenerSerieDefecto(
 var
   oConsulta: TUniQuery;
   sFiltroAlmacen: string;
+  oLector: ILectorOpcionesDocumento;
 begin
   Result := '';
   ComprobarConexion;
-  if Trim(AAlmacen) <> '' then
+  if SameText(ATipoDocumento, 'AB') then
+  begin
+    oLector := CrearLectorOpcionesDocumentoUniDAC(FConexion);
+    Result := ProponerSerieOpcionesDocumento(
+      oLector.ListarSeries(AEmpresa, ATipoDocumento, ''),
+      oLector.ObtenerSerieAlmacen(AEmpresa, ATipoDocumento, '', AAlmacen));
+  end;
+  if (Result = '') and (Trim(AAlmacen) <> '') then
   begin
     Result := ObtenerSeriePropiaAlmacen(
       AEmpresa, ATipoDocumento, AAlmacen);
@@ -422,6 +431,11 @@ var
 begin
   ComprobarConexion;
   AElementos.Clear;
+  if SameText(ATipoDocumento, 'AB') then
+    AElementos.AddStrings(CrearLectorOpcionesDocumentoUniDAC(
+      FConexion).ListarSeries(AEmpresa, ATipoDocumento, ''))
+  else
+  begin
   oConsulta := TUniQuery.Create(nil);
   try
     try
@@ -453,6 +467,7 @@ begin
     end;
   finally
     FreeAndNil(oConsulta);
+  end;
   end;
 end;
 

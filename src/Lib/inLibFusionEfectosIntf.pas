@@ -15,7 +15,10 @@ unit inLibFusionEfectosIntf;
 
 interface
 
+uses System.SysUtils;
+
 type
+  EValidacionFusionEfectos = class(EArgumentException);
   TClaveFusionEfecto = record
     SerieFactura: string;
     NumeroFactura: string;

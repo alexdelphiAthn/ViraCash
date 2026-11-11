@@ -94,6 +94,8 @@ type
       const AUsuario: string
     ): TResultadoFacturacionAlbaranCompra;
     function BuscarFormaPagoProveedor(const AProveedor: string): string;
+    procedure ProponerReferenciaProveedor(
+      const ASerie, ANumero, AUsuario: string);
   end;
 
 constructor TConsultaFacturacionAlbaranesCompraUniDAC.Create(
@@ -346,6 +348,38 @@ begin
       Result := Consulta.FieldByName('CODIGO_FP_PRV').AsString;
   finally
     FreeAndNil(Consulta);
+  end;
+end;
+
+procedure TRepositorioFacturacionAlbaranesCompraUniDAC.
+  ProponerReferenciaProveedor(const ASerie, ANumero, AUsuario: string);
+var
+  q: TUniQuery;
+begin
+  q := NuevaConsulta;
+  try
+    q.SQL.Text :=
+      'UPDATE fza_facturas_compra F JOIN (' +
+      'SELECT SERIE_FAC_ALBC, NUMERO_FAC_ALBC, ' +
+      'CASE WHEN COUNT(DISTINCT TRIM(REF_PROVEEDOR_ALBC)) = 1 ' +
+      'AND COUNT(NULLIF(TRIM(REF_PROVEEDOR_ALBC), '''')) = COUNT(*) ' +
+      'THEN MIN(TRIM(REF_PROVEEDOR_ALBC)) ELSE NULL END REFERENCIA ' +
+      'FROM fza_albaranes_compra ' +
+      'WHERE SERIE_FAC_ALBC = :SERIE AND NUMERO_FAC_ALBC = :NUMERO ' +
+      'GROUP BY SERIE_FAC_ALBC, NUMERO_FAC_ALBC) A ' +
+      'ON A.SERIE_FAC_ALBC = F.SERIE_FACC ' +
+      'AND A.NUMERO_FAC_ALBC = F.NUMERO_FACC ' +
+      'SET F.REF_PROVEEDOR_FACC = A.REFERENCIA, ' +
+      'F.INSTANTE_MODIF = NOW(), F.USUARIO_MODIF = :USUARIO ' +
+      'WHERE F.SERIE_FACC = :SERIE AND F.NUMERO_FACC = :NUMERO ' +
+      'AND NULLIF(TRIM(F.REF_PROVEEDOR_FACC), '''') IS NULL ' +
+      'AND COALESCE(F.ESTADO_FACC, ''ABIERTA'') = ''ABIERTA''';
+    q.ParamByName('SERIE').AsString := ASerie;
+    q.ParamByName('NUMERO').AsString := ANumero;
+    q.ParamByName('USUARIO').AsString := AUsuario;
+    q.ExecSQL;
+  finally
+    q.Free;
   end;
 end;
 

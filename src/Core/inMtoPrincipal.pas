@@ -107,6 +107,7 @@ type
     Albaranes1: TMenuItem;
     Devoluciones1: TMenuItem;
     FacturarAlbaranes1: TMenuItem;
+    mnuFacturacionSimplificados: TMenuItem;
     Facturas1: TMenuItem;
     mnuComprasDirectasTerceros: TMenuItem;
     EfectosCompra1: TMenuItem;
@@ -274,6 +275,7 @@ type
     procedure CargarEfectosVenta1Click(Sender: TObject);
     procedure Sesiones1Click(Sender: TObject);
     procedure FacturarAlbaranes1Click(Sender: TObject);
+    procedure mnuFacturacionSimplificadosClick(Sender: TObject);
     procedure CargarEfectos1Click(Sender: TObject);
     procedure Formasdepago2Click(Sender: TObject);
     procedure mnuTarifasClick(Sender: TObject);
@@ -2681,6 +2683,15 @@ begin
   if FacturarAlbaranes1.Visible and
      FacturarAlbaranesCompra(Serie, Numero) then
     ShowMto(Self, 'FacturasCompra', Serie + ',' + Numero);
+end;
+
+procedure TfrmMtoPrincipal.mnuFacturacionSimplificadosClick(Sender: TObject);
+var
+  sSerie, sNumero: string;
+begin
+  if PuedeAbrirMenu(mnuFacturacionSimplificados) and
+     FacturarSimplificadosPeriodo(Self, sSerie, sNumero) then
+    ShowMto(Self, 'Facturas', sNumero + ',' + sSerie);
 end;
 
 procedure TfrmMtoPrincipal.CargarEfectos1Click(Sender: TObject);

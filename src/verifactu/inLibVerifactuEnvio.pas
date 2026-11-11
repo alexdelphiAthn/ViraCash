@@ -188,6 +188,7 @@ type
     // Factura original rectificada (solo en R1/R5)
     TipoRectificativa: string;  // I = diferencias; S = sustitutiva
     RectSerie:       string;
+    FacturasSustituidas: TArray<TReferenciaFacturaSustituida>;
     RectNumero:      string;
     RectFecha:       string;  // dd-mm-yyyy
     RectBase:        Currency;
@@ -418,6 +419,7 @@ begin
   ADatos.TipoFacturaRectificativa := '';
   ADatos.TipoRectificativa := '';
   ADatos.RectSerie := '';
+  ADatos.FacturasSustituidas := nil;
   ADatos.RectNumero := '';
   ADatos.RectFecha := '';
   ADatos.RectBase := 0;
@@ -672,6 +674,39 @@ begin
   end;
 end;
 
+procedure CargarFacturasSustituidas(
+  AQry: TUniQuery; const ASerie, ANumero: string;
+  var ADatos: TDatosFacturaRegistro);
+var
+  oReferencia: TReferenciaFacturaSustituida;
+begin
+  ADatos.FacturasSustituidas := nil;
+  AQry.Close;
+  AQry.SQL.Text := 'SELECT f.SERIE_FAC, f.NUMERO_FAC, f.FECHA_FAC ' +
+    'FROM fza_facturas_relaciones r JOIN fza_facturas f ' +
+    'ON f.SERIE_FAC = r.SERIE_FAC_ORIGEN_FACREL ' +
+    'AND f.NUMERO_FAC = r.NUMERO_FAC_ORIGEN_FACREL ' +
+    'WHERE r.SERIE_FAC_FACREL = :SERIE ' +
+    'AND r.NUMERO_FAC_FACREL = :NUMERO ' +
+    'AND r.TIPO_RELACION_FACREL = ''SUSTITUYE'' ' +
+    'ORDER BY f.FECHA_FAC, f.SERIE_FAC, f.NUMERO_FAC';
+  AQry.ParamByName('SERIE').AsString := ASerie;
+  AQry.ParamByName('NUMERO').AsString := ANumero;
+  AQry.Open;
+  while not AQry.Eof do
+  begin
+    oReferencia.NumSerieFactura := ComponerNumSerieFactura(
+      ADatos.FormatoDocumento,
+      AQry.FieldByName('SERIE_FAC').AsString,
+      AQry.FieldByName('NUMERO_FAC').AsString);
+    oReferencia.Fecha := FormatDateTime('dd-mm-yyyy',
+      AQry.FieldByName('FECHA_FAC').AsDateTime);
+    ADatos.FacturasSustituidas :=
+      ADatos.FacturasSustituidas + [oReferencia];
+    AQry.Next;
+  end;
+end;
+
 procedure CargarAntecesora(
   AQry: TUniQuery;
   const ASerie, ANumero, ATipoFactura: string;
@@ -689,6 +724,8 @@ begin
     end;
     if not AQry.IsEmpty then
       AplicarAntecesora(AQry, ATipoFactura, ADatos);
+    if ADatos.TipoFactura = 'F3' then
+      CargarFacturasSustituidas(AQry, ASerie, ANumero, ADatos);
   end;
 end;
 
@@ -900,6 +937,7 @@ begin
   oEntrada.RectNumSerieFactura := ComponerNumSerieFactura(
     ADatos.FormatoDocumento, ADatos.RectSerie, ADatos.RectNumero);
   oEntrada.RectFecha := ADatos.RectFecha;
+  oEntrada.FacturasSustituidas := ADatos.FacturasSustituidas;
   oEntrada.RectBase := FormatearImporteVerifactu(ADatos.RectBase);
   oEntrada.RectCuota := FormatearImporteVerifactu(ADatos.RectCuota);
   oEntrada.RectCuotaRe := FormatearImporteVerifactu(ADatos.RectCuotaRe);

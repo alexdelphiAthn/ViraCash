@@ -441,6 +441,8 @@ type
     procedure cxButton4Click(Sender: TObject);
     // Carga perezosa de sub-pestañas detail (Historia, Prestamos).
     procedure PcPestanasChange(Sender: TObject);
+    procedure CasillaFiscalMouseDown(Sender: TObject;
+      Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure DesplazarFichaMouseWheel(Sender: TObject; Shift: TShiftState;
       WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
   private
@@ -882,6 +884,16 @@ begin
       cUrlVerificacionNifAeat);
     FVerificacionNif := InstalarVerificacionNifVcl(Self, Contexto);
   end;
+end;
+
+procedure TfrmMtoClientes.CasillaFiscalMouseDown(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+begin
+  // Al tomar foco puede perderse el seguimiento del ratón. Reponerlo
+  // permite que DevExpress procese también este primer clic (922).
+  if (Button = mbLeft) and (Sender is TcxDBCheckBox) then
+    TcxDBCheckBox(Sender).Perform(WM_MOUSEMOVE, MK_LBUTTON,
+      MakeLParam(X, Y));
 end;
 
 procedure TfrmMtoClientes.PcPestanasChange(Sender: TObject);

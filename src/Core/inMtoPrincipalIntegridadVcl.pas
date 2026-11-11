@@ -32,7 +32,8 @@ function ValidarIntegridadEsquemaAlArrancar(
   AOwner: TForm;
   const AFabrica: IFabricaConexionesUniDAC;
   const ARegistroLog: IRegistroLog;
-  const AActualizar: TFunc<Boolean> = nil): Boolean;
+  const AActualizar: TFunc<Boolean> = nil;
+  const AComparar: TFunc<Boolean> = nil): Boolean;
 
 implementation
 
@@ -50,6 +51,7 @@ uses
   inLibHuellaEsquemaRecurso,
   inLibInformeIntegridadEsquema,
   inLibMsgIntegridadEsquema,
+  inLibMsgIntegraciones,
   UniDataHuellaEsquema,
   inMtoModalMensajeTexto;
 
@@ -92,7 +94,8 @@ function ValidarIntegridadEsquemaAlArrancar(
   AOwner: TForm;
   const AFabrica: IFabricaConexionesUniDAC;
   const ARegistroLog: IRegistroLog;
-  const AActualizar: TFunc<Boolean>): Boolean;
+  const AActualizar: TFunc<Boolean>;
+  const AComparar: TFunc<Boolean>): Boolean;
 var
   oConexion: TUniConnection;
   oIdeal: TEsquemaIdeal;
@@ -100,11 +103,14 @@ var
   iMilisegundos: Int64;
   sDetalle: string;
   bPuedeActualizar: Boolean;
+  bPuedeComparar: Boolean;
+  iAccion: TModalResult;
   oDialogo: TfrmModalMensajeTexto;
   oBoton: TcxButton;
 begin
   Result := False;
   bPuedeActualizar := False;
+  bPuedeComparar := False;
   try
     oIdeal := CargarEsquemaIdeal;
     if not Assigned(oIdeal) then
@@ -133,12 +139,15 @@ begin
       Result := IntegridadPermiteArranque(oComprobacion);
       bPuedeActualizar := Assigned(AActualizar) and
         oComprobacion.EsquemaIdealCoherente;
+      bPuedeComparar := Assigned(AComparar) and
+        oComprobacion.EsquemaIdealCoherente;
     end;
   except
     on E: Exception do
     begin
       Result := False;
       bPuedeActualizar := False;
+      bPuedeComparar := False;
       sDetalle := Format(SErrorComprobarIntegridadArranque,
         [E.ClassName + ': ' + E.Message]);
     end;
@@ -147,7 +156,7 @@ begin
   begin
     sDetalle := SIntegridadArranqueBloqueado + sLineBreak +
       sLineBreak + sDetalle;
-    if bPuedeActualizar then
+    if bPuedeActualizar or bPuedeComparar then
       sDetalle := SIntegridadActualizacionArranque + sLineBreak +
         sLineBreak + sDetalle;
     ARegistroLog.RegistrarError(sDetalle);
@@ -155,6 +164,9 @@ begin
     try
       oDialogo.Caption := STituloComprobarIntegridad;
       oDialogo.mTexto.Text := sDetalle;
+      if bPuedeComparar then
+        oDialogo.ClientWidth := 780 * oDialogo.CurrentPPI div 96;
+      oDialogo.Constraints.MinWidth := oDialogo.Width;
       if bPuedeActualizar then
       begin
         oDialogo.Constraints.MinWidth := oDialogo.Width;
@@ -166,16 +178,34 @@ begin
         oBoton.Caption := SIntegridadBotonActualizar;
         oBoton.ModalResult := mrYes;
       end;
-      bPuedeActualizar := (oDialogo.ShowModal = mrYes) and
-        bPuedeActualizar;
+      if bPuedeComparar then
+      begin
+        oBoton := TcxButton.Create(oDialogo);
+        oBoton.Parent := oDialogo.pnlBotones;
+        if bPuedeActualizar then
+          oBoton.Left := 264 * oDialogo.CurrentPPI div 96
+        else
+          oBoton.Left := 12 * oDialogo.CurrentPPI div 96;
+        oBoton.SetBounds(oBoton.Left, oDialogo.btnCerrar.Top,
+          156 * oDialogo.CurrentPPI div 96, oDialogo.btnCerrar.Height);
+        oBoton.Caption := SBotonActualizarPorComparacion;
+        oBoton.ModalResult := mrRetry;
+      end;
+      iAccion := oDialogo.ShowModal;
     finally
       oDialogo.Free;
     end;
-    if bPuedeActualizar then
+    if (iAccion = mrYes) and bPuedeActualizar then
     begin
       if AActualizar() then
-        // Una sola reparación por intento. La segunda comprobación
-        // nunca vuelve a ofrecer el actualizador ni omite la validación.
+        // Si los scripts no bastan, queda disponible la comparación.
+        Result := ValidarIntegridadEsquemaAlArrancar(
+          AOwner, AFabrica, ARegistroLog, nil, AComparar);
+    end
+    else if (iAccion = mrRetry) and bPuedeComparar then
+    begin
+      if AComparar() then
+        // Toda reparación se valida; no se repite automáticamente.
         Result := ValidarIntegridadEsquemaAlArrancar(
           AOwner, AFabrica, ARegistroLog);
     end;

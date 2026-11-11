@@ -206,6 +206,8 @@ type
   private
     // Conexion por la que salen la transaccion, los bloqueos y las
     // lecturas de la operacion: la misma que usan los datasets.
+    procedure CompletarDatosBancariosEfectos(
+      const ASerie, ANumero, ACodEmpban, AIbanEmp: string);
     function ConexionEscritura: TUniConnection;
   end;
 
@@ -431,12 +433,51 @@ begin
       'CODIGO_EMP_FACC', 'CODIGO_ALM_FACC');
 end;
 
+procedure TdmFacturasCompra.CompletarDatosBancariosEfectos(
+  const ASerie, ANumero, ACodEmpban, AIbanEmp: string);
+var
+  qStamp: TUniQuery;
+begin
+  qStamp := TUniQuery.Create(nil);
+  try
+    qStamp.Connection := ConexionEscritura;
+    qStamp.SQL.Text :=
+      'UPDATE fza_efectos_compra E LEFT JOIN fza_proveedores P ' +
+      'ON P.CODIGO_PRV_PRV = E.CODIGO_PRV_EFEC ' +
+      'SET E.CODIGO_EMPBAN_EFEC = IF(:banco <> '''', :banco, ' +
+      'E.CODIGO_EMPBAN_EFEC), ' +
+      'E.IBAN_EMP_EFEC = IF(:banco <> '''', :iban, E.IBAN_EMP_EFEC), ' +
+      'E.IBAN_EFEC = COALESCE(NULLIF(TRIM(E.IBAN_EFEC), ''''), ' +
+      'NULLIF(UPPER(REPLACE(TRIM(P.IBAN_PRV), '' '', '''')), '''')) ' +
+      'WHERE E.SERIE_FACC_EFEC = :serie ' +
+      'AND E.NUMERO_FACC_EFEC = :numero';
+    qStamp.ParamByName('banco').AsString  := ACodEmpban;
+    qStamp.ParamByName('iban').AsString   := AIbanEmp;
+    qStamp.ParamByName('serie').AsString  := ASerie;
+    qStamp.ParamByName('numero').AsString := ANumero;
+    qStamp.ExecSQL;
+    qStamp.SQL.Text :=
+      'UPDATE fza_efectos_compra SET ' +
+      'ENTIDAD_EFEC = SUBSTRING(IBAN_EFEC, 5, 4), ' +
+      'OFICINA_EFEC = SUBSTRING(IBAN_EFEC, 9, 4), ' +
+      'DIGITO_CONTROL_EFEC = SUBSTRING(IBAN_EFEC, 13, 2), ' +
+      'CUENTA_EFEC = SUBSTRING(IBAN_EFEC, 15, 10) ' +
+      'WHERE SERIE_FACC_EFEC = :serie AND NUMERO_FACC_EFEC = :numero ' +
+      'AND IBAN_EFEC REGEXP ''^ES[0-9]{22}$''';
+    qStamp.ParamByName('serie').AsString := ASerie;
+    qStamp.ParamByName('numero').AsString := ANumero;
+    qStamp.ExecSQL;
+  finally
+    FreeAndNil(qStamp);
+  end;
+end;
+
 function TdmFacturasCompra.GenerarEfectos(const ACodEmpban: string = '';
                                           const AIbanEmp: string = ''): Integer;
 var
   sp: TUniStoredProc;
-  qStamp: TUniQuery;
   sSerie, sNumero: string;
+  bTransaccionPropia: Boolean;
 begin
   Result := -1;
   if (unqryTablaG <> nil) and unqryTablaG.Active and
@@ -450,43 +491,35 @@ begin
     end;
     sSerie  := unqryTablaG.FieldByName('SERIE_FACC').AsString;
     sNumero := unqryTablaG.FieldByName('NUMERO_FACC').AsString;
-    sp := TUniStoredProc.Create(nil);
+    bTransaccionPropia := not ConexionEscritura.InTransaction;
+    if bTransaccionPropia then
+      ConexionEscritura.StartTransaction;
     try
-      sp.Connection     := ConexionEscritura;
-      sp.StoredProcName := 'PRC_EFEC_GENERAR_DESDE_FACTURA';
-      sp.Params.Clear;
-      sp.Params.CreateParam(ftString,  'p_SERIE',     ptInput);
-      sp.Params.CreateParam(ftString,  'p_NUMERO',    ptInput);
-      sp.Params.CreateParam(ftString,  'p_USUARIO',   ptInput);
-      sp.Params.CreateParam(ftInteger, 'p_RESULTADO', ptOutput);
-      sp.ParamByName('p_SERIE').AsString   := sSerie;
-      sp.ParamByName('p_NUMERO').AsString  := sNumero;
-      sp.ParamByName('p_USUARIO').AsString := IdentidadSesion.Usuario;
-      sp.ExecProc;
-      Result := sp.ParamByName('p_RESULTADO').AsInteger;
-    finally
-      FreeAndNil(sp);
-    end;
-    // Estampar la cuenta de la empresa (cargo) elegida en los efectos.
-    if (Result > 0) and (ACodEmpban <> '') then
-    begin
-      qStamp := TUniQuery.Create(nil);
+      sp := TUniStoredProc.Create(nil);
       try
-        qStamp.Connection := ConexionEscritura;
-        qStamp.SQL.Text :=
-          'UPDATE fza_efectos_compra ' +
-          '   SET CODIGO_EMPBAN_EFEC = :banco, ' +
-          '       IBAN_EMP_EFEC      = :iban ' +
-          ' WHERE SERIE_FACC_EFEC  = :serie ' +
-          '   AND NUMERO_FACC_EFEC = :numero';
-        qStamp.ParamByName('banco').AsString  := ACodEmpban;
-        qStamp.ParamByName('iban').AsString   := AIbanEmp;
-        qStamp.ParamByName('serie').AsString  := sSerie;
-        qStamp.ParamByName('numero').AsString := sNumero;
-        qStamp.ExecSQL;
+        sp.Connection     := ConexionEscritura;
+        sp.StoredProcName := 'PRC_EFEC_GENERAR_DESDE_FACTURA';
+        sp.Params.Clear;
+        sp.Params.CreateParam(ftString,  'p_SERIE',     ptInput);
+        sp.Params.CreateParam(ftString,  'p_NUMERO',    ptInput);
+        sp.Params.CreateParam(ftString,  'p_USUARIO',   ptInput);
+        sp.Params.CreateParam(ftInteger, 'p_RESULTADO', ptOutput);
+        sp.ParamByName('p_SERIE').AsString   := sSerie;
+        sp.ParamByName('p_NUMERO').AsString  := sNumero;
+        sp.ParamByName('p_USUARIO').AsString := IdentidadSesion.Usuario;
+        sp.ExecProc;
+        Result := sp.ParamByName('p_RESULTADO').AsInteger;
       finally
-        FreeAndNil(qStamp);
+        FreeAndNil(sp);
       end;
+      if Result > 0 then
+        CompletarDatosBancariosEfectos(sSerie, sNumero, ACodEmpban, AIbanEmp);
+      if bTransaccionPropia then
+        ConexionEscritura.Commit;
+    except
+      if bTransaccionPropia and ConexionEscritura.InTransaction then
+        ConexionEscritura.Rollback;
+      raise;
     end;
     // Refrescar la rejilla de efectos.
     if Assigned(unqryEfectos) then
@@ -814,7 +847,8 @@ begin
         else if (sEstadoAnterior = 'CERRADA') and
                 (sEstadoNuevo = 'ABIERTA') then
           FTransicionEstadoFacc := 'ABRIR';
-        // El cierre exige al menos una linea con cantidad positiva.
+        // El cierre exige al menos una linea con cantidad positiva, o
+        // negativa que abone una devolucion (FZ-ISSUE-925).
         if FTransicionEstadoFacc = 'CERRAR' then
         begin
           qChk := TUniQuery.Create(nil);
@@ -824,7 +858,13 @@ begin
               'SELECT COUNT(*) AS N FROM fza_facturas_compra_lineas ' +
               ' WHERE SERIE_FACC_FACCLIN  = :s ' +
               '   AND NUMERO_FACC_FACCLIN = :n ' +
-              '   AND IFNULL(CANTIDAD_FACCLIN, 0) > 0';
+              '   AND (IFNULL(CANTIDAD_FACCLIN, 0) > 0';
+            if unqryFacturasCompraLineas.FindField(
+                 'SERIE_DEVC_FACCLIN') <> nil then
+              qChk.SQL.Text := qChk.SQL.Text +
+                ' OR (IFNULL(CANTIDAD_FACCLIN, 0) < 0 ' +
+                '     AND COALESCE(SERIE_DEVC_FACCLIN, '''') <> '''')';
+            qChk.SQL.Text := qChk.SQL.Text + ')';
             qChk.ParamByName('s').AsString :=
               unqryTablaG.FieldByName('SERIE_FACC').AsString;
             qChk.ParamByName('n').AsString :=
@@ -1142,6 +1182,30 @@ begin
           '       USUARIO_MODIF   = :u ' +
           ' WHERE SERIE_FAC_ALBC  = :s ' +
           '   AND NUMERO_FAC_ALBC = :n';
+        AsignarDocumento;
+        q.ParamByName('u').AsString := IdentidadSesion.Usuario;
+        q.ExecSQL;
+        // FZ-ISSUE-925: la devolucion abonada vuelve a quedar sin abono.
+        q.SQL.Text :=
+          'UPDATE fza_devoluciones_compra_lineas ' +
+          '   SET ESFACTURADA_DEVCLIN = ''N'', ' +
+          '       NUMERO_FAC_DEVCLIN  = NULL, ' +
+          '       SERIE_FAC_DEVCLIN   = NULL, ' +
+          '       LINEA_FAC_DEVCLIN   = NULL, ' +
+          '       USUARIO_MODIF       = :u ' +
+          ' WHERE SERIE_FAC_DEVCLIN   = :s ' +
+          '   AND NUMERO_FAC_DEVCLIN  = :n';
+        AsignarDocumento;
+        q.ParamByName('u').AsString := IdentidadSesion.Usuario;
+        q.ExecSQL;
+        q.SQL.Text :=
+          'UPDATE fza_devoluciones_compra ' +
+          '   SET ESTADO_DEVC     = ''ABIERTO'', ' +
+          '       NUMERO_FAC_DEVC = NULL, ' +
+          '       SERIE_FAC_DEVC  = NULL, ' +
+          '       USUARIO_MODIF   = :u ' +
+          ' WHERE SERIE_FAC_DEVC  = :s ' +
+          '   AND NUMERO_FAC_DEVC = :n';
         AsignarDocumento;
         q.ParamByName('u').AsString := IdentidadSesion.Usuario;
         q.ExecSQL;

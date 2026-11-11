@@ -49,6 +49,10 @@ type
     ['{63C74CB2-AD1B-47B5-B405-4F750B037DF1}']
     function ListarAlmacenesDestino(
       const AAlmacenPropio: string): TAlmacenesDestinoTraspaso;
+    // FZ-ISSUE-923: almacenes de taras activos que cuelgan del propio
+    // almacen, en su misma empresa. Solo son destino del traspaso directo.
+    function ListarAlmacenesTaras(
+      const AAlmacenPropio: string): TAlmacenesDestinoTraspaso;
     function ListarVentasReposicion(
       const AFiltro: TFiltroVentasReposicion): TLineasVentaReposicion;
   end;

@@ -2702,9 +2702,11 @@ begin
        ((NumAtributos = 0) or (SkuDetectado <> CodigoPadre)) and
        not ValidarSkuParaVenta(SkuDetectado) then
     begin
-      EliminarLineaVentaPorValidacion(DatosCaja.cdsLineas);
-      SolicitarFocoArticuloLineaNueva;
-      DisplayValue := null;
+      ConservarLineaVentaPorValidacion(DatosCaja.cdsLineas);
+      ActualizarColumnasDinamicas(CodigoPadre);
+      if NumAtributos > 0 then
+        RellenarAtributosDesdeSku(SkuDetectado);
+      DisplayValue := CodigoPadre;
       Error := False;
       Abort;
     end;
@@ -3079,8 +3081,10 @@ begin
          'TIPO_ARTICULO_FACLIN').AsString, 'ESTANDAR') and
        not ValidarSkuParaVenta(ASku) then
     begin
-      EliminarLineaVentaPorValidacion(DatosCaja.cdsLineas);
-      SolicitarFocoArticuloLineaNueva;
+      ConservarLineaVentaPorValidacion(DatosCaja.cdsLineas);
+      ActualizarColumnasDinamicas(DatosCaja.cdsLineas.FieldByName(
+        'CODIGO_ART_FACLIN').AsString);
+      RellenarAtributosDesdeSku(ASku);
       Abort;
     end;
     CodTarifa := DatosCaja.cdsCabecera.FieldByName(
@@ -3104,7 +3108,7 @@ begin
     end;
     if not PrecioValidoLinea(Precio) then
     begin
-      DatosCaja.cdsLineas.Cancel;
+      ConservarLineaVentaPorValidacion(DatosCaja.cdsLineas);
       // FZ-ISSUE-338: dato de maestro incompleto, no un fallo del programa.
       // EValidacionBBDD lo presenta el gestor global como aviso, sin pila
       // ni «Salir de la aplicación».

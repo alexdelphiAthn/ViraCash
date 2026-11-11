@@ -172,7 +172,7 @@ begin
       '       P.DIRECCION1_PRV, P.DIRECCION2_PRV, ' +
       '       P.POBLACION_PRV, P.PROVINCIA_PRV, ' +
       '       P.CODIGO_POSTAL_PRV, ' +
-      '       S.REF_PRV_SES, NULLIF(S.FORMA_PAGO_SES, ''''), ' +
+      '       S.REF_PRV_SES, NULLIF(:forma_pago, ''''), ' +
       '       S.ID_PV_TEMPORADA_SES, ' +
       '       CASE WHEN :alm_ovr <> '''' THEN :alm_ovr ELSE S.CODIGO_ALM_SES ' +
       'END, ' +
@@ -192,6 +192,9 @@ begin
       ADM.unqryTablaG.FieldByName('NUMERO_SES').AsString;
     q.ParamByName('u').AsString := AUsuario;
     q.ParamByName('alm_ovr').AsString := ACodigoAlmOverride;
+    // Usar el valor aceptado en el dialogo, ya aplicado a la cabecera.
+    q.ParamByName('forma_pago').AsString := Trim(
+      ADM.unqryTablaG.FieldByName('FORMA_PAGO_SES').AsString);
     // Hora elegida en el diálogo común; negativa = la actual.
     if AHoraMovimiento >= 0 then
       q.ParamByName('conhora').AsString := 'S'

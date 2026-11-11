@@ -774,6 +774,83 @@ resourcestring
   SEstadoDocumentoArchivado = 'Archivado';
   SEstadoDocumentoImportado = 'Importado';
 
+resourcestring
+  SFacturacionSimplificadosTitulo =
+    'Facturación de borradores simplificados';
+  SFacturacionSimplificadosAviso =
+    'Selecciona empresa, cliente y período cerrado. Antes de emitir ' +
+    'podrás revisar todos los tickets y su desglose.';
+  SFacturacionSimplificadosPeriodicidad =
+    'Periodicidad';
+  SFacturacionSimplificadosMensual =
+    'Mensual';
+  SFacturacionSimplificadosTrimestral =
+    'Trimestral';
+  SFacturacionSimplificadosMes =
+    'Mes (o un mes del trimestre)';
+  SFacturacionSimplificadosAnyo =
+    'Año';
+  SFacturacionSimplificadosPeriodoInvalido =
+    'Indica un mes y un año válidos.';
+  SFacturacionSimplificadosPeriodoAbierto =
+    'Selecciona un período ya cerrado.';
+  SFacturacionSimplificadosFechaInvalida =
+    'La fecha de factura debe estar entre el cierre del período y hoy.';
+  SFacturacionSimplificadosSinTickets =
+    'El cliente no tiene tickets pendientes de facturar en este período ' +
+    'para la empresa seleccionada.';
+  SFacturacionSimplificadosRevision =
+    'Revisión de borradores simplificados';
+  SFacturacionSimplificadosEmitir =
+    'Emitir factura';
+  SFacturacionSimplificadosCancelar =
+    'Cancelar';
+  SFacturacionSimplificadosCliente =
+    'Cliente:';
+  SFacturacionSimplificadosPeriodo =
+    'Período: %s - %s';
+  SFacturacionSimplificadosFecha =
+    'Fecha de factura:';
+  SFacturacionSimplificadosTicket =
+    'Ticket %s/%s - %s';
+  SFacturacionSimplificadosTotalTicket =
+    'Ticket %s/%s    %s    Total: %s';
+  SFacturacionSimplificadosTotal =
+    '%d tickets. Total factura: %s';
+  SErrorTicketPeriodo =
+    'El ticket %s/%s ha cambiado o ya no se puede facturar. Vuelve a ' +
+    'revisar el período.';
+  SErrorTicketsIncompatibles =
+    'Los tickets tienen condiciones fiscales diferentes. Deben ' +
+    'facturarse por separado.';
+  SErrorEsquemaFacturacionSimplificados =
+    'La facturación agrupada necesita actualizar la base de datos. No ' +
+    'se ha emitido ninguna factura.';
+  SErrorLineasFacturacionSimplificados =
+    'El desglose supera las 9999 líneas. Selecciona un período menor.';
+  SComentarioFacturacionSimplificados =
+    'Factura en sustitución de %d tickets. Período: %s - %s.';
+  SEventoFacturacionSimplificados =
+    'Facturación de borradores simplificados: %d tickets, período %s - ' +
+    '%s';
+
+resourcestring
+  SFacturacionSimplificadosBuscar =
+    'Buscar tickets sin cliente';
+  SFacturacionSimplificadosRetirar =
+    'Retirar ticket';
+  SFacturacionSimplificadosSinCandidatos =
+    'No hay más tickets sin cliente identificado en este período.';
+  SFacturacionSimplificadosOtroTrimestre =
+    'La factura y todos sus tickets deben pertenecer al mismo trimestre ' +
+    'y ejercicio. Mezclarlos descompensa la declaración trimestral de ' +
+    'IVA. Revisa la fecha de factura y el período seleccionado.';
+
+resourcestring
+  SErrorMaxTicketsFacturaF3 =
+    'Una factura F3 admite como máximo %d tickets. ' +
+    'Retira tickets de la selección antes de emitir.';
+
 implementation
 
 uses

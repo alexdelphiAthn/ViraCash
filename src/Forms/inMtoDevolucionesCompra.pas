@@ -145,6 +145,7 @@ type
     btnImprimirH: TcxButton;
     btnImprimirV: TcxButton;
     btnPegatinas: TcxButton;
+    btnGenerarAbono: TcxButton;
     ActionList1: TActionList;
     actArticulos: TAction;
     actIrProveedor: TAction;
@@ -161,6 +162,7 @@ type
     procedure btnImprimirHClick(Sender: TObject);
     procedure btnImprimirVClick(Sender: TObject);
     procedure btnPegatinasClick(Sender: TObject);
+    procedure btnGenerarAbonoClick(Sender: TObject);
     // Eventos del grid de lineas — mismos handlers que en Sesiones de compra:
     // sin esto, las celdas talla quedan vacias al navegar, no se sombrean
     // las celdas fuera del conjunto pivot y Enter no salta de celda.
@@ -377,7 +379,9 @@ uses
   UniDataPivoteVenta, UniDataGridPivoteCompraRepositorio,
   UniDataColumnasSkuServicios, UniDataModoTallas,
   inLibDevolucionesCompraPresentacionFlujo,
-  inMtoDevolucionesCompraSeleccionVcl;
+  inMtoDevolucionesCompraSeleccionVcl,
+  inMtoDevolucionesCompraAbonoVcl,
+  UniDataAbonoDevolucionCompraRepositorio;
 
 {$R *.dfm}
 
@@ -490,6 +494,8 @@ var
   PropiedadesColor: TcxComboBoxProperties;
 begin
   FColorPivotCodigos := TDictionary<string, string>.Create;
+  btnGenerarAbono.Caption := SCaptionGenerarAbonoDevolucionCompra;
+  btnGenerarAbono.Hint := SHintGenerarAbonoDevolucionCompra;
   // Columnas no-bound de tallas y atributos ANTES del inherited.
   CrearColumnasTallas;
   CrearColumnasAtributos;
@@ -2185,6 +2191,26 @@ begin
   ShowMtoCodigoDataSet(Self.Owner, 'Articulos',
     tvLineasDevolucion.DataController.DataSet,
     'CODIGO_ART_DEVCLIN');
+end;
+
+// FZ-ISSUE-925: borrador del abono de la devolucion y apertura del
+// borrador en Compras > Borradores.
+procedure TfrmMtoDevolucionesCompra.btnGenerarAbonoClick(Sender: TObject);
+var
+  sSerie: string;
+  sNumero: string;
+begin
+  if Assigned(dmmDevolucionesCompra) and
+     GenerarAbonoDevolucionCompra(Self,
+       dmmDevolucionesCompra.unqryTablaG,
+       TUniConnection(dmmDevolucionesCompra.unqryTablaG.Connection),
+       CrearRepositorioAbonoDevolucionCompraUniDAC(
+         TUniConnection(dmmDevolucionesCompra.unqryTablaG.Connection)),
+       IdentidadSesion.Usuario, sSerie, sNumero) then
+  begin
+    dmmDevolucionesCompra.unqryTablaG.RefreshRecord;
+    ShowMto(Self.Owner, 'FacturasCompra', sSerie + ',' + sNumero);
+  end;
 end;
 
 procedure TfrmMtoDevolucionesCompra.actIrProveedorExecute(Sender: TObject);

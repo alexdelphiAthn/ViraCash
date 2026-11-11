@@ -533,7 +533,8 @@ begin
       ConexionEscritura,
       UbicacionSesion.Empresa,
       CrearConfiguracionDocumento(
-        tdAlbaran, sdCompra).TipoContador);
+        tdAlbaran, sdCompra).TipoContador,
+      UbicacionSesion.Almacen);
     if FindField('SERIE_ALBC') <> nil then
     begin
       if sSerie <> '' then

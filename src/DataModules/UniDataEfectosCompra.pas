@@ -18,7 +18,7 @@ interface
 uses
   inLibRegistroPantallas,
   System.SysUtils, System.Classes, UniDataGen, Data.DB, MemDS, DBAccess, Uni,
-  inLibUser, UniDataConn, inLibEfectosCalculo;
+  inLibUser, UniDataConn, inLibEfectosCalculo, inLibFusionEfectosIntf;
 
 type
   TClaveEfectoCompra = record
@@ -32,6 +32,19 @@ type
   TdmEfectosCompra = class(TdmBase)
     procedure unqryTablaGBeforeDelete(DataSet: TDataSet);
   private
+    function FusionarPositivos(AConsulta: TUniQuery;
+      const AClave: TClaveEfectoCompra;
+      const AResumen: TResumenFusionEfectos; ACantidad: Integer;
+      out AReferencia: string): Integer;
+    procedure AplicarCompensacionFusion(AConsulta: TUniQuery;
+      const AClave: TClaveEfectoCompra; AImporte: Currency;
+      const AReferencia: string);
+    procedure ExigirSoporteCompensacion(AConsulta: TUniQuery);
+    procedure ExigirFacturasCerradasFusion(AConsulta: TUniQuery);
+    function HayAbonosFusion(AConsulta: TUniQuery): Boolean;
+    function CompensarAbonosFusion(AConsulta: TUniQuery;
+      const AResumen: TResumenFusionEfectos; ACantidad: Integer;
+      out AReferencia: string): Integer;
     procedure PrepararClavesFusion(
       AConsulta: TUniQuery;
       const AClaves: TClavesEfectoCompra);
@@ -39,7 +52,8 @@ type
       AConsulta: TUniQuery): TResumenFusionEfectos;
     procedure ValidarResumenFusion(
       const AResumen: TResumenFusionEfectos;
-      ACantidadEsperada: Integer);
+      ACantidadEsperada: Integer;
+      APermitirSaldoNoPositivo: Boolean = False);
     function ObtenerNumeroFusion(
       AConsulta: TUniQuery;
       const ASerie, ANumero: string): Integer;
@@ -52,7 +66,8 @@ type
       AConsulta: TUniQuery;
       const ASerie, ANumero: string;
       ANuevoEfecto: Integer;
-      const AReferencia: string): Integer;
+      const AReferencia: string;
+      ASoloAbonos: Boolean = False): Integer;
     procedure RefrescarCartera;
   public
     // Concilia un pago sobre el efecto y refresca la cartera. Si el pago es
@@ -84,6 +99,7 @@ var
   sEstado: string;
   sNumeroRem: string;
   sSerieRem: string;
+  Consulta: TUniQuery;
 begin
   inherited;
   sEstado := UpperCase(Trim(DataSet.FieldByName('ESTADO_EFEC').AsString));
@@ -91,6 +107,27 @@ begin
   sNumeroRem := Trim(DataSet.FieldByName('NUMERO_REMC_EFEC').AsString);
   sConciliado := Trim(DataSet.FieldByName('ESCONCILIADO_EFEC').AsString);
   dImportePagado := DataSet.FieldByName('IMPORTE_PAGADO_EFEC').AsFloat;
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := ConexionPrincipal;
+    Consulta.SQL.Text :=
+      'SELECT COUNT(*) AS C FROM fza_efectos_compra ' +
+      'WHERE SERIE_FACC_CONCILIACION_EFEC = :serie ' +
+      'AND NUMERO_FACC_CONCILIACION_EFEC = :numero ' +
+      'AND NUMERO_EFEC_CONCILIACION_EFEC = :efecto ' +
+      'AND TIPO_PAGO_EFEC = ''COMPENSACION''';
+    Consulta.ParamByName('serie').AsString :=
+      DataSet.FieldByName('SERIE_FACC_EFEC').AsString;
+    Consulta.ParamByName('numero').AsString :=
+      DataSet.FieldByName('NUMERO_FACC_EFEC').AsString;
+    Consulta.ParamByName('efecto').AsInteger :=
+      DataSet.FieldByName('NUMERO_EFEC').AsInteger;
+    Consulta.Open;
+    if Consulta.FieldByName('C').AsInteger > 0 then
+      raise EValidacionFusionEfectos.Create(SAvisoBorrarEfectoConAbonos);
+  finally
+    FreeAndNil(Consulta);
+  end;
   if (sSerieRem <> '') or (sNumeroRem <> '') or
      (sEstado = 'REMESADO') then
     raise Exception.Create(SErrorBorrarEfectoCompraRemesado);
@@ -98,6 +135,136 @@ begin
      (sEstado = 'PAGADO') or (sEstado = 'DEVUELTO') or
      (sEstado = 'CONCILIADO') then
     raise Exception.Create(SErrorBorrarEfectoCompraPagado);
+end;
+
+procedure TdmEfectosCompra.ExigirFacturasCerradasFusion(
+  AConsulta: TUniQuery);
+begin
+  AConsulta.SQL.Text :=
+    'SELECT F.NUMERO_FACC FROM fza_facturas_compra F ' +
+    'JOIN tmp_efec_fusion T ON F.SERIE_FACC = T.SERIE_FACC ' +
+    'AND F.NUMERO_FACC = T.NUMERO_FACC ' +
+    'ORDER BY F.SERIE_FACC, F.NUMERO_FACC FOR UPDATE';
+  AConsulta.Open;
+  AConsulta.Close;
+  AConsulta.SQL.Text :=
+    'SELECT SUM(COALESCE(F.ESTADO_FACC, '''') <> ''CERRADA'') ' +
+    'AS ABIERTAS, SUM(COALESCE(F.CODIGO_EMP_FACC, '''') <> :empresa) ' +
+    'AS AJENAS FROM tmp_efec_fusion T ' +
+    'LEFT JOIN fza_facturas_compra F ON F.SERIE_FACC = T.SERIE_FACC ' +
+    'AND F.NUMERO_FACC = T.NUMERO_FACC';
+  AConsulta.ParamByName('empresa').AsString := UbicacionSesion.Empresa;
+  AConsulta.Open;
+  if AConsulta.FieldByName('AJENAS').AsInteger > 0 then
+    raise EValidacionFusionEfectos.Create(SErrorFusionarEfectosCompraOrigen);
+  if AConsulta.FieldByName('ABIERTAS').AsInteger > 0 then
+    raise EValidacionFusionEfectos.Create(SAvisoCompensacionFacturaAbierta);
+  AConsulta.Close;
+end;
+
+function TdmEfectosCompra.HayAbonosFusion(AConsulta: TUniQuery): Boolean;
+begin
+  AConsulta.SQL.Text :=
+    'SELECT SUM(E.IMPORTE_PENDIENTE_EFEC < 0) AS ABONOS, ' +
+    'SUM(EXISTS(SELECT 1 FROM fza_efectos_compra C ' +
+    'WHERE C.SERIE_FACC_CONCILIACION_EFEC = E.SERIE_FACC_EFEC ' +
+    'AND C.NUMERO_FACC_CONCILIACION_EFEC = E.NUMERO_FACC_EFEC ' +
+    'AND C.NUMERO_EFEC_CONCILIACION_EFEC = E.NUMERO_EFEC ' +
+    'AND C.TIPO_PAGO_EFEC = ''COMPENSACION'')) AS APLICADOS ' +
+    'FROM fza_efectos_compra E JOIN tmp_efec_fusion T ' +
+    'ON T.SERIE_FACC = E.SERIE_FACC_EFEC ' +
+    'AND T.NUMERO_FACC = E.NUMERO_FACC_EFEC ' +
+    'AND T.NUMERO_EFEC = E.NUMERO_EFEC';
+  AConsulta.Open;
+  Result := AConsulta.FieldByName('ABONOS').AsInteger > 0;
+  if not Result and (AConsulta.FieldByName('APLICADOS').AsInteger > 0) then
+    raise EValidacionFusionEfectos.Create(SAvisoFusionConAbonosAplicados);
+  AConsulta.Close;
+end;
+
+procedure TdmEfectosCompra.ExigirSoporteCompensacion(
+  AConsulta: TUniQuery);
+begin
+  AConsulta.SQL.Text :=
+    'SELECT COUNT(*) AS C FROM INFORMATION_SCHEMA.ROUTINES ' +
+    'WHERE ROUTINE_SCHEMA = DATABASE() ' +
+    'AND ROUTINE_NAME = ''PRC_EFEC_COMPENSACION_VERSION'' ' +
+    'AND ROUTINE_TYPE = ''PROCEDURE''';
+  AConsulta.Open;
+  if AConsulta.FieldByName('C').AsInteger <> 1 then
+    raise EValidacionFusionEfectos.Create(SAvisoActualizarCompensacion);
+  AConsulta.Close;
+end;
+
+function TdmEfectosCompra.CompensarAbonosFusion(AConsulta: TUniQuery;
+  const AResumen: TResumenFusionEfectos; ACantidad: Integer;
+  out AReferencia: string): Integer;
+var
+  Clave: TClaveEfectoCompra;
+  Importe: Currency;
+begin
+  ExigirSoporteCompensacion(AConsulta);
+  if AResumen.CantidadValidos <> ACantidad then
+    raise EValidacionFusionEfectos.Create(SErrorFusionarEfectosCompraEstado);
+  if (AResumen.CantidadEmpresas <> 1) or
+     (AResumen.CantidadTerceros <> 1) then
+    raise EValidacionFusionEfectos.Create(SErrorFusionarEfectosCompraOrigen);
+  AConsulta.SQL.Text :=
+    'SELECT SUM(E.IMPORTE_PENDIENTE_EFEC > 0) AS POSITIVOS, ' +
+    'SUM(E.IMPORTE_PENDIENTE_EFEC <> ' +
+    'ROUND(E.IMPORTE_PENDIENTE_EFEC, 2)) AS FRACCIONES, ' +
+    '-SUM(LEAST(E.IMPORTE_PENDIENTE_EFEC, 0)) AS ABONO, ' +
+    'MAX(E.IMPORTE_PENDIENTE_EFEC) AS PENDIENTE, ' +
+    'MAX(IF(E.IMPORTE_PENDIENTE_EFEC > 0, ' +
+    'E.SERIE_FACC_EFEC, NULL)) AS SERIE, ' +
+    'MAX(IF(E.IMPORTE_PENDIENTE_EFEC > 0, ' +
+    'E.NUMERO_FACC_EFEC, NULL)) AS NUMERO, ' +
+    'MAX(IF(E.IMPORTE_PENDIENTE_EFEC > 0, ' +
+    'E.NUMERO_EFEC, NULL)) AS EFECTO ' +
+    'FROM fza_efectos_compra E JOIN tmp_efec_fusion T ' +
+    'ON T.SERIE_FACC = E.SERIE_FACC_EFEC ' +
+    'AND T.NUMERO_FACC = E.NUMERO_FACC_EFEC ' +
+    'AND T.NUMERO_EFEC = E.NUMERO_EFEC';
+  AConsulta.Open;
+  if AConsulta.FieldByName('FRACCIONES').AsInteger > 0 then
+    raise EValidacionFusionEfectos.Create(SAvisoCompensacionFracciones);
+  if AConsulta.FieldByName('POSITIVOS').AsInteger <> 1 then
+    raise EValidacionFusionEfectos.Create(SAvisoCompensacionUnEfecto);
+  Importe := AConsulta.FieldByName('ABONO').AsCurrency;
+  if Importe > AConsulta.FieldByName('PENDIENTE').AsCurrency then
+    raise EValidacionFusionEfectos.Create(SAvisoCompensacionExcesiva);
+  Clave.SerieFac := AConsulta.FieldByName('SERIE').AsString;
+  Clave.NumeroFac := AConsulta.FieldByName('NUMERO').AsString;
+  Clave.NumeroEfec := AConsulta.FieldByName('EFECTO').AsInteger;
+  AConsulta.Close;
+  AReferencia := TCalculoFusionEfectos.CrearReferencia(
+    Clave.SerieFac, Clave.NumeroFac, Clave.NumeroEfec);
+  AplicarCompensacionFusion(AConsulta, Clave, Importe, AReferencia);
+  Result := ACantidad;
+end;
+
+procedure TdmEfectosCompra.AplicarCompensacionFusion(AConsulta: TUniQuery;
+  const AClave: TClaveEfectoCompra; AImporte: Currency;
+  const AReferencia: string);
+begin
+  ConciliarEfectosOrigen(AConsulta, AClave.SerieFac, AClave.NumeroFac,
+    AClave.NumeroEfec, AReferencia, True);
+  AConsulta.SQL.Text :=
+    'UPDATE fza_efectos_compra SET ' +
+    'ESTADO_EFEC = IF(IMPORTE_PENDIENTE_EFEC = :importe, ' +
+    '''CONCILIADO'', ''PENDIENTE''), ' +
+    'ESCONCILIADO_EFEC = IF(IMPORTE_PENDIENTE_EFEC = :importe, ' +
+    '''S'', ''N''), ' +
+    'IMPORTE_PENDIENTE_EFEC = IMPORTE_PENDIENTE_EFEC - :importe, ' +
+    'INSTANTE_MODIF = NOW(), USUARIO_MODIF = :usuario ' +
+    'WHERE SERIE_FACC_EFEC = :serie AND NUMERO_FACC_EFEC = :numero ' +
+    'AND NUMERO_EFEC = :efecto';
+  AConsulta.ParamByName('importe').AsCurrency := AImporte;
+  AConsulta.ParamByName('usuario').AsString := IdentidadSesion.Usuario;
+  AConsulta.ParamByName('serie').AsString := AClave.SerieFac;
+  AConsulta.ParamByName('numero').AsString := AClave.NumeroFac;
+  AConsulta.ParamByName('efecto').AsInteger := AClave.NumeroEfec;
+  AConsulta.ExecSQL;
 end;
 
 procedure TdmEfectosCompra.PrepararClavesFusion(
@@ -127,6 +294,15 @@ begin
     AConsulta.ParamByName('efecto').AsInteger := AClaves[i].NumeroEfec;
     AConsulta.ExecSQL;
   end;
+  AConsulta.SQL.Text :=
+    'SELECT E.NUMERO_EFEC FROM fza_efectos_compra E ' +
+    'JOIN tmp_efec_fusion T ON T.SERIE_FACC = E.SERIE_FACC_EFEC ' +
+    'AND T.NUMERO_FACC = E.NUMERO_FACC_EFEC ' +
+    'AND T.NUMERO_EFEC = E.NUMERO_EFEC ' +
+    'ORDER BY E.SERIE_FACC_EFEC, E.NUMERO_FACC_EFEC, E.NUMERO_EFEC ' +
+    'FOR UPDATE';
+  AConsulta.Open;
+  AConsulta.Close;
 end;
 
 function TdmEfectosCompra.LeerResumenFusion(
@@ -146,8 +322,8 @@ begin
     '   AND T.NUMERO_FACC = E.NUMERO_FACC_EFEC ' +
     '   AND T.NUMERO_EFEC = E.NUMERO_EFEC ' +
     ' WHERE COALESCE(E.ESTADO_EFEC, '''') IN ('''', ''PENDIENTE'') ' +
-    '   AND COALESCE(E.IMPORTE_PAGADO_EFEC, 0) <= 0.0001 ' +
-    '   AND COALESCE(E.IMPORTE_PENDIENTE_EFEC, 0) > 0.0001 ' +
+    '   AND ABS(COALESCE(E.IMPORTE_PAGADO_EFEC, 0)) < 0.0001 ' +
+    '   AND ABS(COALESCE(E.IMPORTE_PENDIENTE_EFEC, 0)) > 0.0001 ' +
     '   AND COALESCE(E.ESCONCILIADO_EFEC, ''N'') <> ''S'' ' +
     '   AND COALESCE(E.SERIE_REMC_EFEC, '''') = '''' ' +
     '   AND COALESCE(E.NUMERO_REMC_EFEC, '''') = '''' ' +
@@ -162,15 +338,17 @@ end;
 
 procedure TdmEfectosCompra.ValidarResumenFusion(
   const AResumen: TResumenFusionEfectos;
-  ACantidadEsperada: Integer);
+  ACantidadEsperada: Integer; APermitirSaldoNoPositivo: Boolean);
 begin
   case TCalculoFusionEfectos.Validar(AResumen, ACantidadEsperada) of
     efeCantidadInvalida:
-      raise Exception.Create(SErrorFusionarEfectosCompraEstado);
+      raise EValidacionFusionEfectos.Create(SErrorFusionarEfectosCompraEstado);
     efeOrigenInvalido:
-      raise Exception.Create(SErrorFusionarEfectosCompraOrigen);
+      raise EValidacionFusionEfectos.Create(SErrorFusionarEfectosCompraOrigen);
     efeSinImportePendiente:
-      raise Exception.Create(SErrorFusionarEfectosCompraSinPendiente);
+      if not APermitirSaldoNoPositivo then
+        raise EValidacionFusionEfectos.Create(
+          SErrorFusionarEfectosCompraSinPendiente);
   end;
 end;
 
@@ -264,7 +442,7 @@ function TdmEfectosCompra.ConciliarEfectosOrigen(
   AConsulta: TUniQuery;
   const ASerie, ANumero: string;
   ANuevoEfecto: Integer;
-  const AReferencia: string): Integer;
+  const AReferencia: string; ASoloAbonos: Boolean): Integer;
 begin
   AConsulta.SQL.Text :=
     'UPDATE fza_efectos_compra E ' +
@@ -286,6 +464,10 @@ begin
     '         ''Conciliado en '', :referencia), 1000), ' +
     '       E.INSTANTE_MODIF = NOW(), ' +
     '       E.USUARIO_MODIF = :usuario';
+  if ASoloAbonos then
+    AConsulta.SQL.Add(
+      ', E.TIPO_PAGO_EFEC = ''COMPENSACION'' ' +
+      'WHERE E.IMPORTE_PENDIENTE_EFEC < 0');
   AConsulta.ParamByName('referencia').AsString := AReferencia;
   AConsulta.ParamByName('serie_dst').AsString := ASerie;
   AConsulta.ParamByName('numero_dst').AsString := ANumero;
@@ -304,15 +486,29 @@ begin
   end;
 end;
 
+function TdmEfectosCompra.FusionarPositivos(AConsulta: TUniQuery;
+  const AClave: TClaveEfectoCompra;
+  const AResumen: TResumenFusionEfectos; ACantidad: Integer;
+  out AReferencia: string): Integer;
+var
+  NuevoEfecto: Integer;
+begin
+  ValidarResumenFusion(AResumen, ACantidad);
+  NuevoEfecto := ObtenerNumeroFusion(AConsulta,
+    AClave.SerieFac, AClave.NumeroFac);
+  AReferencia := TCalculoFusionEfectos.CrearReferencia(
+    AClave.SerieFac, AClave.NumeroFac, NuevoEfecto);
+  InsertarEfectoFusionado(AConsulta, AClave, NuevoEfecto, AReferencia);
+  Result := ConciliarEfectosOrigen(AConsulta,
+    AClave.SerieFac, AClave.NumeroFac, NuevoEfecto, AReferencia);
+end;
+
 function TdmEfectosCompra.FusionarEfectosPendientes(
   const AClaves: TClavesEfectoCompra; out AReferencia: string): Integer;
 var
   q: TUniQuery;
   EsTransaccionPropia: Boolean;
-  iNuevoEfec: Integer;
   oResumen: TResumenFusionEfectos;
-  sSerieDestino: string;
-  sNumeroDestino: string;
 begin
   Result := 0;
   AReferencia := '';
@@ -323,39 +519,34 @@ begin
       q.Connection := ConexionPrincipal;
       EsTransaccionPropia := not ConexionPrincipal.InTransaction;
       if EsTransaccionPropia then
-        ConexionPrincipal.StartTransaction;
+        ConexionPrincipal.StartTransaction
+      else
+        q.Connection.ExecSQL('SAVEPOINT SP_EFEC_FUSION');
       try
         PrepararClavesFusion(q, AClaves);
+        ExigirFacturasCerradasFusion(q);
         oResumen := LeerResumenFusion(q);
-        ValidarResumenFusion(oResumen, Length(AClaves));
-        sSerieDestino := AClaves[0].SerieFac;
-        sNumeroDestino := AClaves[0].NumeroFac;
-        iNuevoEfec := ObtenerNumeroFusion(
-          q,
-          sSerieDestino,
-          sNumeroDestino);
-        AReferencia := TCalculoFusionEfectos.CrearReferencia(
-          sSerieDestino,
-          sNumeroDestino,
-          iNuevoEfec);
-        InsertarEfectoFusionado(
-          q,
-          AClaves[0],
-          iNuevoEfec,
-          AReferencia);
-        Result := ConciliarEfectosOrigen(
-          q,
-          sSerieDestino,
-          sNumeroDestino,
-          iNuevoEfec,
-          AReferencia);
+        ValidarResumenFusion(oResumen, Length(AClaves), True);
+        if HayAbonosFusion(q) then
+          Result := CompensarAbonosFusion(q, oResumen,
+            Length(AClaves), AReferencia)
+        else
+          Result := FusionarPositivos(q, AClaves[0], oResumen,
+            Length(AClaves), AReferencia);
         q.SQL.Text := 'DROP TEMPORARY TABLE IF EXISTS tmp_efec_fusion';
         q.ExecSQL;
         if EsTransaccionPropia then
-          ConexionPrincipal.Commit;
+          ConexionPrincipal.Commit
+        else
+          q.Connection.ExecSQL('RELEASE SAVEPOINT SP_EFEC_FUSION');
       except
         if EsTransaccionPropia and ConexionPrincipal.InTransaction then
-          ConexionPrincipal.Rollback;
+          ConexionPrincipal.Rollback
+        else if ConexionPrincipal.InTransaction then
+        begin
+          q.Connection.ExecSQL('ROLLBACK TO SAVEPOINT SP_EFEC_FUSION');
+          q.Connection.ExecSQL('RELEASE SAVEPOINT SP_EFEC_FUSION');
+        end;
         raise;
       end;
     finally

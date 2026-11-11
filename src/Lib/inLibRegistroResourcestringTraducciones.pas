@@ -33660,6 +33660,108 @@ begin
     'src/Lib/inLibMsgCompras.pas',
     @inLibMsgCompras.
       SNombreArchivoSepaRemesaCompra);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SCaptionDescuentoLineaCompra',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SCaptionDescuentoLineaCompra);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SCaptionColorBasicoCompra',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SCaptionColorBasicoCompra);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SCaptionRecibirFilaPedidoCompra',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SCaptionRecibirFilaPedidoCompra);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SInfoFilaPedidoCompraSinPendientes',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SInfoFilaPedidoCompraSinPendientes);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SErrorDescuentoLineaCompra',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SErrorDescuentoLineaCompra);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SCaptionGenerarAbonoDevolucionCompra',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SCaptionGenerarAbonoDevolucionCompra);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SHintGenerarAbonoDevolucionCompra',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SHintGenerarAbonoDevolucionCompra);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'STituloAbonoDevolucionCompra',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STituloAbonoDevolucionCompra);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SNombreAbonoDevolucionCompra',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SNombreAbonoDevolucionCompra);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SErrorAbonoDevolucionSinGrabar',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SErrorAbonoDevolucionSinGrabar);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SErrorAbonoDevolucionYaGenerado',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SErrorAbonoDevolucionYaGenerado);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SErrorAbonoDevolucionCancelada',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SErrorAbonoDevolucionCancelada);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'STituloFacturaOrigenAbonoCompra',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STituloFacturaOrigenAbonoCompra);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SEtiquetaFacturaOrigenAbonoCompra',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SEtiquetaFacturaOrigenAbonoCompra);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SSinFacturaOrigenAbonoCompra',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SSinFacturaOrigenAbonoCompra);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SInfoAbonoDevolucionGenerado',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SInfoAbonoDevolucionGenerado);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SErrorAbonoDevolucionNoGenerado',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SErrorAbonoDevolucionNoGenerado);
   ARegistrar('inLibMsgReparaciones.SModalidadReparacionCobrada',
     'src/Lib/inLibMsgReparaciones.pas',
     @inLibMsgReparaciones.SModalidadReparacionCobrada);
@@ -34719,6 +34821,141 @@ begin
     'src/Lib/inLibMsgReparaciones.pas',
     @inLibMsgReparaciones.SReparacionNoReabrible);
 
+  ARegistrar('inLibMsgFacturas.SFacturacionSimplificadosTitulo',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SFacturacionSimplificadosTitulo);
+  ARegistrar('inLibMsgFacturas.SFacturacionSimplificadosAviso',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SFacturacionSimplificadosAviso);
+  ARegistrar('inLibMsgFacturas.SFacturacionSimplificadosPeriodicidad',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SFacturacionSimplificadosPeriodicidad);
+  ARegistrar('inLibMsgFacturas.SFacturacionSimplificadosMensual',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SFacturacionSimplificadosMensual);
+  ARegistrar('inLibMsgFacturas.SFacturacionSimplificadosTrimestral',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SFacturacionSimplificadosTrimestral);
+  ARegistrar('inLibMsgFacturas.SFacturacionSimplificadosMes',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SFacturacionSimplificadosMes);
+  ARegistrar('inLibMsgFacturas.SFacturacionSimplificadosAnyo',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SFacturacionSimplificadosAnyo);
+  ARegistrar('inLibMsgFacturas.SFacturacionSimplificadosPeriodoInvalido',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SFacturacionSimplificadosPeriodoInvalido);
+  ARegistrar('inLibMsgFacturas.SFacturacionSimplificadosPeriodoAbierto',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SFacturacionSimplificadosPeriodoAbierto);
+  ARegistrar('inLibMsgFacturas.SFacturacionSimplificadosFechaInvalida',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SFacturacionSimplificadosFechaInvalida);
+  ARegistrar('inLibMsgFacturas.SFacturacionSimplificadosSinTickets',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SFacturacionSimplificadosSinTickets);
+  ARegistrar('inLibMsgFacturas.SFacturacionSimplificadosRevision',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SFacturacionSimplificadosRevision);
+  ARegistrar('inLibMsgFacturas.SFacturacionSimplificadosEmitir',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SFacturacionSimplificadosEmitir);
+  ARegistrar('inLibMsgFacturas.SFacturacionSimplificadosCancelar',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SFacturacionSimplificadosCancelar);
+  ARegistrar('inLibMsgFacturas.SFacturacionSimplificadosCliente',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SFacturacionSimplificadosCliente);
+  ARegistrar('inLibMsgFacturas.SFacturacionSimplificadosPeriodo',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SFacturacionSimplificadosPeriodo);
+  ARegistrar('inLibMsgFacturas.SFacturacionSimplificadosFecha',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SFacturacionSimplificadosFecha);
+  ARegistrar('inLibMsgFacturas.SFacturacionSimplificadosTicket',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SFacturacionSimplificadosTicket);
+  ARegistrar('inLibMsgFacturas.SFacturacionSimplificadosTotalTicket',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SFacturacionSimplificadosTotalTicket);
+  ARegistrar('inLibMsgFacturas.SFacturacionSimplificadosTotal',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SFacturacionSimplificadosTotal);
+  ARegistrar('inLibMsgFacturas.SErrorTicketPeriodo',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SErrorTicketPeriodo);
+  ARegistrar('inLibMsgFacturas.SErrorTicketsIncompatibles',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SErrorTicketsIncompatibles);
+  ARegistrar('inLibMsgFacturas.SErrorEsquemaFacturacionSimplificados',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SErrorEsquemaFacturacionSimplificados);
+  ARegistrar('inLibMsgFacturas.SErrorLineasFacturacionSimplificados',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SErrorLineasFacturacionSimplificados);
+  ARegistrar('inLibMsgFacturas.SComentarioFacturacionSimplificados',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SComentarioFacturacionSimplificados);
+  ARegistrar('inLibMsgFacturas.SEventoFacturacionSimplificados',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SEventoFacturacionSimplificados);
+
+  ARegistrar('inLibMsgFacturas.SFacturacionSimplificadosBuscar',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SFacturacionSimplificadosBuscar);
+  ARegistrar('inLibMsgFacturas.SFacturacionSimplificadosRetirar',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SFacturacionSimplificadosRetirar);
+  ARegistrar('inLibMsgFacturas.SFacturacionSimplificadosSinCandidatos',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SFacturacionSimplificadosSinCandidatos);
+  ARegistrar('inLibMsgFacturas.SFacturacionSimplificadosOtroTrimestre',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SFacturacionSimplificadosOtroTrimestre);
+
+  ARegistrar('inLibMsgFacturas.SErrorMaxTicketsFacturaF3',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SErrorMaxTicketsFacturaF3);
+
+  ARegistrar('inLibMsgCompras.SAvisoCompensacionFacturaAbierta',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SAvisoCompensacionFacturaAbierta);
+  ARegistrar('inLibMsgCompras.SAvisoFusionConAbonosAplicados',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SAvisoFusionConAbonosAplicados);
+  ARegistrar('inLibMsgCompras.SAvisoCompensacionUnEfecto',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SAvisoCompensacionUnEfecto);
+  ARegistrar('inLibMsgCompras.SAvisoCompensacionExcesiva',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SAvisoCompensacionExcesiva);
+  ARegistrar('inLibMsgCompras.SAvisoPagoEfectoNegativo',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SAvisoPagoEfectoNegativo);
+  ARegistrar('inLibMsgCompras.SAvisoGenerarEfectosFacturaAbierta',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SAvisoGenerarEfectosFacturaAbierta);
+  ARegistrar('inLibMsgCompras.SPreguntaCompensarEfectosCompra',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SPreguntaCompensarEfectosCompra);
+  ARegistrar('inLibMsgCompras.SAvisoBorrarEfectoConAbonos',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SAvisoBorrarEfectoConAbonos);
+  ARegistrar('inLibMsgCompras.SAvisoActualizarCompensacion',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SAvisoActualizarCompensacion);
+  ARegistrar('inLibMsgCompras.SAvisoCompensacionFracciones',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SAvisoCompensacionFracciones);
+  ARegistrar('inLibMsgVentas.STituloDevolucionCliente',
+    'src/Lib/inLibMsgVentas.pas',
+    @inLibMsgVentas.STituloDevolucionCliente);
+  ARegistrar('inLibMsgVentas.SInfoDevolucionClienteRegistrada',
+    'src/Lib/inLibMsgVentas.pas',
+    @inLibMsgVentas.SInfoDevolucionClienteRegistrada);
+  ARegistrar('inLibMsgVentas.SAvisoAbonoVentaNoEmitido',
+    'src/Lib/inLibMsgVentas.pas',
+    @inLibMsgVentas.SAvisoAbonoVentaNoEmitido);
 end;
 {$WARN SYMBOL_DEPRECATED ON}
 

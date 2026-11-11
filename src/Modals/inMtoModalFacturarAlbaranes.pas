@@ -472,6 +472,9 @@ begin
         end;
       end;
     end;
+    if (nOk > 0) and (Trim(ANumero) = '') then
+      FRepositorio.ProponerReferenciaProveedor(
+        sSerieAcum, sNumAcum, IdentidadSesion.Usuario);
     FFacSerie := sSerieAcum;
     FFacNumero := sNumAcum;
     FConfirmado := nOk > 0;

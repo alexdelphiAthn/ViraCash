@@ -28,6 +28,7 @@ type
     IndiceNumero: Integer;
     IndiceEfecto: Integer;
     MensajeSeleccionInsuficiente: string;
+    MensajeConfirmacion: string;
   end;
   TCoordinadorFusionEfectosVcl = class
   private
@@ -83,23 +84,36 @@ class procedure TCoordinadorFusionEfectosVcl.Ejecutar(
 var
   aClaves: TClavesFusionEfectos;
   oResultado: TResultadoFusionEfectos;
+  Pregunta: string;
 begin
+  Pregunta := AContexto.MensajeConfirmacion;
+  if Pregunta = '' then
+    Pregunta := SPreguntaFusionarEfectos;
   if not Assigned(AContexto.Vista) or
      (AContexto.Vista.Controller.SelectedRecordCount < 2) then
     ShowMessage_fza(AContexto.MensajeSeleccionInsuficiente)
   else if MessageDlg_fza(
-            SPreguntaFusionarEfectos,
+            Pregunta,
             mtConfirmation,
             [mbYes, mbNo],
             0) = mrYes then
   begin
     aClaves := RecogerClaves(AContexto);
-    oResultado := AContexto.CasoUso.Ejecutar(aClaves);
+    try
+      oResultado := AContexto.CasoUso.Ejecutar(aClaves);
+    except
+      on E: EValidacionFusionEfectos do
+      begin
+        ShowMessage_fza(E.Message);
+        oResultado := Default(TResultadoFusionEfectos);
+        oResultado.Cantidad := -1;
+      end;
+    end;
     if oResultado.Cantidad > 0 then
       ShowMessage_fza(Format(
         SInfoEfectosConciliados,
         [oResultado.Referencia]))
-    else
+    else if oResultado.Cantidad = 0 then
       ShowMessage_fza(SErrorFusionarEfectos);
   end;
 end;

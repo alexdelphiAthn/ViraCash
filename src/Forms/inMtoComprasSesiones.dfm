@@ -585,6 +585,7 @@
                   DataBinding.DataField = 'FORMA_PAGO_SES'
                   DataBinding.DataSource = dsTablaG
                   Properties.DropDownSizeable = True
+                  Properties.DropDownWidth = 360
                   Properties.KeyFieldNames = 'CODIGO_FP_FP'
                   Properties.ListColumns = <
                     item
@@ -601,7 +602,7 @@
                     end>
                   Properties.ListOptions.CaseInsensitive = True
                   TabOrder = 11
-                  Width = 60
+                  Width = 133
                 end
                 object chkTotalesESIVA_RECARGO_COMPRAS_SES: TcxDBCheckBox
                   Left = 56

@@ -25,6 +25,8 @@ procedure MostrarListadoDocumentosProveedor(AOwner: TComponent);
 procedure MostrarListadoEfectosPago(AOwner: TComponent);
 procedure MostrarListadoLibrosIva(AOwner: TComponent);
 function FacturarAlbaranesCompra(out ASerie, ANumero: string): Boolean;
+function FacturarSimplificadosPeriodo(AOwner: TComponent;
+  out ASerie, ANumero: string): Boolean;
 procedure MostrarProcesosAuxiliares(
   AOwner: TComponent;
   const AAnfitrionMantenimiento: IAnfitrionMantenimiento);
@@ -65,6 +67,7 @@ uses
   inMtoModalImpEfectosPago,
   inMtoModalImpLibrosIva,
   inMtoModalFacturarAlbaranes,
+  inMtoModalFacturarTicket,
   inMtoModalProcesosAuxiliaresBBDD,
   inMtoModalCambioArticuloColor,
   inLibCambioArticuloColor,
@@ -160,6 +163,17 @@ begin
   TfrmModalProcesosAuxiliaresBBDD.Ejecutar(
     AOwner,
     AAnfitrionMantenimiento);
+end;
+
+function FacturarSimplificadosPeriodo(AOwner: TComponent;
+  out ASerie, ANumero: string): Boolean;
+var
+  oResultado: TFacturarTicketResult;
+begin
+  oResultado := TfrmModalFacturarTicket.EjecutarPeriodo(AOwner);
+  Result := oResultado.Aceptado;
+  ASerie := oResultado.SerieNueva;
+  ANumero := oResultado.NumeroNueva;
 end;
 
 procedure MostrarCambioArticuloColor(
