@@ -43,6 +43,7 @@ type
     tvMovimientosCODIGO_ALM_CONTRA_MOV: TcxGridDBColumn;
     tvMovimientosTIPO_MOV: TcxGridDBColumn;
     tvMovimientosCANTIDAD_MOV: TcxGridDBColumn;
+    tvMovimientosSALDO_STOCK: TcxGridDBColumn;
     tvMovimientosESACTIVO_MOV: TcxGridDBColumn;
     dsMovimientos: TDataSource;
     pnlBotones: TPanel;
@@ -67,6 +68,7 @@ type
     procedure ActualizarAcciones;
     procedure ActualizarCabecera;
     procedure CargarMovimientos;
+    procedure OrdenarMovimientosPorFecha;
     function MovimientoSeleccionado(out ANumero: string): Boolean;
   public
     class function Ejecutar(
@@ -79,7 +81,7 @@ implementation
 
 uses
   inLibMensajesVcl,
-  inLibShowMto, inLibMsgArticulos;
+  inLibShowMto, inLibMsgArticulos, dxCore;
 
 {$R *.dfm}
 
@@ -131,6 +133,7 @@ begin
   FNumeroNavegacion := '';
   FStockReconstruido := False;
   lblAyuda.Caption := SMovimientosSkuAyuda;
+  tvMovimientosSALDO_STOCK.Caption := SCaptionSaldoStockMovimiento;
 end;
 
 procedure TfrmModalMovimientosSku.FormShow(Sender: TObject);
@@ -166,6 +169,7 @@ begin
     raise EInvalidOpException.Create(
       SErrorRepositorioMovimientosSkuNoDisponible);
   dsMovimientos.DataSet := FDatos;
+  OrdenarMovimientosPorFecha;
   iMovimientos := 0;
   if Assigned(FDatos) and FDatos.Active and (not FDatos.IsEmpty) then
   begin
@@ -179,6 +183,15 @@ begin
     lblResultado.Caption := Format(
       SMovimientosSkuResultado,
       [iMovimientos]);
+end;
+
+procedure TfrmModalMovimientosSku.OrdenarMovimientosPorFecha;
+begin
+  tvMovimientos.DataController.ClearSorting(False);
+  tvMovimientosFECHA_MOV.SortOrder := soDescending;
+  tvMovimientosFECHA_MOV.SortIndex := 0;
+  tvMovimientosNUMERO_MOV.SortOrder := soDescending;
+  tvMovimientosNUMERO_MOV.SortIndex := 1;
 end;
 
 function TfrmModalMovimientosSku.MovimientoSeleccionado(

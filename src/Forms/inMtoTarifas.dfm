@@ -199,7 +199,7 @@
             Height = 419
             Align = alClient
             TabOrder = 0
-            Properties.ActivePage = tsOtros
+            Properties.ActivePage = tsArticulos
             Properties.CustomButtons.Buttons = <>
             ClientRectBottom = 415
             ClientRectLeft = 4

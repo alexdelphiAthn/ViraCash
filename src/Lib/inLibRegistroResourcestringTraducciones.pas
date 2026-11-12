@@ -11584,6 +11584,12 @@ begin
       SCaptionColStock);
   ARegistrar(
     'inLibMsgArticulos.' +
+    'SCaptionSaldoStockMovimiento',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      SCaptionSaldoStockMovimiento);
+  ARegistrar(
+    'inLibMsgArticulos.' +
     'SCaptionSinArticulos',
     'src/Lib/inLibMsgArticulos.pas',
     @inLibMsgArticulos.

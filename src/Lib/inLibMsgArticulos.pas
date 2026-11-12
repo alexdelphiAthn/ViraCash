@@ -1343,6 +1343,7 @@ SLeyendaAvisosBalance =
   SCaptionColCodigoBarras = 'Cód. barras';
   SCaptionColRefProveedor = 'Ref. prov.';
   SCaptionColStock = 'Stock';
+  SCaptionSaldoStockMovimiento = 'Saldo';
   SCaptionSinArticulos = 'No hay artículos';
   // R07 - Movimientos de almacén
   SCaptionCargandoMovimientos = 'Cargando movimientos...';

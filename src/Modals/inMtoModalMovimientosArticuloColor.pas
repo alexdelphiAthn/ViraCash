@@ -6,7 +6,7 @@
 {   Autor:       Alejandro Laorden Hidalgo                                     }
 {  Copyright (c) Alejandro Laorden Hidalgo.                                    }
 {  SPDX-License-Identifier: MPL-2.0                                            }
-{  Descripción: Movimientos del artículo ordenados por color y talla.          }
+{  Descripción: Movimientos del artículo con saldo por SKU y fecha reciente.   }
 {******************************************************************************}
 unit inMtoModalMovimientosArticuloColor;
 
@@ -67,6 +67,7 @@ type
     procedure CargarColores(const ASkuInicial: string);
     procedure RegistrarColor(const AColor, AHex: string);
     procedure PrepararColumnas;
+    procedure OrdenarMovimientosPorFecha;
   public
     function DestinoSeleccionado(ADocumento: Boolean):
       TDestinoMovimientoArticulo;
@@ -80,7 +81,7 @@ implementation
 
 uses
   System.SysUtils, System.Variants, System.UITypes,
-  Vcl.Graphics, cxCurrencyEdit,
+  Vcl.Graphics, cxCurrencyEdit, dxCore,
   inLibAtributosPaleta,
   inLibShowMto, inLibMensajesVcl,
   UniDataDestinoFacturaRepositorio,
@@ -110,6 +111,7 @@ begin
     oFormulario.PrepararColumnas;
     oFormulario.dsMovimientos.DataSet := ADatos;
     oFormulario.CargarColores(ASkuInicial);
+    oFormulario.OrdenarMovimientosPorFecha;
     oFormulario.ShowModal;
     if oFormulario.ModalResult = mrOk then
       ShowMto(AOwner.Owner, oFormulario.FDestino.Pantalla,
@@ -368,6 +370,19 @@ begin
   end;
 end;
 
+procedure TfrmModalMovimientosArticuloColor.OrdenarMovimientosPorFecha;
+var
+  oFecha, oNumero: TcxGridDBColumn;
+begin
+  tvMovimientos.DataController.ClearSorting(False);
+  oFecha := tvMovimientos.GetColumnByFieldName('FECHA_MOV');
+  oNumero := tvMovimientos.GetColumnByFieldName('NUMERO_MOV');
+  oFecha.SortOrder := soDescending;
+  oFecha.SortIndex := 0;
+  oNumero.SortOrder := soDescending;
+  oNumero.SortIndex := 1;
+end;
+
 procedure TfrmModalMovimientosArticuloColor.PrepararColumnas;
 const
   FORMATO_PRECIO = '#,##0.00;-#,##0.00;0.00';
@@ -382,6 +397,8 @@ begin
   AnadirColumna('CODIGO_ALM_MOV', SAlmacenMovimientosArticulo, 80);
   AnadirColumna('TIPO_MOV', STipoMovimientosArticulo, 60);
   AnadirColumna('CANTIDAD_MOV', SUnidadesMovimientosArticulo, 80,
+    '#,##0.######;-#,##0.######;0');
+  AnadirColumna('SALDO_STOCK', SCaptionSaldoStockMovimiento, 90,
     '#,##0.######;-#,##0.######;0');
   AnadirColumna('PRECIO_COSTE_UNITARIO_MOV', SPrecioCompraMovimientos,
     170, FORMATO_PRECIO);

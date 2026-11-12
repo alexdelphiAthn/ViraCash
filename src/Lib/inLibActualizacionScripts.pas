@@ -58,7 +58,6 @@ uses
   System.SyncObjs,
   System.SysUtils,
   Data.DB,
-  UniScript,
   inLibMsgIntegraciones;
 
 const
@@ -310,10 +309,118 @@ begin
   end;
 end;
 
+// Enviar las sentencias completas evita que UniScript vuelva a interpretar
+// BEGIN/END y recorte los procedimientos. Los errores llegan al proceso
+// sin abrir cuadros de mensaje desde el hilo trabajador.
+procedure EjecutarSentenciasSql(AConexion: TUniConnection;
+  const AContenido, ADelimitador: string);
+var
+  oConsulta: TUniQuery;
+  oSentencia: TStringBuilder;
+  iPosicion: Integer;
+  cActual, cSiguiente, cComilla: Char;
+  bComentarioLinea, bComentarioBloque, bTieneCodigo: Boolean;
+
+  procedure EnviarSentencia;
+  begin
+    if bTieneCodigo then
+    begin
+      oConsulta.SQL.Text := oSentencia.ToString;
+      oConsulta.ExecSQL;
+    end;
+    oSentencia.Clear;
+    bTieneCodigo := False;
+  end;
+
+begin
+  oConsulta := TUniQuery.Create(nil);
+  oSentencia := TStringBuilder.Create;
+  try
+    oConsulta.Connection := AConexion;
+    oConsulta.ParamCheck := False;
+    iPosicion := 1;
+    cComilla := #0;
+    bComentarioLinea := False;
+    bComentarioBloque := False;
+    bTieneCodigo := False;
+    while iPosicion <= Length(AContenido) do
+    begin
+      cActual := AContenido[iPosicion];
+      cSiguiente := #0;
+      if iPosicion < Length(AContenido) then
+        cSiguiente := AContenido[iPosicion + 1];
+      if bComentarioLinea then
+      begin
+        oSentencia.Append(cActual);
+        if CharInSet(cActual, [#10, #13]) then
+          bComentarioLinea := False;
+      end
+      else if bComentarioBloque then
+      begin
+        oSentencia.Append(cActual);
+        if (cActual = '*') and (cSiguiente = '/') then
+        begin
+          oSentencia.Append(cSiguiente);
+          Inc(iPosicion);
+          bComentarioBloque := False;
+        end;
+      end
+      else if cComilla <> #0 then
+      begin
+        oSentencia.Append(cActual);
+        if ((cActual = '\') and (cComilla <> '`')) or
+           ((cActual = cComilla) and (cSiguiente = cComilla)) then
+        begin
+          oSentencia.Append(cSiguiente);
+          Inc(iPosicion);
+        end
+        else if cActual = cComilla then
+          cComilla := #0;
+      end
+      else if Copy(AContenido, iPosicion,
+        Length(ADelimitador)) = ADelimitador then
+      begin
+        EnviarSentencia;
+        Inc(iPosicion, Length(ADelimitador) - 1);
+      end
+      else
+      begin
+        oSentencia.Append(cActual);
+        if (cActual = '#') or
+           ((cActual = '-') and (cSiguiente = '-') and
+            ((iPosicion + 1 = Length(AContenido)) or
+             CharInSet(AContenido[iPosicion + 2], [#9, #10, #13, ' ']))) then
+          bComentarioLinea := True
+        else if (cActual = '/') and (cSiguiente = '*') then
+        begin
+          oSentencia.Append(cSiguiente);
+          Inc(iPosicion);
+          bComentarioBloque := True;
+          // Los comentarios de versión pueden contener SQL ejecutable.
+          if (iPosicion < Length(AContenido)) and
+             CharInSet(AContenido[iPosicion + 1], ['!', 'M']) then
+            bTieneCodigo := True;
+        end
+        else
+        begin
+          if CharInSet(cActual, ['''', '"', '`']) then
+            cComilla := cActual;
+          if not CharInSet(cActual, [#9, #10, #13, ' ']) then
+            bTieneCodigo := True;
+        end;
+      end;
+      Inc(iPosicion);
+    end;
+    EnviarSentencia;
+  finally
+    oSentencia.Free;
+    oConsulta.Free;
+  end;
+end;
+
 procedure EjecutarContenidoScript(AConexion: TUniConnection;
   const AContenido: string);
 var
-  oScript: TUniScript;
   oLineas: TStringList;
   oBloque: TStringBuilder;
   sLinea: string;
@@ -326,19 +433,15 @@ var
   begin
     if Trim(oBloque.ToString) <> '' then
     begin
-      oScript.SQL.Text := oBloque.ToString;
-      oScript.Delimiter := sDelimitador;
-      oScript.Execute;
+      EjecutarSentenciasSql(AConexion, oBloque.ToString, sDelimitador);
     end;
     oBloque.Clear;
   end;
 
 begin
-  oScript := TUniScript.Create(nil);
   oLineas := TStringList.Create;
   oBloque := TStringBuilder.Create;
   try
-    oScript.Connection := AConexion;
     oLineas.Text := AContenido;
     sDelimitador := ';';
     cComilla := #0;
@@ -368,7 +471,6 @@ begin
   finally
     oBloque.Free;
     oLineas.Free;
-    oScript.Free;
   end;
 end;
 

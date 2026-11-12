@@ -120,6 +120,15 @@
         Options.Editing = False
         Width = 100
       end
+      object tvMovimientosSALDO_STOCK: TcxGridDBColumn
+        Caption = 'Saldo'
+        DataBinding.FieldName = 'SALDO_STOCK'
+        PropertiesClassName = 'TcxCurrencyEditProperties'
+        Properties.DisplayFormat = '#,##0.######;-#,##0.######;0'
+        HeaderAlignmentHorz = taRightJustify
+        Options.Editing = False
+        Width = 100
+      end
       object tvMovimientosESACTIVO_MOV: TcxGridDBColumn
         Caption = 'Activo'
         DataBinding.FieldName = 'ESACTIVO_MOV'

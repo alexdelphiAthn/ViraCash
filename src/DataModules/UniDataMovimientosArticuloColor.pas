@@ -42,8 +42,21 @@ const
     '         V.PRECIO_VENTA_SIVA_ARTICULO_ALBLIN) AS PRECIO_VENTA_SIVA, ' +
     '       COALESCE(F.PORCENTAJE_DTO_FACLIN, ' +
     '         V.PORCENTAJE_DTO_ALBLIN) AS PORCENTAJE_DTO, ' +
-    '       M.TOTAL_COSTE_MOV, M.CODIGO_UNIDAD_MOV, M.ESACTIVO_MOV ' +
+    '       M.TOTAL_COSTE_MOV, M.CODIGO_UNIDAD_MOV, M.ESACTIVO_MOV, ' +
+    '       R.SALDO_STOCK ' +
     '  FROM fza_movimientos_almacen M ' +
+    // Calcular antes de unir documentos conserva el saldo de cada SKU.
+    '  JOIN (SELECT X.NUMERO_MOV, ' +
+    '    SUM(CASE WHEN X.ESACTIVO_MOV = ''S'' THEN ' +
+    '      CASE X.TIPO_MOV WHEN ''E'' THEN X.CANTIDAD_MOV ' +
+    '        WHEN ''S'' THEN -X.CANTIDAD_MOV ELSE 0 END ' +
+    '      ELSE 0 END) OVER (PARTITION BY X.CODIGO_UNIDAD_MOV ' +
+    '      ORDER BY X.FECHA_MOV, X.NUMERO_MOV ' +
+    '      ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) ' +
+    '      AS SALDO_STOCK ' +
+    '    FROM fza_movimientos_almacen X ' +
+    '    WHERE X.CODIGO_ART_MOV = :ARTICULO_SALDOS) R ' +
+    '    ON R.NUMERO_MOV = M.NUMERO_MOV ' +
     '  LEFT JOIN ( ' +
     '    SELECT S.CODIGO_UNIDAD_SKU, ' +
     '           MAX(CASE WHEN E.EJE_VA = ''F'' THEN AV.AV END) ' +
@@ -89,7 +102,7 @@ const
     '   AND V.LINEA_ALBLIN = M.LINEA_MOV ' +
     '   AND V.CODIGO_UNIDAD_ALBLIN = M.CODIGO_UNIDAD_MOV ' +
     ' WHERE M.CODIGO_ART_MOV = :ARTICULO ' +
-    ' ORDER BY A.COLOR_AV, A.TALLA_AV, M.FECHA_MOV, M.NUMERO_MOV';
+    ' ORDER BY M.FECHA_MOV DESC, M.NUMERO_MOV DESC';
 
 function ConsultarMovimientosArticuloColor(AConexion: TUniConnection;
   const ACodigoArticulo: string): TUniQuery;
@@ -103,6 +116,7 @@ begin
     Result.SQL.Text := SQL_MOVIMIENTOS_ARTICULO_COLOR;
     Result.ParamByName('ARTICULO_ATRIBUTOS').AsString := ACodigoArticulo;
     Result.ParamByName('ARTICULO').AsString := ACodigoArticulo;
+    Result.ParamByName('ARTICULO_SALDOS').AsString := ACodigoArticulo;
     Result.Open;
   except
     FreeAndNil(Result);

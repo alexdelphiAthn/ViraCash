@@ -363,6 +363,7 @@ begin
   FOnDataChangeTablaGAnterior := dsTablaG.OnDataChange;
   dsTablaG.OnDataChange := dsTablaGDataChangeCondicionDto;
   CargarCondicionDto;
+  pcPestana.ActivePage := tsArticulos;
 end;
 
 procedure TfrmMtoTarifas.AplicarEtiquetas;
