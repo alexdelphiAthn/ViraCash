@@ -363,6 +363,9 @@ end;
 function MostrarDialogo(ADialogo: TForm): Integer;
 begin
   try
+    // Avisos del arranque con el login aún oculto (error de conexión,
+    // autologin, licencia): sin botón propio no se pueden recuperar.
+    AsegurarBotonBarraTareas(ADialogo);
     Result := ADialogo.ShowModal;
   finally
     ADialogo.Free;

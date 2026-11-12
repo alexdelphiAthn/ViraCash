@@ -38,6 +38,14 @@ procedure CentrarFormularioPorDefecto(AForm: TForm);
 /// propio en la barra de tareas) puede taparla.
 procedure AsociarVentanaPropietaria(AForm: TCustomForm; AOwner: TComponent);
 
+/// Da a AForm botón e icono en la barra de tareas cuando el programa aún
+/// no tiene ninguno: no existe la ventana principal ni hay otra ventana
+/// visible con botón (arranque con el login todavía oculto). Sin esto un
+/// aviso que quede detrás de otro programa solo se localiza desde el
+/// administrador de tareas. Llamar con la ventana a punto de mostrarse;
+/// si después se recrea su manejador, el botón se pierde.
+procedure AsegurarBotonBarraTareas(AForm: TCustomForm);
+
 // Limita el tamaño exterior y centra en el área útil del monitor propietario.
 function RectanguloVentanaEnArea(const AVentana, AArea: TRect): TRect;
 procedure AjustarFormularioAreaTrabajo(AForm: TCustomForm;
@@ -46,7 +54,7 @@ procedure AjustarFormularioAreaTrabajo(AForm: TCustomForm;
 implementation
 
 uses
-  System.Rtti, System.Math;
+  Winapi.Windows, Winapi.Messages, System.Rtti, System.Math;
 
 function RectanguloVentanaEnArea(const AVentana, AArea: TRect): TRect;
 var
@@ -110,6 +118,49 @@ begin
   begin
     AForm.PopupMode := pmExplicit;
     AForm.PopupParent := TCustomForm(AOwner);
+  end;
+end;
+
+function HayVentanaConBotonBarraTareas(AExcluida: TCustomForm): Boolean;
+var
+  I: Integer;
+  oForm: TCustomForm;
+begin
+  Result := False;
+  for I := 0 to Screen.CustomFormCount - 1 do
+  begin
+    oForm := Screen.CustomForms[I];
+    if (oForm <> AExcluida) and oForm.HandleAllocated and
+       IsWindowVisible(oForm.Handle) and
+       ((GetWindowLong(oForm.Handle, GWL_EXSTYLE) and
+         WS_EX_APPWINDOW) <> 0) then
+      Result := True;
+  end;
+end;
+
+procedure AsegurarBotonBarraTareas(AForm: TCustomForm);
+var
+  hVentana: HWND;
+  iEstilo: Integer;
+begin
+  // Con ventana principal, o con el login ya visible, la barra de
+  // tareas ya tiene un botón del programa desde el que volver.
+  if (AForm <> nil) and (Application.MainForm = nil) and
+     (AForm.Parent = nil) and
+     not HayVentanaConBotonBarraTareas(AForm) then
+  begin
+    hVentana := AForm.Handle;
+    iEstilo := GetWindowLong(hVentana, GWL_EXSTYLE);
+    if (iEstilo and WS_EX_APPWINDOW) = 0 then
+    begin
+      // WS_EX_APPWINDOW da botón aunque la ventana dependa de la ventana
+      // oculta de la aplicación; debe ponerse antes de mostrarla.
+      SetWindowLong(hVentana, GWL_EXSTYLE, iEstilo or WS_EX_APPWINDOW);
+      // Los diálogos de mensaje (bsDialog) no llevan icono propio.
+      if SendMessage(hVentana, WM_GETICON, ICON_BIG, 0) = 0 then
+        SendMessage(hVentana, WM_SETICON, ICON_BIG,
+          LPARAM(Application.Icon.Handle));
+    end;
   end;
 end;
 

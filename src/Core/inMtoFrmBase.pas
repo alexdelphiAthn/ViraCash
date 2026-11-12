@@ -1450,6 +1450,10 @@ begin
   CentrarFormularioPorDefecto(Self);
   // El degradado pudo crearse antes de que llegaran los parámetros.
   AplicarDegradadoBordes;
+  // Modales del arranque sin ninguna ventana visible (integridad,
+  // actualización, nuevo equipo, error): botón en la barra de tareas.
+  if fsModal in FormState then
+    AsegurarBotonBarraTareas(Self);
   inherited;
   // Después de inherited: OnShow restaura la disposición guardada de las
   // rejillas y volvería a enseñar las columnas.
