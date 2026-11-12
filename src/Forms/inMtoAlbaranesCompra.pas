@@ -694,7 +694,8 @@ begin
   cbbTemporadaAlbc.Properties.ListSource :=
     dmmAlbaranesCompra.dsTemporadasAlbc;
   cbbTemporadaAlbc.Properties.ListFieldNames := 'PV';
-  // ListSource del combo de proveedor (busqueda incremental por codigo o nombre).
+  // ListSource del combo de proveedor: busqueda incremental
+  // por codigo o por nombre sobre el texto "codigo - nombre".
   // Reutiliza el lookup unqryPrvDataAlbc, ya cargado para el rotulo.
   cbbCODIGO_PRV_ALBC.Properties.ListSource := dmmAlbaranesCompra.dsPrvDataAlbc;
   DesactivarEnterAsTabEnCombo(cbbCODIGO_ALM_ALBC);

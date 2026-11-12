@@ -27,8 +27,9 @@ function SqlNombreMostradoProveedor(const AAlias: string): string;
 // Columna CAMPO_BUSQUEDA_PRV ("código - nombre mostrado") con su alias
 // de columna, con las columnas cualificadas por AAlias.
 function SqlColumnaBusquedaProveedor(const AAlias: string): string;
-// Lookup completo de fza_proveedores ordenado por nombre, para los
-// combos de los documentos de compra, que buscan por código o nombre.
+// Lookup de fza_proveedores para los combos de los documentos de
+// compra: muestran "código - nombre" ordenado por código y filtran
+// por cualquier parte de ese texto, sea el código o el nombre.
 function SqlLookupProveedores: string;
 
 implementation
@@ -58,11 +59,13 @@ end;
 
 function SqlLookupProveedores: string;
 begin
-  Result := 'SELECT P.*, ' + SqlNombreMostradoProveedor('P') +
+  Result := 'SELECT P.CODIGO_PRV_PRV, P.NOMBRE_PRV, ' +
+    'P.RAZON_SOCIAL_PRV, P.NIF_PRV, P.MOVIL_PRV, P.EMAIL_PRV, ' +
+    'P.ESFACTURACION_DIRECTA_PRV, ' +
+    SqlNombreMostradoProveedor('P') +
     ' AS ' + CAMPO_NOMBRE_MOSTRADO_PRV + ', ' +
     SqlColumnaBusquedaProveedor('P') +
-    ' FROM fza_proveedores P ORDER BY ' +
-    CAMPO_NOMBRE_MOSTRADO_PRV + ', P.CODIGO_PRV_PRV';
+    ' FROM fza_proveedores P ORDER BY P.CODIGO_PRV_PRV';
 end;
 
 end.

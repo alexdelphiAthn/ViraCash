@@ -44,6 +44,10 @@ type
     // Devolución: lo que las formas de pago devuelven por encima del
     // importe a devolver (FZ-359)
     ImporteDevueltoDeMas: Currency;
+    // Venta: lo que las formas de pago que no devuelven cambio superan
+    // el total a pagar. No se reembolsa ni se convierte en vale
+    // (FZ-ISSUE-936).
+    ImporteExcesoSinCambio: Currency;
   end;
   TLineaCobroParcial = record
     IdDeposito: string;
@@ -229,9 +233,17 @@ class procedure TCalculadorFaseCobro.CalcularVenta(
   var AResultado: TResultadoTotalesCobro);
 var
   dCambioCalculado: Currency;
+  dSinCambio: Currency;
+  dVale: Currency;
 begin
   AResultado.ImporteEntregado :=
     AEntrada.TotalEntregado + AEntrada.TotalValesRecogidos;
+  // FZ-ISSUE-936: un bono, una tarjeta u otra forma sin cambio no cubre
+  // más que la venta; su exceso no es cambio ni vale de tienda.
+  dSinCambio := AEntrada.TotalEntregado - AEntrada.TotalEntregadoConCambio;
+  if dSinCambio > AResultado.ImporteTotalPagar + 0.001 then
+    AResultado.ImporteExcesoSinCambio :=
+      dSinCambio - AResultado.ImporteTotalPagar;
   if AResultado.ImporteEntregado >=
      AResultado.ImporteTotalPagar - 0.001 then
   begin
@@ -243,8 +255,12 @@ begin
     if dCambioCalculado > AEntrada.TotalEntregadoConCambio then
     begin
       AResultado.ImporteCambio := AEntrada.TotalEntregadoConCambio;
-      AResultado.ImporteValeEmitido :=
-        dCambioCalculado - AEntrada.TotalEntregadoConCambio;
+      // Solo el sobrante de los vales recogidos vuelve a salir en vale.
+      dVale := dCambioCalculado - AEntrada.TotalEntregadoConCambio -
+        AResultado.ImporteExcesoSinCambio;
+      if dVale < 0.01 then
+        dVale := 0;
+      AResultado.ImporteValeEmitido := dVale;
     end
     else
     begin

@@ -1565,7 +1565,8 @@ begin
   cbbTarifa.Properties.ListSource    := Dmm.dsTarifas;
   cbbTemporada.Properties.ListSource := Dmm.dsTemporadas;
   cbbTotalesFORMA_PAGO_SES.Properties.ListSource := Dmm.dsFormasPago;
-  // ListSource del combo de proveedor (busqueda incremental por nombre).
+  // ListSource del combo de proveedor: busqueda incremental por
+  // codigo o por nombre sobre el texto "codigo - nombre".
   // Reutiliza el lookup Dmm.unqryProveedores, ya cargado para el rotulo.
   cbbProveedor.Properties.ListSource := Dmm.dsProveedores;
   cbbVariacion.Properties.ListSource := Dmm.dsVariaciones;

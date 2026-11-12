@@ -131,6 +131,7 @@ type
     FImporteValeRecogido: Currency;
     FImporteValeEmitido: Currency;
     FImporteDevueltoDeMas: Currency;
+    FImporteExcesoSinCambio: Currency;
     FImporteValeObligatorio: Currency;
     FCodigoValePadre: string;
     FImporteValesFijos: Currency;
@@ -283,6 +284,10 @@ resourcestring
     'Se devuelve más de lo debido. Sobran: %m' + sLineBreak +
     'Lo pagado con vale en el ticket de origen (%m) se devuelve en vale.';
   SErrorPagoNoIndicado = 'No se ha indicado ningún pago.';
+  SErrorExcesoPagoSinCambio =
+    'Las formas de pago que no devuelven cambio superan el total en %m.' +
+    sLineBreak + 'Reduzca su importe: el exceso no se devuelve ni se ' +
+    'convierte en vale.';
   SErrorApartadoSinEntregaCuenta =
     'Para apartar prendas el cliente tiene que dejar algo a cuenta.';
   SErrorApartadoSinContacto =
@@ -377,6 +382,7 @@ begin
   FImporteValeRecogido := 0;
   FImporteValeEmitido := 0;
   FImporteDevueltoDeMas := 0;
+  FImporteExcesoSinCambio := 0;
   FImporteValeObligatorio := 0;
   FCodigoValePadre := '';
   FHayCliente := False;
@@ -730,6 +736,7 @@ begin
   FImporteValeRecogido := AResultado.ImporteValeRecogido;
   FImporteValeEmitido := AResultado.ImporteValeEmitido;
   FImporteDevueltoDeMas := AResultado.ImporteDevueltoDeMas;
+  FImporteExcesoSinCambio := AResultado.ImporteExcesoSinCambio;
 end;
 
 function TDatosFaseCobro.LeerEntradaTotales: TEntradaTotalesCobro;
@@ -1063,6 +1070,9 @@ begin
       TotalCobrado := FImporteEntregado + FImporteDejarCuenta;
       if (TotalCobrado = 0) and (FImporteTotalPagar > 0) then
         Result := TResultadoValidacion.Error(SErrorPagoNoIndicado)
+      else if FImporteExcesoSinCambio > 0.001 then
+        Result := TResultadoValidacion.Error(
+          Format(SErrorExcesoPagoSinCambio, [FImporteExcesoSinCambio]))
       else if (FImportePendiente > 0.01) and
               (FImporteDejarCuenta = 0) then
         Result := TResultadoValidacion.Advertencia(

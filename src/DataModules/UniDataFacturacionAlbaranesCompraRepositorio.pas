@@ -22,7 +22,7 @@ function CrearRepositorioFacturacionAlbaranesCompraUniDAC(
 implementation
 
 uses
-  System.SysUtils, Data.DB, DBAccess;
+  System.SysUtils, Data.DB, DBAccess, UniDataProveedoresTexto;
 
 const
   SQL_ALBARANES_PENDIENTES =
@@ -36,9 +36,11 @@ const
   SQL_EMPRESAS =
     'SELECT * FROM fza_empresas ORDER BY RAZON_SOCIAL_EMP';
   SQL_PROVEEDORES =
-    'SELECT * FROM fza_proveedores ORDER BY NOMBRE_PRV';
+    'SELECT * FROM fza_proveedores ORDER BY ' +
+    SQL_NOMBRE_MOSTRADO_PRV + ', CODIGO_PRV_PRV';
   SQL_NOMBRE_PROVEEDOR =
-    'SELECT NOMBRE_PRV FROM fza_proveedores WHERE CODIGO_PRV_PRV = :PRV';
+    'SELECT ' + SQL_COLUMNA_NOMBRE_MOSTRADO_PRV +
+    ' FROM fza_proveedores WHERE CODIGO_PRV_PRV = :PRV';
   SQL_FORMA_PAGO_PROVEEDOR =
     'SELECT CODIGO_FP_PRV FROM fza_proveedores ' +
     ' WHERE CODIGO_PRV_PRV = :PRV';
@@ -252,7 +254,8 @@ begin
     Consulta.ParamByName('PRV').AsString := AProveedor;
     Consulta.Open;
     if not Consulta.Eof then
-      Result := Consulta.FieldByName('NOMBRE_PRV').AsString;
+      Result := Consulta.FieldByName(
+        CAMPO_NOMBRE_MOSTRADO_PRV).AsString;
   finally
     FreeAndNil(Consulta);
   end;

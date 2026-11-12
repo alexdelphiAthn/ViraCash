@@ -1595,14 +1595,9 @@ begin
       ' AS ' + CAMPO_NOMBRE_MOSTRADO_PRV + ', ' +
       SqlColumnaBusquedaProveedor('A') +
       ' FROM (' + SQL_CLIENTES_AGRICULTORES + ') A ' +
-      'ORDER BY A.RAZON_SOCIAL_PRV'
+      'ORDER BY A.CODIGO_PRV_PRV'
   else
-    sSql := 'SELECT CODIGO_PRV_PRV, NOMBRE_PRV, RAZON_SOCIAL_PRV, ' +
-      'NIF_PRV, MOVIL_PRV, EMAIL_PRV, ESFACTURACION_DIRECTA_PRV, ' +
-      SQL_COLUMNA_NOMBRE_MOSTRADO_PRV + ', ' +
-      SqlColumnaBusquedaProveedor('') +
-      ' FROM fza_proveedores ORDER BY ' +
-      CAMPO_NOMBRE_MOSTRADO_PRV + ', CODIGO_PRV_PRV';
+    sSql := SqlLookupProveedores;
   if Trim(unqryPrvDataFacc.SQL.Text) <> sSql then
   begin
     unqryPrvDataFacc.Close;

@@ -259,7 +259,7 @@
           end
           object colProvNombreComercial: TcxGridDBColumn
             Caption = 'Proveedor'
-            DataBinding.FieldName = 'NOMBRE_PRV'
+            DataBinding.FieldName = 'NOMBRE_MOSTRADO_PRV'
             Width = 400
           end
           object colProvRazonSocial: TcxGridDBColumn

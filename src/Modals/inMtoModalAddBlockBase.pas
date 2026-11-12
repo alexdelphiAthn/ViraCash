@@ -732,7 +732,7 @@ begin
     // Busca en la razon social y en el nombre comercial.
     FProveedores.Filter :=
       Format('(RAZON_SOCIAL_PRV LIKE ''%%%0:s%%'') OR ' +
-             '(NOMBRE_PRV LIKE ''%%%0:s%%'')',
+             '(NOMBRE_MOSTRADO_PRV LIKE ''%%%0:s%%'')',
              [StringReplace(txt, '''', '''''', [rfReplaceAll])]);
     FProveedores.Filtered := True;
   end;

@@ -1103,12 +1103,14 @@ begin
       oConsulta.SQL.Text :=
         'SELECT CODIGO_PRV_PRV AS CODIGO, ' +
         SQL_NOMBRE_MOSTRADO_PRV + ' AS NOMBRE, ' +
+        'RAZON_SOCIAL_PRV AS RAZON_SOCIAL, ' +
         'NIF_PRV AS NIF, CODIGO_FP_PRV AS FORMA_PAGO ' +
         'FROM fza_proveedores WHERE COALESCE(ESACTIVO_PRV, ''S'') = ' +
         '''S'' ORDER BY NOMBRE, CODIGO_PRV_PRV'
     else
       oConsulta.SQL.Text :=
         'SELECT CODIGO_CLI_CLI AS CODIGO, RAZON_SOCIAL_CLI AS NOMBRE, ' +
+        'RAZON_SOCIAL_CLI AS RAZON_SOCIAL, ' +
         'NIF_CLI AS NIF, CODIGO_FP_CLI AS FORMA_PAGO ' +
         'FROM fza_clientes WHERE COALESCE(ESACTIVO_CLI, ''S'') = ' +
         '''S'' ORDER BY RAZON_SOCIAL_CLI, CODIGO_CLI_CLI';

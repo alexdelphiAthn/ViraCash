@@ -58,6 +58,10 @@ type
     // fecha desde la que se suman albaranes y, en modo local, traspasos
     FdteIniCompras: TcxDateEdit;
     FchkEntradasGlobales: TcxCheckBox;
+    // True cuando el usuario ha cambiado la casilla a mano; mientras no,
+    // sigue la seleccion de almacenes (FZ-ISSUE-935).
+    FEntradasGlobalesManual: Boolean;
+    FAjustandoEntradasGlobales: Boolean;
     FchkSoloVentas: TcxCheckBox;   // 'solo artículos con ventas' en el periodo
     FchkConImpuestos: TcxCheckBox;
     FclbOrden: TcxCheckListBox;
@@ -68,6 +72,8 @@ type
     procedure CrearAccesosRanking;
     procedure AplicarRanking(Sender: TObject);
     procedure chkIniComprasChange(Sender: TObject);
+    procedure chkEntradasGlobalesChange(Sender: TObject);
+    procedure AjustarEntradasGlobales;
     procedure OrdenClickCheck(Sender: TObject; AIndex: Integer;
       APrevState, ANewState: TcxCheckBoxState);
     function OrdenSeleccionado(out AOrden: TOrdenMovVentasArt): Boolean;
@@ -91,6 +97,7 @@ type
     function RutaFotoArticulo(const ACodigoArticulo: string): string;
   protected
     function FiltrosUsados: TFiltrosReport; override;
+    procedure AlmacenesCambiados; override;
     procedure DescribirSelecciones(
       AResumen: TResumenSeleccionesInforme); override;
     procedure DoShow; override;
@@ -181,6 +188,8 @@ begin
     FchkEntradasGlobales.Caption :=
       SCaptionEntradasGlobalesMovimientosVentas;
     FchkEntradasGlobales.Checked := True;
+    FchkEntradasGlobales.Properties.OnEditValueChanged :=
+      chkEntradasGlobalesChange;
     // "Solo artículos con ventas": oculta los que solo tienen entradas (lo
     // típico de un ranking de ventas). Arranca DESMARCADO = salen todos.
     FchkSoloVentas := TcxCheckBox.Create(Self);
@@ -250,6 +259,9 @@ begin
     SeleccionarAgrupaciones(['FAM']);
   FchkIniCompras.Checked := True;
   FdteIniCompras.Date := DteDesde.Date;
+  // El ranking vuelve al criterio por defecto segun los almacenes elegidos.
+  FEntradasGlobalesManual := False;
+  AjustarEntradasGlobales;
   // Incluye grupos con entradas y ninguna venta, como el modelo del cliente.
   FchkSoloVentas.Checked := False;
   for i := 0 to FclbOrden.Items.Count - 1 do
@@ -331,6 +343,35 @@ begin
     for iOrden := 0 to FclbOrden.Items.Count - 1 do
       if iOrden <> AIndex then
         FclbOrden.Items[iOrden].State := cbsUnchecked;
+end;
+
+// FZ-ISSUE-935: sin almacenes elegidos las entradas son de toda la
+// empresa; al elegir almacenes concretos, las de esos almacenes. Si el
+// usuario cambia la casilla, se respeta su eleccion.
+procedure TfrmPrintMovVentasArt.AjustarEntradasGlobales;
+begin
+  if FchkEntradasGlobales <> nil then
+  begin
+    FAjustandoEntradasGlobales := True;
+    try
+      FchkEntradasGlobales.Checked := CSVAlmacenes = '';
+    finally
+      FAjustandoEntradasGlobales := False;
+    end;
+  end;
+end;
+
+procedure TfrmPrintMovVentasArt.AlmacenesCambiados;
+begin
+  inherited;
+  if not FEntradasGlobalesManual then
+    AjustarEntradasGlobales;
+end;
+
+procedure TfrmPrintMovVentasArt.chkEntradasGlobalesChange(Sender: TObject);
+begin
+  if not FAjustandoEntradasGlobales then
+    FEntradasGlobalesManual := True;
 end;
 
 procedure TfrmPrintMovVentasArt.chkIniComprasChange(Sender: TObject);

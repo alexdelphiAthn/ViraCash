@@ -581,6 +581,10 @@ begin
     'Devoluciones y Vales',
     'src/Caja/Lib/inLibCajaParam.pas');
   ARegistrar(
+    'inMtoCajaParam.Parametros.vgerUsarValesCobro.Descripcion',
+    'Usar vales en la fase de cobro',
+    'src/Caja/Lib/inLibCajaParam.pas');
+  ARegistrar(
     'inMtoCajaParam.Parametros.vgerReqRefDevolucion.Descripci' +
     'on',
     'Pedir referencia en devoluciones',

@@ -154,6 +154,8 @@ type
     procedure AvisarAntesDeConsulta; override;
     // Los descendientes redefinen esto para elegir qué pestañas mostrar.
     function FiltrosUsados: TFiltrosReport; virtual;
+    // Aviso tras marcar o desmarcar un almacén (FZ-ISSUE-935).
+    procedure AlmacenesCambiados; virtual;
     // SQL de proveedores. Los informes de documentos pueden usar otra fuente
     // sin alterar el filtro de proveedor de balances y movimientos.
     function OrigenProveedores:
@@ -671,7 +673,13 @@ begin
       if idx >= 0 then
         fc.Marcados.Delete(idx);
     end;
+    if fc = FfcAlmacenes then
+      AlmacenesCambiados;
   end;
+end;
+
+procedure TfrmPrintMultiFiltro.AlmacenesCambiados;
+begin
 end;
 
 procedure TfrmPrintMultiFiltro.SearchChange(Sender: TObject);

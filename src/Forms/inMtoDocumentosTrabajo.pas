@@ -1471,7 +1471,7 @@ var
   oConsulta: IConsultaDocumentoTrabajo;
   oCampo: TCampoAdicionalOpcionesDocumento;
   oElemento: TElementoOpcionesDocumento;
-  sUltimoCodigo, sTitulo: string;
+  sUltimoCodigo, sTitulo, sRazonSocial: string;
   oDatos: TDataSet;
 begin
   oConsulta := FLecturasDocumentosTrabajo.ConsultarTercerosEnvio(ACompra);
@@ -1492,7 +1492,14 @@ begin
   while not oDatos.Eof do
   begin
     oElemento.Codigo := oDatos.FieldByName('CODIGO').AsString;
-    oElemento.Nombre := oDatos.FieldByName('NOMBRE').AsString +
+    // La razon social acompaña al nombre comercial cuando difiere,
+    // para poder buscar el tercero por cualquiera de los dos.
+    oElemento.Nombre := oDatos.FieldByName('NOMBRE').AsString;
+    sRazonSocial := Trim(oDatos.FieldByName('RAZON_SOCIAL').AsString);
+    if (sRazonSocial <> '') and
+       not SameText(sRazonSocial, Trim(oElemento.Nombre)) then
+      oElemento.Nombre := oElemento.Nombre + ' - ' + sRazonSocial;
+    oElemento.Nombre := oElemento.Nombre +
       ' (' + oElemento.Codigo + ')';
     oCampo.Elementos := oCampo.Elementos + [oElemento];
     oDatos.Next;

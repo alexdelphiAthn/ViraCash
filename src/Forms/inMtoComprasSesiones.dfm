@@ -1791,20 +1791,15 @@
                 Properties.DropDownListStyle = lsEditList
                 Properties.DropDownRows = 15
                 Properties.DropDownWidth = 480
+                Properties.IncrementalFiltering = True
                 Properties.KeyFieldNames = 'CODIGO_PRV_PRV'
                 Properties.IncrementalFilteringOptions = [ifoHighlightSearchText, ifoUseContainsOperator]
                 Properties.ListColumns = <
                   item
-                    Caption = 'C'#243'digo'
-                    Width = 110
-                    FieldName = 'CODIGO_PRV_PRV'
-                  end
-                  item
                     Caption = 'Proveedor'
-                    Width = 350
+                    Width = 460
                     FieldName = 'PROVEEDOR_BUSQUEDA'
                   end>
-                Properties.ListFieldIndex = 1
                 Properties.ListOptions.CaseInsensitive = True
                 TabOrder = 9
                 Width = 160

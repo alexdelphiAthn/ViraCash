@@ -27,6 +27,7 @@ type
     FRepositorio: IRepositorioConsultasCaja;
     procedure ResolverDocumentoOrigen(var ASerie, ANumero: string);
     procedure CopiarTipoFacturaCompleta(AOrigen, ADestino: TDataSet);
+    procedure CopiarRetencionOrigen(AOrigen, ADestino: TDataSet);
     procedure CopiarCliente(
       AOrigen, ADestino: TDataSet);
     function CantidadPendienteLinea(
@@ -331,6 +332,41 @@ begin
       ADestino.Edit;
     ADestino.FieldByName('TIPO_FAC').AsString :=
       TIPO_FACTURA_COMPLETA_RECTIFICACION;
+    ADestino.Post;
+    CopiarRetencionOrigen(AOrigen, ADestino);
+  end;
+end;
+
+// FZ-ISSUE-934: el abono de una factura completa lleva la retención de la
+// factura que rectifica, no la vigente en la empresa. Una factura sin
+// retención (por ejemplo, la creada desde un ticket con «Convertir en
+// normal») se abona sin ella: con el indicador del cliente a 'N', porque
+// con porcentaje 0 el cálculo tomaría el porcentaje de la empresa.
+procedure TServicioRectificacionCaja.CopiarRetencionOrigen(
+  AOrigen, ADestino: TDataSet);
+var
+  oPorcentaje: TField;
+  oTotal: TField;
+  bSinRetencion: Boolean;
+begin
+  oPorcentaje := AOrigen.FindField('PORCENTAJE_RETENCION_FAC');
+  oTotal := AOrigen.FindField('TOTAL_RETENCION_FAC');
+  if Assigned(oPorcentaje) and
+     Assigned(ADestino.FindField('PORCENTAJE_RETENCION_FAC')) and
+     Assigned(ADestino.FindField('ESRETENCIONES_CLIENTE_FAC')) then
+  begin
+    bSinRetencion := (oPorcentaje.AsCurrency = 0) or
+      (Assigned(oTotal) and (oTotal.AsCurrency = 0));
+    if not (ADestino.State in [dsEdit, dsInsert]) then
+      ADestino.Edit;
+    if bSinRetencion then
+    begin
+      ADestino.FieldByName('ESRETENCIONES_CLIENTE_FAC').AsString := 'N';
+      ADestino.FieldByName('PORCENTAJE_RETENCION_FAC').AsCurrency := 0;
+    end
+    else
+      ADestino.FieldByName('PORCENTAJE_RETENCION_FAC').AsCurrency :=
+        oPorcentaje.AsCurrency;
     ADestino.Post;
   end;
 end;

@@ -294,39 +294,34 @@
                 Properties.DropDownListStyle = lsEditList
                 Properties.DropDownRows = 15
                 Properties.DropDownWidth = 480
+                Properties.IncrementalFiltering = True
                 Properties.KeyFieldNames = 'CODIGO_PRV_PRV'
                 Properties.IncrementalFilteringOptions = [ifoHighlightSearchText, ifoUseContainsOperator]
                 Properties.ListColumns = <
                   item
-                    Caption = 'C'#243'digo'
-                    Width = 110
-                    FieldName = 'CODIGO_PRV_PRV'
-                  end
-                  item
                     Caption = 'Proveedor'
-                    Width = 350
+                    Width = 460
                     FieldName = 'PROVEEDOR_BUSQUEDA'
                   end>
-                Properties.ListFieldIndex = 1
                 Properties.ListOptions.CaseInsensitive = True
                 TabOrder = 13
                 OnKeyUp = cbbCODIGO_PRV_PEDCKeyUp
-                Width = 150
+                Width = 200
               end
               object lblRefProveedor: TcxLabel
-                Left = 328
+                Left = 378
                 Top = 72
                 Caption = 'Ref. proveedor'
                 TabOrder = 14
                 Transparent = True
               end
               object txtREF_PROVEEDOR_PEDC: TcxDBTextEdit
-                Left = 328
+                Left = 378
                 Top = 92
                 DataBinding.DataField = 'REF_PROVEEDOR_PEDC'
                 DataBinding.DataSource = dsTablaG
                 TabOrder = 15
-                Width = 180
+                Width = 130
               end
               object lblCodigoAlmacen: TcxLabel
                 Left = 520

@@ -27,6 +27,9 @@ const
   // empieza por cPrefijoFormatoTicket. Vacío = ticket ESC/POS de texto.
   cParametroFormatoTicket = 'vgerFormatoTicket';
   cPrefijoFormatoTicket = 'Ticket';
+  // Sin marcar, la fase de cobro oculta el botón, las cajas y las
+  // etiquetas de vales (tiendas que no los usan).
+  PARAMETRO_USAR_VALES_COBRO = 'vgerUsarValesCobro';
 
 type
   TParametrosCaja = class(
@@ -63,6 +66,9 @@ type
 function UsarAlmacenesTransito(
   const AParametros: IParametrosCaja): Boolean;
 
+function UsarValesCobro(
+  const AParametros: IParametrosCaja): Boolean;
+
 function CrearParametrosCaja(
   const APerfilesLectura: ILectorPerfilesUsuario;
   const ACachePerfiles: ICachePerfilesUsuario;
@@ -86,6 +92,14 @@ function UsarAlmacenesTransito(
 begin
   Result := Assigned(AParametros) and
     AParametros.GetBool(PARAMETRO_USAR_ALMACENES_TRANSITO, False);
+end;
+
+function UsarValesCobro(
+  const AParametros: IParametrosCaja): Boolean;
+begin
+  // Por defecto (sin parámetros o sin valor guardado) los vales se usan.
+  Result := (not Assigned(AParametros)) or
+    AParametros.GetBool(PARAMETRO_USAR_VALES_COBRO, True);
 end;
 
 { TParametrosCaja }
@@ -268,6 +282,11 @@ end;
 
 procedure TParametrosCaja.RegistrarDevolucionesYVales;
 begin
+  RegistrarParametro('Devoluciones y Vales',
+                     PARAMETRO_USAR_VALES_COBRO,
+                     'Usar vales en la fase de cobro',
+                     tpBoolean,
+                     'True');
   RegistrarParametro('Devoluciones y Vales',
                      'vgerReqRefDevolucion',
                      'Pedir referencia en devoluciones',

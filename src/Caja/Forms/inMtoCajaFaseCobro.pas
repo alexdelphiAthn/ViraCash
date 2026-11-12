@@ -221,6 +221,17 @@ type
     FPagosFijosSubsanacion: TPagosSubsanacionCaja;
     // FZ-ISSUE-369: totales recalculados como factura completa (F8).
     FTotalesComoFactura: Boolean;
+    // Parámetro vgerUsarValesCobro: sin vales se ocultan su botón y su
+    // panel, y la rejilla de formas de pago ocupa el hueco.
+    FUsarVales: Boolean;
+    FTopRejillaConVales: Integer;
+    FAltoRejillaConVales: Integer;
+    // Tarjetas que sustituyen en pantalla a pnlCuenta y pnlCambioVales
+    // (ConvertirPanelEnTarjetaCaja deja oculto el panel original).
+    FTarjetaCuenta: TControl;
+    FTarjetaVales: TControl;
+    procedure AjustarVisibilidadVales;
+    procedure ColocarBotonesCobro;
     procedure PrepararModoSubsanacion;
     function RecalcularTotalesComoTipo(
       const ATipoFactura: string): Boolean;
@@ -293,7 +304,7 @@ uses
   UniDataOpcionesDocumentoRepositorio, Uni,
      UniDataCaja, inLibDocumentoFiscal, inLibCorreoTickets, inLibMsgCaja,
   inLibCajaEstiloVcl, inLibMsgSubsanacionCaja, inLibMsgTickets,
-  inLibAvisoHuecosNumeracion, System.StrUtils;
+  inLibAvisoHuecosNumeracion, inLibCajaParam, System.StrUtils;
 
 // FormatFloat admite tres secciones: positivo, negativo y cero. Poniendo en
 // la del cero un literal vacío ('' entre comillas simples) el importe a cero
@@ -319,6 +330,7 @@ begin
   FCodigoEmpresa := AEntrada.CodigoEmpresa;
   FCodigoAlmacen := AEntrada.CodigoAlmacen;
   FCodigoCaja := AEntrada.CodigoCaja;
+  FUsarVales := UsarValesCobro(ParametrosCaja);
   FDatosCobro.RestriccionVales := TRestriccionCanjeVale.Crear(
     ParametrosCaja.GetString('vgerAmbitoCanjeVale', 'TODOS'),
     FCodigoEmpresa, FCodigoAlmacen, FCodigoCaja);
@@ -362,8 +374,10 @@ begin
   Caption := SSubsanacionTituloCobro;
   for oControl in TArray<TControl>.Create(btnSinPrecios,
     btnDeposito, btnFactura, btnBuscarVale, btnMasDatos, chkEnviarEmail,
-    imgEnviarEmail, cbbSERIE_FAC, edtNumeroDoc, lblNumDoc, pnlCuenta) do
+    imgEnviarEmail, cbbSERIE_FAC, edtNumeroDoc, lblNumDoc,
+    FTarjetaCuenta) do
     oControl.Visible := False;
+  ColocarBotonesCobro;
   btnConTicket.Caption := SSubsanacionBoton;
   // F11 también subsana: graba la corrección sin reimprimir el ticket.
   btnSinTicket.Caption := SSubsanacionBotonSinTicket;
@@ -1022,6 +1036,9 @@ begin
   Dependencias.Vales := FRepositorioVales;
   Dependencias.Validar;
   FActualizandoEmail := False;
+  FUsarVales := True;
+  FTopRejillaConVales := cxgrdFormasPago.Top;
+  FAltoRejillaConVales := cxgrdFormasPago.Height;
   FEmailEnvio := '';
   chkEnviarEmail.Checked := False;
   AplicarEstiloCaja;
@@ -1038,13 +1055,59 @@ begin
   FMemTablePagos.BeforePost := FMemTablePagosBeforePost;
 end;
 
+// Botones de acción apilados sin huecos: los ocultos (vales sin usar,
+// subsanación) no dejan su sitio vacío.
+procedure TfrmMtoCajaFaseCobro.ColocarBotonesCobro;
+const
+  PASO_BOTON = 50;
+  ALTO_BOTON = 44;
+var
+  Boton: TcxButton;
+  iFila: Integer;
+begin
+  iFila := 0;
+  for Boton in TArray<TcxButton>.Create(btnSinTicket, btnConTicket,
+    btnSinPrecios, btnDeposito, btnFactura, btnBuscarVale, btnMasDatos,
+    btnBuscarT, btnAtras) do
+    if Boton.Visible then
+    begin
+      Boton.SetBounds(EscalarCaja(Self, 10),
+        EscalarCaja(Self, 8 + iFila * PASO_BOTON),
+        Boton.Parent.ClientWidth - EscalarCaja(Self, 20),
+        EscalarCaja(Self, ALTO_BOTON));
+      Inc(iFila);
+    end;
+end;
+
+// Sin vales en la tienda el panel de vales desaparece y la rejilla sube a
+// ocupar su hueco. Si aun así hay importe de vale (p. ej. el vale del
+// ticket de origen en una devolución) el panel se muestra: nunca se oculta
+// un importe que se va a grabar.
+procedure TfrmMtoCajaFaseCobro.AjustarVisibilidadVales;
+var
+  bMostrar: Boolean;
+begin
+  bMostrar := FUsarVales or
+    (Assigned(FDatosCobro) and
+     ((Abs(FDatosCobro.ImporteValeRecogido) >= 0.01) or
+      (Abs(FDatosCobro.ImporteValeEmitido) >= 0.01)));
+  if bMostrar <> FTarjetaVales.Visible then
+  begin
+    FTarjetaVales.Visible := bMostrar;
+    if bMostrar then
+      cxgrdFormasPago.SetBounds(cxgrdFormasPago.Left, FTopRejillaConVales,
+        cxgrdFormasPago.Width, FAltoRejillaConVales)
+    else
+      cxgrdFormasPago.SetBounds(cxgrdFormasPago.Left, FTarjetaVales.Top,
+        cxgrdFormasPago.Width,
+        FAltoRejillaConVales + FTopRejillaConVales - FTarjetaVales.Top);
+  end;
+end;
+
 // Mismo aspecto que el menú y la operación de caja. Cada acción tenía dos
 // botones (tecla y texto) que hacen lo mismo: queda el de texto como tarjeta
 // con la tecla en una píldora y se oculta el de la tecla.
 procedure TfrmMtoCajaFaseCobro.AplicarEstiloCaja;
-const
-  PASO_BOTON = 50;
-  ALTO_BOTON = 44;
 var
   Estilo: TEstiloCaja;
   Etiqueta: TcxLabel;
@@ -1056,8 +1119,10 @@ begin
   Estilo := TEstiloCaja.Create(Self);
   QuitarBiselesCaja([pnlLogoLeft, pnlContenedor]);
   ConvertirPanelEnTarjetaCaja(pnlTotales, EscalarCaja(Self, 4));
-  ConvertirPanelEnTarjetaCaja(pnlCuenta, EscalarCaja(Self, 4));
-  ConvertirPanelEnTarjetaCaja(pnlCambioVales, EscalarCaja(Self, 4));
+  FTarjetaCuenta := ConvertirPanelEnTarjetaCaja(pnlCuenta,
+    EscalarCaja(Self, 4));
+  FTarjetaVales := ConvertirPanelEnTarjetaCaja(pnlCambioVales,
+    EscalarCaja(Self, 4));
   for Etiqueta in TArray<TcxLabel>.Create(lblSuma, lblImporteDtoLineal,
     lblDescuento, lblImporteTotalAPagar, lblImporteACuenta,
     lblPendienteCobro, lblValeRecogido, lblValeEmitido, lblDevolucionCambio,
@@ -1084,12 +1149,9 @@ begin
   for I := 0 to High(Botones) do
   begin
     Teclas[I].Visible := False;
-    Botones[I].SetBounds(EscalarCaja(Self, 10),
-      EscalarCaja(Self, 8 + I * PASO_BOTON),
-      Botones[I].Parent.ClientWidth - EscalarCaja(Self, 20),
-      EscalarCaja(Self, ALTO_BOTON));
     Estilo.EstilarBoton(Botones[I], Teclas[I].Caption, nil, 20);
   end;
+  ColocarBotonesCobro;
 end;
 
 procedure TfrmMtoCajaFaseCobro.DibujarIconoEmail;
@@ -1596,6 +1658,7 @@ begin
   btnF12.Enabled := btnConTicket.Enabled;
   btnF11.Enabled := btnSinTicket.Enabled;
   btnF10.Enabled := btnSinPrecios.Enabled;
+  AjustarVisibilidadVales;
 end;
 
 procedure TfrmMtoCajaFaseCobro.ActualizarInterfaz;
@@ -1778,7 +1841,7 @@ var
   PendienteActual, Exceso: Currency;
 begin
   inherited;
-  if not FModoSubsanacion and TfrmMtoCajaSeleccionVale.Ejecutar(
+  if FUsarVales and not FModoSubsanacion and TfrmMtoCajaSeleccionVale.Ejecutar(
     FRepositorioVales, FDatosCobro.RestriccionVales,
     ValeSeleccionado) then
   begin
@@ -1832,9 +1895,16 @@ begin
   CargarComboSeries;
   CargarFormasPago;
   AplicarValesOrigenSiProcede;
+  if not FUsarVales then
+  begin
+    btnBuscarVale.Visible := False;
+    actBuscarVale.Enabled := False;
+    ColocarBotonesCobro;
+  end;
   if FModoSubsanacion then
     PrepararModoSubsanacion;
   ActualizarInterfaz;
+  AjustarVisibilidadVales;
   if cxgrdFormasPago.CanFocus then
   begin
     cxgrdFormasPago.SetFocus;
