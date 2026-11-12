@@ -396,7 +396,7 @@ begin
   // el rotulo resuelto de la cabecera y para el combo de busqueda
   // incremental por codigo (cbbCODIGO_PRV_PEDC). Se abre una vez y se
   // recorre con Locate; no depende del proveedor del pedido en pantalla.
-  unqryPrvDataPedc.SQL.Text := SqlLookupProveedoresPorCodigo;
+  unqryPrvDataPedc.SQL.Text := SqlLookupProveedores;
   unqryPrvDataPedc.Open;
   unqrySkusPedc.Connection            := ConexionPrincipal;
   unstrdprcGetContadorPedc.Connection := ConexionPrincipal;

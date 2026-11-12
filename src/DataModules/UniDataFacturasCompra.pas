@@ -272,7 +272,7 @@ begin
   // incremental por codigo (cbbCODIGO_PRV_FACC). Se abre una vez y se
   // recorre con Locate; no depende del proveedor de la factura en
   // pantalla.
-  unqryPrvDataFacc.SQL.Text := SqlLookupProveedoresPorCodigo;
+  unqryPrvDataFacc.SQL.Text := SqlLookupProveedores;
   unqryPrvDataFacc.Open;
   unqryArtDataLinFacc.Connection        := ConexionPrincipal;
   unqrySkusFacc.Connection              := ConexionPrincipal;
@@ -1601,7 +1601,8 @@ begin
       'NIF_PRV, MOVIL_PRV, EMAIL_PRV, ESFACTURACION_DIRECTA_PRV, ' +
       SQL_COLUMNA_NOMBRE_MOSTRADO_PRV + ', ' +
       SqlColumnaBusquedaProveedor('') +
-      ' FROM fza_proveedores ORDER BY CODIGO_PRV_PRV';
+      ' FROM fza_proveedores ORDER BY ' +
+      CAMPO_NOMBRE_MOSTRADO_PRV + ', CODIGO_PRV_PRV';
   if Trim(unqryPrvDataFacc.SQL.Text) <> sSql then
   begin
     unqryPrvDataFacc.Close;

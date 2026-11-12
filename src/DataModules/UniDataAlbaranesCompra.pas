@@ -366,7 +366,7 @@ begin
   // el rotulo resuelto de la cabecera y para el combo de busqueda
   // incremental por codigo (cbbCODIGO_PRV_ALBC). Se abre una vez y se
   // recorre con Locate; no depende del proveedor del albaran en pantalla.
-  unqryPrvDataAlbc.SQL.Text := SqlLookupProveedoresPorCodigo;
+  unqryPrvDataAlbc.SQL.Text := SqlLookupProveedores;
   unqryPrvDataAlbc.Open;
   unqryArtDataLinAlbc.Connection        := ConexionPrincipal;
   unqrySkusAlbc.Connection              := ConexionPrincipal;

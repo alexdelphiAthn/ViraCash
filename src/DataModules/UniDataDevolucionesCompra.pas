@@ -196,7 +196,7 @@ begin
   // incremental por codigo (cbbCODIGO_PRV_DEVC). Se abre una vez y se
   // recorre con Locate; no depende del proveedor de la devolucion en
   // pantalla.
-  unqryPrvDataDevc.SQL.Text := SqlLookupProveedoresPorCodigo;
+  unqryPrvDataDevc.SQL.Text := SqlLookupProveedores;
   unqryPrvDataDevc.Open;
   unqryArtDataLinDevc.Connection        := ConexionPrincipal;
   unqrySkusDevc.Connection              := ConexionPrincipal;
