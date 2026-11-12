@@ -763,9 +763,19 @@ begin
     dTotalCambio := dTotalCambio + oPagos[i].ImporteCambio;
     // FZ-ISSUE-200: mismo formato que la impresion inmediata.
     if oPagos[i].ImporteEntregado <> 0 then
+    begin
       FTicket.TextoColumnas(
         UpperCase(oPagos[i].DescripcionFormaPago),
         FormatFloat('#,##0.00', oPagos[i].ImporteEntregado) + ' €');
+      // FZ-ISSUE-933: la referencia (bono, vale...) justifica el pago.
+      // Si la descripción ya es la referencia, no se repite.
+      if (Trim(oPagos[i].Referencia) <> '') and
+         not SameText(Trim(oPagos[i].Referencia),
+           Trim(oPagos[i].DescripcionFormaPago)) then
+        FTicket.EscribirLinea(Copy(
+          STicketReferenciaPagoEspacio + Trim(oPagos[i].Referencia),
+          1, 42));
+    end;
   end;
   if dTotalCambio > 0 then
     FTicket.TextoColumnas(

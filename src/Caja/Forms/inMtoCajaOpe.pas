@@ -3724,6 +3724,8 @@ begin
       ASeleccion.Numero,
       trcDiferencias,
       tmrMantenerOriginales);
+    FSerieOrigenDev := FSerieRectifica;
+    FNumeroOrigenDev := FNumeroRectifica;
     GridRecalc(
       ConexionPrincipal, FLecturas.RepositorioFacturas, nil,
       tvLineasOpe,

@@ -148,6 +148,8 @@ type
     procedure ValidarCantidadLineaActual;
     procedure cdsLineasAfterPost(DataSet: TDataSet);
     procedure ValidarLotesLineas;
+    procedure ExigirSolicitudPendiente(const ANumero, ASerie,
+      AOrigen, ADestino: string);
     function CargarSolicitudSinLotes(const ANumero, ASerie: string): Boolean;
     function OperacionRecuentoAppEn(AConsulta: TUniQuery;
       const AEmpresa, AAlmacen: string; AIdRecuento: Int64): string;
@@ -451,6 +453,7 @@ type
     // estados, para saber si se han servido/denegado, mas las que me pidieron
     // y denegue entera o en parte. El llamante lo libera.
     function QueryMisPeticiones(const APropio: string): TDataSet;
+    function CancelarSolicitud(const ANumero, ASerie: string): Boolean;
     // Detalle maestro/detalle de los articulos de una solicitud. El llamante
     // libera el dataset devuelto.
     function QueryLineasSolicitud(
@@ -499,7 +502,7 @@ uses
   inLibTraspasoSolicitudAtencion,
   UniDataResolutorSkuRecuento,
   inLibLineaSku, inLibArticulosAtributosIntf,
-  UniDataArticulosAtributosRepositorio;
+  UniDataArticulosAtributosRepositorio, UniDataTraspasoOpeRepositorio;
 
 resourcestring
   SErrorCantidadLineaStockTraspaso =
@@ -2170,6 +2173,9 @@ begin
       AContexto.Empresa, AContexto.Usuario);
     FConexion.StartTransaction;
     try
+      if Trim(ANumSolicitud) <> '' then
+        ExigirSolicitudPendiente(ANumSolicitud, ASerieSolicitud,
+          AContexto.AlmacenOrigen, AContexto.AlmacenDestino);
       // Tambien al atender: no consumir entradas de fechas futuras.
       sAviso := AvisoStockOrigenEnFecha(AContexto.AlmacenOrigen,
         FechaCajaConHora(AContexto.FechaOperacion));
@@ -3382,11 +3388,31 @@ begin
     ASerieSolicitud, ANumOperacion);
 end;
 
+procedure TdmTraspaso.ExigirSolicitudPendiente(const ANumero, ASerie,
+  AOrigen, ADestino: string);
+begin
+  if not BloquearSolicitudTraspasoPendiente(FConexion, ANumero, ASerie,
+    AOrigen, ADestino) then
+    raise EValidacionTraspaso.Create(SErrorSolicitudTraspasoNoPendiente);
+end;
+
+function TdmTraspaso.CancelarSolicitud(
+  const ANumero, ASerie: string): Boolean;
+var
+  sUsuario: string;
+begin
+  sUsuario := IdentidadSesion.Usuario;
+  Result := CancelarSolicitudTraspasoPendiente(FConexion, ANumero, ASerie,
+    FContextoSesion.Ubicacion.Almacen, sUsuario);
+end;
+
 procedure TdmTraspaso.MarcarSolicitudAtendida(QryTrx: TUniQuery;
                           const ANumero, ASerie: string);
 var
   sUsuario: string;
 begin
+  ExigirSolicitudPendiente(ANumero, ASerie, AlmacenCaja,
+    cdsCabecera.FieldByName('CODIGO_ALM_DESTINO').AsString);
   sUsuario := IdentidadSesion.Usuario;
   // Resolucion por linea: registra lo servido (CANTIDAD) y, si no se cubre
   // lo pedido (denegada o servida en parte), el motivo. CANTIDAD_SERVIDA
@@ -3778,6 +3804,7 @@ begin
     '       (SELECT COUNT(*) FROM fza_traspasos_solicitudes_lineas L' +
     '         WHERE L.NUMERO_TRSOL_TRSOLLIN = S.NUMERO_TRSOL' +
     '           AND L.SERIE_TRSOL_TRSOLLIN = S.SERIE_TRSOL' +
+    '           AND COALESCE(S.ESTADO_TRSOL, '''') <> ''CANCELADA''' +
     '           AND ((S.TIPO_TRSOL = ''AUTO'' AND' +
     '             L.CANTIDAD_PEDIDA_TRSOLLIN >' +
     '               COALESCE(L.CANTIDAD_SERVIDA_TRSOLLIN, 0)) OR' +
@@ -3874,12 +3901,18 @@ begin
     qryAux.SQL.Text :=
       'UPDATE fza_traspasos_solicitudes' +
       '   SET ESTADO_TRSOL = ''CERRADA'', USUARIO_MODIF = :USU' +
-      ' WHERE NUMERO_TRSOL = :NUM AND SERIE_TRSOL = :SER';
+      ' WHERE NUMERO_TRSOL = :NUM AND SERIE_TRSOL = :SER' +
+      ' AND ESTADO_TRSOL = ''PENDIENTE''' +
+      ' AND CODIGO_ALM_ORIGEN_TRSOL = :ORIGEN' +
+      ' AND CODIGO_ALM_DESTINO_TRSOL = :DESTINO';
+    qryAux.ParamByName('ORIGEN').AsString := AlmacenCaja;
+    qryAux.ParamByName('DESTINO').AsString :=
+      cdsCabecera.FieldByName('CODIGO_ALM_DESTINO').AsString;
     qryAux.ParamByName('USU').AsString := IdentidadSesion.Usuario;
     qryAux.ParamByName('NUM').AsString := sNum;
     qryAux.ParamByName('SER').AsString := sSer;
     qryAux.ExecSQL;
-    Result := True;
+    Result := qryAux.RowsAffected = 1;
   end;
 end;
 
@@ -3939,7 +3972,10 @@ begin
   qryAux.SQL.Text :=
     'SELECT CODIGO_ALM_ORIGEN_TRSOL, CODIGO_ALM_DESTINO_TRSOL' +
     '  FROM fza_traspasos_solicitudes' +
-    ' WHERE NUMERO_TRSOL = :NUM AND SERIE_TRSOL = :SER';
+    ' WHERE NUMERO_TRSOL = :NUM AND SERIE_TRSOL = :SER' +
+    ' AND ESTADO_TRSOL = ''PENDIENTE''' +
+    ' AND CODIGO_ALM_ORIGEN_TRSOL = :ORIGEN';
+  qryAux.ParamByName('ORIGEN').AsString := AlmacenCaja;
   qryAux.ParamByName('NUM').AsString := ANumero;
   qryAux.ParamByName('SER').AsString := ASerie;
   qryAux.Open;

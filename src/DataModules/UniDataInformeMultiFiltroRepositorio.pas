@@ -22,7 +22,7 @@ function CrearRepositorioInformeMultiFiltroUniDAC(
 implementation
 
 uses
-  System.SysUtils;
+  System.SysUtils, UniDataProveedoresTexto;
 
 const
   SQL_ALMACENES =
@@ -39,11 +39,12 @@ const
     'WHERE IFNULL(ESACTIVO_FAM, ''S'') = ''S'' ' +
     'ORDER BY ORDEN_FAM, CODIGO_FAM_FAM';
   SQL_PROVEEDORES_ARTICULOS =
-    'SELECT p.CODIGO_PRV_PRV AS COD, p.RAZON_SOCIAL_PRV AS NOM ' +
+    'SELECT p.CODIGO_PRV_PRV AS COD, ' +
+    SQL_NOMBRE_MOSTRADO_PRV + ' AS NOM ' +
     'FROM fza_proveedores p ' +
     'WHERE EXISTS (SELECT 1 FROM fza_articulos_proveedores ap ' +
     'WHERE ap.CODIGO_PRV_AP = p.CODIGO_PRV_PRV) ' +
-    'ORDER BY p.RAZON_SOCIAL_PRV, p.CODIGO_PRV_PRV';
+    'ORDER BY NOM, p.CODIGO_PRV_PRV';
   SQL_PROVEEDORES_EFECTOS_PAGO =
     'SELECT e.CODIGO_PRV_EFEC AS COD, ' +
     'COALESCE(NULLIF(MAX(e.RAZON_SOCIAL_PRV_EFEC), ''''), ' +
@@ -53,7 +54,8 @@ const
     'GROUP BY e.CODIGO_PRV_EFEC ' +
     'ORDER BY NOM, e.CODIGO_PRV_EFEC';
   SQL_PROVEEDORES_DOCUMENTOS =
-    'SELECT P.CODIGO_PRV_PRV AS COD, P.RAZON_SOCIAL_PRV AS NOM ' +
+    'SELECT P.CODIGO_PRV_PRV AS COD, ' +
+    SQL_NOMBRE_MOSTRADO_PRV + ' AS NOM ' +
     'FROM fza_proveedores P ' +
     'WHERE EXISTS (SELECT 1 FROM fza_pedidos_compra D ' +
     'WHERE D.CODIGO_PRV_PEDC = P.CODIGO_PRV_PRV) ' +
@@ -63,7 +65,7 @@ const
     'WHERE D.CODIGO_PRV_FACC = P.CODIGO_PRV_PRV) ' +
     'OR EXISTS (SELECT 1 FROM fza_devoluciones_compra D ' +
     'WHERE D.CODIGO_PRV_DEVC = P.CODIGO_PRV_PRV) ' +
-    'ORDER BY P.RAZON_SOCIAL_PRV, P.CODIGO_PRV_PRV';
+    'ORDER BY NOM, P.CODIGO_PRV_PRV';
   SQL_TEMPORADAS =
     'SELECT PV AS COD, PV AS NOM ' +
     'FROM fza_propiedades_valores ' +

@@ -705,7 +705,7 @@ begin
   cbbProveedor.DataBinding.DataSource := dsTablaG;
   cbbProveedor.DataBinding.DataField := 'CODIGO_PRV_GAR';
   cbbProveedor.Properties.KeyFieldNames := 'CODIGO_PRV_PRV';
-  cbbProveedor.Properties.ListFieldNames := 'RAZON_SOCIAL_PRV';
+  cbbProveedor.Properties.ListFieldNames := 'NOMBRE_MOSTRADO_PRV';
   cbbProveedor.Properties.DropDownListStyle := lsEditList;
   CrearTexto(gbProveedor, SCaptionGarantiaContactoFicha, 'CONTACTO_PRV',
     0, 1, True);

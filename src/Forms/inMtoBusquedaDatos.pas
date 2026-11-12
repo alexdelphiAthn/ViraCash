@@ -608,7 +608,7 @@ begin
       sCodigo := Trim(oProveedores.FieldByName(
                                            'CODIGO_PRV_PRV').AsString);
       sNombre := Trim(oProveedores.FieldByName(
-                                         'RAZON_SOCIAL_PRV').AsString);
+                                      'NOMBRE_MOSTRADO_PRV').AsString);
       if SameText(Copy(sCodigo, 1, Length(sBusqueda)), sBusqueda) or
          SameText(Copy(sNombre, 1, Length(sBusqueda)), sBusqueda) then
         sCodigoEncontrado := sCodigo;

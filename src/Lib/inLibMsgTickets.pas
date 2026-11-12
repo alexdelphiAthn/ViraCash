@@ -47,6 +47,8 @@ resourcestring
   STicketValeRecogido = 'VALE RECOGIDO';
   STicketAPagar = 'A PAGAR';
   STicketCambioEfectivo = 'CAMBIO EFECTIVO';
+  // FZ-ISSUE-933: referencia del pago (bono, vale...) bajo su importe.
+  STicketReferenciaPagoEspacio = '  REF.: ';
   STicketValeEmitidoFavor = 'VALE EMITIDO A SU FAVOR';
   STicketCodigoValeEmitido = 'CÓDIGO VALE EMITIDO:';
   STicketCodigoValeEmitidoEspacio = 'CÓDIGO VALE EMITIDO: ';

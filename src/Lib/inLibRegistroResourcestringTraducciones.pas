@@ -6628,6 +6628,42 @@ begin
   ARegistrar('inLibMsgMeteorologiaCaja.SErrorUbicacionObservacionesCaja',
     'src/Lib/inLibMsgMeteorologiaCaja.pas',
     @inLibMsgMeteorologiaCaja.SErrorUbicacionObservacionesCaja);
+  ARegistrar('inLibMsgMeteorologiaCaja.STicketMeteorologiaArqueo',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.STicketMeteorologiaArqueo);
+  ARegistrar('inLibMsgMeteorologiaCaja.STicketBitacoraArqueo',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.STicketBitacoraArqueo);
+  ARegistrar('inLibMsgMeteorologiaCaja.STemperaturaBitacoraArqueo',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.STemperaturaBitacoraArqueo);
+  ARegistrar('inLibMsgMeteorologiaCaja.SMinimaMaximaBitacoraArqueo',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SMinimaMaximaBitacoraArqueo);
+  ARegistrar('inLibMsgMeteorologiaCaja.SNubesBitacoraArqueo',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SNubesBitacoraArqueo);
+  ARegistrar('inLibMsgMeteorologiaCaja.SLluviaBitacoraArqueo',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SLluviaBitacoraArqueo);
+  ARegistrar('inLibMsgMeteorologiaCaja.SResumenMeteoBitacoraArqueo',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SResumenMeteoBitacoraArqueo);
+  ARegistrar('inLibMsgMeteorologiaCaja.SColMeteorologiaArqueo',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SColMeteorologiaArqueo);
+  ARegistrar('inLibMsgMeteorologiaCaja.SColBitacoraArqueo',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SColBitacoraArqueo);
+  ARegistrar('inLibMsgMeteorologiaCaja.SCasillaBitacoraImpArqueos',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SCasillaBitacoraImpArqueos);
+  ARegistrar('inLibMsgMeteorologiaCaja.SInformeMeteorologiaArqueo',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SInformeMeteorologiaArqueo);
+  ARegistrar('inLibMsgMeteorologiaCaja.SInformeBitacoraArqueo',
+    'src/Lib/inLibMsgMeteorologiaCaja.pas',
+    @inLibMsgMeteorologiaCaja.SInformeBitacoraArqueo);
 
   ARegistrar('inLibMsgInformesCliente.' +
     'SInformeTemporadaP1',
@@ -14882,6 +14918,12 @@ begin
       SInfoPedidoCompraSinPendientesRecibir);
   ARegistrar(
     'inLibMsgCompras.' +
+    'SAvisoPedidoCompraMarcadoOtrosAlmacenes',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SAvisoPedidoCompraMarcadoOtrosAlmacenes);
+  ARegistrar(
+    'inLibMsgCompras.' +
     'SPreguntaGrabarPedidoCompraSinSku',
     'src/Lib/inLibMsgCompras.pas',
     @inLibMsgCompras.
@@ -21124,6 +21166,12 @@ begin
     'src/Lib/inLibMsgTickets.pas',
     @inLibMsgTickets.
       STicketCambioEfectivo);
+  ARegistrar(
+    'inLibMsgTickets.' +
+    'STicketReferenciaPagoEspacio',
+    'src/Lib/inLibMsgTickets.pas',
+    @inLibMsgTickets.
+      STicketReferenciaPagoEspacio);
   ARegistrar(
     'inLibMsgTickets.' +
     'STicketValeEmitidoFavor',
@@ -32677,6 +32725,27 @@ begin
   ARegistrar('inLibMsgFacturas.SEstadoDocumentoImportado',
     'src/Lib/inLibMsgFacturas.pas',
     @inLibMsgFacturas.SEstadoDocumentoImportado);
+  ARegistrar('inLibMsgCaja.SErrorSolicitudTraspasoNoPendiente',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.SErrorSolicitudTraspasoNoPendiente);
+  ARegistrar('inLibMsgCaja.SInfoPeticionCancelada',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.SInfoPeticionCancelada);
+  ARegistrar('inLibMsgCaja.SErrorCancelarPeticion',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.SErrorCancelarPeticion);
+  ARegistrar('inLibMsgCaja.SPreguntaCancelarPeticion',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.SPreguntaCancelarPeticion);
+  ARegistrar('inLibMsgCaja.SBotonCancelarPeticion',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.SBotonCancelarPeticion);
+  ARegistrar('inLibMsgCaja.SErrorFacturaAbonarNoVigente',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.SErrorFacturaAbonarNoVigente);
+  ARegistrar('inLibMsgCaja.SErrorDevolucionDocumentoSustituido',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.SErrorDevolucionDocumentoSustituido);
   ARegistrar('inLibMsgCaja.SBotonReimprimirPeticion',
     'src/Lib/inLibMsgCaja.pas',
     @inLibMsgCaja.SBotonReimprimirPeticion);

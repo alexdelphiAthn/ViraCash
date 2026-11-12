@@ -29,7 +29,7 @@ uses
   System.SysUtils, System.Classes, System.Generics.Collections, System.Math,
   Data.DB, inLibCargaMasivaArticulosReglas, UniDataRectificativasSql,
   UniDataPrestaShopEncolado, inLibPrestaShopColaSenal,
-  UniDataDocumentosTrabajoCargaOrigenSql;
+  UniDataDocumentosTrabajoCargaOrigenSql, UniDataProveedoresTexto;
 
 resourcestring
   // FZ-ISSUE-306: un inventario de solo negativos no se mezcla con cargas
@@ -66,9 +66,10 @@ const
     'WHERE ESACTIVO_FAM = ''S'' ORDER BY ' +
     'COALESCE(CODIGO_PADRE_FAM, ''''), ORDEN_FAM, NOMBRE_FAM_FAM';
   SQL_PROVEEDORES =
-    'SELECT CODIGO_PRV_PRV, RAZON_SOCIAL_PRV, NIF_PRV ' +
+    'SELECT CODIGO_PRV_PRV, RAZON_SOCIAL_PRV, ' +
+    SQL_NOMBRE_MOSTRADO_PRV + ' AS NOMBRE_PRV, NIF_PRV ' +
     'FROM fza_proveedores WHERE ESACTIVO_PRV = ''S'' ' +
-    'ORDER BY RAZON_SOCIAL_PRV';
+    'ORDER BY NOMBRE_PRV, CODIGO_PRV_PRV';
   SQL_PROPIEDADES =
     'SELECT CODIGO_PROP_ARTPROP, NOMBRE_PROP_PROP FROM fza_propiedades ' +
     'WHERE ESACTIVO_PROP = ''S'' AND TIPO_VALOR_PROP = ''LISTA'' ' +

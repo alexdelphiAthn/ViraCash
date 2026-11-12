@@ -35,6 +35,7 @@ type
   TRepositorioConsultasCaja = class(
     TInterfacedObject,
     IRepositorioConsultasCaja,
+    IResolverDocumentoDevolucionCaja,
     IRepositorioArticulosCaja,
     IFormatoDocumentoLecturas)
   private
@@ -78,6 +79,8 @@ type
     function EjecutarListarNombresAtributosArticulo(
       const ASql, AArticulo: string): TNombresAtributosCaja;
   public
+    function ResolverDocumentoDevolucion(const ASerie, ANumero: string):
+      TDocumentoOrigenDevolucionCaja;
     function LeerFormatoEmpresa(const ACodigoEmpresa: string): string;
     function LeerFormatoFactura(const ASerie, ANumero: string): string;
     constructor Create(
@@ -124,14 +127,104 @@ function CrearRepositorioArticulosCajaUniDAC(
   const AIncidenciasSql: IRegistroIncidenciasSql = nil
 ): IRepositorioArticulosCaja;
 
+// Resuelve únicamente SUSTITUYE. No convierte un ticket retirado en abono.
+function ResolverDocumentoDevolucionCajaUniDAC(AConexion: TUniConnection;
+  const ASerie, ANumero: string): TDocumentoOrigenDevolucionCaja;
+
 implementation
 
 uses
   UniDataFormatoDocumentoRepositorio,
-  System.SysUtils,
+  System.SysUtils, inLibErroresBBDD, inLibMsgCaja,
   inLibCatalogoSqlEjecucion,
   UniDataCatalogoSqlValidacion,
   UniDataStockConsultaRepositorio;
+
+function LeerDocumentoDevolucion(AConsulta: TUniQuery):
+  TDocumentoOrigenDevolucionCaja;
+begin
+  Result.Empresa := AConsulta.FieldByName('CODIGO_EMP_FAC').AsString;
+  Result.Serie := AConsulta.FieldByName('SERIE_FAC').AsString;
+  Result.Numero := AConsulta.FieldByName('NUMERO_FAC').AsString;
+  Result.Almacen := AConsulta.FieldByName('CODIGO_ALM_FAC').AsString;
+  Result.Tipo := AConsulta.FieldByName('TIPO_FAC').AsString;
+  Result.Fase := AConsulta.FieldByName('FASE_FAC').AsString;
+end;
+
+function ResolverDocumentoDevolucionCajaUniDAC(AConexion: TUniConnection;
+  const ASerie, ANumero: string): TDocumentoOrigenDevolucionCaja;
+var
+  Consulta: TUniQuery;
+  Origen: TDocumentoOrigenDevolucionCaja;
+begin
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := AConexion;
+    Consulta.SQL.Text :=
+      'SELECT CODIGO_EMP_FAC, SERIE_FAC, NUMERO_FAC, CODIGO_ALM_FAC, ' +
+      ' TIPO_FAC, FASE_FAC FROM fza_facturas ' +
+      ' WHERE SERIE_FAC = :SERIE AND NUMERO_FAC = :NUMERO';
+    if AConexion.InTransaction then
+      Consulta.SQL.Add(' FOR UPDATE');
+    Consulta.ParamByName('SERIE').AsString := ASerie;
+    Consulta.ParamByName('NUMERO').AsString := ANumero;
+    Consulta.Open;
+    if Consulta.IsEmpty then
+      raise EValidacionBBDD.Create(SErrorFacturaAbonarNoVigente);
+    Origen := LeerDocumentoDevolucion(Consulta);
+    Consulta.Close;
+    Consulta.SQL.Text :=
+      'SELECT F.CODIGO_EMP_FAC, F.SERIE_FAC, F.NUMERO_FAC, ' +
+      ' F.CODIGO_ALM_FAC, F.TIPO_FAC, F.FASE_FAC ' +
+      ' FROM fza_facturas_relaciones R LEFT JOIN fza_facturas F ' +
+      ' ON F.SERIE_FAC = R.SERIE_FAC_FACREL ' +
+      ' AND F.NUMERO_FAC = R.NUMERO_FAC_FACREL ' +
+      ' AND F.CODIGO_EMP_FAC = :EMPRESA ' +
+      ' WHERE R.SERIE_FAC_ORIGEN_FACREL = :SERIE ' +
+      ' AND R.NUMERO_FAC_ORIGEN_FACREL = :NUMERO ' +
+      ' AND R.TIPO_RELACION_FACREL = ''SUSTITUYE''';
+    if AConexion.InTransaction then
+      Consulta.SQL.Add(' FOR UPDATE');
+    Consulta.ParamByName('EMPRESA').AsString := Origen.Empresa;
+    Consulta.ParamByName('SERIE').AsString := Origen.Serie;
+    Consulta.ParamByName('NUMERO').AsString := Origen.Numero;
+    Consulta.Open;
+    Result := Origen;
+    if not Consulta.IsEmpty then
+    begin
+      Result := LeerDocumentoDevolucion(Consulta);
+      Consulta.Next;
+      if not Consulta.Eof or (Result.Numero = '') or
+         not SameText(Result.Tipo, 'NORMAL') then
+        raise EValidacionBBDD.Create(SErrorFacturaAbonarNoVigente);
+    end;
+    if (Trim(Result.Fase) = '') or
+       SameText(Result.Fase, 'BORRADOR') or
+       SameText(Result.Fase, 'ERROR_BORRADOR') or
+       SameText(Result.Fase, 'CANCELADA') or
+       SameText(Result.Fase, 'SUBSANACION') or
+       SameText(Result.Fase, 'SIN_VERIF_ANULADA') or
+       SameText(Result.Fase, 'VERIFACTU_ANULADA') or
+       SameText(Result.Fase, 'NOVERIFACTU_ANULADA') then
+      raise EValidacionBBDD.Create(SErrorFacturaAbonarNoVigente);
+  finally
+    Consulta.Free;
+  end;
+end;
+
+function TRepositorioConsultasCaja.ResolverDocumentoDevolucion(
+  const ASerie, ANumero: string): TDocumentoOrigenDevolucionCaja;
+var
+  Cabecera: IResultadoConsultaCaja;
+begin
+  // Conserva la búsqueda con ceros del número escrito por el usuario.
+  Cabecera := ConsultarCabeceraFactura(ASerie, ANumero);
+  if Cabecera.DataSet.IsEmpty then
+    raise EValidacionBBDD.Create(SErrorFacturaAbonarNoVigente);
+  Result := ResolverDocumentoDevolucionCajaUniDAC(FConexion,
+    Cabecera.DataSet.FieldByName('SERIE_FAC').AsString,
+    Cabecera.DataSet.FieldByName('NUMERO_FAC').AsString);
+end;
 
 function TRepositorioConsultasCaja.ConsultarTarifas:
   IResultadoConsultaCaja;

@@ -32,7 +32,7 @@ uses
   cxCheckBox, cxSpinEdit, cxBlobEdit, dxScrollbarAnnotations, dxCore,
   cxRadioGroup, Vcl.AppEvnts, JvComponentBase, JvEnterTab,
   dxShellDialogs, cxCurrencyEdit, cxGridExportLink,
-  inLibPermisosIntf, inLibCajaPantallaInyeccion;
+  inLibPermisosIntf, inLibCajaPantallaInyeccion, inLibArqueoBitacora;
 
 type
   TfrmMtoCajaArqueosHist = class(TfrmMtoGen)
@@ -54,6 +54,8 @@ type
     cxGrdDBTabPrinOBSERVACIONES_ARQ: TcxGridDBColumn;
     cxGrdDBTabPrinINSTANTE_ALTA: TcxGridDBColumn;
     cxGrdDBTabPrinUSUARIO_ALTA: TcxGridDBColumn;
+    cxGrdDBTabPrinMETEOROLOGIA: TcxGridDBColumn;
+    cxGrdDBTabPrinBITACORA: TcxGridDBColumn;
     btnImprimirInforme: TcxButton;
     cxgrdRecuento: TcxGrid;
     tvRecuento: TcxGridDBTableView;
@@ -67,15 +69,24 @@ type
     procedure btnImprimirInformeClick(Sender: TObject);
     procedure FaseGetDisplayText(Sender: TcxCustomGridTableItem;
       ARecord: TcxCustomGridRecord; var AText: string);
+    // Meteorología y cuaderno de bitácora de los días de cada arqueo.
+    procedure BitacoraGetDisplayText(Sender: TcxCustomGridTableItem;
+      ARecord: TcxCustomGridRecord; var AText: string);
   private
     dmmCajaArqueosHist: TdmCajaArqueosHist;
     FDependenciasInforme: TDependenciasInformeCaja;
+    FIndiceBitacora: TIndiceBitacoraArqueo;
+    // Se lee una vez por carga de la pantalla, al pintar la primera fila.
+    function IndiceBitacora: TIndiceBitacoraArqueo;
+    procedure RotularColumnasBitacora;
   public
     constructor Create(
       AOwner: TComponent;
       const AContexto: TContextoAutorizacionPantalla;
       const ADependencias: TDependenciasInformeCaja); reintroduce;
       overload;
+    destructor Destroy; override;
+    procedure AplicarTraduccionActual; override;
     procedure CrearTablaPrincipal; override;
     // Restricción de la precarga a la empresa/almacén/caja del usuario
     function SqlRestriccionUsuario: string; override;
@@ -85,7 +96,8 @@ type
 implementation
 
 uses
-  inLibWin, inMtoModalImpArqueos, inLibFiltroUsuario, inLibMsgCaja;
+  inLibWin, inMtoModalImpArqueos, inLibFiltroUsuario, inLibMsgCaja,
+  inLibMsgMeteorologiaCaja;
 
 {$R *.dfm}
 
@@ -101,6 +113,96 @@ begin
   ADependencias.Validar;
   FDependenciasInforme := ADependencias;
   inherited Create(AOwner, AContexto);
+end;
+
+destructor TfrmMtoCajaArqueosHist.Destroy;
+begin
+  FreeAndNil(FIndiceBitacora);
+  inherited;
+end;
+
+procedure TfrmMtoCajaArqueosHist.AplicarTraduccionActual;
+begin
+  inherited;
+  RotularColumnasBitacora;
+end;
+
+procedure TfrmMtoCajaArqueosHist.RotularColumnasBitacora;
+begin
+  cxGrdDBTabPrinMETEOROLOGIA.Caption := SColMeteorologiaArqueo;
+  cxGrdDBTabPrinBITACORA.Caption := SColBitacoraArqueo;
+end;
+
+function TfrmMtoCajaArqueosHist.IndiceBitacora: TIndiceBitacoraArqueo;
+var
+  aDias: TDiasBitacoraArqueo;
+  oRepositorio: IRepositorioBitacoraArqueo;
+begin
+  if not Assigned(FIndiceBitacora) then
+  begin
+    aDias := nil;
+    try
+      if Supports(FDependenciasInforme.Repositorio,
+        IRepositorioBitacoraArqueo, oRepositorio) then
+        aDias := oRepositorio.ListarDiasBitacora(
+          UbicacionSesion.Empresa, '',
+          FECHA_MINIMA_BITACORA_ARQUEO, FECHA_MAXIMA_BITACORA_ARQUEO);
+    except
+      // Se llama al pintar la rejilla: el fallo queda en el registro y
+      // las dos columnas salen vacías en vez de repetir el error por fila.
+      on E: Exception do
+      begin
+        aDias := nil;
+        RegistroLog.RegistrarError(
+          'Histórico de arqueos: no se pudo leer la meteorología ni ' +
+          'el cuaderno de bitácora: ' + E.Message);
+      end;
+    end;
+    FIndiceBitacora := TIndiceBitacoraArqueo.Create(aDias);
+  end;
+  Result := FIndiceBitacora;
+end;
+
+procedure TfrmMtoCajaArqueosHist.BitacoraGetDisplayText(
+  Sender: TcxCustomGridTableItem; ARecord: TcxCustomGridRecord;
+  var AText: string);
+var
+  aDias: TDiasBitacoraArqueo;
+  bConFecha: Boolean;
+  dDesde: TDateTime;
+  dHasta: TDateTime;
+  vAlmacen: Variant;
+  vDesde: Variant;
+  vHasta: Variant;
+begin
+  AText := '';
+  if Assigned(ARecord) and ARecord.IsData then
+  begin
+    vAlmacen := ARecord.Values[cxGrdDBTabPrinCODIGO_ALM_ARQ.Index];
+    vDesde := ARecord.Values[cxGrdDBTabPrinFECHA_DESDE_ARQ.Index];
+    vHasta := ARecord.Values[cxGrdDBTabPrinFECHA_HASTA_ARQ.Index];
+    if (not VarIsNull(vAlmacen)) and (not VarIsNull(vDesde)) then
+    begin
+      dDesde := VarToDateTime(vDesde);
+      dHasta := dDesde;
+      if not VarIsNull(vHasta) then
+        dHasta := VarToDateTime(vHasta);
+      aDias := IndiceBitacora.DiasDeArqueo(
+        VarToStr(vAlmacen), dDesde, dHasta);
+      bConFecha := ArqueoAbarcaVariosDias(dDesde, dHasta);
+      if Sender = cxGrdDBTabPrinMETEOROLOGIA then
+        AText := UnirLineasBitacoraArqueo(
+          LineasMeteorologiaArqueo(aDias, bConFecha), ' · ')
+      else
+        // Los apuntes pueden traer saltos de línea; la celda es de una.
+        AText := StringReplace(
+          StringReplace(
+            UnirLineasBitacoraArqueo(
+              LineasApuntesArqueo(aDias, bConFecha), ' · '),
+            #13#10, ' ', [rfReplaceAll]),
+          #10, ' ', [rfReplaceAll]);
+    end;
+  end;
 end;
 
 function TfrmMtoCajaArqueosHist.SqlRestriccionUsuario: string;
@@ -120,6 +222,9 @@ begin
   dmmCajaArqueosHist.AplicarRestriccionUsuario(SqlRestriccionUsuario);
   pkFieldName := 'CODIGO_ARQ';
   cxGrdDBTabPrinFASE_ARQ.OnGetDisplayText := FaseGetDisplayText;
+  cxGrdDBTabPrinMETEOROLOGIA.OnGetDisplayText := BitacoraGetDisplayText;
+  cxGrdDBTabPrinBITACORA.OnGetDisplayText := BitacoraGetDisplayText;
+  RotularColumnasBitacora;
 end;
 
 procedure TfrmMtoCajaArqueosHist.FaseGetDisplayText(
@@ -133,6 +238,8 @@ end;
 procedure TfrmMtoCajaArqueosHist.ResetForm;
 begin
   inherited;
+  // La próxima carga vuelve a leer la meteorología y la bitácora.
+  FreeAndNil(FIndiceBitacora);
 end;
 
 procedure TfrmMtoCajaArqueosHist.btnImprimirInformeClick(Sender: TObject);

@@ -45,7 +45,7 @@ type
 implementation
 
 uses
-  System.SysUtils, UniDataReparacionesProteccion,
+  System.SysUtils, UniDataReparacionesProteccion, UniDataProveedoresTexto,
   UniDataReparacionesFases, inLibReparacionesFases;
 
 constructor TRepositorioCambiosTrabajo.Create(AConexion: TUniConnection;
@@ -67,9 +67,11 @@ begin
       'NOMBRE_EMPL AS NOMBRE FROM fza_empleados ' +
       'WHERE ESACTIVO_EMPL=''S'' ORDER BY NOMBRE_EMPL')
   else
+    // Busqueda con las dos denominaciones; NOMBRE es el rotulo.
     oConsulta := Consulta('SELECT CODIGO_PRV_PRV AS CODIGO, ' +
-      'RAZON_SOCIAL_PRV AS NOMBRE FROM fza_proveedores ' +
-      'WHERE ESACTIVO_PRV=''S'' ORDER BY RAZON_SOCIAL_PRV');
+      SQL_NOMBRE_MOSTRADO_PRV + ' AS NOMBRE, ' +
+      'RAZON_SOCIAL_PRV AS RAZON_SOCIAL FROM fza_proveedores ' +
+      'WHERE ESACTIVO_PRV=''S'' ORDER BY NOMBRE, CODIGO_PRV_PRV');
   try
     oConsulta.Open;
     Result := oConsulta;

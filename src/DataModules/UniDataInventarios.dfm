@@ -424,9 +424,11 @@
   end
   object unqryProveedores: TUniQuery
     SQL.Strings = (
-      'SELECT CODIGO_PRV_PRV, RAZON_SOCIAL_PRV'
+      'SELECT CODIGO_PRV_PRV, RAZON_SOCIAL_PRV,'
+      'COALESCE(NULLIF(TRIM(NOMBRE_PRV), '#39#39'), RAZON_SOCIAL_PRV)'
+      'AS NOMBRE_PRV'
       'FROM fza_proveedores'
-      'ORDER BY RAZON_SOCIAL_PRV')
+      'ORDER BY NOMBRE_PRV, CODIGO_PRV_PRV')
     Left = 506
     Top = 198
   end

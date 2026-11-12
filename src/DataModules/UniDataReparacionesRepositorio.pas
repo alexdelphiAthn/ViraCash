@@ -142,7 +142,8 @@ uses
   UniDataMedidasCliente, UniDataReparacionesPrendas,
   UniDataReparacionesCobertura, UniDataReparacionesProteccion,
   System.Generics.Collections, Data.DB, inLibGarantias,
-  inLibMsgReparaciones, UniDataReparacionesFases, UniDataTrabajosCortinas;
+  inLibMsgReparaciones, UniDataReparacionesFases, UniDataTrabajosCortinas,
+  UniDataProveedoresTexto;
 
 const
   SQL_ALTA_REPARACION =
@@ -343,7 +344,7 @@ begin
     '  FROM fza_empleados E WHERE E.ESACTIVO_EMPL = ''S'' ' +
     'UNION ALL ' +
     'SELECT ''' + EJECUTOR_REPARACION_EXTERNO + ''', P.CODIGO_PRV_PRV, ' +
-    '       P.RAZON_SOCIAL_PRV, ' +
+    '       ' + SqlNombreMostradoProveedor('P') + ', ' +
     '       COALESCE(P.MODO_LIQUIDACION_SERVICIOS_PRV, ''' +
     MODO_LIQUIDACION_PERIODICA + ''') ' +
     '  FROM fza_proveedores P ' +

@@ -140,6 +140,8 @@ type
     DescripcionFormaPago: string;
     ImporteEntregado: Currency;
     ImporteCambio: Currency;
+    // FZ-ISSUE-933: referencia del pago (bono, vale...); '' si no tiene.
+    Referencia: string;
   end;
 
   TValeTicketCaja = record

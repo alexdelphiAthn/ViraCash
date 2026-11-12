@@ -1,6 +1,6 @@
 ﻿inherited frmPrintArqueos: TfrmPrintArqueos
   Caption = 'Imprimir Hist'#243'rico de Arqueos'
-  ClientHeight = 320
+  ClientHeight = 356
   TextHeight = 19
   object lblFechas: TcxLabel
     Left = 12
@@ -92,6 +92,17 @@
       end>
     Properties.OnButtonClick = bedCajaPropertiesButtonClick
     TabOrder = 5
+    Width = 172
+  end
+  object chkBitacora: TcxCheckBox
+    Left = 12
+    Top = 298
+    AutoSize = False
+    Caption = 'Incluir meteorolog'#237'a y cuaderno de bit'#225'cora'
+    Properties.MultiLine = True
+    TabOrder = 13
+    Transparent = True
+    Height = 44
     Width = 172
   end
   inherited frxrprt1: TfrxReport

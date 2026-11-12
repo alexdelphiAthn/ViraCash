@@ -75,6 +75,20 @@ resourcestring
     'Las observaciones no pueden superar los 4000 caracteres.';
   SErrorUbicacionObservacionesCaja =
     'Seleccione una empresa, un almacén y una fecha válidos.';
+  STicketMeteorologiaArqueo = 'METEOROLOGÍA';
+  STicketBitacoraArqueo = 'CUADERNO DE BITÁCORA';
+  STemperaturaBitacoraArqueo = 'Temperatura media';
+  SMinimaMaximaBitacoraArqueo = 'Mínima / máxima';
+  SNubesBitacoraArqueo = 'Nubosidad';
+  SLluviaBitacoraArqueo = 'Lluvia';
+  SResumenMeteoBitacoraArqueo =
+    '%s °C (mín. %s / máx. %s), nubes %s %%, lluvia %s mm';
+  SColMeteorologiaArqueo = 'Meteorología';
+  SColBitacoraArqueo = 'Cuaderno de bitácora';
+  SCasillaBitacoraImpArqueos =
+    'Incluir meteorología y cuaderno de bitácora';
+  SInformeMeteorologiaArqueo = 'Meteorología: %s';
+  SInformeBitacoraArqueo = 'Cuaderno de bitácora: %s';
 
 implementation
 

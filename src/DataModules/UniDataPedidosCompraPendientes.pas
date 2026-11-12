@@ -19,6 +19,8 @@ function CrearPendientesPedidoCompraUniDAC(
   AConexion: TUniConnection): IPedidosCompraPendientes;
 procedure RecalcularEstadoPedido(AConn: TUniConnection;
   const ASeriePedc, ANumPedc, AUsuario: string);
+procedure RecalcularPedidosFacturaCompra(AConexion: TUniConnection;
+  const ASerieFactura, ANumeroFactura, AUsuario: string);
 procedure GenerarPdteRecibirDesdePedidoInterno(
   AConn: TUniConnection;
   const ASeriePedc, ANumPedc, AUsuario: string);
@@ -83,10 +85,84 @@ type
     function CalcularPendienteTotal(
       const ASeriePedc, ANumPedc: string): Double;
   end;
+// FZ-ISSUE-931: un borrador no completa la facturación del pedido.
+// Se comprueban las líneas para admitir albaranes con varios pedidos.
+function PedidoCompraFacturado(AConexion: TUniConnection;
+  const ASerie, ANumero: string): Boolean;
+var
+  Consulta: TUniQuery;
+begin
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := AConexion;
+    Consulta.SQL.Text :=
+      'SELECT COUNT(*) AS TOTAL, ' +
+      ' SUM(CASE WHEN L.ESFACTURADA_ALBCLIN = ''S'' ' +
+      ' AND F.ESTADO_FACC IN (''CERRADA'', ''CONTABILIZADA'', ''PAGADA'') ' +
+      ' THEN 1 ELSE 0 END) AS FACTURADAS ' +
+      ' FROM fza_albaranes_compra_lineas L ' +
+      ' JOIN fza_albaranes_compra A ' +
+      ' ON A.SERIE_ALBC = L.SERIE_ALBC_ALBCLIN ' +
+      ' AND A.NUMERO_ALBC = L.NUMERO_ALBC_ALBCLIN ' +
+      ' LEFT JOIN fza_facturas_compra F ' +
+      ' ON F.SERIE_FACC = L.SERIE_FAC_ALBCLIN ' +
+      ' AND F.NUMERO_FACC = L.NUMERO_FAC_ALBCLIN ' +
+      ' WHERE L.SERIE_PEDC_ALBCLIN = :SERIE ' +
+      ' AND L.NUMERO_PEDC_ALBCLIN = :NUMERO ' +
+      ' AND COALESCE(A.ESTADO_ALBC, '''') <> ''CANCELADO''';
+    Consulta.ParamByName('SERIE').AsString := ASerie;
+    Consulta.ParamByName('NUMERO').AsString := ANumero;
+    Consulta.Open;
+    Result := (Consulta.FieldByName('TOTAL').AsInteger > 0) and
+      (Consulta.FieldByName('TOTAL').AsInteger =
+       Consulta.FieldByName('FACTURADAS').AsInteger);
+  finally
+    Consulta.Free;
+  end;
+end;
+
+procedure RecalcularPedidosFacturaCompra(AConexion: TUniConnection;
+  const ASerieFactura, ANumeroFactura, AUsuario: string);
+var
+  Consulta: TUniQuery;
+begin
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := AConexion;
+    // El origen de las líneas permite buscar por la clave de la factura,
+    // incluso después de desvincular los albaranes durante su borrado.
+    Consulta.SQL.Text :=
+      'SELECT DISTINCT L.SERIE_PEDC_ALBCLIN, L.NUMERO_PEDC_ALBCLIN ' +
+      ' FROM fza_facturas_compra_lineas F ' +
+      ' JOIN fza_albaranes_compra_lineas L ' +
+      ' ON L.SERIE_ALBC_ALBCLIN = F.SERIE_ALBC_FACCLIN ' +
+      ' AND L.NUMERO_ALBC_ALBCLIN = F.NUMERO_ALBC_FACCLIN ' +
+      ' AND (L.LINEA_ALBCLIN = F.LINEA_ALBC_FACCLIN ' +
+      ' OR NULLIF(F.LINEA_ALBC_FACCLIN, '''') IS NULL) ' +
+      ' WHERE F.SERIE_FACC_FACCLIN = :SERIE ' +
+      ' AND F.NUMERO_FACC_FACCLIN = :NUMERO ' +
+      ' AND COALESCE(L.SERIE_PEDC_ALBCLIN, '''') <> '''' ' +
+      ' AND COALESCE(L.NUMERO_PEDC_ALBCLIN, '''') <> '''' ' +
+      ' ORDER BY L.SERIE_PEDC_ALBCLIN, L.NUMERO_PEDC_ALBCLIN';
+    Consulta.ParamByName('SERIE').AsString := ASerieFactura;
+    Consulta.ParamByName('NUMERO').AsString := ANumeroFactura;
+    Consulta.Open;
+    while not Consulta.Eof do
+    begin
+      RecalcularEstadoPedido(AConexion,
+        Consulta.FieldByName('SERIE_PEDC_ALBCLIN').AsString,
+        Consulta.FieldByName('NUMERO_PEDC_ALBCLIN').AsString, AUsuario);
+      Consulta.Next;
+    end;
+  finally
+    Consulta.Free;
+  end;
+end;
+
 // Recalcula ESTADO_PEDC en funcion de la cantidad pendiente total.
 // Reglas:
 //   * Pedido sin lineas o cancelado por el usuario: no se toca.
-//   * Total recibido == total pedido (pendiente <= 0): RECIBIDO.
+//   * Recibido por completo: RECIBIDO; si está facturado, FACTURADO.
 //   * Algo recibido pero no todo: PARCIAL.
 //   * Nada recibido: ABIERTO.
 procedure RecalcularEstadoPedido(AConn: TUniConnection;
@@ -129,7 +205,11 @@ begin
         if rPedida <= 0 then
           sEstado := 'ABIERTO'
         else if rRecibida + 0.000001 >= rPedida then
-          sEstado := 'RECIBIDO'
+        begin
+          sEstado := 'RECIBIDO';
+          if PedidoCompraFacturado(AConn, ASeriePedc, ANumPedc) then
+            sEstado := 'FACTURADO';
+        end
         else if rRecibida > 0 then
           sEstado := 'PARCIAL'
         else

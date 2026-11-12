@@ -22,7 +22,7 @@ function CrearRepositorioBusquedaDatosUniDAC(
 implementation
 
 uses
-  System.SysUtils, Data.DB;
+  System.SysUtils, Data.DB, UniDataProveedoresTexto;
 
 const
   SQL_LISTAR_FAMILIAS =
@@ -34,10 +34,11 @@ const
     'WHERE IFNULL(ESACTIVO_FAM, ''S'') = ''S'' ' +
     'ORDER BY ORDEN_FAM, CODIGO_FAM_FAM';
   SQL_LISTAR_PROVEEDORES =
-    'SELECT CODIGO_PRV_PRV, RAZON_SOCIAL_PRV ' +
+    'SELECT CODIGO_PRV_PRV, RAZON_SOCIAL_PRV, ' +
+    SQL_COLUMNA_NOMBRE_MOSTRADO_PRV + ' ' +
     'FROM fza_proveedores ' +
     'WHERE IFNULL(ESACTIVO_PRV, ''S'') = ''S'' ' +
-    'ORDER BY RAZON_SOCIAL_PRV, CODIGO_PRV_PRV';
+    'ORDER BY ' + CAMPO_NOMBRE_MOSTRADO_PRV + ', CODIGO_PRV_PRV';
   SQL_LISTAR_TEMPORADAS =
     'SELECT PV AS COD, PV AS NOM ' +
     'FROM fza_propiedades_valores ' +

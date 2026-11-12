@@ -214,6 +214,7 @@ type
 implementation
 
 uses
+  UniDataProveedoresTexto,
   UniDataCodigosBarrasLote,
   inLibLineaSku,
   inLibValoresAutomaticos, UniDataValoresAutomaticosRepositorio,
@@ -230,7 +231,7 @@ uses
   UniDataComprasAgricultores,
   inLibComprasDirectas, UniDataComprasDirectasFiscal, inLibErroresBBDD,
   inLibRedondeo, inLibVerifactu, inLibTrazabilidad,
-  UniDataFacturasCompraMovimientos;
+  UniDataFacturasCompraMovimientos, UniDataPedidosCompraPendientes;
 
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 
@@ -271,6 +272,7 @@ begin
   // incremental por codigo (cbbCODIGO_PRV_FACC). Se abre una vez y se
   // recorre con Locate; no depende del proveedor de la factura en
   // pantalla.
+  unqryPrvDataFacc.SQL.Text := SqlLookupProveedoresPorCodigo;
   unqryPrvDataFacc.Open;
   unqryArtDataLinFacc.Connection        := ConexionPrincipal;
   unqrySkusFacc.Connection              := ConexionPrincipal;
@@ -1101,6 +1103,11 @@ begin
   // directa sí, si lo pide ESMUEVE_STOCK_FACC (FZ-ISSUE-752).
   try
     AplicarTransicionStock(DataSet);
+    if FTransicionEstadoFacc <> '' then
+      RecalcularPedidosFacturaCompra(ConexionEscritura,
+        DataSet.FieldByName('SERIE_FACC').AsString,
+        DataSet.FieldByName('NUMERO_FACC').AsString,
+        IdentidadSesion.Usuario);
   finally
     FTransicionEstadoFacc := '';
   end;
@@ -1174,6 +1181,10 @@ begin
         AsignarDocumento;
         q.ParamByName('u').AsString := IdentidadSesion.Usuario;
         q.ExecSQL;
+        // Las líneas de factura aún conservan el origen. El borrado
+        // transaccional revierte también el estado de los pedidos.
+        RecalcularPedidosFacturaCompra(ConexionEscritura, sSerie,
+          sNumero, IdentidadSesion.Usuario);
         q.SQL.Text :=
           'UPDATE fza_albaranes_compra ' +
           '   SET ESTADO_ALBC     = ''CERRADO'', ' +
@@ -1579,11 +1590,16 @@ var
 begin
   bAgricola := CampoEmisorCompra(unqryTablaG) = 'CODIGO_CLI_FACC';
   if bAgricola then
-    sSql := SQL_CLIENTES_AGRICULTORES
+    // El combo lee la misma columna de nombre que con proveedores.
+    sSql := 'SELECT A.*, ' + SqlNombreMostradoProveedor('A') +
+      ' AS ' + CAMPO_NOMBRE_MOSTRADO_PRV +
+      ' FROM (' + SQL_CLIENTES_AGRICULTORES + ') A ' +
+      'ORDER BY A.RAZON_SOCIAL_PRV'
   else
     sSql := 'SELECT CODIGO_PRV_PRV, NOMBRE_PRV, RAZON_SOCIAL_PRV, ' +
-      'NIF_PRV, MOVIL_PRV, EMAIL_PRV, ESFACTURACION_DIRECTA_PRV ' +
-      'FROM fza_proveedores ORDER BY CODIGO_PRV_PRV';
+      'NIF_PRV, MOVIL_PRV, EMAIL_PRV, ESFACTURACION_DIRECTA_PRV, ' +
+      SQL_COLUMNA_NOMBRE_MOSTRADO_PRV +
+      ' FROM fza_proveedores ORDER BY CODIGO_PRV_PRV';
   if Trim(unqryPrvDataFacc.SQL.Text) <> sSql then
   begin
     unqryPrvDataFacc.Close;

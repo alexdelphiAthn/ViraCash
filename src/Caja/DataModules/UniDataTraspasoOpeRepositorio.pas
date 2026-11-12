@@ -19,10 +19,17 @@ uses
 function CrearRepositorioTraspasoOpeUniDAC(
   AConexion: TUniConnection): IRepositorioTraspasoOpe;
 
+// La cancelación solo cambia una solicitud pendiente del almacén que pide.
+function CancelarSolicitudTraspasoPendiente(AConexion: TUniConnection;
+  const ANumero, ASerie, AAlmacenSolicitante, AUsuario: string): Boolean;
+// El llamante mantiene la transacción hasta terminar de servir o denegar.
+function BloquearSolicitudTraspasoPendiente(AConexion: TUniConnection;
+  const ANumero, ASerie, AOrigen, ADestino: string): Boolean;
+
 implementation
 
 uses
-  System.SysUtils,
+  System.SysUtils, Data.DB,
   UniDataRectificativasSql;
 
 const
@@ -385,6 +392,63 @@ begin
     end;
   finally
     FreeAndNil(oConsulta);
+  end;
+end;
+
+function CancelarSolicitudTraspasoPendiente(AConexion: TUniConnection;
+  const ANumero, ASerie, AAlmacenSolicitante, AUsuario: string): Boolean;
+var
+  Consulta: TUniQuery;
+begin
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := AConexion;
+    // El UPDATE bloquea la misma cabecera que la atención: solo una de
+    // las dos operaciones puede resolver la petición pendiente.
+    Consulta.SQL.Text :=
+      'UPDATE fza_traspasos_solicitudes S ' +
+      ' SET ESTADO_TRSOL = ''CANCELADA'', USUARIO_MODIF = :USUARIO ' +
+      ' WHERE S.NUMERO_TRSOL = :NUMERO AND S.SERIE_TRSOL = :SERIE ' +
+      ' AND S.CODIGO_ALM_DESTINO_TRSOL = :SOLICITANTE ' +
+      ' AND S.ESTADO_TRSOL = ''PENDIENTE'' ' +
+      ' AND NOT EXISTS (SELECT 1 ' +
+      ' FROM fza_traspasos_solicitudes_lineas L ' +
+      ' WHERE L.NUMERO_TRSOL_TRSOLLIN = S.NUMERO_TRSOL ' +
+      ' AND L.SERIE_TRSOL_TRSOLLIN = S.SERIE_TRSOL ' +
+      ' AND L.CANTIDAD_SERVIDA_TRSOLLIN <> 0)';
+    Consulta.ParamByName('NUMERO').AsString := ANumero;
+    Consulta.ParamByName('SERIE').AsString := ASerie;
+    Consulta.ParamByName('SOLICITANTE').AsString := AAlmacenSolicitante;
+    Consulta.ParamByName('USUARIO').AsString := AUsuario;
+    Consulta.Execute;
+    Result := Consulta.RowsAffected = 1;
+  finally
+    Consulta.Free;
+  end;
+end;
+
+function BloquearSolicitudTraspasoPendiente(AConexion: TUniConnection;
+  const ANumero, ASerie, AOrigen, ADestino: string): Boolean;
+var
+  Consulta: TUniQuery;
+begin
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := AConexion;
+    Consulta.SQL.Text :=
+      'SELECT NUMERO_TRSOL FROM fza_traspasos_solicitudes ' +
+      ' WHERE NUMERO_TRSOL = :NUMERO AND SERIE_TRSOL = :SERIE ' +
+      ' AND CODIGO_ALM_ORIGEN_TRSOL = :ORIGEN ' +
+      ' AND CODIGO_ALM_DESTINO_TRSOL = :DESTINO ' +
+      ' AND ESTADO_TRSOL = ''PENDIENTE'' FOR UPDATE';
+    Consulta.ParamByName('NUMERO').AsString := ANumero;
+    Consulta.ParamByName('SERIE').AsString := ASerie;
+    Consulta.ParamByName('ORIGEN').AsString := AOrigen;
+    Consulta.ParamByName('DESTINO').AsString := ADestino;
+    Consulta.Open;
+    Result := not Consulta.IsEmpty;
+  finally
+    Consulta.Free;
   end;
 end;
 

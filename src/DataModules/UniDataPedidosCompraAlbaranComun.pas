@@ -57,7 +57,7 @@ begin
       'SELECT SERIE_PEDC FROM fza_pedidos_compra ' +
       ' WHERE SERIE_PEDC = :s AND NUMERO_PEDC = :n ' +
       '   AND IFNULL(ESTADO_PEDC, '''') NOT IN ' +
-      '       (''CANCELADO'', ''RECIBIDO'') ' +
+      '       (''CANCELADO'', ''RECIBIDO'', ''FACTURADO'') ' +
       ' FOR UPDATE';
     Consulta.ParamByName('s').AsString := ASeriePedido;
     Consulta.ParamByName('n').AsString := ANumeroPedido;

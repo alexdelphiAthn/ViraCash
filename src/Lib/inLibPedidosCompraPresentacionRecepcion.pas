@@ -161,6 +161,12 @@ begin
         FCantidades.Limpiar(
           ASolicitud.CodigoAlmacen,
           AEntrada.UsarCampoCantidades);
+        // FZ-ISSUE-930: tras limpiar el almacén recibido, lo que sigue
+        // marcado pertenece a otros almacenes y no ha entrado.
+        Resultado.CantidadMarcadaOtrosAlmacenes :=
+          FCantidades.Total(AEntrada.UsarCampoCantidades);
+        Resultado.AlmacenMarcadoSiguiente :=
+          FCantidades.PrimerAlmacen(AEntrada.UsarCampoCantidades);
         FVisualizacion.PresentarRecepcion(
           AEntrada, ASolicitud, Resultado);
       end

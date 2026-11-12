@@ -207,6 +207,12 @@ resourcestring
     'Selecciona el almacén al que solicitas.';
   SErrorSolicitudTraspasoMismoAlmacen =
     'No puedes solicitarte a ti mismo.';
+  SErrorFacturaAbonarNoVigente =
+    'No hay una factura vigente inequívoca para abonar esta venta. ' +
+    'Comprueba la factura que sustituyó al ticket y su estado.';
+  SErrorDevolucionDocumentoSustituido =
+    'Esta venta tiene una factura que la sustituye. Vuelve a cargar la ' +
+    'devolución para abonar la factura vigente.';
   SErrorSolicitudTraspasoNoCargada =
     'No hay solicitud cargada que denegar.';
   SErrorLineaSolicitudTraspasoNoActualizada =
@@ -1061,6 +1067,14 @@ resourcestring
   STituloRecuentoEfectivoCaja = 'Recuento de efectivo en Caja';
 
   SBotonReimprimirPeticion = 'Reimprimir';
+  SBotonCancelarPeticion = 'Cancelar petición';
+  SPreguntaCancelarPeticion = '¿Cancelar la petición %s/%s?';
+  SErrorCancelarPeticion =
+    'Solo puedes cancelar peticiones de tu almacén que sigan pendientes ' +
+    'y no se hayan servido. Actualiza la lista y comprueba su estado.';
+  SInfoPeticionCancelada = 'Petición cancelada.';
+  SErrorSolicitudTraspasoNoPendiente =
+    'La solicitud ya no está pendiente o no corresponde a estos almacenes.';
 
   SCabeceraPedidoReposicionTicket = 'PED';
   SCabeceraStockReposicionTicket = 'STK';

@@ -116,6 +116,24 @@
               Options.Editing = False
               Width = 130
             end
+            object cxGrdDBTabPrinMETEOROLOGIA: TcxGridDBColumn
+              Caption = 'Meteorolog'#237'a'
+              DataBinding.ValueType = 'String'
+              Options.Editing = False
+              Options.Filtering = False
+              Options.Grouping = False
+              Options.Sorting = False
+              Width = 320
+            end
+            object cxGrdDBTabPrinBITACORA: TcxGridDBColumn
+              Caption = 'Cuaderno de bit'#225'cora'
+              DataBinding.ValueType = 'String'
+              Options.Editing = False
+              Options.Filtering = False
+              Options.Grouping = False
+              Options.Sorting = False
+              Width = 320
+            end
           end
         end
       end

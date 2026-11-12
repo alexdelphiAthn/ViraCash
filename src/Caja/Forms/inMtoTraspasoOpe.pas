@@ -147,6 +147,7 @@ type
     // «Mis peticiones» siempre a la vista: pequeño hasta la primera
     // peticion del almacen y completo desde entonces.
     FMisPeticionesMini: Boolean;
+    FBotonCancelarPeticion: TcxButton;
     FRepartoTransito: TClientDataSet;
     FVistaRepartoTransito: TcxGridDBTableView;
     FComboTarasTransito: TcxComboBox;
@@ -284,6 +285,9 @@ type
       APanel: TPanel);
     procedure MostrarModalMisPeticiones(const ATitulo: string);
     procedure ModalReimprimirClick(Sender: TObject);
+    function PuedeCancelarPeticion: Boolean;
+    procedure SeleccionPeticionCambiada(Sender: TObject; Field: TField);
+    procedure ModalCancelarPeticionClick(Sender: TObject);
     procedure ImprimirSolicitudModal(ADuplicado: Boolean);
     procedure CerrarSolicitudCargada;
     procedure DenegarSolicitudCargada;
@@ -4325,11 +4329,16 @@ var
 begin
   oReimprimir := CrearBotonModal(ADialogo, APanel, SBotonReimprimirPeticion);
   oReimprimir.OnClick := ModalReimprimirClick;
+  FBotonCancelarPeticion := CrearBotonModal(ADialogo, APanel,
+    SBotonCancelarPeticion);
+  FBotonCancelarPeticion.OnClick := ModalCancelarPeticionClick;
+  FBotonCancelarPeticion.Enabled := PuedeCancelarPeticion;
   oSalir := CrearBotonModal(ADialogo, APanel, 'ESC ' + Trim(
     StringReplace(SCaptionSalir, '&', '', [rfReplaceAll])));
   oSalir.Cancel := True;
   oSalir.ModalResult := mrCancel;
-  ColocarBotonesModal(APanel, [oReimprimir], oSalir);
+  ColocarBotonesModal(APanel,
+    [oReimprimir, FBotonCancelarPeticion], oSalir);
 end;
 
 procedure TfrmMtoOpeTraspaso.ModalSolicitudesKeyDown(
@@ -4401,6 +4410,7 @@ var
   DatosLineas: TDataSet;
 begin
   DatosLineas := nil;
+  FBotonCancelarPeticion := nil;
   oDialogo := TForm.CreateNew(Self);
   try
     ConfigurarModalMisPeticiones(oDialogo, ATitulo);
@@ -4425,6 +4435,7 @@ begin
       FQModalSolic,
       oFuenteMaestro,
       oVistaMaestro);
+    oFuenteMaestro.OnDataChange := SeleccionPeticionCambiada;
     TitularColumnasSolicitudes(oVistaMaestro);
     DatosLineas :=
       FDatos.QueryLineasSolicitud(oFuenteMaestro);
@@ -4459,6 +4470,7 @@ begin
       FreeAndNil(DatosLineas);
     end;
   finally
+    FBotonCancelarPeticion := nil;
     FreeAndNil(oDialogo);
   end;
 end;
@@ -4539,6 +4551,47 @@ end;
 procedure TfrmMtoOpeTraspaso.ModalImprimirClick(Sender: TObject);
 begin
   ImprimirSolicitudModal(False);
+end;
+
+function TfrmMtoOpeTraspaso.PuedeCancelarPeticion: Boolean;
+begin
+  Result := Assigned(FQModalSolic) and FQModalSolic.Active and
+    not FQModalSolic.IsEmpty and
+    SameText(FQModalSolic.FieldByName('ESTADO_TRSOL').AsString,
+      'PENDIENTE') and
+    SameText(FQModalSolic.FieldByName(
+      'CODIGO_ALM_DESTINO_TRSOL').AsString, FAlmacen);
+end;
+
+procedure TfrmMtoOpeTraspaso.SeleccionPeticionCambiada(
+  Sender: TObject; Field: TField);
+begin
+  if Assigned(FBotonCancelarPeticion) then
+    FBotonCancelarPeticion.Enabled := PuedeCancelarPeticion;
+end;
+
+procedure TfrmMtoOpeTraspaso.ModalCancelarPeticionClick(Sender: TObject);
+var
+  sNumero, sSerie: string;
+begin
+  if PuedeCancelarPeticion then
+  begin
+    sNumero := FQModalSolic.FieldByName('NUMERO_TRSOL').AsString;
+    sSerie := FQModalSolic.FieldByName('SERIE_TRSOL').AsString;
+    if MessageDlg_fza(Format(SPreguntaCancelarPeticion, [sSerie, sNumero]),
+      mtConfirmation, [mbYes, mbNo], 0, mbNo) = mrYes then
+    begin
+      if FDatos.CancelarSolicitud(sNumero, sSerie) then
+        ShowMessage_fza(SInfoPeticionCancelada)
+      else
+        ShowMessage_fza(SErrorCancelarPeticion);
+      FQModalSolic.Close;
+      FQModalSolic.Open;
+      FQModalSolic.Locate('NUMERO_TRSOL;SERIE_TRSOL',
+        VarArrayOf([sNumero, sSerie]), []);
+      ActualizarBotonesPendientes;
+    end;
+  end;
 end;
 
 procedure TfrmMtoOpeTraspaso.ModalReimprimirClick(Sender: TObject);

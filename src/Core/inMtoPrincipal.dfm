@@ -611,6 +611,7 @@
       end
       object mnuFacturacionSimplificados: TMenuItem
         Caption = 'Facturaci'#243'n de borradores simplificados'
+        ShortCut = 57393
         OnClick = mnuFacturacionSimplificadosClick
       end
       object mnuGarantiasReclamaciones: TMenuItem
@@ -771,6 +772,7 @@
         end
         object mnuComparativaVentas: TMenuItem
           Caption = 'Comparativa de ventas entre períodos'
+          ShortCut = 57394
           OnClick = mnuComparativaVentasClick
         end
       end

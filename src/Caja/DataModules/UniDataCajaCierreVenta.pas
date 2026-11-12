@@ -33,6 +33,12 @@ type
     FConexion: TUniConnection;
     FUsuarioAuditoria: string;
     FUnidadTrabajoActiva: Boolean;
+    function ConsultarCobrosVentaOrigen(const AEmpresa, AAlmacen,
+      ASerie, ANumero: string): TUniQuery;
+    procedure AcumularImporteOperacion(AConsulta, AOrigen: TUniQuery;
+      AImporte: Currency);
+    procedure RechazarDevolucionOrigen(const AEmpresa, ASerie,
+      ANumero: string);
   public
     constructor Create(
       AConexion: TUniConnection;
@@ -108,7 +114,8 @@ implementation
 uses
   inLibFormatoDocumento, UniDataFormatoDocumentoRepositorio,
   inLibMsgCaja, inLibMsgPresupuestos, inLibErroresBBDD,
-  UniDataFaseCobroRepositorio;
+  UniDataFaseCobroRepositorio, UniDataCajaConsultasRepositorio,
+  inLibCajaVentaIntf;
 
 procedure LimpiarLineasDepositoSinImporteCaja(ALineas: TDataSet);
 var
@@ -416,43 +423,146 @@ begin
   AConsulta.Execute;
 end;
 
+procedure TPersistenciaCierreVentaCajaUniDAC.RechazarDevolucionOrigen(
+  const AEmpresa, ASerie, ANumero: string);
+begin
+  raise EValidacionBBDD.Create(FormatearMensajeDocumentos(
+    CrearFormatoDocumentoLecturas(FConexion).LeerFormatoEmpresa(AEmpresa),
+    SErrorVentaOrigenDevolucionCajaNoActualizada, [ASerie, ANumero]));
+end;
+
+function TPersistenciaCierreVentaCajaUniDAC.ConsultarCobrosVentaOrigen(
+  const AEmpresa, AAlmacen, ASerie, ANumero: string): TUniQuery;
+var
+  Documento: TDocumentoOrigenDevolucionCaja;
+begin
+  Documento := ResolverDocumentoDevolucionCajaUniDAC(
+    FConexion, ASerie, ANumero);
+  if (Documento.Serie <> ASerie) or (Documento.Numero <> ANumero) then
+    raise EValidacionBBDD.Create(SErrorDevolucionDocumentoSustituido);
+  if not SameText(Documento.Empresa, AEmpresa) then
+    RechazarDevolucionOrigen(AEmpresa, ASerie, ANumero);
+  Result := CrearConsulta;
+  try
+    // La referencia fiscal sigue siendo la factura. Solo se localizan
+    // los cobros del ticket sustituido para impedir un doble reembolso.
+    // La unión parte de esos documentos, no de todas las ventas de caja.
+    Result.SQL.Text :=
+      'SELECT O.CODIGO_EMP_OPCAJA, O.CODIGO_ALM_OPCAJA, ' +
+      ' O.CODIGO_CAJA_OPCAJA, O.NUMERO_OPERACION_OPCAJA, ' +
+      ' O.IMPORTE_TOTAL_OPCAJA, O.IMPORTE_DEVUELTO_ACUM_OPCAJA ' +
+      ' FROM (SELECT :SERIE AS SERIE_DOC, :NUMERO AS NUMERO_DOC ' +
+      ' UNION SELECT R.SERIE_FAC_ORIGEN_FACREL, ' +
+      ' R.NUMERO_FAC_ORIGEN_FACREL FROM fza_facturas_relaciones R ' +
+      ' WHERE R.SERIE_FAC_FACREL = :SERIE ' +
+      ' AND R.NUMERO_FAC_FACREL = :NUMERO ' +
+      ' AND R.TIPO_RELACION_FACREL = ''SUSTITUYE'') D ' +
+      ' STRAIGHT_JOIN fza_caja_operaciones O ' +
+      ' ON O.CODIGO_EMP_OPCAJA = :EMP ' +
+      ' AND O.SERIE_FAC_OPCAJA = D.SERIE_DOC ' +
+      ' AND O.NUMERO_FAC_OPCAJA = D.NUMERO_DOC ' +
+      ' WHERE O.TIPO_OPERACION_OPCAJA = ''VE'' ' +
+      ' AND O.IMPORTE_TOTAL_OPCAJA > 0 ' +
+      ' AND (:ALM = '''' OR O.CODIGO_ALM_OPCAJA = :ALM ' +
+      ' OR D.SERIE_DOC <> :SERIE OR D.NUMERO_DOC <> :NUMERO) ' +
+      ' ORDER BY O.CODIGO_ALM_OPCAJA, O.CODIGO_CAJA_OPCAJA, ' +
+      ' O.NUMERO_OPERACION_OPCAJA FOR UPDATE';
+    Result.ParamByName('EMP').AsString := AEmpresa;
+    Result.ParamByName('ALM').AsString := AAlmacen;
+    Result.ParamByName('SERIE').AsString := ASerie;
+    Result.ParamByName('NUMERO').AsString := ANumero;
+    Result.Open;
+  except
+    Result.Free;
+    raise;
+  end;
+end;
+
+procedure TPersistenciaCierreVentaCajaUniDAC.AcumularImporteOperacion(
+  AConsulta, AOrigen: TUniQuery; AImporte: Currency);
+begin
+  AConsulta.SQL.Text :=
+    'UPDATE fza_caja_operaciones ' +
+    'SET ESTADO_DEVOLUCION_OPCAJA = CASE ' +
+    ' WHEN COALESCE(IMPORTE_DEVUELTO_ACUM_OPCAJA, 0) + :IMPORTE >= ' +
+    ' IMPORTE_TOTAL_OPCAJA THEN ''T'' ELSE ''P'' END, ' +
+    'IMPORTE_DEVUELTO_ACUM_OPCAJA = ' +
+    ' COALESCE(IMPORTE_DEVUELTO_ACUM_OPCAJA, 0) + :IMPORTE, ' +
+    'USUARIO_MODIF = :USUARIO, INSTANTE_MODIF = NOW() ' +
+    'WHERE CODIGO_EMP_OPCAJA = :EMP AND CODIGO_ALM_OPCAJA = :ALM ' +
+    ' AND CODIGO_CAJA_OPCAJA = :CAJA ' +
+    ' AND NUMERO_OPERACION_OPCAJA = :OPERACION ' +
+    ' AND TIPO_OPERACION_OPCAJA = ''VE'' ' +
+    ' AND COALESCE(IMPORTE_DEVUELTO_ACUM_OPCAJA, 0) + :IMPORTE <= ' +
+    ' IMPORTE_TOTAL_OPCAJA';
+  AConsulta.ParamByName('EMP').AsString :=
+    AOrigen.FieldByName('CODIGO_EMP_OPCAJA').AsString;
+  AConsulta.ParamByName('ALM').AsString :=
+    AOrigen.FieldByName('CODIGO_ALM_OPCAJA').AsString;
+  AConsulta.ParamByName('CAJA').AsString :=
+    AOrigen.FieldByName('CODIGO_CAJA_OPCAJA').AsString;
+  AConsulta.ParamByName('OPERACION').AsString :=
+    AOrigen.FieldByName('NUMERO_OPERACION_OPCAJA').AsString;
+  AConsulta.ParamByName('IMPORTE').AsCurrency := AImporte;
+  AConsulta.ParamByName('USUARIO').AsString := FUsuarioAuditoria;
+  AConsulta.Execute;
+  if AConsulta.RowsAffected <> 1 then
+    raise EValidacionBBDD.Create(SErrorFacturaAbonarNoVigente);
+end;
+
 procedure TPersistenciaCierreVentaCajaUniDAC.AcumularDevolucionVentaOrigen(
   AConsulta: TUniQuery;
   const AEmpresa, AAlmacen, ASerie, ANumero: string;
   AImporte: Currency);
+var
+  Origenes: TUniQuery;
+  Disponible, Pendiente, Aplicar: Currency;
+  Propia: Boolean;
 begin
   if AImporte <= 0 then
     raise EArgumentOutOfRangeException.Create('AImporte');
-  AConsulta.SQL.Text :=
-    'UPDATE fza_caja_operaciones ' +
-    'SET ESTADO_DEVOLUCION_OPCAJA = CASE ' +
-    '  WHEN IMPORTE_DEVUELTO_ACUM_OPCAJA + :IMPORTE >= ' +
-    '       IMPORTE_TOTAL_OPCAJA THEN ''T'' ELSE ''P'' END, ' +
-    'IMPORTE_DEVUELTO_ACUM_OPCAJA = ' +
-    '  IMPORTE_DEVUELTO_ACUM_OPCAJA + :IMPORTE, ' +
-    'USUARIO_MODIF = :USUARIO, INSTANTE_MODIF = NOW() ' +
-    'WHERE CODIGO_EMP_OPCAJA = :EMP ' +
-    '  AND CODIGO_ALM_OPCAJA = :ALM ' +
-    '  AND SERIE_FAC_OPCAJA = :SERIE ' +
-    '  AND NUMERO_FAC_OPCAJA = :NUMERO ' +
-    '  AND TIPO_OPERACION_OPCAJA = ''VE'' ' +
-    '  AND IMPORTE_TOTAL_OPCAJA > 0 ' +
-    '  AND IMPORTE_DEVUELTO_ACUM_OPCAJA + :IMPORTE <= ' +
-    '      IMPORTE_TOTAL_OPCAJA';
-  AConsulta.ParamByName('EMP').AsString := AEmpresa;
-  AConsulta.ParamByName('ALM').AsString := AAlmacen;
-  AConsulta.ParamByName('SERIE').AsString := ASerie;
-  AConsulta.ParamByName('NUMERO').AsString := ANumero;
-  AConsulta.ParamByName('IMPORTE').AsCurrency := AImporte;
-  AConsulta.ParamByName('USUARIO').AsString := FUsuarioAuditoria;
-  AConsulta.Execute;
-  // Lo devuelto supera lo que queda de la venta: aviso, no error del
-  // programa (EValidacionBBDD); la grabación se deshace igual.
-  if AConsulta.RowsAffected <> 1 then
-    raise EValidacionBBDD.Create(FormatearMensajeDocumentos(
-      CrearFormatoDocumentoLecturas(AConsulta.Connection)
-      .LeerFormatoEmpresa(AEmpresa),
-      SErrorVentaOrigenDevolucionCajaNoActualizada, [ASerie, ANumero]));
+  Propia := not FConexion.InTransaction;
+  if Propia then
+    FConexion.StartTransaction;
+  try
+    Origenes := ConsultarCobrosVentaOrigen(AEmpresa, AAlmacen,
+      ASerie, ANumero);
+    try
+      Disponible := 0;
+      while not Origenes.Eof do
+      begin
+        Disponible := Disponible +
+          Origenes.FieldByName('IMPORTE_TOTAL_OPCAJA').AsCurrency -
+          Origenes.FieldByName('IMPORTE_DEVUELTO_ACUM_OPCAJA').AsCurrency;
+        Origenes.Next;
+      end;
+      if Disponible < AImporte then
+        RechazarDevolucionOrigen(AEmpresa, ASerie, ANumero);
+      Pendiente := AImporte;
+      Origenes.First;
+      while not Origenes.Eof and (Pendiente > 0) do
+      begin
+        Aplicar := Origenes.FieldByName('IMPORTE_TOTAL_OPCAJA').AsCurrency -
+          Origenes.FieldByName('IMPORTE_DEVUELTO_ACUM_OPCAJA').AsCurrency;
+        if Aplicar > Pendiente then
+          Aplicar := Pendiente;
+        if Aplicar > 0 then
+        begin
+          AcumularImporteOperacion(AConsulta, Origenes, Aplicar);
+          Pendiente := Pendiente - Aplicar;
+        end;
+        Origenes.Next;
+      end;
+    finally
+      Origenes.Free;
+    end;
+    if Propia then
+      FConexion.Commit;
+  except
+    if Propia and FConexion.InTransaction then
+      FConexion.Rollback;
+    raise;
+  end;
 end;
 
 procedure TPersistenciaCierreVentaCajaUniDAC.MarcarValeCanjeado(

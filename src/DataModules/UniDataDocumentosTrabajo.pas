@@ -103,7 +103,7 @@ implementation
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 
 uses
-  UniDataTarifasPrecioSql,
+  UniDataTarifasPrecioSql, UniDataProveedoresTexto,
   inLibLineaSku,
   System.Generics.Collections, System.Variants,
   UniDataArticulos, inLibDocumentosTrabajoEstados,
@@ -192,8 +192,8 @@ begin
     '       COALESCE(a.CODIGO_FAM_ART, '''') AS CODIGO_FAM_ART, ' +
     '       COALESCE(f.DESCRIPCION_FAM, '''') AS DESCRIPCION_FAM, ' +
     '       COALESCE(ap.CODIGO_PRV_AP, '''') AS CODIGO_PRV_AP, ' +
-    '       COALESCE(NULLIF(p.NOMBRE_PRV, ''''), ' +
-    '                p.RAZON_SOCIAL_PRV, '''') AS NOMBRE_PRV, ' +
+    '       COALESCE(' + SqlNombreMostradoProveedor('p') +
+    ', '''') AS NOMBRE_PRV, ' +
     '       COALESCE(ap.REF_PROVEEDOR_AP, '''') AS REF_PROVEEDOR, ' +
     '       COALESCE((SELECT COALESCE(pe.VALOR_PV, ' +
     '                                pe.VALOR_LIBRE_ARTPROP) ' +

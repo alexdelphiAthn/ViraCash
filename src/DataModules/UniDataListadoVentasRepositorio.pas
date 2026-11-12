@@ -21,7 +21,8 @@ function CrearRepositorioListadoVentasUniDAC(
 implementation
 
 uses
-  System.Classes, System.SysUtils, Data.DB, UniDataRectificativasSql;
+  System.Classes, System.SysUtils, Data.DB, UniDataRectificativasSql,
+  UniDataProveedoresTexto;
 
 const
   SQL_FAMILIAS =
@@ -31,10 +32,11 @@ const
     'WHERE IFNULL(ESACTIVO_FAM, ''S'') = ''S'' ' +
     'ORDER BY ORDEN_FAM, CODIGO_FAM_FAM';
   SQL_PROVEEDORES =
-    'SELECT CODIGO_PRV_PRV AS COD, RAZON_SOCIAL_PRV AS NOM ' +
+    'SELECT CODIGO_PRV_PRV AS COD, ' +
+    SQL_NOMBRE_MOSTRADO_PRV + ' AS NOM ' +
     'FROM fza_proveedores ' +
     'WHERE IFNULL(ESACTIVO_PRV, ''S'') = ''S'' ' +
-    'ORDER BY RAZON_SOCIAL_PRV, CODIGO_PRV_PRV';
+    'ORDER BY NOM, CODIGO_PRV_PRV';
   SQL_TEMPORADAS =
     'SELECT PV AS COD, PV AS NOM ' +
     'FROM fza_propiedades_valores ' +

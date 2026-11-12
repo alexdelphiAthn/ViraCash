@@ -257,9 +257,14 @@
             DataBinding.FieldName = 'CODIGO_PRV_PRV'
             Width = 120
           end
+          object colProvNombreComercial: TcxGridDBColumn
+            Caption = 'Proveedor'
+            DataBinding.FieldName = 'NOMBRE_PRV'
+            Width = 400
+          end
           object colProvRazonSocial: TcxGridDBColumn
             DataBinding.FieldName = 'RAZON_SOCIAL_PRV'
-            Width = 400
+            Width = 300
           end
           object colProvNif: TcxGridDBColumn
             DataBinding.FieldName = 'NIF_PRV'

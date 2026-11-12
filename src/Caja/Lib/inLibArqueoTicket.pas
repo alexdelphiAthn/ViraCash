@@ -132,6 +132,7 @@ type
 implementation
 
 uses
+  inLibArqueoBitacora,
   inLibArqueoTicketPresentacion,
   inLibArqueoTicketPresentacionTermica;
 
@@ -710,6 +711,7 @@ class procedure TArqueoTicket.ImprimirCierre(
 var
   dInstanteEmision: TDateTime;
   aPresentacion: TPresentacionTicketArqueo;
+  oBitacora: IRepositorioBitacoraArqueo;
   oDatos: TDatosPresentacionCierreArqueo;
   oTicket: TTicketTermico;
   sComandosESC: string;
@@ -721,6 +723,12 @@ begin
     ARetirada, AConceptoRetirada, AEfectivoDejado,
     ADesgloseBilletes, AObservaciones, AVendedor,
     AContextoSesion.Identidad.Usuario, dInstanteEmision, ADuplicado);
+  // Meteorología y cuaderno de bitácora de los días del arqueo, en el
+  // almacén de la caja que cierra.
+  if Supports(ARepositorioTicket, IRepositorioBitacoraArqueo, oBitacora) then
+    oDatos.Bitacora := oBitacora.ListarDiasBitacora(
+      AArqueo.Empresa, AArqueo.Almacen,
+      AArqueo.FechaDesde, AArqueo.FechaHasta);
   aPresentacion := ConstruirPresentacionCierreArqueo(oDatos);
   oTicket := TTicketTermico.Create(ANombreImpresora);
   try

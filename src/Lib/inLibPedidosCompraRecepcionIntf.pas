@@ -41,6 +41,10 @@ type
     SerieAlbaran: string;
     NumeroAlbaran: string;
     Mensaje: string;
+    // FZ-ISSUE-930: lo marcado «A recibir» en otros almacenes que no
+    // ha entrado en el albarán.
+    CantidadMarcadaOtrosAlmacenes: Double;
+    AlmacenMarcadoSiguiente: string;
   end;
   IRecepcionPedidoCompra = interface
     ['{15EC0714-1FBD-4D5F-A954-E4367F6285E7}']

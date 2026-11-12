@@ -297,6 +297,7 @@ type
 implementation
 
 uses
+  UniDataProveedoresTexto,
   UniDataComprasSesionesOperaciones,
   UniDataCodigosBarrasSesion,
   System.Variants,
@@ -1117,7 +1118,14 @@ procedure TdmComprasSesiones.AbrirCatalogos;
 begin
   // unqryProveedores alimenta tanto el rotulo resuelto de la cabecera
   // (ActualizarLabelProveedor via Locate) como cbbProveedor, el combo de
-  // busqueda incremental por nombre.
+  // busqueda incremental por nombre. El combo muestra codigo y
+  // nombre comercial (o razon social si no hay nombre comercial).
+  unqryProveedores.SQL.Text :=
+    'SELECT CODIGO_PRV_PRV, NOMBRE_PRV, RAZON_SOCIAL_PRV, ' +
+    'CONCAT(CODIGO_PRV_PRV, '' - '', COALESCE(' +
+    SQL_NOMBRE_MOSTRADO_PRV + ', '''')) AS PROVEEDOR_BUSQUEDA ' +
+    'FROM fza_proveedores ' +
+    'ORDER BY ' + SQL_NOMBRE_MOSTRADO_PRV + ', CODIGO_PRV_PRV';
   unqryProveedores.Open;
   unqryFamilias.Open;
   unqryVariaciones.Open;

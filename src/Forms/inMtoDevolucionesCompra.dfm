@@ -231,7 +231,7 @@
                   end
                   item
                     Caption = 'Proveedor'
-                    FieldName = 'RAZON_SOCIAL_PRV'
+                    FieldName = 'NOMBRE_MOSTRADO_PRV'
                   end>
                 TabOrder = 11
                 OnKeyUp = cbbCODIGO_PRV_DEVCKeyUp

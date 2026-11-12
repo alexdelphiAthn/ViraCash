@@ -36,7 +36,7 @@ uses
   frLocalization, frLanguageSpanish, frxExportBaseImageSettingsDialog,
   frCoreClasses, inLibInformesCajaPersistenciaIntf,
   inLibCajasDefectoPersistenciaIntf, inLibCajaPantallaInyeccion,
-  inLibResumenSeleccionesInforme;
+  inLibResumenSeleccionesInforme, cxCheckBox, inLibArqueoBitacora;
 
 type
   TfrmPrintArqueos = class(TfrmPrint)
@@ -54,6 +54,7 @@ type
     bedAlmacen: TcxButtonEdit;
     lblCaja: TcxLabel;
     bedCaja: TcxButtonEdit;
+    chkBitacora: TcxCheckBox;
     procedure bedAlmacenPropertiesButtonClick(Sender: TObject;
       AButtonIndex: Integer);
     procedure bedCajaPropertiesButtonClick(Sender: TObject;
@@ -66,7 +67,14 @@ type
     FRepositorioPersistencia: IRepositorioInformesCaja;
     FRepositorioCajasDefecto: IRepositorioCajasDefecto;
     FResultado: IResultadoInformeCaja;
+    // Meteorología y bitácora del almacén elegido; solo con la casilla.
+    FIndiceBitacora: TIndiceBitacoraArqueo;
     procedure ComponerDependencias;
+    procedure CargarBitacora;
+    // Textos del arqueo que FastReport está imprimiendo.
+    procedure TextosBitacoraArqueoActual(
+      out AMeteorologia, ABitacora: string);
+    procedure ImprimirConBitacora(Component: TfrxReportComponent);
     // Abre el selector estandar de caja (inMtoModalCajDef sobre la vista
     // vi_cajasdef) acotado a la empresa del usuario y vuelca el almacen y
     // la caja elegidos en bedAlmacen / bedCaja.
@@ -81,6 +89,9 @@ type
       AOwner: TComponent;
       const ADependencias: TDependenciasInformeCaja); reintroduce;
       overload;
+    destructor Destroy; override;
+    procedure AplicarTraduccionActual; override;
+    procedure AfterReportLoaded; override;
     procedure preparar_consulta; override;
   end;
 
@@ -89,7 +100,7 @@ implementation
 {$R *.dfm}
 
 uses
-  inMtoModalCajDef;
+  inMtoModalCajDef, inLibArqueoBitacoraFrx, inLibMsgMeteorologiaCaja;
 
 { TfrmPrintArqueos }
 
@@ -101,6 +112,88 @@ begin
   FRepositorioPersistencia := ADependencias.Repositorio;
   FRepositorioCajasDefecto := ADependencias.CajasDefecto;
   inherited Create(AOwner);
+end;
+
+destructor TfrmPrintArqueos.Destroy;
+begin
+  FreeAndNil(FIndiceBitacora);
+  inherited;
+end;
+
+procedure TfrmPrintArqueos.AplicarTraduccionActual;
+begin
+  inherited;
+  chkBitacora.Caption := SCasillaBitacoraImpArqueos;
+end;
+
+procedure TfrmPrintArqueos.AfterReportLoaded;
+begin
+  inherited;
+  // También en formatos propios guardados antes de existir la banda.
+  AsegurarBandaBitacoraArqueos(frxrprt1, fxdsArqueos);
+  frxrprt1.OnBeforePrint := ImprimirConBitacora;
+end;
+
+procedure TfrmPrintArqueos.ImprimirConBitacora(
+  Component: TfrxReportComponent);
+var
+  sBitacora: string;
+  sMeteorologia: string;
+begin
+  ReportBeforePrintConQR(Component);
+  if EsBandaBitacoraArqueos(Component) then
+  begin
+    TextosBitacoraArqueoActual(sMeteorologia, sBitacora);
+    AplicarBitacoraArqueosEnBanda(
+      Component, chkBitacora.Checked, sMeteorologia, sBitacora);
+  end;
+end;
+
+procedure TfrmPrintArqueos.TextosBitacoraArqueoActual(
+  out AMeteorologia, ABitacora: string);
+var
+  aDias: TDiasBitacoraArqueo;
+  bConFecha: Boolean;
+  dDesde: TDateTime;
+  dHasta: TDateTime;
+  oDatos: TDataSet;
+begin
+  AMeteorologia := '';
+  ABitacora := '';
+  if Assigned(FIndiceBitacora) and Assigned(FResultado) then
+  begin
+    oDatos := FResultado.DataSet;
+    if oDatos.Active and (not oDatos.IsEmpty) then
+    begin
+      dDesde := oDatos.FieldByName('FECHA_DESDE_ARQ').AsDateTime;
+      dHasta := oDatos.FieldByName('FECHA_HASTA_ARQ').AsDateTime;
+      aDias := FIndiceBitacora.DiasDeArqueo(
+        oDatos.FieldByName('CODIGO_ALM_ARQ').AsString, dDesde, dHasta);
+      bConFecha := ArqueoAbarcaVariosDias(dDesde, dHasta);
+      AMeteorologia := UnirLineasBitacoraArqueo(
+        LineasMeteorologiaArqueo(aDias, bConFecha), sLineBreak);
+      ABitacora := UnirLineasBitacoraArqueo(
+        LineasApuntesArqueo(aDias, bConFecha), sLineBreak);
+      if AMeteorologia <> '' then
+        AMeteorologia := Format(
+          SInformeMeteorologiaArqueo, [AMeteorologia]);
+      if ABitacora <> '' then
+        ABitacora := Format(SInformeBitacoraArqueo, [ABitacora]);
+    end;
+  end;
+end;
+
+procedure TfrmPrintArqueos.CargarBitacora;
+var
+  oRepositorio: IRepositorioBitacoraArqueo;
+begin
+  FreeAndNil(FIndiceBitacora);
+  if chkBitacora.Checked and Supports(FRepositorioPersistencia,
+    IRepositorioBitacoraArqueo, oRepositorio) then
+    FIndiceBitacora := TIndiceBitacoraArqueo.Create(
+      oRepositorio.ListarDiasBitacora(
+        edtEmpresa.Text, bedAlmacen.Text,
+        FECHA_MINIMA_BITACORA_ARQUEO, FECHA_MAXIMA_BITACORA_ARQUEO));
 end;
 
 procedure TfrmPrintArqueos.DoShow;
@@ -117,6 +210,7 @@ begin
     edtEmpresa.Text := UbicacionSesion.Empresa;
     bedAlmacen.Text := UbicacionSesion.Almacen;
     bedCaja.Text    := UbicacionSesion.Caja;
+    chkBitacora.Caption := SCasillaBitacoraImpArqueos;
     FInicializado   := True;
   end;
 end;
@@ -180,6 +274,7 @@ begin
     ConstruirSolicitud);
   dsArqueosPrint.DataSet := FResultado.DataSet;
   fxdsArqueos.UpdateBounds;
+  CargarBitacora;
 end;
 
 procedure TfrmPrintArqueos.DescribirSelecciones(
@@ -191,6 +286,7 @@ begin
   AResumen.Anadir(lblEmpresa.Caption, edtEmpresa.Text);
   AResumen.Anadir(lblAlmacen.Caption, bedAlmacen.Text);
   AResumen.Anadir(lblCaja.Caption, bedCaja.Text);
+  AResumen.AnadirSiNo(chkBitacora.Caption, chkBitacora.Checked);
 end;
 
 function TfrmPrintArqueos.ConstruirSolicitud: TSolicitudInformeCaja;

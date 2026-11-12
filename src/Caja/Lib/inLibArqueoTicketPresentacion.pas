@@ -17,7 +17,12 @@ interface
 
 uses
   inLibArqueoIntf,
-  inLibArqueoPersistencia;
+  inLibArqueoPersistencia,
+  inLibArqueoBitacora;
+
+const
+  // Ancho en caracteres del papel térmico (N_CHAR_LIN de inLibFTicket).
+  ANCHO_TEXTO_TICKET_ARQUEO = 42;
 
 type
   TAlineacionPresentacionTicket = (
@@ -57,6 +62,8 @@ type
     Usuario: string;
     InstanteEmision: TDateTime;
     Duplicado: Boolean;
+    // Meteorología y apuntes de bitácora de los días del arqueo.
+    Bitacora: TDiasBitacoraArqueo;
   end;
 
 function FormatearImportePresentacion(AValor: Currency): string;
@@ -73,6 +80,7 @@ implementation
 uses
   System.SysUtils,
   inLibArqueoDesglose,
+  inLibMsgMeteorologiaCaja,
   inLibMsgTickets;
 
 procedure AgregarComando(
@@ -379,6 +387,111 @@ begin
   end;
 end;
 
+procedure AgregarTituloBitacora(
+  var APresentacion: TPresentacionTicketArqueo;
+  const ATitulo: string);
+begin
+  AgregarSeparador(APresentacion);
+  AgregarNegrita(APresentacion, True);
+  AgregarLinea(APresentacion, ATitulo);
+  AgregarNegrita(APresentacion, False);
+end;
+
+procedure AgregarMeteorologiaDia(
+  var APresentacion: TPresentacionTicketArqueo;
+  const ADia: TDiaBitacoraArqueo;
+  AConFecha: Boolean);
+var
+  sCabecera: string;
+begin
+  sCabecera := Trim(ADia.Ciudad);
+  if AConFecha then
+    sCabecera := Trim(
+      FormatDateTime('dd/mm/yyyy', ADia.Fecha) + ' ' + sCabecera);
+  if sCabecera <> '' then
+    AgregarLinea(
+      APresentacion,
+      Copy(sCabecera, 1, ANCHO_TEXTO_TICKET_ARQUEO));
+  AgregarColumnas(
+    APresentacion,
+    STemperaturaBitacoraArqueo,
+    TextoValorBitacoraArqueo(ADia.Temperatura) + ' °C');
+  AgregarColumnas(
+    APresentacion,
+    SMinimaMaximaBitacoraArqueo,
+    TextoValorBitacoraArqueo(ADia.Minima) + ' / ' +
+      TextoValorBitacoraArqueo(ADia.Maxima) + ' °C');
+  AgregarColumnas(
+    APresentacion,
+    SNubesBitacoraArqueo,
+    TextoValorBitacoraArqueo(ADia.Nubes) + ' %');
+  AgregarColumnas(
+    APresentacion,
+    SLluviaBitacoraArqueo,
+    TextoValorBitacoraArqueo(ADia.Lluvia) + ' mm');
+end;
+
+procedure AgregarMeteorologia(
+  var APresentacion: TPresentacionTicketArqueo;
+  const ADias: TDiasBitacoraArqueo;
+  AConFecha: Boolean);
+var
+  bTitulo: Boolean;
+  iDia: Integer;
+begin
+  bTitulo := False;
+  for iDia := 0 to High(ADias) do
+  begin
+    if ADias[iDia].TieneMeteorologia then
+    begin
+      if not bTitulo then
+        AgregarTituloBitacora(APresentacion, STicketMeteorologiaArqueo);
+      bTitulo := True;
+      AgregarMeteorologiaDia(APresentacion, ADias[iDia], AConFecha);
+    end;
+  end;
+end;
+
+procedure AgregarApuntes(
+  var APresentacion: TPresentacionTicketArqueo;
+  const ADias: TDiasBitacoraArqueo;
+  AConFecha: Boolean);
+var
+  aLineas: TArray<string>;
+  aTexto: TArray<string>;
+  iLinea: Integer;
+  iTexto: Integer;
+begin
+  aLineas := LineasApuntesArqueo(ADias, AConFecha);
+  if Length(aLineas) > 0 then
+  begin
+    AgregarTituloBitacora(APresentacion, STicketBitacoraArqueo);
+    for iLinea := 0 to High(aLineas) do
+    begin
+      aTexto := AjustarTextoAncho(
+        aLineas[iLinea], ANCHO_TEXTO_TICKET_ARQUEO);
+      for iTexto := 0 to High(aTexto) do
+        AgregarLinea(APresentacion, aTexto[iTexto]);
+    end;
+  end;
+end;
+
+procedure AgregarBitacora(
+  var APresentacion: TPresentacionTicketArqueo;
+  const ADatos: TDatosPresentacionCierreArqueo);
+var
+  bConFecha: Boolean;
+begin
+  if Length(ADatos.Bitacora) > 0 then
+  begin
+    bConFecha := ArqueoAbarcaVariosDias(
+      ADatos.Arqueo.FechaDesde, ADatos.Arqueo.FechaHasta);
+    AgregarAlineacion(APresentacion, aptIzquierda);
+    AgregarMeteorologia(APresentacion, ADatos.Bitacora, bConFecha);
+    AgregarApuntes(APresentacion, ADatos.Bitacora, bConFecha);
+  end;
+end;
+
 procedure AgregarPie(
   var APresentacion: TPresentacionTicketArqueo;
   AInstanteEmision: TDateTime);
@@ -407,6 +520,7 @@ begin
   AgregarRecuento(Result, ADatos.Lineas);
   AgregarTotales(Result, ADatos);
   AgregarRetiradaYObservaciones(Result, ADatos);
+  AgregarBitacora(Result, ADatos);
   AgregarPie(Result, ADatos.InstanteEmision);
 end;
 

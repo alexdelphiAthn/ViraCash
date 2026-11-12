@@ -124,6 +124,7 @@ function LeerDatosSerieGarantia(
 implementation
 
 uses
+  UniDataProveedoresTexto,
   inLibReparacionesCircuito, inLibMsgReparacionesCircuito,
   UniDataReparacionesFases, UniDataTrabajosCortinas,
   System.Variants, inLibReparaciones, inLibMsgGarantias, inLibMsgReparaciones, inLibErroresBBDD,
@@ -594,10 +595,13 @@ begin
     FProveedores := TUniQuery.Create(Self);
     FProveedores.Connection := unqryTablaG.Connection;
     FProveedores.SQL.Text :=
-      'SELECT P.CODIGO_PRV_PRV, P.RAZON_SOCIAL_PRV ' +
+      'SELECT P.CODIGO_PRV_PRV, P.RAZON_SOCIAL_PRV, ' +
+      SqlNombreMostradoProveedor('P') + ' AS ' +
+      CAMPO_NOMBRE_MOSTRADO_PRV +
       '  FROM fza_proveedores P ' +
       ' WHERE P.ESACTIVO_PRV = ''S'' ' +
-      ' ORDER BY P.RAZON_SOCIAL_PRV, P.CODIGO_PRV_PRV';
+      ' ORDER BY ' + CAMPO_NOMBRE_MOSTRADO_PRV +
+      ', P.CODIGO_PRV_PRV';
     FProveedores.ReadOnly := True;
     FdsProveedores := TDataSource.Create(Self);
     FdsProveedores.DataSet := FProveedores;

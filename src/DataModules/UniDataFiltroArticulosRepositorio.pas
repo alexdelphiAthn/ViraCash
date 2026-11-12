@@ -22,7 +22,7 @@ function CrearRepositorioFiltroArticulosUniDAC(
 implementation
 
 uses
-  System.SysUtils;
+  System.SysUtils, UniDataProveedoresTexto;
 
 const
   SQL_LISTAR_TEMPORADAS =
@@ -31,7 +31,7 @@ const
     'ORDER BY PV';
   SQL_LISTAR_PROVEEDORES =
     'SELECT CODIGO_PRV_PRV, ' +
-    'COALESCE(NULLIF(RAZON_SOCIAL_PRV, ''''), NOMBRE_PRV, ' +
+    'COALESCE(' + SQL_NOMBRE_MOSTRADO_PRV + ', ' +
     'CODIGO_PRV_PRV) AS NOM FROM fza_proveedores ' +
     'WHERE ESACTIVO_PRV = ''S'' ORDER BY NOM, CODIGO_PRV_PRV';
 

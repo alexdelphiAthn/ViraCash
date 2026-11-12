@@ -295,7 +295,13 @@ procedure TVisualizacionRecepcionPedidoCompraVcl.PresentarRecepcion(
   const AResultado: TResultadoRecepcionPedidoCompra);
 begin
   RefrescarDatos;
-  if SameText(FCabecera.FieldByName('ESTADO_PEDC').AsString,
+  // FZ-ISSUE-930: con cantidades marcadas para otro almacén se avisa y
+  // no se ofrece cancelar lo pendiente, que las incluiría.
+  if AResultado.CantidadMarcadaOtrosAlmacenes > 0 then
+    MostrarAviso(Format(SAvisoPedidoCompraMarcadoOtrosAlmacenes,
+      [FormatFloat('0.###', AResultado.CantidadMarcadaOtrosAlmacenes),
+       AResultado.AlmacenMarcadoSiguiente]))
+  else if SameText(FCabecera.FieldByName('ESTADO_PEDC').AsString,
        'PARCIAL') then
     if MessageDlg_fza('El pedido tiene cantidades pendientes de recibir. ' +
          '¿Desea cancelar lo pendiente y dar por terminada la recepción? ' +

@@ -25,6 +25,7 @@ type
     IServicioRectificacionCaja)
   private
     FRepositorio: IRepositorioConsultasCaja;
+    procedure ResolverDocumentoOrigen(var ASerie, ANumero: string);
     procedure CopiarTipoFacturaCompleta(AOrigen, ADestino: TDataSet);
     procedure CopiarCliente(
       AOrigen, ADestino: TDataSet);
@@ -388,13 +389,32 @@ begin
     ASigno);
 end;
 
+procedure TServicioRectificacionCaja.ResolverDocumentoOrigen(
+  var ASerie, ANumero: string);
+var
+  Resolver: IResolverDocumentoDevolucionCaja;
+  Documento: TDocumentoOrigenDevolucionCaja;
+begin
+  if Supports(FRepositorio, IResolverDocumentoDevolucionCaja, Resolver) then
+  begin
+    Documento := Resolver.ResolverDocumentoDevolucion(ASerie, ANumero);
+    ASerie := Documento.Serie;
+    ANumero := Documento.Numero;
+  end;
+end;
+
 procedure TServicioRectificacionCaja.CargarDevolucion(
   const ASerie, ANumero: string;
   ACabecera, ALineas: TDataSet);
+var
+  sSerie, sNumero: string;
 begin
+  sSerie := ASerie;
+  sNumero := ANumero;
+  ResolverDocumentoOrigen(sSerie, sNumero);
   CargarOrigen(
-    ASerie,
-    ANumero,
+    sSerie,
+    sNumero,
     -1,
     ACabecera,
     ALineas);
@@ -428,14 +448,15 @@ begin
         SErrorTipoRectificativaCajaNoIndicado);
     end;
   end;
+  Result.Serie := ASerie;
+  Result.Numero := ANumero;
+  ResolverDocumentoOrigen(Result.Serie, Result.Numero);
   Result.LiquidoOrigen := CargarOrigen(
-    ASerie,
-    ANumero,
+    Result.Serie,
+    Result.Numero,
     Signo,
     ACabecera,
     ALineas);
-  Result.Serie := ASerie;
-  Result.Numero := ANumero;
   Result.Tipo := ATipo;
   Result.TratamientoMovimientos := ATratamientoMovimientos;
   if ATipo = trcSustitutiva then

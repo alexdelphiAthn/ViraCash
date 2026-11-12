@@ -463,7 +463,7 @@ begin
     sSql := 'SELECT CODIGO_EMPL, NOMBRE_EMPL FROM fza_empleados ' +
       'WHERE ESACTIVO_EMPL = ''S'' ORDER BY NOMBRE_EMPL'
   else if ACampo = 'CODIGO_PRV_GARTIP' then
-    sSql := 'SELECT CODIGO_PRV_PRV, RAZON_SOCIAL_PRV ' +
+    sSql := 'SELECT CODIGO_PRV_PRV, NOMBRE_PRV, RAZON_SOCIAL_PRV ' +
       'FROM fza_proveedores WHERE ESACTIVO_PRV = ''S'' ' +
       'ORDER BY RAZON_SOCIAL_PRV'
   else if ACampo = 'CODIGO_ART_GARTIP' then

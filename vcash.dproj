@@ -1074,6 +1074,9 @@
         <DCCReference Include="src\Caja\Lib\inLibArqueoIntf.pas"/>
         <DCCReference Include="src\Caja\Lib\inLibArqueoDesglose.pas"/>
         <DCCReference Include="src\Caja\Lib\inLibArqueoRango.pas"/>
+        <DCCReference Include="src\Caja\Lib\inLibArqueoBitacora.pas"/>
+        <DCCReference Include="src\Caja\Lib\inLibArqueoBitacoraFrx.pas"/>
+        <DCCReference Include="src\Caja\DataModules\UniDataArqueoBitacora.pas"/>
         <DCCReference Include="src\Caja\DataModules\UniDataArqueoRepositorio.pas"/>
         <DCCReference Include="src\Caja\Lib\inLibArqueoTicketIntf.pas"/>
         <DCCReference Include="src\Caja\DataModules\UniDataArqueoTicketRepositorio.pas"/>
@@ -1872,6 +1875,7 @@
         <DCCReference Include="src\Lib\inLibAplicacionArticuloCompra.pas"/>
         <DCCReference Include="src\DataModules\UniDataAplicacionArticuloCompra.pas"/>
         <DCCReference Include="src\DataModules\UniDataDocsProveedorSql.pas"/>
+        <DCCReference Include="src\DataModules\UniDataProveedoresTexto.pas"/>
         <DCCReference Include="src\DataModules\UniDataDocsProveedor.pas"/>
         <DCCReference Include="src\Lib\inLibArticulosResolver.pas"/>
         <DCCReference Include="src\Modals\inMtoModalAddPreciosTar.pas">

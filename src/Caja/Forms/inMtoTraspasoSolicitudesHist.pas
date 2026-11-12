@@ -345,13 +345,14 @@ end;
 
 procedure TfrmMtoTraspasoSolicitudesHist.AplicarFiltroModoPeticion;
 const
-  ModosFiltro: array[0..5] of string = (
+  ModosFiltro: array[0..6] of string = (
     '',
     'PENDIENTE',
     'AUTO',
     'ATENDIDA',
     'RECHAZADA PARCIAL',
-    'RECHAZADA TOTAL');
+    'RECHAZADA TOTAL',
+    'CANCELADA');
 var
   Datos: TDataSet;
   Indice: Integer;
@@ -419,7 +420,7 @@ var
 begin
   inherited;
   if Assigned(cboFiltroModoPeticion) and
-     (cboFiltroModoPeticion.Properties.Items.Count = 6) then
+     (cboFiltroModoPeticion.Properties.Items.Count = 7) then
   begin
     Indice := cboFiltroModoPeticion.ItemIndex;
     Evento := cboFiltroModoPeticion.Properties.OnChange;
@@ -437,6 +438,8 @@ begin
         SCaptionModoSolicitudRechazadaParcial;
       cboFiltroModoPeticion.Properties.Items[5] :=
         SCaptionModoSolicitudRechazadaTotal;
+      cboFiltroModoPeticion.Properties.Items[6] :=
+        SEstadoSolicitudCancelada;
       cboFiltroModoPeticion.ItemIndex := Indice;
     finally
       cboFiltroModoPeticion.Properties.OnChange := Evento;

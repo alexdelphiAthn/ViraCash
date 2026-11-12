@@ -20,6 +20,7 @@ implementation
 
 uses
   System.SysUtils, System.Math, Data.DB, DBAccess, UniDataPedidosCompraPendientes,
+  UniDataProveedoresTexto,
   inLibDocumentosTrabajoEstados, inLibMsgVentas,
   inLibListasRegalos, inLibMsgListasRegalos,
   UniDataDocumentosTrabajoCargaOrigenSql, UniDataImpuestosRepositorio,
@@ -1100,10 +1101,11 @@ begin
   try
     if ACompra then
       oConsulta.SQL.Text :=
-        'SELECT CODIGO_PRV_PRV AS CODIGO, RAZON_SOCIAL_PRV AS NOMBRE, ' +
+        'SELECT CODIGO_PRV_PRV AS CODIGO, ' +
+        SQL_NOMBRE_MOSTRADO_PRV + ' AS NOMBRE, ' +
         'NIF_PRV AS NIF, CODIGO_FP_PRV AS FORMA_PAGO ' +
         'FROM fza_proveedores WHERE COALESCE(ESACTIVO_PRV, ''S'') = ' +
-        '''S'' ORDER BY RAZON_SOCIAL_PRV, CODIGO_PRV_PRV'
+        '''S'' ORDER BY NOMBRE, CODIGO_PRV_PRV'
     else
       oConsulta.SQL.Text :=
         'SELECT CODIGO_CLI_CLI AS CODIGO, RAZON_SOCIAL_CLI AS NOMBRE, ' +

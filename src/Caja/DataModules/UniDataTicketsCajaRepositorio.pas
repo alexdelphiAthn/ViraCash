@@ -237,7 +237,8 @@ const
     'SELECT p.CODIGO_FP_CFP, ' +
     'COALESCE(NULLIF(TRIM(fp.DESCRIPCION_FORMA_PAGO_CFP), ''''), ' +
     'p.CODIGO_FP_CFP) AS DESCRIPCION_FORMA_PAGO_CFP, ' +
-    'p.IMPORTE_ENTREGADO_PAGO, p.IMPORTE_CAMBIO_PAGO ' +
+    'p.IMPORTE_ENTREGADO_PAGO, p.IMPORTE_CAMBIO_PAGO, ' +
+    'COALESCE(TRIM(p.REFERENCIA_FACPAG), '''') AS REFERENCIA_FACPAG ' +
     'FROM fza_caja_pagos p ' +
     'LEFT JOIN fza_caja_formas_pago fp ' +
     'ON fp.CODIGO_FP_CFP = p.CODIGO_FP_CFP ' +
@@ -392,7 +393,7 @@ begin
     SQL_PAGOS_TICKET,
     PARAMETROS_OPERACION,
     'CODIGO_FP_CFP,DESCRIPCION_FORMA_PAGO_CFP,' +
-    'IMPORTE_ENTREGADO_PAGO,IMPORTE_CAMBIO_PAGO');
+    'IMPORTE_ENTREGADO_PAGO,IMPORTE_CAMBIO_PAGO,REFERENCIA_FACPAG');
   Result[10] := DefinicionSql(
     'ListarValesTicket',
     SQL_VALES_TICKET,
@@ -973,6 +974,8 @@ begin
           oQuery.FieldByName('IMPORTE_ENTREGADO_PAGO').AsCurrency;
         oPago.ImporteCambio :=
           oQuery.FieldByName('IMPORTE_CAMBIO_PAGO').AsCurrency;
+        oPago.Referencia :=
+          oQuery.FieldByName('REFERENCIA_FACPAG').AsString;
         oLista.Add(oPago);
         oQuery.Next;
       end;

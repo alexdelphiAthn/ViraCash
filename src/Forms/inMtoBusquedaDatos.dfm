@@ -228,7 +228,7 @@
               item
                 Caption = 'Nombre'
                 Width = 350
-                FieldName = 'RAZON_SOCIAL_PRV'
+                FieldName = 'NOMBRE_MOSTRADO_PRV'
               end>
             Properties.ListFieldIndex = 1
             Properties.ListOptions.CaseInsensitive = True

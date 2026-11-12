@@ -689,6 +689,11 @@ resourcestring
     'No hay tallas pendientes de recibir en la fila activa.';
   SInfoPedidoCompraSinPendientesRecibir =
     'No hay nada pendiente de recibir en el pedido.';
+  SAvisoPedidoCompraMarcadoOtrosAlmacenes =
+    'Quedan %s unidades marcadas en «A recibir» para otros almacenes ' +
+    '(el siguiente, %s) que no han entrado en este albarán. Vuelva a ' +
+    'pulsar «Crear albarán» y elija ese almacén; con «Añadir a» puede ' +
+    'incorporarlas al mismo albarán.';
   SPreguntaGrabarPedidoCompraSinSku =
     'Las líneas %s tienen artículos con variaciones sin SKU asignado. ' +
     '¿Grabar de todas formas?';

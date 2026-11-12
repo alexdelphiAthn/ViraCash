@@ -230,7 +230,7 @@
                   end
                   item
                     Caption = 'Proveedor'
-                    FieldName = 'RAZON_SOCIAL_PRV'
+                    FieldName = 'NOMBRE_MOSTRADO_PRV'
                   end>
                 Properties.OnEditValueChanged = cbbCODIGO_PRV_FACCPropertiesEditValueChanged
                 TabOrder = 11

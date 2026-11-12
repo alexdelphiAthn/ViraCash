@@ -96,6 +96,7 @@ type
     procedure BotonVentasAppClick(Sender: TObject);
     procedure LimpiarSeleccion;
     procedure MostrarResultado(ADataSet: TDataSet);
+    procedure MostrarResultadoVigente(ADataSet: TDataSet);
     procedure AvisarNoEncontrado;
     procedure BuscarPorCodigoBarras;
     procedure BuscarPorOperacion;
@@ -271,7 +272,28 @@ begin
     PChar(STituloAvisoCaja), MB_OK or MB_ICONWARNING);
 end;
 
-procedure TfrmModalDevolucionTicket.MostrarResultado(
+procedure TfrmModalDevolucionTicket.MostrarResultado(ADataSet: TDataSet);
+var
+  Resolver: IResolverDocumentoDevolucionCaja;
+  Documento: TDocumentoOrigenDevolucionCaja;
+  Consulta: IResultadoConsultaCaja;
+begin
+  LimpiarSeleccion;
+  if Assigned(ADataSet) and not ADataSet.IsEmpty and
+     Supports(FRepositorio, IResolverDocumentoDevolucionCaja, Resolver) then
+  begin
+    Documento := Resolver.ResolverDocumentoDevolucion(
+      ADataSet.FieldByName('SERIE_FAC').AsString,
+      ADataSet.FieldByName('NUMERO_FAC').AsString);
+    Consulta := FRepositorio.ConsultarCabeceraFactura(
+      Documento.Serie, Documento.Numero);
+    MostrarResultadoVigente(Consulta.DataSet);
+  end
+  else
+    MostrarResultadoVigente(ADataSet);
+end;
+
+procedure TfrmModalDevolucionTicket.MostrarResultadoVigente(
   ADataSet: TDataSet);
 begin
   if (ADataSet = nil) or ADataSet.IsEmpty then

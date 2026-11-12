@@ -20,12 +20,14 @@ uses
   Data.DB, Uni,
   inLibArqueoIntf,
   inLibArqueoTicketIntf,
+  inLibArqueoBitacora,
   inLibCatalogoSqlIntf;
 
 type
   TRepositorioArqueoTicket = class(
     TInterfacedObject,
-    IRepositorioArqueoTicket)
+    IRepositorioArqueoTicket,
+    IRepositorioBitacoraArqueo)
   private
     FConexion: TUniConnection;
     FCatalogoSql: ICatalogoSql;
@@ -74,6 +76,8 @@ type
     function ObtenerCierreHistorico(
       const AEmpresa, AAlmacen, ACaja, ACodigoArqueo: string):
       TCierreHistoricoArqueo;
+    function ListarDiasBitacora(const AEmpresa, AAlmacen: string;
+      ADesde, AHasta: TDateTime): TDiasBitacoraArqueo;
   end;
 
 implementation
@@ -81,6 +85,7 @@ implementation
 uses
   System.Generics.Collections,
   UniDataRectificativasSql, UniDataArqueoRepositorio,
+  UniDataArqueoBitacora,
   inLibCatalogoSqlEjecucion,
   UniDataCatalogoSqlValidacion;
 
@@ -1012,6 +1017,14 @@ begin
   if Result.Encontrado then
     Result.Lineas := ListarRecuentoHistorico(
       ACodigoArqueo);
+end;
+
+function TRepositorioArqueoTicket.ListarDiasBitacora(
+  const AEmpresa, AAlmacen: string;
+  ADesde, AHasta: TDateTime): TDiasBitacoraArqueo;
+begin
+  Result := CrearRepositorioBitacoraArqueo(FConexion).ListarDiasBitacora(
+    AEmpresa, AAlmacen, ADesde, AHasta);
 end;
 
 end.

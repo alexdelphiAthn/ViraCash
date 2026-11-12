@@ -456,9 +456,13 @@ procedure TImpresorTicketVenta.EscribirPagosYCambio;
 var
   dImporte: Double;
   sFormaPago: string;
+  sReferencia: string;
+  oCampoReferencia: TField;
 begin
   FTicket.Alinear(alIzquierda);
   FTicket.Negrita(True);
+  oCampoReferencia :=
+    FDatosCobro.MemTablePagos.FindField('REFERENCIA');
   FDatosCobro.MemTablePagos.First;
   while not FDatosCobro.MemTablePagos.Eof do
   begin
@@ -466,10 +470,21 @@ begin
       'DESCRIPCION_FORMA_PAGO_CFP').AsString;
     dImporte := FDatosCobro.MemTablePagos.FieldByName(
       'IMPORTE_ENTREGADO').AsFloat;
+    sReferencia := '';
+    if oCampoReferencia <> nil then
+      sReferencia := Trim(oCampoReferencia.AsString);
     // FZ-ISSUE-200: en una devolucion el importe entregado es negativo.
     if Abs(dImporte) > 0.001 then
+    begin
       FTicket.TextoColumnas(
         UpperCase(sFormaPago), Format('%.2f', [dImporte]) + ' €');
+      // FZ-ISSUE-933: la referencia (bono, vale...) justifica el pago.
+      // En un vale canjeado la descripción ya es su código: no repetirla.
+      if (sReferencia <> '') and
+         not SameText(sReferencia, Trim(sFormaPago)) then
+        FTicket.EscribirLinea(Copy(
+          STicketReferenciaPagoEspacio + sReferencia, 1, 42));
+    end;
     FDatosCobro.MemTablePagos.Next;
   end;
   if FDatosCobro.ImporteCambio > 0 then

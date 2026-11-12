@@ -208,7 +208,8 @@
               'Auto'
               'Atendida'
               'Rechazada parcial'
-              'Rechazada Total')
+              'Rechazada Total'
+              'Cancelada')
             Properties.OnChange = cboFiltroModoPeticionPropertiesChange
             TabOrder = 1
             Width = 210

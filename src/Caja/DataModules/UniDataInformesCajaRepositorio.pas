@@ -15,7 +15,7 @@ interface
 
 uses
   System.Classes, Uni, inLibInformesCajaPersistenciaIntf,
-  inLibFaseCobroPersistenciaIntf;
+  inLibFaseCobroPersistenciaIntf, inLibArqueoBitacora;
 
 function CrearRepositorioInformesCajaUniDAC(
   AConexion: TUniConnection): IRepositorioInformesCaja;
@@ -25,7 +25,7 @@ implementation
 uses
   System.SysUtils, Data.DB,
   UniDataRectificativasSql, inLibArqueoIntf,
-  UniDataFaseCobroRepositorio;
+  UniDataFaseCobroRepositorio, UniDataArqueoBitacora;
 
 const
   // Rango pedido, ya formateado, para el subtitulo de los informes A4
@@ -49,7 +49,8 @@ type
 
   TRepositorioInformesCajaUniDAC = class(
     TInterfacedObject,
-    IRepositorioInformesCaja, IRepositorioCuentaClientes)
+    IRepositorioInformesCaja, IRepositorioCuentaClientes,
+    IRepositorioBitacoraArqueo)
   private
     FConexion: TUniConnection;
     function EjecutarInforme(
@@ -91,6 +92,8 @@ type
     constructor Create(AConexion: TUniConnection);
     function ConsultarCuentaClientes(const ACliente: string;
       AResumen: Boolean): IResultadoInformeCaja;
+    function ListarDiasBitacora(const AEmpresa, AAlmacen: string;
+      ADesde, AHasta: TDateTime): TDiasBitacoraArqueo;
     function ConsultarArqueos(
       const ASolicitud: TSolicitudInformeCaja
     ): IResultadoInformeCaja;
@@ -277,6 +280,14 @@ begin
   finally
     Consulta.Free;
   end;
+end;
+
+function TRepositorioInformesCajaUniDAC.ListarDiasBitacora(
+  const AEmpresa, AAlmacen: string;
+  ADesde, AHasta: TDateTime): TDiasBitacoraArqueo;
+begin
+  Result := CrearRepositorioBitacoraArqueo(FConexion).ListarDiasBitacora(
+    AEmpresa, AAlmacen, ADesde, AHasta);
 end;
 
 function TRepositorioInformesCajaUniDAC.ConsultarArqueos(
