@@ -22,6 +22,13 @@ uses
 function CrearBusquedasCompraPersistenciaUniDAC(
   AConexion: TUniConnection): IBusquedasCompraPersistencia;
 
+const
+  SQL_FILTRO_PROVEEDOR_BUSQUEDA =
+    ' AND (:FILTRAR_PROVEEDOR = 0 OR EXISTS (' +
+    'SELECT 1 FROM fza_articulos_proveedores FP ' +
+    'WHERE FP.CODIGO_ART_AP = a.CODIGO_ART_ART ' +
+    'AND FP.CODIGO_PRV_AP = :PROVEEDOR))';
+
 implementation
 
 uses

@@ -16,19 +16,21 @@ unit UniDataGridArticulosRepositorio;
 interface
 
 uses
-  Uni,
+  System.SysUtils, Uni,
   inLibGridArticulosPersistenciaIntf,
   inLibModoTallasIntf;
 
 function CrearConsultaArticulosGridUniDAC(
-  AConexion: TUniConnection): IConsultaArticulosGrid;
+  AConexion: TUniConnection;
+  const AProveedor: TFunc<string> = nil): IConsultaArticulosGrid;
 function CrearBusquedaArticulosPadreGridUniDAC(
-  AConexion: TUniConnection): IBusquedaSkusTallas;
+  AConexion: TUniConnection;
+  const AProveedor: TFunc<string> = nil): IBusquedaSkusTallas;
 
 implementation
 
 uses
-  System.SysUtils, System.Classes, Data.DB;
+  System.Classes, Data.DB, UniDataBusquedasCompraRepositorio;
 
 const
   // FZ-ISSUE-234: la columna Stock no puede salir de una consulta vieja.
@@ -76,6 +78,7 @@ const
     '  LEFT JOIN fza_propiedades_valores pv' +
     '    ON pv.ID_PV_ARTPROP = artprop.ID_PV_ARTPROP' +
     ' WHERE a.ESACTIVO_ART = ''S'' AND a.TIPO_ART = ''ESTANDAR''' +
+    SQL_FILTRO_PROVEEDOR_BUSQUEDA +
     ' ORDER BY STOCK DESC, a.CODIGO_ART_ART';
 
   // El lookup compartido espera los alias SKU e INPUT_BUSQUEDA. Aqui ambos
@@ -111,7 +114,8 @@ const
     '               a.DESCRIPCION_ART AS DESCRIPCION' +
     '          FROM fza_articulos a' +
     '         WHERE a.ESACTIVO_ART = ''S''' +
-    '           AND a.TIPO_ART = ''ESTANDAR''';
+    '           AND a.TIPO_ART = ''ESTANDAR''' +
+    SQL_FILTRO_PROVEEDOR_BUSQUEDA;
   SQL_BUSQUEDA_PADRES_FILTRO =
     '           AND a.CODIGO_ART_ART LIKE :TPREF';
   SQL_BUSQUEDA_PADRES_ORDEN =
@@ -124,8 +128,10 @@ type
     IConsultaArticulosGrid)
   private
     FConsulta: TUniQuery;
+    FProveedor: TFunc<string>;
   public
-    constructor Create(AConexion: TUniConnection);
+    constructor Create(AConexion: TUniConnection;
+      const AProveedor: TFunc<string>);
     destructor Destroy; override;
     function DataSet: TDataSet;
     procedure Aplicar(const AAlmacenStock: string);
@@ -136,11 +142,14 @@ type
     IBusquedaSkusTallas)
   private
     FConsulta: TUniQuery;
+    FProveedor: TFunc<string>;
     FUltimoAlmacen: string;
     FUltimoFiltro: string;
+    FUltimoProveedor: string;
     FUltimaCarga: UInt64;
   public
-    constructor Create(AConexion: TUniConnection);
+    constructor Create(AConexion: TUniConnection;
+      const AProveedor: TFunc<string>);
     destructor Destroy; override;
     function Dataset: TDataSet;
     procedure Aplicar(const ATexto, AAlmacenStock: string);
@@ -148,9 +157,10 @@ type
   end;
 
 constructor TConsultaArticulosGridUniDAC.Create(
-  AConexion: TUniConnection);
+  AConexion: TUniConnection; const AProveedor: TFunc<string>);
 begin
   inherited Create;
+  FProveedor := AProveedor;
   if not Assigned(AConexion) then
     raise EArgumentNilException.Create('AConexion');
   FConsulta := TUniQuery.Create(nil);
@@ -171,6 +181,8 @@ end;
 
 procedure TConsultaArticulosGridUniDAC.Aplicar(
   const AAlmacenStock: string);
+var
+  sProveedor: string;
   procedure EtiquetarCampo(
     const ANombreCampo, AEtiqueta: string);
   var
@@ -181,8 +193,14 @@ procedure TConsultaArticulosGridUniDAC.Aplicar(
       Campo.DisplayLabel := AEtiqueta;
   end;
 begin
+  sProveedor := '';
+  if Assigned(FProveedor) then
+    sProveedor := Trim(FProveedor());
   FConsulta.Close;
   FConsulta.ParamByName('ALM').AsString := Trim(AAlmacenStock);
+  FConsulta.ParamByName('FILTRAR_PROVEEDOR').AsInteger :=
+    Ord(Assigned(FProveedor));
+  FConsulta.ParamByName('PROVEEDOR').AsString := sProveedor;
   FConsulta.Open;
   EtiquetarCampo('ARTICULO', 'Código');
   EtiquetarCampo('DESCRIPCION', 'Descripción');
@@ -194,15 +212,17 @@ begin
 end;
 
 function CrearConsultaArticulosGridUniDAC(
-  AConexion: TUniConnection): IConsultaArticulosGrid;
+  AConexion: TUniConnection;
+  const AProveedor: TFunc<string>): IConsultaArticulosGrid;
 begin
-  Result := TConsultaArticulosGridUniDAC.Create(AConexion);
+  Result := TConsultaArticulosGridUniDAC.Create(AConexion, AProveedor);
 end;
 
 constructor TBusquedaArticulosPadreGridUniDAC.Create(
-  AConexion: TUniConnection);
+  AConexion: TUniConnection; const AProveedor: TFunc<string>);
 begin
   inherited Create;
+  FProveedor := AProveedor;
   if not Assigned(AConexion) then
     raise EArgumentNilException.Create('AConexion');
   FConsulta := TUniQuery.Create(nil);
@@ -225,12 +245,17 @@ end;
 procedure TBusquedaArticulosPadreGridUniDAC.Aplicar(
   const ATexto, AAlmacenStock: string);
 var
+  sProveedor: string;
   sAlmacen: string;
   sFiltro: string;
 begin
+  sProveedor := '';
+  if Assigned(FProveedor) then
+    sProveedor := Trim(FProveedor());
   sAlmacen := Trim(AAlmacenStock);
   sFiltro := Trim(ATexto);
-  if not (FConsulta.Active and SameText(FUltimoFiltro, sFiltro) and
+  if not (FConsulta.Active and (FUltimoProveedor = sProveedor) and
+          SameText(FUltimoFiltro, sFiltro) and
           SameText(FUltimoAlmacen, sAlmacen) and
           (TThread.GetTickCount64 - FUltimaCarga <
            MS_VIGENCIA_BUSQUEDA_STOCK)) then
@@ -243,7 +268,11 @@ begin
     if sFiltro <> '' then
       FConsulta.ParamByName('TPREF').AsString := sFiltro + '%';
     FConsulta.ParamByName('ALM').AsString := sAlmacen;
+    FConsulta.ParamByName('FILTRAR_PROVEEDOR').AsInteger :=
+      Ord(Assigned(FProveedor));
+    FConsulta.ParamByName('PROVEEDOR').AsString := sProveedor;
     FConsulta.Open;
+    FUltimoProveedor := sProveedor;
     FUltimoFiltro := sFiltro;
     FUltimoAlmacen := sAlmacen;
     FUltimaCarga := TThread.GetTickCount64;
@@ -259,9 +288,10 @@ begin
 end;
 
 function CrearBusquedaArticulosPadreGridUniDAC(
-  AConexion: TUniConnection): IBusquedaSkusTallas;
+  AConexion: TUniConnection;
+  const AProveedor: TFunc<string>): IBusquedaSkusTallas;
 begin
-  Result := TBusquedaArticulosPadreGridUniDAC.Create(AConexion);
+  Result := TBusquedaArticulosPadreGridUniDAC.Create(AConexion, AProveedor);
 end;
 
 end.

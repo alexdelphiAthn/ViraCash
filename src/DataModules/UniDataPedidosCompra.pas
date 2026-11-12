@@ -76,6 +76,7 @@ type
     procedure CancelarLineaVaciaDiferida;
     procedure AsignarNumeroLineaPedidoCompra(DataSet: TDataSet);
     procedure RefrescarResumenPedidoCompra;
+    procedure SincronizarDatosPedido(const ASerie, ANumero: string);
     procedure ConfigurarSqlCabecera;
     // Construye el SQLInsert contra fza_pedidos_compra: la vista
     // vi_pedidos_compra tiene columnas calculadas y no es insertable
@@ -606,6 +607,10 @@ var
 begin
   inherited;
   FieldByName('NUMERO_PEDC').AsString := '0';
+  if Assigned(ParametrosApp) then
+    AplicarTemporadaDefecto(DataSet, unqryTemporadasPedc,
+      'ID_PV_TEMPORADA_PEDC',
+      ParametrosApp.GetString('appTemporadaDefecto'));
     sSerie := ObtenerSerieDefecto(
       ConexionEscritura,
       UbicacionSesion.Empresa,
@@ -737,6 +742,31 @@ begin
   CalcularTotalesPedidoCompra;
 end;
 
+procedure TdmPedidosCompra.SincronizarDatosPedido(
+  const ASerie, ANumero: string);
+var
+  Conexion: TUniConnection;
+  Propia: Boolean;
+begin
+  Conexion := ConexionEscritura;
+  Propia := not Conexion.InTransaction;
+  if Propia then
+    Conexion.StartTransaction;
+  try
+    CrearPendientesPedidoCompraUniDAC(
+      Conexion).GenerarPdteRecibirDesdePedido(
+        ASerie, ANumero, IdentidadSesion.Usuario);
+    VincularArticulosProveedorDesdePedido(
+      Conexion, ASerie, ANumero, IdentidadSesion.Usuario);
+    if Propia then
+      Conexion.Commit;
+  except
+    if Propia and Conexion.InTransaction then
+      Conexion.Rollback;
+    raise;
+  end;
+end;
+
 procedure TdmPedidosCompra.unqryTablaGAfterPost(DataSet: TDataSet);
 var
   sSerie, sNumero: string;
@@ -754,9 +784,7 @@ begin
     if FReorganizandoLineas > 0 then
       FReorganizacionPendiente := True
     else
-      CrearPendientesPedidoCompraUniDAC(
-        ConexionEscritura).GenerarPdteRecibirDesdePedido(
-          sSerie, sNumero, IdentidadSesion.Usuario);
+      SincronizarDatosPedido(sSerie, sNumero);
   end;
 end;
 
@@ -1046,9 +1074,7 @@ begin
       if FReorganizandoLineas > 0 then
         FReorganizacionPendiente := True
       else
-        CrearPendientesPedidoCompraUniDAC(
-          ConexionEscritura).GenerarPdteRecibirDesdePedido(
-            sSerie, sNumero, IdentidadSesion.Usuario);
+        SincronizarDatosPedido(sSerie, sNumero);
     end;
   end;
   if FReorganizandoLineas = 0 then
@@ -1717,9 +1743,7 @@ begin
         sSerie  := unqryTablaG.FieldByName('SERIE_PEDC').AsString;
         sNumero := unqryTablaG.FieldByName('NUMERO_PEDC').AsString;
         if (sSerie <> '') and (sNumero <> '') then
-          CrearPendientesPedidoCompraUniDAC(
-            ConexionEscritura).GenerarPdteRecibirDesdePedido(
-              sSerie, sNumero, IdentidadSesion.Usuario);
+          SincronizarDatosPedido(sSerie, sNumero);
       end;
     end;
     RefrescarResumenPedidoCompra;
@@ -1748,9 +1772,7 @@ begin
     sSerie  := unqryTablaG.FieldByName('SERIE_PEDC').AsString;
     sNumero := unqryTablaG.FieldByName('NUMERO_PEDC').AsString;
     if (sSerie <> '') and (sNumero <> '') then
-      CrearPendientesPedidoCompraUniDAC(
-        ConexionEscritura).GenerarPdteRecibirDesdePedido(
-          sSerie, sNumero, IdentidadSesion.Usuario);
+      SincronizarDatosPedido(sSerie, sNumero);
   end;
 end;
 

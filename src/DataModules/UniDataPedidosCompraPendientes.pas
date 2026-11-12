@@ -31,9 +31,64 @@ function CalcularPendienteTotalInterno(AConn: TUniConnection;
   const ASeriePedc, ANumPedc: string): Double;
 procedure CancelarRestoPedidoCompra(AConn: TUniConnection;
   const ASerie, ANumero, AUsuario: string);
+procedure VincularArticulosProveedorDesdePedido(AConn: TUniConnection;
+  const ASerie, ANumero, AUsuario: string);
 implementation
 uses
   System.SysUtils, Data.DB, DBAccess;
+procedure VincularArticulosProveedorDesdePedido(AConn: TUniConnection;
+  const ASerie, ANumero, AUsuario: string);
+var
+  Consulta: TUniQuery;
+begin
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := AConn;
+    // Un pedido acredita la relacion y el modelo, nunca una compra real.
+    Consulta.SQL.Text :=
+      'INSERT INTO fza_articulos_proveedores (' +
+      'CODIGO_PRV_AP, CODIGO_ART_AP, REF_PROVEEDOR_AP, ' +
+      'ESPROVEEDORPRINCIPAL_AP, INSTANTE_ALTA, USUARIO_ALTA, ' +
+      'INSTANTE_MODIF, USUARIO_MODIF) ' +
+      'SELECT X.PROVEEDOR, X.ARTICULO, NULLIF(X.MODELO, ''''), ' +
+      'CASE WHEN EXISTS (' +
+      'SELECT 1 FROM fza_articulos_proveedores AP ' +
+      'WHERE AP.CODIGO_ART_AP = X.ARTICULO ' +
+      'AND AP.ESPROVEEDORPRINCIPAL_AP = ''S'') ' +
+      'THEN ''N'' ELSE ''S'' END, NOW(), :USUARIO, NOW(), :USUARIO ' +
+      'FROM (' +
+      'SELECT P.CODIGO_PRV_PEDC AS PROVEEDOR, ' +
+      'L.CODIGO_ART_PEDCLIN AS ARTICULO, ' +
+      'TRIM(L.REF_PRV_PEDCLIN) AS MODELO, ' +
+      'ROW_NUMBER() OVER (PARTITION BY L.CODIGO_ART_PEDCLIN ' +
+      'ORDER BY (COALESCE(TRIM(L.REF_PRV_PEDCLIN), '''') <> '''') ' +
+      'DESC, CAST(L.LINEA_PEDCLIN AS UNSIGNED) DESC) AS POSICION ' +
+      'FROM fza_pedidos_compra P ' +
+      'JOIN fza_pedidos_compra_lineas L ' +
+      'ON L.SERIE_PEDC_PEDCLIN = P.SERIE_PEDC ' +
+      'AND L.NUMERO_PEDC_PEDCLIN = P.NUMERO_PEDC ' +
+      'JOIN fza_articulos A ON A.CODIGO_ART_ART = L.CODIGO_ART_PEDCLIN ' +
+      'WHERE P.SERIE_PEDC = :SERIE AND P.NUMERO_PEDC = :NUMERO ' +
+      'AND P.ESTADO_PEDC <> ''CANCELADO'' ' +
+      'AND COALESCE(TRIM(P.CODIGO_PRV_PEDC), '''') NOT IN ('''', ''0'') ' +
+      'AND (COALESCE(L.CANTIDAD_PEDCLIN, 0) > 0 OR EXISTS (' +
+      'SELECT 1 FROM fza_pedidos_compra_celdas C ' +
+      'WHERE C.SERIE_PEDC_PEDCCEL = P.SERIE_PEDC ' +
+      'AND C.NUMERO_PEDC_PEDCCEL = P.NUMERO_PEDC ' +
+      'AND C.LINEA_PEDC_PEDCCEL = L.LINEA_PEDCLIN ' +
+      'AND C.CANTIDAD_PEDCCEL > 0))) X WHERE X.POSICION = 1 ' +
+      'ON DUPLICATE KEY UPDATE ' +
+      'REF_PROVEEDOR_AP = COALESCE(VALUES(REF_PROVEEDOR_AP), ' +
+      'REF_PROVEEDOR_AP), ' +
+      'INSTANTE_MODIF = NOW(), USUARIO_MODIF = VALUES(USUARIO_MODIF)';
+    Consulta.ParamByName('SERIE').AsString := ASerie;
+    Consulta.ParamByName('NUMERO').AsString := ANumero;
+    Consulta.ParamByName('USUARIO').AsString := AUsuario;
+    Consulta.Execute;
+  finally
+    Consulta.Free;
+  end;
+end;
 procedure CancelarRestoPedidoCompra(AConn: TUniConnection;
   const ASerie, ANumero, AUsuario: string);
 var

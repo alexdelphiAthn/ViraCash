@@ -530,6 +530,10 @@ var
 begin
   inherited;
   FieldByName('NUMERO_ALBC').AsString := '0';
+  if Assigned(ParametrosApp) then
+    AplicarTemporadaDefecto(DataSet, unqryTemporadasAlbc,
+      'ID_PV_TEMPORADA_ALBC',
+      ParametrosApp.GetString('appTemporadaDefecto'));
     // Serie por defecto: buscar en fza_empresas_series para TIPO_DOC='AB'
     sSerie := ObtenerSerieDefecto(
       ConexionEscritura,

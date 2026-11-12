@@ -204,13 +204,12 @@ begin
     oConsulta.ParamByName('HASTA').AsDateTime :=
       IncDay(Trunc(ACriterios.FechaHasta));
     oConsulta.ParamByName('ALMACENES').AsString := ACriterios.Almacenes;
+    oConsulta.ParamByName('PROVEEDORES').AsString := ACriterios.Proveedores;
     oConsulta.Open;
     while not oConsulta.Eof do
     begin
       if Incluido(ACriterios.Articulos,
         oConsulta.FieldByName('CODIGO_ART_ART').AsString) and
-        Incluido(ACriterios.Proveedores,
-        oConsulta.FieldByName('PROVEEDOR').AsString) and
         Incluido(ACriterios.Temporadas,
         oConsulta.FieldByName('TEMPORADA').AsString) and
         FamiliaIncluida(ACriterios.Familias,

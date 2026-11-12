@@ -244,7 +244,7 @@ begin
   RegistrarParametro('Trazabilidad', 'appTrazabilidadLotes',
     'Activar lotes y fecha de caducidad', tpBoolean, 'False');
   RegistrarParametro('Trazabilidad', 'appGenerarCodigoBarrasLote',
-    'Generar código de barras por lote', tpBoolean, 'False');
+    'Generar código de barras por lote o serie', tpBoolean, 'False');
   RegistrarParametro('Trazabilidad', 'appTrazabilidadSeries',
     'Activar números de serie por unidad', tpBoolean, 'False');
   RegistrarParametro('Trazabilidad', 'appGarantias',

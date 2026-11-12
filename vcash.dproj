@@ -780,6 +780,7 @@
         <DCCReference Include="src\Lib\inLibMsgInformesCliente.pas"/>
         <DCCReference Include="src\Lib\inLibBalanceResumenInforme.pas"/>
         <DCCReference Include="src\DataModules\UniDataBalanceComplementos.pas"/>
+        <DCCReference Include="src\DataModules\UniDataFiltroProveedorLoteSql.pas"/>
         <DCCReference Include="src\DataModules\UniDataBalanceComplementosSql.pas"/>
         <DCCReference Include="src\DataModules\UniDataComparativaVentasRepositorio.pas"/>
         <DCCReference Include="src\DataModules\UniDataInformeMultiFiltroRepositorio.pas"/>

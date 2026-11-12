@@ -11,7 +11,8 @@ uses
   Data.DB, Uni, inLibParametrosIntf, inLibEtiquetasLotes;
 
 function AsegurarCodigoBarrasLote(AConexion: TUniConnection;
-  const ASku, ALote, AUsuario: string): string;
+  const ASku, ALote, AUsuario: string;
+  const AParametros: IParametros = nil): string;
 procedure GenerarCodigoLoteLinea(AConexion: TUniConnection;
   ALinea: TDataSet; const ASufijo, AUsuario: string;
   const AParametros: IParametros);
@@ -28,8 +29,11 @@ uses
 resourcestring
   SErrorIdentidadCodigoLote = 'El código requiere un SKU y un lote válido.';
 
-function BloquearSkuDeLote(AConsulta: TUniQuery;
-  const ASku: string): Boolean;
+function BloquearSkuTrazable(AConsulta: TUniQuery;
+  const ASku: string; const AParametros: IParametros): Boolean;
+var
+  Modo: TModoTrazabilidad;
+  Activacion: TActivacionTrazabilidad;
 begin
   // La fila del SKU existe antes del primer código. Serializa dos altas
   // simultáneas del mismo lote, sin añadir unicidad a los códigos externos.
@@ -39,9 +43,18 @@ begin
     'WHERE S.CODIGO_UNIDAD_SKU = :SKU FOR UPDATE';
   AConsulta.ParamByName('SKU').AsString := ASku;
   AConsulta.Open;
-  Result := not AConsulta.Eof and
-    SameText(AConsulta.FieldByName('TIPO_TRAZABILIDAD_ART').AsString,
-      MODO_TRAZABILIDAD_LOTE);
+  Result := False;
+  if not AConsulta.Eof then
+  begin
+    Modo := ModoDesdeCadena(
+      AConsulta.FieldByName('TIPO_TRAZABILIDAD_ART').AsString);
+    Result := Modo in [mtLote, mtSerie];
+    if Result and Assigned(AParametros) then
+    begin
+      Activacion := TActivacionTrazabilidad.Leer(AParametros);
+      Result := Activacion.ModoActivo(Modo);
+    end;
+  end;
   AConsulta.Close;
 end;
 
@@ -83,7 +96,8 @@ begin
 end;
 
 function AsegurarCodigoBarrasLote(AConexion: TUniConnection;
-  const ASku, ALote, AUsuario: string): string;
+  const ASku, ALote, AUsuario: string;
+  const AParametros: IParametros): string;
 var
   oConsulta: TUniQuery;
   bPropia: Boolean;
@@ -101,7 +115,7 @@ begin
     if bPropia then
       AConexion.StartTransaction;
     try
-      if BloquearSkuDeLote(oConsulta, ASku) then
+      if BloquearSkuTrazable(oConsulta, ASku, AParametros) then
       begin
         Result := BuscarCodigoLote(oConsulta, ASku, sLote);
         if Result = '' then
@@ -137,7 +151,7 @@ begin
     if Assigned(oSku) and Assigned(oLote) and
        (Trim(oSku.AsString) <> '') and (Trim(oLote.AsString) <> '') then
       AsegurarCodigoBarrasLote(AConexion, oSku.AsString,
-        oLote.AsString, AUsuario);
+        oLote.AsString, AUsuario, AParametros);
   end;
 end;
 
@@ -149,9 +163,10 @@ var
 begin
   if GeneracionCodigosLoteActiva(AParametros) then
     for iLote := 0 to High(ALotes) do
-      if ALotes[iLote].TipoLote = TIPO_CATALOGO_LOTE then
+      if (ALotes[iLote].TipoLote = TIPO_CATALOGO_LOTE) or
+         (ALotes[iLote].TipoLote = TIPO_CATALOGO_SERIE) then
         ALotes[iLote].CodigoBarras := AsegurarCodigoBarrasLote(AConexion,
-          ALotes[iLote].Sku, ALotes[iLote].Lote, AUsuario);
+          ALotes[iLote].Sku, ALotes[iLote].Lote, AUsuario, AParametros);
 end;
 
 end.

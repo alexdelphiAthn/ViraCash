@@ -11,6 +11,8 @@ function SqlComplementosBalance: string;
 
 implementation
 
+uses UniDataFiltroProveedorLoteSql;
+
 function SqlCantidadesPedido: string;
 begin
   Result :=
@@ -103,6 +105,8 @@ begin
     ' GROUP BY SERIE,NUMERO,LINEA,ALMACEN) R' +
     ' ON R.SERIE=P.SERIE_PEDC AND R.NUMERO=P.NUMERO_PEDC' +
     ' AND R.LINEA=P.LINEA_PEDCLIN AND R.ALMACEN=P.ALMACEN' +
+    ' WHERE ' + SqlFiltroProveedorLote(':PROVEEDORES',
+      'P.SKU', '''''', 'P.ARTICULO') +
     ' UNION ALL SELECT M.CODIGO_ART_MOV,M.CODIGO_UNIDAD_MOV,' +
     ' M.CODIGO_ALM_MOV,0,' +
     // FZ-ISSUE-868: incluir facturacion directa y su devolucion neta.
@@ -121,6 +125,8 @@ begin
     ' FROM fza_movimientos_almacen M' +
     ' WHERE M.ESACTIVO_MOV=''S'' AND M.FECHA_MOV>=:DESDE' +
     ' AND M.FECHA_MOV<:HASTA' +
+    ' AND ' + SqlFiltroProveedorLote(':PROVEEDORES',
+      'M.CODIGO_UNIDAD_MOV', 'M.LOTE_MOV', 'M.CODIGO_ART_MOV') +
     ' GROUP BY M.CODIGO_ART_MOV,M.CODIGO_UNIDAD_MOV,M.CODIGO_ALM_MOV)';
 end;
 

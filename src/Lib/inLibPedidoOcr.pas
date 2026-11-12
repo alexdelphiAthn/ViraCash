@@ -381,7 +381,7 @@ begin
     Inc(iTalla);
   end;
   if (not bEncontrada) and (Trim(ATalla.Talla) <> '') and
-     (ATalla.Cantidad > 0) then
+     (ATalla.Cantidad >= 0) then
   begin
     iNueva := Length(ALinea.Tallas);
     SetLength(ALinea.Tallas, iNueva + 1);
@@ -509,7 +509,7 @@ begin
       if oDetalle.Items[iLinea] is TJSONObject then
       begin
         LineaLeida := LeerLinea(oDetalle.Items[iLinea]);
-        if LineaLeida.Cantidad > 0 then
+        if LineaLeida.Cantidad >= 0 then
           AnadirOConsolidar(Result.Lineas, LineaLeida);
       end;
     end;

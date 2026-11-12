@@ -427,6 +427,8 @@ uses
   inLibBalanceResumenInforme in 'src\Lib\inLibBalanceResumenInforme.pas',
   UniDataBalanceComplementos in
     'src\DataModules\UniDataBalanceComplementos.pas',
+  UniDataFiltroProveedorLoteSql in
+    'src\DataModules\UniDataFiltroProveedorLoteSql.pas',
   UniDataBalanceComplementosSql in
     'src\DataModules\UniDataBalanceComplementosSql.pas',
   UniDataComparativaVentasRepositorio in 'src\DataModules\UniDataComparativaVentasRepositorio.pas',

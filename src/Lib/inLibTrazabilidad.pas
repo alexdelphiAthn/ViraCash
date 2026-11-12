@@ -219,7 +219,8 @@ function GeneracionCodigosLoteActiva(
   const AParametros: IParametros): Boolean;
 begin
   Result := Assigned(AParametros) and
-    AParametros.GetBool(PARAMETRO_TRAZABILIDAD_LOTES, False) and
+    (AParametros.GetBool(PARAMETRO_TRAZABILIDAD_LOTES, False) or
+     AParametros.GetBool(PARAMETRO_TRAZABILIDAD_SERIES, False)) and
     AParametros.GetBool(PARAMETRO_GENERAR_CODIGO_LOTE, False);
 end;
 
@@ -346,7 +347,10 @@ end;
 function TActivacionTrazabilidad.ParametroVisible(
   const ANombre: string): Boolean;
 begin
-  Result := EstaActivo(InterruptorDeParametro(ANombre));
+  if SameText(ANombre, PARAMETRO_GENERAR_CODIGO_LOTE) then
+    Result := Lotes or Series
+  else
+    Result := EstaActivo(InterruptorDeParametro(ANombre));
 end;
 
 { Reglas de lote, caducidad y FEFO }

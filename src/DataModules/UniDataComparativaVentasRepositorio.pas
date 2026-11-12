@@ -24,7 +24,7 @@ implementation
 uses
   System.SysUtils, System.DateUtils, System.Generics.Collections,
   System.SyncObjs, System.Classes,
-  UniDataRectificativasSql;
+  UniDataRectificativasSql, UniDataFiltroProveedorLoteSql;
 
 type
   TRepositorioComparativaVentas = class(TInterfacedObject,
@@ -84,10 +84,9 @@ begin
   // EXISTS evita multiplicar ventas si hay varios proveedores del artículo.
   // Temporada vigente: SKU, color y artículo, por ese orden.
   Result :=
-    ' AND (:PROVEEDORES = '''' OR EXISTS (' +
-    ' SELECT 1 FROM fza_articulos_proveedores AP' +
-    ' WHERE AP.CODIGO_ART_AP = FL.CODIGO_ART_FACLIN' +
-    ' AND FIND_IN_SET(AP.CODIGO_PRV_AP, :PROVEEDORES) > 0))' +
+    ' AND ' + SqlFiltroProveedorLote(':PROVEEDORES',
+      'FL.CODIGO_UNIDAD_FACLIN', 'FL.LOTE_FACLIN',
+      'FL.CODIGO_ART_FACLIN') +
     ' AND (:TEMPORADAS = '''' OR FIND_IN_SET(COALESCE((' +
     ' SELECT COALESCE(PV.PV, AP.VALOR_LIBRE_ARTPROP, '''')' +
     ' FROM fza_articulos_propiedades AP' +

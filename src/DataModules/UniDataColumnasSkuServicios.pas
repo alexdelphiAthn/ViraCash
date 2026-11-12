@@ -17,15 +17,16 @@ unit UniDataColumnasSkuServicios;
 interface
 
 uses
-  Uni, inLibColumnasSkuIntf;
+  System.SysUtils, Uni, inLibColumnasSkuIntf;
 
 function CrearServiciosColumnasSkuUniDAC(
-  AConexion: TUniConnection): TServiciosColumnasSku;
+  AConexion: TUniConnection;
+  const AProveedor: TFunc<string> = nil): TServiciosColumnasSku;
 
 implementation
 
 uses
-  System.SysUtils, System.Generics.Collections, cxGraphics,
+  System.Generics.Collections, cxGraphics,
   cxGridCustomView, cxGridCustomTableView, cxGridTableView,
   inLibAtributosPaleta, inLibGridArticulos,
   inLibColumnasSkuModoDesglose, inLibModoTallasIntf,
@@ -41,8 +42,10 @@ type
     IFabricaModoEntradaDesglose)
   private
     FConexion: TUniConnection;
+    FProveedor: TFunc<string>;
   public
-    constructor Create(AConexion: TUniConnection);
+    constructor Create(AConexion: TUniConnection;
+      const AProveedor: TFunc<string>);
     function CrearBusqueda: IBusquedaSkusTallas;
     function PintarCeldaArticulo(
       ACanvas: TcxCanvas;
@@ -63,18 +66,19 @@ type
   end;
 
 constructor TServiciosColumnasSkuUniDAC.Create(
-  AConexion: TUniConnection);
+  AConexion: TUniConnection; const AProveedor: TFunc<string>);
 begin
   if not Assigned(AConexion) then
     raise EArgumentNilException.Create('AConexion');
   inherited Create;
   FConexion := AConexion;
+  FProveedor := AProveedor;
 end;
 
 function TServiciosColumnasSkuUniDAC.CrearBusqueda:
   IBusquedaSkusTallas;
 begin
-  Result := CrearBusquedaSkusTallas(FConexion);
+  Result := CrearBusquedaSkusTallas(FConexion, FProveedor);
 end;
 
 function TServiciosColumnasSkuUniDAC.PintarCeldaArticulo(
@@ -163,9 +167,9 @@ begin
     Campos.AttrNombre[iIndice] := AConfig.Campos.AttrNombre[iIndice];
   end;
   if AConfig.BuscarSoloPadresEnDesglose then
-    Busqueda := CrearBusquedaArticulosPadreGridUniDAC(FConexion)
+    Busqueda := CrearBusquedaArticulosPadreGridUniDAC(FConexion, FProveedor)
   else
-    Busqueda := CrearBusquedaSkusTallas(FConexion);
+    Busqueda := CrearBusquedaSkusTallas(FConexion, FProveedor);
   Grid := TGridArticulosLineas.Create(
     FConexion,
     AConfig.View,
@@ -174,7 +178,7 @@ begin
     AConfig.ContextoSesion,
     AConfig.BusquedaVisual,
     Busqueda,
-    CrearConsultaArticulosGridUniDAC(FConexion),
+    CrearConsultaArticulosGridUniDAC(FConexion, FProveedor),
     AConfig.ValidadorArticulos,
     AConfig.LookupAtributos,
     AConfig.RegistroLog,
@@ -189,12 +193,13 @@ begin
 end;
 
 function CrearServiciosColumnasSkuUniDAC(
-  AConexion: TUniConnection): TServiciosColumnasSku;
+  AConexion: TUniConnection;
+  const AProveedor: TFunc<string>): TServiciosColumnasSku;
 var
   Servicios: TServiciosColumnasSkuUniDAC;
 begin
   Result := Default(TServiciosColumnasSku);
-  Servicios := TServiciosColumnasSkuUniDAC.Create(AConexion);
+  Servicios := TServiciosColumnasSkuUniDAC.Create(AConexion, AProveedor);
   Result.Busqueda := Servicios;
   Result.Paleta := Servicios;
   Result.PaletaAnclada := Servicios;

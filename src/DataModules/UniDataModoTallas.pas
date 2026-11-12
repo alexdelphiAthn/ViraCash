@@ -83,10 +83,14 @@ type
                                     IBusquedaSkusTallas)
   private
     FConsulta: TUniQuery;
+    FProveedor: TFunc<string>;
     FUltimoFiltro: string;
+    FUltimoProveedor: string;
+    FUltimoAlmacen: string;
     FUltimaCarga: UInt64;
   public
-    constructor Create(AConexion: TUniConnection);
+    constructor Create(AConexion: TUniConnection;
+      const AProveedor: TFunc<string>);
     destructor Destroy; override;
     function Dataset: TDataSet;
     procedure Aplicar(const ATexto, AAlmacenStock: string);
@@ -97,7 +101,8 @@ function CrearPersistenciaModoTallas(
   AConexion: TUniConnection;
   const ACfg: TConfigPersistenciaTallas): TServiciosPersistenciaModoTallas;
 function CrearBusquedaSkusTallas(
-  AConexion: TUniConnection): IBusquedaSkusTallas;
+  AConexion: TUniConnection;
+  const AProveedor: TFunc<string> = nil): IBusquedaSkusTallas;
 function CrearPersistenciaGridTallasInline(
   AConexion: TUniConnection;
   const ACfg: TConfigPersistenciaTallas): IPersistenciaGridTallasInline;
@@ -105,6 +110,7 @@ function CrearPersistenciaGridTallasInline(
 implementation
 
 uses
+  UniDataBusquedasCompraRepositorio,
   System.Classes;
 
 const
@@ -144,6 +150,7 @@ const
     '   JOIN fza_articulos a ON a.CODIGO_ART_ART = s.CODIGO_ART_SKU' +
     '  WHERE s.ESACTIVO_SKU = ''S'' AND a.ESACTIVO_ART = ''S''' +
     '    AND a.TIPO_ART = ''ESTANDAR''' +
+    SQL_FILTRO_PROVEEDOR_BUSQUEDA +
     '  ORDER BY s.CODIGO_UNIDAD_SKU LIMIT 100) x';
   SQL_BUSQ_CON_FILTRO =
     '((SELECT s.CODIGO_UNIDAD_SKU AS SKU, s.CODIGO_ART_SKU AS ART,' +
@@ -152,7 +159,9 @@ const
     '    JOIN fza_articulos a ON a.CODIGO_ART_ART = s.CODIGO_ART_SKU' +
     '   WHERE s.CODIGO_UNIDAD_SKU LIKE :TPREF' +
     '     AND s.ESACTIVO_SKU = ''S'' AND a.ESACTIVO_ART = ''S''' +
-    '     AND a.TIPO_ART = ''ESTANDAR'' LIMIT 100)' +
+    '     AND a.TIPO_ART = ''ESTANDAR''' +
+    SQL_FILTRO_PROVEEDOR_BUSQUEDA +
+    ' LIMIT 100)' +
     '  UNION' +
     '  (SELECT s.CODIGO_UNIDAD_SKU, s.CODIGO_ART_SKU, a.DESCRIPCION_ART' +
     '     FROM fza_articulos a' +
@@ -160,7 +169,9 @@ const
     '       ON s.CODIGO_ART_SKU = a.CODIGO_ART_ART' +
     '    WHERE a.DESCRIPCION_ART LIKE :TDESC' +
     '      AND s.ESACTIVO_SKU = ''S'' AND a.ESACTIVO_ART = ''S''' +
-    '      AND a.TIPO_ART = ''ESTANDAR'' LIMIT 100)' +
+    '      AND a.TIPO_ART = ''ESTANDAR''' +
+    SQL_FILTRO_PROVEEDOR_BUSQUEDA +
+    ' LIMIT 100)' +
     '  UNION' +
     '  (SELECT s.CODIGO_UNIDAD_SKU, s.CODIGO_ART_SKU, a.DESCRIPCION_ART' +
     '     FROM fza_codigos_barras cb' +
@@ -169,7 +180,9 @@ const
     '     JOIN fza_articulos a ON a.CODIGO_ART_ART = s.CODIGO_ART_SKU' +
     '    WHERE cb.CODIGO_BARRAS_CB LIKE :TPREF' +
     '      AND s.ESACTIVO_SKU = ''S'' AND a.ESACTIVO_ART = ''S''' +
-    '      AND a.TIPO_ART = ''ESTANDAR'' LIMIT 100)' +
+    '      AND a.TIPO_ART = ''ESTANDAR''' +
+    SQL_FILTRO_PROVEEDOR_BUSQUEDA +
+    ' LIMIT 100)' +
     '  UNION' +
     '  (SELECT s.CODIGO_UNIDAD_SKU, s.CODIGO_ART_SKU, a.DESCRIPCION_ART' +
     '     FROM fza_articulos_proveedores ap' +
@@ -178,7 +191,9 @@ const
     '     JOIN fza_articulos a ON a.CODIGO_ART_ART = s.CODIGO_ART_SKU' +
     '    WHERE ap.REF_PROVEEDOR_AP LIKE :TPREF' +
     '      AND s.ESACTIVO_SKU = ''S'' AND a.ESACTIVO_ART = ''S''' +
-    '      AND a.TIPO_ART = ''ESTANDAR'' LIMIT 100)' +
+    '      AND a.TIPO_ART = ''ESTANDAR''' +
+    SQL_FILTRO_PROVEEDOR_BUSQUEDA +
+    ' LIMIT 100)' +
     ' ) x';
   SQL_BUSQ_ORDEN = ' ORDER BY STOCK DESC, x.SKU LIMIT 100';
 
@@ -878,9 +893,11 @@ begin
   FConexion.Rollback;
 end;
 
-constructor TBusquedaSkusTallasUniDAC.Create(AConexion: TUniConnection);
+constructor TBusquedaSkusTallasUniDAC.Create(
+  AConexion: TUniConnection; const AProveedor: TFunc<string>);
 begin
   inherited Create;
+  FProveedor := AProveedor;
   FConsulta := TUniQuery.Create(nil);
   FConsulta.Connection := AConexion;
 end;
@@ -907,10 +924,16 @@ end;
 
 procedure TBusquedaSkusTallasUniDAC.Aplicar(
   const ATexto, AAlmacenStock: string);
+var
+  sProveedor: string;
 begin
+  sProveedor := '';
+  if Assigned(FProveedor) then
+    sProveedor := Trim(FProveedor());
   // FZ-ISSUE-234: el Stock del desplegable caduca (2 s), no se reutiliza
   // una consulta de hace una hora con el stock de entonces.
-  if not (FConsulta.Active and (FUltimoFiltro = ATexto) and
+  if not (FConsulta.Active and (FUltimoProveedor = sProveedor) and
+          (FUltimoAlmacen = AAlmacenStock) and (FUltimoFiltro = ATexto) and
           (TThread.GetTickCount64 - FUltimaCarga < 2000)) then
   begin
     if FConsulta.Active then
@@ -926,7 +949,12 @@ begin
       FConsulta.ParamByName('TDESC').AsString := '%' + ATexto + '%';
     end;
     FConsulta.ParamByName('ALM').AsString := Trim(AAlmacenStock);
+    FConsulta.ParamByName('FILTRAR_PROVEEDOR').AsInteger :=
+      Ord(Assigned(FProveedor));
+    FConsulta.ParamByName('PROVEEDOR').AsString := sProveedor;
     FConsulta.Open;
+    FUltimoProveedor := sProveedor;
+    FUltimoAlmacen := AAlmacenStock;
     FUltimoFiltro := ATexto;
     FUltimaCarga := TThread.GetTickCount64;
   end;
@@ -949,9 +977,10 @@ begin
 end;
 
 function CrearBusquedaSkusTallas(
-  AConexion: TUniConnection): IBusquedaSkusTallas;
+  AConexion: TUniConnection;
+  const AProveedor: TFunc<string>): IBusquedaSkusTallas;
 begin
-  Result := TBusquedaSkusTallasUniDAC.Create(AConexion);
+  Result := TBusquedaSkusTallasUniDAC.Create(AConexion, AProveedor);
 end;
 
 function CrearPersistenciaGridTallasInline(

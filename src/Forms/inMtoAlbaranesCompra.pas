@@ -1421,7 +1421,13 @@ begin
     dmmAlbaranesCompra.DesempaquetarAtributosLineas;
   Cfg := CrearConfigColumnasSkuDocumento(
     CrearServiciosColumnasSkuUniDAC(
-      dmmAlbaranesCompra.unqryTablaG.Connection),
+      dmmAlbaranesCompra.unqryTablaG.Connection,
+      function: string
+      begin
+        Result := ValorTextoDataSetCompra(
+          dmmAlbaranesCompra.unqryTablaG,
+          'CODIGO_PRV_ALBC');
+      end),
     ContextoSesion, tvLineasAlbaran, ds, FModoEntradaSel,
     Trim(dmmAlbaranesCompra.unqryTablaG.
       FieldByName('CODIGO_ALM_ALBC').AsString), 'ALBCLIN');

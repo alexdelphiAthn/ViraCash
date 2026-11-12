@@ -407,7 +407,7 @@ begin
     'src/Lib/inLibAppParam.pas');
   ARegistrar(
     'inMtoAppParam.Parametros.appGenerarCodigoBarrasLote.Descripcion',
-    'Generar código de barras por lote',
+    'Generar código de barras por lote o serie',
     'src/Lib/inLibAppParam.pas');
   ARegistrar(
     'inMtoAppParam.Parametros.appTrazabilidadSeries.Descripci' +

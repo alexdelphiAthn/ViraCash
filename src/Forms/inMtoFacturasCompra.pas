@@ -1234,6 +1234,7 @@ end;
 
 procedure TfrmMtoFacturasCompra.ConstruirModoEntrada;
 var
+  ServiciosArticulos: TServiciosColumnasSku;
   Cfg: TConfigColumnasSku;
   CfgPV: TGridPivoteVentaConfig;
   ds: TDataSet;
@@ -1253,9 +1254,20 @@ begin
   // horizontal derivan del propio SKU: sin posts al navegar.
   if FModoEntradaSel = mcsAuto then
     dmmFacturasCompra.DesempaquetarAtributosLineas;
+  ServiciosArticulos := CrearServiciosColumnasSkuUniDAC(
+    dmmFacturasCompra.unqryTablaG.Connection);
+  if CampoEmisorCompra(dmmFacturasCompra.unqryTablaG) <>
+     'CODIGO_CLI_FACC' then
+    ServiciosArticulos := CrearServiciosColumnasSkuUniDAC(
+      dmmFacturasCompra.unqryTablaG.Connection,
+      function: string
+      begin
+        Result := ValorTextoDataSetCompra(
+          dmmFacturasCompra.unqryTablaG,
+          'CODIGO_PRV_FACC');
+      end);
   Cfg := CrearConfigColumnasSkuDocumento(
-    CrearServiciosColumnasSkuUniDAC(
-      dmmFacturasCompra.unqryTablaG.Connection),
+    ServiciosArticulos,
     ContextoSesion, tvLineasFactura, ds, FModoEntradaSel,
     Trim(dmmFacturasCompra.unqryTablaG.
       FieldByName('CODIGO_ALM_FACC').AsString), 'FACCLIN');

@@ -47,10 +47,38 @@ procedure AplicarValoresPorDefecto(
   ADataSetDestino: TDataSet;
   const ANombreTabla: string);
 
+procedure AplicarTemporadaDefecto(ADataSet, ATemporadas: TDataSet;
+  const ACampo, AValor: string);
+
 implementation
 
 uses
   System.SysUtils;
+
+procedure AplicarTemporadaDefecto(ADataSet, ATemporadas: TDataSet;
+  const ACampo, AValor: string);
+var
+  oCampo: TField;
+  sValor: string;
+  iId: Integer;
+  bEncontrada: Boolean;
+begin
+  sValor := Trim(AValor);
+  if Assigned(ADataSet) and (ADataSet.State = dsInsert) and
+     Assigned(ATemporadas) and ATemporadas.Active and (sValor <> '') then
+  begin
+    oCampo := ADataSet.FindField(ACampo);
+    if Assigned(oCampo) and oCampo.IsNull then
+    begin
+      bEncontrada := ATemporadas.Locate('PV', sValor, []);
+      if not bEncontrada and TryStrToInt(sValor, iId) then
+        bEncontrada := ATemporadas.Locate('ID_PV_ARTPROP', iId, []);
+      if bEncontrada then
+        oCampo.AsInteger :=
+          ATemporadas.FieldByName('ID_PV_ARTPROP').AsInteger;
+    end;
+  end;
+end;
 
 function HayDatosSerie(const AEmpresa, ATipoDocumento: string): Boolean;
 begin

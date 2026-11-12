@@ -67,7 +67,6 @@ type
     FTimerBusq: TTimer;
     FTimerResolve: TTimer;
     FSkuPend: string;
-    FUltimoFiltro: string;
     FAvanzarTrasResolucion: Boolean;
     FAcumularRepetidos: Boolean;
     // FZ-ISSUE-350: trama STX..ETX del lector recogida en la celda de SKU
@@ -409,24 +408,17 @@ begin
     // Siempre: aunque la query ya este abierta con el mismo filtro,
     // el desplegable puede tener filtro interno pegado (autocompletado).
     LimpiarFiltroDesplegable;
-    // Reabre solo si cambia el texto o el dataset esta invalidado
-    // (cambio de almacen / primera vez).
-    if not (FBusqueda.Dataset.Active and (FUltimoFiltro = ATexto)) then
-    begin
-      Screen.Cursor := crHourGlass;
-      FBusqView.BeginUpdate;
-      try
-        // Desenganchar la vista mientras se recambia la query evita
-        // que reaplique su filtro sobre el dataset a medio abrir.
-        FBusqView.DataController.DataSource := nil;
-        FBusqueda.Aplicar(ATexto, FAlmacenStock);
-        FUltimoFiltro := ATexto;
-        FBusqView.DataController.DataSource := FBusqDs;
-        FBusqView.DataController.Refresh;
-      finally
-        FBusqView.EndUpdate;
-        Screen.Cursor := crDefault;
-      end;
+    // La consulta conserva su cache por texto, almacen y proveedor.
+    Screen.Cursor := crHourGlass;
+    FBusqView.BeginUpdate;
+    try
+      FBusqView.DataController.DataSource := nil;
+      FBusqueda.Aplicar(ATexto, FAlmacenStock);
+      FBusqView.DataController.DataSource := FBusqDs;
+      FBusqView.DataController.Refresh;
+    finally
+      FBusqView.EndUpdate;
+      Screen.Cursor := crDefault;
     end;
   end;
 end;

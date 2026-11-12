@@ -2028,7 +2028,13 @@ begin
     dmmPedidosCompra.DesempaquetarAtributosLineas;
   Cfg := CrearConfigColumnasSkuDocumento(
     CrearServiciosColumnasSkuUniDAC(
-      dmmPedidosCompra.unqryTablaG.Connection),
+      dmmPedidosCompra.unqryTablaG.Connection,
+      function: string
+      begin
+        Result := ValorTextoDataSetCompra(
+          dmmPedidosCompra.unqryTablaG,
+          'CODIGO_PRV_PEDC');
+      end),
     ContextoSesion, tvLineasPedido, ds, FModoEntradaSel,
     Trim(dmmPedidosCompra.unqryTablaG.
       FieldByName('CODIGO_ALM_PEDC').AsString), 'PEDCLIN');

@@ -1760,7 +1760,13 @@ begin
     dmmDevolucionesCompra.DesempaquetarAtributosLineas;
   Cfg := CrearConfigColumnasSkuDocumento(
     CrearServiciosColumnasSkuUniDAC(
-      dmmDevolucionesCompra.unqryTablaG.Connection),
+      dmmDevolucionesCompra.unqryTablaG.Connection,
+      function: string
+      begin
+        Result := ValorTextoDataSetCompra(
+          dmmDevolucionesCompra.unqryTablaG,
+          'CODIGO_PRV_DEVC');
+      end),
     ContextoSesion, tvLineasDevolucion, ds, FModoEntradaSel,
     Trim(dmmDevolucionesCompra.unqryTablaG.
       FieldByName('CODIGO_ALM_DEVC').AsString), 'DEVCLIN');
