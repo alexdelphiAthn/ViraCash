@@ -777,6 +777,7 @@ begin
   FRecargaTallasPendiente := False;
   if not (csDestroying in ComponentState) then
   begin
+    RefrescarRotulosVariacion;
     RecargarTallasVisibles;
     if GestorTallas <> nil then
       GestorTallas.ActualizarCaptionsLineaActiva;
@@ -1701,8 +1702,6 @@ begin
     Traducciones.Aplicar(Self);
   dbcLinDescuento.Caption := SCaptionDescuentoLineaCompra;
   dbcLinColorBasico.Caption := SCaptionColorBasicoCompra;
-  dbcLinColorBasico.Visible := True;
-  dbcLinColorBasico.VisibleForCustomization := True;
   lblVariacion.Caption := SCaptionSesionVariacionDefecto;
   // Pestañas creadas en código: no las recoge Traducciones.Aplicar
   // (FZ-ISSUE-739).
@@ -1737,7 +1736,8 @@ begin
         if Dmm.unqrySesionLin.FieldByName(
              'TIPO_LINEA_SESLIN').AsString = 'ESCALAR' then
         begin
-          sCodigo := '';
+          // Sin colección, la cantidad es escalar, pero los rótulos
+          // conservan la variación elegida en la cabecera.
           if SameText(Dmm.unqryTablaG.FieldByName(
                'ESVARIOS_TIPOS_VARIACION_SES').AsString, 'S') then
             sCodigo := Dmm.unqrySesionLin.FieldByName(
@@ -1761,21 +1761,25 @@ begin
         dbcPrvKitSistema.Caption := FRotulosVariacion.SistemaPivote;
         dbcPrvKitDetValor.Caption := FRotulosVariacion.EjePivote;
         btnNuevoColor.Caption := FRotulosVariacion.OtroValorFila;
-        // FZ-ISSUE-451: un tipo de un solo eje («Solo medida») no tiene
-        // valor de fila; sin su columna, el Tab pasa de la descripción al
-        // precio y no hay dónde teclearlo por error.
-        dbcLinColor.Visible := FRotulosVariacion.TieneEjeFila;
-        dbcLinColor.VisibleForCustomization := FRotulosVariacion.TieneEjeFila;
-        dbcFotoColor.Visible := FRotulosVariacion.TieneEjeFila;
-        btnNuevoColor.Visible := FRotulosVariacion.TieneEjeFila;
-        // Columna común de la sesión: navegar por líneas no la oculta.
-        dbcLinColorBasico.Visible := True;
-        dbcLinColorBasico.VisibleForCustomization := True;
         if FPestanasSesion <> nil then
           FPestanasSesion.AplicarRotulos(FRotulosVariacion);
         if bCambiaVariacion then
           FTallas.FiltrarPorVariacion(sCodigo);
       end;
+      // El perfil puede restaurar columnas sin cambiar la variación.
+      // FZ-ISSUE-451: un tipo de un solo eje («Solo medida») no tiene
+      // valor de fila; sin su columna, el Tab pasa de la descripción al
+      // precio y no hay dónde teclearlo por error.
+      dbcLinColor.Visible := FRotulosVariacion.TieneEjeFila;
+      dbcLinColor.VisibleForCustomization := FRotulosVariacion.TieneEjeFila;
+      dbcFotoColor.Visible := FRotulosVariacion.TieneEjeFila;
+      btnNuevoColor.Visible := FRotulosVariacion.TieneEjeFila;
+      // El color básico solo corresponde a un eje de fila de color.
+      dbcLinColorBasico.Visible := FRotulosVariacion.TieneEjeFila and
+        (FRotulosVariacion.EsColorBasico or
+         SameText(FRotulosVariacion.AtributoFila, ATRIBUTO_FILA_COLOR));
+      dbcLinColorBasico.VisibleForCustomization :=
+        dbcLinColorBasico.Visible;
     finally
       FRefrescandoRotulos := False;
     end;
