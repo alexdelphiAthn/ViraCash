@@ -1208,7 +1208,8 @@ begin
     OnGuiasAplicadas;
     try
       ReenlazarDatasetsInforme;
-      frxrprt1.PrepareReport(True);
+      // El diseñador debe abrirse incluso sin documento de ejemplo.
+      // Preparar páginas aquí ejecutaba scripts con una factura vacía.
       frxrprt1.DesignReport();
     finally
       CerrarGuiasRuntime;
@@ -2127,6 +2128,7 @@ begin
               Format('Consolidacion de guias fallo para %s/%s: %s',
                      [Self.Name, sDescripcion, E.Message]));
         end;
+        sElegido := sDescripcion;
         Result := True;
       end
       else

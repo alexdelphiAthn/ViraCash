@@ -379,8 +379,11 @@ begin
       '  JOIN fza_atributos_sku SA ' +
       '    ON SA.CODIGO_UNIDAD_SKU_SA = SKU.CODIGO_UNIDAD_SKU ' +
       '  JOIN fza_atributos_valores AV ON AV.ID_AV = SA.ID_AV_SA ' +
+      '  LEFT JOIN fza_articulos_atributos_basicos AAB ' +
+      '    ON AAB.CODIGO_ART_AAB = SKU.CODIGO_ART_SKU ' +
+      '   AND AAB.ID_AV_AAB = AV.ID_AV ' +
       '  LEFT JOIN fza_atributos_basicos ATB ' +
-      '    ON ATB.ID_ATB = AV.ID_ATB_AV ' +
+      '    ON ATB.ID_ATB = COALESCE(AAB.ID_ATB_AAB, AV.ID_ATB_AV) ' +
       ' WHERE SKU.CODIGO_ART_SKU = :ARTICULO ' +
       '   AND AV.ID_VA_AV = (SELECT EJ452.ID_ATB_VA FROM ' +
       'VI_VARIACIONES_EJES EJ452 WHERE EJ452.ID_VAR_VA = ' +
@@ -970,11 +973,15 @@ begin
   begin
     sOrigen :=
       '(SELECT AV.AV, MIN(AV.ORDEN_AV) AS ORDEN_AV, ' +
-      '        MIN(AV.ID_ATB_AV) AS ID_ATB_AV ' +
+      '        MIN(COALESCE(AAB.ID_ATB_AAB, AV.ID_ATB_AV)) ' +
+      '          AS ID_ATB_AV ' +
       '   FROM fza_articulos_skus SKU ' +
       '   JOIN fza_atributos_sku SA ' +
       '     ON SA.CODIGO_UNIDAD_SKU_SA = SKU.CODIGO_UNIDAD_SKU ' +
       '   JOIN fza_atributos_valores AV ON AV.ID_AV = SA.ID_AV_SA ' +
+      '   LEFT JOIN fza_articulos_atributos_basicos AAB ' +
+      '     ON AAB.CODIGO_ART_AAB = SKU.CODIGO_ART_SKU ' +
+      '    AND AAB.ID_AV_AAB = AV.ID_AV ' +
       '  WHERE SKU.CODIGO_ART_SKU = ' +
       QuotedStr(ASolicitud.CodigoArticulo) +
       '    AND AV.ID_VA_AV = (SELECT EJ452.ID_ATB_VA FROM ' +

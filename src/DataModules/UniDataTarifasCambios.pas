@@ -101,6 +101,8 @@ resourcestring
     'La sesion ya esta aplicada.';
 
 const
+  fstockactual = 'STOCK_ACTUAL';
+
   // Precio vigente de una tarifa para el articulo/SKU de la linea L.
   SQL_PRECIO_TARIFA_LINEA =
     '(SELECT T.%s FROM fza_articulos_tarifas T ' +
@@ -211,7 +213,16 @@ begin
   unqryTablaG.OnDeleteError := ErrorBorradoTransaccional;
   unqryLineas.SQL.Text :=
     'SELECT L.*, A.DESCRIPCION_ART, A.CODIGO_FAM_ART, ' +
-    '       F.NOMBRE_FAM_FAM, P.RAZON_SOCIAL_PRV ' +
+    '       F.NOMBRE_FAM_FAM, P.RAZON_SOCIAL_PRV, ' +
+    // La tarifa general muestra todas las variantes; la de SKU solo ese SKU.
+    '       COALESCE((SELECT SUM(S.CANTIDAD_STK) ' +
+    '         FROM fza_articulos_stockactual S ' +
+    '         JOIN fza_articulos_skus SKU ' +
+    '           ON SKU.CODIGO_UNIDAD_SKU = S.CODIGO_UNIDAD_STK ' +
+    '        WHERE SKU.CODIGO_ART_SKU = L.CODIGO_ART_TARCLIN ' +
+    '          AND (COALESCE(L.CODIGO_UNIDAD_SKU_TARCLIN, '''') = '''' ' +
+    '            OR S.CODIGO_UNIDAD_STK = ' +
+    '               L.CODIGO_UNIDAD_SKU_TARCLIN)), 0) AS STOCK_ACTUAL ' +
     '  FROM fza_tarifas_cambios_lineas L ' +
     '  LEFT JOIN fza_articulos A ' +
     '    ON A.CODIGO_ART_ART = L.CODIGO_ART_TARCLIN ' +
@@ -271,6 +282,8 @@ end;
 // Los campos son dinamicos: se recrean en cada apertura del detalle.
 procedure TdmTarifasCambios.unqryLineasAfterOpen(DataSet: TDataSet);
 begin
+  DataSet.FieldByName(fstockactual).ReadOnly := True;
+  DataSet.FieldByName(fstockactual).ProviderFlags := [];
   DataSet.FieldByName('PRECIO_NUEVO_TARCLIN').OnChange :=
     CampoPrecioNuevoChange;
   DataSet.FieldByName('PRECIO_FINAL_NUEVO_TARCLIN').OnChange :=

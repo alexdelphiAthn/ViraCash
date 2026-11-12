@@ -634,6 +634,8 @@ begin
 end;
 
 procedure TfrmMtoTarifasCambios.CrearColumnasLineas;
+var
+  oStock: TcxGridDBColumn;
 begin
   if tvLineas.ColumnCount = 0 then
   begin
@@ -662,6 +664,9 @@ begin
     FormatoImporte(CrearColumna(tvLineas, 'PRECIO_FINAL_NUEVO_TARCLIN',
                    SCaptionCambioFinalNuevo, 100), FMT_EUROS);
     CrearColumna(tvLineas, 'MENSAJE_TARCLIN', SCaptionCambioMensaje, 180);
+    oStock := CrearColumna(tvLineas, 'STOCK_ACTUAL', SCaptionColStock, 100);
+    FormatoImporte(oStock, '#,##0.######');
+    oStock.Options.Editing := False;
   end;
 end;
 

@@ -165,6 +165,8 @@ begin
       '   AND (USUARIO_GRUPO_USUPER = :USUARIO OR ' +
       '        USUARIO_GRUPO_USUPER = :GRUPO OR ' +
       '        USUARIO_GRUPO_USUPER = :TODOS) ' +
+      ' ORDER BY CASE USUARIO_GRUPO_USUPER ' +
+      '   WHEN :USUARIO THEN 0 WHEN :GRUPO THEN 1 ELSE 2 END ' +
       ' LIMIT 1';
     AsignarContexto(oConsulta, AContexto);
     oConsulta.ParamByName('DESCRIPCION').AsString := ADescripcion;
@@ -190,11 +192,33 @@ procedure TRepositorioImpresionUniDAC.Guardar(
   AStream: TStream);
 var
   oConsulta: TUniQuery;
+  sSubclave: string;
+  bInsertar: Boolean;
 begin
   oConsulta := TUniQuery.Create(nil);
   try
     oConsulta.Connection := FConexion;
-    if ASolicitud.Insertar then
+    // Los formatos importados pueden tener otra subclave. Resolverla por
+    // nombre y ámbito evita UPDATE sin filas y conserva el formato común
+    // cuando el usuario guarda una copia en su propio ámbito.
+    oConsulta.SQL.Text :=
+      'SELECT SUBKEY_USUPER FROM fza_usuarios_perfiles ' +
+      'WHERE KEY_USUPER = :INFORME ' +
+      'AND USUARIO_GRUPO_USUPER = :USUARIO_GRUPO ' +
+      'AND VALUE_USUPER = :DESCRIPCION LIMIT 1';
+    oConsulta.ParamByName('INFORME').AsString :=
+      ASolicitud.Contexto.Informe;
+    oConsulta.ParamByName('USUARIO_GRUPO').AsString :=
+      ASolicitud.UsuarioGrupo;
+    oConsulta.ParamByName('DESCRIPCION').AsString :=
+      ASolicitud.Descripcion;
+    oConsulta.Open;
+    bInsertar := oConsulta.IsEmpty;
+    sSubclave := ASolicitud.Subclave;
+    if not bInsertar then
+      sSubclave := oConsulta.FieldByName('SUBKEY_USUPER').AsString;
+    oConsulta.Close;
+    if bInsertar then
     begin
       oConsulta.SQL.Text :=
         'INSERT INTO fza_usuarios_perfiles (' +
@@ -223,7 +247,7 @@ begin
       ASolicitud.UsuarioGrupo;
     oConsulta.ParamByName('INFORME').AsString :=
       ASolicitud.Contexto.Informe;
-    oConsulta.ParamByName('SUBCLAVE').AsString := ASolicitud.Subclave;
+    oConsulta.ParamByName('SUBCLAVE').AsString := sSubclave;
     oConsulta.ParamByName('DESCRIPCION').AsString :=
       ASolicitud.Descripcion;
     oConsulta.ParamByName('USUARIO_ACTUAL').AsString :=

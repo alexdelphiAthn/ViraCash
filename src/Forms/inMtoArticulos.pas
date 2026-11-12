@@ -2694,6 +2694,9 @@ begin
   if Assigned(FPresTarifas) then
     dbcTarifasMARGEN.Caption := FPresTarifas.CaptionColumnaMargen;
   ColocarColumnaLoteCodigos;
+  // El resumen se recompone después de títulos, idioma y perfiles guardados.
+  if Assigned(FStock) then
+    FStock.ActualizarPresentacion;
 end;
 
 function TfrmMtoArticulos.ModoMargenTarifas: TModoMargenTarifa;
@@ -2756,6 +2759,7 @@ var
   sTipo, sEje: string;
   oLista: TcxLookupComboBoxProperties;
   oPaleta: TcxLookupDBGridColumn;
+  bTienePaleta: Boolean;
 begin
   oRotulos := Default(TRotulosVariacion);
   if Assigned(dmmArticulos) and dmmArticulos.unqryTablaG.Active and
@@ -2776,13 +2780,16 @@ begin
   btnColorSkus.Enabled := oRotulos.TieneEjeFila;
   miActivarColor.Enabled := oRotulos.TieneEjeFila;
   miDesactivarColor.Enabled := oRotulos.TieneEjeFila;
-  tvSkuAtributosBasicosHEX_ATB.Visible := oRotulos.EsColorBasico;
+  // ESCOLOR_BASICO_VAR indica si el SKU usa códigos básicos directamente.
+  // Los colores de proveedor también tienen paleta mediante su asignación.
+  bTienePaleta := SameText(oRotulos.AtributoFila, ATRIBUTO_FILA_COLOR);
+  tvSkuAtributosBasicosHEX_ATB.Visible := bTienePaleta;
   oLista := tvSkuAtributosBasicosID_ATB_AV.Properties as
     TcxLookupComboBoxProperties;
   oPaleta := oLista.ListColumns.ColumnByFieldName('HEX_ATB');
-  if not oRotulos.EsColorBasico and Assigned(oPaleta) then
+  if not bTienePaleta and Assigned(oPaleta) then
     oPaleta.Free
-  else if oRotulos.EsColorBasico and not Assigned(oPaleta) then
+  else if bTienePaleta and not Assigned(oPaleta) then
   begin
     oPaleta := oLista.ListColumns.Add;
     oPaleta.FieldName := 'HEX_ATB';

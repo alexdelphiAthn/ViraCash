@@ -260,12 +260,123 @@ begin
   Result := TConsultaScriptsFaltantes.Create(AConexion, ASqlComprobacion);
 end;
 
+procedure ActualizarEstadoLineaSql(const ALinea: string;
+  var AComilla: Char; var AComentarioBloque: Boolean);
+var
+  iPosicion: Integer;
+  cActual: Char;
+  cSiguiente: Char;
+begin
+  iPosicion := 1;
+  while iPosicion <= Length(ALinea) do
+  begin
+    cActual := ALinea[iPosicion];
+    cSiguiente := #0;
+    if iPosicion < Length(ALinea) then
+      cSiguiente := ALinea[iPosicion + 1];
+    if AComentarioBloque then
+    begin
+      if (cActual = '*') and (cSiguiente = '/') then
+      begin
+        AComentarioBloque := False;
+        Inc(iPosicion);
+      end;
+    end
+    else if AComilla <> #0 then
+    begin
+      if (cActual = '\') and (AComilla <> '`') then
+        Inc(iPosicion)
+      else if cActual = AComilla then
+      begin
+        if cSiguiente = AComilla then
+          Inc(iPosicion)
+        else
+          AComilla := #0;
+      end;
+    end
+    else if CharInSet(cActual, ['''', '"', '`']) then
+      AComilla := cActual
+    else if (cActual = '/') and (cSiguiente = '*') then
+    begin
+      AComentarioBloque := True;
+      Inc(iPosicion);
+    end
+    else if (cActual = '#') or
+      ((cActual = '-') and (cSiguiente = '-') and
+       ((iPosicion + 1 = Length(ALinea)) or
+        CharInSet(ALinea[iPosicion + 2], [' ', #9]))) then
+      iPosicion := Length(ALinea);
+    Inc(iPosicion);
+  end;
+end;
+
+procedure EjecutarContenidoScript(AConexion: TUniConnection;
+  const AContenido: string);
+var
+  oScript: TUniScript;
+  oLineas: TStringList;
+  oBloque: TStringBuilder;
+  sLinea: string;
+  sDirectiva: string;
+  sDelimitador: string;
+  cComilla: Char;
+  bComentarioBloque: Boolean;
+
+  procedure EjecutarBloque;
+  begin
+    if Trim(oBloque.ToString) <> '' then
+    begin
+      oScript.SQL.Text := oBloque.ToString;
+      oScript.Delimiter := sDelimitador;
+      oScript.Execute;
+    end;
+    oBloque.Clear;
+  end;
+
+begin
+  oScript := TUniScript.Create(nil);
+  oLineas := TStringList.Create;
+  oBloque := TStringBuilder.Create;
+  try
+    oScript.Connection := AConexion;
+    oLineas.Text := AContenido;
+    sDelimitador := ';';
+    cComilla := #0;
+    bComentarioBloque := False;
+    for sLinea in oLineas do
+    begin
+      sDirectiva := Trim(sLinea);
+      // DELIMITER es una orden del cliente, no una sentencia del servidor.
+      // Los literales y comentarios pueden contener esa misma palabra.
+      if (cComilla = #0) and not bComentarioBloque and
+         (Length(sDirectiva) > 9) and
+         SameText(Copy(sDirectiva, 1, 9), 'DELIMITER') and
+         CharInSet(sDirectiva[10], [' ', #9]) then
+      begin
+        EjecutarBloque;
+        sDelimitador := Trim(Copy(sDirectiva, 11, MaxInt));
+        if sDelimitador = '' then
+          raise EArgumentException.Create('DELIMITER sin separador.');
+      end
+      else
+      begin
+        oBloque.AppendLine(sLinea);
+        ActualizarEstadoLineaSql(sLinea, cComilla, bComentarioBloque);
+      end;
+    end;
+    EjecutarBloque;
+  finally
+    oBloque.Free;
+    oLineas.Free;
+    oScript.Free;
+  end;
+end;
+
 function EjecutarScriptActualizacion(
   AConexion: TUniConnection;
   const ARutaSql, ASha256: string;
   out AError: string): Boolean;
 var
-  oScript: TUniScript;
   sContenido: string;
   sHuella: string;
 begin
@@ -288,15 +399,8 @@ begin
           AError := Format(SErrorScriptActualizacionVacio, [ARutaSql])
         else
         begin
-          oScript := TUniScript.Create(nil);
-          try
-            oScript.Connection := AConexion;
-            oScript.SQL.Text := sContenido;
-            oScript.Execute;
-            Result := True;
-          finally
-            oScript.Free;
-          end;
+          EjecutarContenidoScript(AConexion, sContenido);
+          Result := True;
         end;
       end;
     except

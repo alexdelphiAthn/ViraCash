@@ -54,6 +54,7 @@ type
     function ObtenerHint(AViewInfo: TcxGridTableDataCellViewInfo;
       out AHint: string): Boolean;
     procedure EnsancharColumnasParaSwatch;
+    procedure ActualizarPresentacion;
   end;
 
 implementation
@@ -94,6 +95,11 @@ begin
   FreeAndNil(FPestanas);
   FreeAndNil(FPresentador);
   inherited Destroy;
+end;
+
+procedure TCoordinadorStockArticuloVcl.ActualizarPresentacion;
+begin
+  FPresentador.AjustarAnchoColor;
 end;
 
 procedure TCoordinadorStockArticuloVcl.CargarMapaArticulo(

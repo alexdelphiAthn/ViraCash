@@ -18,9 +18,11 @@ unit inMtoArticulosPresentacionStock;
 interface
 
 uses
-  System.SysUtils, System.Types, System.Generics.Collections,
+  System.SysUtils, System.Classes, System.Types,
+  System.Generics.Collections,
   Uni,
-  cxGraphics, cxGridCustomView, cxGridCustomTableView, cxGridTableView,
+  cxCustomData, cxGraphics, cxGridCustomView, cxGridCustomTableView,
+  cxGridTableView,
   cxGridDBTableView;
 
 type
@@ -30,7 +32,10 @@ type
     FAtributos: TDictionary<string, string>;
     FVista: TcxGridDBTableView;
     FConexion: TUniConnection;
+    FCodigoArticulo: string;
     procedure CrearLeyenda;
+    procedure ConfigurarTotalesCabecera;
+    procedure ActualizarTotalesCabecera(ASender: TcxDataSummary);
     function ResolverIdVariacion(AItem: TcxCustomGridTableItem;
       out AIdVariacion: string): Boolean;
     function TextoCantidad(AViewInfo: TcxGridTableDataCellViewInfo;
@@ -69,11 +74,15 @@ begin
   FConexion := AConexion;
   FAtributos := TDictionary<string, string>.Create;
   CrearLeyenda;
+  FVista.OptionsView.HeaderAutoHeight := True;
+  FVista.DataController.Summary.OnAfterSummary :=
+    ActualizarTotalesCabecera;
 end;
 
 procedure TPresentadorStockArticulo.CrearLeyenda;
 var
   oPanel: TcxGroupBox;
+  rParametros: TcxViewParams;
 
   procedure AnadirEtiqueta(const ATexto: string; AColor: TColor);
   var
@@ -82,8 +91,7 @@ var
     oEtiqueta := TcxLabel.Create(oPanel);
     oEtiqueta.Parent := oPanel;
     oEtiqueta.Transparent := True;
-    oEtiqueta.Style.Font.Height :=
-      -MulDiv(12, oPanel.CurrentPPI, 96);
+    oEtiqueta.Style.Font.Assign(oPanel.Font);
     oEtiqueta.Style.TextColor := AColor;
     oEtiqueta.Caption := ATexto;
     oEtiqueta.AutoSize := True;
@@ -91,6 +99,9 @@ var
     oEtiqueta.Margins.Left := MulDiv(8, oPanel.CurrentPPI, 96);
     oEtiqueta.Margins.Right := MulDiv(12, oPanel.CurrentPPI, 96);
     oEtiqueta.Left := oPanel.Width;
+    oPanel.Height := Max(oPanel.Height, oEtiqueta.Height +
+      oEtiqueta.Margins.Top + oEtiqueta.Margins.Bottom +
+      MulDiv(12, oPanel.CurrentPPI, 96));
     oEtiqueta.Align := alLeft;
   end;
 
@@ -100,7 +111,9 @@ begin
   oPanel.PanelStyle.Active := True;
   oPanel.Style.BorderStyle := ebsNone;
   oPanel.Transparent := True;
-  oPanel.Height := MulDiv(24, oPanel.CurrentPPI, 96);
+  FVista.Styles.GetContentParams(nil, nil, rParametros);
+  oPanel.Font.Assign(rParametros.Font);
+  oPanel.Height := MulDiv(36, oPanel.CurrentPPI, 96);
   oPanel.Align := alBottom;
   AnadirEtiqueta(SLeyendaVentasStock, clRed);
   AnadirEtiqueta(SLeyendaRecibirStock, clBlue);
@@ -109,6 +122,7 @@ end;
 
 destructor TPresentadorStockArticulo.Destroy;
 begin
+  FVista.DataController.Summary.OnAfterSummary := nil;
   FreeAndNil(FAtributos);
   inherited Destroy;
 end;
@@ -116,6 +130,7 @@ end;
 procedure TPresentadorStockArticulo.CargarMapaArticulo(
   const ACodigoArticulo: string);
 begin
+  FCodigoArticulo := ACodigoArticulo;
   // Debe correr ANTES de reconstruir las columnas dinamicas: el bestfit
   // necesita saber que columnas pintaran swatch para reservarles ancho.
   if FAtributos <> nil then
@@ -227,8 +242,10 @@ begin
       AHecho := True
     else if ResolverIdVariacion(AViewInfo.Item, sIdVariacion) then
     begin
-      if ObtenerInfoBasico(FConexion, sIdVariacion, AViewInfo.Text,
-           oInfo) then
+      if ObtenerInfoBasicoArticulo(FConexion, FCodigoArticulo,
+           sIdVariacion, AViewInfo.Text, oInfo) or
+         ObtenerInfoBasico(FConexion, sIdVariacion,
+           AViewInfo.Text, oInfo) then
       begin
         if PintarCeldaConCuadradoColor(ACanvas, AViewInfo, oInfo) then
           AHecho := True;
@@ -249,10 +266,84 @@ begin
   begin
     if ResolverIdVariacion(AViewInfo.Item, sIdVariacion) then
     begin
-      Result := ObtenerInfoBasico(FConexion, sIdVariacion, AViewInfo.Text,
-        oInfo);
+      Result := ObtenerInfoBasicoArticulo(FConexion, FCodigoArticulo,
+        sIdVariacion, AViewInfo.Text, oInfo) or
+        ObtenerInfoBasico(FConexion, sIdVariacion, AViewInfo.Text, oInfo);
       if Result then
         AHint := oInfo.Nombre;
+    end;
+  end;
+end;
+
+// Los vendidos se suman por talla con los filtros de la vista.
+// La cabecera usa los mismos campos rojos que el detalle de cada celda.
+procedure TPresentadorStockArticulo.ConfigurarTotalesCabecera;
+var
+  iColumna: Integer;
+  oColumna, oVentas: TcxGridDBColumn;
+  oSuma: TcxGridDBTableSummaryItem;
+begin
+  // Los perfiles pueden haber restaurado el alto de la cabecera.
+  FVista.OptionsView.HeaderHeight := 0;
+  FVista.OptionsView.HeaderAutoHeight := True;
+  FVista.DataController.Summary.BeginUpdate;
+  try
+    FVista.DataController.Summary.FooterSummaryItems.Clear;
+    FVista.DataController.Summary.Options := [soNullIgnore];
+    for iColumna := 0 to FVista.ColumnCount - 1 do
+    begin
+      oColumna := FVista.Columns[iColumna];
+      oVentas := FVista.GetColumnByFieldName(
+        PREFIJO_VENTAS_CELDA_STOCK + oColumna.DataBinding.FieldName);
+      if oColumna.Visible and (oVentas <> nil) and
+         (oVentas.DataBinding.Field is TNumericField) then
+      begin
+        oSuma := FVista.DataController.Summary.FooterSummaryItems.Add
+          as TcxGridDBTableSummaryItem;
+        oSuma.Column := oColumna;
+        oSuma.FieldName := oVentas.DataBinding.FieldName;
+        oSuma.Kind := skSum;
+        oSuma.Format := TNumericField(
+          oVentas.DataBinding.Field).DisplayFormat;
+      end;
+    end;
+  finally
+    FVista.DataController.Summary.EndUpdate;
+  end;
+  ActualizarTotalesCabecera(FVista.DataController.Summary);
+end;
+
+procedure TPresentadorStockArticulo.ActualizarTotalesCabecera(
+  ASender: TcxDataSummary);
+var
+  iSuma, iSalto, iTamano: Integer;
+  rParametros: TcxViewParams;
+  oSuma: TcxGridDBTableSummaryItem;
+  oColumna: TcxGridColumn;
+  sTitulo, sTotal: string;
+  vTotal: Variant;
+begin
+  for iSuma := 0 to ASender.FooterSummaryItems.Count - 1 do
+  begin
+    oSuma := ASender.FooterSummaryItems[iSuma]
+      as TcxGridDBTableSummaryItem;
+    oColumna := oSuma.Column;
+    if oColumna <> nil then
+    begin
+      sTitulo := oColumna.Caption;
+      iSalto := Pos(#13, sTitulo);
+      if iSalto = 0 then
+        iSalto := Pos('[COLOR=Red]', sTitulo);
+      if iSalto > 0 then
+        sTitulo := Trim(Copy(sTitulo, 1, iSalto - 1));
+      vTotal := ASender.FooterSummaryValues[iSuma];
+      sTotal := '0';
+      if not VarIsNull(vTotal) and not VarIsEmpty(vTotal) then
+        sTotal := oSuma.FormatValue(vTotal, True);
+      oColumna.Styles.GetHeaderParams(rParametros);
+      iTamano := Max(1, MulDiv(rParametros.Font.Size, 3, 4));
+      oColumna.Caption := sTitulo + '  [COLOR=Red][SIZE=' +
+        IntToStr(iTamano) + ']' + sTotal + '[/SIZE][/COLOR]';
     end;
   end;
 end;
@@ -263,6 +354,7 @@ var
   rParametros: TcxViewParams;
   iRegistro, iAncho, iTexto, iReserva: Integer;
 begin
+  ConfigurarTotalesCabecera;
   oColumna := FVista.GetColumnByFieldName('Color');
   if oColumna <> nil then
   begin
