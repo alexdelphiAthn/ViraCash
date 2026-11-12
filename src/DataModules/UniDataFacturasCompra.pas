@@ -1592,13 +1592,15 @@ begin
   if bAgricola then
     // El combo lee la misma columna de nombre que con proveedores.
     sSql := 'SELECT A.*, ' + SqlNombreMostradoProveedor('A') +
-      ' AS ' + CAMPO_NOMBRE_MOSTRADO_PRV +
+      ' AS ' + CAMPO_NOMBRE_MOSTRADO_PRV + ', ' +
+      SqlColumnaBusquedaProveedor('A') +
       ' FROM (' + SQL_CLIENTES_AGRICULTORES + ') A ' +
       'ORDER BY A.RAZON_SOCIAL_PRV'
   else
     sSql := 'SELECT CODIGO_PRV_PRV, NOMBRE_PRV, RAZON_SOCIAL_PRV, ' +
       'NIF_PRV, MOVIL_PRV, EMAIL_PRV, ESFACTURACION_DIRECTA_PRV, ' +
-      SQL_COLUMNA_NOMBRE_MOSTRADO_PRV +
+      SQL_COLUMNA_NOMBRE_MOSTRADO_PRV + ', ' +
+      SqlColumnaBusquedaProveedor('') +
       ' FROM fza_proveedores ORDER BY CODIGO_PRV_PRV';
   if Trim(unqryPrvDataFacc.SQL.Text) <> sSql then
   begin

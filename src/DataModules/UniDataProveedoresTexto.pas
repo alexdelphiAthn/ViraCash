@@ -18,11 +18,17 @@ const
     'COALESCE(NULLIF(TRIM(NOMBRE_PRV), ''''), RAZON_SOCIAL_PRV)';
   SQL_COLUMNA_NOMBRE_MOSTRADO_PRV =
     SQL_NOMBRE_MOSTRADO_PRV + ' AS ' + CAMPO_NOMBRE_MOSTRADO_PRV;
+  // Columna "código - nombre" sobre la que filtran los combos de
+  // proveedor, para poder buscar tanto por código como por nombre.
+  CAMPO_BUSQUEDA_PRV = 'PROVEEDOR_BUSQUEDA';
 
 // La misma expresión con las columnas cualificadas por AAlias.
 function SqlNombreMostradoProveedor(const AAlias: string): string;
+// Columna CAMPO_BUSQUEDA_PRV ("código - nombre mostrado") con su alias
+// de columna, con las columnas cualificadas por AAlias.
+function SqlColumnaBusquedaProveedor(const AAlias: string): string;
 // Lookup completo de fza_proveedores ordenado por código, para los
-// combos de los documentos de compra, que buscan por código.
+// combos de los documentos de compra, que buscan por código o nombre.
 function SqlLookupProveedoresPorCodigo: string;
 
 implementation
@@ -38,10 +44,23 @@ begin
     sPrefijo + 'RAZON_SOCIAL_PRV)';
 end;
 
+function SqlColumnaBusquedaProveedor(const AAlias: string): string;
+var
+  sPrefijo: string;
+begin
+  sPrefijo := '';
+  if AAlias <> '' then
+    sPrefijo := AAlias + '.';
+  Result := 'CONCAT(' + sPrefijo + 'CODIGO_PRV_PRV, '' - '', COALESCE(' +
+    SqlNombreMostradoProveedor(AAlias) + ', '''')) AS ' +
+    CAMPO_BUSQUEDA_PRV;
+end;
+
 function SqlLookupProveedoresPorCodigo: string;
 begin
   Result := 'SELECT P.*, ' + SqlNombreMostradoProveedor('P') +
-    ' AS ' + CAMPO_NOMBRE_MOSTRADO_PRV +
+    ' AS ' + CAMPO_NOMBRE_MOSTRADO_PRV + ', ' +
+    SqlColumnaBusquedaProveedor('P') +
     ' FROM fza_proveedores P ORDER BY P.CODIGO_PRV_PRV';
 end;
 

@@ -538,7 +538,7 @@ begin
     cbbCODIGO_ALM_DEVC.Properties.ListSource :=
       dmmDevolucionesCompra.dsAlmacenesDevc;
     RefrescarAlmacenesCabecera;
-    // ListSource del combo de proveedor (busqueda incremental por codigo).
+    // ListSource del combo de proveedor (busqueda incremental por codigo o nombre).
     // Reutiliza el lookup unqryPrvDataDevc, ya cargado para el rotulo.
     cbbCODIGO_PRV_DEVC.Properties.ListSource :=
       dmmDevolucionesCompra.dsPrvDataDevc;

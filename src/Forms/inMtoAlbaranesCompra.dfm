@@ -341,16 +341,22 @@
                 DataBinding.DataSource = dsTablaG
                 Properties.DropDownListStyle = lsEditList
                 Properties.DropDownRows = 15
+                Properties.DropDownWidth = 480
                 Properties.KeyFieldNames = 'CODIGO_PRV_PRV'
+                Properties.IncrementalFilteringOptions = [ifoHighlightSearchText, ifoUseContainsOperator]
                 Properties.ListColumns = <
                   item
                     Caption = 'C'#243'digo'
+                    Width = 110
                     FieldName = 'CODIGO_PRV_PRV'
                   end
                   item
                     Caption = 'Proveedor'
-                    FieldName = 'NOMBRE_MOSTRADO_PRV'
+                    Width = 350
+                    FieldName = 'PROVEEDOR_BUSQUEDA'
                   end>
+                Properties.ListFieldIndex = 1
+                Properties.ListOptions.CaseInsensitive = True
                 TabOrder = 11
                 OnKeyUp = cbbCODIGO_PRV_ALBCKeyUp
                 Width = 150

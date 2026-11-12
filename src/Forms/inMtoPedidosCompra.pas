@@ -731,7 +731,7 @@ begin
   // el dataset esta en el DM hijo y se instancia despues del form).
   cbbTemporadaPedc.Properties.ListSource := dmmPedidosCompra.dsTemporadasPedc;
   cbbTemporadaPedc.Properties.ListFieldNames := 'PV';
-  // ListSource del combo de proveedor (busqueda incremental por codigo).
+  // ListSource del combo de proveedor (busqueda incremental por codigo o nombre).
   // Reutiliza el lookup unqryPrvDataPedc, ya cargado para el rotulo.
   cbbCODIGO_PRV_PEDC.Properties.ListSource := dmmPedidosCompra.dsPrvDataPedc;
   // Hook OnDataChange del master: al cambiar de pedido activo, el

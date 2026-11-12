@@ -645,7 +645,7 @@ begin
     dmmFacturasCompra.dsFormasPago;
   cbbTotalesFORMA_PAGO_FACC.Properties.ListSource :=
     dmmFacturasCompra.dsFormasPago;
-  // ListSource del combo de proveedor (busqueda incremental por codigo).
+  // ListSource del combo de proveedor (busqueda incremental por codigo o nombre).
   // Reutiliza el lookup unqryPrvDataFacc, ya cargado para el rotulo.
   cbbCODIGO_PRV_FACC.Properties.ListSource := dmmFacturasCompra.dsPrvDataFacc;
   cbbCODIGO_ALM_FACC.Properties.ListSource :=
