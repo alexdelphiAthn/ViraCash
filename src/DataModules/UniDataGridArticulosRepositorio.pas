@@ -62,6 +62,18 @@ const
     '                  WHERE ap.CODIGO_ART_AP = a.CODIGO_ART_ART' +
     '                    AND ap.REF_PROVEEDOR_AP IS NOT NULL), '''')' +
     '         AS REFPRV,' +
+    // FZ-ISSUE-940: el buscador filtra la rejilla por todas sus columnas;
+    // con los codigos de barras del articulo (genericos y los internos de
+    // cada lote o serie) tambien localiza por EAN. Va oculta.
+    '       CAST(COALESCE((SELECT GROUP_CONCAT(' +
+    '                             DISTINCT cb.CODIGO_BARRAS_CB' +
+    '                                     SEPARATOR '' '')' +
+    '                   FROM fza_codigos_barras cb' +
+    '                   JOIN fza_articulos_skus sk_cb' +
+    '                     ON sk_cb.CODIGO_UNIDAD_SKU =' +
+    '                        cb.CODIGO_UNIDAD_CB' +
+    '                  WHERE sk_cb.CODIGO_ART_SKU = a.CODIGO_ART_ART),' +
+    '                  '''') AS CHAR(4000)) AS CODBARRAS,' +
     '       COALESCE((SELECT SUM(st.CANTIDAD_STK)' +
     '                   FROM fza_articulos_stockactual st' +
     '                   JOIN fza_articulos_skus sk' +
@@ -209,6 +221,10 @@ begin
   EtiquetarCampo('PROVEEDOR', 'Proveedor');
   EtiquetarCampo('REFPRV', 'Ref. proveedor');
   EtiquetarCampo('STOCK', 'Stock');
+  EtiquetarCampo('CODBARRAS', 'Cód. barras');
+  // FZ-ISSUE-940: solo para buscar; la rejilla no la muestra.
+  if FConsulta.FindField('CODBARRAS') <> nil then
+    FConsulta.FieldByName('CODBARRAS').Visible := False;
 end;
 
 function CrearConsultaArticulosGridUniDAC(

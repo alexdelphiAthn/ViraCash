@@ -31,6 +31,8 @@ resourcestring
   SAyudaPreciosMovimientosArticulo =
     'Compra: coste histórico sin IVA. Venta: precio del documento con IVA. ' +
     'Seleccione el color en el combo superior.';
+  SAyudaVistaMovimientosArticulo =
+    'F1: alterna tallas en horizontal / vertical.';
   SCerrarMovimientosArticulo = 'Cerrar';
   SColorMovimientosArticulo = 'Color/variación';
   STallaMovimientosArticulo = 'Talla';
@@ -1677,6 +1679,108 @@ resourcestring
     'Mensaje';
   SCaptionCambioIrArticulo =
     'Ir a artículo';
+  SCaptionTabPruebaPrecio =
+    'Prueba de precio';
+  SCaptionPruebaPrecioSku =
+    'SKU';
+  SCaptionPruebaPrecioTarifa =
+    'Tarifa';
+  SCaptionPruebaPrecioFecha =
+    'Fecha';
+  SCaptionPruebaPrecioCalcular =
+    'Calcular precio';
+  SAyudaPruebaPrecio =
+    'Calcula el precio como la caja, con tus parámetros de caja. ' +
+    'Sin tarifa: la de un ticket sin cliente.';
+  SErrorPruebaPrecioSinSku =
+    'Indica un artículo, SKU o código de barras.';
+  SErrorPruebaPrecioNoEncontrado =
+    'No se encuentra "%s".';
+  SErrorPruebaPrecioRequiereSku =
+    'El artículo "%s" tiene variantes: indica el SKU completo.';
+  SPruebaPrecioArticulo =
+    'Artículo: %s · SKU: %s · %s';
+  SPruebaPrecioTarifaTicket =
+    'Tarifa del ticket: %s';
+  SPruebaPrecioPeriodicaActiva =
+    '%s (tarifa periódica automática vigente)';
+  SPruebaPrecioTarifaAplicada =
+    'Precio de la tarifa: %s';
+  SPruebaPrecioRespaldo =
+    '%s (respaldo: sin precio en %s)';
+  // FZ-ISSUE-942: la caja descarta la tarifa pedida (ResolverTarifaVentaCaja).
+  SPruebaPrecioTarifaDescartada =
+    'La tarifa %s no se puede usar en caja (inactiva o sin IVA incluido): ' +
+    'la caja cobra con %s.';
+  SPruebaPrecioSinPrecio =
+    'Sin precio válido: la caja no podría vender este artículo ese día.';
+  SPruebaPrecioSalida =
+    'Precio de salida: %s';
+  SPruebaPrecioDescuento =
+    'Descuento de la línea: %s';
+  SPruebaPrecioVenta =
+    'Precio de venta: %s';
+  SPruebaPrecioVigencia =
+    'Vigencia del precio: %s - %s';
+  SPruebaPrecioSinLimite =
+    'sin límite';
+  SPruebaPrecioOrigenSku =
+    'Precio propio del SKU';
+  SPruebaPrecioOrigenArticulo =
+    'Precio heredado del artículo';
+  // Periodos de las sesiones de cambio de tarifa (FZ-ISSUE-944).
+  SCaptionPeriodosTarifa =
+    'Periodos';
+  SCaptionAnadirPeriodoTarifa =
+    'Añadir periodo';
+  SCaptionEliminarPeriodoTarifa =
+    'Eliminar periodo';
+  SCaptionVerPeriodosTarifa =
+    'Ver periodos';
+  SCaptionOcultarPeriodosTarifa =
+    'Ocultar periodos';
+  SCaptionPeriodoTarifaNumero =
+    'Nº';
+  SCaptionPeriodoTarifaNombre =
+    'Periodo';
+  SAyudaPeriodosTarifa =
+    'Cada periodo aplica sus precios solo entre sus fechas; fuera de ' +
+    'ellas vuelve el precio anterior. Con periodos, la cabecera solo ' +
+    'indica las tarifas.';
+  SNombrePeriodoTarifaDefecto =
+    'Etapa %d';
+  SInfoPeriodoTarifaAnadido =
+    'Periodo %d añadido (%s - %s). Calcula sus líneas antes de aplicar ' +
+    'la sesión.';
+  SPreguntaEliminarPeriodoTarifa =
+    '¿Eliminar el periodo %d «%s» y sus líneas?';
+  SPreguntaEliminarUltimoPeriodoTarifa =
+    '¿Eliminar el periodo %d «%s»? Es el último: sus líneas vuelven a ' +
+    'la sesión, que deja de ser por periodos.';
+  SErrorPeriodoTarifaNoSeleccionado =
+    'Selecciona un periodo.';
+  SErrorPeriodoTarifaSinFechas =
+    'El periodo %d necesita fecha desde y fecha hasta.';
+  SErrorPeriodoTarifaFechasInvertidas =
+    'En el periodo %d la fecha hasta (%s) es anterior a la fecha ' +
+    'desde (%s).';
+  SCaptionEliminarLineasSinStockSesion =
+    'Borrar líneas sin stock';
+  SPreguntaEliminarLineasSinStockSesion =
+    '¿Borrar las %d líneas sin stock (0 o negativo)? Si la sesión tiene ' +
+    'periodos, se quitan de todos.';
+  SPreguntaEliminarUnaLineaSinStockSesion =
+    '¿Borrar la línea sin stock (0 o negativo)? Si la sesión tiene ' +
+    'periodos, se quita de todos.';
+  SInfoSesionSinLineasSinStock =
+    'No hay líneas sin stock en la sesión.';
+  SErrorPeriodoTarifaSolapaPrecio =
+    'El periodo %s - %s no se puede aplicar a %s en la tarifa %s: se ' +
+    'solapa con otro precio con fechas (%s - %s). En una tarifa no puede ' +
+    'haber dos precios vigentes el mismo día.';
+  SErrorPeriodoTarifaSolapado =
+    'El periodo %d (%s - %s) se solapa con el periodo %d (%s - %s): ' +
+    'dos periodos de una sesión no pueden coincidir en ningún día.';
 
 resourcestring
   SCaptionBusquedaTodosCampos =

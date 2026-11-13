@@ -356,6 +356,7 @@ type
 implementation
 
 uses
+  inLibPrecioLineaVenta,
   System.Variants,
   inLibRegistroLogNulo, inLibMsgFacturas, inLibCajaVentaOperacion,
   inLibRedondeo, inLibErroresBBDD;
@@ -572,7 +573,8 @@ begin
     if (_dPreCiva = 0) and (_dPrecioSal <> 0) then
     begin
       // Línea nueva: calcular precio desde PrecioSalida y descuento porcentual
-      _dDto    := _dPrecioSal * (_dPorDto / 100);
+      // FZ-ISSUE-942: mismo calculo que la prueba de precio de caja.
+      _dDto    := DescuentoLineaVenta(_dPrecioSal, _dPorDto);
       _dPreCiva := _dPrecioSal - _dDto;
     end
     else if (_dPrecioSal <> 0) then
@@ -593,7 +595,8 @@ begin
     // Precio sin IVA
     if (_dPreSiva = 0) and (_dPrecioSal <> 0) then
     begin
-      _dDto    := _dPrecioSal * (_dPorDto / 100);
+      // FZ-ISSUE-942: mismo calculo que la prueba de precio de caja.
+      _dDto    := DescuentoLineaVenta(_dPrecioSal, _dPorDto);
       _dPreSiva := _dPrecioSal - _dDto;
     end
     else if (_dPrecioSal <> 0) then

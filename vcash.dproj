@@ -5,7 +5,7 @@
         <FrameworkType>VCL</FrameworkType>
         <MainSource>vcash.dpr</MainSource>
         <Base>True</Base>
-        <Config Condition="'$(Config)'==''">Debug</Config>
+        <Config Condition="'$(Config)'==''">Release</Config>
         <Platform Condition="'$(Platform)'==''">Win64</Platform>
         <TargetedPlatforms>3</TargetedPlatforms>
         <AppType>Application</AppType>
@@ -73,7 +73,7 @@
         <Icon_MainIcon>vcash.ico</Icon_MainIcon>
         <UWP_DelphiLogo44>$(BDS)\bin\Artwork\Windows\UWP\delphi_UwpDefault_44.png</UWP_DelphiLogo44>
         <UWP_DelphiLogo150>$(BDS)\bin\Artwork\Windows\UWP\delphi_UwpDefault_150.png</UWP_DelphiLogo150>
-        <SanitizedProjectName>ViraCash</SanitizedProjectName>
+        <SanitizedProjectName>vcash</SanitizedProjectName>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win32)'!=''">
         <DCC_UnitSearchPath>$(ViraCashDependenciasPlataforma);$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
@@ -698,6 +698,20 @@
         <DCCReference Include="src\Modals\inMtoModalImpMovVentasArt.pas">
             <Form>frmPrintMovVentasArt</Form>
         </DCCReference>
+        <DCCReference Include="src\Modals\inMtoModalImpComparativaVentas.pas">
+            <Form>frmPrintComparativaVentas</Form>
+        </DCCReference>
+        <DCCReference Include="src\Lib\inLibComparativaVentasIntf.pas"/>
+        <DCCReference Include="src\Lib\inLibComparativaVentas.pas"/>
+        <DCCReference Include="src\Lib\inLibComparativaVentasInforme.pas"/>
+        <DCCReference Include="src\Lib\inLibInformeTabular.pas"/>
+        <DCCReference Include="src\Lib\inLibInformeTabularExcel.pas"/>
+        <DCCReference Include="src\Lib\inLibMsgInformesCliente.pas"/>
+        <DCCReference Include="src\Lib\inLibBalanceResumenInforme.pas"/>
+        <DCCReference Include="src\DataModules\UniDataBalanceComplementos.pas"/>
+        <DCCReference Include="src\DataModules\UniDataFiltroProveedorLoteSql.pas"/>
+        <DCCReference Include="src\DataModules\UniDataBalanceComplementosSql.pas"/>
+        <DCCReference Include="src\DataModules\UniDataComparativaVentasRepositorio.pas"/>
         <DCCReference Include="src\Modals\inMtoModalImpDocsProveedor.pas">
             <Form>frmPrintDocsProveedor</Form>
         </DCCReference>
@@ -769,20 +783,6 @@
         <DCCReference Include="src\DataModules\UniDataInformeEfectosPagoRepositorio.pas"/>
         <DCCReference Include="src\DataModules\UniDataInformeFacturaRepositorio.pas"/>
         <DCCReference Include="src\DataModules\UniDataInformeMovimientosVentasArticuloRepositorio.pas"/>
-        <DCCReference Include="src\Modals\inMtoModalImpComparativaVentas.pas">
-            <Form>frmPrintComparativaVentas</Form>
-        </DCCReference>
-        <DCCReference Include="src\Lib\inLibComparativaVentasIntf.pas"/>
-        <DCCReference Include="src\Lib\inLibComparativaVentas.pas"/>
-        <DCCReference Include="src\Lib\inLibComparativaVentasInforme.pas"/>
-        <DCCReference Include="src\Lib\inLibInformeTabular.pas"/>
-        <DCCReference Include="src\Lib\inLibInformeTabularExcel.pas"/>
-        <DCCReference Include="src\Lib\inLibMsgInformesCliente.pas"/>
-        <DCCReference Include="src\Lib\inLibBalanceResumenInforme.pas"/>
-        <DCCReference Include="src\DataModules\UniDataBalanceComplementos.pas"/>
-        <DCCReference Include="src\DataModules\UniDataFiltroProveedorLoteSql.pas"/>
-        <DCCReference Include="src\DataModules\UniDataBalanceComplementosSql.pas"/>
-        <DCCReference Include="src\DataModules\UniDataComparativaVentasRepositorio.pas"/>
         <DCCReference Include="src\DataModules\UniDataInformeMultiFiltroRepositorio.pas"/>
         <DCCReference Include="src\DataModules\UniDataInformeRecibosFacturaRepositorio.pas"/>
         <DCCReference Include="src\DataModules\UniDataInformeVerifactuDeclaracionRepositorio.pas"/>
@@ -1041,6 +1041,8 @@
         <DCCReference Include="src\Caja\Lib\inLibCajaTipos.pas"/>
         <DCCReference Include="src\Caja\Lib\inLibCajaVentaIntf.pas"/>
         <DCCReference Include="src\Caja\Lib\inLibCajaVentaCliente.pas"/>
+        <DCCReference Include="src\Caja\Lib\inLibSimulacionPrecioCaja.pas"/>
+        <DCCReference Include="src\Lib\inLibPrecioLineaVenta.pas"/>
         <DCCReference Include="src\Caja\Lib\inLibCajaVentaOperacion.pas"/>
         <DCCReference Include="src\Caja\Lib\inLibCajaStock.pas"/>
         <DCCReference Include="src\Caja\Lib\inLibCajaStockLinea.pas"/>
@@ -1168,6 +1170,7 @@
         <DCCReference Include="src\Lib\inLibVentasImpuestos.pas"/>
         <DCCReference Include="src\Lib\inLibInventarioExcel.pas"/>
         <DCCReference Include="src\Lib\inLibTarifasCambiosExcel.pas"/>
+        <DCCReference Include="src\Lib\inLibTarifasCambiosPeriodos.pas"/>
         <DCCReference Include="src\Lib\inLibDocumentosTrabajoExcel.pas"/>
         <DCCReference Include="src\Lib\inLibBalanceExcelComun.pas"/>
         <DCCReference Include="src\Lib\inLibBalanceCantidadesInforme.pas"/>
@@ -1962,6 +1965,8 @@
             <Form>dmTarifasCambios</Form>
             <DesignClass>TdmTarifasCambios</DesignClass>
         </DCCReference>
+        <DCCReference Include="src\DataModules\UniDataTarifasCambiosPeriodos.pas"/>
+        <DCCReference Include="src\DataModules\UniDataTarifasTramos.pas"/>
         <DCCReference Include="src\Modals\inMtoModalCargarSesionTarifa.pas">
             <Form>frmModalCargarSesionTarifa</Form>
         </DCCReference>
@@ -2143,11 +2148,11 @@
         <DCCReference Include="src\Lib\inLibMeteorologiaCajaTarea.pas"/>
         <DCCReference Include="src\Lib\inLibMeteorologiaCajaVcl.pas"/>
         <DCCReference Include="src\DataModules\UniDataMeteorologiaCaja.pas"/>
-        <DCCReference Include="src\Modals\inMtoModalObservacionesCaja.pas">
-            <Form>frmModalObservacionesCaja</Form>
-        </DCCReference>
         <DCCReference Include="src\Modals\inMtoModalMeteorologiaCaja.pas">
             <Form>frmModalMeteorologiaCaja</Form>
+        </DCCReference>
+        <DCCReference Include="src\Modals\inMtoModalObservacionesCaja.pas">
+            <Form>frmModalObservacionesCaja</Form>
         </DCCReference>
         <DCCReference Include="src\Lib\inLibDistribucionTiendasIntf.pas"/>
         <DCCReference Include="src\Lib\inLibDistribucionTiendas.pas"/>

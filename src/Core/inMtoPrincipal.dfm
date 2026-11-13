@@ -881,6 +881,11 @@
         ShortCut = 57458
         OnClick = mnuCambioArticuloColorClick
       end
+      object mnuSesionesCambioTarifa: TMenuItem
+        Caption = 'Sesiones de cambio de tarifa'
+        ShortCut = 24659
+        OnClick = MenuGenericoClick
+      end
       object mnuGeneradorProcesos: TMenuItem
         Caption = 'Generador de Procesos'
         ShortCut = 16455

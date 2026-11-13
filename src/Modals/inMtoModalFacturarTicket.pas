@@ -41,6 +41,7 @@ type
     FDesde: TDateTime;
     FHasta: TDateTime;
     FTickets: TTicketsFacturacion;
+    FPrestamos: TPrestamosFacturacion;
     FOpcionesRevision: TOpcionesDocumento;
     FMemoRevision: TcxMemo;
     FBotonEmitir: TcxButton;
@@ -68,7 +69,12 @@ type
     procedure AnadirTicketSinCliente;
     procedure BuscarTicketSinCliente(Sender: TObject);
     procedure RetirarTicket(Sender: TObject);
+    function SeleccionarPrestamo(out AIndice: Integer): Boolean;
+    procedure RetirarPrestamo(Sender: TObject);
+    procedure AnadirRevisionPrestamos(ATexto: TcxMemo);
     function RevisarTickets(const AOpciones: TOpcionesDocumento): Boolean;
+    function CrearFacturasPeriodo(
+      const ASolicitud: TSolicitudFacturacionTicket): TFacturarTicketResult;
   public
     class function EjecutarPeriodo(
       AOwner: TComponent): TFacturarTicketResult;
@@ -241,6 +247,12 @@ begin
   oRetirar.Width := ScaleValue(140);
   oRetirar.Caption := SFacturacionSimplificadosRetirar;
   oRetirar.OnClick := RetirarTicket;
+  oRetirar := TcxButton.Create(APadre);
+  oRetirar.Parent := APadre;
+  oRetirar.Align := alLeft;
+  oRetirar.Width := ScaleValue(140);
+  oRetirar.Caption := SFacturacionPrestamosRetirar;
+  oRetirar.OnClick := RetirarPrestamo;
 end;
 
 function TfrmModalFacturarTicket.CrearRevision(
@@ -296,7 +308,9 @@ begin
     end;
     oTexto.Lines.Add(Format(SFacturacionSimplificadosTotal,
       [Length(FTickets), FormatCurr('#,##0.00', cTotal)]));
-    FBotonEmitir.Enabled := (Length(FTickets) > 0) and
+    AnadirRevisionPrestamos(oTexto);
+    FBotonEmitir.Enabled :=
+      ((Length(FTickets) > 0) or (Length(FPrestamos) > 0)) and
       (Length(FTickets) <= MAX_TICKETS_FACTURA_F3);
     if Length(FTickets) > MAX_TICKETS_FACTURA_F3 then
       oTexto.Lines.Add(Format(SErrorMaxTicketsFacturaF3,
@@ -314,6 +328,8 @@ var
 begin
   FOpcionesRevision := AOpciones;
   FTickets := FServicioFacturacion.ConsultarTicketsPeriodo(
+    AOpciones.Empresa, AOpciones.Adicional(CLAVE_CLIENTE), FDesde, FHasta);
+  FPrestamos := FServicioFacturacion.ConsultarPrestamosPeriodo(
     AOpciones.Empresa, AOpciones.Adicional(CLAVE_CLIENTE), FDesde, FHasta);
   oRevision := CrearRevision(FMemoRevision);
   try
@@ -415,6 +431,143 @@ begin
     SetLength(FTickets, Length(FTickets) - 1);
     RefrescarRevision;
   end;
+end;
+
+// Los préstamos no tienen ticket: van a una factura F1 aparte que, al
+// emitirse, los cierra y queda cobrada.
+procedure TfrmModalFacturarTicket.AnadirRevisionPrestamos(ATexto: TcxMemo);
+var
+  oPrestamo: TPrestamoFacturacion;
+  cTotal: Currency;
+begin
+  if Length(FPrestamos) > 0 then
+  begin
+    cTotal := 0;
+    ATexto.Lines.Add('');
+    ATexto.Lines.Add(SFacturacionPrestamosTitulo);
+    ATexto.Lines.Add('');
+    for oPrestamo in FPrestamos do
+    begin
+      ATexto.Lines.Add(Format(SFacturacionPrestamosLinea,
+        [DateToStr(oPrestamo.Fecha), FloatToStr(oPrestamo.Cantidad),
+        oPrestamo.Descripcion, FormatCurr('#,##0.00', oPrestamo.Total)]));
+      if oPrestamo.Anticipo <> 0 then
+        ATexto.Lines.Add(Format(SFacturacionPrestamosAnticipo,
+          [FormatCurr('#,##0.00', oPrestamo.Anticipo)]));
+      cTotal := cTotal + oPrestamo.Total;
+    end;
+    ATexto.Lines.Add('');
+    ATexto.Lines.Add(Format(SFacturacionPrestamosTotal,
+      [Length(FPrestamos), FormatCurr('#,##0.00', cTotal)]));
+  end;
+end;
+
+function TfrmModalFacturarTicket.SeleccionarPrestamo(
+  out AIndice: Integer): Boolean;
+var
+  oDatos: TClientDataSet;
+  oBusqueda: TfrmMtoSearch;
+  iIndice: Integer;
+begin
+  AIndice := -1;
+  oDatos := TClientDataSet.Create(nil);
+  oBusqueda := nil;
+  try
+    oDatos.FieldDefs.Add('Indice', ftInteger);
+    oDatos.FieldDefs.Add('Fecha', ftDate);
+    oDatos.FieldDefs.Add('Articulo', ftString, 60);
+    oDatos.FieldDefs.Add('Descripcion', ftString, 200);
+    oDatos.FieldDefs.Add('Total', ftCurrency);
+    oDatos.CreateDataSet;
+    oDatos.FieldByName('Indice').Visible := False;
+    for iIndice := 0 to High(FPrestamos) do
+      oDatos.AppendRecord([iIndice, FPrestamos[iIndice].Fecha,
+        FPrestamos[iIndice].Sku, FPrestamos[iIndice].Descripcion,
+        FPrestamos[iIndice].Total]);
+    oDatos.First;
+    oBusqueda := TfrmMtoSearch.Create(Self);
+    oBusqueda.Name := 'frmMtoPrestamosPeriodoSearch';
+    oBusqueda.Caption := SFacturacionPrestamosSeleccion;
+    oBusqueda.dsTablaG.DataSet := oDatos;
+    oBusqueda.ProcesarPerfiles;
+    oBusqueda.ShowModal;
+    Result := (oBusqueda.sFicha = 'S') and not oDatos.IsEmpty;
+    if Result then
+      AIndice := oDatos.FieldByName('Indice').AsInteger;
+  finally
+    if Assigned(oBusqueda) then
+      oBusqueda.dsTablaG.DataSet := nil;
+    FreeAndNil(oBusqueda);
+    FreeAndNil(oDatos);
+  end;
+end;
+
+procedure TfrmModalFacturarTicket.RetirarPrestamo(Sender: TObject);
+var
+  iIndice, iMover: Integer;
+begin
+  if (Length(FPrestamos) > 0) and SeleccionarPrestamo(iIndice) then
+  begin
+    for iMover := iIndice to High(FPrestamos) - 1 do
+      FPrestamos[iMover] := FPrestamos[iMover + 1];
+    SetLength(FPrestamos, Length(FPrestamos) - 1);
+    RefrescarRevision;
+  end;
+end;
+
+// Primero la F3 de los tickets y después la F1 de los préstamos, cada una
+// en su transacción. Si la segunda falla, la primera ya está emitida y se
+// avisa de ello sin perderla.
+function TfrmModalFacturarTicket.CrearFacturasPeriodo(
+  const ASolicitud: TSolicitudFacturacionTicket): TFacturarTicketResult;
+var
+  oSolicitud: TSolicitudFacturacionTicket;
+  sNumeroTickets, sNumeroPrestamos, sResumen: string;
+begin
+  Result := Default(TFacturarTicketResult);
+  sNumeroTickets := '';
+  sNumeroPrestamos := '';
+  if Length(FTickets) > 0 then
+  begin
+    oSolicitud := ASolicitud;
+    oSolicitud.Tickets := FTickets;
+    oSolicitud.Prestamos := nil;
+    sNumeroTickets := FServicioFacturacion.CrearFactura(oSolicitud);
+    Result.NumeroNueva := sNumeroTickets;
+  end;
+  if Length(FPrestamos) > 0 then
+  begin
+    oSolicitud := ASolicitud;
+    oSolicitud.Tickets := nil;
+    oSolicitud.Prestamos := FPrestamos;
+    // El número manual, si lo hay, ya lo ha usado la factura de tickets.
+    if sNumeroTickets <> '' then
+      oSolicitud.NumeroManual := '';
+    try
+      sNumeroPrestamos :=
+        FServicioFacturacion.CrearFacturaPrestamos(oSolicitud);
+    except
+      on E: Exception do
+      begin
+        if sNumeroTickets = '' then
+          raise;
+        ShowMessage_fza(Format(SFacturacionPrestamosErrorSegunda,
+          [ASolicitud.SerieNueva, sNumeroTickets, E.Message]));
+      end;
+    end;
+    if Result.NumeroNueva = '' then
+      Result.NumeroNueva := sNumeroPrestamos;
+  end;
+  if (sNumeroTickets <> '') and (sNumeroPrestamos <> '') then
+  begin
+    sResumen := Format(SFacturacionPrestamosFacturaTickets,
+      [sLineBreak, ASolicitud.SerieNueva, sNumeroTickets]) +
+      Format(SFacturacionPrestamosFacturaPrestamos,
+      [sLineBreak, ASolicitud.SerieNueva, sNumeroPrestamos]);
+    ShowMessage_fza(Format(SFacturacionPrestamosEmitidas, [sResumen]));
+  end;
+  Result.SerieNueva := ASolicitud.SerieNueva;
+  Result.Aceptado := Result.NumeroNueva <> '';
 end;
 
 class function TfrmModalFacturarTicket.Ejecutar(
@@ -603,7 +756,6 @@ begin
   oSolicitud.FormaPago := AOpciones.FormaPago;
   if FPorPeriodo then
   begin
-    oSolicitud.Tickets := FTickets;
     oSolicitud.FechaDesde := FDesde;
     oSolicitud.FechaHasta := FHasta;
   end;
@@ -615,9 +767,14 @@ begin
       Result := MessageDlg_fza(AMensaje, mtConfirmation,
         [mbYes, mbNo], 0) = mrYes;
     end);
-  Result.NumeroNueva := FServicioFacturacion.CrearFactura(oSolicitud);
-  Result.SerieNueva := AOpciones.Serie;
-  Result.Aceptado := True;
+  if FPorPeriodo then
+    Result := CrearFacturasPeriodo(oSolicitud)
+  else
+  begin
+    Result.NumeroNueva := FServicioFacturacion.CrearFactura(oSolicitud);
+    Result.SerieNueva := AOpciones.Serie;
+    Result.Aceptado := True;
+  end;
 end;
 
 end.

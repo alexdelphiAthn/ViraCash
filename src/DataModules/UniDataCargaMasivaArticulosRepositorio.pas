@@ -532,6 +532,17 @@ begin
   end;
 end;
 
+// FZ-ISSUE-944: con precios con fechas (periodos de rebajas) la fila de
+// FECHA_DESDE mas reciente puede ser futura. Primero la vigente hoy; si no
+// hay ninguna, se mantiene el orden anterior.
+function OrdenVigenteHoy(const AAlias: string): string;
+begin
+  Result := '((' + AAlias + '.FECHA_DESDE_ARTTAR IS NULL OR ' +
+    AAlias + '.FECHA_DESDE_ARTTAR <= CURDATE()) AND (' +
+    AAlias + '.FECHA_HASTA_ARTTAR IS NULL OR ' +
+    AAlias + '.FECHA_HASTA_ARTTAR >= CURDATE())) DESC, ';
+end;
+
 function TServicioCargaMasivaArticulosUniDAC.ColumnasExtra(
   const AContexto: TContextoCargaMasivaArticulos): string;
 begin
@@ -545,13 +556,13 @@ begin
             'WHERE t.CODIGO_ART_ARTTAR = a.CODIGO_ART_ART ' +
             'AND t.CODIGO_TAR_ARTTAR = :P_TARIFA_ORIG_S ' +
             'AND t.ESACTIVO_ARTTAR = ''S'' ' +
-            'ORDER BY t.FECHA_DESDE_ARTTAR DESC LIMIT 1) ' +
+            'ORDER BY ' + OrdenVigenteHoy('t') + 't.FECHA_DESDE_ARTTAR DESC LIMIT 1) ' +
             'AS PRECIO_SALIDA_ORIG, ' +
             '(SELECT t.PRECIO_FINAL_ARTTAR FROM fza_articulos_tarifas t ' +
             'WHERE t.CODIGO_ART_ARTTAR = a.CODIGO_ART_ART ' +
             'AND t.CODIGO_TAR_ARTTAR = :P_TARIFA_ORIG_F ' +
             'AND t.ESACTIVO_ARTTAR = ''S'' ' +
-            'ORDER BY t.FECHA_DESDE_ARTTAR DESC LIMIT 1) ' +
+            'ORDER BY ' + OrdenVigenteHoy('t') + 't.FECHA_DESDE_ARTTAR DESC LIMIT 1) ' +
             'AS PRECIO_FINAL_ORIG,';
         end
         else
@@ -587,28 +598,28 @@ begin
           'AND TOG.CODIGO_TAR_ARTTAR = :P_TAR_ORIG ' +
           'AND TOG.ESACTIVO_ARTTAR = ''S'' ' +
           'ORDER BY (COALESCE(TOG.CODIGO_UNIDAD_ARTTAR, '''') = U.SKU) ' +
-          'DESC, TOG.FECHA_DESDE_ARTTAR DESC, ' +
+          'DESC, ' + OrdenVigenteHoy('TOG') + 'TOG.FECHA_DESDE_ARTTAR DESC, ' +
           'TOG.CODIGO_UNICO_ARTTAR DESC LIMIT 1) AS PRECIO_ORIGEN, ' +
           '(SELECT TDE.PRECIO_SALIDA_ARTTAR FROM fza_articulos_tarifas TDE ' +
           'WHERE TDE.CODIGO_ART_ARTTAR = a.CODIGO_ART_ART ' +
           'AND COALESCE(TDE.CODIGO_UNIDAD_ARTTAR, '''') = U.SKU ' +
           'AND TDE.CODIGO_TAR_ARTTAR = :P_TAR_DEST_SAL ' +
           'AND TDE.ESACTIVO_ARTTAR = ''S'' ' +
-          'ORDER BY TDE.FECHA_DESDE_ARTTAR DESC, ' +
+          'ORDER BY ' + OrdenVigenteHoy('TDE') + 'TDE.FECHA_DESDE_ARTTAR DESC, ' +
           'TDE.CODIGO_UNICO_ARTTAR DESC LIMIT 1) AS PRECIO_SALIDA_ACT, ' +
           '(SELECT TDF.PRECIO_FINAL_ARTTAR FROM fza_articulos_tarifas TDF ' +
           'WHERE TDF.CODIGO_ART_ARTTAR = a.CODIGO_ART_ART ' +
           'AND COALESCE(TDF.CODIGO_UNIDAD_ARTTAR, '''') = U.SKU ' +
           'AND TDF.CODIGO_TAR_ARTTAR = :P_TAR_DEST_FIN ' +
           'AND TDF.ESACTIVO_ARTTAR = ''S'' ' +
-          'ORDER BY TDF.FECHA_DESDE_ARTTAR DESC, ' +
+          'ORDER BY ' + OrdenVigenteHoy('TDF') + 'TDF.FECHA_DESDE_ARTTAR DESC, ' +
           'TDF.CODIGO_UNICO_ARTTAR DESC LIMIT 1) AS PRECIO_FINAL_ACT, ' +
           '(SELECT TDD.PRECIO_DTO_ARTTAR FROM fza_articulos_tarifas TDD ' +
           'WHERE TDD.CODIGO_ART_ARTTAR = a.CODIGO_ART_ART ' +
           'AND COALESCE(TDD.CODIGO_UNIDAD_ARTTAR, '''') = U.SKU ' +
           'AND TDD.CODIGO_TAR_ARTTAR = :P_TAR_DEST_DTO ' +
           'AND TDD.ESACTIVO_ARTTAR = ''S'' ' +
-          'ORDER BY TDD.FECHA_DESDE_ARTTAR DESC, ' +
+          'ORDER BY ' + OrdenVigenteHoy('TDD') + 'TDD.FECHA_DESDE_ARTTAR DESC, ' +
           'TDD.CODIGO_UNICO_ARTTAR DESC LIMIT 1) AS PRECIO_DTO_ACT, ' +
           '(SELECT TDP.PORCENTAJE_DTO_ARTTAR ' +
           'FROM fza_articulos_tarifas TDP ' +
@@ -616,7 +627,7 @@ begin
           'AND COALESCE(TDP.CODIGO_UNIDAD_ARTTAR, '''') = U.SKU ' +
           'AND TDP.CODIGO_TAR_ARTTAR = :P_TAR_DEST_PDTO ' +
           'AND TDP.ESACTIVO_ARTTAR = ''S'' ' +
-          'ORDER BY TDP.FECHA_DESDE_ARTTAR DESC, ' +
+          'ORDER BY ' + OrdenVigenteHoy('TDP') + 'TDP.FECHA_DESDE_ARTTAR DESC, ' +
           'TDP.CODIGO_UNICO_ARTTAR DESC LIMIT 1) AS PORC_DTO_ACT, ' +
           'COALESCE((SELECT C.PRECIO_ULT_COMPRA_SKUC ' +
           'FROM fza_articulos_skus_costes C ' +

@@ -42,6 +42,7 @@ uses
   inLibRegistroPantallas,
   inMtoFrmBase,
   inMtoStockConsulta,
+  inLibSimulacionPrecioCaja,
   inMtoTarifas,
   inMtoTarifasCambios,
   inMtoStockConsultaPresentacionComposicion,
@@ -65,6 +66,8 @@ uses
   UniDataArticulosVariaciones,
   UniDataComprasPantallaComposicion,
   UniDataRepositoriosArticulosPantalla,
+  UniDataRepositoriosCajaPantalla,
+  UniDataTarifasPeriodicidadRepositorio,
   UniDataRepositoriosDocumentosPantalla,
   UniDataRepositoriosOperacionesPantalla,
   UniDataInventariosInyeccion,
@@ -195,6 +198,7 @@ begin
       Formulario: TfrmMtoTarifasCambios;
       OwnerCreacion: TComponent;
       ReparentarAplicacion: Boolean;
+      Simulacion: TServiciosSimulacionPrecioCaja;
     begin
       NormalizarOwnerPantalla(
         AOwner,
@@ -203,10 +207,20 @@ begin
         ReparentarAplicacion);
       Articulos := FComposicion.CrearRepositoriosArticulosPantalla(
         'frmMtoTarifasCambios');
+      Simulacion := Default(TServiciosSimulacionPrecioCaja);
+      Simulacion.Resolver := Articulos.CrearResolverArticulos;
+      Simulacion.Validador := Articulos.CrearValidadorArticulos;
+      // FZ-ISSUE-942: la periodicidad y las tarifas de caja tambien salen
+      // de la raiz; la pantalla no crea repositorios.
+      Simulacion.Periodicidad := CrearRepositorioPeriodicidadTarifa(
+        FComposicion.DmConn.conUni);
+      Simulacion.Consultas := FComposicion.CrearRepositoriosCajaPantalla(
+        'frmMtoTarifasCambios').CrearRepositorioConsultasCaja;
       Formulario := TfrmMtoTarifasCambios.Create(
         OwnerCreacion,
         TContextoAutorizacionPantalla.Crear(FComposicion.Permisos),
-        Articulos.CrearServicioCargaMasivaArticulos);
+        Articulos.CrearServicioCargaMasivaArticulos,
+        Simulacion);
       ReparentarAplicacionSiProcede(Formulario, ReparentarAplicacion);
       Result := Formulario;
     end);

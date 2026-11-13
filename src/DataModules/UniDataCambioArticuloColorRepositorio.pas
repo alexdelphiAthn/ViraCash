@@ -2709,6 +2709,9 @@ begin
       'destino.`CODIGO_ART_TARCLIN` = :NUEVO AND ' +
       'destino.`CODIGO_TARC_TARCLIN` = ' +
       'origen.`CODIGO_TARC_TARCLIN` AND ' +
+      // FZ-ISSUE-944: el mismo articulo puede estar en cada periodo.
+      'destino.`ID_TARCP_TARCLIN` = ' +
+      'origen.`ID_TARCP_TARCLIN` AND ' +
       'destino.`CODIGO_UNIDAD_SKU_TARCLIN` = COALESCE(' +
       'mapa.`DESTINO`, origen.`CODIGO_UNIDAD_SKU_TARCLIN`) ' +
       'WHERE origen.`CODIGO_ART_TARCLIN` = :ANTERIOR LIMIT 1',

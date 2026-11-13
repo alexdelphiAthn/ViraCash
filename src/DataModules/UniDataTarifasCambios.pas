@@ -20,7 +20,7 @@ uses
   inLibRegistroPantallas,
   System.SysUtils, System.Classes, System.Math, System.Generics.Collections,
   Data.DB, MemDS, DBAccess, Uni,
-  UniDataGen, inLibTarifasCambiosExcel;
+  UniDataGen, inLibTarifasCambiosExcel, inLibTarifasCambiosPeriodos;
 
 type
   TdmTarifasCambios = class(TdmBase)
@@ -42,10 +42,15 @@ type
                                EsRedondearArriba: Boolean): Double;
     procedure ConfigurarConsultasAplicacion(
       AConsultaBusca, AConsultaMarca, AConsultaUnico: TUniQuery);
-    function AplicarLineaTarifa(
+    function AplicarLineaTarifa(ALinea: TDataSet;
       AConsultaBusca, AConsultaExec, AConsultaMarca,
       AConsultaUnico: TUniQuery;
       out AEncoloPrestaShop: Boolean): Boolean;
+    function SesionActual: Integer;
+    function SesionAplicada: Boolean;
+    procedure ConfigurarConsultaPeriodos;
+    procedure unqryPeriodosBeforePost(DataSet: TDataSet);
+    procedure RefrescarTrasCambioPeriodos(APeriodo: Integer);
     procedure MarcarSesionAplicada(AConsulta: TUniQuery);
     procedure ConfigurarQueries;
     procedure GrabarLineaPendiente;
@@ -68,6 +73,17 @@ type
     dsLineas     : TDataSource;
     unqryTarifas : TUniQuery;
     dsTarifas    : TDataSource;
+    // Periodos (etapas de rebajas) de la sesión activa. FZ-ISSUE-944.
+    unqryPeriodos: TUniQuery;
+    dsPeriodos   : TDataSource;
+    function  EsSesionPorPeriodos: Boolean;
+    function  IdPeriodoActual: Integer;
+    function  ParametrosCalculoActual: TParametrosCalculoTarifa;
+    procedure FiltrarLineasPeriodo;
+    function  AnadirPeriodo: Integer;
+    procedure EliminarPeriodoActual;
+    function  SincronizarPeriodos: Boolean;
+    function  TotalLineasSesion: Integer;
     procedure RellenarPreciosPartida;
     function ActualizarCostesLineas(const AIds: TArray<Integer>): Integer;
     function EliminarLineasSesion(const AIds: TArray<Integer>): Integer;
@@ -88,7 +104,8 @@ implementation
 
 uses
   inLibUser, inLibMsgArticulos, UniDataPrestaShopEncolado,
-  inLibPrestaShopColaSenal, inLibRedondeo;
+  inLibPrestaShopColaSenal, inLibRedondeo, UniDataTarifasCambiosPeriodos,
+  UniDataTarifasTramos;
 
 {$R *.dfm}
 
@@ -110,7 +127,10 @@ const
     'AND COALESCE(T.CODIGO_UNIDAD_ARTTAR, '''') = ' +
     'L.CODIGO_UNIDAD_SKU_TARCLIN ' +
     'AND T.CODIGO_TAR_ARTTAR = :%s AND T.ESACTIVO_ARTTAR = ''S'' ' +
-    'ORDER BY T.FECHA_DESDE_ARTTAR DESC, T.CODIGO_UNICO_ARTTAR DESC ' +
+    'ORDER BY ((T.FECHA_DESDE_ARTTAR IS NULL OR ' +
+    'T.FECHA_DESDE_ARTTAR <= CURDATE()) AND ' +
+    '(T.FECHA_HASTA_ARTTAR IS NULL OR T.FECHA_HASTA_ARTTAR >= CURDATE())) ' +
+    'DESC, T.FECHA_DESDE_ARTTAR DESC, T.CODIGO_UNICO_ARTTAR DESC ' +
     'LIMIT 1)';
   // Tarifa de la linea distinta de la de la cabecera.
   SQL_CAMBIO_TARIFA_ORIGEN =
@@ -158,9 +178,57 @@ const
     '  ELSE 0 END, ' +
     'ESTADO_TARCLIN = ''PENDIENTE'', MENSAJE_TARCLIN = NULL, ' +
     'USUARIO_MODIF = :USUARIO, INSTANTE_MODIF = NOW() WHERE %s';
+  // El Excel se carga en el periodo que se ve (0 = sesion sin periodos).
   SQL_FILTRO_ARTICULO_LINEA =
-    'CODIGO_TARC_TARCLIN = :TARC AND CODIGO_ART_TARCLIN = :ART ' +
-    'AND CODIGO_UNIDAD_SKU_TARCLIN = :SKU';
+    'CODIGO_TARC_TARCLIN = :TARC AND ID_TARCP_TARCLIN = :TARCP ' +
+    'AND CODIGO_ART_TARCLIN = :ART AND CODIGO_UNIDAD_SKU_TARCLIN = :SKU';
+  // Lineas con el mismo articulo/SKU que las elegidas, en todos los
+  // periodos: los periodos comparten articulos (FZ-ISSUE-944).
+  SQL_MISMO_ARTICULO_LINEA =
+    'JOIN fza_tarifas_cambios_lineas S ' +
+    'ON S.CODIGO_TARC_TARCLIN = L.CODIGO_TARC_TARCLIN ' +
+    'AND S.CODIGO_ART_TARCLIN = L.CODIGO_ART_TARCLIN ' +
+    'AND S.CODIGO_UNIDAD_SKU_TARCLIN = L.CODIGO_UNIDAD_SKU_TARCLIN ';
+  SQL_PERIODOS =
+    'SELECT P.ID_TARCP, P.CODIGO_TARC_TARCP, P.NUMERO_TARCP, ' +
+    '       P.NOMBRE_TARCP, P.FECHA_DESDE_TARCP, P.FECHA_HASTA_TARCP, ' +
+    '       P.CAMPO_ORIGEN_TARCP, P.CAMPO_DESTINO_TARCP, ' +
+    '       P.TIPO_APLICACION_TARCP, P.VALOR_APLICACION_TARCP, ' +
+    '       P.VALOR_REDONDEO_TARCP, P.VALOR_MENOS_AJUSTE_TARCP, ' +
+    '       P.ESREDONDEAR_ARRIBA_TARCP, P.ESTADO_TARCP, P.USUARIO_MODIF ' +
+    '  FROM fza_tarifas_cambios_periodos P ' +
+    ' ORDER BY P.NUMERO_TARCP';
+  // Editar un periodo obliga a recalcularlo: vuelve a borrador.
+  SQL_ACTUALIZAR_PERIODO =
+    'UPDATE fza_tarifas_cambios_periodos SET ' +
+    '  NOMBRE_TARCP = :NOMBRE_TARCP, ' +
+    '  FECHA_DESDE_TARCP = :FECHA_DESDE_TARCP, ' +
+    '  FECHA_HASTA_TARCP = :FECHA_HASTA_TARCP, ' +
+    '  CAMPO_ORIGEN_TARCP = :CAMPO_ORIGEN_TARCP, ' +
+    '  CAMPO_DESTINO_TARCP = :CAMPO_DESTINO_TARCP, ' +
+    '  TIPO_APLICACION_TARCP = :TIPO_APLICACION_TARCP, ' +
+    '  VALOR_APLICACION_TARCP = :VALOR_APLICACION_TARCP, ' +
+    '  VALOR_REDONDEO_TARCP = :VALOR_REDONDEO_TARCP, ' +
+    '  VALOR_MENOS_AJUSTE_TARCP = :VALOR_MENOS_AJUSTE_TARCP, ' +
+    '  ESREDONDEAR_ARRIBA_TARCP = :ESREDONDEAR_ARRIBA_TARCP, ' +
+    '  ESTADO_TARCP = ''BORRADOR'', ' +
+    '  USUARIO_MODIF = :USUARIO_MODIF, ' +
+    '  INSTANTE_MODIF = NOW() ' +
+    'WHERE ID_TARCP = :Old_ID_TARCP';
+  // Todas las lineas de la sesion, con las fechas de su periodo: aplicar no
+  // depende del periodo que se este viendo.
+  SQL_LINEAS_APLICAR =
+    'SELECT L.ID_TARCLIN, L.ID_TARCP_TARCLIN, L.ESAPLICAR_TARCLIN, ' +
+    '       L.CODIGO_ART_TARCLIN, L.CODIGO_UNIDAD_SKU_TARCLIN, ' +
+    '       L.CODIGO_TAR_DESTINO_TARCLIN, L.PRECIO_NUEVO_TARCLIN, ' +
+    '       L.PRECIO_FINAL_NUEVO_TARCLIN, L.PRECIO_DTO_NUEVO_TARCLIN, ' +
+    '       L.PORCENTAJE_DTO_NUEVO_TARCLIN, ' +
+    '       P.FECHA_DESDE_TARCP, P.FECHA_HASTA_TARCP ' +
+    '  FROM fza_tarifas_cambios_lineas L ' +
+    '  LEFT JOIN fza_tarifas_cambios_periodos P ' +
+    '    ON P.ID_TARCP = L.ID_TARCP_TARCLIN ' +
+    ' WHERE L.CODIGO_TARC_TARCLIN = :SESION ' +
+    ' ORDER BY L.ID_TARCLIN';
 
 procedure ForceReferenceToClass(C: TClass); begin end;
 
@@ -173,6 +241,9 @@ begin
   unqryTarifas := TUniQuery.Create(Self);
   dsTarifas := TDataSource.Create(Self);
   dsTarifas.DataSet := unqryTarifas;
+  unqryPeriodos := TUniQuery.Create(Self);
+  dsPeriodos := TDataSource.Create(Self);
+  dsPeriodos.DataSet := unqryPeriodos;
   ConfigurarQueries;
 end;
 
@@ -183,6 +254,16 @@ begin
     dsLineas.DataSet := nil;
   if Assigned(dsTarifas) then
     dsTarifas.DataSet := nil;
+  if Assigned(dsPeriodos) then
+    dsPeriodos.DataSet := nil;
+  if Assigned(unqryPeriodos) then
+  begin
+    if unqryPeriodos.Active then
+      unqryPeriodos.Close;
+    unqryPeriodos.MasterSource := nil;
+    unqryPeriodos.MasterFields := '';
+    unqryPeriodos.DetailFields := '';
+  end;
   if Assigned(unqryLineas) then
   begin
     if unqryLineas.Active then
@@ -268,6 +349,15 @@ begin
     '  FROM fza_tarifas ' +
     ' WHERE ESACTIVO_ARTTAR = ''S'' ' +
     ' ORDER BY ORDEN_TAR, CODIGO_TAR_ARTTAR';
+  ConfigurarConsultaPeriodos;
+end;
+
+procedure TdmTarifasCambios.ConfigurarConsultaPeriodos;
+begin
+  unqryPeriodos.SQL.Text := SQL_PERIODOS;
+  unqryPeriodos.KeyFields := 'ID_TARCP';
+  unqryPeriodos.SQLUpdate.Text := SQL_ACTUALIZAR_PERIODO;
+  unqryPeriodos.BeforePost := unqryPeriodosBeforePost;
 end;
 
 procedure TdmTarifasCambios.AbrirDetalles;
@@ -275,8 +365,199 @@ begin
   inherited;
   if not unqryTarifas.Active then
     unqryTarifas.Open;
+  if not unqryPeriodos.Active then
+    unqryPeriodos.Open;
   if not unqryLineas.Active then
     unqryLineas.Open;
+  FiltrarLineasPeriodo;
+end;
+
+// ===========================================================================
+//   Periodos (etapas de rebajas). FZ-ISSUE-944.
+// ===========================================================================
+
+function TdmTarifasCambios.SesionActual: Integer;
+begin
+  Result := 0;
+  if unqryTablaG.Active and (not unqryTablaG.IsEmpty) then
+    Result := unqryTablaG.FieldByName('CODIGO_TARC').AsInteger;
+end;
+
+function TdmTarifasCambios.SesionAplicada: Boolean;
+begin
+  Result := (SesionActual <> 0) and SameText(
+    unqryTablaG.FieldByName('ESTADO_TARC').AsString, 'APLICADA');
+end;
+
+function TdmTarifasCambios.EsSesionPorPeriodos: Boolean;
+var
+  Marca: TField;
+begin
+  Marca := nil;
+  if SesionActual <> 0 then
+    Marca := unqryTablaG.FindField('ESPOR_PERIODOS_TARC');
+  Result := Assigned(Marca) and SameText(Marca.AsString, 'S');
+end;
+
+function TdmTarifasCambios.IdPeriodoActual: Integer;
+begin
+  Result := 0;
+  if EsSesionPorPeriodos and unqryPeriodos.Active and
+     (not unqryPeriodos.IsEmpty) then
+    Result := unqryPeriodos.FieldByName('ID_TARCP').AsInteger;
+end;
+
+// Con periodos manda el periodo que se ve; sin ellos, la cabecera.
+function TdmTarifasCambios.ParametrosCalculoActual: TParametrosCalculoTarifa;
+var
+  Origen: TDataSet;
+  sSufijo: string;
+begin
+  Origen := unqryTablaG;
+  sSufijo := '_TARC';
+  if IdPeriodoActual <> 0 then
+  begin
+    Origen := unqryPeriodos;
+    sSufijo := '_TARCP';
+  end;
+  Result.CampoOrigen := Origen.FieldByName('CAMPO_ORIGEN' + sSufijo).AsString;
+  Result.CampoDestino :=
+    Origen.FieldByName('CAMPO_DESTINO' + sSufijo).AsString;
+  Result.TipoAplicacion :=
+    Origen.FieldByName('TIPO_APLICACION' + sSufijo).AsString;
+  Result.ValorAplicacion :=
+    Origen.FieldByName('VALOR_APLICACION' + sSufijo).AsFloat;
+  Result.ValorRedondeo :=
+    Origen.FieldByName('VALOR_REDONDEO' + sSufijo).AsFloat;
+  Result.ValorMenos :=
+    Origen.FieldByName('VALOR_MENOS_AJUSTE' + sSufijo).AsFloat;
+  Result.EsRedondearArriba := SameText(
+    Origen.FieldByName('ESREDONDEAR_ARRIBA' + sSufijo).AsString, 'S');
+end;
+
+// Las lineas solo muestran el periodo elegido en la rejilla de periodos.
+procedure TdmTarifasCambios.FiltrarLineasPeriodo;
+var
+  iPeriodo: Integer;
+begin
+  iPeriodo := IdPeriodoActual;
+  unqryLineas.Filter := Format('ID_TARCP_TARCLIN = %d', [iPeriodo]);
+  unqryLineas.Filtered := iPeriodo <> 0;
+end;
+
+procedure TdmTarifasCambios.unqryPeriodosBeforePost(DataSet: TDataSet);
+var
+  sError: string;
+  Vigencia: TVigenciaPeriodoTarifa;
+begin
+  if SesionAplicada then
+    raise Exception.Create(SErrorTarifasCambiosSesionAplicada);
+  Vigencia.Id := DataSet.FieldByName('ID_TARCP').AsInteger;
+  Vigencia.Numero := DataSet.FieldByName('NUMERO_TARCP').AsInteger;
+  Vigencia.Desde := DataSet.FieldByName('FECHA_DESDE_TARCP').AsDateTime;
+  Vigencia.Hasta := DataSet.FieldByName('FECHA_HASTA_TARCP').AsDateTime;
+  sError := ErrorVigenciaPeriodoTarifa(Vigencia,
+    CargarVigenciasPeriodosTarifa(
+      unqryTablaG.Connection as TUniConnection, SesionActual));
+  if sError <> '' then
+    raise Exception.Create(sError);
+  if Trim(DataSet.FieldByName('NOMBRE_TARCP').AsString) = '' then
+    DataSet.FieldByName('NOMBRE_TARCP').AsString :=
+      Format(SNombrePeriodoTarifaDefecto, [Vigencia.Numero]);
+  DataSet.FieldByName('USUARIO_MODIF').AsString := IdentidadSesion.Usuario;
+end;
+
+procedure TdmTarifasCambios.RefrescarTrasCambioPeriodos(APeriodo: Integer);
+begin
+  unqryTablaG.Refresh;
+  unqryPeriodos.Refresh;
+  if APeriodo <> 0 then
+    unqryPeriodos.Locate('ID_TARCP', APeriodo, []);
+  FiltrarLineasPeriodo;
+  unqryLineas.Refresh;
+end;
+
+// El primer periodo se queda con las lineas de la sesion; los siguientes
+// reciben una copia de sus articulos sin precio nuevo.
+function TdmTarifasCambios.AnadirPeriodo: Integer;
+var
+  dDesdeSesion: TDateTime;
+  Vigencia: TVigenciaPeriodoTarifa;
+  oConexion: TUniConnection;
+begin
+  if SesionActual = 0 then
+    raise Exception.Create(SErrorTarifasCambiosSinSesionActiva);
+  if SesionAplicada then
+    raise Exception.Create(SErrorTarifasCambiosSesionAplicada);
+  GrabarLineaPendiente;
+  if unqryPeriodos.Active and (unqryPeriodos.State in dsEditModes) then
+    unqryPeriodos.Post;
+  oConexion := unqryTablaG.Connection as TUniConnection;
+  dDesdeSesion := 0;
+  if not unqryTablaG.FieldByName('FECHA_DESDE_TARC').IsNull then
+    dDesdeSesion := unqryTablaG.FieldByName('FECHA_DESDE_TARC').AsDateTime;
+  Vigencia := VigenciaPropuestaPeriodoTarifa(
+    CargarVigenciasPeriodosTarifa(oConexion, SesionActual),
+    dDesdeSesion, Date);
+  Result := InsertarPeriodoTarifa(oConexion, SesionActual, Vigencia,
+    Format(SNombrePeriodoTarifaDefecto, [Vigencia.Numero]),
+    IdentidadSesion.Usuario);
+  RefrescarTrasCambioPeriodos(Result);
+end;
+
+procedure TdmTarifasCambios.EliminarPeriodoActual;
+var
+  iPeriodo: Integer;
+begin
+  iPeriodo := IdPeriodoActual;
+  if iPeriodo = 0 then
+    raise Exception.Create(SErrorPeriodoTarifaNoSeleccionado);
+  if SesionAplicada then
+    raise Exception.Create(SErrorTarifasCambiosSesionAplicada);
+  GrabarLineaPendiente;
+  if unqryPeriodos.State in dsEditModes then
+    unqryPeriodos.Cancel;
+  EliminarPeriodoTarifa(unqryTablaG.Connection as TUniConnection,
+    SesionActual, iPeriodo, IdentidadSesion.Usuario);
+  RefrescarTrasCambioPeriodos(0);
+end;
+
+// Reparte en los periodos las lineas llegadas sin periodo (carga de
+// articulos, documentos de trabajo). True si cambio alguna linea.
+function TdmTarifasCambios.SincronizarPeriodos: Boolean;
+begin
+  Result := False;
+  if EsSesionPorPeriodos and not SesionAplicada then
+  begin
+    GrabarLineaPendiente;
+    Result := SincronizarLineasPeriodosTarifa(
+      unqryTablaG.Connection as TUniConnection, SesionActual,
+      IdentidadSesion.Usuario);
+    if Result and unqryLineas.Active then
+      unqryLineas.Refresh;
+  end;
+end;
+
+function TdmTarifasCambios.TotalLineasSesion: Integer;
+var
+  qry: TUniQuery;
+begin
+  Result := 0;
+  if SesionActual <> 0 then
+  begin
+    qry := TUniQuery.Create(nil);
+    try
+      qry.Connection := unqryTablaG.Connection;
+      qry.SQL.Text :=
+        'SELECT COUNT(*) AS CANTIDAD FROM fza_tarifas_cambios_lineas ' +
+        'WHERE CODIGO_TARC_TARCLIN = :CODIGO';
+      qry.ParamByName('CODIGO').AsInteger := SesionActual;
+      qry.Open;
+      Result := qry.FieldByName('CANTIDAD').AsInteger;
+    finally
+      FreeAndNil(qry);
+    end;
+  end;
 end;
 
 // Los campos son dinamicos: se recrean en cada apertura del detalle.
@@ -401,6 +682,11 @@ begin
   DataSet.FieldByName('VALOR_MENOS_AJUSTE_TARC').AsFloat := 0;
   DataSet.FieldByName('ESREDONDEAR_ARRIBA_TARC').AsString := 'S';
   DataSet.FieldByName('FECHA_DESDE_TARC').AsDateTime := Date;
+  // FZ-ISSUE-944: el campo es obligatorio en el dataset; sin él, «Añadir
+  // periodo» sobre una sesión aún sin grabar fallaba al grabar la cabecera.
+  // Nace sin periodos; el primer periodo lo pasa a 'S'.
+  if Assigned(DataSet.FindField('ESPOR_PERIODOS_TARC')) then
+    DataSet.FieldByName('ESPOR_PERIODOS_TARC').AsString := 'N';
 end;
 
 procedure TdmTarifasCambios.unqryTablaGBeforePost(DataSet: TDataSet);
@@ -478,12 +764,14 @@ end;
 
 // Criterio unico: todo precio que sale de un porcentaje (formula, descuento
 // en lote, % del Excel o % escrito en la rejilla) se redondea igual.
+// Con periodos, el redondeo es el del periodo que se ve (FZ-ISSUE-944).
 function TdmTarifasCambios.RedondearConCabecera(AImporte: Double): Double;
+var
+  Parametros: TParametrosCalculoTarifa;
 begin
-  Result := RedondearImporte(AImporte,
-    CampoCabecera('VALOR_REDONDEO_TARC').AsFloat,
-    CampoCabecera('VALOR_MENOS_AJUSTE_TARC').AsFloat,
-    SameText(CampoCabecera('ESREDONDEAR_ARRIBA_TARC').AsString, 'S'));
+  Parametros := ParametrosCalculoActual;
+  Result := RedondearImporte(AImporte, Parametros.ValorRedondeo,
+    Parametros.ValorMenos, Parametros.EsRedondearArriba);
 end;
 
 // Salida de partida de la linea actual: la nueva ya calculada; si no hay,
@@ -619,11 +907,13 @@ begin
       for I := 0 to High(AIds) do
         Parametros.Add(':ID' + IntToStr(I));
       Consulta.Connection := unqryTablaG.Connection;
+      // Quitar un articulo lo quita de todos los periodos (FZ-ISSUE-944).
       Consulta.SQL.Text :=
         'DELETE L FROM fza_tarifas_cambios_lineas L ' +
+        SQL_MISMO_ARTICULO_LINEA +
         'JOIN fza_tarifas_cambios C ON C.CODIGO_TARC=' +
         'L.CODIGO_TARC_TARCLIN WHERE C.CODIGO_TARC=:SESION ' +
-        'AND C.ESTADO_TARC <> ''APLICADA'' AND L.ID_TARCLIN IN (' +
+        'AND C.ESTADO_TARC <> ''APLICADA'' AND S.ID_TARCLIN IN (' +
         Parametros.CommaText + ')';
       Consulta.ParamByName('SESION').AsInteger :=
         unqryTablaG.FieldByName('CODIGO_TARC').AsInteger;
@@ -661,11 +951,13 @@ begin
       for I := 0 to High(AIds) do
         Parametros.Add(':ID' + IntToStr(I));
       Consulta.Connection := unqryTablaG.Connection;
+      // El coste es del articulo: se actualiza en todos los periodos.
       Consulta.SQL.Text :=
-        'UPDATE fza_tarifas_cambios_lineas L SET ' +
+        'UPDATE fza_tarifas_cambios_lineas L ' +
+        SQL_MISMO_ARTICULO_LINEA + 'SET ' +
         'L.PRECIO_COSTE_TARCLIN = ' + SQL_COSTE_LINEA + ', ' +
         'L.USUARIO_MODIF = :USUARIO, L.INSTANTE_MODIF = NOW() ' +
-        'WHERE L.CODIGO_TARC_TARCLIN = :SESION AND L.ID_TARCLIN IN (' +
+        'WHERE L.CODIGO_TARC_TARCLIN = :SESION AND S.ID_TARCLIN IN (' +
         Parametros.CommaText + ')';
       Consulta.ParamByName('SESION').AsInteger :=
         unqryTablaG.FieldByName('CODIGO_TARC').AsInteger;
@@ -696,6 +988,12 @@ begin
       Consulta.SQL.Text :=
         'DELETE FROM fza_tarifas_cambios_lineas ' +
         'WHERE CODIGO_TARC_TARCLIN = :SESION';
+      Consulta.ParamByName('SESION').AsInteger :=
+        DataSet.FieldByName('CODIGO_TARC').AsInteger;
+      Consulta.Execute;
+      Consulta.SQL.Text :=
+        'DELETE FROM fza_tarifas_cambios_periodos ' +
+        'WHERE CODIGO_TARC_TARCP = :SESION';
       Consulta.ParamByName('SESION').AsInteger :=
         DataSet.FieldByName('CODIGO_TARC').AsInteger;
       Consulta.Execute;
@@ -799,12 +1097,11 @@ const
     'PRECIO_DTO_NUEVO_TARCLIN = COALESCE(:P8, PRECIO_DTO_NUEVO_TARCLIN), ' +
     'PORCENTAJE_DTO_NUEVO_TARCLIN = ' +
     '  COALESCE(:P9, PORCENTAJE_DTO_NUEVO_TARCLIN), ' +
-    'USUARIO_MODIF = :USUARIO, INSTANTE_MODIF = NOW() ' +
-    'WHERE CODIGO_TARC_TARCLIN = :TARC AND CODIGO_ART_TARCLIN = :ART ' +
-    'AND CODIGO_UNIDAD_SKU_TARCLIN = :SKU';
+    'USUARIO_MODIF = :USUARIO, INSTANTE_MODIF = NOW() WHERE ' +
+    SQL_FILTRO_ARTICULO_LINEA;
   SQL_INSERTAR_LINEA_EXCEL =
     'INSERT INTO fza_tarifas_cambios_lineas (CODIGO_TARC_TARCLIN, ' +
-    'CODIGO_ART_TARCLIN, CODIGO_UNIDAD_SKU_TARCLIN, ' +
+    'ID_TARCP_TARCLIN, CODIGO_ART_TARCLIN, CODIGO_UNIDAD_SKU_TARCLIN, ' +
     'CODIGO_TAR_ORIGEN_TARCLIN, CODIGO_TAR_DESTINO_TARCLIN, ' +
     'ESAPLICAR_TARCLIN, ESTADO_TARCLIN, PRECIO_ORIGEN_TARCLIN, ' +
     'PRECIO_COSTE_TARCLIN, PRECIO_SALIDA_ACTUAL_TARCLIN, ' +
@@ -812,14 +1109,13 @@ const
     'PORCENTAJE_DTO_ACTUAL_TARCLIN, PRECIO_NUEVO_TARCLIN, ' +
     'PRECIO_FINAL_NUEVO_TARCLIN, PRECIO_DTO_NUEVO_TARCLIN, ' +
     'PORCENTAJE_DTO_NUEVO_TARCLIN, INSTANTE_ALTA, USUARIO_ALTA) ' +
-    'SELECT C.CODIGO_TARC, :ART, :SKU, C.CODIGO_TAR_ORIGEN_TARC, ' +
+    'SELECT C.CODIGO_TARC, :TARCP, :ART, :SKU, C.CODIGO_TAR_ORIGEN_TARC, ' +
     'C.CODIGO_TAR_DESTINO_TARC, COALESCE(:APLICAR, ''S''), ''PENDIENTE'', ' +
     ':P0, :P1, :P2, :P3, :P4, :P5, :P6, :P7, :P8, :P9, NOW(), :USUARIO ' +
     'FROM fza_tarifas_cambios C WHERE C.CODIGO_TARC = :TARC';
   SQL_EXISTE_LINEA_EXCEL =
-    'SELECT COUNT(*) AS CANTIDAD FROM fza_tarifas_cambios_lineas ' +
-    'WHERE CODIGO_TARC_TARCLIN = :TARC AND CODIGO_ART_TARCLIN = :ART ' +
-    'AND CODIGO_UNIDAD_SKU_TARCLIN = :SKU';
+    'SELECT COUNT(*) AS CANTIDAD FROM fza_tarifas_cambios_lineas WHERE ' +
+    SQL_FILTRO_ARTICULO_LINEA;
 
 procedure TdmTarifasCambios.AsignarParametrosLineaExcel(AConsulta: TUniQuery;
   const ALinea: TLineaSesionTarifaExcel);
@@ -829,6 +1125,7 @@ var
 begin
   AConsulta.ParamByName('TARC').AsInteger :=
     unqryTablaG.FieldByName('CODIGO_TARC').AsInteger;
+  AConsulta.ParamByName('TARCP').AsInteger := IdPeriodoActual;
   AConsulta.ParamByName('ART').AsString := ALinea.Articulo;
   AConsulta.ParamByName('SKU').AsString := ALinea.Sku;
   AConsulta.ParamByName('USUARIO').AsString := IdentidadSesion.Usuario;
@@ -877,6 +1174,7 @@ begin
     AConsulta.ParamByName('USUARIO').AsString := IdentidadSesion.Usuario;
     AConsulta.ParamByName('TARC').AsInteger :=
       unqryTablaG.FieldByName('CODIGO_TARC').AsInteger;
+    AConsulta.ParamByName('TARCP').AsInteger := IdPeriodoActual;
     AConsulta.ParamByName('ART').AsString := ALinea.Articulo;
     AConsulta.ParamByName('SKU').AsString := ALinea.Sku;
     AConsulta.Execute;
@@ -920,6 +1218,7 @@ begin
         qryExiste.Close;
         qryExiste.ParamByName('TARC').AsInteger :=
           unqryTablaG.FieldByName('CODIGO_TARC').AsInteger;
+        qryExiste.ParamByName('TARCP').AsInteger := IdPeriodoActual;
         qryExiste.ParamByName('ART').AsString := ALineas[iLinea].Articulo;
         qryExiste.ParamByName('SKU').AsString := ALineas[iLinea].Sku;
         qryExiste.Open;
@@ -952,6 +1251,8 @@ begin
   end;
   RellenarPreciosPartida;
   AplicarPorcentajesExcel(ALineas);
+  // Los articulos nuevos del Excel pasan a los demas periodos.
+  SincronizarPeriodos;
 end;
 
 // Filas del Excel con solo "% dto nuevo": se calculan con el criterio comun
@@ -1017,6 +1318,7 @@ var
   dDto              : Double;
   dPorcDto          : Double;
   EsRedondearArriba : Boolean;
+  Parametros        : TParametrosCalculoTarifa;
 begin
   Result := 0;
   AMensaje := '';
@@ -1028,15 +1330,16 @@ begin
     AMensaje := SErrorSeleccionVaciaSesionTarifa
   else
   begin
+    SincronizarPeriodos;
     RellenarPreciosPartida;
-    sCampoOrigen := CampoCabecera('CAMPO_ORIGEN_TARC').AsString;
-    sCampoDestino := CampoCabecera('CAMPO_DESTINO_TARC').AsString;
-    sTipoAplicacion := CampoCabecera('TIPO_APLICACION_TARC').AsString;
-    dValorAplicacion := CampoCabecera('VALOR_APLICACION_TARC').AsFloat;
-    dValorRedondeo := CampoCabecera('VALOR_REDONDEO_TARC').AsFloat;
-    dValorMenos := CampoCabecera('VALOR_MENOS_AJUSTE_TARC').AsFloat;
-    EsRedondearArriba :=
-      SameText(CampoCabecera('ESREDONDEAR_ARRIBA_TARC').AsString, 'S');
+    Parametros := ParametrosCalculoActual;
+    sCampoOrigen := Parametros.CampoOrigen;
+    sCampoDestino := Parametros.CampoDestino;
+    sTipoAplicacion := Parametros.TipoAplicacion;
+    dValorAplicacion := Parametros.ValorAplicacion;
+    dValorRedondeo := Parametros.ValorRedondeo;
+    dValorMenos := Parametros.ValorMenos;
+    EsRedondearArriba := Parametros.EsRedondearArriba;
     Seleccion := TDictionary<Integer, Boolean>.Create;
     try
       for iId in AIdsLinea do
@@ -1123,8 +1426,11 @@ begin
         qry.ParamByName('CODIGO').AsInteger :=
           unqryTablaG.FieldByName('CODIGO_TARC').AsInteger;
         qry.Execute;
-        unqryTablaG.Refresh;
-        unqryLineas.Refresh;
+        if IdPeriodoActual <> 0 then
+          MarcarPeriodoTarifaBorrador(
+            unqryTablaG.Connection as TUniConnection, IdPeriodoActual,
+            IdentidadSesion.Usuario);
+        RefrescarTrasCambioPeriodos(IdPeriodoActual);
       finally
         FreeAndNil(qry);
       end;
@@ -1137,15 +1443,8 @@ end;
 procedure TdmTarifasCambios.ConfigurarConsultasAplicacion(
   AConsultaBusca, AConsultaMarca, AConsultaUnico: TUniQuery);
 begin
-  AConsultaBusca.SQL.Text :=
-    'SELECT CODIGO_UNICO_ARTTAR ' +
-    'FROM fza_articulos_tarifas ' +
-    'WHERE CODIGO_ART_ARTTAR = :ART ' +
-    'AND COALESCE(CODIGO_UNIDAD_ARTTAR, '''') = :SKU ' +
-    'AND CODIGO_TAR_ARTTAR = :TAR ' +
-    'AND ESACTIVO_ARTTAR = ''S'' ' +
-    'ORDER BY FECHA_DESDE_ARTTAR DESC, CODIGO_UNICO_ARTTAR DESC ' +
-    'LIMIT 1';
+  // FZ-ISSUE-944: la fila de precio la decide TTramosPrecioTarifa.
+  AConsultaBusca.SQL.Clear;
   AConsultaMarca.SQL.Text :=
     'UPDATE fza_tarifas_cambios_lineas SET ' +
     'ESTADO_TARCLIN = ''APLICADA'', MENSAJE_TARCLIN = :MENSAJE, ' +
@@ -1156,12 +1455,23 @@ begin
     'SELECT LAST_INSERT_ID() AS CODIGO_UNICO_ARTTAR';
 end;
 
-function TdmTarifasCambios.AplicarLineaTarifa(
+function FloatCampo(ADataSet: TDataSet; const ACampo: string): Double;
+begin
+  Result := 0;
+  if not ADataSet.FieldByName(ACampo).IsNull then
+    Result := ADataSet.FieldByName(ACampo).AsFloat;
+end;
+
+function TdmTarifasCambios.AplicarLineaTarifa(ALinea: TDataSet;
   AConsultaBusca, AConsultaExec, AConsultaMarca,
   AConsultaUnico: TUniQuery;
   out AEncoloPrestaShop: Boolean): Boolean;
 var
-  EsInsertar: Boolean;
+  bTieneHasta: Boolean;
+  dDesde: TDateTime;
+  dHasta: TDateTime;
+  oTramos: TTramosPrecioTarifa;
+  Precios: TPreciosTramoTarifa;
   iUnico: Integer;
   sArticulo: string;
   sSku: string;
@@ -1169,84 +1479,47 @@ var
 begin
   Result := False;
   AEncoloPrestaShop := False;
-  if SameText(unqryLineas.FieldByName(
-    'ESAPLICAR_TARCLIN').AsString, 'S') then
+  if SameText(ALinea.FieldByName('ESAPLICAR_TARCLIN').AsString, 'S') then
   begin
-    sArticulo := unqryLineas.FieldByName('CODIGO_ART_TARCLIN').AsString;
-    sSku := unqryLineas.FieldByName(
-      'CODIGO_UNIDAD_SKU_TARCLIN').AsString;
-    sTarifa := unqryLineas.FieldByName(
-      'CODIGO_TAR_DESTINO_TARCLIN').AsString;
-    AConsultaBusca.Close;
-    AConsultaBusca.ParamByName('ART').AsString := sArticulo;
-    AConsultaBusca.ParamByName('SKU').AsString := sSku;
-    AConsultaBusca.ParamByName('TAR').AsString := sTarifa;
-    AConsultaBusca.Open;
-    EsInsertar := AConsultaBusca.IsEmpty;
-    if EsInsertar then
-    begin
-      iUnico := 0;
-      AConsultaExec.SQL.Text :=
-        'INSERT INTO fza_articulos_tarifas ' +
-        '(CODIGO_ART_ARTTAR, CODIGO_UNIDAD_ARTTAR, ' +
-        'CODIGO_TAR_ARTTAR, ESACTIVO_ARTTAR, PRECIO_SALIDA_ARTTAR, ' +
-        'PRECIO_FINAL_ARTTAR, PRECIO_DTO_ARTTAR, ' +
-        'PORCENTAJE_DTO_ARTTAR, FECHA_DESDE_ARTTAR, ' +
-        'FECHA_HASTA_ARTTAR, USUARIO_ALTA, USUARIO_MODIF, ' +
-        'INSTANTE_ALTA) VALUES (:ART, :SKU, :TAR, ''S'', :SALIDA, ' +
-        ':FINAL, :DTO, :PORC_DTO, :DESDE, :HASTA, :USUARIO, ' +
-        ':USUARIO, NOW())';
-      AConsultaExec.ParamByName('ART').AsString := sArticulo;
-      AConsultaExec.ParamByName('SKU').AsString := sSku;
-      AConsultaExec.ParamByName('TAR').AsString := sTarifa;
-    end
-    else
-    begin
-      iUnico := AConsultaBusca.FieldByName(
-        'CODIGO_UNICO_ARTTAR').AsInteger;
-      AConsultaExec.SQL.Text :=
-        'UPDATE fza_articulos_tarifas SET ' +
-        'PRECIO_SALIDA_ARTTAR = :SALIDA, PRECIO_FINAL_ARTTAR = :FINAL, ' +
-        'PRECIO_DTO_ARTTAR = :DTO, PORCENTAJE_DTO_ARTTAR = :PORC_DTO, ' +
-        'FECHA_DESDE_ARTTAR = :DESDE, FECHA_HASTA_ARTTAR = :HASTA, ' +
-        'USUARIO_MODIF = :USUARIO, INSTANTE_MODIF = NOW() ' +
-        'WHERE CODIGO_UNICO_ARTTAR = :UNICO';
-      AConsultaExec.ParamByName('UNICO').AsInteger := iUnico;
-    end;
-    AConsultaExec.ParamByName('SALIDA').AsFloat :=
-      LeerFloatLinea('PRECIO_NUEVO_TARCLIN');
-    AConsultaExec.ParamByName('FINAL').AsFloat :=
-      LeerFloatLinea('PRECIO_FINAL_NUEVO_TARCLIN');
-    AConsultaExec.ParamByName('DTO').AsFloat :=
-      LeerFloatLinea('PRECIO_DTO_NUEVO_TARCLIN');
-    AConsultaExec.ParamByName('PORC_DTO').AsFloat :=
-      LeerFloatLinea('PORCENTAJE_DTO_NUEVO_TARCLIN');
-    if CampoCabecera('FECHA_DESDE_TARC').IsNull then
-      AConsultaExec.ParamByName('DESDE').AsDateTime := Date
-    else
-      AConsultaExec.ParamByName('DESDE').AsDateTime :=
-        CampoCabecera('FECHA_DESDE_TARC').AsDateTime;
-    if CampoCabecera('FECHA_HASTA_TARC').IsNull then
-      AConsultaExec.ParamByName('HASTA').Clear
-    else
-      AConsultaExec.ParamByName('HASTA').AsDateTime :=
-        CampoCabecera('FECHA_HASTA_TARC').AsDateTime;
-    AConsultaExec.ParamByName('USUARIO').AsString :=
-      IdentidadSesion.Usuario;
-    AConsultaExec.Execute;
-    if EsInsertar then
-    begin
-      AConsultaUnico.Close;
-      AConsultaUnico.Open;
-      iUnico := AConsultaUnico.FieldByName(
-        'CODIGO_UNICO_ARTTAR').AsInteger;
+    sArticulo := ALinea.FieldByName('CODIGO_ART_TARCLIN').AsString;
+    sSku := ALinea.FieldByName('CODIGO_UNIDAD_SKU_TARCLIN').AsString;
+    sTarifa := ALinea.FieldByName('CODIGO_TAR_DESTINO_TARCLIN').AsString;
+    // FZ-ISSUE-944: en una misma tarifa, artículo y SKU no puede haber dos
+    // precios vigentes el mismo día. El periodo aparta el precio base de
+    // sus fechas; un precio sin periodo rellena los huecos entre periodos.
+    Precios.Salida := FloatCampo(ALinea, 'PRECIO_NUEVO_TARCLIN');
+    Precios.Final := FloatCampo(ALinea, 'PRECIO_FINAL_NUEVO_TARCLIN');
+    Precios.Dto := FloatCampo(ALinea, 'PRECIO_DTO_NUEVO_TARCLIN');
+    Precios.PorcentajeDto := FloatCampo(ALinea,
+      'PORCENTAJE_DTO_NUEVO_TARCLIN');
+    oTramos := TTramosPrecioTarifa.Create(
+      AConsultaExec.Connection as TUniConnection, IdentidadSesion.Usuario,
+      sArticulo, sSku, sTarifa);
+    try
+      if ALinea.FieldByName('ID_TARCP_TARCLIN').AsInteger <> 0 then
+        iUnico := oTramos.AplicarPeriodo(
+          ALinea.FieldByName('FECHA_DESDE_TARCP').AsDateTime,
+          ALinea.FieldByName('FECHA_HASTA_TARCP').AsDateTime, Precios)
+      else
+      begin
+        dDesde := Date;
+        if not CampoCabecera('FECHA_DESDE_TARC').IsNull then
+          dDesde := CampoCabecera('FECHA_DESDE_TARC').AsDateTime;
+        bTieneHasta := not CampoCabecera('FECHA_HASTA_TARC').IsNull;
+        dHasta := 0;
+        if bTieneHasta then
+          dHasta := CampoCabecera('FECHA_HASTA_TARC').AsDateTime;
+        iUnico := oTramos.AplicarBase(dDesde, bTieneHasta, dHasta, Precios);
+      end;
+    finally
+      oTramos.Free;
     end;
     AConsultaMarca.ParamByName('MENSAJE').AsString := 'Aplicada';
     AConsultaMarca.ParamByName('UNICO').AsInteger := iUnico;
     AConsultaMarca.ParamByName('USUARIO').AsString :=
       IdentidadSesion.Usuario;
     AConsultaMarca.ParamByName('ID').AsInteger :=
-      unqryLineas.FieldByName('ID_TARCLIN').AsInteger;
+      ALinea.FieldByName('ID_TARCLIN').AsInteger;
     AConsultaMarca.Execute;
     if SameText(
       Trim(sTarifa),
@@ -1278,6 +1551,8 @@ begin
   AConsulta.Execute;
 end;
 
+// Aplica todas las lineas de la sesion, de todos sus periodos, en una sola
+// transaccion. Los periodos se validan antes: sin solapes ni fechas al reves.
 function TdmTarifasCambios.AplicarSesionActual(
   out AMensaje: string): Integer;
 var
@@ -1288,6 +1563,7 @@ var
   oConexion: TUniConnection;
   qryBusca: TUniQuery;
   qryExec: TUniQuery;
+  qryLineas: TUniQuery;
   qryMarca: TUniQuery;
   qryUnico: TUniQuery;
 begin
@@ -1300,46 +1576,52 @@ begin
     AMensaje := SErrorTarifasCambiosSesionAplicada
   else if (not unqryLineas.Active) or unqryLineas.IsEmpty then
     AMensaje := SErrorTarifasCambiosSesionSinLineas
-  else
+  else if EsSesionPorPeriodos then
+    AMensaje := ErrorVigenciasPeriodosTarifa(CargarVigenciasPeriodosTarifa(
+      unqryTablaG.Connection as TUniConnection, SesionActual));
+  if AMensaje = '' then
   begin
+    SincronizarPeriodos;
     qryBusca := nil;
     qryExec := nil;
+    qryLineas := nil;
     qryMarca := nil;
     qryUnico := nil;
     try
       qryBusca := TUniQuery.Create(nil);
       qryExec := TUniQuery.Create(nil);
+      qryLineas := TUniQuery.Create(nil);
       qryMarca := TUniQuery.Create(nil);
       qryUnico := TUniQuery.Create(nil);
       oConexion := unqryTablaG.Connection as TUniConnection;
       qryBusca.Connection := oConexion;
       qryExec.Connection := oConexion;
+      qryLineas.Connection := oConexion;
       qryMarca.Connection := oConexion;
       qryUnico.Connection := oConexion;
       ConfigurarConsultasAplicacion(qryBusca, qryMarca, qryUnico);
+      qryLineas.SQL.Text := SQL_LINEAS_APLICAR;
+      qryLineas.ParamByName('SESION').AsInteger := SesionActual;
       EsTransaccionPropia := not oConexion.InTransaction;
       HayEncoladoPrestaShop := False;
       TransaccionConfirmada := False;
       if EsTransaccionPropia then
         oConexion.StartTransaction;
       try
-        unqryLineas.DisableControls;
-        try
-          unqryLineas.First;
-          while not unqryLineas.Eof do
-          begin
-            if AplicarLineaTarifa(
-              qryBusca, qryExec, qryMarca, qryUnico,
-              EncoloLineaPrestaShop) then
-              Inc(Result);
-            HayEncoladoPrestaShop :=
-              HayEncoladoPrestaShop or EncoloLineaPrestaShop;
-            unqryLineas.Next;
-          end;
-        finally
-          unqryLineas.EnableControls;
+        qryLineas.Open;
+        while not qryLineas.Eof do
+        begin
+          if AplicarLineaTarifa(qryLineas,
+            qryBusca, qryExec, qryMarca, qryUnico,
+            EncoloLineaPrestaShop) then
+            Inc(Result);
+          HayEncoladoPrestaShop :=
+            HayEncoladoPrestaShop or EncoloLineaPrestaShop;
+          qryLineas.Next;
         end;
         MarcarSesionAplicada(qryExec);
+        MarcarPeriodosTarifaAplicados(oConexion, SesionActual,
+          IdentidadSesion.Usuario);
         if EsTransaccionPropia then
         begin
           oConexion.Commit;
@@ -1361,11 +1643,11 @@ begin
       end;
       if TransaccionConfirmada and HayEncoladoPrestaShop then
         SolicitarProcesadoPrestaShop;
-      unqryTablaG.Refresh;
-      unqryLineas.Refresh;
+      RefrescarTrasCambioPeriodos(IdPeriodoActual);
     finally
       FreeAndNil(qryUnico);
       FreeAndNil(qryMarca);
+      FreeAndNil(qryLineas);
       FreeAndNil(qryExec);
       FreeAndNil(qryBusca);
     end;

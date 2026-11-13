@@ -310,6 +310,13 @@ begin
       begin
         col := cxGrdDBTabPrin.CreateColumn as TcxGridDBColumn;
         col.DataBinding.FieldName := sField;
+        // FZ-ISSUE-940: un campo marcado como no visible sigue en la
+        // rejilla para la busqueda global, pero sin mostrarse.
+        if not ds.Fields[i].Visible then
+        begin
+          col.Visible := False;
+          col.VisibleForCustomization := False;
+        end;
       end;
     end;
   end;

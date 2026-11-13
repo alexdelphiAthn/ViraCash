@@ -41,6 +41,32 @@ uses
   System.SysUtils, inLibComprasImpuestos, inLibMsgCompras,
   UniDataImpuestosRepositorio, UniDataArticulosValidadorRepositorio;
 
+// FZ-ISSUE-939: el histórico del SKU (fza_articulos_skus_costes) no guarda
+// el proveedor. Solo vale para el proveedor del documento si el artículo no
+// tiene relación con otro proveedor o si su última compra fue a este
+// proveedor; si no, mandan los datos de su propia relación.
+// La última compra es el albarán de esa fecha grabado el último: al grabar
+// un albarán con la misma fecha se sobrescribe el coste
+// (ActualizarCostesSkuDesdeAlbaranCompra). FECHA_ALBC no tiene hora, así
+// que no basta con que el proveedor tenga un albarán ese día: varios
+// proveedores pueden haber vendido el SKU el mismo día.
+function SqlHistoricoSkuDelProveedor: string;
+begin
+  Result :=
+    'AND (:prv = '''' ' +
+    'OR NOT EXISTS (SELECT 1 FROM fza_articulos_proveedores OAP ' +
+    'WHERE OAP.CODIGO_ART_AP = :art AND OAP.CODIGO_PRV_AP <> :prv) ' +
+    'OR :prv = (SELECT HA.CODIGO_PRV_ALBC ' +
+    'FROM fza_albaranes_compra_lineas HL ' +
+    'JOIN fza_albaranes_compra HA ON HA.SERIE_ALBC = HL.SERIE_ALBC_ALBCLIN ' +
+    'AND HA.NUMERO_ALBC = HL.NUMERO_ALBC_ALBCLIN ' +
+    'WHERE HL.CODIGO_UNIDAD_ALBCLIN = SC.CODIGO_UNIDAD_SKU_SKUC ' +
+    'AND HA.FECHA_ALBC = SC.FECHA_ULT_COMPRA_SKUC ' +
+    'ORDER BY COALESCE(HA.INSTANTE_MODIF, HA.INSTANTE_ALTA) DESC, ' +
+    'HA.INSTANTE_MOVIMIENTO_ALBC DESC, HA.SERIE_ALBC DESC, ' +
+    'HA.NUMERO_ALBC DESC LIMIT 1)) ';
+end;
+
 // Histórico del SKU; si no lo hay, el coste de su fila de tarifa con la
 // misma prioridad que el PVP: SKU exacto, talla para cualquier color
 // (ART/*/TALLA) y prefijo de color (ART/COLOR). La fila general del
@@ -56,6 +82,7 @@ begin
     'FROM fza_articulos_skus_costes SC ' +
     'WHERE SC.CODIGO_UNIDAD_SKU_SKUC = :sku ' +
     'AND SC.PRECIO_ULT_COMPRA_SKUC IS NOT NULL ' +
+    SqlHistoricoSkuDelProveedor +
     'UNION ALL ' +
     'SELECT PT.PRECIO_COSTE_ARTTAR, PT.FECHA_ULT_COMPRA_ARTTAR, ' +
     // FZ-ISSUE-786 (observación de FZ-782): la tarifa general del
@@ -105,6 +132,8 @@ type
     FResolver: IArticulosResolver;
     procedure CompletarCosteSku(const AFecha: TDateTime;
       const ACodigoProveedor: string; var ADatos: TArticuloDatos);
+    function HayHistoricoSkuDeOtroProveedor(const ACodigoArticulo,
+      ACodigoSku, ACodigoProveedor: string): Boolean;
   public
     constructor Create(
       AConexion: TUniConnection;
@@ -286,7 +315,13 @@ begin
         dFecha := Date;
       oConsulta.ParamByName('fecha').AsDate := dFecha;
       oConsulta.Open;
-      if not oConsulta.IsEmpty then
+      // FZ-ISSUE-939: la tarifa general del artículo (prioridad 4) solo es
+      // el último recurso; no pisa el último precio de la relación con el
+      // proveedor del documento.
+      if not oConsulta.IsEmpty and
+         not ((oConsulta.FieldByName('PRIORIDAD').AsInteger = 4) and
+              ADatos.UltimoCoste.Encontrado and
+              (ADatos.UltimoCoste.PrecioUltCompra <> 0)) then
       begin
         ADatos.UltimoCoste.PrecioUltCompra :=
           oConsulta.FieldByName('COSTE').AsFloat;
@@ -297,6 +332,35 @@ begin
     finally
       FreeAndNil(oConsulta);
     end;
+  end;
+end;
+
+function TRepositorioLecturasArticuloCompraUniDAC.
+  HayHistoricoSkuDeOtroProveedor(const ACodigoArticulo, ACodigoSku,
+  ACodigoProveedor: string): Boolean;
+var
+  oConsulta: TUniQuery;
+begin
+  oConsulta := TUniQuery.Create(nil);
+  try
+    oConsulta.Connection := FConexion;
+    oConsulta.SQL.Text :=
+      'SELECT CASE WHEN EXISTS (SELECT 1 ' +
+      'FROM fza_articulos_skus_costes SC ' +
+      'WHERE SC.CODIGO_UNIDAD_SKU_SKUC = :sku ' +
+      'AND SC.PRECIO_ULT_COMPRA_SKUC IS NOT NULL) ' +
+      'AND NOT EXISTS (SELECT 1 FROM fza_articulos_skus_costes SC ' +
+      'WHERE SC.CODIGO_UNIDAD_SKU_SKUC = :sku ' +
+      'AND SC.PRECIO_ULT_COMPRA_SKUC IS NOT NULL ' +
+      SqlHistoricoSkuDelProveedor +
+      ') THEN 1 ELSE 0 END AS AJENO';
+    oConsulta.ParamByName('art').AsString := ACodigoArticulo;
+    oConsulta.ParamByName('sku').AsString := ACodigoSku;
+    oConsulta.ParamByName('prv').AsString := Trim(ACodigoProveedor);
+    oConsulta.Open;
+    Result := oConsulta.FieldByName('AJENO').AsInteger = 1;
+  finally
+    FreeAndNil(oConsulta);
   end;
 end;
 
@@ -313,6 +377,15 @@ begin
     AFecha,
     ACodigoAlmacen,
     ACodigoProveedor);
+  // FZ-ISSUE-939: el resolutor propone el histórico del SKU sin mirar de
+  // qué proveedor fue. Si no es atribuible al proveedor del documento, el
+  // coste de partida es el de su relación (o ninguno).
+  if Result.Encontrado and (Trim(Result.CodigoSku) <> '') and
+     (Trim(ACodigoProveedor) <> '') and
+     HayHistoricoSkuDeOtroProveedor(Result.CodigoArticulo,
+       Result.CodigoSku, ACodigoProveedor) then
+    Result.UltimoCoste := FResolver.ResolverUltimoCoste(
+      Result.CodigoArticulo, ACodigoProveedor, '');
   CompletarCosteSku(AFecha, ACodigoProveedor, Result);
 end;
 
@@ -369,6 +442,9 @@ begin
       '  FROM fza_articulos_proveedores AP ' +
       ' WHERE AP.CODIGO_ART_AP = :art ' +
       '   AND COALESCE(TRIM(AP.REF_PROVEEDOR_AP), '''') <> '''' ' +
+      // FZ-ISSUE-939: con proveedor en el documento, solo su modelo; el de
+      // otro proveedor del artículo no se propone.
+      '   AND (:prv = '''' OR AP.CODIGO_PRV_AP = :prv) ' +
       ' ORDER BY CASE WHEN AP.CODIGO_PRV_AP = :prv THEN 0 ELSE 1 END, ' +
       '          CASE AP.ESPROVEEDORPRINCIPAL_AP WHEN ''S'' THEN 0 ' +
       '               ELSE 1 END, ' +

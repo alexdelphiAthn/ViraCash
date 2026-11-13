@@ -269,6 +269,10 @@ type
     // que la columna Color es unica.
     FColColorProveedorPivot : TcxGridDBColumn;
     FBasicosColor           : TArray<string>;
+    // Ancho de cada columna antes del primer ApplyBestFit (diseño o
+    // perfil): el ajuste nunca la estrecha por debajo de ese suelo.
+    FColumnasAnchoMinimo    : TArray<TcxGridColumn>;
+    FAnchosMinimos          : TArray<Integer>;
   protected
     FAplicacionArticuloCompra: IAplicacionArticuloCompra;
     FValidadorArticulos: IArticulosValidador;
@@ -342,6 +346,8 @@ type
     // ApplyBestFit + ensanche para la columna Color (el cuadradito de
     // color que pinta FColColorPivot ocupa ~20 px que BestFit no mide).
     procedure BestFitConSwatch;
+    procedure GuardarAnchosMinimosLineas;
+    procedure AplicarAnchosMinimosLineas;
     // Rotulo de modo en la pestania de lineas, como en ventas.
     procedure ActualizarCaptionModoLineas;
   private
@@ -1368,13 +1374,52 @@ begin
      not (FColsModoConstruido and
           (FModoEntradaSel in [mcsTallasInline, mcsTallasHorPed])) then
   begin
+    GuardarAnchosMinimosLineas;
     tvLineasPedido.ApplyBestFit;
+    AplicarAnchosMinimosLineas;
     if Assigned(FColColorPivot) and FColColorPivot.Visible then
       FColColorPivot.Width := FColColorPivot.Width + ANCHO_SWATCH_PX;
     for i := 0 to CANT_TALLAS_MAX - 1 do
       if Assigned(FTallaColumns[i]) and FTallaColumns[i].Visible and
          (FTallaColumns[i].Width < ANCHO_TALLA_PX) then
         FTallaColumns[i].Width := ANCHO_TALLA_PX;
+  end;
+end;
+
+// Con el pedido vacío ApplyBestFit encoge cada columna al ancho de su
+// título. Se guarda una sola vez el ancho previo (diseño o perfil del
+// usuario) para usarlo de suelo, como el ancho fijo de albaranes.
+procedure TfrmMtoPedidosCompra.GuardarAnchosMinimosLineas;
+var
+  i: Integer;
+begin
+  if Length(FColumnasAnchoMinimo) = 0 then
+  begin
+    SetLength(FColumnasAnchoMinimo, tvLineasPedido.ColumnCount);
+    SetLength(FAnchosMinimos, tvLineasPedido.ColumnCount);
+    for i := 0 to tvLineasPedido.ColumnCount - 1 do
+    begin
+      FColumnasAnchoMinimo[i] := tvLineasPedido.Columns[i];
+      FAnchosMinimos[i] := tvLineasPedido.Columns[i].Width;
+    end;
+  end;
+end;
+
+// Recorre las columnas vivas y solo compara punteros con las guardadas:
+// las columnas del modo pivote se recrean y una guardada puede no existir.
+procedure TfrmMtoPedidosCompra.AplicarAnchosMinimosLineas;
+var
+  i: Integer;
+  j: Integer;
+  oColumna: TcxGridColumn;
+begin
+  for i := 0 to tvLineasPedido.ColumnCount - 1 do
+  begin
+    oColumna := tvLineasPedido.Columns[i];
+    for j := 0 to High(FColumnasAnchoMinimo) do
+      if (FColumnasAnchoMinimo[j] = oColumna) and
+         (oColumna.Width < FAnchosMinimos[j]) then
+        oColumna.Width := FAnchosMinimos[j];
   end;
 end;
 

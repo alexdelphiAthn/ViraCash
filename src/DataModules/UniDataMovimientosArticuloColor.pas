@@ -18,11 +18,15 @@ uses
 // Devuelve una consulta abierta de solo lectura. El llamador la libera.
 function ConsultarMovimientosArticuloColor(AConexion: TUniConnection;
   const ACodigoArticulo: string): TUniQuery;
+// Igual, en horizontal: ATallas (orden de ListarTallas de la consulta de
+// stock) se vuelcan en las columnas CampoTallaPivoteStock(i).
+function ConsultarMovimientosArticuloHorizontal(AConexion: TUniConnection;
+  const ACodigoArticulo: string; const ATallas: TArray<string>): TUniQuery;
 
 implementation
 
 uses
-  System.SysUtils;
+  System.SysUtils, inLibStockConsultaPresentacionPivote;
 
 const
   SQL_MOVIMIENTOS_ARTICULO_COLOR =
@@ -101,11 +105,34 @@ const
     '   AND V.SERIE_ALB_ALBLIN = M.SERIE_DOC_MOV ' +
     '   AND V.LINEA_ALBLIN = M.LINEA_MOV ' +
     '   AND V.CODIGO_UNIDAD_ALBLIN = M.CODIGO_UNIDAD_MOV ' +
-    ' WHERE M.CODIGO_ART_MOV = :ARTICULO ' +
-    ' ORDER BY M.FECHA_MOV DESC, M.NUMERO_MOV DESC';
+    ' WHERE M.CODIGO_ART_MOV = :ARTICULO ';
+  SQL_ORDEN_MOVIMIENTOS_ARTICULO_COLOR =
+    ' ORDER BY FECHA_MOV, NUMERO_MOV';
+  // Una fila por documento, almacén, sentido y precio: los SKU de cada
+  // talla se suman en las columnas T<i>, como en la consulta de stock.
+  SQL_COLUMNAS_HORIZONTAL_MOVIMIENTOS =
+    'SELECT B.COLOR_AV, MAX(B.HEX_COLOR) AS HEX_COLOR, B.FECHA_MOV, ' +
+    '       MAX(B.NUMERO_MOV) AS NUMERO_MOV, ' +
+    '       B.CODIGO_EMP_MOV, B.CODIGO_ALM_MOV, ' +
+    '       MAX(B.NOMBRE_ALMACEN) AS NOMBRE_ALMACEN, B.TIPO_MOV, ' +
+    '       SUM(B.CANTIDAD_MOV) AS CANTIDAD_MOV, B.TIPO_DOC_MOV, ' +
+    '       MAX(B.DESCRIPCION_TIPO_DOCUMENTO_TD) ' +
+    '         AS DESCRIPCION_TIPO_DOCUMENTO_TD, ' +
+    '       B.SERIE_DOC_MOV, B.NUMERO_DOC_MOV, ' +
+    '       B.CODIGO_CAJA_DOC_MOV, B.NUMERO_OPERACION_DOC_MOV, ' +
+    '       B.CODIGO_ALM_DOC_MOV, B.PRECIO_COSTE_UNITARIO_MOV, ' +
+    '       B.PRECIO_VENTA, B.PRECIO_VENTA_SIVA, B.PORCENTAJE_DTO, ' +
+    '       SUM(B.TOTAL_COSTE_MOV) AS TOTAL_COSTE_MOV, B.ESACTIVO_MOV';
+  SQL_GRUPO_HORIZONTAL_MOVIMIENTOS =
+    ' GROUP BY B.COLOR_AV, B.FECHA_MOV, B.CODIGO_EMP_MOV, ' +
+    '   B.CODIGO_ALM_MOV, B.TIPO_MOV, B.TIPO_DOC_MOV, B.SERIE_DOC_MOV, ' +
+    '   B.NUMERO_DOC_MOV, B.CODIGO_CAJA_DOC_MOV, ' +
+    '   B.NUMERO_OPERACION_DOC_MOV, B.CODIGO_ALM_DOC_MOV, ' +
+    '   B.PRECIO_COSTE_UNITARIO_MOV, B.PRECIO_VENTA, ' +
+    '   B.PRECIO_VENTA_SIVA, B.PORCENTAJE_DTO, B.ESACTIVO_MOV';
 
-function ConsultarMovimientosArticuloColor(AConexion: TUniConnection;
-  const ACodigoArticulo: string): TUniQuery;
+function AbrirConsultaMovimientos(AConexion: TUniConnection;
+  const ACodigoArticulo, ASql: string): TUniQuery;
 begin
   if not Assigned(AConexion) then
     raise EArgumentNilException.Create('AConexion');
@@ -113,7 +140,7 @@ begin
   try
     Result.Connection := AConexion;
     Result.ReadOnly := True;
-    Result.SQL.Text := SQL_MOVIMIENTOS_ARTICULO_COLOR;
+    Result.SQL.Text := ASql;
     Result.ParamByName('ARTICULO_ATRIBUTOS').AsString := ACodigoArticulo;
     Result.ParamByName('ARTICULO').AsString := ACodigoArticulo;
     Result.ParamByName('ARTICULO_SALDOS').AsString := ACodigoArticulo;
@@ -122,6 +149,31 @@ begin
     FreeAndNil(Result);
     raise;
   end;
+end;
+
+function ConsultarMovimientosArticuloColor(AConexion: TUniConnection;
+  const ACodigoArticulo: string): TUniQuery;
+begin
+  Result := AbrirConsultaMovimientos(AConexion, ACodigoArticulo,
+    SQL_MOVIMIENTOS_ARTICULO_COLOR + SQL_ORDEN_MOVIMIENTOS_ARTICULO_COLOR);
+end;
+
+function ConsultarMovimientosArticuloHorizontal(AConexion: TUniConnection;
+  const ACodigoArticulo: string; const ATallas: TArray<string>): TUniQuery;
+var
+  sColumnasTalla: string;
+  i: Integer;
+begin
+  sColumnasTalla := '';
+  for i := 0 to High(ATallas) do
+    sColumnasTalla := sColumnasTalla + Format(
+      ', SUM(CASE WHEN B.TALLA_AV = %s THEN B.CANTIDAD_MOV END) AS %s',
+      [QuotedStr(ATallas[i]), CampoTallaPivoteStock(i)]);
+  Result := AbrirConsultaMovimientos(AConexion, ACodigoArticulo,
+    SQL_COLUMNAS_HORIZONTAL_MOVIMIENTOS + sColumnasTalla +
+    ' FROM (' + SQL_MOVIMIENTOS_ARTICULO_COLOR + ') B' +
+    SQL_GRUPO_HORIZONTAL_MOVIMIENTOS +
+    SQL_ORDEN_MOVIMIENTOS_ARTICULO_COLOR);
 end;
 
 end.

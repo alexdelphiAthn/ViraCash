@@ -7,16 +7,54 @@ unit UniDataBalanceComplementosSql;
 
 interface
 
-function SqlComplementosBalance: string;
+// APorProveedor: con agrupacion por proveedor (FZ-ISSUE-941), PROVEEDOR es
+// el de cada identidad, con el mismo criterio que los procedimientos.
+function SqlComplementosBalance(APorProveedor: Boolean = False): string;
 
 implementation
 
 uses UniDataFiltroProveedorLoteSql;
 
+// FZ-ISSUE-941: proveedor de respaldo del articulo, igual que en
+// PRC_GET_BALANCE_ALMACEN_SIN_TALLAS: con filtro, la relacion filtrada
+// (primero la principal); sin filtro, la principal.
+function SqlProveedorRespaldo(const AArticulo: string): string;
+begin
+  Result :=
+    'IF(:PROVEEDORES='''',(SELECT MAX(AG.CODIGO_PRV_AP)' +
+    ' FROM fza_articulos_proveedores AG WHERE AG.CODIGO_ART_AP=' + AArticulo +
+    ' AND AG.ESPROVEEDORPRINCIPAL_AP=''S''),' +
+    '(SELECT AG.CODIGO_PRV_AP FROM fza_articulos_proveedores AG' +
+    ' WHERE AG.CODIGO_ART_AP=' + AArticulo +
+    ' AND FIND_IN_SET(AG.CODIGO_PRV_AP,:PROVEEDORES)>0' +
+    ' ORDER BY AG.ESPROVEEDORPRINCIPAL_AP=''S'' DESC,AG.CODIGO_PRV_AP' +
+    ' LIMIT 1))';
+end;
+
+// Pendiente de recibir: el proveedor del pedido, si entra en el filtro.
+function SqlProveedorPedido: string;
+begin
+  Result := 'COALESCE(IF(:PROVEEDORES='''' OR' +
+    ' FIND_IN_SET(P.PROVEEDOR_PEDIDO,:PROVEEDORES)>0,' +
+    ' NULLIF(NULLIF(TRIM(P.PROVEEDOR_PEDIDO),''''),''0''),NULL),' +
+    SqlProveedorRespaldo('P.ARTICULO') + ','''')';
+end;
+
+// Movimientos: el del lote o numero de serie y, sin el, el de respaldo.
+function SqlProveedorMovimiento: string;
+begin
+  Result := 'COALESCE((SELECT NULLIF(NULLIF(TRIM(LG.CODIGO_PRV_LOT),''''),' +
+    '''0'') FROM fza_articulos_lotes LG' +
+    ' WHERE LG.CODIGO_UNIDAD_LOT=M.CODIGO_UNIDAD_MOV' +
+    ' AND LG.LOTE_LOT=M.LOTE_MOV LIMIT 1),' +
+    SqlProveedorRespaldo('M.CODIGO_ART_MOV') + ','''')';
+end;
+
 function SqlCantidadesPedido: string;
 begin
   Result :=
     ' PEDIDO AS (SELECT P.SERIE_PEDC, P.NUMERO_PEDC, L.LINEA_PEDCLIN,' +
+    ' P.CODIGO_PRV_PEDC PROVEEDOR_PEDIDO,' +
     ' L.CODIGO_ART_PEDCLIN ARTICULO, L.CODIGO_UNIDAD_PEDCLIN SKU,' +
     ' COALESCE(NULLIF(C.CODIGO_ALM_PEDCCEL, ''''),' +
     ' NULLIF(L.CODIGO_ALMACEN_PEDCLIN, ''''), P.CODIGO_ALM_PEDC) ALMACEN,' +
@@ -32,8 +70,10 @@ begin
     ' AND COALESCE(P.ESTADO_PEDC, '''') NOT IN' +
     ' (''CANCELADO'', ''ANULADO'', ''CERRADO'')' +
     ' GROUP BY P.SERIE_PEDC,P.NUMERO_PEDC,L.LINEA_PEDCLIN,' +
+    ' P.CODIGO_PRV_PEDC,' +
     ' L.CODIGO_ART_PEDCLIN,L.CODIGO_UNIDAD_PEDCLIN,ALMACEN' +
     ' UNION ALL SELECT P.SERIE_PEDC,P.NUMERO_PEDC,L.LINEA_PEDCLIN,' +
+    ' P.CODIGO_PRV_PEDC,' +
     ' L.CODIGO_ART_PEDCLIN,L.CODIGO_UNIDAD_PEDCLIN,' +
     ' COALESCE(NULLIF(L.CODIGO_ALMACEN_PEDCLIN, ''''),P.CODIGO_ALM_PEDC),' +
     ' COALESCE(NULLIF(L.TOTAL_UNIDADES_PEDCLIN,0),L.CANTIDAD_PEDCLIN,0)' +
@@ -86,7 +126,7 @@ begin
     ' A.CODIGO_ALM_ALBC))';
 end;
 
-function SqlMetricasBalance: string;
+function SqlMetricasBalance(APorProveedor: Boolean): string;
 const
   // Entrada positiva y salida negativa.
   SqlCantidadConSigno =
@@ -95,9 +135,20 @@ const
   SqlCosteConSigno =
     '(CASE WHEN M.TIPO_MOV=''E'' THEN COALESCE(M.TOTAL_COSTE_MOV,0)' +
     ' ELSE -COALESCE(M.TOTAL_COSTE_MOV,0) END)';
+var
+  sPedido, sMovimiento: string;
 begin
+  // FZ-ISSUE-941: proveedor de cada fila solo al agrupar por proveedor.
+  sPedido := '''''';
+  sMovimiento := '''''';
+  if APorProveedor then
+  begin
+    sPedido := SqlProveedorPedido;
+    sMovimiento := SqlProveedorMovimiento;
+  end;
   Result :=
     ', METRICA AS (SELECT P.ARTICULO,P.SKU,P.ALMACEN,' +
+    sPedido + ' PRV,' +
     ' GREATEST(P.PEDIDO-COALESCE(R.RECIBIDO,0),0) PENDIENTE,0 COSTE,' +
     ' 0 ENT_UDS,0 ENT_COSTE,0 REG_UDS,0 REG_COSTE' +
     ' FROM PEDIDO P LEFT JOIN (SELECT SERIE,NUMERO,LINEA,ALMACEN,' +
@@ -108,7 +159,7 @@ begin
     ' WHERE ' + SqlFiltroProveedorLote(':PROVEEDORES',
       'P.SKU', '''''', 'P.ARTICULO') +
     ' UNION ALL SELECT M.CODIGO_ART_MOV,M.CODIGO_UNIDAD_MOV,' +
-    ' M.CODIGO_ALM_MOV,0,' +
+    ' M.CODIGO_ALM_MOV,' + sMovimiento + ',0,' +
     // FZ-ISSUE-868: incluir facturacion directa y su devolucion neta.
     ' SUM(CASE WHEN M.TIPO_DOC_MOV IN (''VE'',''AV'',''FC'')' +
     ' THEN -' + SqlCosteConSigno + ' ELSE 0 END),' +
@@ -127,20 +178,32 @@ begin
     ' AND M.FECHA_MOV<:HASTA' +
     ' AND ' + SqlFiltroProveedorLote(':PROVEEDORES',
       'M.CODIGO_UNIDAD_MOV', 'M.LOTE_MOV', 'M.CODIGO_ART_MOV') +
-    ' GROUP BY M.CODIGO_ART_MOV,M.CODIGO_UNIDAD_MOV,M.CODIGO_ALM_MOV)';
+    ' GROUP BY M.CODIGO_ART_MOV,M.CODIGO_UNIDAD_MOV,M.CODIGO_ALM_MOV';
+  if APorProveedor then
+    Result := Result + ',' + sMovimiento;
+  Result := Result + ')';
 end;
 
-function SqlComplementosBalance: string;
+function SqlComplementosBalance(APorProveedor: Boolean): string;
+var
+  sProveedor, sGrupo: string;
 begin
-  Result := 'WITH' + SqlCantidadesPedido + SqlRecepcionesPedido +
-    SqlMetricasBalance +
-    ' SELECT M.ARTICULO CODIGO_ART_ART,A.DESCRIPCION_ART,' +
-    ' M.ALMACEN CODIGO_ALM,AL.NOMBRE_ALM_ALM NOMBRE_ALM,' +
-    ' A.CODIGO_FAM_ART CODIGO_FAM,' +
+  sProveedor :=
     ' COALESCE((SELECT AP.CODIGO_PRV_AP FROM fza_articulos_proveedores AP' +
     ' WHERE AP.CODIGO_ART_AP=A.CODIGO_ART_ART' +
     ' ORDER BY (AP.ESPROVEEDORPRINCIPAL_AP=''S'') DESC,' +
-    ' AP.FECHA_VALIDEZ_AP DESC,AP.CODIGO_PRV_AP LIMIT 1),'''') PROVEEDOR,' +
+    ' AP.FECHA_VALIDEZ_AP DESC,AP.CODIGO_PRV_AP LIMIT 1),'''') PROVEEDOR,';
+  sGrupo := '';
+  if APorProveedor then
+  begin
+    sProveedor := ' M.PRV PROVEEDOR,';
+    sGrupo := ',M.PRV';
+  end;
+  Result := 'WITH' + SqlCantidadesPedido + SqlRecepcionesPedido +
+    SqlMetricasBalance(APorProveedor) +
+    ' SELECT M.ARTICULO CODIGO_ART_ART,A.DESCRIPCION_ART,' +
+    ' M.ALMACEN CODIGO_ALM,AL.NOMBRE_ALM_ALM NOMBRE_ALM,' +
+    ' A.CODIGO_FAM_ART CODIGO_FAM,' + sProveedor +
     ' COALESCE((SELECT COALESCE(PV.PV,AP.VALOR_LIBRE_ARTPROP)' +
     ' FROM fza_articulos_propiedades AP' +
     ' LEFT JOIN fza_propiedades_valores PV ON PV.ID_PV_ARTPROP=' +
@@ -159,7 +222,7 @@ begin
     ' WHERE AL.ESACTIVO_ALM=''S''' +
     ' AND (:ALMACENES='''' OR FIND_IN_SET(M.ALMACEN,:ALMACENES)>0)' +
     ' GROUP BY M.ARTICULO,M.SKU,M.ALMACEN,A.DESCRIPCION_ART,' +
-    ' AL.NOMBRE_ALM_ALM,A.CODIGO_FAM_ART' +
+    ' AL.NOMBRE_ALM_ALM,A.CODIGO_FAM_ART' + sGrupo +
     ' HAVING PENDIENTE<>0 OR COSTE<>0 OR ENT_UDS<>0 OR ENT_COSTE<>0' +
     ' OR REG_UDS<>0 OR REG_COSTE<>0';
 end;

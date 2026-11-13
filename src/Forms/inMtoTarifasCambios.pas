@@ -29,9 +29,11 @@ uses
   cxDropDownEdit, cxCalendar, cxCurrencyEdit, cxLookupEdit,
   cxDBLookupEdit, cxDBLookupComboBox, cxCheckBox, cxPC, cxImageComboBox,
   dxSkinsCore, dxSkinBlue, dxSkinsDefaultPainters, dxSkinscxPCPainter,
-  dxScrollbarAnnotations, dxDateRanges, dxCore,
+  dxScrollbarAnnotations, dxDateRanges, dxCore, cxGroupBox, cxMemo,
+  cxSplitter,
   UniDataTarifasCambios, inLibTarifasCambiosExcel, inMtoGen,
-  inLibCargaMasivaArticulosPersistenciaIntf, inLibPermisosIntf;
+  inLibCargaMasivaArticulosPersistenciaIntf, inLibPermisosIntf,
+  inLibSimulacionPrecioCaja;
 
 type
   TfrmMtoTarifasCambios = class(TfrmMtoGen, IBorradoContextualVentana)
@@ -73,11 +75,38 @@ type
     btnDesmarcarTodo: TcxButton;
     btnActualizarCostes: TcxButton;
     btnEliminarLineas: TcxButton;
+    btnEliminarSinStock: TcxButton;
     actIrArticulo     : TAction;
     // Rejilla de 4 columnas (etiqueta + control) de la ficha.
     FColEtiqueta      : array[0..3] of Integer;
     FColControl       : array[0..3] of Integer;
     FColAncho         : array[0..3] of Integer;
+    // Pestaña de prueba: precio que cobraría la caja.
+    FSimulacion       : TServiciosSimulacionPrecioCaja;
+    tsPrueba          : TcxTabSheet;
+    pnlPrueba         : TcxGroupBox;
+    edtPruebaSku      : TcxTextEdit;
+    cbbPruebaTarifa   : TcxLookupComboBox;
+    dtePruebaFecha    : TcxDateEdit;
+    btnPruebaCalcular : TcxButton;
+    mPruebaResultado  : TcxMemo;
+    // Periodos (etapas de rebajas) de la sesión. FZ-ISSUE-944.
+    pnlPeriodos       : TPanel;
+    cxgrdPeriodos     : TcxGrid;
+    tvPeriodos        : TcxGridDBTableView;
+    glPeriodos        : TcxGridLevel;
+    pnlPeriodosAcciones: TPanel;
+    btnAnadirPeriodo  : TcxButton;
+    btnEliminarPeriodo: TcxButton;
+    btnVerPeriodos    : TcxButton;
+    // Divisores: cabecera/detalle y periodos/articulos (FZ-ISSUE-944).
+    pnlSuperior       : TPanel;
+    splCabecera       : TcxSplitter;
+    splPeriodos       : TcxSplitter;
+    FSincronizando    : Boolean;
+    FPeriodosVistaIniciada: Boolean;
+    FSesionVistaPeriodos  : Integer;
+    FEstiloSinStock       : TcxStyle;
     procedure CrearControlesDinamicos;
     procedure CrearAtajos;
     procedure CrearCabecera;
@@ -119,11 +148,34 @@ type
     procedure btnMarcarTodoClick(Sender: TObject);
     procedure btnActualizarCostesClick(Sender: TObject);
     procedure btnEliminarLineasClick(Sender: TObject);
+    procedure btnEliminarSinStockClick(Sender: TObject);
     procedure btnDesmarcarTodoClick(Sender: TObject);
     function IdsLineasSeleccionadas: TArray<Integer>;
     function LeerExcelSesion(const AArchivo: string;
       out ALineas: TLineasSesionTarifaExcel): Boolean;
     procedure actIrArticuloExecute(Sender: TObject);
+    procedure CrearPestanaPrueba;
+    function  LeerEntradaPrueba(out AEntrada: TEntradaSimulacionPrecioCaja;
+                                out AError: string): Boolean;
+    procedure MostrarResultadoPrueba(
+      const AEntrada: TEntradaSimulacionPrecioCaja;
+      const AResultado: TResultadoSimulacionPrecioCaja);
+    procedure btnPruebaCalcularClick(Sender: TObject);
+    procedure CrearRejillaPeriodos;
+    procedure CrearColumnasPeriodos;
+    procedure ColumnaOpciones(AColumna: TcxGridDBColumn;
+      const ACampo: string; const AValores: array of string);
+    procedure ColumnaSiNo(AColumna: TcxGridDBColumn);
+    procedure ActualizarEstadoPeriodos;
+    procedure SincronizarPeriodosSesion;
+    procedure dsPeriodosDataChange(Sender: TObject; Field: TField);
+    procedure btnAnadirPeriodoClick(Sender: TObject);
+    procedure btnEliminarPeriodoClick(Sender: TObject);
+    procedure btnVerPeriodosClick(Sender: TObject);
+    procedure tvLineasGetContentStyle(Sender: TcxCustomGridTableView;
+      ARecord: TcxCustomGridRecord; AItem: TcxCustomGridTableItem;
+      var AStyle: TcxStyle);
+    procedure MostrarPeriodos(AVisible: Boolean);
   public
     dmmTarifasCambios: TdmTarifasCambios;
     function TextoConfirmacionBorrado: string; override;
@@ -132,7 +184,8 @@ type
     constructor Create(
       AOwner: TComponent;
       const AContexto: TContextoAutorizacionPantalla;
-      const ACargaMasiva: TServiciosCargaMasivaArticulos); reintroduce;
+      const ACargaMasiva: TServiciosCargaMasivaArticulos;
+      const ASimulacion: TServiciosSimulacionPrecioCaja); reintroduce;
       overload;
     destructor Destroy; override;
     procedure CrearTablaPrincipal; override;
@@ -147,7 +200,8 @@ uses
   dxSpreadSheet,
   inLibMensajesVcl, inLibShowMto, inLibHojaCalculoDevEx, inMtoPreviewExcel,
   inMtoModalCargarSesionTarifa, inLibMsgArticulos, inLibMsgFacturas,
-  inLibTraducciones, UniDataConfiguracionPantalla;
+  inLibTraducciones, UniDataConfiguracionPantalla,
+  inLibArticulosResolverIntf, inLibArticulosValidadorIntf, Vcl.StdCtrls;
 
 {$R *.dfm}
 
@@ -160,10 +214,13 @@ procedure ForceReferenceToClass(C: TClass); begin end;
 constructor TfrmMtoTarifasCambios.Create(
   AOwner: TComponent;
   const AContexto: TContextoAutorizacionPantalla;
-  const ACargaMasiva: TServiciosCargaMasivaArticulos);
+  const ACargaMasiva: TServiciosCargaMasivaArticulos;
+  const ASimulacion: TServiciosSimulacionPrecioCaja);
 begin
   ValidarServiciosCargaMasiva(ACargaMasiva);
+  ValidarServiciosSimulacionPrecioCaja(ASimulacion);
   FCargaMasiva := ACargaMasiva;
+  FSimulacion := ASimulacion;
   inherited Create(AOwner, AContexto);
 end;
 
@@ -187,6 +244,7 @@ begin
     CrearParametros;
     CrearAcciones;
     CrearGridLineas;
+    CrearPestanaPrueba;
     ConfigurarCombos;
     CrearAtajos;
     FControlesCreados := True;
@@ -307,8 +365,14 @@ begin
   CalcularColumnas;
   Fila0 := Esc(10);
   Fila1 := Fila0 + Esc(FICHA_ALTO_FILA);
+  // Cabecera, parametros y acciones van en un contenedor que el divisor
+  // de la cabecera puede encoger o agrandar.
+  pnlSuperior := TPanel.Create(Self);
+  pnlSuperior.Parent := tsFicha;
+  pnlSuperior.Align := alTop;
+  pnlSuperior.BevelOuter := bvNone;
   pnlCabecera := TPanel.Create(Self);
-  pnlCabecera.Parent := tsFicha;
+  pnlCabecera.Parent := pnlSuperior;
   pnlCabecera.Align := alTop;
   pnlCabecera.Height := Fila1 + Esc(FICHA_ALTO_FILA);
   pnlCabecera.BevelOuter := bvNone;
@@ -345,7 +409,7 @@ begin
   Fila0 := Esc(8);
   Fila1 := Fila0 + Esc(FICHA_ALTO_FILA);
   pnlParametros := TPanel.Create(Self);
-  pnlParametros.Parent := tsFicha;
+  pnlParametros.Parent := pnlSuperior;
   pnlParametros.Align := alTop;
   pnlParametros.Top := pnlCabecera.Top + pnlCabecera.Height;
   pnlParametros.Height := Fila1 + Esc(FICHA_ALTO_FILA) + Esc(4);
@@ -399,7 +463,7 @@ var
   X, Y: Integer;
 begin
   pnlAcciones := TPanel.Create(Self);
-  pnlAcciones.Parent := tsFicha;
+  pnlAcciones.Parent := pnlSuperior;
   pnlAcciones.Align := alTop;
   pnlAcciones.Top := pnlParametros.Top + pnlParametros.Height;
   pnlAcciones.Height := Esc(FICHA_ALTO_BOTON) + Esc(14);
@@ -420,6 +484,13 @@ begin
     SCaptionCargarExcelSesionTarifa, btnCargarExcelClick);
   btnRefrescar := CrearBoton(Self, pnlAcciones, SCaptionRefrescar,
     btnRefrescarClick);
+  // FZ-ISSUE-944: muestra u oculta la rejilla de periodos de la pestaña
+  // Líneas. Se coloca con el texto más largo para que no cambie de ancho.
+  btnVerPeriodos := CrearBoton(Self, pnlAcciones, SCaptionOcultarPeriodosTarifa,
+    btnVerPeriodosClick);
+  if Length(SCaptionVerPeriodosTarifa) >
+     Length(SCaptionOcultarPeriodosTarifa) then
+    btnVerPeriodos.Caption := SCaptionVerPeriodosTarifa;
   X := Esc(FICHA_MARGEN);
   Y := Esc(6);
   ColocarBoton(btnCargar, Y, X);
@@ -429,6 +500,17 @@ begin
   ColocarBoton(btnExportarExcel, Y, X, Esc(FICHA_SEP_GRUPO));
   ColocarBoton(btnCargarExcel, Y, X);
   ColocarBoton(btnRefrescar, Y, X, Esc(FICHA_SEP_GRUPO));
+  ColocarBoton(btnVerPeriodos, Y, X, Esc(FICHA_SEP_GRUPO));
+  btnVerPeriodos.Caption := SCaptionOcultarPeriodosTarifa;
+  pnlSuperior.Height := pnlCabecera.Height + pnlParametros.Height +
+    pnlAcciones.Height;
+  splCabecera := TcxSplitter.Create(Self);
+  splCabecera.Parent := tsFicha;
+  splCabecera.AlignSplitter := salTop;
+  splCabecera.Control := pnlSuperior;
+  splCabecera.Top := pnlSuperior.Top + pnlSuperior.Height;
+  splCabecera.Height := Esc(8);
+  splCabecera.HotZoneClassName := 'TcxMediaPlayer9Style';
 end;
 
 procedure TfrmMtoTarifasCambios.CrearGridLineas;
@@ -441,9 +523,18 @@ begin
   tsLineas := TcxTabSheet.Create(Self);
   tsLineas.PageControl := pcDetalle;
   tsLineas.Caption := SCaptionTabLineasTarifa;
+  CrearRejillaPeriodos;
+  splPeriodos := TcxSplitter.Create(Self);
+  splPeriodos.Parent := tsLineas;
+  splPeriodos.AlignSplitter := salTop;
+  splPeriodos.Control := pnlPeriodos;
+  splPeriodos.Top := pnlPeriodos.Top + pnlPeriodos.Height;
+  splPeriodos.Height := Esc(8);
+  splPeriodos.HotZoneClassName := 'TcxMediaPlayer9Style';
   pnlSeleccion := TPanel.Create(Self);
   pnlSeleccion.Parent := tsLineas;
   pnlSeleccion.Align := alTop;
+  pnlSeleccion.Top := splPeriodos.Top + splPeriodos.Height;
   pnlSeleccion.Height := Esc(FICHA_ALTO_BOTON) + Esc(10);
   pnlSeleccion.BevelOuter := bvNone;
   btnMarcarTodo := CrearBoton(Self, pnlSeleccion,
@@ -454,12 +545,15 @@ begin
     SCaptionActualizarCostesSesion, btnActualizarCostesClick);
   btnEliminarLineas := CrearBoton(Self, pnlSeleccion,
     SCaptionEliminarLineasSesion, btnEliminarLineasClick);
+  btnEliminarSinStock := CrearBoton(Self, pnlSeleccion,
+    SCaptionEliminarLineasSinStockSesion, btnEliminarSinStockClick);
   X := Esc(8);
   Y := Esc(5);
   ColocarBoton(btnMarcarTodo, Y, X);
   ColocarBoton(btnDesmarcarTodo, Y, X);
   ColocarBoton(btnActualizarCostes, Y, X, Esc(FICHA_SEP_GRUPO));
   ColocarBoton(btnEliminarLineas, Y, X);
+  ColocarBoton(btnEliminarSinStock, Y, X);
   cxgrdLineas := TcxGrid.Create(Self);
   cxgrdLineas.Parent := tsLineas;
   cxgrdLineas.Align := alClient;
@@ -491,6 +585,411 @@ begin
   tvLineas.OptionsSelection.CheckBoxVisibility :=
     [cbvColumnHeader, cbvDataRow];
   tvLineas.DataController.KeyFieldNames := 'ID_TARCLIN';
+end;
+
+// ===========================================================================
+//   Periodos (etapas de rebajas). FZ-ISSUE-944.
+// ===========================================================================
+
+// Rejilla de periodos encima de las lineas: al elegir uno, las lineas se
+// filtran a ese periodo y "Calcular lineas" usa sus parametros.
+procedure TfrmMtoTarifasCambios.CrearRejillaPeriodos;
+var
+  X, Y: Integer;
+begin
+  pnlPeriodos := TPanel.Create(Self);
+  pnlPeriodos.Parent := tsLineas;
+  pnlPeriodos.Align := alTop;
+  pnlPeriodos.Height := Esc(170);
+  pnlPeriodos.BevelOuter := bvNone;
+  pnlPeriodosAcciones := TPanel.Create(Self);
+  pnlPeriodosAcciones.Parent := pnlPeriodos;
+  pnlPeriodosAcciones.Align := alTop;
+  pnlPeriodosAcciones.Height := Esc(FICHA_ALTO_BOTON) + Esc(10);
+  pnlPeriodosAcciones.BevelOuter := bvNone;
+  btnAnadirPeriodo := CrearBoton(Self, pnlPeriodosAcciones,
+    SCaptionAnadirPeriodoTarifa, btnAnadirPeriodoClick);
+  btnEliminarPeriodo := CrearBoton(Self, pnlPeriodosAcciones,
+    SCaptionEliminarPeriodoTarifa, btnEliminarPeriodoClick);
+  X := Esc(8);
+  Y := Esc(5);
+  ColocarBoton(btnAnadirPeriodo, Y, X);
+  ColocarBoton(btnEliminarPeriodo, Y, X);
+  CrearEtiqueta(pnlPeriodosAcciones, SAyudaPeriodosTarifa,
+    X + Esc(FICHA_SEP_GRUPO), Y + Esc(5));
+  // La rejilla ocupa el resto: el divisor de periodos la agranda o encoge.
+  cxgrdPeriodos := TcxGrid.Create(Self);
+  cxgrdPeriodos.Parent := pnlPeriodos;
+  cxgrdPeriodos.Align := alClient;
+  tvPeriodos := TcxGridDBTableView.Create(cxgrdPeriodos);
+  glPeriodos := cxgrdPeriodos.Levels.Add;
+  glPeriodos.GridView := tvPeriodos;
+  glPeriodos.Caption := SCaptionPeriodosTarifa;
+  tvPeriodos.OptionsData.Deleting := False;
+  tvPeriodos.OptionsData.Inserting := False;
+  tvPeriodos.OptionsData.Appending := False;
+  tvPeriodos.OptionsView.GroupByBox := False;
+  tvPeriodos.DataController.KeyFieldNames := 'ID_TARCP';
+end;
+
+// Valores fijos con el mismo texto que los combos de la cabecera.
+procedure TfrmMtoTarifasCambios.ColumnaOpciones(AColumna: TcxGridDBColumn;
+  const ACampo: string; const AValores: array of string);
+var
+  Opcion: TcxImageComboBoxItem;
+  Propiedades: TcxImageComboBoxProperties;
+  sValor: string;
+begin
+  AColumna.PropertiesClass := TcxImageComboBoxProperties;
+  Propiedades := AColumna.Properties as TcxImageComboBoxProperties;
+  for sValor in AValores do
+  begin
+    Opcion := Propiedades.Items.Add;
+    Opcion.Value := sValor;
+    Opcion.Description := TextoValorDocumento(ACampo, sValor);
+  end;
+end;
+
+procedure TfrmMtoTarifasCambios.ColumnaSiNo(AColumna: TcxGridDBColumn);
+var
+  Propiedades: TcxCheckBoxProperties;
+begin
+  AColumna.PropertiesClass := TcxCheckBoxProperties;
+  Propiedades := AColumna.Properties as TcxCheckBoxProperties;
+  Propiedades.ValueChecked := 'S';
+  Propiedades.ValueUnchecked := 'N';
+end;
+
+procedure TfrmMtoTarifasCambios.CrearColumnasPeriodos;
+begin
+  if tvPeriodos.ColumnCount = 0 then
+  begin
+    CrearColumna(tvPeriodos, 'NUMERO_TARCP', SCaptionPeriodoTarifaNumero,
+      40).Options.Editing := False;
+    CrearColumna(tvPeriodos, 'NOMBRE_TARCP', SCaptionPeriodoTarifaNombre,
+      160);
+    CrearColumna(tvPeriodos, 'FECHA_DESDE_TARCP', SCaptionCambioTarifaDesde,
+      95);
+    CrearColumna(tvPeriodos, 'FECHA_HASTA_TARCP', SCaptionCambioTarifaHasta,
+      95);
+    ColumnaOpciones(CrearColumna(tvPeriodos, 'TIPO_APLICACION_TARCP',
+      SCaptionCambioAplicar, 150), 'TIPO_APLICACION_TARC',
+      ['COPIAR', 'INCREMENTO_LINEAL', 'INCREMENTO_PORCENTUAL',
+       'PRECIO_FIJO']);
+    FormatoImporte(CrearColumna(tvPeriodos, 'VALOR_APLICACION_TARCP',
+      SCaptionCambioValor, 80), '0.00');
+    ColumnaOpciones(CrearColumna(tvPeriodos, 'CAMPO_ORIGEN_TARCP',
+      SCaptionCambioCampoOrigen, 140), 'CAMPO_ORIGEN_TARC',
+      ['PRECIO_ORIGEN', 'PRECIO_COSTE', 'PRECIO_DESTINO_ACTUAL']);
+    ColumnaOpciones(CrearColumna(tvPeriodos, 'CAMPO_DESTINO_TARCP',
+      SCaptionCambioCampoDestino, 130), 'CAMPO_DESTINO_TARC',
+      ['AMBOS', 'PRECIO_SALIDA', 'PRECIO_FINAL']);
+    FormatoImporte(CrearColumna(tvPeriodos, 'VALOR_REDONDEO_TARCP',
+      SCaptionCambioRedondeo, 80), FMT_EUROS);
+    FormatoImporte(CrearColumna(tvPeriodos, 'VALOR_MENOS_AJUSTE_TARCP',
+      SCaptionCambioMenos, 80), FMT_EUROS);
+    ColumnaSiNo(CrearColumna(tvPeriodos, 'ESREDONDEAR_ARRIBA_TARCP',
+      SCaptionRedondearHaciaArriba, 90));
+    CrearColumna(tvPeriodos, 'ESTADO_TARCP', SCaptionCambioTarifaEstado,
+      90).Options.Editing := False;
+  end;
+end;
+
+// Sesion aplicada: periodos de solo lectura. Con periodos, los parametros y
+// las fechas de la cabecera no se usan: cada periodo tiene los suyos.
+procedure TfrmMtoTarifasCambios.ActualizarEstadoPeriodos;
+var
+  EsEditable: Boolean;
+  EsPorPeriodos: Boolean;
+  Sesion: Integer;
+begin
+  if Assigned(dmmTarifasCambios) and Assigned(tvPeriodos) and
+     Assigned(dsTablaG.DataSet) and dsTablaG.DataSet.Active then
+  begin
+    EsPorPeriodos := dmmTarifasCambios.EsSesionPorPeriodos;
+    EsEditable := PuedeAccionMto(apmModificar) and
+      (not dsTablaG.DataSet.IsEmpty) and
+      not SameText(dsTablaG.DataSet.FieldByName('ESTADO_TARC').AsString,
+        'APLICADA');
+    tvPeriodos.OptionsData.Editing := EsEditable;
+    btnAnadirPeriodo.Enabled := EsEditable;
+    btnEliminarPeriodo.Enabled := EsEditable and EsPorPeriodos;
+    pnlParametros.Enabled := not EsPorPeriodos;
+    dteDesde.Enabled := not EsPorPeriodos;
+    dteHasta.Enabled := not EsPorPeriodos;
+    // Al cambiar de sesión, la rejilla se ve solo si la sesión tiene
+    // periodos; dentro de una misma sesión manda el botón Ver/Ocultar.
+    Sesion := 0;
+    if not dsTablaG.DataSet.IsEmpty then
+      Sesion := dsTablaG.DataSet.FieldByName('CODIGO_TARC').AsInteger;
+    if (not FPeriodosVistaIniciada) or (FSesionVistaPeriodos <> Sesion) then
+    begin
+      FPeriodosVistaIniciada := True;
+      FSesionVistaPeriodos := Sesion;
+      MostrarPeriodos(EsPorPeriodos);
+    end;
+  end;
+end;
+
+// Al cambiar de sesion, las lineas llegadas sin periodo (p. ej. desde un
+// documento de trabajo) se reparten en sus periodos.
+procedure TfrmMtoTarifasCambios.SincronizarPeriodosSesion;
+begin
+  if Assigned(dmmTarifasCambios) and (not FSincronizando) and
+     (dsTablaG.DataSet.State = dsBrowse) then
+  begin
+    FSincronizando := True;
+    try
+      dmmTarifasCambios.SincronizarPeriodos;
+    finally
+      FSincronizando := False;
+    end;
+  end;
+end;
+
+procedure TfrmMtoTarifasCambios.dsPeriodosDataChange(Sender: TObject;
+  Field: TField);
+begin
+  if (Field = nil) and Assigned(dmmTarifasCambios) and
+     not (csDestroying in ComponentState) then
+    dmmTarifasCambios.FiltrarLineasPeriodo;
+end;
+
+procedure TfrmMtoTarifasCambios.btnAnadirPeriodoClick(Sender: TObject);
+var
+  Periodos: TDataSet;
+begin
+  if Assigned(dmmTarifasCambios) and GrabarCabeceraSiNecesario then
+  begin
+    dmmTarifasCambios.AnadirPeriodo;
+    ActualizarEstadoPeriodos;
+    // Al grabar una sesion nueva la rejilla se evalua antes de que exista el
+    // periodo y queda oculta: con un periodo siempre se ve.
+    MostrarPeriodos(True);
+    Periodos := dmmTarifasCambios.unqryPeriodos;
+    ShowMessage_fza(Format(SInfoPeriodoTarifaAnadido,
+      [Periodos.FieldByName('NUMERO_TARCP').AsInteger,
+       DateToStr(Periodos.FieldByName('FECHA_DESDE_TARCP').AsDateTime),
+       DateToStr(Periodos.FieldByName('FECHA_HASTA_TARCP').AsDateTime)]));
+  end;
+end;
+
+// La rejilla de periodos vuelve siempre encima de la barra de selección:
+// con Align alTop, el orden lo marca Top al hacerse visible.
+procedure TfrmMtoTarifasCambios.MostrarPeriodos(AVisible: Boolean);
+begin
+  if not Assigned(pnlPeriodos) or not Assigned(splPeriodos) then
+    Exit;
+  if AVisible then
+  begin
+    pnlPeriodos.Top := 0;
+    splPeriodos.Top := pnlPeriodos.Height;
+  end;
+  pnlPeriodos.Visible := AVisible;
+  splPeriodos.Visible := AVisible;
+  if AVisible then
+    splPeriodos.Top := pnlPeriodos.Top + pnlPeriodos.Height;
+  if AVisible then
+    btnVerPeriodos.Caption := SCaptionOcultarPeriodosTarifa
+  else
+    btnVerPeriodos.Caption := SCaptionVerPeriodosTarifa;
+end;
+
+procedure TfrmMtoTarifasCambios.btnVerPeriodosClick(Sender: TObject);
+begin
+  MostrarPeriodos(not pnlPeriodos.Visible);
+end;
+
+procedure TfrmMtoTarifasCambios.btnEliminarPeriodoClick(Sender: TObject);
+var
+  Periodos: TDataSet;
+  sPregunta: string;
+begin
+  if Assigned(dmmTarifasCambios) and GrabarCabeceraSiNecesario then
+  begin
+    Periodos := dmmTarifasCambios.unqryPeriodos;
+    sPregunta := SPreguntaEliminarPeriodoTarifa;
+    if Periodos.RecordCount = 1 then
+      sPregunta := SPreguntaEliminarUltimoPeriodoTarifa;
+    if dmmTarifasCambios.IdPeriodoActual = 0 then
+      ShowMessage_fza(SErrorPeriodoTarifaNoSeleccionado)
+    else if MessageDlg_fza(Format(sPregunta,
+      [Periodos.FieldByName('NUMERO_TARCP').AsInteger,
+       Periodos.FieldByName('NOMBRE_TARCP').AsString]),
+      mtConfirmation, [mbYes, mbNo], 0) = mrYes then
+    begin
+      dmmTarifasCambios.EliminarPeriodoActual;
+      ActualizarEstadoPeriodos;
+    end;
+  end;
+end;
+
+// ===========================================================================
+//   Pestaña de prueba: precio que cobraría la caja
+// ===========================================================================
+
+const
+  PARAMETRO_TARIFA_PERIODICA = 'vgerTarifaPeriodicaAutomatica';
+  FMT_PORCENTAJE_PRUEBA = '0.00 %';
+
+procedure TfrmMtoTarifasCambios.CrearPestanaPrueba;
+var
+  X, Y: Integer;
+begin
+  tsPrueba := TcxTabSheet.Create(Self);
+  tsPrueba.PageControl := pcDetalle;
+  tsPrueba.Caption := SCaptionTabPruebaPrecio;
+  pnlPrueba := TcxGroupBox.Create(Self);
+  pnlPrueba.Parent := tsPrueba;
+  pnlPrueba.Align := alTop;
+  pnlPrueba.PanelStyle.Active := True;
+  pnlPrueba.Style.BorderStyle := ebsNone;
+  pnlPrueba.Transparent := True;
+  pnlPrueba.Height := Esc(FICHA_ALTO_FILA) + Esc(40);
+  Y := Esc(8);
+  X := Esc(FICHA_MARGEN);
+  CrearEtiqueta(pnlPrueba, SCaptionPruebaPrecioSku, X, Y + Esc(3));
+  Inc(X, AnchoTexto(SCaptionPruebaPrecioSku) + Esc(FICHA_SEP_ETIQ));
+  edtPruebaSku := TcxTextEdit.Create(Self);
+  edtPruebaSku.Parent := pnlPrueba;
+  edtPruebaSku.SetBounds(X, Y, Esc(220), edtPruebaSku.Height);
+  Inc(X, Esc(220) + Esc(FICHA_SEP_COLUMNA));
+  CrearEtiqueta(pnlPrueba, SCaptionPruebaPrecioTarifa, X, Y + Esc(3));
+  Inc(X, AnchoTexto(SCaptionPruebaPrecioTarifa) + Esc(FICHA_SEP_ETIQ));
+  cbbPruebaTarifa := TcxLookupComboBox.Create(Self);
+  cbbPruebaTarifa.Parent := pnlPrueba;
+  cbbPruebaTarifa.SetBounds(X, Y, Esc(200), cbbPruebaTarifa.Height);
+  cbbPruebaTarifa.Properties.KeyFieldNames := 'CODIGO_TAR_ARTTAR';
+  cbbPruebaTarifa.Properties.ListFieldNames := 'NOMBRE_TAR_TAR';
+  cbbPruebaTarifa.Properties.ListOptions.ShowHeader := False;
+  cbbPruebaTarifa.Properties.ClearKey := VK_DELETE;
+  Inc(X, Esc(200) + Esc(FICHA_SEP_COLUMNA));
+  CrearEtiqueta(pnlPrueba, SCaptionPruebaPrecioFecha, X, Y + Esc(3));
+  Inc(X, AnchoTexto(SCaptionPruebaPrecioFecha) + Esc(FICHA_SEP_ETIQ));
+  dtePruebaFecha := TcxDateEdit.Create(Self);
+  dtePruebaFecha.Parent := pnlPrueba;
+  dtePruebaFecha.SetBounds(X, Y, Esc(130), dtePruebaFecha.Height);
+  dtePruebaFecha.Date := Date;
+  Inc(X, Esc(130) + Esc(FICHA_SEP_COLUMNA));
+  btnPruebaCalcular := CrearBoton(Self, pnlPrueba,
+    SCaptionPruebaPrecioCalcular, btnPruebaCalcularClick);
+  ColocarBoton(btnPruebaCalcular, Y - Esc(1), X);
+  CrearEtiqueta(pnlPrueba, SAyudaPruebaPrecio, Esc(FICHA_MARGEN),
+    Y + Esc(FICHA_ALTO_FILA));
+  mPruebaResultado := TcxMemo.Create(Self);
+  mPruebaResultado.Parent := tsPrueba;
+  mPruebaResultado.Align := alClient;
+  mPruebaResultado.Properties.ReadOnly := True;
+  mPruebaResultado.Properties.ScrollBars := ssVertical;
+end;
+
+// Convierte lo escrito (artículo, SKU o código de barras) en artículo y SKU
+// como lo haría la lectura de caja, y añade tarifa, fecha y parámetros.
+function TfrmMtoTarifasCambios.LeerEntradaPrueba(
+  out AEntrada: TEntradaSimulacionPrecioCaja; out AError: string): Boolean;
+var
+  Lectura: TArtResolucionEntrada;
+  sTexto: string;
+begin
+  AEntrada := Default(TEntradaSimulacionPrecioCaja);
+  AError := '';
+  sTexto := Trim(edtPruebaSku.Text);
+  Lectura := Default(TArtResolucionEntrada);
+  if sTexto <> '' then
+    Lectura := FSimulacion.Validador.Resolver(sTexto);
+  if sTexto = '' then
+    AError := SErrorPruebaPrecioSinSku
+  else if not Lectura.Encontrado then
+    AError := Format(SErrorPruebaPrecioNoEncontrado, [sTexto])
+  else if Lectura.RequiereSku and (Lectura.CodigoSku = '') then
+    AError := Format(SErrorPruebaPrecioRequiereSku,
+      [Lectura.CodigoArticulo]);
+  Result := AError = '';
+  if Result then
+  begin
+    AEntrada.CodigoArticulo := Lectura.CodigoArticulo;
+    AEntrada.CodigoSku := Lectura.CodigoSku;
+    AEntrada.TarifaSolicitada := VarToStr(cbbPruebaTarifa.EditValue);
+    AEntrada.Fecha := dtePruebaFecha.Date;
+    AEntrada.TarifaDefecto := ParametrosCaja.TarifaDefecto;
+    AEntrada.TarifaPeriodica := ParametrosCaja.GetString(
+      PARAMETRO_TARIFA_PERIODICA, '');
+  end;
+end;
+
+function TextoFechaPrueba(AFecha: TDateTime): string;
+begin
+  Result := SPruebaPrecioSinLimite;
+  if AFecha <> 0 then
+    Result := DateToStr(AFecha);
+end;
+
+procedure TfrmMtoTarifasCambios.MostrarResultadoPrueba(
+  const AEntrada: TEntradaSimulacionPrecioCaja;
+  const AResultado: TResultadoSimulacionPrecioCaja);
+var
+  stLineas: TStrings;
+  sTexto: string;
+begin
+  stLineas := mPruebaResultado.Lines;
+  stLineas.BeginUpdate;
+  try
+    stLineas.Clear;
+    stLineas.Add(Format(SPruebaPrecioArticulo, [AEntrada.CodigoArticulo,
+      AEntrada.CodigoSku, DateToStr(AEntrada.Fecha)]));
+    // FZ-ISSUE-942: lo que diria la caja de la tarifa pedida.
+    if AResultado.Aviso <> '' then
+      stLineas.Add(AResultado.Aviso);
+    if AResultado.EsTarifaSolicitadaDescartada then
+      stLineas.Add(Format(SPruebaPrecioTarifaDescartada,
+        [AEntrada.TarifaSolicitada, AResultado.TarifaTicket]));
+    if AResultado.TarifaTicket = '' then
+    begin
+      stLineas.Add(SPruebaPrecioSinPrecio);
+      Exit;
+    end;
+    sTexto := AResultado.TarifaTicket;
+    if AResultado.EsPeriodicaActiva then
+      sTexto := Format(SPruebaPrecioPeriodicaActiva, [sTexto]);
+    stLineas.Add(Format(SPruebaPrecioTarifaTicket, [sTexto]));
+    sTexto := AResultado.TarifaAplicada;
+    if AResultado.EsRespaldo then
+      sTexto := Format(SPruebaPrecioRespaldo,
+        [sTexto, AResultado.TarifaTicket]);
+    stLineas.Add(Format(SPruebaPrecioTarifaAplicada, [sTexto]));
+    if AResultado.EsPrecioValido then
+    begin
+      stLineas.Add(Format(SPruebaPrecioSalida,
+        [FormatFloat(FMT_EUROS, AResultado.Precio.PrecioSalida)]));
+      stLineas.Add(Format(SPruebaPrecioDescuento, [FormatFloat(
+        FMT_PORCENTAJE_PRUEBA, AResultado.Precio.PorcentajeDto)]));
+      stLineas.Add(Format(SPruebaPrecioVenta,
+        [FormatFloat(FMT_EUROS, AResultado.PrecioVenta)]));
+      stLineas.Add(Format(SPruebaPrecioVigencia,
+        [TextoFechaPrueba(AResultado.Precio.FechaDesde),
+         TextoFechaPrueba(AResultado.Precio.FechaHasta)]));
+      if AResultado.Precio.Origen = aopEspecificoSku then
+        stLineas.Add(SPruebaPrecioOrigenSku)
+      else
+        stLineas.Add(SPruebaPrecioOrigenArticulo);
+    end
+    else
+      stLineas.Add(SPruebaPrecioSinPrecio);
+  finally
+    stLineas.EndUpdate;
+  end;
+end;
+
+procedure TfrmMtoTarifasCambios.btnPruebaCalcularClick(Sender: TObject);
+var
+  Entrada: TEntradaSimulacionPrecioCaja;
+  sError: string;
+begin
+  if LeerEntradaPrueba(Entrada, sError) then
+    MostrarResultadoPrueba(Entrada,
+      SimularPrecioCaja(FSimulacion, Entrada))
+  else
+    ShowMessage_fza(sError);
 end;
 
 procedure AgregarOpcion(ACombo: TcxDBImageComboBox;
@@ -578,6 +1077,11 @@ begin
   dmmTarifasCambios.unqryLineas.DetailFields := 'CODIGO_TARC_TARCLIN';
   dmmTarifasCambios.unqryLineas.MasterSource := dsTablaG;
   tvLineas.DataController.DataSource := dmmTarifasCambios.dsLineas;
+  dmmTarifasCambios.unqryPeriodos.MasterFields := 'CODIGO_TARC';
+  dmmTarifasCambios.unqryPeriodos.DetailFields := 'CODIGO_TARC_TARCP';
+  dmmTarifasCambios.unqryPeriodos.MasterSource := dsTablaG;
+  tvPeriodos.DataController.DataSource := dmmTarifasCambios.dsPeriodos;
+  dmmTarifasCambios.dsPeriodos.OnDataChange := dsPeriodosDataChange;
   btnActualizarCostes.Enabled := PuedeAccionMto(apmModificar);
   btnEliminarLineas.Enabled := PuedeAccionMto(apmBorrar);
   nvNavegador.Buttons.Delete.Hint := SCaptionEliminarSesionCompleta;
@@ -585,10 +1089,12 @@ begin
   tvLineas.Navigator.Buttons.Delete.Enabled := True;
   cbbTarifaOrigen.Properties.ListSource := dmmTarifasCambios.dsTarifas;
   cbbTarifaDestino.Properties.ListSource := dmmTarifasCambios.dsTarifas;
+  cbbPruebaTarifa.Properties.ListSource := dmmTarifasCambios.dsTarifas;
   pkFieldName := 'CODIGO_TARC';
   VincularDatos;
   CrearColumnasCabecera;
   CrearColumnasLineas;
+  CrearColumnasPeriodos;
   AplicarTraducciones(Self, Self);
 end;
 
@@ -603,16 +1109,25 @@ begin
     tvLineas.DataController.DataSource := nil;
     FreeAndNil(tvLineas);
   end;
+  if Assigned(tvPeriodos) then
+  begin
+    tvPeriodos.DataController.DataSource := nil;
+    FreeAndNil(tvPeriodos);
+  end;
   if Assigned(cbbTarifaOrigen) then
     cbbTarifaOrigen.Properties.ListSource := nil;
   if Assigned(cbbTarifaDestino) then
     cbbTarifaDestino.Properties.ListSource := nil;
+  if Assigned(cbbPruebaTarifa) then
+    cbbPruebaTarifa.Properties.ListSource := nil;
   if Assigned(dmmTarifasCambios) then
   begin
     if Assigned(dmmTarifasCambios.dsLineas) then
       dmmTarifasCambios.dsLineas.DataSet := nil;
     if Assigned(dmmTarifasCambios.dsTarifas) then
       dmmTarifasCambios.dsTarifas.DataSet := nil;
+    if Assigned(dmmTarifasCambios.dsPeriodos) then
+      dmmTarifasCambios.dsPeriodos.OnDataChange := nil;
     if Assigned(dmmTarifasCambios.unqryLineas) then
     begin
       if dmmTarifasCambios.unqryLineas.Active then
@@ -620,6 +1135,12 @@ begin
       dmmTarifasCambios.unqryLineas.MasterSource := nil;
       dmmTarifasCambios.unqryLineas.MasterFields := '';
       dmmTarifasCambios.unqryLineas.DetailFields := '';
+    end;
+    if Assigned(dmmTarifasCambios.unqryPeriodos) then
+    begin
+      if dmmTarifasCambios.unqryPeriodos.Active then
+        dmmTarifasCambios.unqryPeriodos.Close;
+      dmmTarifasCambios.unqryPeriodos.MasterSource := nil;
     end;
     if Assigned(dmmTarifasCambios.unqryTarifas) and
        dmmTarifasCambios.unqryTarifas.Active then
@@ -678,6 +1199,11 @@ begin
           'APLICADA');
     if (Field = nil) or SameText(Field.FieldName, 'TIPO_APLICACION_TARC') then
       ActualizarFormatoValor;
+    if Field = nil then
+    begin
+      SincronizarPeriodosSesion;
+      ActualizarEstadoPeriodos;
+    end;
   end;
 end;
 
@@ -701,6 +1227,7 @@ end;
 procedure TfrmMtoTarifasCambios.CrearColumnasLineas;
 var
   oStock: TcxGridDBColumn;
+  i: Integer;
 begin
   if tvLineas.ColumnCount = 0 then
   begin
@@ -710,8 +1237,6 @@ begin
     CrearColumna(tvLineas, 'CODIGO_UNIDAD_SKU_TARCLIN',
       SCaptionColSku, 160).Options.Editing := False;
     CrearColumna(tvLineas, 'DESCRIPCION_ART', SCaptionCambioDescripcion, 240);
-    CrearColumna(tvLineas, 'NOMBRE_FAM_FAM', SCaptionCambioFamilia, 160);
-    CrearColumna(tvLineas, 'RAZON_SOCIAL_PRV', SCaptionCambioProveedor, 180);
     FormatoImporte(CrearColumna(tvLineas, 'PRECIO_ORIGEN_TARCLIN',
                    SCaptionCambioPrecioOrigen, 90), FMT_EUROS);
     FormatoImporte(CrearColumna(tvLineas, 'PRECIO_COSTE_TARCLIN',
@@ -728,10 +1253,40 @@ begin
                    SCaptionCambioPorcentajeDto, 90), FMT_PORCENTAJE);
     FormatoImporte(CrearColumna(tvLineas, 'PRECIO_FINAL_NUEVO_TARCLIN',
                    SCaptionCambioFinalNuevo, 100), FMT_EUROS);
+    // FZ-ISSUE-944: los precios (editables en cada periodo) antes que la
+    // familia y el proveedor, que dejaban fuera de la vista Salida nueva.
+    CrearColumna(tvLineas, 'NOMBRE_FAM_FAM', SCaptionCambioFamilia, 160);
+    CrearColumna(tvLineas, 'RAZON_SOCIAL_PRV', SCaptionCambioProveedor, 180);
     CrearColumna(tvLineas, 'MENSAJE_TARCLIN', SCaptionCambioMensaje, 180);
     oStock := CrearColumna(tvLineas, 'STOCK_ACTUAL', SCaptionColStock, 100);
     FormatoImporte(oStock, '#,##0.######');
     oStock.Options.Editing := False;
+    // FZ-ISSUE-944: líneas sin stock (0 o negativo) sombreadas.
+    FEstiloSinStock := TcxStyle.Create(Self);
+    FEstiloSinStock.AssignedValues := [cxStyles.svColor];
+    FEstiloSinStock.Color := $00E0E0E0;
+    for i := 0 to tvLineas.ColumnCount - 1 do
+      tvLineas.Columns[i].Styles.OnGetContentStyle :=
+        tvLineasGetContentStyle;
+  end;
+end;
+
+procedure TfrmMtoTarifasCambios.tvLineasGetContentStyle(
+  Sender: TcxCustomGridTableView; ARecord: TcxCustomGridRecord;
+  AItem: TcxCustomGridTableItem; var AStyle: TcxStyle);
+var
+  ColStock: TcxGridDBColumn;
+  Valor: Variant;
+begin
+  if (ARecord <> nil) and ARecord.IsData then
+  begin
+    ColStock := tvLineas.GetColumnByFieldName('STOCK_ACTUAL');
+    if ColStock <> nil then
+    begin
+      Valor := ARecord.Values[ColStock.Index];
+      if VarIsNull(Valor) or VarIsEmpty(Valor) or (Valor <= 0) then
+        AStyle := FEstiloSinStock;
+    end;
   end;
 end;
 
@@ -779,6 +1334,9 @@ begin
   if Assigned(dsTablaG.DataSet) and
      (dsTablaG.DataSet.State in [dsInsert, dsEdit]) then
     dsTablaG.DataSet.Post;
+  if Assigned(dmmTarifasCambios) and
+     (dmmTarifasCambios.unqryPeriodos.State in dsEditModes) then
+    dmmTarifasCambios.unqryPeriodos.Post;
   if (not Assigned(dsTablaG.DataSet)) or dsTablaG.DataSet.IsEmpty then
   begin
     ShowMessage_fza(SErrorSesionTarifaNoSeleccionada);
@@ -799,7 +1357,10 @@ begin
       dsTablaG.DataSet.FieldByName('CODIGO_TAR_DESTINO_TARC').AsString,
       FCargaMasiva);
     if res.Aceptado then
+    begin
+      dmmTarifasCambios.SincronizarPeriodos;
       dmmTarifasCambios.unqryLineas.Refresh;
+    end;
   end;
 end;
 
@@ -834,7 +1395,9 @@ var
 begin
   if Assigned(dmmTarifasCambios) and GrabarCabeceraSiNecesario then
   begin
-    iLineas := dmmTarifasCambios.unqryLineas.RecordCount;
+    // Con periodos se aplican todos, no solo el que se ve.
+    dmmTarifasCambios.SincronizarPeriodos;
+    iLineas := dmmTarifasCambios.TotalLineasSesion;
     iSinPrecio := dmmTarifasCambios.LineasSinPrecioNuevo;
     if iSinPrecio > 0 then
       ShowMessage_fza(Format(SErrorLineasSinPrecioNuevoSesionTarifa,
@@ -858,6 +1421,7 @@ begin
   if Assigned(dmmTarifasCambios) and GrabarCabeceraSiNecesario then
   begin
     dmmTarifasCambios.unqryTablaG.Refresh;
+    dmmTarifasCambios.SincronizarPeriodos;
     dmmTarifasCambios.RellenarPreciosPartida;
     dmmTarifasCambios.unqryLineas.Refresh;
   end;
@@ -1023,6 +1587,60 @@ begin
         Mensaje := Format(SPreguntaEliminarLineasSesion, [Length(Ids)]);
       if MessageDlg_fza(Mensaje, mtConfirmation, [mbYes, mbNo], 0) = mrYes then
         dmmTarifasCambios.EliminarLineasSesion(Ids);
+    end;
+  end;
+end;
+
+// FZ-ISSUE-944: quita las lineas sin stock (0 o negativo). Como Borrar
+// linea, un articulo se quita de todos los periodos de la sesion.
+procedure TfrmMtoTarifasCambios.btnEliminarSinStockClick(Sender: TObject);
+var
+  Ids: TArray<Integer>;
+  Mensaje: string;
+  Lineas: TDataSet;
+  Marca: TBookmark;
+begin
+  if PuedeAccionMto(apmBorrar) and GrabarCabeceraSiNecesario then
+  begin
+    if SameText(dsTablaG.DataSet.FieldByName('ESTADO_TARC').AsString,
+      'APLICADA') then
+      ShowMessage_fza(SErrorSesionTarifaAplicadaNoBorrarLineas)
+    else
+    begin
+      Ids := nil;
+      Lineas := dmmTarifasCambios.unqryLineas;
+      if Lineas.Active then
+      begin
+        Lineas.DisableControls;
+        Marca := Lineas.GetBookmark;
+        try
+          Lineas.First;
+          while not Lineas.Eof do
+          begin
+            if Lineas.FieldByName('STOCK_ACTUAL').AsFloat <= 0 then
+              Ids := Ids + [Lineas.FieldByName('ID_TARCLIN').AsInteger];
+            Lineas.Next;
+          end;
+          if Lineas.BookmarkValid(Marca) then
+            Lineas.GotoBookmark(Marca);
+        finally
+          Lineas.FreeBookmark(Marca);
+          Lineas.EnableControls;
+        end;
+      end;
+      if Length(Ids) = 0 then
+        ShowMessage_fza(SInfoSesionSinLineasSinStock)
+      else
+      begin
+        if Length(Ids) = 1 then
+          Mensaje := SPreguntaEliminarUnaLineaSinStockSesion
+        else
+          Mensaje := Format(SPreguntaEliminarLineasSinStockSesion,
+            [Length(Ids)]);
+        if MessageDlg_fza(Mensaje, mtConfirmation, [mbYes, mbNo], 0) =
+          mrYes then
+          dmmTarifasCambios.EliminarLineasSesion(Ids);
+      end;
     end;
   end;
 end;

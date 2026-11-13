@@ -4713,6 +4713,226 @@ begin
     'SCaptionCambioIrArticulo',
     'src/Lib/inLibMsgArticulos.pas',
     @inLibMsgArticulos.SCaptionCambioIrArticulo);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SCaptionTabPruebaPrecio',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SCaptionTabPruebaPrecio);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SCaptionPruebaPrecioSku',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SCaptionPruebaPrecioSku);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SCaptionPruebaPrecioTarifa',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SCaptionPruebaPrecioTarifa);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SCaptionPruebaPrecioFecha',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SCaptionPruebaPrecioFecha);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SCaptionPruebaPrecioCalcular',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SCaptionPruebaPrecioCalcular);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SAyudaPruebaPrecio',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SAyudaPruebaPrecio);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SErrorPruebaPrecioSinSku',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SErrorPruebaPrecioSinSku);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SErrorPruebaPrecioNoEncontrado',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SErrorPruebaPrecioNoEncontrado);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SErrorPruebaPrecioRequiereSku',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SErrorPruebaPrecioRequiereSku);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SPruebaPrecioArticulo',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPruebaPrecioArticulo);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SPruebaPrecioTarifaTicket',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPruebaPrecioTarifaTicket);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SPruebaPrecioPeriodicaActiva',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPruebaPrecioPeriodicaActiva);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SPruebaPrecioTarifaAplicada',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPruebaPrecioTarifaAplicada);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SPruebaPrecioRespaldo',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPruebaPrecioRespaldo);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SPruebaPrecioTarifaDescartada',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPruebaPrecioTarifaDescartada);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SPruebaPrecioSinPrecio',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPruebaPrecioSinPrecio);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SPruebaPrecioSalida',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPruebaPrecioSalida);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SPruebaPrecioDescuento',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPruebaPrecioDescuento);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SPruebaPrecioVenta',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPruebaPrecioVenta);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SPruebaPrecioVigencia',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPruebaPrecioVigencia);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SPruebaPrecioSinLimite',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPruebaPrecioSinLimite);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SPruebaPrecioOrigenSku',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPruebaPrecioOrigenSku);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SPruebaPrecioOrigenArticulo',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPruebaPrecioOrigenArticulo);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SCaptionPeriodosTarifa',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SCaptionPeriodosTarifa);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SCaptionAnadirPeriodoTarifa',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SCaptionAnadirPeriodoTarifa);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SCaptionEliminarPeriodoTarifa',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SCaptionEliminarPeriodoTarifa);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SCaptionVerPeriodosTarifa',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SCaptionVerPeriodosTarifa);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SCaptionOcultarPeriodosTarifa',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SCaptionOcultarPeriodosTarifa);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SErrorPeriodoTarifaSolapaPrecio',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SErrorPeriodoTarifaSolapaPrecio);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SCaptionEliminarLineasSinStockSesion',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SCaptionEliminarLineasSinStockSesion);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SPreguntaEliminarLineasSinStockSesion',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPreguntaEliminarLineasSinStockSesion);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SInfoSesionSinLineasSinStock',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SInfoSesionSinLineasSinStock);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SPreguntaEliminarUnaLineaSinStockSesion',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPreguntaEliminarUnaLineaSinStockSesion);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SCaptionPeriodoTarifaNumero',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SCaptionPeriodoTarifaNumero);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SCaptionPeriodoTarifaNombre',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SCaptionPeriodoTarifaNombre);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SAyudaPeriodosTarifa',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SAyudaPeriodosTarifa);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SNombrePeriodoTarifaDefecto',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SNombrePeriodoTarifaDefecto);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SInfoPeriodoTarifaAnadido',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SInfoPeriodoTarifaAnadido);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SPreguntaEliminarPeriodoTarifa',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPreguntaEliminarPeriodoTarifa);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SPreguntaEliminarUltimoPeriodoTarifa',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPreguntaEliminarUltimoPeriodoTarifa);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SErrorPeriodoTarifaNoSeleccionado',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SErrorPeriodoTarifaNoSeleccionado);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SErrorPeriodoTarifaSinFechas',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SErrorPeriodoTarifaSinFechas);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SErrorPeriodoTarifaFechasInvertidas',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SErrorPeriodoTarifaFechasInvertidas);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SErrorPeriodoTarifaSolapado',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SErrorPeriodoTarifaSolapado);
 end;
 
 procedure EnumerarResourcestringsSegundaRevisionCapturas(
@@ -6427,6 +6647,8 @@ begin
     @inLibMsgArticulos.STituloMovimientosArticuloColor);
   RegistrarTextoArticulo(ARegistrar, 'SAyudaPreciosMovimientosArticulo',
     @inLibMsgArticulos.SAyudaPreciosMovimientosArticulo);
+  RegistrarTextoArticulo(ARegistrar, 'SAyudaVistaMovimientosArticulo',
+    @inLibMsgArticulos.SAyudaVistaMovimientosArticulo);
   RegistrarTextoArticulo(ARegistrar, 'SCerrarMovimientosArticulo',
     @inLibMsgArticulos.SCerrarMovimientosArticulo);
   RegistrarTextoArticulo(ARegistrar, 'SColorMovimientosArticulo',
@@ -34991,6 +35213,49 @@ begin
   ARegistrar('inLibMsgFacturas.SErrorMaxTicketsFacturaF3',
     'src/Lib/inLibMsgFacturas.pas',
     @inLibMsgFacturas.SErrorMaxTicketsFacturaF3);
+
+  ARegistrar('inLibMsgFacturas.SFacturacionPrestamosTitulo',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SFacturacionPrestamosTitulo);
+  ARegistrar('inLibMsgFacturas.SFacturacionPrestamosLinea',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SFacturacionPrestamosLinea);
+  ARegistrar('inLibMsgFacturas.SFacturacionPrestamosAnticipo',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SFacturacionPrestamosAnticipo);
+  ARegistrar('inLibMsgFacturas.SFacturacionPrestamosTotal',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SFacturacionPrestamosTotal);
+  ARegistrar('inLibMsgFacturas.SFacturacionPrestamosRetirar',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SFacturacionPrestamosRetirar);
+  ARegistrar('inLibMsgFacturas.SFacturacionPrestamosSeleccion',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SFacturacionPrestamosSeleccion);
+  ARegistrar('inLibMsgFacturas.SFacturacionPrestamosEmitidas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SFacturacionPrestamosEmitidas);
+  ARegistrar('inLibMsgFacturas.SFacturacionPrestamosFacturaTickets',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SFacturacionPrestamosFacturaTickets);
+  ARegistrar('inLibMsgFacturas.SFacturacionPrestamosFacturaPrestamos',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SFacturacionPrestamosFacturaPrestamos);
+  ARegistrar('inLibMsgFacturas.SFacturacionPrestamosErrorSegunda',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SFacturacionPrestamosErrorSegunda);
+  ARegistrar('inLibMsgFacturas.SErrorPrestamoPeriodo',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SErrorPrestamoPeriodo);
+  ARegistrar('inLibMsgFacturas.SErrorPrestamosSinAlmacenDeposito',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SErrorPrestamosSinAlmacenDeposito);
+  ARegistrar('inLibMsgFacturas.SComentarioFacturacionPrestamos',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SComentarioFacturacionPrestamos);
+  ARegistrar('inLibMsgFacturas.SEventoFacturacionPrestamos',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SEventoFacturacionPrestamos);
 
   ARegistrar('inLibMsgCompras.SAvisoCompensacionFacturaAbierta',
     'src/Lib/inLibMsgCompras.pas',

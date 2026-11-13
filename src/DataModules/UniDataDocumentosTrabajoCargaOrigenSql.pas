@@ -927,6 +927,10 @@ begin
     '  FROM fza_tarifas_cambios H ' +
     '  JOIN fza_tarifas_cambios_lineas L ' +
     '    ON L.CODIGO_TARC_TARCLIN = H.CODIGO_TARC ' +
+    // FZ-ISSUE-944: cada periodo repite los articulos; basta el primero.
+    '   AND L.ID_TARCP_TARCLIN = (SELECT MIN(P1.ID_TARCP_TARCLIN) ' +
+    '         FROM fza_tarifas_cambios_lineas P1 ' +
+    '        WHERE P1.CODIGO_TARC_TARCLIN = L.CODIGO_TARC_TARCLIN) ' +
     '  JOIN fza_articulos_skus SK ' +
     '    ON SK.CODIGO_ART_SKU = L.CODIGO_ART_TARCLIN ' +
     '   AND SK.ESACTIVO_SKU = ''S'' ' +
@@ -1476,7 +1480,10 @@ begin
     'L.CODIGO_ART_TARCLIN AND SK.ESACTIVO_SKU = ''S'' AND ' +
     '(NULLIF(TRIM(L.CODIGO_UNIDAD_SKU_TARCLIN), '''') IS NULL OR ' +
     'SK.CODIGO_UNIDAD_SKU = L.CODIGO_UNIDAD_SKU_TARCLIN) WHERE ' +
-    'L.CODIGO_TARC_TARCLIN = H.CODIGO_TARC)';
+    'L.CODIGO_TARC_TARCLIN = H.CODIGO_TARC ' +
+    'AND L.ID_TARCP_TARCLIN = (SELECT MIN(P1.ID_TARCP_TARCLIN) ' +
+    'FROM fza_tarifas_cambios_lineas P1 ' +
+    'WHERE P1.CODIGO_TARC_TARCLIN = L.CODIGO_TARC_TARCLIN))';
   Result := SqlRamaCabecera('TARC', 'TARC',
     'fza_tarifas_cambios',
     ':EMPRESA_TARC',

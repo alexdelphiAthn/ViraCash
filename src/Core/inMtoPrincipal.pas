@@ -245,6 +245,7 @@ type
     HacerCopiadeSeguridad1: TMenuItem;
     mnuEjecutarScript: TMenuItem;
     mnuCambioArticuloColor: TMenuItem;
+    mnuSesionesCambioTarifa: TMenuItem;
     mnuProcesosAuxiliaresBBDD: TMenuItem;
     mnuGeneradorProcesos: TMenuItem;
     mnuUsuarios: TMenuItem;

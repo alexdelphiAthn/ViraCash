@@ -30,7 +30,11 @@ uses
   System.SysUtils, System.Classes, Data.DB, inLibVerifactu, inLibMsgFacturas,
   inLibFacturasValidacionCabecera, inLibFormatoDocumento,
   UniDataFormatoDocumentoRepositorio, inLibTrazabilidad,
-  inLibVerifactuTipos;
+  inLibVerifactuTipos, inLibFacturasPersistenciaIntf,
+  inLibFacturasServiciosIntf, inLibFacturasMovimientos,
+  UniDataFacturasOperaciones, UniDataFacturasRecalculoTotales,
+  UniDataAlmacenesEmpresaRepositorio, inLibAlmacenesEmpresaPersistenciaIntf,
+  UniDataValoresAutomaticosRepositorio;
 
 resourcestring
   SErrorNumeroFacturaTicketExistente =
@@ -234,6 +238,178 @@ const
     'NUMERO_FAC_ABONO_FAC = :NUMERO, INSTANTE_MODIF = NOW(), ' +
     'USUARIO_MODIF = :USUARIO WHERE SERIE_FAC = :STICKET ' +
     'AND NUMERO_FAC = :NTICKET';
+  // Préstamos: depósitos PENDIENTES (no apartados) del cliente prestados en
+  // el período. El precio del depósito lleva IVA, como en la caja.
+  SQL_PRESTAMOS_PERIODO =
+    'SELECT D.ID_DEPOSITO_DEP, D.FECHA_CREACION_DEP, D.CODIGO_ART_DEP, ' +
+    'D.CODIGO_UNIDAD_DEP, ' +
+    'COALESCE(A.DESCRIPCION_ART, D.CODIGO_ART_DEP) AS DESCRIPCION, ' +
+    'COALESCE(D.CANTIDAD_PENDIENTE_DEP, 1) AS CANTIDAD, ' +
+    'COALESCE(D.PRECIO_VENTA_DEP, 0) AS PRECIO, ' +
+    'COALESCE(D.IMPORTE_ANTICIPO_DEP, 0) AS ANTICIPO, D.INSTANTE_MODIF ' +
+    'FROM fza_depositos_cliente D ' +
+    'LEFT JOIN fza_articulos A ON A.CODIGO_ART_ART = D.CODIGO_ART_DEP ' +
+    'WHERE D.CODIGO_EMP_DEP = :EMPRESA AND D.CODIGO_CLI_DEP = :CLIENTE ' +
+    'AND D.ESTADO_DEP = ''PENDIENTE'' ' +
+    'AND COALESCE(D.ESAPARTADO_DEP, ''N'') <> ''S'' ' +
+    'AND D.FECHA_CREACION_DEP >= :DESDE AND D.FECHA_CREACION_DEP < :HASTA ';
+  SQL_ORDEN_PRESTAMOS =
+    'ORDER BY D.FECHA_CREACION_DEP, D.ID_DEPOSITO_DEP';
+  // Cabecera F1 desde empresa y cliente, con los tipos de IVA vigentes en
+  // la fecha de la factura (como la factura interna TA). Sin retención: es
+  // venta de mercancía, igual que los tickets que sustituye la F3.
+  SQL_INSERTAR_CABECERA_PRESTAMOS =
+    'INSERT INTO fza_facturas (' +
+    'NUMERO_FAC, SERIE_FAC, FECHA_FAC, ESCONSOLIDADA_FAC, ' +
+    'TIPO_FAC, ESMUEVE_STOCK_FAC, FASE_FAC, CODIGO_EMP_FAC, ' +
+    'CODIGO_ALM_FAC, RAZON_SOCIAL_EMPRESA_FAC, NIF_EMPRESA_FAC, ' +
+    'MOVIL_EMPRESA_FAC, EMAIL_EMPRESA_FAC, DIRECCION1_EMPRESA_FAC, ' +
+    'DIRECCION2_EMPRESA_FAC, POBLACION_EMPRESA_FAC, ' +
+    'PROVINCIA_EMPRESA_FAC, CODIGO_PAI_EMPRESA_FAC, ' +
+    'NOMBRE_PAI_EMPRESA_FAC, CODIGO_POSTAL_EMPRESA_FAC, ' +
+    'ESRETENCIONES_EMPRESA_FAC, GRUPO_ZONA_IVA_EMPRESA_FAC, ' +
+    'ESREGIMENESPECIALAGRICOLA_EMPRESA_FAC, CODIGO_CLI_FAC, ' +
+    'RAZON_SOCIAL_CLIENTE_FAC, NIF_CLIENTE_FAC, MOVIL_CLIENTE_FAC, ' +
+    'EMAIL_CLIENTE_FAC, DIRECCION1_CLIENTE_FAC, ' +
+    'DIRECCION2_CLIENTE_FAC, POBLACION_CLIENTE_FAC, ' +
+    'PROVINCIA_CLIENTE_FAC, CODIGO_POSTAL_CLIENTE_FAC, ' +
+    'CODIGO_PAI_CLIENTE_FAC, NOMBRE_PAI_CLIENTE_FAC, ' +
+    'CODIGO_OFICINA_CONTABLE_FAC, CODIGO_ORGANO_GESTOR_FAC, ' +
+    'CODIGO_UNIDAD_TRAMITADORA_FAC, ' +
+    'CODIGO_IVA_FAC, ESIVA_RECARGO_CLIENTE_FAC, ' +
+    'ESIVA_EXENTO_CLIENTE_FAC, ' +
+    'ESREGIMENESPECIALAGRICOLA_CLIENTE_FAC, ' +
+    'ESRETENCIONES_CLIENTE_FAC, ESIMP_INCL_TARIFA_CLIENTE_FAC, ' +
+    'ESINTRACOMUNITARIO_CLIENTE_FAC, ESIRPF_IMP_INCL_ZONA_IVA_FAC, ' +
+    'ESAPLICA_RE_ZONA_IVA_FAC, ESIVAAGRICOLA_ZONA_IVA_FAC, ' +
+    'PALABRA_REPORTS_ZONA_IVA_FAC, PORCENTAJE_IVAN_FAC, ' +
+    'PORCENTAJE_REN_FAC, PORCENTAJE_IVAR_FAC, PORCENTAJE_RER_FAC, ' +
+    'PORCENTAJE_IVAS_FAC, PORCENTAJE_RES_FAC, PORCENTAJE_IVAE_FAC, ' +
+    'PORCENTAJE_REE_FAC, PORCENTAJE_RETENCION_FAC, FORMA_PAGO_FAC, ' +
+    'TEXTO_LEGAL_EMPRESA_FAC, COMENTARIOS_FAC, CONTADOR_LINEAS_FAC, ' +
+    'ESCREARARTICULOS_FAC, ESDESCRIPCIONES_AMP_FAC, ' +
+    'ESFECHADEENTREGA_FAC, ' +
+    'INSTANTE_ALTA, INSTANTE_MODIF, USUARIO_ALTA, USUARIO_MODIF) ' +
+    'SELECT :NUMERO, :SERIE, :FECHA_FACTURA, ''N'', ''NORMAL'', ''S'', ' +
+    '''BORRADOR'', E.CODIGO_EMP_EMP, :ALMACEN, E.RAZON_SOCIAL_EMP, ' +
+    'E.NIF_EMP, E.MOVIL_EMP, E.EMAIL_EMP, E.DIRECCION1_EMP, ' +
+    'E.DIRECCION2_EMP, E.POBLACION_EMP, E.PROVINCIA_EMP, ' +
+    'E.CODIGO_PAI_EMP, E.NOMBRE_PAI_EMP, E.CODIGO_POSTAL_EMP, ' +
+    'E.ESRETENCIONES_EMP, E.GRUPO_ZONA_IVA_EMP, ' +
+    'E.ESREGIMENESPECIALAGRICOLA_EMP, ' +
+    'C.CODIGO_CLI_CLI, C.RAZON_SOCIAL_CLI, ' +
+    'C.NIF_CLI, C.MOVIL_CLI, C.EMAIL_CLI, C.DIRECCION1_CLI, ' +
+    'C.DIRECCION2_CLI, C.POBLACION_CLI, C.PROVINCIA_CLI, ' +
+    'C.CODIGO_POSTAL_CLI, C.CODIGO_PAI_CLI, C.NOMBRE_PAI_CLI, ' +
+    'C.CODIGO_OFICINA_CONTABLE_CLI, C.CODIGO_ORGANO_GESTOR_CLI, ' +
+    'C.CODIGO_UNIDAD_TRAMITADORA_CLI, ' +
+    'I.CODIGO_IVA, COALESCE(C.ESIVA_RECARGO_CLI, ''N''), ' +
+    'COALESCE(C.ESIVA_EXENTO_CLI, ''N''), ' +
+    'COALESCE(C.ESREGIMENESPECIALAGRICOLA_CLI, ''N''), ' +
+    '''N'', ''S'', ' +
+    'COALESCE(C.ESINTRACOMUNITARIO_CLI, ''N''), ' +
+    'COALESCE(G.ESIRPF_IMP_INCL_IVA_IVAGRP, ''N''), ' +
+    'COALESCE(G.ESAPLICA_RE_IVA_IVAGRP, ''S''), ' +
+    'COALESCE(G.ESIVAAGRICOLA_IVA_IVAGRP, ''N''), ' +
+    'COALESCE(G.PALABRA_REPORTS_IVA_IVAGRP, ''IVA''), ' +
+    'I.PORCENTAJE_NORMAL_IVA, I.PORCENTAJE_NORMAL_RE_IVA, ' +
+    'I.PORCENTAJE_REDUCIDO_IVA, I.PORCENTAJE_REDUCIDO_RE_IVA, ' +
+    'I.PORCENTAJE_SUPERREDUCIDO_IVA, ' +
+    'I.PORCENTAJE_SUPERREDUCIDO_RE_IVA, I.PORCENTAJE_EXENTO_IVA, ' +
+    'I.PORCENTAJE_EXENTO_RE_IVA, 0, ' +
+    'COALESCE(NULLIF(:FORMA_PAGO, ''''), C.CODIGO_FP_CLI), ' +
+    'E.TEXTO_LEGAL_FACTURA_EMP, :COMENTARIO, ' +
+    '''0000'', ''N'', ''N'', ''N'', NOW(), NOW(), :USUARIO, :USUARIO ' +
+    'FROM fza_empresas E ' +
+    'JOIN fza_clientes C ON C.CODIGO_CLI_CLI = :CLIENTE ' +
+    'JOIN fza_ivas I ON I.IVA_IVAGRP = E.GRUPO_ZONA_IVA_EMP ' +
+    ' AND I.FECHA_DESDE_IVA <= :FECHA_FACTURA ' +
+    ' AND (I.FECHA_HASTA_IVA IS NULL ' +
+    '      OR I.FECHA_HASTA_IVA >= :FECHA_FACTURA) ' +
+    'LEFT JOIN fza_ivas_grupos G ON G.IVA_IVAGRP = I.IVA_IVAGRP ' +
+    'WHERE E.CODIGO_EMP_EMP = :EMPRESA ' +
+    'ORDER BY I.FECHA_DESDE_IVA DESC LIMIT 1';
+  // Línea de la prenda prestada con el mismo reparto que la caja al cobrar
+  // el depósito (IncorporarPrendaDeposito). El almacén es el de depósitos:
+  // de ahí sale el stock al consolidar.
+  SQL_INSERTAR_LINEA_PRESTAMO =
+    'INSERT INTO fza_facturas_lineas (' +
+    'NUMERO_FAC_FACLIN, SERIE_FAC_FACLIN, CODIGO_EMP_FACLIN, ' +
+    'LINEA_FACLIN, CODIGO_ART_FACLIN, CODIGO_UNIDAD_FACLIN, ' +
+    'CODIGO_FAM_FACLIN, TIPO_ARTICULO_FACLIN, ' +
+    'TIPO_CANTIDAD_ARTICULO_FACLIN, CANTIDAD_FACLIN, ' +
+    'DESCRIPCION_ARTICULO_FACLIN, DESCRIPCION_VARIACION_FACLIN, ' +
+    'ESIMP_INCL_TARIFA_FACLIN, PRECIO_SALIDA_FACLIN, ' +
+    'PORCENTAJE_DTO_FACLIN, PRECIO_DTO_FACLIN, ' +
+    'PRECIO_VENTA_SIVA_ARTICULO_FACLIN, TIPO_IVA_ARTICULO_FACLIN, ' +
+    'PORCENTAJE_IVA_FACLIN, PRECIO_VENTA_CIVA_ARTICULO_FACLIN, ' +
+    'TOTAL_FACLIN, TOTAL_FAC_SIVA_FACLIN, CODIGO_ALM_FACLIN, ' +
+    'INSTANTE_ALTA, INSTANTE_MODIF, USUARIO_ALTA, USUARIO_MODIF) ' +
+    'SELECT :NUMERO, :SERIE, D.CODIGO_EMP_DEP, LPAD(:LINEA, 4, ''0''), ' +
+    'D.CODIGO_ART_DEP, D.CODIGO_UNIDAD_DEP, A.CODIGO_FAM_ART, ' +
+    'COALESCE(NULLIF(A.TIPO_ART, ''''), ''ESTANDAR''), ' +
+    'COALESCE(A.TIPO_CANTIDAD_ART, ''Uds''), ' +
+    'COALESCE(D.CANTIDAD_PENDIENTE_DEP, 1), ' +
+    'LEFT(COALESCE(A.DESCRIPCION_ART, D.CODIGO_ART_DEP), 100), ' +
+    'CASE WHEN D.CODIGO_UNIDAD_DEP LIKE CONCAT(D.CODIGO_ART_DEP, ''/%'') ' +
+    ' THEN SUBSTRING(D.CODIGO_UNIDAD_DEP, ' +
+    '  CHAR_LENGTH(D.CODIGO_ART_DEP) + 2) END, ' +
+    '''S'', D.PRECIO_VENTA_DEP, 0, 0, ' +
+    'D.PRECIO_VENTA_DEP / (1 + COALESCE(D.PORCENTAJE_IVA_DEP, 0) / 100), ' +
+    'COALESCE(D.TIPO_IVA_DEP, ''N''), COALESCE(D.PORCENTAJE_IVA_DEP, 0), ' +
+    'D.PRECIO_VENTA_DEP, ' +
+    'ROUND(D.PRECIO_VENTA_DEP * COALESCE(D.CANTIDAD_PENDIENTE_DEP, 1), 2), ' +
+    'ROUND(D.PRECIO_VENTA_DEP * COALESCE(D.CANTIDAD_PENDIENTE_DEP, 1) / ' +
+    ' (1 + COALESCE(D.PORCENTAJE_IVA_DEP, 0) / 100), 2), :ALMACEN, ' +
+    'NOW(), NOW(), :USUARIO, :USUARIO ' +
+    'FROM fza_depositos_cliente D ' +
+    'LEFT JOIN fza_articulos A ON A.CODIGO_ART_ART = D.CODIGO_ART_DEP ' +
+    'WHERE D.ID_DEPOSITO_DEP = :ID';
+  // El anticipo ya se facturó al prestar: se descuenta como la caja
+  // ('Abono a cuenta'). Sin SKU, para que no genere movimiento de stock.
+  SQL_INSERTAR_LINEA_ANTICIPO_PRESTAMO =
+    'INSERT INTO fza_facturas_lineas (' +
+    'NUMERO_FAC_FACLIN, SERIE_FAC_FACLIN, CODIGO_EMP_FACLIN, ' +
+    'LINEA_FACLIN, TIPO_ARTICULO_FACLIN, CANTIDAD_FACLIN, ' +
+    'DESCRIPCION_ARTICULO_FACLIN, ESIMP_INCL_TARIFA_FACLIN, ' +
+    'PRECIO_SALIDA_FACLIN, PORCENTAJE_DTO_FACLIN, PRECIO_DTO_FACLIN, ' +
+    'PRECIO_VENTA_SIVA_ARTICULO_FACLIN, TIPO_IVA_ARTICULO_FACLIN, ' +
+    'PORCENTAJE_IVA_FACLIN, PRECIO_VENTA_CIVA_ARTICULO_FACLIN, ' +
+    'TOTAL_FACLIN, TOTAL_FAC_SIVA_FACLIN, ' +
+    'INSTANTE_ALTA, INSTANTE_MODIF, USUARIO_ALTA, USUARIO_MODIF) ' +
+    'SELECT :NUMERO, :SERIE, D.CODIGO_EMP_DEP, LPAD(:LINEA, 4, ''0''), ' +
+    '''SERVICIO'', -1, ' +
+    'LEFT(CONCAT(''Abono a cuenta '', D.CODIGO_UNIDAD_DEP), 100), ' +
+    '''S'', D.IMPORTE_ANTICIPO_DEP, 0, 0, ' +
+    'D.IMPORTE_ANTICIPO_DEP / ' +
+    ' (1 + COALESCE(D.PORCENTAJE_IVA_DEP, 0) / 100), ' +
+    'COALESCE(D.TIPO_IVA_DEP, ''N''), COALESCE(D.PORCENTAJE_IVA_DEP, 0), ' +
+    'D.IMPORTE_ANTICIPO_DEP, -ROUND(D.IMPORTE_ANTICIPO_DEP, 2), ' +
+    '-ROUND(D.IMPORTE_ANTICIPO_DEP / ' +
+    ' (1 + COALESCE(D.PORCENTAJE_IVA_DEP, 0) / 100), 2), ' +
+    'NOW(), NOW(), :USUARIO, :USUARIO ' +
+    'FROM fza_depositos_cliente D WHERE D.ID_DEPOSITO_DEP = :ID';
+  // Cierre como en la caja (CerrarDepositoCliente): la cantidad no se toca;
+  // la entrega es la fecha de la factura.
+  SQL_CERRAR_PRESTAMO =
+    'UPDATE fza_depositos_cliente SET ESTADO_DEP = ''CERRADO'', ' +
+    'FECHA_ENTREGA_DEP = :FECHA, USUARIO_MODIF = :USUARIO, ' +
+    'INSTANTE_MODIF = NOW() ' +
+    'WHERE ID_DEPOSITO_DEP = :ID AND ESTADO_DEP = ''PENDIENTE''';
+  // Lo mismo que sumó PRC_FZA_DEPOSITOS_INSERT al prestar.
+  SQL_DESCONTAR_DEUDA_PRESTAMO =
+    'UPDATE fza_clientes c JOIN fza_depositos_cliente d ' +
+    'ON d.ID_DEPOSITO_DEP = :ID ' +
+    'SET c.TOTAL_DEUDA_CLI = COALESCE(c.TOTAL_DEUDA_CLI, 0) - ' +
+    '(COALESCE(d.PRECIO_VENTA_DEP, 0) * ' +
+    'COALESCE(d.CANTIDAD_PENDIENTE_DEP, 1) - ' +
+    'COALESCE(d.IMPORTE_ANTICIPO_DEP, 0)) ' +
+    'WHERE c.CODIGO_CLI_CLI = d.CODIGO_CLI_DEP';
+  SQL_EFECTOS_PENDIENTES =
+    'SELECT NUMERO_EFV, IMPORTE_PENDIENTE_EFV FROM fza_efectos_venta ' +
+    'WHERE SERIE_FAC_EFV = :SERIE AND NUMERO_FAC_EFV = :NUMERO ' +
+    'AND ABS(COALESCE(IMPORTE_PENDIENTE_EFV, 0)) > 0 ORDER BY NUMERO_EFV';
+
 function SqlInsertarLineasTicket(AConLotes: Boolean): string;
 begin
   Result := SQL_INSERTAR_LINEAS;
@@ -300,6 +476,27 @@ type
     function UltimaLineaFactura(const ASerie, ANumero: string): Integer;
     procedure CopiarTickets(const ASolicitud: TSolicitudFacturacionTicket;
       const ANumero: string);
+    function LeerPrestamo(AConsulta: TUniQuery): TPrestamoFacturacion;
+    procedure ValidarFechasPrestamos(
+      const ASolicitud: TSolicitudFacturacionTicket);
+    procedure BloquearPrestamos(
+      const ASolicitud: TSolicitudFacturacionTicket);
+    function AlmacenDepositos(const AEmpresa: string): string;
+    procedure EjecutarSqlPrestamo(AConsulta: TUniQuery; const ASql: string;
+      const ASolicitud: TSolicitudFacturacionTicket; const ANumero,
+      AAlmacen, AIdDeposito: string; ALinea: Integer);
+    procedure InsertarCabeceraPrestamos(AConsulta: TUniQuery;
+      const ASolicitud: TSolicitudFacturacionTicket;
+      const ANumero, AAlmacen: string);
+    function InsertarLineasPrestamos(AConsulta: TUniQuery;
+      const ASolicitud: TSolicitudFacturacionTicket;
+      const ANumero, AAlmacen: string): Integer;
+    procedure CerrarPrestamos(AConsulta: TUniQuery;
+      const ASolicitud: TSolicitudFacturacionTicket);
+    procedure GenerarMovimientosPrestamos(
+      const ASolicitud: TSolicitudFacturacionTicket; const ANumero: string);
+    procedure CobrarFacturaPrestamos(AConsulta: TUniQuery;
+      const ASolicitud: TSolicitudFacturacionTicket; const ANumero: string);
   public
     constructor Create(
       AConexion: TUniConnection;
@@ -318,6 +515,10 @@ type
       ADesde, AHasta: TDateTime): TTicketsFacturacion;
     function ConsultarTicketsSinCliente(const AEmpresa: string;
       ADesde, AHasta: TDateTime): TTicketsFacturacion;
+    function ConsultarPrestamosPeriodo(const AEmpresa, ACliente: string;
+      ADesde, AHasta: TDateTime): TPrestamosFacturacion;
+    function CrearFacturaPrestamos(
+      const ASolicitud: TSolicitudFacturacionTicket): string;
   end;
 
 constructor TConsultaClientesFacturacionTicketUniDAC.Create(
@@ -1038,6 +1239,343 @@ begin
           [Length(ASolicitud.Tickets), DateToStr(ASolicitud.FechaDesde),
           DateToStr(ASolicitud.FechaHasta)]);
       FServicioEmision.Emitir(oSolicitudEmision);
+      FConexion.Commit;
+    except
+      FConexion.Rollback;
+      raise;
+    end;
+  finally
+    FreeAndNil(oConsulta);
+  end;
+end;
+
+{ Préstamos }
+
+function TServicioFacturacionTicketUniDAC.LeerPrestamo(
+  AConsulta: TUniQuery): TPrestamoFacturacion;
+begin
+  Result := Default(TPrestamoFacturacion);
+  Result.IdDeposito := AConsulta.FieldByName('ID_DEPOSITO_DEP').AsString;
+  Result.Fecha := AConsulta.FieldByName('FECHA_CREACION_DEP').AsDateTime;
+  Result.Articulo := AConsulta.FieldByName('CODIGO_ART_DEP').AsString;
+  Result.Sku := AConsulta.FieldByName('CODIGO_UNIDAD_DEP').AsString;
+  Result.Descripcion := AConsulta.FieldByName('DESCRIPCION').AsString;
+  Result.Cantidad := AConsulta.FieldByName('CANTIDAD').AsFloat;
+  Result.Precio := AConsulta.FieldByName('PRECIO').AsCurrency;
+  Result.Anticipo := AConsulta.FieldByName('ANTICIPO').AsCurrency;
+  // Lo que se factura ahora: el anticipo ya se facturó al prestar.
+  Result.Total := Result.Precio * Result.Cantidad - Result.Anticipo;
+  Result.InstanteModificacion :=
+    AConsulta.FieldByName('INSTANTE_MODIF').AsDateTime;
+end;
+
+function TServicioFacturacionTicketUniDAC.ConsultarPrestamosPeriodo(
+  const AEmpresa, ACliente: string;
+  ADesde, AHasta: TDateTime): TPrestamosFacturacion;
+var
+  oConsulta: TUniQuery;
+begin
+  Result := nil;
+  oConsulta := TUniQuery.Create(nil);
+  try
+    oConsulta.Connection := FConexion;
+    oConsulta.SQL.Text := SQL_PRESTAMOS_PERIODO + SQL_ORDEN_PRESTAMOS;
+    oConsulta.ParamByName('EMPRESA').AsString := AEmpresa;
+    oConsulta.ParamByName('CLIENTE').AsString := ACliente;
+    oConsulta.ParamByName('DESDE').AsDate := Trunc(ADesde);
+    oConsulta.ParamByName('HASTA').AsDate := Trunc(AHasta) + 1;
+    oConsulta.Open;
+    while not oConsulta.Eof do
+    begin
+      Result := Result + [LeerPrestamo(oConsulta)];
+      oConsulta.Next;
+    end;
+  finally
+    FreeAndNil(oConsulta);
+  end;
+end;
+
+// Mismas reglas de fecha que la F3 del período: período cerrado, factura
+// entre su cierre y hoy, y en el mismo trimestre que cada préstamo.
+procedure TServicioFacturacionTicketUniDAC.ValidarFechasPrestamos(
+  const ASolicitud: TSolicitudFacturacionTicket);
+var
+  oPrestamo: TPrestamoFacturacion;
+  sError: string;
+begin
+  if (Length(ASolicitud.Prestamos) = 0) or
+     (ASolicitud.FechaDesde > ASolicitud.FechaHasta) or
+     (Trunc(ASolicitud.FechaHasta) >= Date) or
+     (Trunc(ASolicitud.Fecha) < Trunc(ASolicitud.FechaHasta)) or
+     (Trunc(ASolicitud.Fecha) > Date) then
+    raise Exception.Create(SFacturacionSimplificadosFechaInvalida);
+  for oPrestamo in ASolicitud.Prestamos do
+  begin
+    sError := ErrorTrimestreFacturaTickets(ASolicitud.Fecha,
+      oPrestamo.Fecha);
+    if sError <> '' then
+      raise Exception.Create(sError);
+  end;
+end;
+
+// Bloquea cada préstamo y comprueba que sigue como se revisó: pendiente,
+// del cliente, en el período y sin cambios desde la revisión.
+procedure TServicioFacturacionTicketUniDAC.BloquearPrestamos(
+  const ASolicitud: TSolicitudFacturacionTicket);
+var
+  oConsulta: TUniQuery;
+  oPrestamo, oActual: TPrestamoFacturacion;
+  oClaves: TStringList;
+begin
+  oConsulta := TUniQuery.Create(nil);
+  oClaves := TStringList.Create;
+  try
+    oConsulta.Connection := FConexion;
+    oConsulta.SQL.Text := SQL_PRESTAMOS_PERIODO +
+      'AND D.ID_DEPOSITO_DEP = :ID FOR UPDATE';
+    for oPrestamo in ASolicitud.Prestamos do
+    begin
+      if oClaves.IndexOf(oPrestamo.IdDeposito) >= 0 then
+        raise Exception.CreateFmt(SErrorPrestamoPeriodo,
+          [oPrestamo.IdDeposito]);
+      oClaves.Add(oPrestamo.IdDeposito);
+      oConsulta.Close;
+      oConsulta.ParamByName('EMPRESA').AsString := ASolicitud.Empresa;
+      oConsulta.ParamByName('CLIENTE').AsString := ASolicitud.Cliente;
+      oConsulta.ParamByName('DESDE').AsDate := Trunc(ASolicitud.FechaDesde);
+      oConsulta.ParamByName('HASTA').AsDate :=
+        Trunc(ASolicitud.FechaHasta) + 1;
+      oConsulta.ParamByName('ID').AsString := oPrestamo.IdDeposito;
+      oConsulta.Open;
+      if oConsulta.IsEmpty then
+        raise Exception.CreateFmt(SErrorPrestamoPeriodo,
+          [oPrestamo.IdDeposito]);
+      oActual := LeerPrestamo(oConsulta);
+      if (oActual.Total <> oPrestamo.Total) or
+         (oActual.InstanteModificacion <>
+          oPrestamo.InstanteModificacion) then
+        raise Exception.CreateFmt(SErrorPrestamoPeriodo,
+          [oPrestamo.IdDeposito]);
+    end;
+  finally
+    FreeAndNil(oClaves);
+    FreeAndNil(oConsulta);
+  end;
+end;
+
+// La prenda prestada está en el almacén de depósitos de la empresa (el
+// CODIGO_ALM_DEP del depósito es el de la tienda que prestó).
+function TServicioFacturacionTicketUniDAC.AlmacenDepositos(
+  const AEmpresa: string): string;
+var
+  oAlmacenes: IRepositorioAlmacenesEmpresa;
+begin
+  oAlmacenes := TRepositorioAlmacenesEmpresaUniDAC.Create(FConexion);
+  Result := Trim(oAlmacenes.ObtenerAlmacenDepositoEmpresa(AEmpresa));
+  if Result = '' then
+    raise Exception.CreateFmt(SErrorPrestamosSinAlmacenDeposito,
+      [AEmpresa]);
+end;
+
+procedure TServicioFacturacionTicketUniDAC.EjecutarSqlPrestamo(
+  AConsulta: TUniQuery; const ASql: string;
+  const ASolicitud: TSolicitudFacturacionTicket; const ANumero,
+  AAlmacen, AIdDeposito: string; ALinea: Integer);
+var
+  oParametro: TParam;
+begin
+  AConsulta.SQL.Text := ASql;
+  oParametro := AConsulta.Params.FindParam('NUMERO');
+  if oParametro <> nil then
+    oParametro.AsString := ANumero;
+  oParametro := AConsulta.Params.FindParam('SERIE');
+  if oParametro <> nil then
+    oParametro.AsString := ASolicitud.SerieNueva;
+  oParametro := AConsulta.Params.FindParam('USUARIO');
+  if oParametro <> nil then
+    oParametro.AsString := ASolicitud.Usuario;
+  oParametro := AConsulta.Params.FindParam('ALMACEN');
+  if oParametro <> nil then
+    oParametro.AsString := AAlmacen;
+  oParametro := AConsulta.Params.FindParam('ID');
+  if oParametro <> nil then
+    oParametro.AsString := AIdDeposito;
+  oParametro := AConsulta.Params.FindParam('LINEA');
+  if oParametro <> nil then
+    oParametro.AsInteger := ALinea;
+  oParametro := AConsulta.Params.FindParam('FECHA');
+  if oParametro <> nil then
+    oParametro.AsDate := Trunc(ASolicitud.Fecha);
+  AConsulta.Execute;
+end;
+
+procedure TServicioFacturacionTicketUniDAC.InsertarCabeceraPrestamos(
+  AConsulta: TUniQuery; const ASolicitud: TSolicitudFacturacionTicket;
+  const ANumero, AAlmacen: string);
+begin
+  AConsulta.SQL.Text := SQL_INSERTAR_CABECERA_PRESTAMOS;
+  AConsulta.ParamByName('NUMERO').AsString := ANumero;
+  AConsulta.ParamByName('SERIE').AsString := ASolicitud.SerieNueva;
+  AConsulta.ParamByName('FECHA_FACTURA').AsDate := Trunc(ASolicitud.Fecha);
+  AConsulta.ParamByName('ALMACEN').AsString := AAlmacen;
+  AConsulta.ParamByName('FORMA_PAGO').AsString := Trim(ASolicitud.FormaPago);
+  AConsulta.ParamByName('COMENTARIO').AsString :=
+    Format(SComentarioFacturacionPrestamos,
+    [Length(ASolicitud.Prestamos), DateToStr(ASolicitud.FechaDesde),
+    DateToStr(ASolicitud.FechaHasta)]);
+  AConsulta.ParamByName('USUARIO').AsString := ASolicitud.Usuario;
+  AConsulta.ParamByName('CLIENTE').AsString := ASolicitud.Cliente;
+  AConsulta.ParamByName('EMPRESA').AsString := ASolicitud.Empresa;
+  AConsulta.Execute;
+  // Sin fila: la empresa no tiene tipos de IVA vigentes en esa fecha.
+  if AConsulta.RowsAffected <> 1 then
+    raise Exception.Create(SErrorCrearBorradorFacturarTicket);
+end;
+
+function TServicioFacturacionTicketUniDAC.InsertarLineasPrestamos(
+  AConsulta: TUniQuery; const ASolicitud: TSolicitudFacturacionTicket;
+  const ANumero, AAlmacen: string): Integer;
+var
+  oPrestamo: TPrestamoFacturacion;
+begin
+  Result := 0;
+  for oPrestamo in ASolicitud.Prestamos do
+  begin
+    Inc(Result);
+    EjecutarSqlPrestamo(AConsulta, SQL_INSERTAR_LINEA_PRESTAMO,
+      ASolicitud, ANumero, AAlmacen, oPrestamo.IdDeposito, Result);
+    if AConsulta.RowsAffected <> 1 then
+      raise Exception.CreateFmt(SErrorPrestamoPeriodo,
+        [oPrestamo.IdDeposito]);
+    if oPrestamo.Anticipo <> 0 then
+    begin
+      Inc(Result);
+      EjecutarSqlPrestamo(AConsulta, SQL_INSERTAR_LINEA_ANTICIPO_PRESTAMO,
+        ASolicitud, ANumero, AAlmacen, oPrestamo.IdDeposito, Result);
+    end;
+  end;
+  if Result > 9999 then
+    raise Exception.Create(SErrorLineasFacturacionSimplificados);
+  AConsulta.SQL.Text := 'UPDATE fza_facturas SET ' +
+    'CONTADOR_LINEAS_FAC = :LINEAS ' +
+    'WHERE SERIE_FAC = :SERIE AND NUMERO_FAC = :NUMERO';
+  AConsulta.ParamByName('LINEAS').AsInteger := Result;
+  AConsulta.ParamByName('SERIE').AsString := ASolicitud.SerieNueva;
+  AConsulta.ParamByName('NUMERO').AsString := ANumero;
+  AConsulta.Execute;
+end;
+
+procedure TServicioFacturacionTicketUniDAC.CerrarPrestamos(
+  AConsulta: TUniQuery; const ASolicitud: TSolicitudFacturacionTicket);
+var
+  oPrestamo: TPrestamoFacturacion;
+begin
+  for oPrestamo in ASolicitud.Prestamos do
+  begin
+    // La deuda se descuenta antes de cerrar: lee el depósito tal cual.
+    EjecutarSqlPrestamo(AConsulta, SQL_DESCONTAR_DEUDA_PRESTAMO,
+      ASolicitud, '', '', oPrestamo.IdDeposito, 0);
+    EjecutarSqlPrestamo(AConsulta, SQL_CERRAR_PRESTAMO,
+      ASolicitud, '', '', oPrestamo.IdDeposito, 0);
+    if AConsulta.RowsAffected <> 1 then
+      raise Exception.CreateFmt(SErrorPrestamoPeriodo,
+        [oPrestamo.IdDeposito]);
+  end;
+end;
+
+// Mismo servicio que la consolidación de borradores: sale del almacén de
+// cada línea (el de depósitos) y no toca las líneas de servicio.
+procedure TServicioFacturacionTicketUniDAC.GenerarMovimientosPrestamos(
+  const ASolicitud: TSolicitudFacturacionTicket; const ANumero: string);
+var
+  oMovimientos: IServicioMovimientosFactura;
+  oSolicitud: TSolicitudMovimientosFactura;
+begin
+  oMovimientos := TServicioMovimientosFactura.Create(FConexion,
+    CrearPersistenciaFacturasUniDAC(FConexion).Movimientos,
+    TRepositorioValoresAutomaticosUniDAC.Create(FConexion));
+  oSolicitud := Default(TSolicitudMovimientosFactura);
+  oSolicitud.Serie := ASolicitud.SerieNueva;
+  oSolicitud.Numero := ANumero;
+  oSolicitud.Empresa := ASolicitud.Empresa;
+  oSolicitud.Cliente := ASolicitud.Cliente;
+  oSolicitud.Fecha := Trunc(ASolicitud.Fecha);
+  oSolicitud.Usuario := ASolicitud.Usuario;
+  oMovimientos.GenerarSalidas(oSolicitud);
+end;
+
+// Cobrada sin pasar por caja: efectos según la forma de pago y todos
+// cobrados en la fecha de la factura.
+procedure TServicioFacturacionTicketUniDAC.CobrarFacturaPrestamos(
+  AConsulta: TUniQuery; const ASolicitud: TSolicitudFacturacionTicket;
+  const ANumero: string);
+var
+  oEfectos: IRepositorioEfectosFactura;
+  sFormaPago: string;
+begin
+  oEfectos := CrearPersistenciaFacturasUniDAC(FConexion).Efectos;
+  if oEfectos.GenerarDesdeFactura(ASolicitud.SerieNueva, ANumero,
+       ASolicitud.Usuario, '', '') < 0 then
+    raise Exception.Create(SErrorCrearBorradorFacturarTicket);
+  AConsulta.SQL.Text := 'SELECT FORMA_PAGO_FAC FROM fza_facturas ' +
+    'WHERE SERIE_FAC = :SERIE AND NUMERO_FAC = :NUMERO';
+  AConsulta.ParamByName('SERIE').AsString := ASolicitud.SerieNueva;
+  AConsulta.ParamByName('NUMERO').AsString := ANumero;
+  AConsulta.Open;
+  sFormaPago := AConsulta.FieldByName('FORMA_PAGO_FAC').AsString;
+  AConsulta.Close;
+  AConsulta.SQL.Text := SQL_EFECTOS_PENDIENTES;
+  AConsulta.ParamByName('SERIE').AsString := ASolicitud.SerieNueva;
+  AConsulta.ParamByName('NUMERO').AsString := ANumero;
+  AConsulta.Open;
+  while not AConsulta.Eof do
+  begin
+    if oEfectos.RegistrarCobro(ASolicitud.SerieNueva, ANumero,
+         ASolicitud.Usuario,
+         AConsulta.FieldByName('NUMERO_EFV').AsInteger,
+         Trunc(ASolicitud.Fecha),
+         AConsulta.FieldByName('IMPORTE_PENDIENTE_EFV').AsFloat,
+         sFormaPago, '') < 1 then
+      raise Exception.Create(SErrorCrearBorradorFacturarTicket);
+    AConsulta.Next;
+  end;
+  AConsulta.Close;
+end;
+
+function TServicioFacturacionTicketUniDAC.CrearFacturaPrestamos(
+  const ASolicitud: TSolicitudFacturacionTicket): string;
+var
+  oConsulta: TUniQuery;
+  oSolicitudEmision: TSolicitudEmisionFiscal;
+  sAlmacen, sMensaje: string;
+begin
+  ValidarFechasPrestamos(ASolicitud);
+  sAlmacen := AlmacenDepositos(ASolicitud.Empresa);
+  FConexion.StartTransaction;
+  oConsulta := TUniQuery.Create(nil);
+  try
+    try
+      oConsulta.Connection := FConexion;
+      BloquearPrestamos(ASolicitud);
+      Result := ObtenerNumero(ASolicitud);
+      InsertarCabeceraPrestamos(oConsulta, ASolicitud, Result, sAlmacen);
+      InsertarLineasPrestamos(oConsulta, ASolicitud, Result, sAlmacen);
+      if not RecalcularTotalesFacturaVenta(FConexion,
+           ASolicitud.SerieNueva, Result, sMensaje) then
+        raise Exception.Create(sMensaje);
+      ValidarRequisitosFiscalesEmision(FParametrosApp, FConexion,
+        ASolicitud.SerieNueva, Result);
+      GenerarMovimientosPrestamos(ASolicitud, Result);
+      CerrarPrestamos(oConsulta, ASolicitud);
+      // Igual que la F3: la emisión va en la misma transacción y, si
+      // falla, no queda ni la factura ni los préstamos cerrados.
+      oSolicitudEmision := TSolicitudEmisionFiscal.ParaAlta(
+        ASolicitud.SerieNueva, Result, ASolicitud.Usuario,
+        Format(SEventoFacturacionPrestamos,
+        [Length(ASolicitud.Prestamos), DateToStr(ASolicitud.FechaDesde),
+        DateToStr(ASolicitud.FechaHasta)]));
+      FServicioEmision.Emitir(oSolicitudEmision);
+      CobrarFacturaPrestamos(oConsulta, ASolicitud, Result);
       FConexion.Commit;
     except
       FConexion.Rollback;

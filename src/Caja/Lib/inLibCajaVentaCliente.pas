@@ -34,6 +34,9 @@ function ResolverTarifaVentaCaja(ATarifas: TDataSet;
   const ASolicitada, AActual, ADefecto: string;
   out AAviso: string): string;
 
+// Caja solo cobra precios con registro en una tarifa con IVA incluido.
+function PrecioVentaCajaValido(const APrecio: TArticuloPrecio): Boolean;
+
 // Precio de una línea en ATarifa. Lo que no tiene precio en ella se cobra
 // con ARespaldo, la tarifa por defecto de caja (vacío: sin respaldo).
 // ATarifaAplicada dice de cuál salió (FZ-ISSUE-727).

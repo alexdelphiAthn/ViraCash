@@ -199,7 +199,10 @@ begin
     for oProveedor in oFiltros.ListarProveedores(opmfArticulos) do
       oProveedores.AddOrSetValue(oProveedor.Codigo, oProveedor.Nombre);
     oConsulta.Connection := AConexion;
-    oConsulta.SQL.Text := SqlComplementosBalance;
+    // FZ-ISSUE-941: al agrupar por proveedor, el de cada identidad.
+    oConsulta.SQL.Text := SqlComplementosBalance(
+      (ACriterios.Nivel1 = 'PRV') or (ACriterios.Nivel2 = 'PRV') or
+      (ACriterios.Nivel3 = 'PRV'));
     oConsulta.ParamByName('DESDE').AsDateTime := Trunc(ACriterios.FechaDesde);
     oConsulta.ParamByName('HASTA').AsDateTime :=
       IncDay(Trunc(ACriterios.FechaHasta));

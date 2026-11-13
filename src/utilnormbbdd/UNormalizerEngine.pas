@@ -323,6 +323,7 @@ begin
   AddSuf('fza_tarifas',                         'TAR');
   AddSuf('fza_tarifas_cambios',                 'TARC');
   AddSuf('fza_tarifas_cambios_lineas',          'TARCLIN');
+  AddSuf('fza_tarifas_cambios_periodos',        'TARCP');
   AddSuf('fza_tarifas_descuento_condiciones',   'TARDCO');
   AddSuf('fza_tarifas_descuento_valores',       'TARDVA');
   AddSuf('fza_tipos_documentos',                'TD');
@@ -421,6 +422,8 @@ begin
   AddOwn('fza_tarifas_cambios',                ['TARIFA','CAMBIO']);
   AddOwn('fza_tarifas_cambios_lineas',
          ['TARIFA','CAMBIO','LINEA']);
+  AddOwn('fza_tarifas_cambios_periodos',
+         ['TARIFA','CAMBIO','PERIODO']);
   AddOwn('fza_tarifas_descuento_condiciones',
          ['TARIFA','DESCUENTO','CONDICION']);
   AddOwn('fza_tarifas_descuento_valores',

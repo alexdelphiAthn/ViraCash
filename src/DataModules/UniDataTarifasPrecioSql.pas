@@ -52,6 +52,10 @@ const
     'WHEN LOCATE(''/*/'', PT.CODIGO_UNIDAD_ARTTAR) > 0 THEN 1 ' +
     'WHEN COALESCE(PT.CODIGO_UNIDAD_ARTTAR, '''') <> '''' THEN 2 ' +
     'ELSE 3 END, CHAR_LENGTH(PT.CODIGO_UNIDAD_ARTTAR) DESC, ' +
+    // FZ-ISSUE-944: a igual concreción, un precio con fecha fin (periodo de
+    // rebajas) gana al abierto mientras está vigente; si no, una sesión
+    // normal aplicada el mismo día que empieza el periodo lo taparía.
+    '(PT.FECHA_HASTA_ARTTAR IS NULL), ' +
     'PT.FECHA_DESDE_ARTTAR DESC, PT.CODIGO_UNICO_ARTTAR DESC LIMIT 1';
 
 function SqlSeleccionPrecioTarifa(const AArticulo, ASku, ATarifa,

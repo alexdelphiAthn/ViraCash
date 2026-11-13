@@ -851,6 +851,40 @@ resourcestring
     'Una factura F3 admite como máximo %d tickets. ' +
     'Retira tickets de la selección antes de emitir.';
 
+resourcestring
+  SFacturacionPrestamosTitulo =
+    'Préstamos pendientes (se facturan aparte como venta nueva y quedan ' +
+    'cobrados):';
+  SFacturacionPrestamosLinea =
+    'Préstamo %s    %s x %s    Total: %s';
+  SFacturacionPrestamosAnticipo =
+    '    Anticipo ya entregado: %s';
+  SFacturacionPrestamosTotal =
+    '%d préstamos. Total factura: %s';
+  SFacturacionPrestamosRetirar =
+    'Retirar préstamo';
+  SFacturacionPrestamosSeleccion =
+    'Préstamos del período';
+  SFacturacionPrestamosEmitidas =
+    'Facturas emitidas:%s';
+  SFacturacionPrestamosFacturaTickets =
+    '%s  %s/%s: tickets (sustitución F3)';
+  SFacturacionPrestamosFacturaPrestamos =
+    '%s  %s/%s: préstamos (venta F1, cobrada)';
+  SFacturacionPrestamosErrorSegunda =
+    'La factura de los tickets %s/%s se ha emitido, pero la de los ' +
+    'préstamos no: %s';
+  SErrorPrestamoPeriodo =
+    'El préstamo %s ha cambiado o ya no está pendiente. Vuelve a ' +
+    'revisar el período.';
+  SErrorPrestamosSinAlmacenDeposito =
+    'La empresa %s no tiene almacén de depósitos: no se pueden facturar ' +
+    'sus préstamos.';
+  SComentarioFacturacionPrestamos =
+    'Factura de %d préstamos cobrados. Período: %s - %s.';
+  SEventoFacturacionPrestamos =
+    'Facturación de préstamos: %d préstamos, período %s - %s';
+
 implementation
 
 uses
@@ -928,9 +962,13 @@ begin
     EsCampoEstadoDocumento(ACampo) or
     SameText(ACampo, 'ESTADO_TARC') or
     SameText(ACampo, 'ESTADO_TARCLIN') or
+    SameText(ACampo, 'ESTADO_TARCP') or
     SameText(ACampo, 'CAMPO_ORIGEN_TARC') or
+    SameText(ACampo, 'CAMPO_ORIGEN_TARCP') or
     SameText(ACampo, 'CAMPO_DESTINO_TARC') or
+    SameText(ACampo, 'CAMPO_DESTINO_TARCP') or
     SameText(ACampo, 'TIPO_APLICACION_TARC') or
+    SameText(ACampo, 'TIPO_APLICACION_TARCP') or
     SameText(ACampo, 'ESAPLICAR_TARCLIN') or
     SameText(ACampo, 'ESCONSOLIDADA_FAC') or
     SameText(ACampo, 'FASE_FAC') or
@@ -1011,7 +1049,8 @@ begin
       Result := SFaseFacturaVerifactuAceptada;
   end
   else if SameText(ACampo, 'ESTADO_TARC') or
-          SameText(ACampo, 'ESTADO_TARCLIN') then
+          SameText(ACampo, 'ESTADO_TARCLIN') or
+          SameText(ACampo, 'ESTADO_TARCP') then
   begin
     if AValor = 'APLICADA' then Result := SValorTarifaAplicada
     else if AValor = 'BORRADOR' then Result := SEstadoDocumentoBorrador
@@ -1024,20 +1063,23 @@ begin
     if AValor = 'S' then Result := SValorTarifaSi
     else if AValor = 'N' then Result := SValorTarifaNo;
   end
-  else if SameText(ACampo, 'CAMPO_ORIGEN_TARC') then
+  else if SameText(ACampo, 'CAMPO_ORIGEN_TARC') or
+          SameText(ACampo, 'CAMPO_ORIGEN_TARCP') then
   begin
     if AValor = 'PRECIO_ORIGEN' then Result := SValorTarifaPrecioOrigen
     else if AValor = 'PRECIO_COSTE' then Result := SValorTarifaPrecioCoste
     else if AValor = 'PRECIO_DESTINO_ACTUAL' then
       Result := SValorTarifaPrecioDestinoActual;
   end
-  else if SameText(ACampo, 'CAMPO_DESTINO_TARC') then
+  else if SameText(ACampo, 'CAMPO_DESTINO_TARC') or
+          SameText(ACampo, 'CAMPO_DESTINO_TARCP') then
   begin
     if AValor = 'AMBOS' then Result := SValorTarifaAmbos
     else if AValor = 'PRECIO_SALIDA' then Result := SValorTarifaPrecioSalida
     else if AValor = 'PRECIO_FINAL' then Result := SValorTarifaPrecioFinal;
   end
-  else if SameText(ACampo, 'TIPO_APLICACION_TARC') then
+  else if SameText(ACampo, 'TIPO_APLICACION_TARC') or
+          SameText(ACampo, 'TIPO_APLICACION_TARCP') then
   begin
     if AValor = 'COPIAR' then Result := SValorTarifaCopiar
     else if AValor = 'INCREMENTO_LINEAL' then

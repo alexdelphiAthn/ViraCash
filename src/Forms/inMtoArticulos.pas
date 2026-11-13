@@ -661,6 +661,7 @@ uses
   UniDataColumnasDocumentoRepositorio,
   UniDataDestinoFacturaRepositorio,
   UniDataMovimientosArticuloColor,
+  UniDataStockConsultaRepositorio, inLibStockConsultaPersistenciaIntf,
   inMtoModalMovimientosArticuloColor,
   UniDataFiltroArticulosRepositorio,
   inMtoArticulosNavegacionFacturasVcl,
@@ -672,20 +673,33 @@ uses
 
 procedure TfrmMtoArticulos.MostrarMovimientosArticuloColor(Sender: TObject);
 var
-  oConsulta: TDataSet;
+  oConsulta, oConsultaHorizontal: TDataSet;
+  aInfoTallas: TArray<TInfoColumna>;
+  aTallas: TArray<string>;
   sArticulo, sSku: string;
+  i: Integer;
 begin
   if dsTablaG.DataSet.Active and not dsTablaG.DataSet.IsEmpty and
     (dsTablaG.DataSet.State <> dsInsert) then
   begin
     ResolverArtSkuActivo(sArticulo, sSku);
+    // Mismas tallas y orden de columnas que la consulta de stock (Ctrl+U).
+    aInfoTallas := CrearServiciosStockConsultaUniDAC(
+      ConexionPrincipal).Pivote.ListarTallas(sArticulo, nil);
+    SetLength(aTallas, Length(aInfoTallas));
+    for i := 0 to High(aInfoTallas) do
+      aTallas[i] := aInfoTallas[i].Texto;
+    oConsultaHorizontal := nil;
     oConsulta := ConsultarMovimientosArticuloColor(ConexionPrincipal,
       sArticulo);
     try
+      oConsultaHorizontal := ConsultarMovimientosArticuloHorizontal(
+        ConexionPrincipal, sArticulo, aTallas);
       TfrmModalMovimientosArticuloColor.Ejecutar(Self, oConsulta,
-        sArticulo + ' - ' +
+        oConsultaHorizontal, aTallas, sArticulo + ' - ' +
         dsTablaG.DataSet.FieldByName('DESCRIPCION_ART').AsString, sSku);
     finally
+      FreeAndNil(oConsultaHorizontal);
       FreeAndNil(oConsulta);
     end;
   end;
