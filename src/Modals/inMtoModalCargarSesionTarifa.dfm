@@ -1,6 +1,6 @@
 ﻿inherited frmModalCargarSesionTarifa: TfrmModalCargarSesionTarifa
   Caption = 'Cargar articulos en sesion de tarifas'
-  PixelsPerInch = 120
+  TextHeight = 19
   inherited pnlCabeceraComun: TPanel
     inherited chkSoloActivos: TcxCheckBox
       AutoSize = False

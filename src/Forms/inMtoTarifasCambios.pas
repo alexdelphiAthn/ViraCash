@@ -74,6 +74,10 @@ type
     btnActualizarCostes: TcxButton;
     btnEliminarLineas: TcxButton;
     actIrArticulo     : TAction;
+    // Rejilla de 4 columnas (etiqueta + control) de la ficha.
+    FColEtiqueta      : array[0..3] of Integer;
+    FColControl       : array[0..3] of Integer;
+    FColAncho         : array[0..3] of Integer;
     procedure CrearControlesDinamicos;
     procedure CrearAtajos;
     procedure CrearCabecera;
@@ -82,9 +86,17 @@ type
     procedure CrearGridLineas;
     procedure CrearColumnasCabecera;
     procedure CrearColumnasLineas;
+    function  Esc(AValor: Integer): Integer;
+    function  AnchoTexto(const ATexto: string): Integer;
+    procedure CalcularColumnas;
     procedure CrearEtiqueta(AParent: TWinControl;
                             const ATexto: string;
                             AIzq, ATop: Integer);
+    procedure ColocarCampo(AParent: TWinControl; const ATexto: string;
+                           AControl: TControl; ACol, ATop: Integer;
+                           AAncho: Integer = 0);
+    procedure ColocarBoton(ABoton: TcxButton; ATop: Integer;
+                           var AX: Integer; AHueco: Integer = 0);
     function  CrearColumna(AView: TcxGridDBTableView;
                            const ACampo, ATitulo: string;
                            AAncho: Integer): TcxGridDBColumn;
@@ -192,177 +204,236 @@ begin
   actIrArticulo.ActionList := alMtoGen;
 end;
 
-procedure TfrmMtoTarifasCambios.CrearCabecera;
+// Las etiquetas y los botones se miden con la fuente real del formulario
+// para que no se corten ni se monten sobre su control.
+const
+  FICHA_MARGEN      = 12;
+  FICHA_SEP_ETIQ    = 8;
+  FICHA_SEP_COLUMNA = 28;
+  FICHA_ALTO_FILA   = 36;
+  FICHA_ALTO_BOTON  = 28;
+  FICHA_SEP_BOTON   = 8;
+  FICHA_SEP_GRUPO   = 24;
+
+function TfrmMtoTarifasCambios.Esc(AValor: Integer): Integer;
 begin
+  Result := MulDiv(AValor, CurrentPPI, 96);
+end;
+
+function TfrmMtoTarifasCambios.AnchoTexto(const ATexto: string): Integer;
+var
+  Bmp: TBitmap;
+begin
+  Bmp := TBitmap.Create;
+  try
+    Bmp.Canvas.Font.Assign(Font);
+    Result := Bmp.Canvas.TextWidth(ATexto);
+  finally
+    Bmp.Free;
+  end;
+end;
+
+// Columna 0: tarifa/campo de origen; 1: destino; 2: fechas y tipo de
+// aplicacion; 3: estado, hasta y valor. Cada columna alinea sus etiquetas.
+procedure TfrmMtoTarifasCambios.CalcularColumnas;
+
+  function MaxTexto(const ATextos: array of string): Integer;
+  var
+    Texto: string;
+  begin
+    Result := 0;
+    for Texto in ATextos do
+      if AnchoTexto(Texto) > Result then
+        Result := AnchoTexto(Texto);
+  end;
+
+var
+  Etiquetas: array[0..3] of Integer;
+  X, Col: Integer;
+begin
+  Etiquetas[0] := MaxTexto([SCaptionCambioTarifaNombre,
+    SCaptionCambioTarifaOrigen, SCaptionCambioCampoOrigen,
+    SCaptionCambioRedondeo]);
+  Etiquetas[1] := MaxTexto([SCaptionCambioTarifaDestino,
+    SCaptionCambioCampoDestino, SCaptionCambioMenos]);
+  Etiquetas[2] := MaxTexto([SCaptionCambioTarifaFecha,
+    SCaptionCambioTarifaDesde, SCaptionCambioAplicar]);
+  Etiquetas[3] := MaxTexto([SCaptionCambioTarifaEstado,
+    SCaptionCambioTarifaHasta, SCaptionCambioValor]);
+  FColAncho[0] := Esc(210);
+  FColAncho[1] := Esc(210);
+  FColAncho[2] := Esc(200);
+  FColAncho[3] := Esc(130);
+  X := Esc(FICHA_MARGEN);
+  for Col := 0 to 3 do
+  begin
+    FColEtiqueta[Col] := X;
+    FColControl[Col] := X + Etiquetas[Col] + Esc(FICHA_SEP_ETIQ);
+    X := FColControl[Col] + FColAncho[Col] + Esc(FICHA_SEP_COLUMNA);
+  end;
+end;
+
+procedure TfrmMtoTarifasCambios.ColocarCampo(AParent: TWinControl;
+  const ATexto: string; AControl: TControl; ACol, ATop, AAncho: Integer);
+begin
+  if ATexto <> '' then
+    CrearEtiqueta(AParent, ATexto, FColEtiqueta[ACol], ATop + Esc(3));
+  AControl.Parent := AParent;
+  AControl.Left := FColControl[ACol];
+  AControl.Top := ATop;
+  if AAncho > 0 then
+    AControl.Width := AAncho
+  else
+    AControl.Width := FColAncho[ACol];
+end;
+
+procedure TfrmMtoTarifasCambios.ColocarBoton(ABoton: TcxButton;
+  ATop: Integer; var AX: Integer; AHueco: Integer);
+var
+  Ancho: Integer;
+begin
+  Inc(AX, AHueco);
+  Ancho := AnchoTexto(ABoton.Caption) + Esc(32);
+  if Ancho < Esc(100) then
+    Ancho := Esc(100);
+  ABoton.SetBounds(AX, ATop, Ancho, Esc(FICHA_ALTO_BOTON));
+  Inc(AX, Ancho + Esc(FICHA_SEP_BOTON));
+end;
+
+procedure TfrmMtoTarifasCambios.CrearCabecera;
+var
+  Fila0, Fila1: Integer;
+begin
+  CalcularColumnas;
+  Fila0 := Esc(10);
+  Fila1 := Fila0 + Esc(FICHA_ALTO_FILA);
   pnlCabecera := TPanel.Create(Self);
   pnlCabecera.Parent := tsFicha;
   pnlCabecera.Align := alTop;
-  pnlCabecera.Height := 88;
+  pnlCabecera.Height := Fila1 + Esc(FICHA_ALTO_FILA);
   pnlCabecera.BevelOuter := bvNone;
   pnlCabecera.ParentBackground := False;
   pnlCabecera.Color := clWhite;
-  CrearEtiqueta(pnlCabecera, SCaptionCambioTarifaNombre, 12, 12);
+  // Fila 0: el nombre ocupa las columnas de origen y destino.
   txtNombre := TcxDBTextEdit.Create(Self);
-  txtNombre.Parent := pnlCabecera;
-  txtNombre.Left := 80;
-  txtNombre.Top := 8;
-  txtNombre.Width := 330;
-  CrearEtiqueta(pnlCabecera, SCaptionCambioTarifaFecha, 430, 12);
+  ColocarCampo(pnlCabecera, SCaptionCambioTarifaNombre, txtNombre, 0, Fila0,
+    FColControl[1] + FColAncho[1] - FColControl[0]);
   dteFecha := TcxDBDateEdit.Create(Self);
-  dteFecha.Parent := pnlCabecera;
-  dteFecha.Left := 486;
-  dteFecha.Top := 8;
-  dteFecha.Width := 120;
-  CrearEtiqueta(pnlCabecera, SCaptionCambioTarifaEstado, 625, 12);
+  ColocarCampo(pnlCabecera, SCaptionCambioTarifaFecha, dteFecha, 2, Fila0,
+    Esc(130));
   txtEstado := TcxDBTextEdit.Create(Self);
-  txtEstado.Parent := pnlCabecera;
-  txtEstado.Left := 688;
-  txtEstado.Top := 8;
-  txtEstado.Width := 120;
+  ColocarCampo(pnlCabecera, SCaptionCambioTarifaEstado, txtEstado, 3, Fila0);
   txtEstado.Properties.ReadOnly := True;
-  CrearEtiqueta(pnlCabecera, SCaptionCambioTarifaOrigen, 12, 50);
+  // Fila 1: tarifas y vigencia.
   cbbTarifaOrigen := TcxDBLookupComboBox.Create(Self);
-  cbbTarifaOrigen.Parent := pnlCabecera;
-  cbbTarifaOrigen.Left := 110;
-  cbbTarifaOrigen.Top := 46;
-  cbbTarifaOrigen.Width := 220;
-  CrearEtiqueta(pnlCabecera, SCaptionCambioTarifaDestino, 350, 50);
+  ColocarCampo(pnlCabecera, SCaptionCambioTarifaOrigen, cbbTarifaOrigen, 0,
+    Fila1);
   cbbTarifaDestino := TcxDBLookupComboBox.Create(Self);
-  cbbTarifaDestino.Parent := pnlCabecera;
-  cbbTarifaDestino.Left := 456;
-  cbbTarifaDestino.Top := 46;
-  cbbTarifaDestino.Width := 220;
-  CrearEtiqueta(pnlCabecera, SCaptionCambioTarifaDesde, 696, 50);
+  ColocarCampo(pnlCabecera, SCaptionCambioTarifaDestino, cbbTarifaDestino, 1,
+    Fila1);
   dteDesde := TcxDBDateEdit.Create(Self);
-  dteDesde.Parent := pnlCabecera;
-  dteDesde.Left := 748;
-  dteDesde.Top := 46;
-  dteDesde.Width := 110;
-  CrearEtiqueta(pnlCabecera, SCaptionCambioTarifaHasta, 876, 50);
+  ColocarCampo(pnlCabecera, SCaptionCambioTarifaDesde, dteDesde, 2, Fila1,
+    Esc(130));
   dteHasta := TcxDBDateEdit.Create(Self);
-  dteHasta.Parent := pnlCabecera;
-  dteHasta.Left := 928;
-  dteHasta.Top := 46;
-  dteHasta.Width := 110;
+  ColocarCampo(pnlCabecera, SCaptionCambioTarifaHasta, dteHasta, 3, Fila1);
 end;
 
 procedure TfrmMtoTarifasCambios.CrearParametros;
+var
+  Fila0, Fila1: Integer;
 begin
+  Fila0 := Esc(8);
+  Fila1 := Fila0 + Esc(FICHA_ALTO_FILA);
   pnlParametros := TPanel.Create(Self);
   pnlParametros.Parent := tsFicha;
   pnlParametros.Align := alTop;
-  pnlParametros.Height := 86;
+  pnlParametros.Top := pnlCabecera.Top + pnlCabecera.Height;
+  pnlParametros.Height := Fila1 + Esc(FICHA_ALTO_FILA) + Esc(4);
   pnlParametros.BevelOuter := bvNone;
   pnlParametros.ParentBackground := False;
   pnlParametros.Color := clWhite;
-  CrearEtiqueta(pnlParametros, SCaptionCambioCampoOrigen, 12, 10);
+  // Fila 0: de donde sale el precio, a donde va y como se calcula.
   cbbCampoOrigen := TcxDBImageComboBox.Create(Self);
-  cbbCampoOrigen.Parent := pnlParametros;
-  cbbCampoOrigen.Left := 80;
-  cbbCampoOrigen.Top := 6;
-  cbbCampoOrigen.Width := 170;
-  CrearEtiqueta(pnlParametros, SCaptionCambioCampoDestino, 268, 10);
+  ColocarCampo(pnlParametros, SCaptionCambioCampoOrigen, cbbCampoOrigen, 0,
+    Fila0);
   cbbCampoDestino := TcxDBImageComboBox.Create(Self);
-  cbbCampoDestino.Parent := pnlParametros;
-  cbbCampoDestino.Left := 338;
-  cbbCampoDestino.Top := 6;
-  cbbCampoDestino.Width := 145;
-  CrearEtiqueta(pnlParametros, SCaptionCambioAplicar, 502, 10);
+  ColocarCampo(pnlParametros, SCaptionCambioCampoDestino, cbbCampoDestino, 1,
+    Fila0);
   cbbTipoAplicacion := TcxDBImageComboBox.Create(Self);
-  cbbTipoAplicacion.Parent := pnlParametros;
-  cbbTipoAplicacion.Left := 572;
-  cbbTipoAplicacion.Top := 6;
-  cbbTipoAplicacion.Width := 180;
-  CrearEtiqueta(pnlParametros, SCaptionCambioValor, 770, 10);
+  ColocarCampo(pnlParametros, SCaptionCambioAplicar, cbbTipoAplicacion, 2,
+    Fila0);
   curValor := TcxDBCurrencyEdit.Create(Self);
-  curValor.Parent := pnlParametros;
-  curValor.Left := 820;
-  curValor.Top := 6;
-  curValor.Width := 90;
+  ColocarCampo(pnlParametros, SCaptionCambioValor, curValor, 3, Fila0);
   curValor.Properties.UseDisplayFormatWhenEditing := True;
-  CrearEtiqueta(pnlParametros, SCaptionCambioRedondeo, 12, 48);
+  // Fila 1: redondeo del precio resultante.
   curRedondeo := TcxDBCurrencyEdit.Create(Self);
-  curRedondeo.Parent := pnlParametros;
-  curRedondeo.Left := 96;
-  curRedondeo.Top := 44;
-  curRedondeo.Width := 90;
-  CrearEtiqueta(pnlParametros, SCaptionCambioMenos, 208, 48);
+  ColocarCampo(pnlParametros, SCaptionCambioRedondeo, curRedondeo, 0, Fila1,
+    Esc(110));
   curMenos := TcxDBCurrencyEdit.Create(Self);
-  curMenos.Parent := pnlParametros;
-  curMenos.Left := 264;
-  curMenos.Top := 44;
-  curMenos.Width := 90;
+  ColocarCampo(pnlParametros, SCaptionCambioMenos, curMenos, 1, Fila1,
+    Esc(110));
   chkRedondear := TcxDBCheckBox.Create(Self);
   chkRedondear.Parent := pnlParametros;
-  chkRedondear.Left := 378;
-  chkRedondear.Top := 43;
-  chkRedondear.Width := 165;
   chkRedondear.Caption := SCaptionRedondearHaciaArriba;
+  chkRedondear.Left := FColEtiqueta[2];
+  chkRedondear.Top := Fila1 + Esc(1);
+  chkRedondear.Width := AnchoTexto(SCaptionRedondearHaciaArriba) + Esc(36);
   chkRedondear.Properties.ValueChecked := 'S';
   chkRedondear.Properties.ValueUnchecked := 'N';
 end;
 
+function CrearBoton(AOwner: TComponent; AParent: TWinControl;
+  const ACaption: string; AOnClick: TNotifyEvent): TcxButton;
+begin
+  Result := TcxButton.Create(AOwner);
+  Result.Parent := AParent;
+  Result.Caption := ACaption;
+  Result.OnClick := AOnClick;
+end;
+
+// Botones en el orden del flujo de trabajo: cargar, calcular, ajustar y
+// aplicar; despues el intercambio con Excel y, aparte, refrescar.
+// Se crean en ese orden para que el tabulador lo siga.
 procedure TfrmMtoTarifasCambios.CrearAcciones;
+var
+  X, Y: Integer;
 begin
   pnlAcciones := TPanel.Create(Self);
   pnlAcciones.Parent := tsFicha;
   pnlAcciones.Align := alTop;
-  pnlAcciones.Height := 44;
+  pnlAcciones.Top := pnlParametros.Top + pnlParametros.Height;
+  pnlAcciones.Height := Esc(FICHA_ALTO_BOTON) + Esc(14);
   pnlAcciones.BevelOuter := bvNone;
   pnlAcciones.ParentBackground := False;
   pnlAcciones.Color := clWhite;
-  btnCargar := TcxButton.Create(Self);
-  btnCargar.Parent := pnlAcciones;
-  btnCargar.Left := 12;
-  btnCargar.Top := 6;
-  btnCargar.Width := 130;
-  btnCargar.Caption := SCaptionCargarArticulos;
-  btnCargar.OnClick := btnCargarClick;
-  btnCalcular := TcxButton.Create(Self);
-  btnCalcular.Parent := pnlAcciones;
-  btnCalcular.Left := 154;
-  btnCalcular.Top := 6;
-  btnCalcular.Width := 120;
-  btnCalcular.Caption := SCaptionCalcularLineas;
-  btnCalcular.OnClick := btnCalcularClick;
-  btnAplicar := TcxButton.Create(Self);
-  btnAplicar.Parent := pnlAcciones;
-  btnAplicar.Left := 286;
-  btnAplicar.Top := 6;
-  btnAplicar.Width := 116;
-  btnAplicar.Caption := SCaptionAplicarTarifa;
-  btnAplicar.OnClick := btnAplicarClick;
-  btnRefrescar := TcxButton.Create(Self);
-  btnRefrescar.Parent := pnlAcciones;
-  btnRefrescar.Left := 414;
-  btnRefrescar.Top := 6;
-  btnRefrescar.Width := 92;
-  btnRefrescar.Caption := SCaptionRefrescar;
-  btnRefrescar.OnClick := btnRefrescarClick;
-  btnExportarExcel := TcxButton.Create(Self);
-  btnExportarExcel.Parent := pnlAcciones;
-  btnExportarExcel.Left := 530;
-  btnExportarExcel.Top := 6;
-  btnExportarExcel.Width := 116;
-  btnExportarExcel.Caption := SCaptionExportarExcelSesionTarifa;
-  btnExportarExcel.OnClick := btnExportarExcelClick;
-  btnCargarExcel := TcxButton.Create(Self);
-  btnCargarExcel.Parent := pnlAcciones;
-  btnCargarExcel.Left := 658;
-  btnCargarExcel.Top := 6;
-  btnCargarExcel.Width := 116;
-  btnCargarExcel.Caption := SCaptionCargarExcelSesionTarifa;
-  btnCargarExcel.OnClick := btnCargarExcelClick;
-  btnDescuentoLote := TcxButton.Create(Self);
-  btnDescuentoLote.Parent := pnlAcciones;
-  btnDescuentoLote.Left := 798;
-  btnDescuentoLote.Top := 6;
-  btnDescuentoLote.Width := 130;
-  btnDescuentoLote.Caption := SCaptionDescuentoLoteSesionTarifa;
-  btnDescuentoLote.OnClick := btnDescuentoLoteClick;
+  btnCargar := CrearBoton(Self, pnlAcciones, SCaptionCargarArticulos,
+    btnCargarClick);
+  btnCalcular := CrearBoton(Self, pnlAcciones, SCaptionCalcularLineas,
+    btnCalcularClick);
+  btnDescuentoLote := CrearBoton(Self, pnlAcciones,
+    SCaptionDescuentoLoteSesionTarifa, btnDescuentoLoteClick);
+  btnAplicar := CrearBoton(Self, pnlAcciones, SCaptionAplicarTarifa,
+    btnAplicarClick);
+  btnExportarExcel := CrearBoton(Self, pnlAcciones,
+    SCaptionExportarExcelSesionTarifa, btnExportarExcelClick);
+  btnCargarExcel := CrearBoton(Self, pnlAcciones,
+    SCaptionCargarExcelSesionTarifa, btnCargarExcelClick);
+  btnRefrescar := CrearBoton(Self, pnlAcciones, SCaptionRefrescar,
+    btnRefrescarClick);
+  X := Esc(FICHA_MARGEN);
+  Y := Esc(6);
+  ColocarBoton(btnCargar, Y, X);
+  ColocarBoton(btnCalcular, Y, X);
+  ColocarBoton(btnDescuentoLote, Y, X);
+  ColocarBoton(btnAplicar, Y, X);
+  ColocarBoton(btnExportarExcel, Y, X, Esc(FICHA_SEP_GRUPO));
+  ColocarBoton(btnCargarExcel, Y, X);
+  ColocarBoton(btnRefrescar, Y, X, Esc(FICHA_SEP_GRUPO));
 end;
 
 procedure TfrmMtoTarifasCambios.CrearGridLineas;
+var
+  X, Y: Integer;
 begin
   pcDetalle := TcxPageControl.Create(Self);
   pcDetalle.Parent := tsFicha;
@@ -373,28 +444,22 @@ begin
   pnlSeleccion := TPanel.Create(Self);
   pnlSeleccion.Parent := tsLineas;
   pnlSeleccion.Align := alTop;
-  pnlSeleccion.Height := 36;
+  pnlSeleccion.Height := Esc(FICHA_ALTO_BOTON) + Esc(10);
   pnlSeleccion.BevelOuter := bvNone;
-  btnMarcarTodo := TcxButton.Create(Self);
-  btnMarcarTodo.Parent := pnlSeleccion;
-  btnMarcarTodo.SetBounds(8, 5, 130, 25);
-  btnMarcarTodo.Caption := SCaptionMarcarTodoSesionTarifa;
-  btnMarcarTodo.OnClick := btnMarcarTodoClick;
-  btnDesmarcarTodo := TcxButton.Create(Self);
-  btnDesmarcarTodo.Parent := pnlSeleccion;
-  btnDesmarcarTodo.SetBounds(146, 5, 140, 25);
-  btnDesmarcarTodo.Caption := SCaptionDesmarcarTodoSesionTarifa;
-  btnDesmarcarTodo.OnClick := btnDesmarcarTodoClick;
-  btnActualizarCostes := TcxButton.Create(Self);
-  btnActualizarCostes.Parent := pnlSeleccion;
-  btnActualizarCostes.SetBounds(300, 5, 160, 25);
-  btnActualizarCostes.Caption := SCaptionActualizarCostesSesion;
-  btnActualizarCostes.OnClick := btnActualizarCostesClick;
-  btnEliminarLineas := TcxButton.Create(Self);
-  btnEliminarLineas.Parent := pnlSeleccion;
-  btnEliminarLineas.SetBounds(472, 5, 150, 25);
-  btnEliminarLineas.Caption := SCaptionEliminarLineasSesion;
-  btnEliminarLineas.OnClick := btnEliminarLineasClick;
+  btnMarcarTodo := CrearBoton(Self, pnlSeleccion,
+    SCaptionMarcarTodoSesionTarifa, btnMarcarTodoClick);
+  btnDesmarcarTodo := CrearBoton(Self, pnlSeleccion,
+    SCaptionDesmarcarTodoSesionTarifa, btnDesmarcarTodoClick);
+  btnActualizarCostes := CrearBoton(Self, pnlSeleccion,
+    SCaptionActualizarCostesSesion, btnActualizarCostesClick);
+  btnEliminarLineas := CrearBoton(Self, pnlSeleccion,
+    SCaptionEliminarLineasSesion, btnEliminarLineasClick);
+  X := Esc(8);
+  Y := Esc(5);
+  ColocarBoton(btnMarcarTodo, Y, X);
+  ColocarBoton(btnDesmarcarTodo, Y, X);
+  ColocarBoton(btnActualizarCostes, Y, X, Esc(FICHA_SEP_GRUPO));
+  ColocarBoton(btnEliminarLineas, Y, X);
   cxgrdLineas := TcxGrid.Create(Self);
   cxgrdLineas.Parent := tsLineas;
   cxgrdLineas.Align := alClient;
@@ -641,7 +706,7 @@ begin
   begin
     CrearColumna(tvLineas, 'ESAPLICAR_TARCLIN', SCaptionCambioAplicar, 65);
     CrearColumna(tvLineas, 'ESTADO_TARCLIN', SCaptionCambioTarifaEstado, 90);
-    CrearColumna(tvLineas, 'CODIGO_ART_TARCLIN', SCaptionCambioArticulo, 110);
+    CrearColumna(tvLineas, 'CODIGO_ART_TARCLIN', SCaptionCambioArticulo, 140);
     CrearColumna(tvLineas, 'CODIGO_UNIDAD_SKU_TARCLIN',
       SCaptionColSku, 160).Options.Editing := False;
     CrearColumna(tvLineas, 'DESCRIPCION_ART', SCaptionCambioDescripcion, 240);
@@ -689,7 +754,9 @@ begin
   Result := AView.CreateColumn;
   Result.DataBinding.FieldName := ACampo;
   Result.Caption := ATitulo;
-  Result.Width := AAncho;
+  Result.Width := Esc(AAncho);
+  if Result.Width < AnchoTexto(ATitulo) + Esc(20) then
+    Result.Width := AnchoTexto(ATitulo) + Esc(20);
 end;
 
 // Importes con dos decimales, alineados a la derecha, tambien al editar.
