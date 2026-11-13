@@ -51,9 +51,12 @@ begin
      (not ACabecera.IsEmpty) then
     sCodigo := Trim(ACabecera.FieldByName(
       ACampoCodigoProveedor).AsString);
+  // FZ-ISSUE-937: "0" es el valor inicial de un documento nuevo, sin
+  // proveedor elegido todavia; solo se rotula si existe ese proveedor.
   if sCodigo <> '' then
   begin
-    Result := sCodigo + ' - (proveedor no encontrado)';
+    if sCodigo <> '0' then
+      Result := sCodigo + ' - (proveedor no encontrado)';
     if Assigned(AProveedores) and AProveedores.Active and
        AProveedores.Locate(
          'CODIGO_PRV_PRV', sCodigo, []) then

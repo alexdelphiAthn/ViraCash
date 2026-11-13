@@ -1472,11 +1472,12 @@ begin
     FFotos.ActualizarPaginaFicha;
   if cxPageControl1.ActivePage = tsPedidoOriginal then
   begin
-    FVisorPedidoOriginal.CargarSiVacio;
+    FVisorPedidoOriginal.Activar;
     // Si la imagen ya esta cargada se conserva la vista actual: pagina,
-    // zoom y desplazamiento. Con el boton Fijar zoom pulsado el zoom se
-    // mantiene tambien al cambiar de sesion; suelto, cada pedido se
-    // encaja en el visor al cargarse.
+    // zoom y desplazamiento. Con el boton Fijar zoom pulsado, al cambiar
+    // de sesion se restauran el zoom y la posicion guardados al pulsarlo;
+    // suelto, cada pedido se encaja en el visor al cargarse. Activar
+    // repite esa vista si la carga ocurrio con la pestana oculta.
   end
   else
   begin

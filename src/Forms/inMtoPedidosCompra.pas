@@ -404,6 +404,7 @@ function CrearPedidosCompraInyectada(
 implementation
 
 uses
+  inLibComboProveedorDocumentoVcl,
   UniDataEjesVariacion,
   inMtoModalImpDocumento,
   inLibMensajesVcl,
@@ -735,6 +736,8 @@ begin
   // por codigo o por nombre sobre el texto "codigo - nombre".
   // Reutiliza el lookup unqryPrvDataPedc, ya cargado para el rotulo.
   cbbCODIGO_PRV_PEDC.Properties.ListSource := dmmPedidosCompra.dsPrvDataPedc;
+  // FZ-ISSUE-937: tras elegir o salir se ve el codigo.
+  ConfigurarComboProveedorDocumento(cbbCODIGO_PRV_PEDC);
   // Hook OnDataChange del master: al cambiar de pedido activo, el
   // controlador recarga su cache y republica.
   dsTablaG.OnDataChange := dsTablaGDataChangeHook;

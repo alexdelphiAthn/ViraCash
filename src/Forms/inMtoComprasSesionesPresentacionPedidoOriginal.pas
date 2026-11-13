@@ -2,8 +2,8 @@
 {                                                                              }
 {  Modulo:       inMtoComprasSesionesPresentacionPedidoOriginal                }
 {    Tipo:       Colaborador VCL                                               }
-{ Version:       1.1.0                                                         }
-{   Fecha:       18/09/2026                                                    }
+{ Version:       1.2.0                                                         }
+{   Fecha:       12/11/2026                                                    }
 {   Autor:       Alejandro Laorden Hidalgo                                     }
 {                                                                              }
 {  Copyright (c) Alejandro Laorden Hidalgo. Todos los derechos reservados.     }
@@ -13,10 +13,11 @@
 {    Encapsula carga, navegacion, zoom y arrastre sin conocer el formulario.   }
 {                                                                              }
 {    Zoom fijo: el boton Fijar zoom decide que pasa al cargar otro pedido.     }
-{    Suelto (modo ajuste) cada carga encaja la pagina en el contenedor;        }
-{    pulsado se respeta el zoom elegido. Acercar, alejar, zoom real y la       }
-{    rueda fijan el zoom y dejan el boton pulsado; Ajustar ventana encaja      }
-{    la pagina actual sin tocar el estado del boton.                           }
+{    Suelto (modo ajuste) cada carga encaja la pagina en el contenedor.        }
+{    Al pulsarlo se guardan el zoom y el desplazamiento que se ven en ese      }
+{    momento y cada carga posterior los restaura. Acercar, alejar, zoom        }
+{    real, la rueda y Ajustar ventana solo cambian la vista actual: nunca      }
+{    tocan el boton ni la vista guardada. Soltarlo no reencaja la pagina.      }
 {******************************************************************************}
 unit inMtoComprasSesionesPresentacionPedidoOriginal;
 
@@ -39,9 +40,10 @@ type
 
   // Que se conserva al repintar la pagina activa:
   //   vpoAjustar        encaja la pagina en el contenedor (modo ajuste)
-  //   vpoConservarZoom  mantiene el zoom fijado y vuelve al inicio del scroll
+  //   vpoVistaFijada    restaura el zoom y el desplazamiento guardados al
+  //                     pulsar Fijar zoom
   //   vpoConservarVista mantiene zoom y desplazamiento (cambio de pagina)
-  TVistaPedidoOriginal = (vpoAjustar, vpoConservarZoom, vpoConservarVista);
+  TVistaPedidoOriginal = (vpoAjustar, vpoVistaFijada, vpoConservarVista);
 
   TEntornoVisorPedidoOriginalSesion = record
     Contenedor: TScrollBox;
@@ -64,7 +66,11 @@ type
     FPaginas: TArray<string>;
     FIndicePagina: Integer;
     FZoom: Double;
+    FZoomFijado: Double;
+    FScrollFijado: TPoint;
     FModoAjuste: Boolean;
+    FHayVistaPendiente: Boolean;
+    FVistaPendiente: TVistaPedidoOriginal;
     FActualizandoBoton: Boolean;
     FImagenOriginal: TPicture;
     FArrastrando: Boolean;
@@ -76,7 +82,8 @@ type
     procedure DesconectarEventos;
     procedure MostrarPagina(AVista: TVistaPedidoOriginal);
     procedure AplicarZoom(AZoom: Double);
-    procedure FijarZoom(AZoom: Double);
+    procedure AplicarVista(AVista: TVistaPedidoOriginal;
+      AZoomAnterior: Double; const AScrollAnterior: TPoint);
     procedure EstablecerModoAjuste(AModoAjuste: Boolean);
     procedure Ajustar;
     procedure CambiarPagina(ADesplazamiento: Integer);
@@ -100,6 +107,7 @@ type
     destructor Destroy; override;
     procedure Cargar;
     procedure CargarSiVacio;
+    procedure Activar;
     function CantidadPaginas: Integer;
   end;
 
@@ -138,12 +146,12 @@ function ResolverVistaCargaPedidoOriginal(
   AModoAjuste: Boolean): TVistaPedidoOriginal;
 begin
   // Cargar un pedido distinto solo reencaja la imagen si nadie ha fijado
-  // un zoom. Con zoom fijado se respeta el del usuario y se empieza a ver
-  // el documento por su esquina superior izquierda.
+  // un zoom. Con zoom fijado se restauran el zoom y el desplazamiento que
+  // el usuario guardo al pulsar Fijar zoom.
   if AModoAjuste then
     Result := vpoAjustar
   else
-    Result := vpoConservarZoom;
+    Result := vpoVistaFijada;
 end;
 
 procedure ValidarEntornoVisorPedidoOriginal(
@@ -184,6 +192,8 @@ begin
   ConfigurarBarra;
   FImagenOriginal := TPicture.Create;
   FZoom := 1;
+  FZoomFijado := 1;
+  FScrollFijado := Point(0, 0);
   ConectarEventos;
   EstablecerModoAjuste(True);
 end;
@@ -275,6 +285,22 @@ begin
     Cargar;
 end;
 
+procedure TVisorPedidoOriginalSesion.Activar;
+begin
+  // Llamar al mostrar la pestana del visor. Si la ultima carga ocurrio con
+  // el visor oculto (cambio de sesion desde otra pestana) el contenedor
+  // podia tener un tamano obsoleto y el scroll no se podia colocar: se
+  // repite ahora la vista con el contenedor ya visible.
+  CargarSiVacio;
+  if FHayVistaPendiente and FEntorno.Contenedor.Showing then
+  begin
+    FHayVistaPendiente := False;
+    AplicarVista(FVistaPendiente, FZoom, Point(
+      FEntorno.Contenedor.HorzScrollBar.Position,
+      FEntorno.Contenedor.VertScrollBar.Position));
+  end;
+end;
+
 function TVisorPedidoOriginalSesion.CantidadPaginas: Integer;
 begin
   Result := Length(FPaginas);
@@ -283,15 +309,16 @@ end;
 procedure TVisorPedidoOriginalSesion.MostrarPagina(
   AVista: TVistaPedidoOriginal);
 var
-  iScrollHorizontal: Integer;
-  iScrollVertical: Integer;
   oImagen: TWICImage;
+  ptScrollAnterior: TPoint;
   rZoomAnterior: Double;
   sFichero: string;
 begin
   rZoomAnterior := FZoom;
-  iScrollHorizontal := FEntorno.Contenedor.HorzScrollBar.Position;
-  iScrollVertical := FEntorno.Contenedor.VertScrollBar.Position;
+  ptScrollAnterior := Point(
+    FEntorno.Contenedor.HorzScrollBar.Position,
+    FEntorno.Contenedor.VertScrollBar.Position);
+  FHayVistaPendiente := False;
   FEntorno.Imagen.Picture.Assign(nil);
   FImagenOriginal.Assign(nil);
   if (FIndicePagina >= 0) and
@@ -308,21 +335,11 @@ begin
       finally
         oImagen.Free;
       end;
-      case AVista of
-        vpoConservarVista:
-          begin
-            AplicarZoom(rZoomAnterior);
-            FEntorno.Contenedor.HorzScrollBar.Position := iScrollHorizontal;
-            FEntorno.Contenedor.VertScrollBar.Position := iScrollVertical;
-          end;
-        vpoConservarZoom:
-          begin
-            AplicarZoom(rZoomAnterior);
-            FEntorno.Contenedor.HorzScrollBar.Position := 0;
-            FEntorno.Contenedor.VertScrollBar.Position := 0;
-          end;
-      else
-        Ajustar;
+      AplicarVista(AVista, rZoomAnterior, ptScrollAnterior);
+      if not FEntorno.Contenedor.Showing then
+      begin
+        FHayVistaPendiente := True;
+        FVistaPendiente := AVista;
       end;
     end;
   end;
@@ -361,6 +378,28 @@ begin
   end;
 end;
 
+procedure TVisorPedidoOriginalSesion.AplicarVista(
+  AVista: TVistaPedidoOriginal; AZoomAnterior: Double;
+  const AScrollAnterior: TPoint);
+begin
+  case AVista of
+    vpoConservarVista:
+      begin
+        AplicarZoom(AZoomAnterior);
+        FEntorno.Contenedor.HorzScrollBar.Position := AScrollAnterior.X;
+        FEntorno.Contenedor.VertScrollBar.Position := AScrollAnterior.Y;
+      end;
+    vpoVistaFijada:
+      begin
+        AplicarZoom(FZoomFijado);
+        FEntorno.Contenedor.HorzScrollBar.Position := FScrollFijado.X;
+        FEntorno.Contenedor.VertScrollBar.Position := FScrollFijado.Y;
+      end;
+  else
+    Ajustar;
+  end;
+end;
+
 procedure TVisorPedidoOriginalSesion.EstablecerModoAjuste(
   AModoAjuste: Boolean);
 begin
@@ -376,14 +415,6 @@ begin
   finally
     FActualizandoBoton := False;
   end;
-end;
-
-procedure TVisorPedidoOriginalSesion.FijarZoom(AZoom: Double);
-begin
-  // Zoom elegido por el usuario: se abandona el modo ajuste para que las
-  // siguientes cargas (cambio de sesion o reimportacion) lo respeten.
-  EstablecerModoAjuste(False);
-  AplicarZoom(AZoom);
 end;
 
 procedure TVisorPedidoOriginalSesion.Ajustar;
@@ -435,34 +466,41 @@ end;
 
 procedure TVisorPedidoOriginalSesion.AlejarClick(Sender: TObject);
 begin
-  FijarZoom(FZoom / 1.20);
+  AplicarZoom(FZoom / 1.20);
 end;
 
 procedure TVisorPedidoOriginalSesion.AcercarClick(Sender: TObject);
 begin
-  FijarZoom(FZoom * 1.20);
+  AplicarZoom(FZoom * 1.20);
 end;
 
 procedure TVisorPedidoOriginalSesion.AjustarClick(Sender: TObject);
 begin
   // Encaja la pagina que se esta viendo sin decidir por el usuario que
-  // pasara con la siguiente: eso lo manda el boton Fijar zoom. Con el
-  // zoom fijado, el zoom recien encajado es el que se conserva.
+  // pasara con la siguiente: eso lo manda el boton Fijar zoom.
   Ajustar;
 end;
 
 procedure TVisorPedidoOriginalSesion.ZoomRealClick(Sender: TObject);
 begin
-  FijarZoom(1);
+  AplicarZoom(1);
 end;
 
 procedure TVisorPedidoOriginalSesion.FijarZoomClick(Sender: TObject);
 begin
   // El boton llega aqui ya conmutado por su GroupIndex; se reescribe su
   // estado desde EstablecerModoAjuste para no depender de ese detalle.
+  // Pulsarlo guarda la vista que se ve ahora (zoom y desplazamiento) sin
+  // tocarla; soltarlo solo vuelve a encajar los pedidos que se carguen
+  // despues, la pagina actual se queda como esta.
   EstablecerModoAjuste(not FModoAjuste);
-  if FModoAjuste then
-    Ajustar;
+  if not FModoAjuste then
+  begin
+    FZoomFijado := FZoom;
+    FScrollFijado := Point(
+      FEntorno.Contenedor.HorzScrollBar.Position,
+      FEntorno.Contenedor.VertScrollBar.Position);
+  end;
 end;
 
 procedure TVisorPedidoOriginalSesion.ImagenMouseDown(Sender: TObject;
@@ -511,9 +549,9 @@ procedure TVisorPedidoOriginalSesion.ContenedorMouseWheel(
   MousePos: TPoint; var Handled: Boolean);
 begin
   if WheelDelta > 0 then
-    FijarZoom(FZoom * 1.10)
+    AplicarZoom(FZoom * 1.10)
   else if WheelDelta < 0 then
-    FijarZoom(FZoom / 1.10);
+    AplicarZoom(FZoom / 1.10);
   Handled := True;
 end;
 

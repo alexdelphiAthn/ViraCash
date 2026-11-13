@@ -353,6 +353,7 @@ function CrearDevolucionesCompraInyectada(
 implementation
 
 uses
+  inLibComboProveedorDocumentoVcl,
   inLibMensajesVcl, inLibCorreoTickets,
   System.StrUtils,
   inLibTrazabilidad, inLibLotesPersistenciaIntf,
@@ -543,6 +544,8 @@ begin
     // Reutiliza el lookup unqryPrvDataDevc, ya cargado para el rotulo.
     cbbCODIGO_PRV_DEVC.Properties.ListSource :=
       dmmDevolucionesCompra.dsPrvDataDevc;
+    // FZ-ISSUE-937: tras elegir o salir se ve el codigo.
+    ConfigurarComboProveedorDocumento(cbbCODIGO_PRV_DEVC);
   end;
   InicializarGestorYPivote;
   if Assigned(FPivote) then

@@ -44,6 +44,11 @@ const
     'FROM fza_proveedores p ' +
     'WHERE EXISTS (SELECT 1 FROM fza_articulos_proveedores ap ' +
     'WHERE ap.CODIGO_PRV_AP = p.CODIGO_PRV_PRV) ' +
+    // FZ-ISSUE-938: tambien el proveedor de un lote o serie, que los
+    // informes filtran antes que el catalogo (UniDataFiltroProveedorLoteSql).
+    'OR p.CODIGO_PRV_PRV IN (SELECT LP.CODIGO_PRV_LOT ' +
+    'FROM fza_articulos_lotes LP ' +
+    'WHERE COALESCE(TRIM(LP.CODIGO_PRV_LOT), '''') NOT IN ('''', ''0'')) ' +
     'ORDER BY NOM, p.CODIGO_PRV_PRV';
   SQL_PROVEEDORES_EFECTOS_PAGO =
     'SELECT e.CODIGO_PRV_EFEC AS COD, ' +

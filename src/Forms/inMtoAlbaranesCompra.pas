@@ -340,6 +340,7 @@ function CrearAlbaranesCompraInyectada(
 implementation
 
 uses
+  inLibComboProveedorDocumentoVcl,
   UniDataEjesVariacion,
   inLibMensajesVcl, inLibCorreoTickets, inLibDatasets,
   System.StrUtils,
@@ -698,6 +699,8 @@ begin
   // por codigo o por nombre sobre el texto "codigo - nombre".
   // Reutiliza el lookup unqryPrvDataAlbc, ya cargado para el rotulo.
   cbbCODIGO_PRV_ALBC.Properties.ListSource := dmmAlbaranesCompra.dsPrvDataAlbc;
+  // FZ-ISSUE-937: tras elegir o salir se ve el codigo.
+  ConfigurarComboProveedorDocumento(cbbCODIGO_PRV_ALBC);
   DesactivarEnterAsTabEnCombo(cbbCODIGO_ALM_ALBC);
   if FLectorDocumento = nil then
   begin

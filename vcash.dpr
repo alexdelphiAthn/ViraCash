@@ -1218,6 +1218,7 @@ uses
   inLibBusquedasCompra in 'src\Lib\inLibBusquedasCompra.pas',
   inLibValidacionDocumento in 'src\Lib\inLibValidacionDocumento.pas',
   inLibPresentacionDocumento in 'src\Lib\inLibPresentacionDocumento.pas',
+  inLibComboProveedorDocumentoVcl in 'src\Lib\inLibComboProveedorDocumentoVcl.pas',
   inLibComprasSesionesMaterializar in 'src\Lib\inLibComprasSesionesMaterializar.pas',
   inLibAlbaranesCompraMovimientos in 'src\Lib\inLibAlbaranesCompraMovimientos.pas',
   inLibAlbaranesCompraMovimientosIntf in 'src\Lib\inLibAlbaranesCompraMovimientosIntf.pas',

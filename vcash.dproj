@@ -1857,6 +1857,7 @@
         <DCCReference Include="src\Lib\inLibBusquedasCompra.pas"/>
         <DCCReference Include="src\Lib\inLibValidacionDocumento.pas"/>
         <DCCReference Include="src\Lib\inLibPresentacionDocumento.pas"/>
+        <DCCReference Include="src\Lib\inLibComboProveedorDocumentoVcl.pas"/>
         <DCCReference Include="src\Lib\inLibComprasSesionesMaterializar.pas"/>
         <DCCReference Include="src\Lib\inLibAlbaranesCompraMovimientos.pas"/>
         <DCCReference Include="src\Lib\inLibAlbaranesCompraMovimientosIntf.pas"/>

@@ -330,6 +330,7 @@ function CrearFacturasCompraInyectada(
 implementation
 
 uses
+  inLibComboProveedorDocumentoVcl,
   UniDataEjesVariacion,
   inLibMensajesVcl, inLibCorreoTickets,
   System.StrUtils,
@@ -649,6 +650,8 @@ begin
   // por codigo o por nombre sobre el texto "codigo - nombre".
   // Reutiliza el lookup unqryPrvDataFacc, ya cargado para el rotulo.
   cbbCODIGO_PRV_FACC.Properties.ListSource := dmmFacturasCompra.dsPrvDataFacc;
+  // FZ-ISSUE-937: tras elegir o salir se ve el codigo.
+  ConfigurarComboProveedorDocumento(cbbCODIGO_PRV_FACC);
   cbbCODIGO_ALM_FACC.Properties.ListSource :=
     dmmFacturasCompra.dsAlmacenesFacc;
   if FLectorDocumento = nil then
