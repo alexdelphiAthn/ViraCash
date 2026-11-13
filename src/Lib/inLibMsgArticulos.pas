@@ -1772,6 +1772,24 @@ resourcestring
   SPreguntaEliminarUnaLineaSinStockSesion =
     '¿Borrar la línea sin stock (0 o negativo)? Si la sesión tiene ' +
     'periodos, se quita de todos.';
+  SAvisoCambioSalidaRebajas =
+    'Está cambiando el precio de salida en una rebaja. La normativa de ' +
+    'consumo exige mantener el precio anterior y aplicar la rebaja como ' +
+    'descuento. ¿Cambiar el precio de salida de todas formas?';
+  SAvisoAplicarSalidaCambiadaRebajas =
+    'Hay %d líneas de periodos de rebajas con el precio de salida ' +
+    'cambiado. La normativa de consumo exige mantener el precio anterior ' +
+    'y aplicar la rebaja como descuento. ¿Aplicar de todas formas?';
+  SCaptionEtiquetarSesionTarifa =
+    'Etiquetar sesión';
+  STituloEtiquetasSesionTarifa =
+    'Etiquetas de la sesión de cambio de tarifa';
+  SPreguntaEtiquetaPorArticuloSesion =
+    '¿Imprimir una sola etiqueta por artículo? Sí: una por artículo, ' +
+    'sin reetiquetar todo el stock. No: tantas como stock en los ' +
+    'almacenes que se marquen.';
+  SInfoSesionSinArticulosEtiquetar =
+    'La sesión no tiene artículos que etiquetar.';
   SInfoSesionSinLineasSinStock =
     'No hay líneas sin stock en la sesión.';
   SErrorPeriodoTarifaSolapaPrecio =

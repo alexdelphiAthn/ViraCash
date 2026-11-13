@@ -64,6 +64,8 @@ type
     procedure CampoPrecioNuevoChange(Sender: TField);
     function  RedondearConCabecera(AImporte: Double): Double;
     function  SalidaParaDescuento: Double;
+    function SalidaReferenciaLinea: Double;
+    procedure unqryLineasBeforePost(DataSet: TDataSet);
     procedure CalcularDescuento(ASalida, APorcentaje: Double;
       out AFinal, ADto, APorcentajeReal: Double);
     procedure GrabarDescuentos(const APorLinea: TDictionary<Integer, Double>);
@@ -93,6 +95,13 @@ type
     procedure AplicarDescuentoLote(const AIdsLinea: TArray<Integer>;
       APorcentaje: Double);
     function  LineasSinPrecioNuevo: Integer;
+    // FZ-ISSUE-944: lineas de periodo (rebajas) con la salida cambiada.
+    function  LineasPeriodoConSalidaCambiada: Integer;
+    // SKU de la sesion para etiquetar, entre comillas y separados por comas.
+    function  SkusEtiquetasSesionCsv(AUnoPorArticulo: Boolean): string;
+    // Se llama al grabar una linea de periodo con la salida cambiada; si
+    // devuelve False se deshace el cambio.
+    var OnConfirmarCambioSalidaRebajas: TFunc<Boolean>;
     function RecalcularSesionActual(const AIdsLinea: TArray<Integer>;
       out AMensaje: string): Integer;
     function  AplicarSesionActual(out AMensaje: string): Integer;
@@ -103,7 +112,7 @@ implementation
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 
 uses
-  inLibUser, inLibMsgArticulos, UniDataPrestaShopEncolado,
+  System.Variants, inLibUser, inLibMsgArticulos, UniDataPrestaShopEncolado,
   inLibPrestaShopColaSenal, inLibRedondeo, UniDataTarifasCambiosPeriodos,
   UniDataTarifasTramos;
 
@@ -223,6 +232,7 @@ const
     '       L.CODIGO_TAR_DESTINO_TARCLIN, L.PRECIO_NUEVO_TARCLIN, ' +
     '       L.PRECIO_FINAL_NUEVO_TARCLIN, L.PRECIO_DTO_NUEVO_TARCLIN, ' +
     '       L.PORCENTAJE_DTO_NUEVO_TARCLIN, ' +
+    '       L.PRECIO_SALIDA_ACTUAL_TARCLIN, L.PRECIO_ORIGEN_TARCLIN, ' +
     '       P.FECHA_DESDE_TARCP, P.FECHA_HASTA_TARCP ' +
     '  FROM fza_tarifas_cambios_lineas L ' +
     '  LEFT JOIN fza_tarifas_cambios_periodos P ' +
@@ -318,6 +328,7 @@ begin
   unqryLineas.KeyFields := 'ID_TARCLIN';
   unqryLineas.AfterOpen := unqryLineasAfterOpen;
   unqryLineas.BeforeDelete := unqryLineasBeforeDelete;
+  unqryLineas.BeforePost := unqryLineasBeforePost;
   unqryLineas.SQLDelete.Text :=
     'DELETE FROM fza_tarifas_cambios_lineas ' +
     'WHERE ID_TARCLIN = :Old_ID_TARCLIN ' +
@@ -640,6 +651,114 @@ end;
 
 // Lineas a aplicar que aun no tienen salida o final nuevo: aplicarlas
 // dejaria el articulo a precio 0 en la tarifa destino.
+// Salida de referencia de una linea: la actual de la tarifa destino o, si no
+// tiene precio, la de origen (la misma que usa SalidaReferenciaLinea).
+const
+  SQL_SALIDA_REFERENCIA =
+    'COALESCE(NULLIF(PRECIO_SALIDA_ACTUAL_TARCLIN, 0), PRECIO_ORIGEN_TARCLIN)';
+
+// FZ-ISSUE-944: SKU de las lineas de la sesion (todas las variantes si la
+// linea es del articulo), sin repetir entre periodos. Con AUnoPorArticulo,
+// uno por articulo para no reetiquetar todo el stock.
+function TdmTarifasCambios.SkusEtiquetasSesionCsv(
+  AUnoPorArticulo: Boolean): string;
+const
+  SQL_SKU_LINEA =
+    'COALESCE(NULLIF(L.CODIGO_UNIDAD_SKU_TARCLIN, ''''), S.CODIGO_UNIDAD_SKU)';
+var
+  qry: TUniQuery;
+begin
+  Result := '';
+  GrabarLineaPendiente;
+  if unqryTablaG.Active and (not unqryTablaG.IsEmpty) then
+  begin
+    qry := TUniQuery.Create(nil);
+    try
+      qry.Connection := unqryTablaG.Connection;
+      if AUnoPorArticulo then
+        qry.SQL.Text := 'SELECT MIN(' + SQL_SKU_LINEA + ') AS SKU '
+      else
+        qry.SQL.Text := 'SELECT DISTINCT ' + SQL_SKU_LINEA + ' AS SKU ';
+      qry.SQL.Add(
+        'FROM fza_tarifas_cambios_lineas L ' +
+        'LEFT JOIN fza_articulos_skus S ' +
+        '  ON S.CODIGO_ART_SKU = L.CODIGO_ART_TARCLIN ' +
+        ' AND COALESCE(L.CODIGO_UNIDAD_SKU_TARCLIN, '''') = '''' ' +
+        ' AND S.ESACTIVO_SKU = ''S'' ' +
+        'WHERE L.CODIGO_TARC_TARCLIN = :CODIGO ' +
+        '  AND L.ESAPLICAR_TARCLIN = ''S''');
+      if AUnoPorArticulo then
+        qry.SQL.Add('GROUP BY L.CODIGO_ART_TARCLIN');
+      qry.ParamByName('CODIGO').AsInteger :=
+        unqryTablaG.FieldByName('CODIGO_TARC').AsInteger;
+      qry.Open;
+      while not qry.Eof do
+      begin
+        if not qry.FieldByName('SKU').IsNull then
+        begin
+          if Result <> '' then
+            Result := Result + ',';
+          Result := Result + QuotedStr(qry.FieldByName('SKU').AsString);
+        end;
+        qry.Next;
+      end;
+    finally
+      FreeAndNil(qry);
+    end;
+  end;
+end;
+
+function TdmTarifasCambios.LineasPeriodoConSalidaCambiada: Integer;
+var
+  qry: TUniQuery;
+begin
+  Result := 0;
+  GrabarLineaPendiente;
+  if unqryTablaG.Active and (not unqryTablaG.IsEmpty) then
+  begin
+    qry := TUniQuery.Create(nil);
+    try
+      qry.Connection := unqryTablaG.Connection;
+      qry.SQL.Text :=
+        'SELECT COUNT(*) AS CANTIDAD FROM fza_tarifas_cambios_lineas ' +
+        'WHERE CODIGO_TARC_TARCLIN = :CODIGO AND ESAPLICAR_TARCLIN = ''S'' ' +
+        'AND ID_TARCP_TARCLIN <> 0 AND ' + SQL_SALIDA_REFERENCIA + ' > 0 ' +
+        'AND ABS(COALESCE(PRECIO_NUEVO_TARCLIN, 0) - ' +
+        SQL_SALIDA_REFERENCIA + ') >= 0.005';
+      qry.ParamByName('CODIGO').AsInteger :=
+        unqryTablaG.FieldByName('CODIGO_TARC').AsInteger;
+      qry.Open;
+      Result := qry.FieldByName('CANTIDAD').AsInteger;
+    finally
+      FreeAndNil(qry);
+    end;
+  end;
+end;
+
+// FZ-ISSUE-944: en rebajas cambiar la salida va contra la ley de consumo.
+// Se permite, pero se pide confirmacion; si no, se deshace.
+procedure TdmTarifasCambios.unqryLineasBeforePost(DataSet: TDataSet);
+var
+  Salida: TField;
+  Campo: string;
+begin
+  Salida := DataSet.FieldByName('PRECIO_NUEVO_TARCLIN');
+  if (DataSet.State = dsEdit) and
+     (DataSet.FieldByName('ID_TARCP_TARCLIN').AsInteger <> 0) and
+     Assigned(OnConfirmarCambioSalidaRebajas) and
+     (not VarIsNull(Salida.OldValue)) and
+     (Abs(Salida.AsFloat - Double(Salida.OldValue)) >= 0.005) then
+    if not OnConfirmarCambioSalidaRebajas() then
+    begin
+      // Se deshace entero: al cambiar la salida la linea recalcula el
+      // descuento y el final, que tambien vuelven a como estaban.
+      for Campo in ['PRECIO_NUEVO_TARCLIN', 'PRECIO_DTO_NUEVO_TARCLIN',
+        'PORCENTAJE_DTO_NUEVO_TARCLIN', 'PRECIO_FINAL_NUEVO_TARCLIN'] do
+        DataSet.FieldByName(Campo).Value :=
+          DataSet.FieldByName(Campo).OldValue;
+    end;
+end;
+
 function TdmTarifasCambios.LineasSinPrecioNuevo: Integer;
 var
   qry: TUniQuery;
@@ -781,6 +900,15 @@ begin
   Result := LeerFloatLinea('PRECIO_NUEVO_TARCLIN');
   if Result <= 0 then
     Result := LeerFloatLinea('PRECIO_SALIDA_ACTUAL_TARCLIN');
+  if Result <= 0 then
+    Result := LeerFloatLinea('PRECIO_ORIGEN_TARCLIN');
+end;
+
+// FZ-ISSUE-944: salida que no se toca en una rebaja: la actual de la tarifa
+// destino o, si no tiene precio, la de origen.
+function TdmTarifasCambios.SalidaReferenciaLinea: Double;
+begin
+  Result := LeerFloatLinea('PRECIO_SALIDA_ACTUAL_TARCLIN');
   if Result <= 0 then
     Result := LeerFloatLinea('PRECIO_ORIGEN_TARCLIN');
 end;
@@ -1318,6 +1446,8 @@ var
   dDto              : Double;
   dPorcDto          : Double;
   EsRedondearArriba : Boolean;
+  EsPeriodoLinea    : Boolean;
+  dReferencia       : Double;
   Parametros        : TParametrosCalculoTarifa;
 begin
   Result := 0;
@@ -1375,15 +1505,24 @@ begin
               dFinal := dNuevo;
               dDto := 0;
               dPorcDto := 0;
-              if SameText(sCampoDestino, 'PRECIO_FINAL') then
+              // FZ-ISSUE-944: en rebajas (lineas de un periodo) la salida no
+              // puede cambiar (ley de consumo): el precio va como descuento.
+              // Fuera de rebajas, una bajada tambien se hace como descuento;
+              // la salida solo cambia si sube o si se elige Precio de salida.
+              dReferencia := SalidaReferenciaLinea;
+              EsPeriodoLinea :=
+                unqryLineas.FieldByName('ID_TARCP_TARCLIN').AsInteger <> 0;
+              if EsPeriodoLinea or SameText(sCampoDestino, 'PRECIO_FINAL') or
+                ((not SameText(sCampoDestino, 'PRECIO_SALIDA')) and
+                 (dReferencia > 0) and (dNuevo < dReferencia)) then
               begin
-                // Tarifa destino sin precio: la salida es la de origen.
-                dSalida := LeerFloatLinea('PRECIO_SALIDA_ACTUAL_TARCLIN');
-                if dSalida <= 0 then
-                  dSalida := LeerFloatLinea('PRECIO_ORIGEN_TARCLIN');
+                dSalida := dReferencia;
                 if dSalida <= 0 then
                   dSalida := dNuevo;
                 dFinal := dNuevo;
+                // En rebajas el precio final nunca supera la salida.
+                if EsPeriodoLinea and (dFinal > dSalida) then
+                  dFinal := dSalida;
                 dDto := dSalida - dFinal;
                 if dDto < 0 then
                   dDto := 0;
@@ -1497,9 +1636,14 @@ begin
       sArticulo, sSku, sTarifa);
     try
       if ALinea.FieldByName('ID_TARCP_TARCLIN').AsInteger <> 0 then
+      begin
+        // En rebajas cambiar la salida va contra la ley de consumo: se avisa
+        // al editarla y al aplicar (LineasPeriodoConSalidaCambiada), pero
+        // se respeta lo que decida el usuario.
         iUnico := oTramos.AplicarPeriodo(
           ALinea.FieldByName('FECHA_DESDE_TARCP').AsDateTime,
-          ALinea.FieldByName('FECHA_HASTA_TARCP').AsDateTime, Precios)
+          ALinea.FieldByName('FECHA_HASTA_TARCP').AsDateTime, Precios);
+      end
       else
       begin
         dDesde := Date;

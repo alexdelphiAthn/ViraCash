@@ -30,7 +30,7 @@ uses
   cxDBLookupEdit, cxDBLookupComboBox, cxCheckBox, cxPC, cxImageComboBox,
   dxSkinsCore, dxSkinBlue, dxSkinsDefaultPainters, dxSkinscxPCPainter,
   dxScrollbarAnnotations, dxDateRanges, dxCore, cxGroupBox, cxMemo,
-  cxSplitter,
+  cxSplitter, cxListView,
   UniDataTarifasCambios, inLibTarifasCambiosExcel, inMtoGen,
   inLibCargaMasivaArticulosPersistenciaIntf, inLibPermisosIntf,
   inLibSimulacionPrecioCaja;
@@ -70,6 +70,10 @@ type
     btnExportarExcel  : TcxButton;
     btnCargarExcel    : TcxButton;
     btnDescuentoLote  : TcxButton;
+    btnEtiquetar      : TcxButton;
+    // Etiquetas de la sesion (FZ-ISSUE-944).
+    FEtiquetasDmArt   : TObject;
+    FEtiquetaPorArticulo: Boolean;
     pnlSeleccion: TPanel;
     btnMarcarTodo: TcxButton;
     btnDesmarcarTodo: TcxButton;
@@ -145,6 +149,10 @@ type
     procedure btnExportarExcelClick(Sender: TObject);
     procedure btnCargarExcelClick(Sender: TObject);
     procedure btnDescuentoLoteClick(Sender: TObject);
+    procedure btnEtiquetarClick(Sender: TObject);
+    procedure CargarAlmacenesEtiquetasSesion(ALV: TcxListView);
+    procedure CrearDataSetEtiquetasSesion(ADmArt: TObject;
+      const ACodTarifa, AAlmacenesCsv: string; AFecha: TDateTime);
     procedure btnMarcarTodoClick(Sender: TObject);
     procedure btnActualizarCostesClick(Sender: TObject);
     procedure btnEliminarLineasClick(Sender: TObject);
@@ -201,7 +209,8 @@ uses
   inLibMensajesVcl, inLibShowMto, inLibHojaCalculoDevEx, inMtoPreviewExcel,
   inMtoModalCargarSesionTarifa, inLibMsgArticulos, inLibMsgFacturas,
   inLibTraducciones, UniDataConfiguracionPantalla,
-  inLibArticulosResolverIntf, inLibArticulosValidadorIntf, Vcl.StdCtrls;
+  inLibArticulosResolverIntf, inLibArticulosValidadorIntf, Vcl.StdCtrls,
+  inMtoModalEtiqArt, UniDataArticulos;
 
 {$R *.dfm}
 
@@ -478,6 +487,8 @@ begin
     SCaptionDescuentoLoteSesionTarifa, btnDescuentoLoteClick);
   btnAplicar := CrearBoton(Self, pnlAcciones, SCaptionAplicarTarifa,
     btnAplicarClick);
+  btnEtiquetar := CrearBoton(Self, pnlAcciones, SCaptionEtiquetarSesionTarifa,
+    btnEtiquetarClick);
   btnExportarExcel := CrearBoton(Self, pnlAcciones,
     SCaptionExportarExcelSesionTarifa, btnExportarExcelClick);
   btnCargarExcel := CrearBoton(Self, pnlAcciones,
@@ -497,6 +508,7 @@ begin
   ColocarBoton(btnCalcular, Y, X);
   ColocarBoton(btnDescuentoLote, Y, X);
   ColocarBoton(btnAplicar, Y, X);
+  ColocarBoton(btnEtiquetar, Y, X);
   ColocarBoton(btnExportarExcel, Y, X, Esc(FICHA_SEP_GRUPO));
   ColocarBoton(btnCargarExcel, Y, X);
   ColocarBoton(btnRefrescar, Y, X, Esc(FICHA_SEP_GRUPO));
@@ -1073,6 +1085,13 @@ procedure TfrmMtoTarifasCambios.CrearTablaPrincipal;
 begin
   inherited;
   dmmTarifasCambios := tdmDataModule as TdmTarifasCambios;
+  // FZ-ISSUE-944: en rebajas se puede cambiar la salida, pero avisando.
+  dmmTarifasCambios.OnConfirmarCambioSalidaRebajas :=
+    function: Boolean
+    begin
+      Result := MessageDlg_fza(SAvisoCambioSalidaRebajas, mtWarning,
+        [mbYes, mbNo], 0) = mrYes;
+    end;
   dmmTarifasCambios.unqryLineas.MasterFields := 'CODIGO_TARC';
   dmmTarifasCambios.unqryLineas.DetailFields := 'CODIGO_TARC_TARCLIN';
   dmmTarifasCambios.unqryLineas.MasterSource := dsTablaG;
@@ -1392,6 +1411,7 @@ var
   iLineas         : Integer;
   iLineasAplicadas: Integer;
   iSinPrecio      : Integer;
+  iSalidaCambiada : Integer;
 begin
   if Assigned(dmmTarifasCambios) and GrabarCabeceraSiNecesario then
   begin
@@ -1399,9 +1419,15 @@ begin
     dmmTarifasCambios.SincronizarPeriodos;
     iLineas := dmmTarifasCambios.TotalLineasSesion;
     iSinPrecio := dmmTarifasCambios.LineasSinPrecioNuevo;
+    iSalidaCambiada := dmmTarifasCambios.LineasPeriodoConSalidaCambiada;
     if iSinPrecio > 0 then
       ShowMessage_fza(Format(SErrorLineasSinPrecioNuevoSesionTarifa,
         [iSinPrecio]))
+    // FZ-ISSUE-944: rebajas con la salida cambiada, contra la ley de consumo.
+    else if (iSalidaCambiada > 0) and
+      (MessageDlg_fza(Format(SAvisoAplicarSalidaCambiadaRebajas,
+        [iSalidaCambiada]), mtWarning, [mbYes, mbNo], 0) <> mrYes) then
+      Exit
     else if MessageDlg_fza(Format(SPreguntaAplicarSesionTarifa,
                               [iLineas]),
                        mtConfirmation, [mbYes, mbNo], 0) = mrYes then
@@ -1642,6 +1668,84 @@ begin
           dmmTarifasCambios.EliminarLineasSesion(Ids);
       end;
     end;
+  end;
+end;
+
+// FZ-ISSUE-944: etiquetas de los articulos de la sesion. La tarifa y la
+// fecha se eligen en el modal (con fecha de un periodo, precio de rebaja).
+// Una por articulo no reetiqueta todo el stock; si no, por stock.
+procedure TfrmMtoTarifasCambios.btnEtiquetarClick(Sender: TObject);
+var
+  Formulario: TfrmPrintEtiqArt;
+  DmArt: TdmArticulos;
+  Respuesta: Integer;
+begin
+  if not PuedeImprimir then
+    Abort;
+  if Assigned(dmmTarifasCambios) and GrabarCabeceraSiNecesario then
+  begin
+    if dmmTarifasCambios.SkusEtiquetasSesionCsv(True) = '' then
+      ShowMessage_fza(SInfoSesionSinArticulosEtiquetar)
+    else
+    begin
+      Respuesta := MessageDlg_fza(SPreguntaEtiquetaPorArticuloSesion,
+        mtConfirmation, [mbYes, mbNo, mbCancel], 0);
+      if Respuesta <> mrCancel then
+      begin
+        FEtiquetaPorArticulo := Respuesta = mrYes;
+        DmArt := TdmArticulos.Create(nil);
+        try
+          FEtiquetasDmArt := DmArt;
+          Formulario := TfrmPrintEtiqArt.Create(Application);
+          try
+            Formulario.DM := DmArt;
+            Formulario.Caption := STituloEtiquetasSesionTarifa;
+            Formulario.TextoOrigenExterno :=
+              dsTablaG.DataSet.FieldByName('NOMBRE_TARC').AsString;
+            Formulario.CargarAlmacenesExterno :=
+              CargarAlmacenesEtiquetasSesion;
+            Formulario.CrearDataSetExterno := CrearDataSetEtiquetasSesion;
+            Formulario.ShowModal;
+          finally
+            FreeAndNil(Formulario);
+          end;
+        finally
+          FEtiquetasDmArt := nil;
+          FreeAndNil(DmArt);
+        end;
+      end;
+    end;
+  end;
+end;
+
+// Una por articulo: los almacenes no cuentan. Por stock: todos.
+procedure TfrmMtoTarifasCambios.CargarAlmacenesEtiquetasSesion(
+  ALV: TcxListView);
+begin
+  ALV.Items.Clear;
+  if (not FEtiquetaPorArticulo) and (FEtiquetasDmArt is TdmArticulos) then
+    TdmArticulos(FEtiquetasDmArt).CargarAlmacenesEtiquetas(ALV);
+end;
+
+procedure TfrmMtoTarifasCambios.CrearDataSetEtiquetasSesion(ADmArt: TObject;
+  const ACodTarifa, AAlmacenesCsv: string; AFecha: TDateTime);
+var
+  DmArt: TdmArticulos;
+  Skus: string;
+begin
+  if ADmArt is TdmArticulos then
+  begin
+    DmArt := TdmArticulos(ADmArt);
+    Skus := dmmTarifasCambios.SkusEtiquetasSesionCsv(FEtiquetaPorArticulo);
+    if Skus = '' then
+      DmArt.CrearDataSetEtiquetasArt('DUMMY_SIN_LINEAS', ACodTarifa, '',
+        AFecha)
+    else if FEtiquetaPorArticulo then
+      DmArt.CrearDataSetEtiquetasArt('', ACodTarifa, '', AFecha, Skus)
+    else
+      // Con almacenes marcados ya replica una etiqueta por unidad de stock.
+      DmArt.CrearDataSetEtiquetasArt('', ACodTarifa, AAlmacenesCsv, AFecha,
+        Skus);
   end;
 end;
 

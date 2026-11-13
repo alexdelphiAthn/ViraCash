@@ -4875,6 +4875,36 @@ begin
     @inLibMsgArticulos.SInfoSesionSinLineasSinStock);
   ARegistrar(
     'inLibMsgArticulos.' +
+    'SCaptionEtiquetarSesionTarifa',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SCaptionEtiquetarSesionTarifa);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'STituloEtiquetasSesionTarifa',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.STituloEtiquetasSesionTarifa);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SPreguntaEtiquetaPorArticuloSesion',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPreguntaEtiquetaPorArticuloSesion);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SInfoSesionSinArticulosEtiquetar',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SInfoSesionSinArticulosEtiquetar);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SAvisoCambioSalidaRebajas',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SAvisoCambioSalidaRebajas);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SAvisoAplicarSalidaCambiadaRebajas',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SAvisoAplicarSalidaCambiadaRebajas);
+  ARegistrar(
+    'inLibMsgArticulos.' +
     'SPreguntaEliminarUnaLineaSinStockSesion',
     'src/Lib/inLibMsgArticulos.pas',
     @inLibMsgArticulos.SPreguntaEliminarUnaLineaSinStockSesion);
