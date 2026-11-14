@@ -22,6 +22,7 @@ uses
 
 const
   cEstadoScriptFalta = '>>> FALTA <<<';
+  cEstadoScriptComprobarDatos = 'COMPROBAR DATOS';
   cCampoOrdenScriptComprobacion = 'orden_aplicacion';
   cCampoNombreScriptComprobacion = 'script';
   cCampoEstadoScriptComprobacion = 'estado';
@@ -90,10 +91,11 @@ function ScriptPendiente(ADataSet: TDataSet;
   const AComprobarDatos: TFunc<string, Boolean>): Boolean;
 var
   sConsulta: string;
+  sEstado: string;
 begin
-  Result := SameText(
-    TextoCampo(ADataSet, cCampoEstadoScriptComprobacion),
-    cEstadoScriptFalta);
+  sEstado := TextoCampo(ADataSet, cCampoEstadoScriptComprobacion);
+  Result := SameText(sEstado, cEstadoScriptFalta) or
+    SameText(sEstado, cEstadoScriptComprobarDatos);
   if Result then
   begin
     // El comprobador solo entrega esta consulta cuando su estructura
@@ -104,7 +106,9 @@ begin
       if not Assigned(AComprobarDatos) then
         raise EInvalidOpException.Create(SErrorComprobacionDatosNoDisponible);
       Result := not AComprobarDatos(sConsulta);
-    end;
+    end
+    else if SameText(sEstado, cEstadoScriptComprobarDatos) then
+      raise EInvalidOpException.Create(SErrorComprobacionDatosNoDisponible);
   end;
 end;
 
@@ -114,7 +118,8 @@ var
 begin
   sEstado := TextoCampo(ADataSet, cCampoEstadoScriptComprobacion);
   Result := SameText(sEstado, 'OK') or
-    (SameText(sEstado, cEstadoScriptFalta) and
+    ((SameText(sEstado, cEstadoScriptFalta) or
+      SameText(sEstado, cEstadoScriptComprobarDatos)) and
      (TextoCampo(ADataSet, cCampoConsultaDatosComprobacion) <> ''));
 end;
 
