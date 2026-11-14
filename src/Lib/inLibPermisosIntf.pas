@@ -115,7 +115,7 @@ const
 
   // Pantallas de administración (FZ-ISSUE-028): un usuario que no es
   // administrador solo entra con concesión expresa a su usuario o grupo.
-  PERMISOS_ADMINISTRACION: array[0..8] of string = (
+  PERMISOS_ADMINISTRACION: array[0..9] of string = (
     'menu.mnuParmetrosdeEntorno',
     'menu.Usuarios',
     'menu.Grupos',
@@ -124,7 +124,8 @@ const
     'menu.PermisosTabla',
     'menu.HacerCopiadeSeguridad1',
     'menu.GeneradorProcesos',
-    'menu.mnuProcesosAuxiliaresBBDD'
+    'menu.mnuProcesosAuxiliaresBBDD',
+    'menu.mnuCambioCodigoCliente'
   );
   PERMISO_MENU_PARAMETROS_ENTORNO = 'menu.mnuParmetrosdeEntorno';
   // Mantenimientos de administración: entrar (menú) no autoriza a dar de

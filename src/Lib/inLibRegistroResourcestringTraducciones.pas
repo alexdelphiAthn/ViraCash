@@ -13,7 +13,7 @@ procedure EnumerarResourcestringsTraduccion(
 implementation
 
 uses
-  inLibMsgMeteorologiaCaja,
+  inLibMsgMeteorologiaCaja, inLibMsgCambioCodigoCliente,
   inLibMsgInformesCliente,
   inLibCambiosTrabajo,
   inLibMsgMedidasCliente,
@@ -6763,6 +6763,84 @@ end;
 procedure EnumerarResourcestringsTraduccion(
   const ARegistrar: TRegistrarResourcestringTraduccion);
 begin
+  ARegistrar('inLibMsgCambioCodigoCliente.SCambioClienteTitulo',
+    'src/Lib/inLibMsgCambioCodigoCliente.pas',
+    @inLibMsgCambioCodigoCliente.SCambioClienteTitulo);
+  ARegistrar('inLibMsgCambioCodigoCliente.SCambioClienteOrigen',
+    'src/Lib/inLibMsgCambioCodigoCliente.pas',
+    @inLibMsgCambioCodigoCliente.SCambioClienteOrigen);
+  ARegistrar('inLibMsgCambioCodigoCliente.SCambioClienteDestino',
+    'src/Lib/inLibMsgCambioCodigoCliente.pas',
+    @inLibMsgCambioCodigoCliente.SCambioClienteDestino);
+  ARegistrar('inLibMsgCambioCodigoCliente.SCambioClienteCambiar',
+    'src/Lib/inLibMsgCambioCodigoCliente.pas',
+    @inLibMsgCambioCodigoCliente.SCambioClienteCambiar);
+  ARegistrar('inLibMsgCambioCodigoCliente.SCambioClienteDuplicados',
+    'src/Lib/inLibMsgCambioCodigoCliente.pas',
+    @inLibMsgCambioCodigoCliente.SCambioClienteDuplicados);
+  ARegistrar('inLibMsgCambioCodigoCliente.SCambioClienteCerrar',
+    'src/Lib/inLibMsgCambioCodigoCliente.pas',
+    @inLibMsgCambioCodigoCliente.SCambioClienteCerrar);
+  ARegistrar('inLibMsgCambioCodigoCliente.SCambioClienteExplicacion',
+    'src/Lib/inLibMsgCambioCodigoCliente.pas',
+    @inLibMsgCambioCodigoCliente.SCambioClienteExplicacion);
+  ARegistrar('inLibMsgCambioCodigoCliente.SCambioClientePregunta',
+    'src/Lib/inLibMsgCambioCodigoCliente.pas',
+    @inLibMsgCambioCodigoCliente.SCambioClientePregunta);
+  ARegistrar('inLibMsgCambioCodigoCliente.SCambioClienteCorrecto',
+    'src/Lib/inLibMsgCambioCodigoCliente.pas',
+    @inLibMsgCambioCodigoCliente.SCambioClienteCorrecto);
+  ARegistrar('inLibMsgCambioCodigoCliente.SCambioClienteDatosInvalidos',
+    'src/Lib/inLibMsgCambioCodigoCliente.pas',
+    @inLibMsgCambioCodigoCliente.SCambioClienteDatosInvalidos);
+  ARegistrar('inLibMsgCambioCodigoCliente.SCambioClienteNoExiste',
+    'src/Lib/inLibMsgCambioCodigoCliente.pas',
+    @inLibMsgCambioCodigoCliente.SCambioClienteNoExiste);
+  ARegistrar('inLibMsgCambioCodigoCliente.SCambioClienteOcupado',
+    'src/Lib/inLibMsgCambioCodigoCliente.pas',
+    @inLibMsgCambioCodigoCliente.SCambioClienteOcupado);
+  ARegistrar('inLibMsgCambioCodigoCliente.SCambioClienteEsquema',
+    'src/Lib/inLibMsgCambioCodigoCliente.pas',
+    @inLibMsgCambioCodigoCliente.SCambioClienteEsquema);
+  ARegistrar('inLibMsgCambioCodigoCliente.SCambioClienteTransaccion',
+    'src/Lib/inLibMsgCambioCodigoCliente.pas',
+    @inLibMsgCambioCodigoCliente.SCambioClienteTransaccion);
+  ARegistrar('inLibMsgCambioCodigoCliente.SCambioClienteCerrarPantallas',
+    'src/Lib/inLibMsgCambioCodigoCliente.pas',
+    @inLibMsgCambioCodigoCliente.SCambioClienteCerrarPantallas);
+  ARegistrar('inLibMsgCambioCodigoCliente.SCambioClienteSinDuplicados',
+    'src/Lib/inLibMsgCambioCodigoCliente.pas',
+    @inLibMsgCambioCodigoCliente.SCambioClienteSinDuplicados);
+  ARegistrar('inLibMsgCambioCodigoCliente.SCambioClienteResumenDuplicados',
+    'src/Lib/inLibMsgCambioCodigoCliente.pas',
+    @inLibMsgCambioCodigoCliente.SCambioClienteResumenDuplicados);
+  ARegistrar('inLibMsgCambioCodigoCliente.SCambioClienteLimiteDuplicados',
+    'src/Lib/inLibMsgCambioCodigoCliente.pas',
+    @inLibMsgCambioCodigoCliente.SCambioClienteLimiteDuplicados);
+  ARegistrar('inLibMsgCambioCodigoCliente.SCambioClienteCodigo',
+    'src/Lib/inLibMsgCambioCodigoCliente.pas',
+    @inLibMsgCambioCodigoCliente.SCambioClienteCodigo);
+  ARegistrar('inLibMsgCambioCodigoCliente.SCambioClienteNombre',
+    'src/Lib/inLibMsgCambioCodigoCliente.pas',
+    @inLibMsgCambioCodigoCliente.SCambioClienteNombre);
+  ARegistrar('inLibMsgCambioCodigoCliente.SCambioClienteOtroCodigo',
+    'src/Lib/inLibMsgCambioCodigoCliente.pas',
+    @inLibMsgCambioCodigoCliente.SCambioClienteOtroCodigo);
+  ARegistrar('inLibMsgCambioCodigoCliente.SCambioClienteOtroNombre',
+    'src/Lib/inLibMsgCambioCodigoCliente.pas',
+    @inLibMsgCambioCodigoCliente.SCambioClienteOtroNombre);
+  ARegistrar('inLibMsgCambioCodigoCliente.SCambioClienteMotivo',
+    'src/Lib/inLibMsgCambioCodigoCliente.pas',
+    @inLibMsgCambioCodigoCliente.SCambioClienteMotivo);
+  ARegistrar('inLibMsgCambioCodigoCliente.SCambioClienteNif',
+    'src/Lib/inLibMsgCambioCodigoCliente.pas',
+    @inLibMsgCambioCodigoCliente.SCambioClienteNif);
+  ARegistrar('inLibMsgCambioCodigoCliente.SCambioClienteContacto',
+    'src/Lib/inLibMsgCambioCodigoCliente.pas',
+    @inLibMsgCambioCodigoCliente.SCambioClienteContacto);
+  ARegistrar('inLibMsgCambioCodigoCliente.SCambioClienteAmbos',
+    'src/Lib/inLibMsgCambioCodigoCliente.pas',
+    @inLibMsgCambioCodigoCliente.SCambioClienteAmbos);
   ARegistrar('inLibMsgArticulos.' +
     'SPeriodicidadTitulo',
     'src/Lib/inLibMsgArticulos.pas',

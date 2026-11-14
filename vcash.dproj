@@ -288,6 +288,10 @@
         <DCCReference Include="src\Lib\inLibMsgSqlSeguro.pas"/>
         <DCCReference Include="src\Lib\inLibMsgArticulos.pas"/>
         <DCCReference Include="src\Lib\inLibMsgCambioArticuloColor.pas"/>
+        <DCCReference Include="src\Lib\inLibCambioCodigoCliente.pas"/>
+        <DCCReference Include="src\Lib\inLibMsgCambioCodigoCliente.pas"/>
+        <DCCReference Include="src\DataModules\UniDataCambioCodigoCliente.pas"/>
+        <DCCReference Include="src\Modals\inMtoModalCambioCodigoCliente.pas"/>
         <DCCReference Include="src\Lib\inLibMsgFotos.pas"/>
         <DCCReference Include="src\Lib\inLibClientesCoincidencias.pas"/>
         <DCCReference Include="src\DataModules\UniDataClientesCoincidencias.pas"/>

@@ -418,7 +418,14 @@ var
   EsBoton      : Boolean;
   EsInspector  : Boolean;
 begin
-  if (Key = VK_RETURN) and
+  // ShowModal deshabilita el principal, cuyo Ctrl+F4 cierra pestañas.
+  // El diálogo atiende su propio atajo y respeta los cambios pendientes.
+  if (Key = VK_F4) and (Shift = [ssCtrl]) then
+  begin
+    Key := 0;
+    actSalirExecute(Self);
+  end
+  else if (Key = VK_RETURN) and
      (not (ssCtrl in Shift)) and
      (not (ssAlt in Shift)) then
   begin

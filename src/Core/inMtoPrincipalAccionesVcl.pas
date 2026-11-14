@@ -34,6 +34,8 @@ procedure MostrarCambioArticuloColor(
   AOwner: TComponent;
   AConexion: TUniConnection;
   const AUsuario: string);
+procedure MostrarCambioCodigoCliente(AOwner: TComponent;
+  AConexion: TUniConnection; const AUsuario: string; APantallas: Integer);
 procedure MostrarDeclaracionVerifactu(AOwner: TComponent);
 procedure MostrarAyudaWeb(AOwner: TComponent;
   const ATitulo, AUrl: string);
@@ -70,6 +72,8 @@ uses
   inMtoModalFacturarTicket,
   inMtoModalProcesosAuxiliaresBBDD,
   inMtoModalCambioArticuloColor,
+  inMtoModalCambioCodigoCliente, UniDataCambioCodigoCliente,
+  inLibMsgCambioCodigoCliente, inLibMensajesVcl,
   inLibCambioArticuloColor,
   UniDataCambioArticuloColorRepositorio,
   UniDataCambioArticuloColorHistoricoConsulta,
@@ -187,6 +191,16 @@ begin
       CrearRepositorioCambioArticuloColorUniDAC(AConexion)),
     CrearConsultaCambioArticuloColorHistoricoUniDAC(AConexion),
     AUsuario);
+end;
+
+procedure MostrarCambioCodigoCliente(AOwner: TComponent;
+  AConexion: TUniConnection; const AUsuario: string; APantallas: Integer);
+begin
+  if APantallas > 0 then
+    ShowMessage_fza(SCambioClienteCerrarPantallas)
+  else
+    TfrmModalCambioCodigoCliente.Ejecutar(AOwner,
+      CrearCambioCodigoCliente(AConexion), AUsuario);
 end;
 
 procedure MostrarDeclaracionVerifactu(AOwner: TComponent);

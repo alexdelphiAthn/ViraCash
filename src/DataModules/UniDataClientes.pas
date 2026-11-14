@@ -18,7 +18,7 @@ unit UniDataClientes;
 interface
 
 uses
-  inLibRegistroPantallas, inLibClientesCoincidencias,
+  inLibRegistroPantallas,
   System.SysUtils, System.Classes, UniDataGen, Data.DB, MemDS, DBAccess,
   Uni, inLibUser, UniDataConn, inLibWin, Forms, Windows,
   Datasnap.DBClient, Datasnap.Provider, frxClass, frxDBSet, frCoreClasses;
@@ -53,16 +53,9 @@ type
     procedure unqryTablaGBeforeDelete(DataSet: TDataSet);
     procedure unqryTablaGAfterPost(DataSet: TDataSet);
   private
-    FConfirmarCoincidencias: TConfirmarCoincidenciasCliente;
-    FMotivoCoincidencias: string;
-    FCodigosCoincidencias: string;
-    procedure ComprobarCoincidencias(ADataSet: TDataSet);
-    procedure RegistrarCoincidencias;
     procedure GuardarParametrosEDocCliente(ADataSet: TDataSet);
     procedure GuardarClienteVarios(ADataSet: TDataSet);
   public
-    property ConfirmarCoincidencias: TConfirmarCoincidenciasCliente
-      read FConfirmarCoincidencias write FConfirmarCoincidencias;
     procedure GetCodigoAutoCliente;
     procedure CrearDataSetEtiquetas(iNroEspaciosBlanco: Integer;
                                     sCodCli:String);
@@ -82,7 +75,7 @@ type
 implementation
 
 uses
-  UniDataClientesCoincidencias, inLibClientesAltaRapida,
+  inLibClientesAltaRapida,
   UniDataValoresAutomaticosRepositorio,
   UniDataVendedoresRepositorio,
 
@@ -395,54 +388,6 @@ begin
   // facturas. No va en el SQL del DFM; se guarda si la base lo trae.
   GuardarVendedorRegistro(unqryTablaG.Connection, DataSet, 'fza_clientes',
     'CODIGO_VENDEDOR_CLI', ['CODIGO_CLI_CLI']);
-  RegistrarCoincidencias;
-end;
-
-procedure TdmClientes.ComprobarCoincidencias(ADataSet: TDataSet);
-var
-  rIdentidad: TIdentidadClienteCoincidencias;
-  aCandidatos: TCandidatosCliente;
-  rCandidato: TCandidatoCliente;
-begin
-  FMotivoCoincidencias := '';
-  FCodigosCoincidencias := '';
-  rIdentidad.Codigo := ADataSet.FieldByName('CODIGO_CLI_CLI').AsString;
-  rIdentidad.Nif := ADataSet.FieldByName('NIF_CLI').AsString;
-  rIdentidad.Telefono := ADataSet.FieldByName('TELEFONO_CLI').AsString;
-  rIdentidad.Movil := ADataSet.FieldByName('MOVIL_CLI').AsString;
-  rIdentidad.Correo := ADataSet.FieldByName('EMAIL_CLI').AsString;
-  aCandidatos := BuscarCoincidenciasCliente(
-    unqryTablaG.Connection, rIdentidad);
-  if Length(aCandidatos) > 0 then
-  begin
-    if not Assigned(FConfirmarCoincidencias) then
-      raise EInvalidOpException.Create(SErrorConfirmarCoincidenciasCliente);
-    if not FConfirmarCoincidencias(aCandidatos, FMotivoCoincidencias) then
-      Abort;
-    FMotivoCoincidencias := Trim(FMotivoCoincidencias);
-    if (FMotivoCoincidencias = '') or
-       (Length(FMotivoCoincidencias) > 500) then
-      raise EArgumentException.Create(SErrorMotivoCoincidenciasCliente);
-    for rCandidato in aCandidatos do
-      FCodigosCoincidencias := FCodigosCoincidencias +
-        rCandidato.Codigo + ';';
-  end;
-end;
-
-procedure TdmClientes.RegistrarCoincidencias;
-begin
-  if FMotivoCoincidencias <> '' then
-  begin
-    RegistroLog.RegistrarInformacion(Format(
-      'Clientes: usuario=%s; ficha=%s; coincidencias=%s; motivo=%s',
-      [IdentidadSesion.Usuario,
-       unqryTablaG.FieldByName('CODIGO_CLI_CLI').AsString,
-       FCodigosCoincidencias,
-       StringReplace(StringReplace(FMotivoCoincidencias, #13, ' ',
-         [rfReplaceAll]), #10, ' ', [rfReplaceAll])]));
-    FMotivoCoincidencias := '';
-    FCodigosCoincidencias := '';
-  end;
 end;
 
 procedure TdmClientes.unqryTablaGBeforeDelete(DataSet: TDataSet);
@@ -516,8 +461,7 @@ begin
         ConsultaTarifa.Free;
       end;
     end;
-    // La consulta se repite al guardar y precede a la numeración definitiva.
-    ComprobarCoincidencias(DataSet);
+    // Las coincidencias se consultan en Cambio de código de cliente.
     GetCodigoAutoCliente;
   end;
 end;

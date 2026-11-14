@@ -17,7 +17,7 @@ unit inMtoClientes;
 interface
 
 uses
-  inLibRegistroPantallas, inLibClientesCoincidencias,
+  inLibRegistroPantallas,
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, inMtoGen, dxSkinsCore,
@@ -449,17 +449,9 @@ type
     FDmmClientes: TDMClientes;
     FRepositorioClientes: IRepositorioClientes;
     FVerificacionNif: TComponent;
-    FCoincidenciaAbrir: string;
     FTabMedidas: TcxTabSheet;
     procedure CrearAccesoMedidas;
     procedure MedidasClienteClick(Sender: TObject);
-    function ConfirmarCoincidenciasCliente(
-      const ACandidatos: TCandidatosCliente;
-      out AMotivo: string): Boolean;
-    procedure ElegirCoincidenciaCliente(
-      const ACandidatos: TCandidatosCliente);
-    procedure AbrirCoincidenciaCliente(var AMensaje: TMessage);
-      message WM_APP + $752;
     procedure InstalarVerificacionNif;
   public
     procedure CrearTablaPrincipal; override;
@@ -744,7 +736,6 @@ begin
     oContexto);
   FRepositorioClientes := oContexto.Repositorio;
   FDmmClientes := tdmDataModule as TdmClientes;
-  FDmmClientes.ConfirmarCoincidencias := ConfirmarCoincidenciasCliente;
   tvFacturacion.DataController.DataSource := FDmmClientes.dsFacturasClientes;
   tvLineasFacturacion.DataController.DataSource :=
     FDmmClientes.dsFacturasLineasClientes;
@@ -798,70 +789,6 @@ end;
 
 // FZ-ISSUE-131: botón «AEAT» junto al NIF; firma con el certificado de
 // la empresa de la sesión.
-function TfrmMtoClientes.ConfirmarCoincidenciasCliente(
-  const ACandidatos: TCandidatosCliente;
-  out AMotivo: string): Boolean;
-var
-  sResumen, sClase: string;
-  iIndice, iRespuesta: Integer;
-begin
-  Result := False;
-  AMotivo := '';
-  sResumen := Format(SResumenCoincidenciasCliente,
-    [Length(ACandidatos)]) + sLineBreak;
-  for iIndice := 0 to Length(ACandidatos) - 1 do
-    if iIndice < 20 then
-    begin
-      sClase := SContactoCoincidenteCliente;
-      if ACandidatos[iIndice].MismoNif then
-        sClase := SIdentificacionCoincidenteCliente;
-      sResumen := sResumen + sLineBreak +
-        ACandidatos[iIndice].Codigo + ' - ' +
-        ACandidatos[iIndice].Nombre + ' (' + sClase + ')';
-    end;
-  iRespuesta := MessageDlg_fza(sResumen + sLineBreak + sLineBreak +
-    SPreguntaCoincidenciasCliente, mtWarning, [mbYes, mbNo, mbCancel],
-    0, mbCancel);
-  if iRespuesta = mrYes then
-    Result := InputQuery_fza(STituloCoincidenciasCliente,
-      SPreguntaMotivoCoincidenciasCliente, AMotivo)
-  else if iRespuesta = mrNo then
-    ElegirCoincidenciaCliente(ACandidatos);
-end;
-
-procedure TfrmMtoClientes.ElegirCoincidenciaCliente(
-  const ACandidatos: TCandidatosCliente);
-var
-  sCodigo: string;
-  rCandidato: TCandidatoCliente;
-begin
-  sCodigo := '';
-  if PuedeAccionMto(apmConsultar) and
-     InputQuery_fza(STituloCoincidenciasCliente,
-       SPreguntaAbrirCoincidenciaCliente, sCodigo) then
-  begin
-    FCoincidenciaAbrir := '';
-    for rCandidato in ACandidatos do
-      if SameText(Trim(sCodigo), rCandidato.Codigo) then
-        FCoincidenciaAbrir := rCandidato.Codigo;
-    if FCoincidenciaAbrir <> '' then
-      PostMessage(Handle, WM_APP + $752, 0, 0);
-  end;
-end;
-
-procedure TfrmMtoClientes.AbrirCoincidenciaCliente(var AMensaje: TMessage);
-var
-  sCodigo: string;
-begin
-  sCodigo := FCoincidenciaAbrir;
-  FCoincidenciaAbrir := '';
-  if (sCodigo <> '') and PuedeAccionMto(apmConsultar) then
-  begin
-    FDmmClientes.unqryTablaG.Cancel;
-    ShowMto(Self.Owner, 'Clientes', sCodigo);
-  end;
-end;
-
 procedure TfrmMtoClientes.InstalarVerificacionNif;
 var
   Contexto: TContextoVerificacionNifVcl;

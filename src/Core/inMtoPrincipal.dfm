@@ -881,6 +881,10 @@
         ShortCut = 57458
         OnClick = mnuCambioArticuloColorClick
       end
+      object mnuCambioCodigoCliente: TMenuItem
+        Caption = 'Cambio de código de cliente'
+        OnClick = mnuCambioCodigoClienteClick
+      end
       object mnuSesionesCambioTarifa: TMenuItem
         Caption = 'Sesiones de cambio de tarifa'
         ShortCut = 24659

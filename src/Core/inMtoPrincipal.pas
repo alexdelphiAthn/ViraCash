@@ -245,6 +245,7 @@ type
     HacerCopiadeSeguridad1: TMenuItem;
     mnuEjecutarScript: TMenuItem;
     mnuCambioArticuloColor: TMenuItem;
+    mnuCambioCodigoCliente: TMenuItem;
     mnuSesionesCambioTarifa: TMenuItem;
     mnuProcesosAuxiliaresBBDD: TMenuItem;
     mnuGeneradorProcesos: TMenuItem;
@@ -289,6 +290,7 @@ type
     procedure MenuGenericoClick(Sender: TObject);
     procedure mnuEjecutarScriptClick(Sender: TObject);
     procedure mnuCambioArticuloColorClick(Sender: TObject);
+    procedure mnuCambioCodigoClienteClick(Sender: TObject);
     procedure mnuProcesosAuxiliaresBBDDClick(Sender: TObject);
     procedure tmr1Timer(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -2595,6 +2597,14 @@ begin
       FComposicion.DmConn.conUni,
       FComposicion.ContextoSesion.Identidad.Usuario);
   end;
+end;
+
+procedure TfrmMtoPrincipal.mnuCambioCodigoClienteClick(Sender: TObject);
+begin
+  if mnuCambioCodigoCliente.Visible and mnuCambioCodigoCliente.Enabled and
+     Assigned(FComposicion) and Assigned(FComposicion.DmConn) then
+    MostrarCambioCodigoCliente(Self, FComposicion.DmConn.conUni,
+      FComposicion.ContextoSesion.Identidad.Usuario, pcPrincipal.PageCount);
 end;
 
 procedure TfrmMtoPrincipal.MenuGenericoClick(Sender: TObject);
