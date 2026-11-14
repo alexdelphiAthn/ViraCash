@@ -45,7 +45,7 @@ uses
   inMtoCajaEditorAtributosVcl, inMtoCajaOpeVentanaVcl,
   inMtoCajaSubsanacionVcl, inLibCajaSubsanacionIntf,
   inMtoCajaCierreVentaVcl, inLibCajaLotes, inLibIndicadoresColasVcl,
-  inLibCajaStockLinea;
+  inLibCajaStockLinea, inLibContextoSesionIntf;
 
 const
   WM_CANCELAR_LINEA = WM_APP + 100;
@@ -701,6 +701,7 @@ implementation
 {$R *.dfm}
 
 uses
+  inLibTpvMvcIntf, inLibControladorVentaTpv,
   inMtoFotoArticulo,
   inLibArqueoPersistencia,
   inLibFormatoDocumento, UniDataFormatoDocumentoRepositorio,
@@ -2023,6 +2024,8 @@ begin
 
   if Assigned(DatosCaja) then
   begin
+    DatosCaja.UbicacionCaja := TUbicacionSesion.Crear(
+      AEmpresa, AAlmacen, ACaja);
     // 1. Guardar el ultimo empleado que el usuario valido en esta ventana.
     // No se toma del dataset: al insertar, los valores automaticos de la
     // tabla pueden haber escrito un cajero que nunca se eligio en caja.
@@ -5597,33 +5600,41 @@ begin
 end;
 
 function TfrmMtoOpeCaja.IntentarCerrar: Boolean;
+var
+  oEstado: TEstadoSalidaTpv;
+  oInteraccion: TInteraccionSalidaTpv;
 begin
-  Result := True;
-  if Assigned(FSubsanacion) then
-    Result := CerrarSubsanacion
-  else if not (csDestroying in ComponentState) then
+  oEstado := Default(TEstadoSalidaTpv);
+  oEstado.EsSubsanacion := Assigned(FSubsanacion);
+  oEstado.EnDestruccion := csDestroying in ComponentState;
+  oEstado.EsVisible := Visible;
+  if not oEstado.EsSubsanacion and not oEstado.EnDestruccion then
   begin
-    if DatosCaja.cdsLineas.Active and not DatosCaja.cdsLineas.IsEmpty then
-    begin
-      if not Visible then
-      begin
-        Show;
-        BringToFront;
-      end;
-      if MessageDlg_fza(
-        Format(SPreguntaEliminarOperacionCajaPendiente, [Self.Tag]),
-        mtConfirmation, [mbYes, mbNo], 0) = mrYes then
-      begin
-        if DatosCaja.cdsLineas.State in [dsEdit, dsInsert] then
-          DatosCaja.cdsLineas.Cancel;
-        Close;
-      end
-      else
-        Result := False;
-    end
-    else
-      Close;
+    oEstado.HayLineas := DatosCaja.cdsLineas.Active and
+      not DatosCaja.cdsLineas.IsEmpty;
   end;
+  oInteraccion.CerrarSubsanacion := CerrarSubsanacion;
+  oInteraccion.Mostrar :=
+    procedure
+    begin
+      Show;
+      BringToFront;
+    end;
+  oInteraccion.ConfirmarAbandono :=
+    function: Boolean
+    begin
+      Result := MessageDlg_fza(
+        Format(SPreguntaEliminarOperacionCajaPendiente, [Self.Tag]),
+        mtConfirmation, [mbYes, mbNo], 0) = mrYes;
+    end;
+  oInteraccion.CancelarEdicion :=
+    procedure
+    begin
+      if DatosCaja.cdsLineas.State in dsEditModes then
+        DatosCaja.cdsLineas.Cancel;
+    end;
+  oInteraccion.Cerrar := Close;
+  Result := TControladorVentaTpv.IntentarSalir(oEstado, oInteraccion);
 end;
 
 function TEditorLineasCajaVcl.ObtenerColumnaPorTag(

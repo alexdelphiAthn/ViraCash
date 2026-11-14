@@ -442,6 +442,7 @@ type
     // de DevExpress, que puede consumirlo como tecla de ayuda.
     procedure KeyDown(var Key: Word; Shift: TShiftState); override;
   public
+    function CloseQuery: Boolean; override;
     // Reaplicar las traducciones (cambio de idioma) devuelve los textos del
     // catálogo, que pueden traer atajos antiguos (FZ-ISSUE-339).
     procedure AplicarTraduccionActual; override;
@@ -475,6 +476,7 @@ implementation
 uses
   inLibMensajesVcl, inMtoModalImpHojaRutaTransito,
   inLibMsgCaja, inLibMsgComun, inLibMsgFacturas, inLibTraspasoSolicitudAtencion,
+  inLibMsgConfiguracion,
   UniDataGridArticulosRepositorio, UniDataColumnasSkuServicios,
   UniDataColumnasDocumentoRepositorio, inLibColumnasDocumento,
   inLibMsgArticulos, inLibCajaEstiloVcl, System.Math, inLibGridCantidad,
@@ -2253,6 +2255,14 @@ begin
         end;
     end;
   end;
+end;
+
+function TfrmMtoOpeTraspaso.CloseQuery: Boolean;
+begin
+  Result := inherited CloseQuery;
+  if Result and HayLineasSinGrabar then
+    Result := MessageDlg_fza(SPreguntaSalirSinGuardar,
+      mtConfirmation, [mbYes, mbNo], 0, mbNo) = mrYes;
 end;
 
 procedure TfrmMtoOpeTraspaso.btnModoClick(Sender: TObject);

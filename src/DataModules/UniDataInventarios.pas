@@ -119,6 +119,7 @@ type
     procedure cdsLineasNewRecord(DataSet: TDataSet);
     procedure cdsLineasAfterEdit(DataSet: TDataSet);
     procedure cdsLineasAfterCancel(DataSet: TDataSet);
+    procedure LoteLineaChange(Sender: TField);
   private
     FCodigoEmpresa: string;
     FCodigoAlmacen: string;
@@ -587,6 +588,7 @@ begin
   PrepararSqlCabecera;
   cdsLineasCODIGO_ARTICULO_INVENTARIO_LINEA.OnChange :=
     CodigoArticuloLineaChange;
+  cdsLineasLOTE_INVENTARIO_LINEA.OnChange := LoteLineaChange;
 
   unqryLineas.SQLUpdate.Text :=
     'UPDATE fza_inventarios_lineas SET ' + sLineBreak +
@@ -804,16 +806,23 @@ begin
 end;
 
 procedure TdmInventarios.ProponerSerieNuevoInventario;
+var
+  sSerie, sEmpresa: string;
 begin
   // Un inventario guardado conserva su clave. En altas, la empresa o el
   // almacén pueden cambiar después del prerrelleno con la ubicación.
   if unqryTablaG.Active and (unqryTablaG.State = dsInsert) and
      (Trim(unqryTablaG.FieldByName('CODIGO_EMP_INV').AsString) <> '') then
-    unqryTablaG.FieldByName('SERIE_INV').AsString := ObtenerSerieDefecto(
-      unqryTablaG.Connection,
-      unqryTablaG.FieldByName('CODIGO_EMP_INV').AsString,
-      'IN',
-      unqryTablaG.FieldByName('CODIGO_ALM_INV').AsString);
+  begin
+    sEmpresa := unqryTablaG.FieldByName('CODIGO_EMP_INV').AsString;
+    CargarSeriesPorEmpresa(sEmpresa);
+    sSerie := ObtenerSerieDefecto(unqryTablaG.Connection, sEmpresa,
+      'IN', unqryTablaG.FieldByName('CODIGO_ALM_INV').AsString);
+    if sSerie = '' then
+      sSerie := ObtenerSerieDefecto(unqryTablaG.Connection,
+        sEmpresa, 'IN', '');
+    unqryTablaG.FieldByName('SERIE_INV').AsString := sSerie;
+  end;
 end;
 
 procedure TdmInventarios.unqryTablaGBeforeDelete(DataSet: TDataSet);
@@ -824,7 +833,29 @@ end;
 procedure TdmInventarios.unqryTablaGBeforePost(DataSet: TDataSet);
 var
   campoRecuento: TField;
+  oSerie: TUniQuery;
 begin
+  // Validación de usuario antes de auditoría, contadores o escrituras.
+  if Trim(DataSet.FieldByName('SERIE_INV').AsString) = '' then
+    raise EValidacionBBDD.Create(SErrorSerieInventarioObligatoria);
+  oSerie := TUniQuery.Create(nil);
+  try
+    oSerie.Connection := unqryTablaG.Connection;
+    oSerie.SQL.Text :=
+      'SELECT EMPSER FROM vi_empresas_series ' +
+      'WHERE CODIGO_EMP_EMPSER = :EMPRESA ' +
+      'AND TIPO_DOC_EMPSER = ''IN'' AND EMPSER = :SERIE LIMIT 1';
+    oSerie.ParamByName('EMPRESA').AsString :=
+      DataSet.FieldByName('CODIGO_EMP_INV').AsString;
+    oSerie.ParamByName('SERIE').AsString :=
+      DataSet.FieldByName('SERIE_INV').AsString;
+    oSerie.Open;
+    if oSerie.IsEmpty then
+      raise EValidacionBBDD.CreateFmt(SErrorSerieInventarioNoValidaEmpresa,
+        [DataSet.FieldByName('CODIGO_EMP_INV').AsString]);
+  finally
+    oSerie.Free;
+  end;
   inherited;
   // ESRECUENTO_REMOTO_INV es char(1) NOT NULL en BBDD (default 'N'). Al
   // anadirse al SELECT de la cabecera es un campo Required del dataset, asi
@@ -835,14 +866,6 @@ begin
   if campoRecuento <> nil then
     if Trim(campoRecuento.AsString) = '' then
       campoRecuento.AsString := 'N';
-  // Validacion explicita: la serie es parte de la PK de las lineas y
-  // varchar(20) NOT NULL en BBDD. Si llega vacia (porque la empresa no
-  // tiene una serie por defecto en fza_empresas_series para tipo IN),
-  // la cabecera se grabaria con SERIE_INV='' y las lineas heredarian
-  // ese vacio, que despues hace reventar el TClientDataSet en Post con
-  // un cryptico "Field value required" desde DSBase / MidasLib.
-  if Trim(DataSet.FieldByName('SERIE_INV').AsString) = '' then
-    raise Exception.Create(SErrorSerieInventarioObligatoria);
   ValidarAlmacenNoTransito(DataSet);
   // Forzamos campos de auditoría
   if DataSet.State = dsInsert then
@@ -1309,6 +1332,53 @@ begin
   if Sender.DataSet.State in [dsInsert, dsEdit] then
     Sender.DataSet.FieldByName('TIPO_CANTIDAD_INV_LINEA').AsString :=
       UnidadArticulo(Sender.AsString);
+end;
+
+procedure TdmInventarios.LoteLineaChange(Sender: TField);
+var
+  oLinea: TDataSet;
+  oConsulta: TUniQuery;
+  sSku: string;
+  dTeorica, dAnterior, dFisica: Currency;
+begin
+  oLinea := Sender.DataSet;
+  if (oLinea.State in [dsInsert, dsEdit]) and
+     not FAplicacionLineasDiferida and not FModoPivoteActivo then
+  begin
+    sSku := Trim(oLinea.FieldByName('CODIGO_UNIDAD_INVLIN').AsString);
+    if sSku <> '' then
+    begin
+      dAnterior := oLinea.FieldByName('CANTIDAD_TEORICA_INVLIN').AsCurrency;
+      dFisica := oLinea.FieldByName('CANTIDAD_FISICA_INVLIN').AsCurrency;
+      oConsulta := TUniQuery.Create(nil);
+      try
+        oConsulta.Connection := ConexionEscritura;
+        oConsulta.SQL.Text :=
+          'SELECT COALESCE(SUM(CANTIDAD_STK), 0) AS CANTIDAD ' +
+          'FROM fza_articulos_stockactual ' +
+          'WHERE CODIGO_ALM_STK = :ALMACEN ' +
+          'AND CODIGO_UNIDAD_STK = :SKU ' +
+          'AND (:LOTE = '''' OR LOTE_STK = :LOTE)';
+        oConsulta.ParamByName('ALMACEN').AsString := FCodigoAlmacen;
+        oConsulta.ParamByName('SKU').AsString := sSku;
+        oConsulta.ParamByName('LOTE').AsString := Trim(Sender.AsString);
+        oConsulta.Open;
+        dTeorica := oConsulta.FieldByName('CANTIDAD').AsCurrency;
+      finally
+        oConsulta.Free;
+      end;
+      if dFisica = dAnterior then
+        dFisica := dTeorica;
+      oLinea.FieldByName('CANTIDAD_TEORICA_INVLIN').AsCurrency := dTeorica;
+      oLinea.FieldByName('CANTIDAD_FISICA_INVLIN').AsCurrency := dFisica;
+      oLinea.FieldByName('CANTIDAD_DIFERENCIA_INVLIN').AsCurrency :=
+        DiferenciaUnidadesInventario(dFisica, dTeorica);
+      oLinea.FieldByName('TOTAL_COSTE_DIFERENCIA_INVLIN').AsCurrency :=
+        DiferenciaCosteInventario(dFisica, dTeorica,
+          oLinea.FieldByName('PRECIO_MEDIO_NUEVO_INVLIN').AsCurrency,
+          oLinea.FieldByName('PRECIO_MEDIO_INVLIN').AsCurrency);
+    end;
+  end;
 end;
 
 // Articulo que no estaba al abrir (linea nueva): una consulta y a la cache.
@@ -2922,15 +2992,11 @@ end;
 
 procedure TdmInventarios.CargarSeriesPorEmpresa(const ACodigoEmpresa: string);
 begin
-  // Solo aplicable si la SQL de unqrySeries declara el parámetro :EMPRESA
-  // (ver dfm: tabla fza_empresas_series filtrada por CODIGO_EMP_EMPSER).
-  unqrySeries.Close;
-  if ACodigoEmpresa = '' then
-    unqrySeries.Open
-  else
+  if not unqrySeries.Active or
+     (unqrySeries.ParamByName('EMPRESA').AsString <> ACodigoEmpresa) then
   begin
-    if unqrySeries.Params.FindParam('EMPRESA') <> nil then
-      unqrySeries.ParamByName('EMPRESA').AsString := ACodigoEmpresa;
+    unqrySeries.Close;
+    unqrySeries.ParamByName('EMPRESA').AsString := ACodigoEmpresa;
     unqrySeries.Open;
   end;
 end;

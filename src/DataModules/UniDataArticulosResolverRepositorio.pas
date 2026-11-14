@@ -758,7 +758,9 @@ begin
           bCosteSkuEncontrado := True;
         end;
       end;
-      if not bCosteSkuEncontrado then
+      // El proveedor del documento prevalece sobre el coste global del SKU.
+      // Si no tiene precio informado, se conserva el coste del SKU.
+      if (ACodigoProveedor <> '') or not bCosteSkuEncontrado then
       begin
         if ACodigoProveedor <> '' then
           oDefinicion := DefinicionesSql[4]

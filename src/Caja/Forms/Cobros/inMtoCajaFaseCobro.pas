@@ -35,7 +35,7 @@ uses
   inLibFaseCobroPersistenciaIntf,
   inMtoCajaReferenciaPago, System.UITypes, dxGDIPlusClasses, cxImage,
   inLibInformesCajaPersistenciaIntf, inLibCajaPantallaInyeccion,
-  inLibCajaSubsanacionIntf,
+  inLibTpvMvcIntf, inLibCajaSubsanacionIntf,
   JvComponentBase, JvEnterTab, cxLocalization;
 
 type
@@ -236,6 +236,17 @@ type
     function RecalcularTotalesComoTipo(
       const ATipoFactura: string): Boolean;
     function RecalcularTotalesComoTicket: Boolean;
+    procedure ConfirmarCobroTpv(ATipo: TTipoImpresionVenta);
+    procedure ConfirmarFacturaTpv;
+    procedure DejarEnCuentaTpv(Sender: TObject);
+    function AutorizarEmisionActual: Boolean;
+    function RecalcularComoFacturaTpv: Boolean;
+    function SolicitarDocumentoFacturaTpv: Boolean;
+    procedure AceptarFacturaTpv;
+    procedure AvisarRechazoFacturaTpv(ARechazo: TRechazoFacturaTpv);
+    procedure AvisarRechazoCreditoTpv(ARechazo: TRechazoCreditoTpv);
+    function EstablecerCreditoTpv: Boolean;
+    procedure AceptarCobroTpv(ATipo: TTipoImpresionVenta);
     function ValidarCobroSubsanacion: Boolean;
     function PedirContactoApartado: Boolean;
     function ValidaryConfirmar:boolean;
@@ -297,6 +308,7 @@ implementation
 {$R *.dfm}
 
 uses
+  inLibControladorVentaTpv,
   inLibTipoCantidad, inLibMensajesVcl, inLibRedondeo,
   UniDataFaseCobroRepositorio,
   inMtoCajaSeleccionVale, inMtoModalOpcionesDocumento,
@@ -570,22 +582,35 @@ begin
     cbbSERIE_FAC.ItemIndex := 0;
   end;
 end;
+procedure TfrmMtoCajaFaseCobro.ConfirmarCobroTpv(
+  ATipo: TTipoImpresionVenta);
+var
+  oInteraccion: TInteraccionConfirmacionCobroTpv;
+begin
+  oInteraccion.ValidarCobro := ValidarYConfirmar;
+  oInteraccion.ValidarSubsanacion := ValidarCobroSubsanacion;
+  oInteraccion.RecalcularComoTicket := RecalcularTotalesComoTicket;
+  oInteraccion.AutorizarEmision := AutorizarEmisionActual;
+  oInteraccion.Aceptar := AceptarCobroTpv;
+  TControladorVentaTpv.ConfirmarCobro(ATipo,
+    FModoSubsanacion, oInteraccion);
+end;
+
+function TfrmMtoCajaFaseCobro.AutorizarEmisionActual: Boolean;
+begin
+  Result := PuedeEmitir(cbbSERIE_FAC.Text, FFecha);
+end;
+
+procedure TfrmMtoCajaFaseCobro.AceptarCobroTpv(
+  ATipo: TTipoImpresionVenta);
+begin
+  FTipoImpresion := ATipo;
+  ModalResult := mrOk;
+end;
+
 procedure TfrmMtoCajaFaseCobro.btnConTicketClick(Sender: TObject);
 begin
-  if FModoSubsanacion then
-  begin
-    if ValidarYConfirmar and ValidarCobroSubsanacion then
-    begin
-      FTipoImpresion := tiConTicket;
-      ModalResult := mrOk;
-    end;
-  end
-  else if ValidarYConfirmar and RecalcularTotalesComoTicket and
-          PuedeEmitir(cbbSERIE_FAC.Text, FFecha) then
-  begin
-    FTipoImpresion := tiConTicket;
-    ModalResult := mrOk;
-  end;
+  ConfirmarCobroTpv(tiConTicket);
 end;
 
 procedure TfrmMtoCajaFaseCobro.btnDepositoClick(Sender: TObject);
@@ -625,40 +650,70 @@ begin
 end;
 
 procedure TfrmMtoCajaFaseCobro.btnFacturaClick(Sender: TObject);
+begin
+  ConfirmarFacturaTpv;
+end;
+
+procedure TfrmMtoCajaFaseCobro.ConfirmarFacturaTpv;
+var
+  oEstado: TEstadoFacturaTpv;
+  oInteraccion: TInteraccionFacturaTpv;
+begin
+  oEstado.EsSubsanacion := FModoSubsanacion;
+  oEstado.RectificaA := FRectificaA;
+  oEstado.CodigoCliente := FCodigoCliente;
+  oEstado.NifCliente := FNifCliente;
+  oEstado.CodigoPais := FCodigoPaisCliente;
+  oEstado.NombrePais := FNombrePaisCliente;
+  oInteraccion.Avisar := AvisarRechazoFacturaTpv;
+  oInteraccion.ValidarCobro := ValidarYConfirmar;
+  oInteraccion.RecalcularComoFactura := RecalcularComoFacturaTpv;
+  oInteraccion.SolicitarDocumento := SolicitarDocumentoFacturaTpv;
+  oInteraccion.Aceptar := AceptarFacturaTpv;
+  TControladorVentaTpv.ConfirmarFactura(oEstado, oInteraccion);
+end;
+
+procedure TfrmMtoCajaFaseCobro.AvisarRechazoFacturaTpv(
+  ARechazo: TRechazoFacturaTpv);
+begin
+  case ARechazo of
+    rfRectificativa:
+      ShowMessage_fza(SErrorRectificacionCajaNoAdmiteBorrador);
+    rfSinCliente:
+      ShowMessage_fza(SErrorClienteBorradorCajaNoAsignado);
+    rfSinNif:
+      ShowMessage_fza(SErrorNifClienteBorradorCajaNoIndicado);
+    rfDocumentoInvalido:
+      ShowMessage_fza(SErrorDocumentoFiscalClienteCajaNoValido +
+        MensajeDocumentoFiscalInvalido(FNifCliente));
+  end;
+end;
+
+function TfrmMtoCajaFaseCobro.RecalcularComoFacturaTpv: Boolean;
+begin
+  Result := RecalcularTotalesComoTipo(TIPO_FACTURA_COMPLETA_CAJA);
+end;
+
+function TfrmMtoCajaFaseCobro.SolicitarDocumentoFacturaTpv: Boolean;
 var
   oDatos: TOpcionesDocumento;
 begin
-  //F8 -> grabar la venta como factura completa (A4), no como ticket
-  if FModoSubsanacion then
-    Exit;
-  if FRectificaA <> '' then
-    ShowMessage_fza(SErrorRectificacionCajaNoAdmiteBorrador)
-  else if (Trim(FCodigoCliente) = '') or (Trim(FCodigoCliente) = '0') then
-    ShowMessage_fza(SErrorClienteBorradorCajaNoAsignado)
-  else if Trim(FNifCliente) = '' then
-    ShowMessage_fza(SErrorNifClienteBorradorCajaNoIndicado)
-  else if PaisEsEspana(FCodigoPaisCliente, FNombrePaisCliente) and
-          (not DocumentoFiscalValido(FNifCliente)) then
-    ShowMessage_fza(SErrorDocumentoFiscalClienteCajaNoValido +
-                MensajeDocumentoFiscalInvalido(FNifCliente))
-  else if ValidarYConfirmar and
-          RecalcularTotalesComoTipo(TIPO_FACTURA_COMPLETA_CAJA) then
+  Result := SolicitarSerieFechaFacturaCaja(Self, ConexionPrincipal,
+    FCodigoEmpresa, FCodigoAlmacen, oDatos);
+  if Result then
+    Result := SerieAdmiteFecha(oDatos.Serie, oDatos.Fecha, 'NORMAL');
+  if Result then
   begin
-    // Serie de factura completa (por defecto la del almacén) y fecha
-    if SolicitarSerieFechaFacturaCaja(Self, ConexionPrincipal,
-         FCodigoEmpresa, FCodigoAlmacen, oDatos) then
-    begin
-      if SerieAdmiteFecha(oDatos.Serie, oDatos.Fecha, 'NORMAL') then
-      begin
-        AvisarSiNumeracionConHuecos(oDatos.Serie);
-        FNumeroManual  := '';
-        FSerieFactura  := oDatos.Serie;
-        FFechaFactura  := oDatos.Fecha;
-        FTipoImpresion := tiFactura;
-        ModalResult    := mrOk;
-      end;
-    end;
+    AvisarSiNumeracionConHuecos(oDatos.Serie);
+    FNumeroManual := '';
+    FSerieFactura := oDatos.Serie;
+    FFechaFactura := oDatos.Fecha;
   end;
+end;
+
+procedure TfrmMtoCajaFaseCobro.AceptarFacturaTpv;
+begin
+  AceptarCobroTpv(tiFactura);
 end;
 
 // FZ-ISSUE-369: TFacturaTotales no aplica recargo ni retención a la
@@ -724,31 +779,12 @@ end;
 
 procedure TfrmMtoCajaFaseCobro.btnSinTicketClick(Sender: TObject);
 begin
-  if FModoSubsanacion then
-  begin
-    if ValidarYConfirmar and ValidarCobroSubsanacion then
-    begin
-      FTipoImpresion := tiSinTicket;
-      ModalResult := mrOk;
-    end;
-  end
-  else if ValidarYConfirmar and RecalcularTotalesComoTicket and
-          PuedeEmitir(cbbSERIE_FAC.Text, FFecha) then
-  begin
-    FTipoImpresion := tiSinTicket;
-    ModalResult := mrOk;
-  end;
+  ConfirmarCobroTpv(tiSinTicket);
 end;
 
 procedure TfrmMtoCajaFaseCobro.btnSinPreciosClick(Sender: TObject);
 begin
-  if not FModoSubsanacion and ValidarYConfirmar and
-     RecalcularTotalesComoTicket and
-     PuedeEmitir(cbbSERIE_FAC.Text, FFecha) then
-  begin
-    FTipoImpresion := tiTicketRegalo;
-    ModalResult := mrOk;
-  end;
+  ConfirmarCobroTpv(tiTicketRegalo);
 end;
 
 function TfrmMtoCajaFaseCobro.ValidarDepositoCredito: Boolean;
@@ -1785,43 +1821,63 @@ begin
 end;
 
 procedure TfrmMtoCajaFaseCobro.btnF7Click(Sender: TObject);
-var
-  Res: TResultadoValidacion;
 begin
   inherited;
-  if FModoSubsanacion then
-    Exit;
-  // 1. Validar que tenemos un cliente válido y con permisos para dejar a deber
-  if not FDatosCobro.PuedeDejarEnCuenta then
+  DejarEnCuentaTpv(Sender);
+end;
+
+procedure TfrmMtoCajaFaseCobro.DejarEnCuentaTpv(Sender: TObject);
+var
+  oEstado: TEstadoCreditoTpv;
+  oInteraccion: TInteraccionCreditoTpv;
+begin
+  oEstado := Default(TEstadoCreditoTpv);
+  oEstado.EsSubsanacion := FModoSubsanacion;
+  if not FModoSubsanacion then
   begin
-    ShowMessage_fza(SErrorCreditoClienteCajaNoPermitido);
-  end
-  else if (FDatosCobro.ImportePendiente <= 0) and
-          (not FDatosCobro.EsDevolucionEconomica) and
-          (FDatosCobro.ImporteTotalPagar > 0) then
-  begin
-    ShowMessage_fza(SErrorImporteCreditoCajaNoPendiente);
-  end
-  else if FDatosCobro.EsClienteVarios and
-          (FDatosCobro.ImporteEntregado <= 0) then
-    ShowMessage_fza(SErrorApartadoCajaSinEntrega)
-  else if not ValidarDepositoCredito then
-    ActualizarInterfaz
-  else if FDatosCobro.EsClienteVarios and
-          (not PedirContactoApartado) then
-    ActualizarInterfaz
-  else
-  begin
-    Res := FDatosCobro.EstablecerDejarEnCuenta(
-      FDatosCobro.ImportePendiente);
-    if not Res.Valido then
-      ShowMessage_fza(Res.Mensaje)
-    else
+    oEstado.PuedeDejarEnCuenta := FDatosCobro.PuedeDejarEnCuenta;
+    oEstado.EsDevolucion := FDatosCobro.EsDevolucionEconomica;
+    oEstado.EsClienteVarios := FDatosCobro.EsClienteVarios;
+    oEstado.ImportePendiente := FDatosCobro.ImportePendiente;
+    oEstado.ImporteTotal := FDatosCobro.ImporteTotalPagar;
+    oEstado.ImporteEntregado := FDatosCobro.ImporteEntregado;
+  end;
+  oInteraccion.Avisar := AvisarRechazoCreditoTpv;
+  oInteraccion.ValidarDeposito := ValidarDepositoCredito;
+  oInteraccion.PedirContacto := PedirContactoApartado;
+  oInteraccion.EstablecerCredito := EstablecerCreditoTpv;
+  oInteraccion.ActualizarVista := ActualizarInterfaz;
+  // Conservar el Sender que recibía el botón antes de la extracción.
+  oInteraccion.ConfirmarConTicket :=
+    procedure
     begin
-      ActualizarInterfaz;
       btnConTicketClick(Sender);
     end;
+  TControladorVentaTpv.DejarEnCuenta(oEstado, oInteraccion);
+end;
+
+procedure TfrmMtoCajaFaseCobro.AvisarRechazoCreditoTpv(
+  ARechazo: TRechazoCreditoTpv);
+begin
+  case ARechazo of
+    rcNoPermitido:
+      ShowMessage_fza(SErrorCreditoClienteCajaNoPermitido);
+    rcSinPendiente:
+      ShowMessage_fza(SErrorImporteCreditoCajaNoPendiente);
+    rcSinEntrega:
+      ShowMessage_fza(SErrorApartadoCajaSinEntrega);
   end;
+end;
+
+function TfrmMtoCajaFaseCobro.EstablecerCreditoTpv: Boolean;
+var
+  oResultado: TResultadoValidacion;
+begin
+  oResultado := FDatosCobro.EstablecerDejarEnCuenta(
+    FDatosCobro.ImportePendiente);
+  Result := oResultado.Valido;
+  if not Result then
+    ShowMessage_fza(oResultado.Mensaje);
 end;
 
 procedure TfrmMtoCajaFaseCobro.btnAtrasClick(Sender: TObject);

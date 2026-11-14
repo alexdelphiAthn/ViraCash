@@ -52,6 +52,7 @@ type
     function CSVSeries: string;
   protected
     function FiltrosUsados: TFiltrosReport; override;
+    function EmpresaAlmacenes: string; override;
     procedure DescribirSelecciones(
       AResumen: TResumenSeleccionesInforme); override;
     function OrigenProveedores:
@@ -69,7 +70,7 @@ uses
   UniDataInformeDocumentosProveedorRepositorio,
   inLibResumenSeleccionesVcl, inLibInformeDocumentosProveedorTotales,
   // FZ-ISSUE-609: los resourcestring solo se traducen desde inLibMsg*.
-  inLibMsgCompras;
+  inLibMsgCompras, inLibMsgOpcionesDocumento;
 
 {$R *.dfm}
 
@@ -86,11 +87,18 @@ begin
   Result := opmfDocumentosProveedor;
 end;
 
+function TfrmPrintDocsProveedor.EmpresaAlmacenes: string;
+begin
+  Result := UbicacionSesion.Empresa;
+end;
+
 procedure TfrmPrintDocsProveedor.DoShow;
 begin
   inherited;
   if not FInicializado then
   begin
+    Caption := Format('%s (%s %s)', [Caption,
+      SCaptionEmpresaOpcionesDocumento, EmpresaAlmacenes]);
     CrearControlesPropios;
     FInicializado := True;
   end;
@@ -159,6 +167,7 @@ end;
 procedure TfrmPrintDocsProveedor.DescribirSelecciones(
   AResumen: TResumenSeleccionesInforme);
 begin
+  AResumen.Anadir(SCaptionEmpresaOpcionesDocumento, EmpresaAlmacenes);
   inherited;
   AnadirMarcados(
     AResumen, STituloTiposDocumentoInformeProveedor, FclbTipos);

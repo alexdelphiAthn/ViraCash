@@ -642,6 +642,15 @@ begin
     Qry.SQL.Text :=
       'UPDATE fza_efectos_venta ' +
       '   SET ESTADO_EFV = :estado, ' +
+      '       IMPORTE_COBRADO_EFV = CASE ' +
+      '         WHEN :estado = ''DEVUELTO'' THEN 0 ' +
+      '         ELSE IMPORTE_COBRADO_EFV END, ' +
+      '       IMPORTE_PENDIENTE_EFV = CASE ' +
+      '         WHEN :estado = ''DEVUELTO'' THEN IMPORTE_EFV ' +
+      '         ELSE IMPORTE_PENDIENTE_EFV END, ' +
+      '       ESCONCILIADO_EFV = CASE ' +
+      '         WHEN :estado = ''DEVUELTO'' THEN ''N'' ' +
+      '         ELSE ESCONCILIADO_EFV END, ' +
       '       FECHA_COBRO_EFV = CASE ' +
       '         WHEN :estado = ''PENDIENTE'' THEN NULL ' +
       '         WHEN :estado = ''DEVUELTO'' THEN NULL ' +
@@ -651,8 +660,15 @@ begin
       ' WHERE SERIE_FAC_EFV = :serie ' +
       '   AND NUMERO_FAC_EFV = :numero ' +
       '   AND NUMERO_EFV = :efecto ' +
-      '   AND COALESCE(IMPORTE_COBRADO_EFV, 0) <= 0.0001 ' +
-      '   AND COALESCE(ESCONCILIADO_EFV, ''N'') <> ''S''';
+      '   AND ((:estado = ''DEVUELTO'' ' +
+      '         AND COALESCE(ESTADO_EFV, '''') IN ' +
+      '           (''PENDIENTE'', ''REMESADO'', ''COBRADO'', ' +
+      '            ''CONCILIADO'', ''DEVUELTO'') ' +
+      '         AND COALESCE(SERIE_FAC_CONCILIACION_EFV, '''') = '''') ' +
+      '     OR (:estado = ''PENDIENTE'' ' +
+      '         AND ABS(COALESCE(IMPORTE_COBRADO_EFV, 0)) <= 0.0001 ' +
+      '         AND COALESCE(ESCONCILIADO_EFV, ''N'') <> ''S'' ' +
+      '         AND COALESCE(ESTADO_EFV, '''') <> ''ANULADO''))';
     Qry.ParamByName('estado').AsString := AEstado;
     Qry.ParamByName('usuario').AsString := AUsuario;
     Qry.ParamByName('serie').AsString := ASerie;

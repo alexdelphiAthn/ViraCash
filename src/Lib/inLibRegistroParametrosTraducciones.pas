@@ -20,11 +20,11 @@ begin
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerTarifaPeriodicaAutomatica.Descripcion',
     'Tarifa periódica automática (código, vacío: no usar)',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerUsarAlmacenesTransito.Descripcion',
     'Usar almacenes de tránsito',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoAppParam.Parametros.appMargenMinimoTraspasos.Descripcion',
     'Margen mínimo (%) al facturar traspasos a empresas vinculadas',
@@ -518,241 +518,241 @@ begin
   ARegistrar(
     'inMtoCajaParam.Parametros.Categoria.ControldeArticulos',
     'Control de Artículos',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerChkExistOnly.Descripcion',
     'Permitir sólo artículos que existan',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerChkStockOnly.Descripcion',
     'Permitir sólo artículos con stock',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.Categoria.ConfiguraciondeCaja',
     'Configuración de Caja',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerShowCajaSelection.Descripc' +
     'ion',
     'Presentar selección de caja',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerFillEmpleadoDefecto.Descri' +
     'pcion',
     'Rellenar empleado por defecto al abrir',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerDefTarifa.Descripcion',
     'Tarifa por defecto en caja',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerMaxOpPending.Descripcion',
     'Número de operaciones pendientes',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerAutoLoadDepositos.Descripc' +
     'ion',
     'Cargar depósitos automáticamente al seleccionar cliente',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerAgruparUnidadesIguales.Des' +
     'cripcion',
     'Agrupar unidades iguales en una sola línea',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerAplazarRecalculoMovimientos.Descripcion',
     'Aplazar recálculos de stock de caja y albaranes',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerReposicionComoSolicitud.Descripcion',
     'Emitir las reposiciones como solicitud de traspaso (el almacén ' +
     'origen las atiende)',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.Categoria.Serviciosweb',
     'Servicios web',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerEnviarVentasWS.Descripcion',
     'Enviar ventas completas al webservice de respaldo',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.Categoria.DevolucionesyVales',
     'Devoluciones y Vales',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerUsarValesCobro.Descripcion',
     'Usar vales en la fase de cobro',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerReqRefDevolucion.Descripci' +
     'on',
     'Pedir referencia en devoluciones',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerRecuperaValePIN.Descripcio' +
     'n',
     'Recuperar Vale sólo con PIN',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerAmbitoCanjeVale.Descripcion',
     'Canjear vales de: TODOS, ALMACEN o CAJA',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerCaducidadDefVale.Descripci' +
     'on',
     'Caducidad por defecto en vale',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerDiasCaducidadVale.Descripc' +
     'ion',
     'Días hasta caducidad en vale',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.Categoria.AvisosyBusquedas',
     'Avisos y Búsquedas',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerAvisoStockWarning.Descripc' +
     'ion',
     'Aviso en artículos sin stock',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerAvisoHuecosNumeracion.Desc' +
     'ripcion',
     'Avisar de huecos en la numeración de ventas',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerBusqArtStockOnly.Descripci' +
     'on',
     'Búsqueda de artículos sólo con stock',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerBusqArtTarifaOnly.Descripc' +
     'ion',
     'Búsqueda de artículos sólo con tarifa',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerStockTodosColores.Descripc' +
     'ion',
     'Mostrar todos los colores por separado en el stock',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerMoverLineaIdentif.Descripc' +
     'ion',
     'Mover linea al identificar artículo',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerImprimirLoteCaducidadTicket.Descripcion',
     'Imprimir lote y caducidad en el ticket (sin marcar, agrupar lotes)',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerImpresoraEsperaSegundos.Descripcion',
     'Espera para detectar la impresora al arrancar (0-300 segundos)',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.Categoria.Impresion',
     'Impresión',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerDefPrinter.Descripcion',
     'Nombre impresora de tickets',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerTipoImpresion.Descripcion',
     'Tipo de Impresión tickets',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerFormatoImpPredet.Descripci' +
     'on',
     'Formato de impresión predeterminado',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerImprimirCodBarrasTicket.De' +
     'scripcion',
     'Imprimir código de barras EAN13 del ticket',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerFormatoTicket.Descripcion',
     'Formato FastReport del ticket, impreso como imagen ' +
     '(vacío = ticket de texto)',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.Categoria.Empleado',
     'Empleado',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerCodEmpleadoDefecto.Descrip' +
     'cion',
     'Código de empleado por defecto',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerShowEmpleadoLinea.Descripc' +
     'ion',
     'Mostrar empleado en linea de caja',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.Categoria.PermisosExtra',
     'Permisos Extra',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerArqueoTarjetas.Descripcion',
     'Permitir Arqueo de Tarjetas',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerVentasCredito.Descripcion',
     'Permitir Ventas a Crédito',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerDescuentos.Descripcion',
     'Permite descuentos en ventas',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.Categoria.Arqueo',
     'Arqueo',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerArqueoNivelesFamilia.Descr' +
     'ipcion',
     'Niveles de familia en resumen por sección (1=sección)',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerArqueoEditarCambio.Descrip' +
     'cion',
     'Permitir editar el cambio dejado para la siguiente jorna' +
     'da',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerArqueoEmitirJustificante.D' +
     'escripcion',
     'Emitir justificante al grabar el cierre',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerArqueoRecuentoDetallado.De' +
     'scripcion',
     'Recuento detallado de billetes y monedas',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerArqueoDenominaciones.Descr' +
     'ipcion',
     'Denominaciones del recuento detallado separadas por punt' +
     'o y coma',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.Categoria.Trazabilidad',
     'Trazabilidad',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerLoteAsignarFefo.Descripcio' +
     'n',
     'Asignar el lote automáticamente (primero el que antes ca' +
     'duca)',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerSerieExigirEnVenta.Descrip' +
     'cion',
     'Exigir el número de serie al vender',
-    'src/Caja/Lib/inLibCajaParam.pas');
+    'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
 end;
 
 end.

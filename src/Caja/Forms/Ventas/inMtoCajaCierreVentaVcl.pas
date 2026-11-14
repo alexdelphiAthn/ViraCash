@@ -141,16 +141,121 @@ function SeleccionarVentaOrigenCajaVcl(
 implementation
 
 uses
+  UniDataModeloPreparacionVentaTpv,
+  inLibTpvMvcIntf, inLibControladorVentaTpv,
   UniDataReparacionesVentaTpv, inLibMsgReparaciones,
   inMtoCajaPrendasReparacionVcl,
   inLibCorreoValidacion,
   inLibFormatoDocumento, UniDataFormatoDocumentoRepositorio,
   inLibMsgComun,
-  System.UITypes, Datasnap.DBClient, Vcl.Dialogs,
+  System.UITypes, Vcl.Dialogs,
   inLibErroresBBDD, inLibMensajesVcl, inLibMsgCaja,
   inLibCajaVentaOperacion, inLibCajaDescuentos,
   inMtoModalMotivoDevolucion, inMtoModalDevolucionTicket,
   inMtoModalSeleccionVentaOrigen, UniDataArqueoPersistencia;
+
+type
+  // Adaptador de la sesión visual: posee el diálogo y los totales.
+  // El controlador recibe operaciones mínimas, nunca el formulario.
+  TSesionCierreVentaCajaVcl = class
+  private
+    FContexto: TContextoCierreVentaCajaVcl;
+    FFormulario: TfrmMtoCajaFaseCobro;
+    FTotales: TFacturaTotales;
+    FSolicitud: TSolicitudCierreVenta;
+    FResultado: TResultadoCierreVenta;
+    procedure EnfocarAtributo(AOrden: Integer);
+    function PrepararCobro: Boolean;
+    procedure AplicarCobro;
+    function ConfirmarArqueo: Boolean;
+    function Grabar: TResultadoGrabacionTpv;
+    procedure PresentarResultado;
+  public
+    constructor Create(const AContexto: TContextoCierreVentaCajaVcl);
+    destructor Destroy; override;
+    function Ejecutar: Boolean;
+  end;
+
+constructor TSesionCierreVentaCajaVcl.Create(
+  const AContexto: TContextoCierreVentaCajaVcl);
+begin
+  inherited Create;
+  FContexto := AContexto;
+end;
+
+destructor TSesionCierreVentaCajaVcl.Destroy;
+begin
+  FreeAndNil(FFormulario);
+  FreeAndNil(FTotales);
+  inherited;
+end;
+
+procedure TSesionCierreVentaCajaVcl.EnfocarAtributo(AOrden: Integer);
+begin
+  if Assigned(FContexto.EnfocarAtributoPendiente) then
+    FContexto.EnfocarAtributoPendiente(AOrden);
+end;
+
+function TSesionCierreVentaCajaVcl.PrepararCobro: Boolean;
+begin
+  Result := TCoordinadorCierreVentaCajaVcl.PrepararFaseCobro(
+    FContexto, FFormulario, FTotales);
+end;
+
+procedure TSesionCierreVentaCajaVcl.AplicarCobro;
+begin
+  TCoordinadorCierreVentaCajaVcl.AplicarDescuento(
+    FContexto, FFormulario, FTotales);
+  FSolicitud := TCoordinadorCierreVentaCajaVcl.ConstruirSolicitud(
+    FContexto, FFormulario);
+end;
+
+function TSesionCierreVentaCajaVcl.ConfirmarArqueo: Boolean;
+var
+  oModo: TModoCambioArqueoVenta;
+begin
+  Result := True;
+  if FContexto.NumeroRectificado <> '' then
+  begin
+    oModo := mcavDiferencias;
+    if FContexto.TipoRectificativa = trcSustitutiva then
+      oModo := mcavSustitutiva;
+    Result := ConfirmarCambioArqueoVentaVcl(
+      FContexto.Conexion, FContexto.Permisos,
+      FContexto.SerieRectificada, FContexto.NumeroRectificado,
+      FContexto.Cabecera.FieldByName('TOTAL_LIQUIDO_FAC').AsCurrency,
+      oModo, FSolicitud.Grabacion.ArqueosConfirmados);
+  end;
+end;
+
+function TSesionCierreVentaCajaVcl.Grabar: TResultadoGrabacionTpv;
+begin
+  Result.IntentoCompletado := TCoordinadorCierreVentaCajaVcl.GrabarVenta(
+    FContexto, FSolicitud, FResultado);
+  Result.Grabada := FResultado.Grabada;
+end;
+
+procedure TSesionCierreVentaCajaVcl.PresentarResultado;
+begin
+  FContexto.PresentarResultado(FResultado,
+    FFormulario.EnviarEmail, FFormulario.EmailEnvio);
+end;
+
+function TSesionCierreVentaCajaVcl.Ejecutar: Boolean;
+var
+  oModelo: IModeloPreparacionVentaTpv;
+  oInteraccion: TInteraccionCierreVentaTpv;
+begin
+  oModelo := TModeloPreparacionVentaTpv.Create(FContexto.Lineas,
+    FContexto.ValidarStock, FContexto.ValidarLotes);
+  oInteraccion.EnfocarAtributo := EnfocarAtributo;
+  oInteraccion.PrepararCobro := PrepararCobro;
+  oInteraccion.AplicarCobro := AplicarCobro;
+  oInteraccion.ConfirmarArqueo := ConfirmarArqueo;
+  oInteraccion.Grabar := Grabar;
+  oInteraccion.PresentarResultado := PresentarResultado;
+  Result := TControladorVentaTpv.CerrarVenta(oModelo, oInteraccion);
+end;
 
 function ConfirmarCambioArqueoVentaVcl(AConexion: TUniConnection;
   const APermisos: IPermisosAplicacion;
@@ -383,24 +488,9 @@ class function TCoordinadorCierreVentaCajaVcl.PrepararFaseCobro(
 begin
   AFormulario := nil;
   ATotales := nil;
-  CerrarLineaPendiente(AContexto.Lineas);
-  // FZ-ISSUE-521: sin líneas no hay nada que cobrar y no se abre el cobro;
-  // la grabación lo rechazaría después como error de aplicación.
-  // FZ-ISSUE-543: una sola línea con cantidad cero bloquea todo el cobro.
-  Result := not AContexto.Lineas.IsEmpty and
-    not HayLineasConCantidadCero(AContexto.Lineas);
-  if Result then
-  begin
-    if Assigned(AContexto.ValidarStock) then
-      AContexto.ValidarStock();
-    if Assigned(AContexto.ValidarLotes) then
-      AContexto.ValidarLotes();
-    AContexto.ActualizarReloj;
-    EscribirFechaCabeceraVenta(
-      AContexto.Cabecera,
-      AContexto.LeerFecha());
-    Result := AContexto.ConfirmarMotivoDevolucion;
-  end;
+  AContexto.ActualizarReloj;
+  EscribirFechaCabeceraVenta(AContexto.Cabecera, AContexto.LeerFecha());
+  Result := AContexto.ConfirmarMotivoDevolucion;
   if Result then
   begin
     ATotales := TFacturaTotales.Create(
@@ -561,65 +651,13 @@ end;
 class function TCoordinadorCierreVentaCajaVcl.Ejecutar(
   const AContexto: TContextoCierreVentaCajaVcl): Boolean;
 var
-  frmFaseCobro: TfrmMtoCajaFaseCobro;
-  oResultado: TResultadoCierreVenta;
-  oSolicitud: TSolicitudCierreVenta;
-  oTotales: TFacturaTotales;
-  oApartadas: TClientDataSet;
-  ModoArqueo: TModoCambioArqueoVenta;
-  bArqueoConfirmado: Boolean;
-  bGrabada: Boolean;
-  Pendiente: Integer;
+  oSesion: TSesionCierreVentaCajaVcl;
 begin
-  Result := False;
-  Pendiente := LocalizarLineaConAtributosPendientesCaja(AContexto.Lineas);
-  if (Pendiente > 0) and Assigned(AContexto.EnfocarAtributoPendiente) then
-    AContexto.EnfocarAtributoPendiente(Pendiente);
-  frmFaseCobro := nil;
-  oTotales := nil;
-  bGrabada := False;
-  // Cuenta del cliente con prendas marcadas: solo esas (y lo que no sea
-  // de deposito) pasan al cobro; las demas siguen pendientes. Si no se
-  // graba, vuelven a la rejilla tal como estaban.
-  oApartadas := TClientDataSet.Create(nil);
+  oSesion := TSesionCierreVentaCajaVcl.Create(AContexto);
   try
-    // Si solo habia historico no queda nada que cobrar.
-    if (Pendiente = 0) and ((ApartarDepositosNoMarcadosVenta(
-           AContexto.Lineas, oApartadas) = 0) or
-        (not OperacionVentaVacia(AContexto.Lineas))) and
-       PrepararFaseCobro(
-      AContexto, frmFaseCobro, oTotales) then
-    begin
-      AplicarDescuento(AContexto, frmFaseCobro, oTotales);
-      oSolicitud := ConstruirSolicitud(AContexto, frmFaseCobro);
-      oResultado := Default(TResultadoCierreVenta);
-      bArqueoConfirmado := True;
-      if AContexto.NumeroRectificado <> '' then
-      begin
-        ModoArqueo := mcavDiferencias;
-        if AContexto.TipoRectificativa = trcSustitutiva then
-          ModoArqueo := mcavSustitutiva;
-        bArqueoConfirmado := ConfirmarCambioArqueoVentaVcl(
-          AContexto.Conexion, AContexto.Permisos,
-          AContexto.SerieRectificada, AContexto.NumeroRectificado,
-          AContexto.Cabecera.FieldByName('TOTAL_LIQUIDO_FAC').AsCurrency,
-          ModoArqueo, oSolicitud.Grabacion.ArqueosConfirmados);
-      end;
-      if bArqueoConfirmado then
-        Result := GrabarVenta(AContexto, oSolicitud, oResultado);
-      bGrabada := oResultado.Grabada;
-      if bGrabada then
-        AContexto.PresentarResultado(
-          oResultado,
-          frmFaseCobro.EnviarEmail,
-          frmFaseCobro.EmailEnvio);
-    end;
+    Result := oSesion.Ejecutar;
   finally
-    if not bGrabada then
-      RestaurarDepositosApartadosVenta(AContexto.Lineas, oApartadas);
-    FreeAndNil(oApartadas);
-    FreeAndNil(frmFaseCobro);
-    FreeAndNil(oTotales);
+    FreeAndNil(oSesion);
   end;
 end;
 

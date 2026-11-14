@@ -46,6 +46,8 @@ type
 
   TAnadirLineasLoteEvent = reference to procedure(const ACodigo: string;
     const AAsignaciones: TArray<TAsignacionLote>);
+  TDesglosarLineaLotesEvent = reference to procedure(ALinea: TDataSet;
+    const AAsignaciones: TArray<TAsignacionLote>);
   TAvisoLineaLoteEvent = reference to procedure(const AMensaje: string);
   // FZ-ISSUE-327: True si el usuario acepta la pregunta
   TConfirmarLineaLoteEvent = reference to function(
@@ -68,6 +70,7 @@ type
     ExigirSerieEnVenta: Boolean;
     DiasAvisoGeneral: Integer;
     AnadirLineas: TAnadirLineasLoteEvent;
+    DesglosarLinea: TDesglosarLineaLotesEvent;
     Avisar: TAvisoLineaLoteEvent;
     // FZ-ISSUE-327: si está asignado y se eligen menos unidades de las que
     // pide la línea, se pregunta antes de rebajarla; «No» deja la línea sin
@@ -100,7 +103,8 @@ type
       const ATrazabilidad: TTrazabilidadArticulo): TContextoLoteLectura;
     function DecidirSinLote(ALinea: TDataSet;
       const ADocumento: TDocumentoLineaLote;
-      const ATrazabilidad: TTrazabilidadArticulo): Boolean;
+      const ATrazabilidad: TTrazabilidadArticulo;
+      AForzarSelector: Boolean = False): Boolean;
     procedure ComprobarLoteTecleado(ALinea: TDataSet;
       const ADocumento: TDocumentoLineaLote;
       const ATrazabilidad: TTrazabilidadArticulo; const ALote: string);
@@ -432,11 +436,13 @@ end;
 
 function TLotesLineasDocumento.DecidirSinLote(ALinea: TDataSet;
   const ADocumento: TDocumentoLineaLote;
-  const ATrazabilidad: TTrazabilidadArticulo): Boolean;
+  const ATrazabilidad: TTrazabilidadArticulo;
+  AForzarSelector: Boolean): Boolean;
 var
   dSigno: Double;
   rDecision: TDecisionLoteLectura;
   rResolucion: TArtResolucionEntrada;
+  rContexto: TContextoLoteLectura;
 begin
   // La línea no trae lote: la regla común lo decide (y puede abrir el
   // modal). La primera asignación va en esta línea; el resto, pendiente.
@@ -444,8 +450,14 @@ begin
   rResolucion.Encontrado := True;
   rResolucion.CodigoArticulo := TextoCampo(ALinea, FConfig.Campos.Articulo);
   rResolucion.CodigoSku := TextoCampo(ALinea, FConfig.Campos.Sku);
+  rContexto := Contexto(ALinea, ADocumento, ATrazabilidad);
+  if AForzarSelector then
+  begin
+    rContexto.AsignarFefo := False;
+    rContexto.ExigirSerieEnVenta := True;
+  end;
   rDecision := DecidirLoteLectura(rResolucion,
-    Contexto(ALinea, ADocumento, ATrazabilidad), FConfig.Repositorio,
+    rContexto, FConfig.Repositorio,
     FConfig.Selector);
   Result := rDecision.Resultado in [rllSinLote, rllAsignado];
   if rDecision.Error <> '' then
@@ -663,7 +675,9 @@ end;
 procedure TLotesLineasDocumento.DarDeAltaPendientes(ALinea: TDataSet;
   const ACodigo: string; const AAsignaciones: TArray<TAsignacionLote>);
 begin
-  if FConfig.CopiarLineasPendientes then
+  if Assigned(FConfig.DesglosarLinea) then
+    FConfig.DesglosarLinea(ALinea, AAsignaciones)
+  else if FConfig.CopiarLineasPendientes then
   begin
     if (Length(AAsignaciones) > 0) and Assigned(ALinea) and
        not FCopiando then
@@ -759,7 +773,7 @@ begin
       LimpiarCampo(ALinea, FConfig.Campos.Lote);
       LimpiarCampo(ALinea, FConfig.Campos.Caducidad);
       FPendientes := [];
-      if DecidirSinLote(ALinea, ADocumento, rTrazabilidad) then
+      if DecidirSinLote(ALinea, ADocumento, rTrazabilidad, True) then
       begin
         aPendientes := FPendientes;
         sCodigo := FPendienteCodigo;

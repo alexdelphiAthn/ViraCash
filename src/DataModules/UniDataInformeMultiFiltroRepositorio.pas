@@ -17,7 +17,8 @@ uses
   Uni, inLibInformeMultiFiltroPersistenciaIntf;
 
 function CrearRepositorioInformeMultiFiltroUniDAC(
-  AConexion: TUniConnection): IRepositorioInformeMultiFiltro;
+  AConexion: TUniConnection;
+  const AEmpresaAlmacenes: string = ''): IRepositorioInformeMultiFiltro;
 
 implementation
 
@@ -29,6 +30,7 @@ const
     'SELECT CODIGO_ALM_ALM AS COD, NOMBRE_ALM_ALM AS NOM ' +
     'FROM fza_almacenes ' +
     'WHERE ESACTIVO_ALM = ''S'' ' +
+    'AND (:EMPRESA = '''' OR CODIGO_EMP_ALM = :EMPRESA) ' +
     'ORDER BY ORDEN_ALM, CODIGO_ALM_ALM';
   SQL_FAMILIAS =
     'SELECT CODIGO_FAM_FAM AS COD, ' +
@@ -89,10 +91,12 @@ type
     IRepositorioInformeMultiFiltro)
   private
     FConexion: TUniConnection;
+    FEmpresaAlmacenes: string;
     function LeerOpciones(
       AConsulta: TUniQuery): TOpcionesInformeMultiFiltro;
   public
-    constructor Create(AConexion: TUniConnection);
+    constructor Create(AConexion: TUniConnection;
+      const AEmpresaAlmacenes: string);
     function ListarAlmacenes: TOpcionesInformeMultiFiltro;
     function ListarFamilias: TFamiliasInformeMultiFiltro;
     function ListarProveedores(
@@ -103,10 +107,12 @@ type
   end;
 
 constructor TRepositorioInformeMultiFiltroUniDAC.Create(
-  AConexion: TUniConnection);
+  AConexion: TUniConnection;
+  const AEmpresaAlmacenes: string);
 begin
   inherited Create;
   FConexion := AConexion;
+  FEmpresaAlmacenes := Trim(AEmpresaAlmacenes);
 end;
 
 function TRepositorioInformeMultiFiltroUniDAC.LeerOpciones(
@@ -135,6 +141,7 @@ begin
   try
     oConsulta.Connection := FConexion;
     oConsulta.SQL.Text := SQL_ALMACENES;
+    oConsulta.ParamByName('EMPRESA').AsString := FEmpresaAlmacenes;
     Result := LeerOpciones(oConsulta);
   finally
     FreeAndNil(oConsulta);
@@ -222,9 +229,11 @@ begin
 end;
 
 function CrearRepositorioInformeMultiFiltroUniDAC(
-  AConexion: TUniConnection): IRepositorioInformeMultiFiltro;
+  AConexion: TUniConnection;
+  const AEmpresaAlmacenes: string): IRepositorioInformeMultiFiltro;
 begin
-  Result := TRepositorioInformeMultiFiltroUniDAC.Create(AConexion);
+  Result := TRepositorioInformeMultiFiltroUniDAC.Create(
+    AConexion, AEmpresaAlmacenes);
 end;
 
 end.

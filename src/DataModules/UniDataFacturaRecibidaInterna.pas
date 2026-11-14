@@ -71,6 +71,21 @@ const
     '   AND COALESCE(C.ESTADO_FACC, '''') <> ''CANCELADA'' ' +
     ' LIMIT 1';
 
+  // El almacén de la emitida pertenece al emisor. El destino de una TV
+  // se obtiene del detalle facturado, sin elegir uno arbitrario si hay varios.
+  SQL_ALMACEN_DESTINO_TV =
+    'SELECT MIN(TRIM(V.CODIGO_ALM_DESTINO_FACTV)) AS ALMACEN ' +
+    'FROM fza_facturas_traspasos_vendidos V ' +
+    'WHERE V.SERIE_FAC_FACTV = :SERIE_EMITIDA ' +
+    'AND V.NUMERO_FAC_FACTV = :NUMERO_EMITIDA ' +
+    'AND V.CODIGO_EMP_DESTINO_FACTV = :DESTINO ' +
+    'HAVING COUNT(DISTINCT NULLIF(TRIM(' +
+    'V.CODIGO_ALM_DESTINO_FACTV), '''')) = 1 ' +
+    'AND COUNT(NULLIF(TRIM(V.CODIGO_ALM_DESTINO_FACTV), '''')) = COUNT(*) ' +
+    'AND MIN(TRIM(V.CODIGO_ALM_DESTINO_FACTV)) IN (' +
+    'SELECT A.CODIGO_ALM_ALM FROM fza_almacenes A ' +
+    'WHERE A.CODIGO_EMP_ALM = :DESTINO)';
+
   // La empresa guarda el país como 'ES' o como '724'; el proveedor, con el
   // código de fza_paises (como el cliente de traspasos).
   SQL_INSERTAR_PROVEEDOR_EMPRESA =
@@ -99,6 +114,7 @@ const
     'INSERT INTO fza_facturas_compra (' +
     'NUMERO_FACC, SERIE_FACC, FECHA_FACC, FECHA_VALOR_FACC, ESTADO_FACC, ' +
     'DOC_EXTERNO_FACC, REF_PROVEEDOR_FACC, CODIGO_EMP_FACC, ' +
+    'CODIGO_ALM_FACC, ' +
     'RAZON_SOCIAL_EMPRESA_FACC, NIF_EMPRESA_FACC, MOVIL_EMPRESA_FACC, ' +
     'EMAIL_EMPRESA_FACC, DIRECCION1_EMPRESA_FACC, ' +
     'DIRECCION2_EMPRESA_FACC, POBLACION_EMPRESA_FACC, ' +
@@ -124,7 +140,7 @@ const
     'CONTADOR_LINEAS_FACC, COMENTARIOS_FACC, ESPIVOTE_HORIZONTAL_FACC, ' +
     'INSTANTE_ALTA, INSTANTE_MODIF, USUARIO_ALTA, USUARIO_MODIF) ' +
     'SELECT :NUMERO, :SERIE, F.FECHA_FAC, F.FECHA_FAC, ''CERRADA'', ' +
-    ':DOCUMENTO, :DOCUMENTO, D.CODIGO_EMP_EMP, ' +
+    ':DOCUMENTO, :DOCUMENTO, D.CODIGO_EMP_EMP, :ALMACEN, ' +
     'D.RAZON_SOCIAL_EMP, D.NIF_EMP, D.MOVIL_EMP, D.EMAIL_EMP, ' +
     'D.DIRECCION1_EMP, D.DIRECCION2_EMP, D.POBLACION_EMP, ' +
     'D.PROVINCIA_EMP, D.CODIGO_PAI_EMP, D.NOMBRE_PAI_EMP, ' +
@@ -375,6 +391,7 @@ var
   sDocumento: string;
   sSerie    : string;
   sNumero   : string;
+  sAlmacen  : string;
 begin
   sProveedor := CodigoProveedorEmpresa(AEmisora);
   sDocumento := DocumentoEmitido(ASerie, ANumero);
@@ -394,6 +411,18 @@ begin
       [ADestino, sSerie, sNumero])
   else
   begin
+    sAlmacen := '';
+    oConsulta := CrearConsulta(SQL_ALMACEN_DESTINO_TV);
+    try
+      oConsulta.ParamByName('SERIE_EMITIDA').AsString := ASerie;
+      oConsulta.ParamByName('NUMERO_EMITIDA').AsString := ANumero;
+      oConsulta.ParamByName('DESTINO').AsString := ADestino;
+      oConsulta.Open;
+      if not oConsulta.IsEmpty then
+        sAlmacen := oConsulta.FieldByName('ALMACEN').AsString;
+    finally
+      oConsulta.Free;
+    end;
     AsegurarContadorCompraEmpresa(FConexion, ADestino, AUsuario);
     oConsulta := CrearConsulta(SQL_INSERTAR_PROVEEDOR_EMPRESA);
     try
@@ -415,6 +444,10 @@ begin
       oConsulta.ParamByName('SERIE').AsString := sSerie;
       oConsulta.ParamByName('DOCUMENTO').AsString := sDocumento;
       oConsulta.ParamByName('DESTINO').AsString := ADestino;
+      if sAlmacen = '' then
+        oConsulta.ParamByName('ALMACEN').Clear
+      else
+        oConsulta.ParamByName('ALMACEN').AsString := sAlmacen;
       oConsulta.ParamByName('PROVEEDOR').AsString := sProveedor;
       oConsulta.ParamByName('SERIE_EMITIDA').AsString := ASerie;
       oConsulta.ParamByName('NUMERO_EMITIDA').AsString := ANumero;

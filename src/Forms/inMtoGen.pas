@@ -59,6 +59,7 @@ uses
   inLibGestorGuardianBorradoMto,
   inLibGestorArticulosMto, inLibInteraccionDatosIntf,
   inLibMtoGenAplicacionIntf,
+  inLibMantenimientoMvcIntf, inLibControladorMantenimiento,
   inMtoGenPresentacionFiltrosVcl, inLibVentanaSeparadaVcl;
 type
   TcxPageControlPropertiesAccess = class(TcxPageControlProperties);
@@ -181,6 +182,8 @@ type
     FCancelarPulsado: Boolean;
     FConn: TUniConnection;
     FCasoUsoGuardado: ICasoUsoGuardadoMtoGen;
+    FModeloMantenimiento: IModeloMantenimiento;
+    FControladorMantenimiento: TControladorMantenimiento;
     FGuardianBorrado: TGestorGuardianBorradoMto;
     FGestorFiltros: TGestorFiltrosMto;
     FGestorPerfiles: TGestorPerfilesMto;
@@ -195,6 +198,10 @@ type
     FVentanaSeparada: TPresentacionVentanaSeparada;
     FCambiandoContenedor: Boolean;
     FConsultandoCierre: Boolean;
+    function ObtenerModeloMantenimiento: IModeloMantenimiento;
+    function ControladorMantenimiento: TControladorMantenimiento;
+    function DecidirCierreMantenimiento: TDecisionCierreMantenimiento;
+    procedure GuardarAlCerrarMantenimiento;
     function HayEdicionesPendientes: Boolean;
     procedure InicializarMantenimiento;
     procedure AjustarBarraLateral;
@@ -345,6 +352,7 @@ implementation
 {$R *.dfm}
 
 uses
+  UniDataModeloMantenimiento,
   inLibMensajesVcl, inLibErroresBBDD,
   inLibEnterComoTabDesplegables,
   inLibData,
@@ -621,10 +629,6 @@ begin
 end;
 
 function TfrmMtoGen.CloseQuery: Boolean;
-var
-  oModulo: TDataModule;
-  oPrincipal: TDataSet;
-  iRespuesta: Integer;
 begin
   Result := not FConsultandoCierre;
   if Result then
@@ -632,38 +636,64 @@ begin
     FConsultandoCierre := True;
     try
       Result := inherited CloseQuery;
-      if Result and HayEdicionesPendientes then
-      begin
-        iRespuesta := ConfirmarCierreConCambios;
-        Result := iRespuesta <> mrCancel;
-        if iRespuesta = mrYes then
-        begin
-          btnGrabarClick(Self);
-          Result := not HayEdicionesPendientes;
-        end
-        else if iRespuesta = mrNo then
-        begin
-          oModulo := nil;
-          if tdmDataModule is TDataModule then
-            oModulo := TDataModule(tdmDataModule);
-          oPrincipal := nil;
-          if Assigned(dsTablaG) then
-            oPrincipal := dsTablaG.DataSet;
-          CancelarDatasets(oModulo, oPrincipal);
-        end;
-      end;
+      if Result then
+        Result := ControladorMantenimiento.ConsultarCierre;
     finally
       FConsultandoCierre := False;
     end;
   end;
 end;
 
+function TfrmMtoGen.ObtenerModeloMantenimiento: IModeloMantenimiento;
+begin
+  if not Assigned(FModeloMantenimiento) then
+    FModeloMantenimiento := TModeloMantenimientoDatasets.Create(
+      dsTablaG,
+      function: TDataModule
+      begin
+        Result := nil;
+        if tdmDataModule is TDataModule then
+          Result := TDataModule(tdmDataModule);
+      end);
+  Result := FModeloMantenimiento;
+end;
+
+function TfrmMtoGen.ControladorMantenimiento: TControladorMantenimiento;
+var
+  oInteraccion: TInteraccionMantenimiento;
+begin
+  if not Assigned(FControladorMantenimiento) then
+  begin
+    oInteraccion.PermitirAccion := PuedeAccionMto;
+    oInteraccion.ConfirmarCierre := DecidirCierreMantenimiento;
+    oInteraccion.Guardar := GuardarAlCerrarMantenimiento;
+    FControladorMantenimiento := TControladorMantenimiento.Create(
+      ObtenerModeloMantenimiento, oInteraccion);
+  end;
+  Result := FControladorMantenimiento;
+end;
+
+function TfrmMtoGen.DecidirCierreMantenimiento:
+  TDecisionCierreMantenimiento;
+begin
+  case ConfirmarCierreConCambios of
+    mrYes:
+      Result := dcGuardar;
+    mrNo:
+      Result := dcDescartar;
+  else
+    Result := dcCancelar;
+  end;
+end;
+
+procedure TfrmMtoGen.GuardarAlCerrarMantenimiento;
+begin
+  btnGrabarClick(Self);
+end;
+
 function TfrmMtoGen.HayEdicionesPendientes: Boolean;
 begin
-  Result := Assigned(dsTablaG) and
-    DataSetTieneCambiosPendientes(dsTablaG.DataSet);
-  if not Result and (tdmDataModule is TDataModule) then
-    Result := CheckOpenDatasets(TDataModule(tdmDataModule), True);
+  Result := ObtenerModeloMantenimiento.HayCambiosPendientes;
 end;
 
 function TfrmMtoGen.ConfirmarCierreConCambios: Integer;
@@ -1431,6 +1461,8 @@ begin
     tmrBusqGlobal.Enabled := False;
   bTareasVivas := False;
   FCasoUsoGuardado := nil;
+  FreeAndNil(FControladorMantenimiento);
+  FModeloMantenimiento := nil;
   if Assigned(dsTablaG) then
     dsTablaG.DataSet := nil;
   if Assigned(FGestorTareas) then
@@ -2500,10 +2532,10 @@ begin
   // Ins dentro de una rejilla de detalle es de esa rejilla: no da de alta
   // otra cabecera.
   if Sender = actInsertarRegistro then
-    bPermitido := PuedeAccionMto(apmInsertar) and
+    bPermitido := ControladorMantenimiento.PuedeInsertar and
       not FocoEnRejillaSecundaria(ControlConFoco)
   else if Sender = actEditarRegistro then
-    bPermitido := PuedeAccionMto(apmModificar) and
+    bPermitido := ControladorMantenimiento.PuedeEditar and
       not FocoEnRejillaSecundaria(ControlConFoco)
   else if (Sender = actRegistroAnterior) or
           (Sender = actRegistroSiguiente) or
@@ -2523,27 +2555,15 @@ end;
 
 procedure TfrmMtoGen.actEliminarRegistroUpdate(Sender: TObject);
 begin
-  // Ctrl+Supr en una rejilla de detalle borra su fila, no la cabecera.
   TAction(Sender).Enabled :=
-    Assigned(dsTablaG.DataSet) and
-    dsTablaG.DataSet.Active and
-    not dsTablaG.DataSet.IsEmpty and
+    ControladorMantenimiento.PuedeEliminar and
     (dsTablaG.State = dsBrowse) and
-    PuedeAccionMto(apmBorrar) and
     not FocoEnRejillaSecundaria(ControlConFoco);
 end;
 
 procedure TfrmMtoGen.actEliminarRegistroExecute(Sender: TObject);
 begin
-  // El guardian de borrado (TGestorGuardianBorradoMto) hace la pregunta
-  // y, segun la respuesta, aborta, desactiva o continua con el delete
-  // original. No duplicamos aqui la logica para que el flujo sea
-  // identico cuando el usuario pulsa el boton de borrar del navegador
-  // (que llama directamente a DataSet.Delete sin pasar por esta accion).
-  if Assigned(dsTablaG.DataSet) and dsTablaG.DataSet.Active and
-     not dsTablaG.DataSet.IsEmpty and
-     PuedeAccionMto(apmBorrar) then
-    dsTablaG.DataSet.Delete;
+  ControladorMantenimiento.Eliminar;
 end;
 
 procedure TfrmMtoGen.actRegistroAnteriorExecute(Sender: TObject);
@@ -2560,9 +2580,7 @@ end;
 
 procedure TfrmMtoGen.actInsertarRegistroExecute(Sender: TObject);
 begin
-  if Assigned(dsTablaG.DataSet) and
-     dsTablaG.DataSet.Active and
-     PuedeAccionMto(apmInsertar) then
+  if ControladorMantenimiento.PuedeInsertar then
     InsertarRegistroSinQuedarAMedias;
 end;
 
@@ -2600,10 +2618,7 @@ end;
 // conserva el registro activo por su clave al refrescar.
 procedure TfrmMtoGen.actRefrescarUpdate(Sender: TObject);
 begin
-  TAction(Sender).Enabled :=
-    Assigned(dsTablaG.DataSet) and
-    dsTablaG.DataSet.Active and
-    (dsTablaG.State = dsBrowse);
+  TAction(Sender).Enabled := ControladorMantenimiento.PuedeRefrescar;
 end;
 
 procedure TfrmMtoGen.actRefrescarExecute(Sender: TObject);
@@ -2613,7 +2628,7 @@ begin
   crAnterior := Screen.Cursor;
   Screen.Cursor := crHourGlass;
   try
-    dsTablaG.DataSet.Refresh;
+    ControladorMantenimiento.Refrescar;
   finally
     Screen.Cursor := crAnterior;
   end;
@@ -2651,38 +2666,17 @@ end;
 
 procedure TfrmMtoGen.actEditarRegistroExecute(Sender: TObject);
 begin
-  if Assigned(dsTablaG.DataSet) and
-     dsTablaG.DataSet.Active and
-     PuedeAccionMto(apmModificar) then
-    dsTablaG.DataSet.Edit;
+  ControladorMantenimiento.Editar;
 end;
 
 procedure TfrmMtoGen.actGrabarRegistroUpdate(Sender: TObject);
-var
-  bPermitido: Boolean;
 begin
-  bPermitido :=
-    ((dsTablaG.State = dsInsert) and
-     PuedeAccionMto(apmInsertar)) or
-    ((dsTablaG.State = dsEdit) and
-     PuedeAccionMto(apmModificar)) or
-    ((dsTablaG.State = dsBrowse) and HayEdicionesPendientes and
-     PuedeAccionMto(apmModificar));
-  TAction(Sender).Enabled :=
-    Assigned(dsTablaG.DataSet) and
-    dsTablaG.DataSet.Active and
-    bPermitido;
+  TAction(Sender).Enabled := ControladorMantenimiento.PuedeGrabar;
 end;
 
 procedure TfrmMtoGen.actGrabarRegistroExecute(Sender: TObject);
 begin
-  if Assigned(dsTablaG.DataSet) and
-     (((dsTablaG.State = dsInsert) and
-       PuedeAccionMto(apmInsertar)) or
-      ((dsTablaG.State = dsEdit) and
-       PuedeAccionMto(apmModificar)) or
-      ((dsTablaG.State = dsBrowse) and HayEdicionesPendientes and
-       PuedeAccionMto(apmModificar))) then
+  if ControladorMantenimiento.PuedeGrabar then
     btnGrabarClick(Sender);
 end;
 

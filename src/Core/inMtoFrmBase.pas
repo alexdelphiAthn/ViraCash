@@ -50,7 +50,7 @@ uses
   inLibFotos, inLibUnidadesMedida,
   inLibGenBusq, inLibDistribuidorTallas, inLibLayoutForm,
   inLibPreviewTicket, inLibPreviewExcel, inLibResplandorBordesVcl,
-  inLibReagpVcl, cxGridCustomTableView, cxGraphics;
+  inLibCierreBotonXVcl, inLibReagpVcl, cxGridCustomTableView, cxGraphics;
 
 type
   TEnterAsTabEstado = record
@@ -113,6 +113,9 @@ type
     FEnterAsTabEstados: array of TEnterAsTabEstado;
     FEnterAsTabTemporalActivo: Boolean;
     FResplandorBordes: TResplandorBordesVentana;
+    // FZ-ISSUE-945: la X de la barra de título cierra aunque el skin no
+    // reciba el WM_NCLBUTTONUP (inLibCierreBotonXVcl).
+    FCierreBotonX: TCierreBotonX;
     FEstiloSeleccionInactiva: TcxStyle;
     procedure SeleccionInactivaGetStyle(Sender: TcxCustomGridTableView;
       ARecord: TcxCustomGridRecord; AItem: TObject; var AStyle: TcxStyle);
@@ -194,6 +197,9 @@ type
     procedure KeyDown(var Key: Word; Shift: TShiftState); override;
     // Degradado de los bordes (inLibResplandorBordesVcl): sigue la ventana.
     procedure WndProc(var Message: TMessage); override;
+    // Cierre con la X (FZ-ISSUE-945): se instala en cada manejador.
+    procedure CreateWnd; override;
+    procedure DestroyWnd; override;
     procedure ConfigurarBotonBusquedaDesplegable(
       AControl: TcxCustomDropDownEdit;
       AEvento: TcxEditButtonClickEvent);
@@ -567,6 +573,8 @@ begin
   // Ningun cierre puede dejar desactivado el EnterAsTab del propietario
   // o del formulario principal por un editor temporal ya destruido.
   RestaurarEnterAsTabTemporal(Self);
+  // Antes de destruir la ventana: retira la subclase Win32.
+  FreeAndNil(FCierreBotonX);
   FreeAndNil(FResplandorBordes);
   FRegistroLog := nil;
   FConfiguracionCampos := nil;
@@ -1492,6 +1500,24 @@ begin
   end;
   if Assigned(FResplandorBordes) then
     FResplandorBordes.Procesar(Message);
+end;
+
+procedure TfrmBase.CreateWnd;
+begin
+  inherited;
+  if not (csDesigning in ComponentState) then
+  begin
+    if not Assigned(FCierreBotonX) then
+      FCierreBotonX := TCierreBotonX.Create;
+    FCierreBotonX.Instalar(Handle);
+  end;
+end;
+
+procedure TfrmBase.DestroyWnd;
+begin
+  if Assigned(FCierreBotonX) then
+    FCierreBotonX.Retirar;
+  inherited;
 end;
 
 procedure TfrmBase.WMQueryEndSession(var Message: TWMQueryEndSession);

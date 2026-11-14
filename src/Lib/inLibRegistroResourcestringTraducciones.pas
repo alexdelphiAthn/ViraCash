@@ -9252,6 +9252,10 @@ begin
     @inLibMsgArticulos.
       SErrorSerieInventarioObligatoria);
   ARegistrar(
+    'inLibMsgArticulos.SErrorSerieInventarioNoValidaEmpresa',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SErrorSerieInventarioNoValidaEmpresa);
+  ARegistrar(
     'inLibMsgArticulos.' +
     'SErrorInventarioAlmacenTransito',
     'src/Lib/inLibMsgArticulos.pas',
@@ -29553,379 +29557,379 @@ begin
   ARegistrar(
     'inLibMsgPersistenciaSubsanacionCaja.' +
     'SSubsanacionSinPermiso',
-    'src/Caja/Lib/inLibMsgPersistenciaSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgPersistenciaSubsanacionCaja.pas',
     @inLibMsgPersistenciaSubsanacionCaja.
       SSubsanacionSinPermiso);
   ARegistrar(
     'inLibMsgPersistenciaSubsanacionCaja.' +
     'SSubsanacionIdentidadInvalida',
-    'src/Caja/Lib/inLibMsgPersistenciaSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgPersistenciaSubsanacionCaja.pas',
     @inLibMsgPersistenciaSubsanacionCaja.
       SSubsanacionIdentidadInvalida);
   ARegistrar(
     'inLibMsgPersistenciaSubsanacionCaja.' +
     'SSubsanacionFacturaNoVigente',
-    'src/Caja/Lib/inLibMsgPersistenciaSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgPersistenciaSubsanacionCaja.pas',
     @inLibMsgPersistenciaSubsanacionCaja.
       SSubsanacionFacturaNoVigente);
   ARegistrar(
     'inLibMsgPersistenciaSubsanacionCaja.' +
     'SSubsanacionRegistroNoAceptado',
-    'src/Caja/Lib/inLibMsgPersistenciaSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgPersistenciaSubsanacionCaja.pas',
     @inLibMsgPersistenciaSubsanacionCaja.
       SSubsanacionRegistroNoAceptado);
   ARegistrar(
     'inLibMsgPersistenciaSubsanacionCaja.' +
     'SSubsanacionOperacionCompleja',
-    'src/Caja/Lib/inLibMsgPersistenciaSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgPersistenciaSubsanacionCaja.pas',
     @inLibMsgPersistenciaSubsanacionCaja.
       SSubsanacionOperacionCompleja);
   ARegistrar(
     'inLibMsgPersistenciaSubsanacionCaja.' +
     'SSubsanacionPagoUnico',
-    'src/Caja/Lib/inLibMsgPersistenciaSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgPersistenciaSubsanacionCaja.pas',
     @inLibMsgPersistenciaSubsanacionCaja.
       SSubsanacionPagoUnico);
   ARegistrar(
     'inLibMsgPersistenciaSubsanacionCaja.' +
     'SSubsanacionValesFijos',
-    'src/Caja/Lib/inLibMsgPersistenciaSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgPersistenciaSubsanacionCaja.pas',
     @inLibMsgPersistenciaSubsanacionCaja.
       SSubsanacionValesFijos);
   ARegistrar(
     'inLibMsgPersistenciaSubsanacionCaja.' +
     'SSubsanacionLineaFija',
-    'src/Caja/Lib/inLibMsgPersistenciaSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgPersistenciaSubsanacionCaja.pas',
     @inLibMsgPersistenciaSubsanacionCaja.
       SSubsanacionLineaFija);
   ARegistrar(
     'inLibMsgPersistenciaSubsanacionCaja.' +
     'SSubsanacionPrendaBajoAnticipo',
-    'src/Caja/Lib/inLibMsgPersistenciaSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgPersistenciaSubsanacionCaja.pas',
     @inLibMsgPersistenciaSubsanacionCaja.
       SSubsanacionPrendaBajoAnticipo);
   ARegistrar(
     'inLibMsgPersistenciaSubsanacionCaja.' +
     'SSubsanacionPagosInvalidos',
-    'src/Caja/Lib/inLibMsgPersistenciaSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgPersistenciaSubsanacionCaja.pas',
     @inLibMsgPersistenciaSubsanacionCaja.
       SSubsanacionPagosInvalidos);
   ARegistrar(
     'inLibMsgPersistenciaSubsanacionCaja.' +
     'SSubsanacionObservacionPago',
-    'src/Caja/Lib/inLibMsgPersistenciaSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgPersistenciaSubsanacionCaja.pas',
     @inLibMsgPersistenciaSubsanacionCaja.
       SSubsanacionObservacionPago);
   ARegistrar(
     'inLibMsgPersistenciaSubsanacionCaja.' +
     'SSubsanacionDescuadreOriginal',
-    'src/Caja/Lib/inLibMsgPersistenciaSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgPersistenciaSubsanacionCaja.pas',
     @inLibMsgPersistenciaSubsanacionCaja.
       SSubsanacionDescuadreOriginal);
   ARegistrar(
     'inLibMsgPersistenciaSubsanacionCaja.' +
     'SSubsanacionArqueoCerrado',
-    'src/Caja/Lib/inLibMsgPersistenciaSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgPersistenciaSubsanacionCaja.pas',
     @inLibMsgPersistenciaSubsanacionCaja.
       SSubsanacionArqueoCerrado);
   ARegistrar(
     'inLibMsgPersistenciaSubsanacionCaja.' +
     'SSubsanacionDatosFiscales',
-    'src/Caja/Lib/inLibMsgPersistenciaSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgPersistenciaSubsanacionCaja.pas',
     @inLibMsgPersistenciaSubsanacionCaja.
       SSubsanacionDatosFiscales);
   ARegistrar(
     'inLibMsgPersistenciaSubsanacionCaja.' +
     'SSubsanacionRegistrada',
-    'src/Caja/Lib/inLibMsgPersistenciaSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgPersistenciaSubsanacionCaja.pas',
     @inLibMsgPersistenciaSubsanacionCaja.
       SSubsanacionRegistrada);
   ARegistrar(
     'inLibMsgPersistenciaSubsanacionCaja.' +
     'SSubsanacionConflicto',
-    'src/Caja/Lib/inLibMsgPersistenciaSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgPersistenciaSubsanacionCaja.pas',
     @inLibMsgPersistenciaSubsanacionCaja.
       SSubsanacionConflicto);
   ARegistrar(
     'inLibMsgPersistenciaSubsanacionCaja.' +
     'SSubsanacionMotivoObligatorio',
-    'src/Caja/Lib/inLibMsgPersistenciaSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgPersistenciaSubsanacionCaja.pas',
     @inLibMsgPersistenciaSubsanacionCaja.
       SSubsanacionMotivoObligatorio);
   ARegistrar(
     'inLibMsgPersistenciaSubsanacionCaja.' +
     'SSubsanacionMedioInvalido',
-    'src/Caja/Lib/inLibMsgPersistenciaSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgPersistenciaSubsanacionCaja.pas',
     @inLibMsgPersistenciaSubsanacionCaja.
       SSubsanacionMedioInvalido);
   ARegistrar(
     'inLibMsgPersistenciaSubsanacionCaja.' +
     'SSubsanacionReferenciaInvalida',
-    'src/Caja/Lib/inLibMsgPersistenciaSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgPersistenciaSubsanacionCaja.pas',
     @inLibMsgPersistenciaSubsanacionCaja.
       SSubsanacionReferenciaInvalida);
   ARegistrar(
     'inLibMsgPersistenciaSubsanacionCaja.' +
     'SSubsanacionSinCambios',
-    'src/Caja/Lib/inLibMsgPersistenciaSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgPersistenciaSubsanacionCaja.pas',
     @inLibMsgPersistenciaSubsanacionCaja.
       SSubsanacionSinCambios);
   ARegistrar(
     'inLibMsgPersistenciaSubsanacionCaja.' +
     'SSubsanacionTotalInvalido',
-    'src/Caja/Lib/inLibMsgPersistenciaSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgPersistenciaSubsanacionCaja.pas',
     @inLibMsgPersistenciaSubsanacionCaja.
       SSubsanacionTotalInvalido);
   ARegistrar(
     'inLibMsgPersistenciaSubsanacionCaja.' +
     'SSubsanacionTransaccionActiva',
-    'src/Caja/Lib/inLibMsgPersistenciaSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgPersistenciaSubsanacionCaja.pas',
     @inLibMsgPersistenciaSubsanacionCaja.
       SSubsanacionTransaccionActiva);
   ARegistrar(
     'inLibMsgPersistenciaSubsanacionCaja.' +
     'SSubsanacionEsquemaPendiente',
-    'src/Caja/Lib/inLibMsgPersistenciaSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgPersistenciaSubsanacionCaja.pas',
     @inLibMsgPersistenciaSubsanacionCaja.
       SSubsanacionEsquemaPendiente);
   ARegistrar(
     'inLibMsgPersistenciaSubsanacionCaja.' +
     'SSubsanacionCalculoInvalido',
-    'src/Caja/Lib/inLibMsgPersistenciaSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgPersistenciaSubsanacionCaja.pas',
     @inLibMsgPersistenciaSubsanacionCaja.
       SSubsanacionCalculoInvalido);
   ARegistrar(
     'inLibMsgPersistenciaSubsanacionCaja.' +
     'SSubsanacionTotalFiscalDistinto',
-    'src/Caja/Lib/inLibMsgPersistenciaSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgPersistenciaSubsanacionCaja.pas',
     @inLibMsgPersistenciaSubsanacionCaja.
       SSubsanacionTotalFiscalDistinto);
   ARegistrar(
     'inLibMsgPersistenciaSubsanacionCaja.' +
     'SSubsanacionLineaIntactaDistinta',
-    'src/Caja/Lib/inLibMsgPersistenciaSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgPersistenciaSubsanacionCaja.pas',
     @inLibMsgPersistenciaSubsanacionCaja.
       SSubsanacionLineaIntactaDistinta);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionDescartar',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionDescartar);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionEtiqueta',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionEtiqueta);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionEtiquetaGuardada',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionEtiquetaGuardada);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionModo',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionModo);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionTituloCobro',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionTituloCobro);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionCobroExacto',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionCobroExacto);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionSinLineasEditables',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionSinLineasEditables);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionMotivo',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionMotivo);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionLineasFijas',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionLineasFijas);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionMotivoObligatorio',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionMotivoObligatorio);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionBoton',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionBoton);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionBotonSinTicket',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionBotonSinTicket);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionNoPermitida',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionNoPermitida);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionNoPermitidaVerifactu',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionNoPermitidaVerifactu);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionNoPermitidaNoVerifactu',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionNoPermitidaNoVerifactu);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionNoPermitidaSinVerifactu',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionNoPermitidaSinVerifactu);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionGuardada',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionGuardada);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionGuardadaLocal',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionGuardadaLocal);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionGuardadaNoVerifactu',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionGuardadaNoVerifactu);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionTituloOperacion',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionTituloOperacion);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionTituloFecha',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionTituloFecha);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionReimprimir',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionReimprimir);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionSinLineas',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionSinLineas);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionCantidadInvalida',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionCantidadInvalida);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionDecimalesLinea',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionDecimalesLinea);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionDecimalesTotal',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionDecimalesTotal);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionCantidadCero',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionCantidadCero);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionSignoLinea',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionSignoLinea);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionPrecisionLinea',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionPrecisionLinea);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionTotalInicialCero',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionTotalInicialCero);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionSignoTotal',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionSignoTotal);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionDatosNoDisponibles',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionDatosNoDisponibles);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionEdicionPendiente',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionEdicionPendiente);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionIdentificadorLinea',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionIdentificadorLinea);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionLineasDistintas',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionLineasDistintas);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionLineaModificada',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionLineaModificada);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionPrecisionCantidad',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionPrecisionCantidad);
   ARegistrar(
@@ -31891,55 +31895,55 @@ begin
   ARegistrar(
     'inLibMsgPersistenciaSubsanacionCaja.' +
     'SSubsanacionCantidadNoAplicada',
-    'src/Caja/Lib/inLibMsgPersistenciaSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgPersistenciaSubsanacionCaja.pas',
     @inLibMsgPersistenciaSubsanacionCaja.
       SSubsanacionCantidadNoAplicada);
   ARegistrar(
     'inLibMsgPersistenciaSubsanacionCaja.' +
     'SSubsanacionCantidadPrendaDeposito',
-    'src/Caja/Lib/inLibMsgPersistenciaSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgPersistenciaSubsanacionCaja.pas',
     @inLibMsgPersistenciaSubsanacionCaja.
       SSubsanacionCantidadPrendaDeposito);
   ARegistrar(
     'inLibMsgPersistenciaSubsanacionCaja.' +
     'SSubsanacionStockInconsistente',
-    'src/Caja/Lib/inLibMsgPersistenciaSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgPersistenciaSubsanacionCaja.pas',
     @inLibMsgPersistenciaSubsanacionCaja.
       SSubsanacionStockInconsistente);
   ARegistrar(
     'inLibMsgPersistenciaSubsanacionCaja.' +
     'SSubsanacionStockInactivo',
-    'src/Caja/Lib/inLibMsgPersistenciaSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgPersistenciaSubsanacionCaja.pas',
     @inLibMsgPersistenciaSubsanacionCaja.
       SSubsanacionStockInactivo);
   ARegistrar(
     'inLibMsgPersistenciaSubsanacionCaja.' +
     'SSubsanacionMotivoRecalculoStock',
-    'src/Caja/Lib/inLibMsgPersistenciaSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgPersistenciaSubsanacionCaja.pas',
     @inLibMsgPersistenciaSubsanacionCaja.
       SSubsanacionMotivoRecalculoStock);
   ARegistrar(
     'inLibMsgPersistenciaSubsanacionCaja.' +
     'SSubsanacionStockRegenerado',
-    'src/Caja/Lib/inLibMsgPersistenciaSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgPersistenciaSubsanacionCaja.pas',
     @inLibMsgPersistenciaSubsanacionCaja.
       SSubsanacionStockRegenerado);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionCantidadNoPositiva',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionCantidadNoPositiva);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionCantidadFija',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionCantidadFija);
   ARegistrar(
     'inLibMsgSubsanacionCaja.' +
     'SSubsanacionLineaNoCorregible',
-    'src/Caja/Lib/inLibMsgSubsanacionCaja.pas',
+    'src/Caja/Lib/Ventas/inLibMsgSubsanacionCaja.pas',
     @inLibMsgSubsanacionCaja.
       SSubsanacionLineaNoCorregible);
   ARegistrar(

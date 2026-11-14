@@ -154,6 +154,7 @@ type
     procedure AvisarAntesDeConsulta; override;
     // Los descendientes redefinen esto para elegir qué pestañas mostrar.
     function FiltrosUsados: TFiltrosReport; virtual;
+    function EmpresaAlmacenes: string; virtual;
     // Aviso tras marcar o desmarcar un almacén (FZ-ISSUE-935).
     procedure AlmacenesCambiados; virtual;
     // SQL de proveedores. Los informes de documentos pueden usar otra fuente
@@ -282,6 +283,11 @@ function TfrmPrintMultiFiltro.OrigenProveedores:
   TOrigenProveedoresInformeMultiFiltro;
 begin
   Result := opmfArticulos;
+end;
+
+function TfrmPrintMultiFiltro.EmpresaAlmacenes: string;
+begin
+  Result := '';
 end;
 
 procedure TfrmPrintMultiFiltro.DoShow;
@@ -614,7 +620,7 @@ procedure TfrmPrintMultiFiltro.CargarFiltros;
 begin
   if FRepositorioFiltros = nil then
     FRepositorioFiltros := CrearRepositorioInformeMultiFiltroUniDAC(
-      ConexionPrincipal);
+      ConexionPrincipal, EmpresaAlmacenes);
   CargarFiltro(FfcAlmacenes, FRepositorioFiltros.ListarAlmacenes);
   // Familias va como árbol (jerarquía padre→subfamilias), no como checklist.
   CargarFamiliasArbol;

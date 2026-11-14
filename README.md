@@ -23,6 +23,12 @@ variables `VIRACASH_*_ROOT`. También se admiten las variables
 `FACTUZAM_*_ROOT` existentes. Se requieren Delphi, DevExpress VCL, UniDAC,
 FastReport y las bibliotecas utilizadas por el proyecto.
 
+## Organización del código
+
+El [mapa MVC](doc/ARQUITECTURA_MVC.md) explica las responsabilidades,
+las unidades de entrada por dominio y el controlador común de mantenimientos.
+Incluye el alcance de la migración y cómo ejecutar sus pruebas.
+
 ## Imagen de marca
 
 - Símbolo: V blanca con rayo lima sobre verde esmeralda.

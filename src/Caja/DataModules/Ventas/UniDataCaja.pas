@@ -152,6 +152,7 @@ type
     // Fallos de lo que se hace tras confirmar la venta (FZ-ISSUE-145).
     FAvisoTrasGrabacion: string;
     FContextoSesion: IContextoSesionAplicacion;
+    FUbicacionCaja: TUbicacionSesion;
     FConfirmarContador: TFunc<string, Boolean>;
     FRegistroLog: IRegistroLog;
     FRepositorioTicketsCaja: TRepositoriosTicketsCaja;
@@ -159,6 +160,7 @@ type
     FObtenerEmpresaTotalLinea: TFunc<string>;
     FConfirmarTotalLinea: TFunc<string, Boolean>;
     function GetIdentidadSesion: TIdentidadSesion;
+    function GetUbicacionCaja: TUbicacionSesion;
     function InsertarMovimientoAlmacen(
       AConsultaTransaccion: TUniQuery;
       const ASolicitud: TSolicitudMovimientoAlmacenCaja): string;
@@ -282,6 +284,8 @@ type
     function CopiarLineaActual(const ACampoEditado: string): TCopiaLineaCaja;
     procedure RestaurarLineaActual(const ACopia: TCopiaLineaCaja);
     property IdentidadSesion: TIdentidadSesion read GetIdentidadSesion;
+    property UbicacionCaja: TUbicacionSesion read GetUbicacionCaja
+      write FUbicacionCaja;
     property ConfirmarContador: TFunc<string, Boolean>
       read FConfirmarContador write FConfirmarContador;
     property Conexion: TUniConnection read FConexion;
@@ -523,6 +527,8 @@ type
       const ALinea: TDatosLineaFactura;
       const ANumeroMovimiento, AEmpresaMovimiento,
         AAlmacenOrigen, ATipoMovimiento: string): Currency;
+    function RegistrarRetornoDeposito(
+      const ALinea: TDatosLineaFactura): Currency;
     procedure ProcesarVenta(
       const ALinea: TDatosLineaFactura);
     procedure ProcesarLineas;
@@ -692,6 +698,17 @@ begin
   if not Assigned(FContextoSesion) then
     raise Exception.Create(SErrorContextoSesionCajaNoConfigurado);
   Result := FContextoSesion.Identidad;
+end;
+
+function TdmCajaOpe.GetUbicacionCaja: TUbicacionSesion;
+begin
+  Result := FUbicacionCaja;
+  if Result.Empresa = '' then
+  begin
+    if not Assigned(FContextoSesion) then
+      raise Exception.Create(SErrorContextoSesionCajaNoConfigurado);
+    Result := FContextoSesion.Ubicacion;
+  end;
 end;
 
 function LeerCabecera(cdsCabecera:TDataset): TDatosCabeceraFactura;
@@ -1040,7 +1057,7 @@ var
   Ubicacion: TUbicacionSesion;
 begin
   Result := '';
-  Ubicacion := FContextoSesion.Ubicacion;
+  Ubicacion := UbicacionCaja;
   Repositorio := CrearRepositorioInformesCajaUniDAC(FConexion);
   if Supports(Repositorio, IRepositorioCuentaClientes, Cuenta) then
   begin
@@ -1060,7 +1077,7 @@ var
 begin
   if not Assigned(FContextoSesion) then
     raise Exception.Create(SErrorContextoSesionCajaNoConfigurado);
-  oUbicacion := FContextoSesion.Ubicacion;
+  oUbicacion := UbicacionCaja;
   oConsulta := TUniQuery.Create(nil);
   try
     ConfigurarConsultaDepositosCliente(
@@ -1129,7 +1146,7 @@ var
 begin
   if not Assigned(FContextoSesion) then
     raise Exception.Create(SErrorContextoSesionCajaNoConfigurado);
-  oUbicacion := FContextoSesion.Ubicacion;
+  oUbicacion := UbicacionCaja;
   oConsulta := TUniQuery.Create(nil);
   try
     oConsulta.Connection := FConexion;
@@ -1924,7 +1941,7 @@ begin
     ImprimirRecordatorio(
       FDataModule.FPreviewTicket,
       FDataModule.FRepositorioTicketsCaja.Recordatorios,
-      FDataModule.FContextoSesion.Ubicacion.Empresa,
+      FEmpresa,
       FCabecera.CodigoCliente,
       FDataModule.FParametrosCaja.ImpresoraCaja, nil, False,
       FFechaOperacion);
@@ -2365,8 +2382,8 @@ begin
       FCaja, FUsuario, FFechaOperacion);
     // PRECIO_ORIGINAL_DEP es unitario: el depósito vale por sus unidades
     dImporteCierre := ALinea.PrecioOriginalDep;
-    if ALinea.Cantidad > 0 then
-      dImporteCierre := dImporteCierre * ALinea.Cantidad;
+    if ALinea.Cantidad <> 0 then
+      dImporteCierre := dImporteCierre * Abs(ALinea.Cantidad);
     if dImporteCierre = 0 then
       dImporteCierre := ALinea.TotalCIva;
     FPersistencia.GuardarOperacion(
@@ -2430,6 +2447,40 @@ begin
     FDataModule.InsertarMovimientoAlmacen(FQuery, Solicitud));
 end;
 
+function TGrabacionFacturaCaja.RegistrarRetornoDeposito(
+  const ALinea: TDatosLineaFactura): Currency;
+var
+  Solicitud: TSolicitudMovimientoAlmacenCaja;
+begin
+  Result := ObtenerCosteMedioSkuAlmacen(ALinea.Sku, AlmacenDeposito);
+  Solicitud := Default(TSolicitudMovimientoAlmacenCaja);
+  Solicitud.Movimiento.TipoDocumento := 'TR';
+  Solicitud.Movimiento.Linea := ALinea.Linea;
+  Solicitud.Movimiento.Empresa := FEmpresa;
+  Solicitud.Movimiento.Almacen := AlmacenDeposito;
+  Solicitud.Movimiento.AlmacenContrapartida := FAlmacen;
+  Solicitud.Movimiento.Unidad := ALinea.Sku;
+  Solicitud.Movimiento.Articulo := ALinea.Articulo;
+  Solicitud.Movimiento.TipoMovimiento := 'S';
+  Solicitud.Movimiento.Cantidad := Abs(ALinea.Cantidad);
+  Solicitud.Movimiento.CosteUnitario := Result;
+  Solicitud.Movimiento.Usuario := FUsuarioSesion;
+  Solicitud.Movimiento.Fecha := FFechaOperacion;
+  Solicitud.CajaDocumento := FCaja;
+  Solicitud.AlmacenDocumento := FAlmacen;
+  Solicitud.NumeroOperacion := FNumeroOperacion;
+  Solicitud.CodigoCliente := FCabecera.CodigoCliente;
+  Solicitud.Lote := ALinea.Lote;
+  Solicitud.FechaCaducidad := ALinea.FechaCaducidad;
+  RegistrarMovimientoCreado(
+    FDataModule.InsertarMovimientoAlmacen(FQuery, Solicitud));
+  Solicitud.Movimiento.Almacen := FAlmacen;
+  Solicitud.Movimiento.AlmacenContrapartida := AlmacenDeposito;
+  Solicitud.Movimiento.TipoMovimiento := 'E';
+  RegistrarMovimientoCreado(
+    FDataModule.InsertarMovimientoAlmacen(FQuery, Solicitud));
+end;
+
 procedure TGrabacionFacturaCaja.ProcesarVenta(
   const ALinea: TDatosLineaFactura);
 var
@@ -2438,10 +2489,13 @@ var
   sEmpresaMovimiento: string;
   sTipoMovimiento: string;
   sNumeroMovimiento: string;
+  bRetornoDeposito: Boolean;
 begin
   LineaFactura := ALinea;
+  bRetornoDeposito := (ALinea.VieneDeDeposito = 'S') and
+    (ALinea.Cantidad < 0);
   if (ALinea.TipoArticulo = 'ESTANDAR') and
-     FGenerarMovimientos then
+     FGenerarMovimientos and not bRetornoDeposito then
     sNumeroMovimiento := ObtenerSiguienteContador(
       FDataModule.FConexion, 'MV', FUsuarioSesion)
   else
@@ -2458,6 +2512,7 @@ begin
   if (ALinea.Cantidad < 0) and
      (ALinea.TipoArticulo = 'ESTANDAR') and
      FGenerarMovimientos and
+     not bRetornoDeposito and
      EsDevolucionOtraTienda then
   begin
     sAlmacenOrigen := FAlmacenOrigenDevolucion;
@@ -2467,9 +2522,14 @@ begin
   end;
   if (LineaFactura.TipoArticulo = 'ESTANDAR') and
      FGenerarMovimientos then
-    LineaFactura.CosteUnitario := RegistrarMovimientoVenta(
-      LineaFactura, sNumeroMovimiento, sEmpresaMovimiento,
-      sAlmacenOrigen, sTipoMovimiento);
+  begin
+    if bRetornoDeposito then
+      LineaFactura.CosteUnitario := RegistrarRetornoDeposito(LineaFactura)
+    else
+      LineaFactura.CosteUnitario := RegistrarMovimientoVenta(
+        LineaFactura, sNumeroMovimiento, sEmpresaMovimiento,
+        sAlmacenOrigen, sTipoMovimiento);
+  end;
   // Los regalos conservan unidades, PVP y descuento en la factura.
   if FRequiereFactura and ((Abs(ALinea.TotalCIva) > 0.001) or
      (ALinea.TipoArticulo = 'SERVICIO') or
@@ -2896,7 +2956,7 @@ begin
       ImprimirRecordatorio(
         FDataModule.FPreviewTicket,
         FDataModule.FRepositorioTicketsCaja.Recordatorios,
-        FDataModule.FContextoSesion.Ubicacion.Empresa,
+        FEmpresa,
         FCabecera.CodigoCliente,
         FDataModule.FParametrosCaja.ImpresoraCaja, nil, False,
       FFechaOperacion);

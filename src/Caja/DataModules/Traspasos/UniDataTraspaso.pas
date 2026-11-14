@@ -26,7 +26,7 @@ uses
   inLibContextoSesionIntf,
   inLibDistribucionTiendasIntf,
   inLibTraspasoOpePersistenciaIntf,
-  inLibLotesPersistenciaIntf, inLibLotesLineaDocumento,
+  inLibLotesPersistenciaIntf, inLibLotesLineaDocumento, inLibTrazabilidad,
   System.Generics.Collections, inLibTraspasoTicket,
   inLibRecuentoSkuNormalizacion, inLibTraspasoRecuentoApp,
   inLibTransitoEmpresas;
@@ -144,6 +144,8 @@ type
     procedure CompletarUnidadLinea;
     function GetIdentidadSesion: TIdentidadSesion;
     function LotesLineasActivos: Boolean;
+    procedure DesglosarLineaLotes(ALinea: TDataSet;
+      const AAsignaciones: TArray<TAsignacionLote>);
     procedure cdsLineasBeforePost(DataSet: TDataSet);
     procedure ValidarCantidadLineaActual;
     procedure cdsLineasAfterPost(DataSet: TDataSet);
@@ -491,7 +493,7 @@ implementation
 {$R *.dfm}
 
 uses
-  inLibTrazabilidad, inLibMsgTrazabilidad,
+  inLibMsgTrazabilidad,
   UniDataMovimientosLote,
   inLibMsgCaja,
   inLibMsgDistribucionTiendas,
@@ -730,10 +732,81 @@ end;
 
 procedure TdmTraspaso.ConfigurarLotesLineas(
   const AConfig: TConfiguracionLotesLineas);
+var
+  rConfig: TConfiguracionLotesLineas;
 begin
   FreeAndNil(FLotesLineas);
   if AConfig.Activacion.AlgunModoActivo then
-    FLotesLineas := TLotesLineasDocumento.Create(AConfig);
+  begin
+    rConfig := AConfig;
+    rConfig.DesglosarLinea :=
+      procedure(ALinea: TDataSet;
+        const AAsignaciones: TArray<TAsignacionLote>)
+      begin
+        DesglosarLineaLotes(ALinea, AAsignaciones);
+      end;
+    FLotesLineas := TLotesLineasDocumento.Create(rConfig);
+  end;
+end;
+
+procedure TdmTraspaso.DesglosarLineaLotes(ALinea: TDataSet;
+  const AAsignaciones: TArray<TAsignacionLote>);
+var
+  aValores: TArray<Variant>;
+  rAsignacion: TAsignacionLote;
+  oCampo: TField;
+  oPosicion: TBookmark;
+  bCargando: Boolean;
+  dAdicional: Double;
+begin
+  if Length(AAsignaciones) > 0 then
+  begin
+    // Todo el reparto existe antes de grabar. La LINEA sigue identificando
+    // la solicitud; GrabarLineasTraspaso numera sus movimientos aparte.
+    aValores := [];
+    for oCampo in ALinea.Fields do
+      aValores := aValores + [oCampo.Value];
+    oPosicion := ALinea.Bookmark;
+    bCargando := FCargandoLineas;
+    FCargandoLineas := True;
+    ALinea.DisableControls;
+    try
+      dAdicional := 0;
+      for rAsignacion in AAsignaciones do
+        dAdicional := dAdicional + rAsignacion.Cantidad;
+      ALinea.Edit;
+      ALinea.FieldByName('CANTIDAD_PEDIDA').AsFloat := Max(0,
+        ALinea.FieldByName('CANTIDAD_PEDIDA').AsFloat - dAdicional);
+      ALinea.FieldByName('TOTAL').AsCurrency :=
+        ALinea.FieldByName('CANTIDAD').AsFloat *
+        ALinea.FieldByName('PRECIO_COSTE').AsCurrency;
+      ALinea.Post;
+      for rAsignacion in AAsignaciones do
+      begin
+        ALinea.Append;
+        for oCampo in ALinea.Fields do
+          oCampo.Value := aValores[oCampo.Index];
+        ALinea.FieldByName('CANTIDAD').AsFloat := rAsignacion.Cantidad;
+        ALinea.FieldByName('CANTIDAD_PEDIDA').AsFloat :=
+          rAsignacion.Cantidad;
+        ALinea.FieldByName('LOTE').AsString := rAsignacion.Lote;
+        if rAsignacion.FechaCaducidad = SIN_FECHA then
+          ALinea.FieldByName('FECHA_CADUCIDAD').Clear
+        else
+          ALinea.FieldByName('FECHA_CADUCIDAD').AsDateTime :=
+            rAsignacion.FechaCaducidad;
+        ALinea.FieldByName('TOTAL').AsCurrency :=
+          rAsignacion.Cantidad *
+          ALinea.FieldByName('PRECIO_COSTE').AsCurrency;
+        ALinea.Post;
+      end;
+    finally
+      if ALinea.BookmarkValid(oPosicion) then
+        ALinea.Bookmark := oPosicion;
+      FCargandoLineas := bCargando;
+      ALinea.EnableControls;
+    end;
+  end;
 end;
 
 function TdmTraspaso.DocumentoLotes: TDocumentoLineaLote;
@@ -759,7 +832,9 @@ begin
   if not FCargandoLineas then
     ValidarCantidadLineaActual;
   CompletarUnidadLinea;
-  if LotesLineasActivos and not FCargandoLineas then
+  if LotesLineasActivos and not FCargandoLineas and
+     ((FModo <> mtAtender) or
+      (cdsLineas.FieldByName('CANTIDAD').AsFloat > 0)) then
     FLotesLineas.AntesDePostLinea(cdsLineas, DocumentoLotes);
 end;
 
@@ -819,6 +894,19 @@ var
 begin
   if LotesLineasActivos then
   begin
+    // Las solicitudes se cargan sin preguntar lotes para poder denegarlas.
+    // Al servir, las líneas positivas pendientes pasan por el selector.
+    cdsLineas.First;
+    while not cdsLineas.Eof do
+    begin
+      if (cdsLineas.FieldByName('CANTIDAD').AsFloat > 0) and
+         (Trim(cdsLineas.FieldByName('LOTE').AsString) = '') then
+      begin
+        cdsLineas.Edit;
+        cdsLineas.Post;
+      end;
+      cdsLineas.Next;
+    end;
     rConfig := FLotesLineas.Configuracion;
     aLineas := [];
     sError := '';
@@ -841,8 +929,10 @@ begin
           rLinea.FechaCaducidad :=
             Trunc(oClon.FieldByName('FECHA_CADUCIDAD').AsDateTime);
         rLinea.Cantidad := oClon.FieldByName('CANTIDAD').AsFloat;
-        aLineas := aLineas + [rLinea];
-        if (rLinea.Articulo <> '') and (rLinea.Lote <> '') then
+        if (FModo <> mtAtender) or (rLinea.Cantidad > 0) then
+          aLineas := aLineas + [rLinea];
+        if (rLinea.Articulo <> '') and (rLinea.Lote <> '') and
+           ((FModo <> mtAtender) or (rLinea.Cantidad > 0)) then
         begin
           if not dicModos.TryGetValue(UpperCase(rLinea.Articulo), oModo) then
           begin
@@ -3409,7 +3499,10 @@ end;
 procedure TdmTraspaso.MarcarSolicitudAtendida(QryTrx: TUniQuery;
                           const ANumero, ASerie: string);
 var
-  sUsuario: string;
+  sUsuario, sLinea, sMotivo: string;
+  dServida: Double;
+  dicServidas: TDictionary<string, Double>;
+  dicMotivos: TDictionary<string, string>;
 begin
   ExigirSolicitudPendiente(ANumero, ASerie, AlmacenCaja,
     cdsCabecera.FieldByName('CODIGO_ALM_DESTINO').AsString);
@@ -3417,28 +3510,44 @@ begin
   // Resolucion por linea: registra lo servido (CANTIDAD) y, si no se cubre
   // lo pedido (denegada o servida en parte), el motivo. CANTIDAD_SERVIDA
   // suma; ESATENDIDA = 'S' cuando se cubre lo pedido (FZ-ISSUE-326).
-  cdsLineas.First;
-  while not cdsLineas.Eof do
-  begin
-    if Trim(cdsLineas.FieldByName('LINEA').AsString) <> '' then
+  dicServidas := TDictionary<string, Double>.Create;
+  dicMotivos := TDictionary<string, string>.Create;
+  try
+    cdsLineas.First;
+    while not cdsLineas.Eof do
+    begin
+      sLinea := Trim(cdsLineas.FieldByName('LINEA').AsString);
+      if sLinea <> '' then
+      begin
+        if not dicServidas.TryGetValue(sLinea, dServida) then
+          dServida := 0;
+        dicServidas.AddOrSetValue(sLinea, dServida +
+          cdsLineas.FieldByName('CANTIDAD').AsFloat);
+        sMotivo := cdsLineas.FieldByName('MOTIVO').AsString;
+        if not dicMotivos.ContainsKey(sLinea) or (sMotivo <> '') then
+          dicMotivos.AddOrSetValue(sLinea, sMotivo);
+      end;
+      cdsLineas.Next;
+    end;
+    // Los lotes desglosados pertenecen a una única línea solicitada.
+    for sLinea in dicServidas.Keys do
     begin
       QryTrx.SQL.Text := SqlLineaSolicitudAtendida;
-      QryTrx.ParamByName('SERV').AsFloat :=
-        cdsLineas.FieldByName('CANTIDAD').AsFloat;
-      QryTrx.ParamByName('MOT').AsString :=
-        cdsLineas.FieldByName('MOTIVO').AsString;
+      QryTrx.ParamByName('SERV').AsFloat := dicServidas[sLinea];
+      QryTrx.ParamByName('MOT').AsString := dicMotivos[sLinea];
       QryTrx.ParamByName('USU').AsString := sUsuario;
       QryTrx.ParamByName('NUM').AsString := ANumero;
       QryTrx.ParamByName('SER').AsString := ASerie;
-      QryTrx.ParamByName('LIN').AsString :=
-        cdsLineas.FieldByName('LINEA').AsString;
+      QryTrx.ParamByName('LIN').AsString := sLinea;
       QryTrx.Execute;
       if QryTrx.RowsAffected <> 1 then
         raise EValidacionTraspaso.CreateFmt(
           SErrorLineaSolicitudTraspasoNoActualizada,
-          [cdsLineas.FieldByName('LINEA').AsString, ANumero, ASerie]);
+          [sLinea, ANumero, ASerie]);
     end;
-    cdsLineas.Next;
+  finally
+    dicMotivos.Free;
+    dicServidas.Free;
   end;
   // Estado de la cabecera segun lo servido por linea: todo cubierto,
   // COMPLETADO TOTAL; nada servido, DENEGADO TOTAL; el resto (alguna linea

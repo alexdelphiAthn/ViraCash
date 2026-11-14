@@ -1101,6 +1101,7 @@ begin
     FRefrescandoLookupsCabecera := True;
     try
       dmmInventarios.CargarAlmacenesPorEmpresa(AEmpresa);
+      dmmInventarios.CargarSeriesPorEmpresa(AEmpresa);
     finally
       FRefrescandoLookupsCabecera := False;
     end;

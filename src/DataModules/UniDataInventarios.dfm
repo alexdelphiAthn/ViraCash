@@ -399,9 +399,17 @@
       'SELECT DISTINCT EMPSER'
       'FROM vi_empresas_series'
       'WHERE TIPO_DOC_EMPSER = '#39'IN'#39
+      'AND CODIGO_EMP_EMPSER = :EMPRESA'
       'ORDER BY EMPSER')
     Left = 650
     Top = 198
+    ParamData = <
+      item
+        DataType = ftString
+        Name = 'EMPRESA'
+        ParamType = ptInput
+        Value = nil
+      end>
   end
   object dsSeries: TDataSource
     DataSet = unqrySeries

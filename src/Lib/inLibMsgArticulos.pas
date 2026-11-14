@@ -187,6 +187,8 @@ SLeyendaAvisosBalance =
     'No se puede grabar el inventario sin una serie. Selecciona una serie ' +
     'en la cabecera (campo SERIE), o configura una serie por defecto de ' +
     'tipo IN para la empresa en fza_empresas_series.';
+  SErrorSerieInventarioNoValidaEmpresa =
+    'Selecciona una serie de inventario válida para la empresa %s.';
   SErrorInventarioAlmacenTransito =
     'El almacén %s es de tránsito: solo se usa en traspasos y no se ' +
     'inventaría. Elija otro almacén.';
