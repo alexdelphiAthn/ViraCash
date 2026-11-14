@@ -710,6 +710,7 @@ end;
 
 function TdmPresupuestos.DocumentoLotes: TDocumentoLineaLote;
 begin
+  Result := Default(TDocumentoLineaLote);
   Result.TipoDocumento := 'PR';
   Result.Serie := Trim(unqryTablaG.FieldByName('SERIE_PRE').AsString);
   Result.Numero := Trim(unqryTablaG.FieldByName('NUMERO_PRE').AsString);

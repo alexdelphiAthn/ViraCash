@@ -369,6 +369,8 @@ end;
 procedure TfrmMtoTarifas.AplicarEtiquetas;
 begin
   inherited;
+  if Assigned(FPeriodicidad) then
+    FPeriodicidad.AplicarTextos;
   // La traducción repone el título del DFM (&2_Otros).
   NumerarPestanasAtajo(pcPestana);
 end;

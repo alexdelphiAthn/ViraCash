@@ -1035,11 +1035,14 @@ end;
 
 function TdmAlbaranesCompra.DocumentoLotes: TDocumentoLineaLote;
 begin
+  Result := Default(TDocumentoLineaLote);
   Result.TipoDocumento := 'AC';
   Result.Serie := Trim(unqryTablaG.FieldByName('SERIE_ALBC').AsString);
   Result.Numero := Trim(unqryTablaG.FieldByName('NUMERO_ALBC').AsString);
   Result.CodigoAlmacen :=
     Trim(unqryTablaG.FieldByName('CODIGO_ALM_ALBC').AsString);
+  Result.CodigoProveedor :=
+    Trim(unqryTablaG.FieldByName('CODIGO_PRV_ALBC').AsString);
 end;
 
 procedure TdmAlbaranesCompra.unqryAlbaranesCompraLineasAfterPost(

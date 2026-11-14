@@ -303,8 +303,14 @@ procedure TTextosOriginalesIdioma.MostrarValorDocumento(
   var ATexto: string);
 begin
   if Sender is TcxGridDBColumn then
+  begin
+    // El texto de pantalla puede estar traducido en el idioma anterior.
+    // Se traduce siempre el codigo almacenado, no ese texto intermedio.
+    if Assigned(ARecord) and ARecord.IsData then
+      ATexto := VarToStr(ARecord.Values[Sender.Index]);
     ATexto := TextoValorDocumento(
       TcxGridDBColumn(Sender).DataBinding.FieldName, ATexto);
+  end;
 end;
 
 function TextosOriginalesIdioma(ARaiz: TComponent): TTextosOriginalesIdioma;

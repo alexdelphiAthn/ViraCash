@@ -4398,6 +4398,10 @@ begin
     @inLibMsgTrazabilidad.
       SErrorRepartoLotesCaja);
   ARegistrar(
+    'inLibMsgTrazabilidad.SErrorLoteProveedorDistinto',
+    'src/Lib/inLibMsgTrazabilidad.pas',
+    @inLibMsgTrazabilidad.SErrorLoteProveedorDistinto);
+  ARegistrar(
     'inLibMsgTrazabilidad.' +
     'SErrorLoteCaducidadContradictoria',
     'src/Lib/inLibMsgTrazabilidad.pas',
@@ -4828,6 +4832,16 @@ begin
     'SPruebaPrecioOrigenArticulo',
     'src/Lib/inLibMsgArticulos.pas',
     @inLibMsgArticulos.SPruebaPrecioOrigenArticulo);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SCaptionExcluirArticulosYaEnSesionTarifa',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SCaptionExcluirArticulosYaEnSesionTarifa);
+  ARegistrar(
+    'inLibMsgArticulos.' +
+    'SCaptionExcluirArticulosYaCargados',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SCaptionExcluirArticulosYaCargados);
   ARegistrar(
     'inLibMsgArticulos.' +
     'SCaptionPeriodosTarifa',
@@ -6749,6 +6763,110 @@ end;
 procedure EnumerarResourcestringsTraduccion(
   const ARegistrar: TRegistrarResourcestringTraduccion);
 begin
+  ARegistrar('inLibMsgArticulos.' +
+    'SPeriodicidadTitulo',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPeriodicidadTitulo);
+  ARegistrar('inLibMsgArticulos.' +
+    'SPeriodicidadAyuda',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPeriodicidadAyuda);
+  ARegistrar('inLibMsgArticulos.' +
+    'SPeriodicidadGuardada',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPeriodicidadGuardada);
+  ARegistrar('inLibMsgArticulos.' +
+    'SPeriodicidadNoDisponible',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPeriodicidadNoDisponible);
+  ARegistrar('inLibMsgArticulos.' +
+    'SPeriodicidadRepetir',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPeriodicidadRepetir);
+  ARegistrar('inLibMsgArticulos.' +
+    'SPeriodicidadDesdeAno',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPeriodicidadDesdeAno);
+  ARegistrar('inLibMsgArticulos.' +
+    'SPeriodicidadHasta',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPeriodicidadHasta);
+  ARegistrar('inLibMsgArticulos.' +
+    'SPeriodicidadSemana',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPeriodicidadSemana);
+  ARegistrar('inLibMsgArticulos.' +
+    'SPeriodicidadMes',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPeriodicidadMes);
+  ARegistrar('inLibMsgArticulos.' +
+    'SPeriodicidadAno',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPeriodicidadAno);
+  ARegistrar('inLibMsgArticulos.' +
+    'SPeriodicidadAnadir',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPeriodicidadAnadir);
+  ARegistrar('inLibMsgArticulos.' +
+    'SPeriodicidadQuitar',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPeriodicidadQuitar);
+  ARegistrar('inLibMsgArticulos.' +
+    'SPeriodicidadGuardar',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPeriodicidadGuardar);
+  ARegistrar('inLibMsgArticulos.' +
+    'SPeriodicidadDesde',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPeriodicidadDesde);
+  ARegistrar('inLibMsgArticulos.' +
+    'SPeriodicidadErrorTipo',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPeriodicidadErrorTipo);
+  ARegistrar('inLibMsgArticulos.' +
+    'SPeriodicidadErrorDia',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPeriodicidadErrorDia);
+  ARegistrar('inLibMsgArticulos.' +
+    'SPeriodicidadErrorDiaPeriodo',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPeriodicidadErrorDiaPeriodo);
+  ARegistrar('inLibMsgArticulos.' +
+    'SPeriodicidadErrorRango',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPeriodicidadErrorRango);
+  ARegistrar('inLibMsgArticulos.' +
+    'SPeriodicidadErrorDuplicado',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPeriodicidadErrorDuplicado);
+  ARegistrar('inLibMsgArticulos.' +
+    'SPeriodicidadLunes',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPeriodicidadLunes);
+  ARegistrar('inLibMsgArticulos.' +
+    'SPeriodicidadMartes',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPeriodicidadMartes);
+  ARegistrar('inLibMsgArticulos.' +
+    'SPeriodicidadMiercoles',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPeriodicidadMiercoles);
+  ARegistrar('inLibMsgArticulos.' +
+    'SPeriodicidadJueves',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPeriodicidadJueves);
+  ARegistrar('inLibMsgArticulos.' +
+    'SPeriodicidadViernes',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPeriodicidadViernes);
+  ARegistrar('inLibMsgArticulos.' +
+    'SPeriodicidadSabado',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPeriodicidadSabado);
+  ARegistrar('inLibMsgArticulos.' +
+    'SPeriodicidadDomingo',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SPeriodicidadDomingo);
   RegistrarNavegacionMovimientosArticulo(ARegistrar);
   RegistrarMovimientosArticuloColor(ARegistrar);
   ARegistrar('inLibMsgMeteorologiaCaja.SErrorInicioHistoricoMeteoCaja',

@@ -295,8 +295,6 @@ uses
   UniDataConfiguracionPantalla, inLibGridCantidad;
 
 resourcestring
-  SCaptionExcluirArticulosYaCargados =
-    'Excluir articulos ya cargados';
   SItemTodasPropiedadesAddBlock =
     '(todas - ver todos los valores)';
 

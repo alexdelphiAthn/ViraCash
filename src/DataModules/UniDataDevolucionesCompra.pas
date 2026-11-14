@@ -709,12 +709,15 @@ end;
 
 function TdmDevolucionesCompra.DocumentoLotes: TDocumentoLineaLote;
 begin
+  Result := Default(TDocumentoLineaLote);
   Result.TipoDocumento := 'DC';
   Result.Serie := Trim(unqryTablaG.FieldByName('SERIE_DEVC').AsString);
   Result.Numero :=
     Trim(unqryTablaG.FieldByName('NUMERO_DEVC').AsString);
   Result.CodigoAlmacen :=
     Trim(unqryTablaG.FieldByName('CODIGO_ALM_DEVC').AsString);
+  Result.CodigoProveedor :=
+    Trim(unqryTablaG.FieldByName('CODIGO_PRV_DEVC').AsString);
 end;
 
 procedure TdmDevolucionesCompra.unqryDevolucionesCompraLineasAfterPost(

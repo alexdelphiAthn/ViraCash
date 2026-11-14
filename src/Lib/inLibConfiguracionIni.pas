@@ -37,11 +37,83 @@ procedure EscribirCadenaIni(
   const AClave: string;
   const AValor: string;
   const ADirectorio: string);
+// Deja el INI en el formato que entiende la API de perfiles de Windows
+// (TIniFile): fines de línea CR+LF y, si traía BOM UTF-8, UTF-16 con BOM.
+// No toca un archivo que ya está bien ni uno que no existe.
+procedure NormalizarFormatoIni(const ARutaIni: string);
 
 implementation
 
 uses
-  System.IniFiles, System.SysUtils;
+  System.IniFiles, System.IOUtils, System.SysUtils;
+
+const
+  CODEPAGE_UTF8 = 65001;
+
+// La API de perfiles de Windows solo toma CR+LF como fin de línea. Un INI
+// escrito por otra herramienta con CR+CR+LF (Python en modo texto con
+// '\r\n'), CR o LF sueltos queda con claves pegadas al reescribirlo:
+// «PoolMax=30» + «Schema=» acaba en «PoolMax=30<CR>Schema=». Con BOM
+// UTF-8 la API no reconoce la primera sección y la duplica al final
+// (FZ-ISSUE-945).
+function NormalizarFinesLineaIni(const ATexto: string): string;
+begin
+  Result := ATexto;
+  while Pos(#13#13#10, Result) > 0 do
+    Result := StringReplace(
+      Result,
+      #13#13#10,
+      #13#10,
+      [rfReplaceAll]);
+  Result := AdjustLineBreaks(Result, tlbsCRLF);
+  if (Result <> '') and
+     not Result.EndsWith(#13#10) then
+    Result := Result + #13#10;
+end;
+
+procedure NormalizarFormatoIni(const ARutaIni: string);
+var
+  aBytes: TBytes;
+  bCambiarCodificacion: Boolean;
+  iPreambulo: Integer;
+  oCodificacion: TEncoding;
+  oDestino: TEncoding;
+  sNormalizado: string;
+  sTexto: string;
+begin
+  if (Trim(ARutaIni) <> '') and
+     FileExists(ARutaIni) then
+  begin
+    aBytes := TFile.ReadAllBytes(ARutaIni);
+    oCodificacion := nil;
+    iPreambulo := TEncoding.GetBufferEncoding(
+      aBytes,
+      oCodificacion,
+      TEncoding.Default);
+    sTexto := oCodificacion.GetString(
+      aBytes,
+      iPreambulo,
+      Length(aBytes) - iPreambulo);
+    sNormalizado := NormalizarFinesLineaIni(sTexto);
+    // UTF-16 conserva cualquier carácter y la API lo lee sin conversión.
+    bCambiarCodificacion :=
+      (iPreambulo > 0) and
+      (oCodificacion.CodePage = CODEPAGE_UTF8);
+    if bCambiarCodificacion then
+      oDestino := TEncoding.Unicode
+    else
+      oDestino := oCodificacion;
+    if bCambiarCodificacion or
+       (sNormalizado <> sTexto) then
+    begin
+      if iPreambulo > 0 then
+        aBytes := oDestino.GetPreamble + oDestino.GetBytes(sNormalizado)
+      else
+        aBytes := oDestino.GetBytes(sNormalizado);
+      TFile.WriteAllBytes(ARutaIni, aBytes);
+    end;
+  end;
+end;
 
 function LeerPerfilArranque(const AEjecutable: string): string;
 var
@@ -128,9 +200,11 @@ procedure EscribirCadenaIni(
   const ADirectorio: string);
 var
   oIni: TIniFile;
+  sRuta: string;
 begin
-  oIni := TIniFile.Create(
-    RutaIniAplicacion(ADirectorio));
+  sRuta := RutaIniAplicacion(ADirectorio);
+  NormalizarFormatoIni(sRuta);
+  oIni := TIniFile.Create(sRuta);
   try
     oIni.WriteString(
       ASeccion,

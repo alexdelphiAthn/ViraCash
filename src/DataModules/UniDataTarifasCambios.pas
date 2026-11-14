@@ -113,6 +113,7 @@ implementation
 
 uses
   System.Variants, inLibUser, inLibMsgArticulos, UniDataPrestaShopEncolado,
+  inLibErroresBBDD,
   inLibPrestaShopColaSenal, inLibRedondeo, UniDataTarifasCambiosPeriodos,
   UniDataTarifasTramos;
 
@@ -456,13 +457,23 @@ begin
   unqryLineas.Filtered := iPeriodo <> 0;
 end;
 
+procedure RestaurarFechasPeriodo(DataSet: TDataSet);
+var
+  Campo: string;
+begin
+  for Campo in ['FECHA_DESDE_TARCP', 'FECHA_HASTA_TARCP'] do
+    if not VarIsNull(DataSet.FieldByName(Campo).OldValue) then
+      DataSet.FieldByName(Campo).Value :=
+        DataSet.FieldByName(Campo).OldValue;
+end;
+
 procedure TdmTarifasCambios.unqryPeriodosBeforePost(DataSet: TDataSet);
 var
   sError: string;
   Vigencia: TVigenciaPeriodoTarifa;
 begin
   if SesionAplicada then
-    raise Exception.Create(SErrorTarifasCambiosSesionAplicada);
+    raise EValidacionBBDD.Create(SErrorTarifasCambiosSesionAplicada);
   Vigencia.Id := DataSet.FieldByName('ID_TARCP').AsInteger;
   Vigencia.Numero := DataSet.FieldByName('NUMERO_TARCP').AsInteger;
   Vigencia.Desde := DataSet.FieldByName('FECHA_DESDE_TARCP').AsDateTime;
@@ -470,8 +481,14 @@ begin
   sError := ErrorVigenciaPeriodoTarifa(Vigencia,
     CargarVigenciasPeriodosTarifa(
       unqryTablaG.Connection as TUniConnection, SesionActual));
+  // Revalidación 944: un periodo no válido vuelve a sus fechas grabadas,
+  // para que la rejilla no quede atascada en edición. EValidacionBBDD se
+  // muestra como aviso, sin el diálogo de error inesperado.
   if sError <> '' then
-    raise Exception.Create(sError);
+  begin
+    RestaurarFechasPeriodo(DataSet);
+    raise EValidacionBBDD.Create(sError);
+  end;
   if Trim(DataSet.FieldByName('NOMBRE_TARCP').AsString) = '' then
     DataSet.FieldByName('NOMBRE_TARCP').AsString :=
       Format(SNombrePeriodoTarifaDefecto, [Vigencia.Numero]);
@@ -497,9 +514,9 @@ var
   oConexion: TUniConnection;
 begin
   if SesionActual = 0 then
-    raise Exception.Create(SErrorTarifasCambiosSinSesionActiva);
+    raise EValidacionBBDD.Create(SErrorTarifasCambiosSinSesionActiva);
   if SesionAplicada then
-    raise Exception.Create(SErrorTarifasCambiosSesionAplicada);
+    raise EValidacionBBDD.Create(SErrorTarifasCambiosSesionAplicada);
   GrabarLineaPendiente;
   if unqryPeriodos.Active and (unqryPeriodos.State in dsEditModes) then
     unqryPeriodos.Post;
@@ -522,9 +539,9 @@ var
 begin
   iPeriodo := IdPeriodoActual;
   if iPeriodo = 0 then
-    raise Exception.Create(SErrorPeriodoTarifaNoSeleccionado);
+    raise EValidacionBBDD.Create(SErrorPeriodoTarifaNoSeleccionado);
   if SesionAplicada then
-    raise Exception.Create(SErrorTarifasCambiosSesionAplicada);
+    raise EValidacionBBDD.Create(SErrorTarifasCambiosSesionAplicada);
   GrabarLineaPendiente;
   if unqryPeriodos.State in dsEditModes then
     unqryPeriodos.Cancel;

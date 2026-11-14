@@ -1439,12 +1439,15 @@ end;
 
 function TdmFacturasCompra.DocumentoLotes: TDocumentoLineaLote;
 begin
+  Result := Default(TDocumentoLineaLote);
   Result.TipoDocumento := 'FP';
   Result.Serie := Trim(unqryTablaG.FieldByName('SERIE_FACC').AsString);
   Result.Numero :=
     Trim(unqryTablaG.FieldByName('NUMERO_FACC').AsString);
   Result.CodigoAlmacen :=
     Trim(unqryTablaG.FieldByName('CODIGO_ALM_FACC').AsString);
+  Result.CodigoProveedor :=
+    Trim(unqryTablaG.FieldByName('CODIGO_PRV_FACC').AsString);
 end;
 
 procedure TdmFacturasCompra.unqryFacturasCompraLineasAfterPost(

@@ -260,7 +260,8 @@ type
     function BuscarCodigoBarrasRepetido(const ACodigoBarras: string;
       AIdExcluido: Integer; out AExistente: TCodigoBarrasRepetido): Boolean;
     procedure GuardarArticulo;
-    function ArticuloTieneProvPrin(sArt:String):Boolean;
+    function ArticuloTieneProvPrin(const AArticulo: string;
+      const AProveedorExcluido: string = ''): Boolean;
     procedure CopiarProveedoraArticulo(dtProveedores:TDataset);
     procedure FillTarifas(lst:TcxListView);
     function ReconstruirStock: string;
@@ -661,26 +662,26 @@ begin
   end;
 end;
 
-function TdmArticulos.ArticuloTieneProvPrin(sArt:String):Boolean;
+function TdmArticulos.ArticuloTieneProvPrin(const AArticulo: string;
+  const AProveedorExcluido: string): Boolean;
 var
-  unqrySol: TUniQuery;
+  Consulta: TUniQuery;
 begin
-  unqrySol := TUniQuery.Create(nil);
-  unqrySol.Connection := ConexionPrincipal;
-  unqrySol.SQL.Text := 'SELECT * ' +
-                       '  FROM vi_articulos_proveedores ' +
-                       ' WHERE CODIGO_ART_ART = :CODIGO_ART_ART' +
-                       '   AND ESPROVEEDORPRINCIPAL = ' + QuotedStr('S');
-  unqrySol.ParamByName('CODIGO_ART_ART').AsString := sArt;
-  unqrySol.Open;
-  if (unqrySol.RecordCount > 0) then
-  begin
-    Result := True
-  end
-  else
-    Result := False;
-  unqrySol.Close;
-  FreeAndNil(unqrySol);
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := unqryProveedoresArticulos.Connection;
+    Consulta.SQL.Text :=
+      'SELECT 1 FROM fza_articulos_proveedores ' +
+      'WHERE CODIGO_ART_AP = :ARTICULO ' +
+      'AND ESPROVEEDORPRINCIPAL_AP = ''S'' ' +
+      'AND CODIGO_PRV_AP <> :EXCLUIDO LIMIT 1';
+    Consulta.ParamByName('ARTICULO').AsString := AArticulo;
+    Consulta.ParamByName('EXCLUIDO').AsString := AProveedorExcluido;
+    Consulta.Open;
+    Result := not Consulta.IsEmpty;
+  finally
+    Consulta.Free;
+  end;
 end;
 
 procedure TdmArticulos.ActualizarSkuActivo(const aSku, aActivo: string);
@@ -1025,24 +1026,28 @@ begin
 end;
 
 procedure TdmArticulos.unqryProveedoresArticulosBeforePost(DataSet: TDataSet);
+var
+  ProveedorExcluido: string;
 begin
   inherited;
-  // El modelo/referencia del proveedor entra en el codigo de articulo
-  // generado en compras: sin barras, como el propio codigo.
+  // El modelo/referencia del proveedor entra en el codigo de articulo.
   QuitarBarraSkuCampo(DataSet, 'REF_PROVEEDOR');
-  if unqryProveedoresArticulos.State = dsInsert then
-    if Trim(unqryProveedoresArticulos.FindField(
-      'ESPROVEEDORPRINCIPAL').AsString) = 'S' then
-    begin
-      if ArticuloTieneProvPrin(
-        unqryProveedoresArticulos.FindField(
-          'CODIGO_ART_ART').AsString) then
-      begin
-        raise ERangeError.CreateFmt(SErrorProveedorPrincipalArticulo,
-          [unqryProveedoresArticulos.FindField(
-            'CODIGO_ART_ART').AsString]);
-      end;
-    end;
+  if DataSet.FieldByName('ESPROVEEDORPRINCIPAL').AsString = 'S' then
+  begin
+    ProveedorExcluido := '';
+    // Al editar se excluye solo la fila original del mismo articulo.
+    // Una fila insertada nunca debe ocultar un principal ya existente.
+    if (DataSet.State = dsEdit) and
+       (VarToStr(DataSet.FieldByName('CODIGO_ART_ART').OldValue) =
+        DataSet.FieldByName('CODIGO_ART_ART').AsString) then
+      ProveedorExcluido :=
+        VarToStr(DataSet.FieldByName('CODIGO_PRV_PRV').OldValue);
+    if ArticuloTieneProvPrin(
+      DataSet.FieldByName('CODIGO_ART_ART').AsString,
+      ProveedorExcluido) then
+      raise EValidacionBBDD.CreateFmt(SErrorProveedorPrincipalArticulo,
+        [DataSet.FieldByName('CODIGO_ART_ART').AsString]);
+  end;
   ActualizarAuditoria(DataSet);
 end;
 

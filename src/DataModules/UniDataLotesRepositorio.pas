@@ -83,6 +83,8 @@ type
     function AbrirConsulta(const ASql: string): TUniQuery;
   public
     constructor Create(AConexion: TUniConnection);
+    function BuscarLote(const ACodigoSku, ALote: string;
+      out ACatalogo: TLoteCatalogo): Boolean;
     function Asegurar(
       const ALote: TLoteCatalogo;
       const AUsuario: string): TResultadoAsegurarLote;
@@ -402,6 +404,33 @@ begin
     AConsulta.FieldByName('NUMERO_DOC_ORIGEN_LOT').AsString;
   Result.EsActivo :=
     AConsulta.FieldByName('ESACTIVO_LOT').AsString <> 'N';
+end;
+
+function TRepositorioLotesUniDAC.BuscarLote(
+  const ACodigoSku, ALote: string; out ACatalogo: TLoteCatalogo): Boolean;
+var
+  oConsulta: TUniQuery;
+begin
+  ACatalogo := Default(TLoteCatalogo);
+  oConsulta := AbrirConsulta(
+    'SELECT CODIGO_UNIDAD_LOT, TIPO_LOT, FECHA_CADUCIDAD_LOT, ' +
+    'FECHA_ENTRADA_LOT, CODIGO_PRV_LOT, TIPO_DOC_ORIGEN_LOT, ' +
+    'SERIE_DOC_ORIGEN_LOT, NUMERO_DOC_ORIGEN_LOT, ESACTIVO_LOT ' +
+    'FROM fza_articulos_lotes ' +
+    'WHERE CODIGO_UNIDAD_LOT = :SKU AND LOTE_LOT = :LOTE');
+  try
+    oConsulta.ParamByName('SKU').AsString := ACodigoSku;
+    oConsulta.ParamByName('LOTE').AsString := NormalizarLote(ALote);
+    oConsulta.Open;
+    Result := not oConsulta.IsEmpty;
+    if Result then
+    begin
+      ACatalogo := LeerCatalogo(oConsulta);
+      ACatalogo.Lote := NormalizarLote(ALote);
+    end;
+  finally
+    FreeAndNil(oConsulta);
+  end;
 end;
 
 function TRepositorioLotesUniDAC.BuscarSerie(

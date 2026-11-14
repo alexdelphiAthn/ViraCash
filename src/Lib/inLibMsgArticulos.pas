@@ -1729,6 +1729,10 @@ resourcestring
   SPruebaPrecioOrigenArticulo =
     'Precio heredado del artículo';
   // Periodos de las sesiones de cambio de tarifa (FZ-ISSUE-944).
+  SCaptionExcluirArticulosYaEnSesionTarifa =
+    'Excluir artículos ya cargados en la sesión';
+  SCaptionExcluirArticulosYaCargados =
+    'Excluir artículos ya cargados';
   SCaptionPeriodosTarifa =
     'Periodos';
   SCaptionAnadirPeriodoTarifa =
@@ -2091,6 +2095,65 @@ resourcestring
   SResumenFiltroArticulosTemporadas = '%d temporadas';
   SResumenFiltroArticulosProveedores = 'proveedores: %d';
   SResumenFiltroArticulosFamilias = 'familias: %d';
+
+resourcestring
+  // FZ-ISSUE-949: editor de periodicidad.
+  SPeriodicidadTitulo =
+    'Periodicidad';
+  SPeriodicidadAyuda =
+    'Sin rangos: todos los días. Cada fila es una alternativa. ' +
+    'Desde = hasta: un día. Desde > hasta: cruza el final de ' +
+    'semana, mes o año. Las fechas generales también se respetan.';
+  SPeriodicidadGuardada =
+    'Periodicidad guardada. Todos los rangos son alternativas y ' +
+    'respetan las fechas generales.';
+  SPeriodicidadNoDisponible =
+    'Periodicidad disponible al instalar la actualización de base ' +
+    'de datos 727.';
+  SPeriodicidadRepetir =
+    'Repetir';
+  SPeriodicidadDesdeAno =
+    'Desde (año: día/mes)';
+  SPeriodicidadHasta =
+    'Hasta (incluido)';
+  SPeriodicidadSemana =
+    'Por día de semana';
+  SPeriodicidadMes =
+    'Por día de mes';
+  SPeriodicidadAno =
+    'Por día de año';
+  SPeriodicidadAnadir =
+    'Añadir rango';
+  SPeriodicidadQuitar =
+    'Quitar rango';
+  SPeriodicidadGuardar =
+    'Guardar periodicidad';
+  SPeriodicidadDesde =
+    'Desde';
+  SPeriodicidadErrorTipo =
+    'Periodicidad no válida.';
+  SPeriodicidadErrorDia =
+    'Día no válido. Use lunes a domingo, 1 a 31 o día/mes.';
+  SPeriodicidadErrorDiaPeriodo =
+    'Día del periodo no válido.';
+  SPeriodicidadErrorRango =
+    'Rango de periodicidad no válido.';
+  SPeriodicidadErrorDuplicado =
+    'El rango ya está añadido.';
+  SPeriodicidadLunes =
+    'Lunes';
+  SPeriodicidadMartes =
+    'Martes';
+  SPeriodicidadMiercoles =
+    'Miércoles';
+  SPeriodicidadJueves =
+    'Jueves';
+  SPeriodicidadViernes =
+    'Viernes';
+  SPeriodicidadSabado =
+    'Sábado';
+  SPeriodicidadDomingo =
+    'Domingo';
 
 implementation
 

@@ -30,7 +30,7 @@ uses
   cxDBLookupEdit, cxDBLookupComboBox, cxCheckBox, cxPC, cxImageComboBox,
   dxSkinsCore, dxSkinBlue, dxSkinsDefaultPainters, dxSkinscxPCPainter,
   dxScrollbarAnnotations, dxDateRanges, dxCore, cxGroupBox, cxMemo,
-  cxSplitter, cxListView,
+  cxSplitter, cxListView, System.Generics.Collections,
   UniDataTarifasCambios, inLibTarifasCambiosExcel, inMtoGen,
   inLibCargaMasivaArticulosPersistenciaIntf, inLibPermisosIntf,
   inLibSimulacionPrecioCaja;
@@ -38,7 +38,23 @@ uses
 type
   TfrmMtoTarifasCambios = class(TfrmMtoGen, IBorradoContextualVentana)
     procedure FormCreate(Sender: TObject);
+  private type
+    // Texto de un control creado en código: se vuelve a leer de su
+    // resourcestring al cambiar el idioma en caliente (FZ-ISSUE-945).
+    TTextoDinamico = record
+      Objeto: TPersistent;
+      Propiedad: string;
+      Recurso: PResStringRec;
+    end;
+    // Opción de un desplegable de rejilla con texto de valor de documento.
+    TOpcionDinamica = record
+      Opcion: TcxImageComboBoxItem;
+      Campo: string;
+      Valor: string;
+    end;
   private
+    FTextosDinamicos: TList<TTextoDinamico>;
+    FOpcionesDinamicas: TList<TOpcionDinamica>;
     FCargaMasiva: TServiciosCargaMasivaArticulos;
     FControlesCreados : Boolean;
     pnlCabecera       : TPanel;
@@ -122,16 +138,23 @@ type
     function  Esc(AValor: Integer): Integer;
     function  AnchoTexto(const ATexto: string): Integer;
     procedure CalcularColumnas;
+    procedure AsignarTexto(AObjeto: TPersistent;
+                           const APropiedad: string;
+                           ARecurso: PResStringRec);
+    procedure ReaplicarTextosDinamicos;
     procedure CrearEtiqueta(AParent: TWinControl;
-                            const ATexto: string;
+                            ATexto: PResStringRec;
                             AIzq, ATop: Integer);
-    procedure ColocarCampo(AParent: TWinControl; const ATexto: string;
+    procedure ColocarCampo(AParent: TWinControl; ATexto: PResStringRec;
                            AControl: TControl; ACol, ATop: Integer;
                            AAncho: Integer = 0);
     procedure ColocarBoton(ABoton: TcxButton; ATop: Integer;
                            var AX: Integer; AHueco: Integer = 0);
+    function  CrearBoton(AParent: TWinControl; ACaption: PResStringRec;
+                         AOnClick: TNotifyEvent): TcxButton;
     function  CrearColumna(AView: TcxGridDBTableView;
-                           const ACampo, ATitulo: string;
+                           const ACampo: string;
+                           ATitulo: PResStringRec;
                            AAncho: Integer): TcxGridDBColumn;
     procedure FormatoImporte(AColumna: TcxGridDBColumn;
                              const AFormato: string);
@@ -197,6 +220,7 @@ type
       overload;
     destructor Destroy; override;
     procedure CrearTablaPrincipal; override;
+    procedure AplicarTraduccionActual; override;
     procedure ResetForm; override;
     procedure ResolverArtSkuActivo(out ACodArt, ACodSku: string); override;
     function DataSourcesParaFoto: TArray<TDataSource>; override;
@@ -210,7 +234,7 @@ uses
   inMtoModalCargarSesionTarifa, inLibMsgArticulos, inLibMsgFacturas,
   inLibTraducciones, UniDataConfiguracionPantalla,
   inLibArticulosResolverIntf, inLibArticulosValidadorIntf, Vcl.StdCtrls,
-  inMtoModalEtiqArt, UniDataArticulos;
+  inMtoModalEtiqArt, UniDataArticulos, System.TypInfo;
 
 {$R *.dfm}
 
@@ -243,6 +267,66 @@ destructor TfrmMtoTarifasCambios.Destroy;
 begin
   DesvincularDatos;
   inherited;
+  FreeAndNil(FOpcionesDinamicas);
+  FreeAndNil(FTextosDinamicos);
+end;
+
+procedure TfrmMtoTarifasCambios.AsignarTexto(AObjeto: TPersistent;
+  const APropiedad: string; ARecurso: PResStringRec);
+var
+  rTexto: TTextoDinamico;
+begin
+  if not Assigned(FTextosDinamicos) then
+    FTextosDinamicos := TList<TTextoDinamico>.Create;
+  SetStrProp(AObjeto, APropiedad, LoadResString(ARecurso));
+  rTexto.Objeto := AObjeto;
+  rTexto.Propiedad := APropiedad;
+  rTexto.Recurso := ARecurso;
+  FTextosDinamicos.Add(rTexto);
+end;
+
+// Etiquetas, botones, pestañas y columnas se crean en código con el texto
+// del idioma de ese momento. El cambio de idioma en caliente solo traduce
+// los componentes con nombre: el resto se vuelve a leer de su
+// resourcestring, que ya devuelve el idioma nuevo (FZ-ISSUE-945).
+procedure TfrmMtoTarifasCambios.ReaplicarTextosDinamicos;
+var
+  rOpcion: TOpcionDinamica;
+  rTexto: TTextoDinamico;
+begin
+  if Assigned(FTextosDinamicos) then
+    for rTexto in FTextosDinamicos do
+      SetStrProp(
+        rTexto.Objeto,
+        rTexto.Propiedad,
+        LoadResString(rTexto.Recurso));
+  if Assigned(FOpcionesDinamicas) then
+    for rOpcion in FOpcionesDinamicas do
+      rOpcion.Opcion.Description := TextoValorDocumento(
+        rOpcion.Campo,
+        rOpcion.Valor);
+  if Assigned(btnVerPeriodos) and Assigned(pnlPeriodos) then
+  begin
+    if pnlPeriodos.Visible then
+      btnVerPeriodos.Caption := SCaptionOcultarPeriodosTarifa
+    else
+      btnVerPeriodos.Caption := SCaptionVerPeriodosTarifa;
+  end;
+end;
+
+procedure TfrmMtoTarifasCambios.AplicarTraduccionActual;
+begin
+  inherited;
+  if FControlesCreados then
+  begin
+    ReaplicarTextosDinamicos;
+    if Assigned(cxGrdDBTabPrin) then
+      cxGrdDBTabPrin.LayoutChanged;
+    if Assigned(tvLineas) then
+      tvLineas.LayoutChanged;
+    if Assigned(tvPeriodos) then
+      tvPeriodos.LayoutChanged;
+  end;
 end;
 
 procedure TfrmMtoTarifasCambios.CrearControlesDinamicos;
@@ -265,7 +349,7 @@ end;
 procedure TfrmMtoTarifasCambios.CrearAtajos;
 begin
   actIrArticulo := TAction.Create(Self);
-  actIrArticulo.Caption := SCaptionCambioIrArticulo;
+  AsignarTexto(actIrArticulo, 'Caption', @SCaptionCambioIrArticulo);
   actIrArticulo.ShortCut := ShortCut(Ord('R'), [ssCtrl]);
   actIrArticulo.OnExecute := actIrArticuloExecute;
   actIrArticulo.ActionList := alMtoGen;
@@ -341,9 +425,9 @@ begin
 end;
 
 procedure TfrmMtoTarifasCambios.ColocarCampo(AParent: TWinControl;
-  const ATexto: string; AControl: TControl; ACol, ATop, AAncho: Integer);
+  ATexto: PResStringRec; AControl: TControl; ACol, ATop, AAncho: Integer);
 begin
-  if ATexto <> '' then
+  if Assigned(ATexto) then
     CrearEtiqueta(AParent, ATexto, FColEtiqueta[ACol], ATop + Esc(3));
   AControl.Parent := AParent;
   AControl.Left := FColControl[ACol];
@@ -389,26 +473,26 @@ begin
   pnlCabecera.Color := clWhite;
   // Fila 0: el nombre ocupa las columnas de origen y destino.
   txtNombre := TcxDBTextEdit.Create(Self);
-  ColocarCampo(pnlCabecera, SCaptionCambioTarifaNombre, txtNombre, 0, Fila0,
+  ColocarCampo(pnlCabecera, @SCaptionCambioTarifaNombre, txtNombre, 0, Fila0,
     FColControl[1] + FColAncho[1] - FColControl[0]);
   dteFecha := TcxDBDateEdit.Create(Self);
-  ColocarCampo(pnlCabecera, SCaptionCambioTarifaFecha, dteFecha, 2, Fila0,
+  ColocarCampo(pnlCabecera, @SCaptionCambioTarifaFecha, dteFecha, 2, Fila0,
     Esc(130));
   txtEstado := TcxDBTextEdit.Create(Self);
-  ColocarCampo(pnlCabecera, SCaptionCambioTarifaEstado, txtEstado, 3, Fila0);
+  ColocarCampo(pnlCabecera, @SCaptionCambioTarifaEstado, txtEstado, 3, Fila0);
   txtEstado.Properties.ReadOnly := True;
   // Fila 1: tarifas y vigencia.
   cbbTarifaOrigen := TcxDBLookupComboBox.Create(Self);
-  ColocarCampo(pnlCabecera, SCaptionCambioTarifaOrigen, cbbTarifaOrigen, 0,
+  ColocarCampo(pnlCabecera, @SCaptionCambioTarifaOrigen, cbbTarifaOrigen, 0,
     Fila1);
   cbbTarifaDestino := TcxDBLookupComboBox.Create(Self);
-  ColocarCampo(pnlCabecera, SCaptionCambioTarifaDestino, cbbTarifaDestino, 1,
+  ColocarCampo(pnlCabecera, @SCaptionCambioTarifaDestino, cbbTarifaDestino, 1,
     Fila1);
   dteDesde := TcxDBDateEdit.Create(Self);
-  ColocarCampo(pnlCabecera, SCaptionCambioTarifaDesde, dteDesde, 2, Fila1,
+  ColocarCampo(pnlCabecera, @SCaptionCambioTarifaDesde, dteDesde, 2, Fila1,
     Esc(130));
   dteHasta := TcxDBDateEdit.Create(Self);
-  ColocarCampo(pnlCabecera, SCaptionCambioTarifaHasta, dteHasta, 3, Fila1);
+  ColocarCampo(pnlCabecera, @SCaptionCambioTarifaHasta, dteHasta, 3, Fila1);
 end;
 
 procedure TfrmMtoTarifasCambios.CrearParametros;
@@ -427,27 +511,27 @@ begin
   pnlParametros.Color := clWhite;
   // Fila 0: de donde sale el precio, a donde va y como se calcula.
   cbbCampoOrigen := TcxDBImageComboBox.Create(Self);
-  ColocarCampo(pnlParametros, SCaptionCambioCampoOrigen, cbbCampoOrigen, 0,
+  ColocarCampo(pnlParametros, @SCaptionCambioCampoOrigen, cbbCampoOrigen, 0,
     Fila0);
   cbbCampoDestino := TcxDBImageComboBox.Create(Self);
-  ColocarCampo(pnlParametros, SCaptionCambioCampoDestino, cbbCampoDestino, 1,
+  ColocarCampo(pnlParametros, @SCaptionCambioCampoDestino, cbbCampoDestino, 1,
     Fila0);
   cbbTipoAplicacion := TcxDBImageComboBox.Create(Self);
-  ColocarCampo(pnlParametros, SCaptionCambioAplicar, cbbTipoAplicacion, 2,
+  ColocarCampo(pnlParametros, @SCaptionCambioAplicar, cbbTipoAplicacion, 2,
     Fila0);
   curValor := TcxDBCurrencyEdit.Create(Self);
-  ColocarCampo(pnlParametros, SCaptionCambioValor, curValor, 3, Fila0);
+  ColocarCampo(pnlParametros, @SCaptionCambioValor, curValor, 3, Fila0);
   curValor.Properties.UseDisplayFormatWhenEditing := True;
   // Fila 1: redondeo del precio resultante.
   curRedondeo := TcxDBCurrencyEdit.Create(Self);
-  ColocarCampo(pnlParametros, SCaptionCambioRedondeo, curRedondeo, 0, Fila1,
+  ColocarCampo(pnlParametros, @SCaptionCambioRedondeo, curRedondeo, 0, Fila1,
     Esc(110));
   curMenos := TcxDBCurrencyEdit.Create(Self);
-  ColocarCampo(pnlParametros, SCaptionCambioMenos, curMenos, 1, Fila1,
+  ColocarCampo(pnlParametros, @SCaptionCambioMenos, curMenos, 1, Fila1,
     Esc(110));
   chkRedondear := TcxDBCheckBox.Create(Self);
   chkRedondear.Parent := pnlParametros;
-  chkRedondear.Caption := SCaptionRedondearHaciaArriba;
+  AsignarTexto(chkRedondear, 'Caption', @SCaptionRedondearHaciaArriba);
   chkRedondear.Left := FColEtiqueta[2];
   chkRedondear.Top := Fila1 + Esc(1);
   chkRedondear.Width := AnchoTexto(SCaptionRedondearHaciaArriba) + Esc(36);
@@ -455,12 +539,12 @@ begin
   chkRedondear.Properties.ValueUnchecked := 'N';
 end;
 
-function CrearBoton(AOwner: TComponent; AParent: TWinControl;
-  const ACaption: string; AOnClick: TNotifyEvent): TcxButton;
+function TfrmMtoTarifasCambios.CrearBoton(AParent: TWinControl;
+  ACaption: PResStringRec; AOnClick: TNotifyEvent): TcxButton;
 begin
-  Result := TcxButton.Create(AOwner);
+  Result := TcxButton.Create(Self);
   Result.Parent := AParent;
-  Result.Caption := ACaption;
+  AsignarTexto(Result, 'Caption', ACaption);
   Result.OnClick := AOnClick;
 end;
 
@@ -479,25 +563,25 @@ begin
   pnlAcciones.BevelOuter := bvNone;
   pnlAcciones.ParentBackground := False;
   pnlAcciones.Color := clWhite;
-  btnCargar := CrearBoton(Self, pnlAcciones, SCaptionCargarArticulos,
+  btnCargar := CrearBoton(pnlAcciones, @SCaptionCargarArticulos,
     btnCargarClick);
-  btnCalcular := CrearBoton(Self, pnlAcciones, SCaptionCalcularLineas,
+  btnCalcular := CrearBoton(pnlAcciones, @SCaptionCalcularLineas,
     btnCalcularClick);
-  btnDescuentoLote := CrearBoton(Self, pnlAcciones,
-    SCaptionDescuentoLoteSesionTarifa, btnDescuentoLoteClick);
-  btnAplicar := CrearBoton(Self, pnlAcciones, SCaptionAplicarTarifa,
+  btnDescuentoLote := CrearBoton(pnlAcciones,
+    @SCaptionDescuentoLoteSesionTarifa, btnDescuentoLoteClick);
+  btnAplicar := CrearBoton(pnlAcciones, @SCaptionAplicarTarifa,
     btnAplicarClick);
-  btnEtiquetar := CrearBoton(Self, pnlAcciones, SCaptionEtiquetarSesionTarifa,
+  btnEtiquetar := CrearBoton(pnlAcciones, @SCaptionEtiquetarSesionTarifa,
     btnEtiquetarClick);
-  btnExportarExcel := CrearBoton(Self, pnlAcciones,
-    SCaptionExportarExcelSesionTarifa, btnExportarExcelClick);
-  btnCargarExcel := CrearBoton(Self, pnlAcciones,
-    SCaptionCargarExcelSesionTarifa, btnCargarExcelClick);
-  btnRefrescar := CrearBoton(Self, pnlAcciones, SCaptionRefrescar,
+  btnExportarExcel := CrearBoton(pnlAcciones,
+    @SCaptionExportarExcelSesionTarifa, btnExportarExcelClick);
+  btnCargarExcel := CrearBoton(pnlAcciones,
+    @SCaptionCargarExcelSesionTarifa, btnCargarExcelClick);
+  btnRefrescar := CrearBoton(pnlAcciones, @SCaptionRefrescar,
     btnRefrescarClick);
   // FZ-ISSUE-944: muestra u oculta la rejilla de periodos de la pestaña
   // Líneas. Se coloca con el texto más largo para que no cambie de ancho.
-  btnVerPeriodos := CrearBoton(Self, pnlAcciones, SCaptionOcultarPeriodosTarifa,
+  btnVerPeriodos := CrearBoton(pnlAcciones, @SCaptionOcultarPeriodosTarifa,
     btnVerPeriodosClick);
   if Length(SCaptionVerPeriodosTarifa) >
      Length(SCaptionOcultarPeriodosTarifa) then
@@ -534,7 +618,7 @@ begin
   pcDetalle.Align := alClient;
   tsLineas := TcxTabSheet.Create(Self);
   tsLineas.PageControl := pcDetalle;
-  tsLineas.Caption := SCaptionTabLineasTarifa;
+  AsignarTexto(tsLineas, 'Caption', @SCaptionTabLineasTarifa);
   CrearRejillaPeriodos;
   splPeriodos := TcxSplitter.Create(Self);
   splPeriodos.Parent := tsLineas;
@@ -549,16 +633,16 @@ begin
   pnlSeleccion.Top := splPeriodos.Top + splPeriodos.Height;
   pnlSeleccion.Height := Esc(FICHA_ALTO_BOTON) + Esc(10);
   pnlSeleccion.BevelOuter := bvNone;
-  btnMarcarTodo := CrearBoton(Self, pnlSeleccion,
-    SCaptionMarcarTodoSesionTarifa, btnMarcarTodoClick);
-  btnDesmarcarTodo := CrearBoton(Self, pnlSeleccion,
-    SCaptionDesmarcarTodoSesionTarifa, btnDesmarcarTodoClick);
-  btnActualizarCostes := CrearBoton(Self, pnlSeleccion,
-    SCaptionActualizarCostesSesion, btnActualizarCostesClick);
-  btnEliminarLineas := CrearBoton(Self, pnlSeleccion,
-    SCaptionEliminarLineasSesion, btnEliminarLineasClick);
-  btnEliminarSinStock := CrearBoton(Self, pnlSeleccion,
-    SCaptionEliminarLineasSinStockSesion, btnEliminarSinStockClick);
+  btnMarcarTodo := CrearBoton(pnlSeleccion,
+    @SCaptionMarcarTodoSesionTarifa, btnMarcarTodoClick);
+  btnDesmarcarTodo := CrearBoton(pnlSeleccion,
+    @SCaptionDesmarcarTodoSesionTarifa, btnDesmarcarTodoClick);
+  btnActualizarCostes := CrearBoton(pnlSeleccion,
+    @SCaptionActualizarCostesSesion, btnActualizarCostesClick);
+  btnEliminarLineas := CrearBoton(pnlSeleccion,
+    @SCaptionEliminarLineasSesion, btnEliminarLineasClick);
+  btnEliminarSinStock := CrearBoton(pnlSeleccion,
+    @SCaptionEliminarLineasSinStockSesion, btnEliminarSinStockClick);
   X := Esc(8);
   Y := Esc(5);
   ColocarBoton(btnMarcarTodo, Y, X);
@@ -619,15 +703,15 @@ begin
   pnlPeriodosAcciones.Align := alTop;
   pnlPeriodosAcciones.Height := Esc(FICHA_ALTO_BOTON) + Esc(10);
   pnlPeriodosAcciones.BevelOuter := bvNone;
-  btnAnadirPeriodo := CrearBoton(Self, pnlPeriodosAcciones,
-    SCaptionAnadirPeriodoTarifa, btnAnadirPeriodoClick);
-  btnEliminarPeriodo := CrearBoton(Self, pnlPeriodosAcciones,
-    SCaptionEliminarPeriodoTarifa, btnEliminarPeriodoClick);
+  btnAnadirPeriodo := CrearBoton(pnlPeriodosAcciones,
+    @SCaptionAnadirPeriodoTarifa, btnAnadirPeriodoClick);
+  btnEliminarPeriodo := CrearBoton(pnlPeriodosAcciones,
+    @SCaptionEliminarPeriodoTarifa, btnEliminarPeriodoClick);
   X := Esc(8);
   Y := Esc(5);
   ColocarBoton(btnAnadirPeriodo, Y, X);
   ColocarBoton(btnEliminarPeriodo, Y, X);
-  CrearEtiqueta(pnlPeriodosAcciones, SAyudaPeriodosTarifa,
+  CrearEtiqueta(pnlPeriodosAcciones, @SAyudaPeriodosTarifa,
     X + Esc(FICHA_SEP_GRUPO), Y + Esc(5));
   // La rejilla ocupa el resto: el divisor de periodos la agranda o encoge.
   cxgrdPeriodos := TcxGrid.Create(Self);
@@ -636,7 +720,7 @@ begin
   tvPeriodos := TcxGridDBTableView.Create(cxgrdPeriodos);
   glPeriodos := cxgrdPeriodos.Levels.Add;
   glPeriodos.GridView := tvPeriodos;
-  glPeriodos.Caption := SCaptionPeriodosTarifa;
+  AsignarTexto(glPeriodos, 'Caption', @SCaptionPeriodosTarifa);
   tvPeriodos.OptionsData.Deleting := False;
   tvPeriodos.OptionsData.Inserting := False;
   tvPeriodos.OptionsData.Appending := False;
@@ -650,8 +734,11 @@ procedure TfrmMtoTarifasCambios.ColumnaOpciones(AColumna: TcxGridDBColumn;
 var
   Opcion: TcxImageComboBoxItem;
   Propiedades: TcxImageComboBoxProperties;
+  rOpcion: TOpcionDinamica;
   sValor: string;
 begin
+  if not Assigned(FOpcionesDinamicas) then
+    FOpcionesDinamicas := TList<TOpcionDinamica>.Create;
   AColumna.PropertiesClass := TcxImageComboBoxProperties;
   Propiedades := AColumna.Properties as TcxImageComboBoxProperties;
   for sValor in AValores do
@@ -659,6 +746,10 @@ begin
     Opcion := Propiedades.Items.Add;
     Opcion.Value := sValor;
     Opcion.Description := TextoValorDocumento(ACampo, sValor);
+    rOpcion.Opcion := Opcion;
+    rOpcion.Campo := ACampo;
+    rOpcion.Valor := sValor;
+    FOpcionesDinamicas.Add(rOpcion);
   end;
 end;
 
@@ -676,33 +767,33 @@ procedure TfrmMtoTarifasCambios.CrearColumnasPeriodos;
 begin
   if tvPeriodos.ColumnCount = 0 then
   begin
-    CrearColumna(tvPeriodos, 'NUMERO_TARCP', SCaptionPeriodoTarifaNumero,
+    CrearColumna(tvPeriodos, 'NUMERO_TARCP', @SCaptionPeriodoTarifaNumero,
       40).Options.Editing := False;
-    CrearColumna(tvPeriodos, 'NOMBRE_TARCP', SCaptionPeriodoTarifaNombre,
+    CrearColumna(tvPeriodos, 'NOMBRE_TARCP', @SCaptionPeriodoTarifaNombre,
       160);
-    CrearColumna(tvPeriodos, 'FECHA_DESDE_TARCP', SCaptionCambioTarifaDesde,
+    CrearColumna(tvPeriodos, 'FECHA_DESDE_TARCP', @SCaptionCambioTarifaDesde,
       95);
-    CrearColumna(tvPeriodos, 'FECHA_HASTA_TARCP', SCaptionCambioTarifaHasta,
+    CrearColumna(tvPeriodos, 'FECHA_HASTA_TARCP', @SCaptionCambioTarifaHasta,
       95);
     ColumnaOpciones(CrearColumna(tvPeriodos, 'TIPO_APLICACION_TARCP',
-      SCaptionCambioAplicar, 150), 'TIPO_APLICACION_TARC',
+      @SCaptionCambioAplicar, 150), 'TIPO_APLICACION_TARC',
       ['COPIAR', 'INCREMENTO_LINEAL', 'INCREMENTO_PORCENTUAL',
        'PRECIO_FIJO']);
     FormatoImporte(CrearColumna(tvPeriodos, 'VALOR_APLICACION_TARCP',
-      SCaptionCambioValor, 80), '0.00');
+      @SCaptionCambioValor, 80), '0.00');
     ColumnaOpciones(CrearColumna(tvPeriodos, 'CAMPO_ORIGEN_TARCP',
-      SCaptionCambioCampoOrigen, 140), 'CAMPO_ORIGEN_TARC',
+      @SCaptionCambioCampoOrigen, 140), 'CAMPO_ORIGEN_TARC',
       ['PRECIO_ORIGEN', 'PRECIO_COSTE', 'PRECIO_DESTINO_ACTUAL']);
     ColumnaOpciones(CrearColumna(tvPeriodos, 'CAMPO_DESTINO_TARCP',
-      SCaptionCambioCampoDestino, 130), 'CAMPO_DESTINO_TARC',
+      @SCaptionCambioCampoDestino, 130), 'CAMPO_DESTINO_TARC',
       ['AMBOS', 'PRECIO_SALIDA', 'PRECIO_FINAL']);
     FormatoImporte(CrearColumna(tvPeriodos, 'VALOR_REDONDEO_TARCP',
-      SCaptionCambioRedondeo, 80), FMT_EUROS);
+      @SCaptionCambioRedondeo, 80), FMT_EUROS);
     FormatoImporte(CrearColumna(tvPeriodos, 'VALOR_MENOS_AJUSTE_TARCP',
-      SCaptionCambioMenos, 80), FMT_EUROS);
+      @SCaptionCambioMenos, 80), FMT_EUROS);
     ColumnaSiNo(CrearColumna(tvPeriodos, 'ESREDONDEAR_ARRIBA_TARCP',
-      SCaptionRedondearHaciaArriba, 90));
-    CrearColumna(tvPeriodos, 'ESTADO_TARCP', SCaptionCambioTarifaEstado,
+      @SCaptionRedondearHaciaArriba, 90));
+    CrearColumna(tvPeriodos, 'ESTADO_TARCP', @SCaptionCambioTarifaEstado,
       90).Options.Editing := False;
   end;
 end;
@@ -850,7 +941,7 @@ var
 begin
   tsPrueba := TcxTabSheet.Create(Self);
   tsPrueba.PageControl := pcDetalle;
-  tsPrueba.Caption := SCaptionTabPruebaPrecio;
+  AsignarTexto(tsPrueba, 'Caption', @SCaptionTabPruebaPrecio);
   pnlPrueba := TcxGroupBox.Create(Self);
   pnlPrueba.Parent := tsPrueba;
   pnlPrueba.Align := alTop;
@@ -860,13 +951,13 @@ begin
   pnlPrueba.Height := Esc(FICHA_ALTO_FILA) + Esc(40);
   Y := Esc(8);
   X := Esc(FICHA_MARGEN);
-  CrearEtiqueta(pnlPrueba, SCaptionPruebaPrecioSku, X, Y + Esc(3));
+  CrearEtiqueta(pnlPrueba, @SCaptionPruebaPrecioSku, X, Y + Esc(3));
   Inc(X, AnchoTexto(SCaptionPruebaPrecioSku) + Esc(FICHA_SEP_ETIQ));
   edtPruebaSku := TcxTextEdit.Create(Self);
   edtPruebaSku.Parent := pnlPrueba;
   edtPruebaSku.SetBounds(X, Y, Esc(220), edtPruebaSku.Height);
   Inc(X, Esc(220) + Esc(FICHA_SEP_COLUMNA));
-  CrearEtiqueta(pnlPrueba, SCaptionPruebaPrecioTarifa, X, Y + Esc(3));
+  CrearEtiqueta(pnlPrueba, @SCaptionPruebaPrecioTarifa, X, Y + Esc(3));
   Inc(X, AnchoTexto(SCaptionPruebaPrecioTarifa) + Esc(FICHA_SEP_ETIQ));
   cbbPruebaTarifa := TcxLookupComboBox.Create(Self);
   cbbPruebaTarifa.Parent := pnlPrueba;
@@ -876,17 +967,17 @@ begin
   cbbPruebaTarifa.Properties.ListOptions.ShowHeader := False;
   cbbPruebaTarifa.Properties.ClearKey := VK_DELETE;
   Inc(X, Esc(200) + Esc(FICHA_SEP_COLUMNA));
-  CrearEtiqueta(pnlPrueba, SCaptionPruebaPrecioFecha, X, Y + Esc(3));
+  CrearEtiqueta(pnlPrueba, @SCaptionPruebaPrecioFecha, X, Y + Esc(3));
   Inc(X, AnchoTexto(SCaptionPruebaPrecioFecha) + Esc(FICHA_SEP_ETIQ));
   dtePruebaFecha := TcxDateEdit.Create(Self);
   dtePruebaFecha.Parent := pnlPrueba;
   dtePruebaFecha.SetBounds(X, Y, Esc(130), dtePruebaFecha.Height);
   dtePruebaFecha.Date := Date;
   Inc(X, Esc(130) + Esc(FICHA_SEP_COLUMNA));
-  btnPruebaCalcular := CrearBoton(Self, pnlPrueba,
-    SCaptionPruebaPrecioCalcular, btnPruebaCalcularClick);
+  btnPruebaCalcular := CrearBoton(pnlPrueba,
+    @SCaptionPruebaPrecioCalcular, btnPruebaCalcularClick);
   ColocarBoton(btnPruebaCalcular, Y - Esc(1), X);
-  CrearEtiqueta(pnlPrueba, SAyudaPruebaPrecio, Esc(FICHA_MARGEN),
+  CrearEtiqueta(pnlPrueba, @SAyudaPruebaPrecio, Esc(FICHA_MARGEN),
     Y + Esc(FICHA_ALTO_FILA));
   mPruebaResultado := TcxMemo.Create(Self);
   mPruebaResultado.Parent := tsPrueba;
@@ -1036,6 +1127,12 @@ begin
     'TIPO_APLICACION_TARC', 'INCREMENTO_PORCENTUAL');
   AgregarOpcion(cbbTipoAplicacion,
     'TIPO_APLICACION_TARC', 'PRECIO_FIJO');
+  // Elegida con el ratón, la opción solo vivía en el editor: al cerrarse
+  // la lista y releer el campo volvía «Copiar» y se grababa COPIAR. Así
+  // pasa al campo en cuanto se elige (FZ-ISSUE-945).
+  cbbCampoOrigen.Properties.ImmediatePost := True;
+  cbbCampoDestino.Properties.ImmediatePost := True;
+  cbbTipoAplicacion.Properties.ImmediatePost := True;
   cbbTipoAplicacion.Properties.OnEditValueChanged :=
     cbbTipoAplicacionEditValueChanged;
   cbbTarifaOrigen.Properties.KeyFieldNames := 'CODIGO_TAR_ARTTAR';
@@ -1230,16 +1327,16 @@ procedure TfrmMtoTarifasCambios.CrearColumnasCabecera;
 begin
   if cxGrdDBTabPrin.ColumnCount = 0 then
   begin
-    CrearColumna(cxGrdDBTabPrin, 'CODIGO_TARC', SCaptionCambioCodigo, 70);
-    CrearColumna(cxGrdDBTabPrin, 'NOMBRE_TARC', SCaptionCambioTarifaNombre, 220);
-    CrearColumna(cxGrdDBTabPrin, 'FECHA_TARC', SCaptionCambioTarifaFecha, 90);
-    CrearColumna(cxGrdDBTabPrin, 'ESTADO_TARC', SCaptionCambioTarifaEstado, 100);
+    CrearColumna(cxGrdDBTabPrin, 'CODIGO_TARC', @SCaptionCambioCodigo, 70);
+    CrearColumna(cxGrdDBTabPrin, 'NOMBRE_TARC', @SCaptionCambioTarifaNombre, 220);
+    CrearColumna(cxGrdDBTabPrin, 'FECHA_TARC', @SCaptionCambioTarifaFecha, 90);
+    CrearColumna(cxGrdDBTabPrin, 'ESTADO_TARC', @SCaptionCambioTarifaEstado, 100);
     CrearColumna(cxGrdDBTabPrin, 'CODIGO_TAR_ORIGEN_TARC',
-                 SCaptionCambioTarifaOrigen, 120);
+                 @SCaptionCambioTarifaOrigen, 120);
     CrearColumna(cxGrdDBTabPrin, 'CODIGO_TAR_DESTINO_TARC',
-                 SCaptionCambioTarifaDestino, 120);
-    CrearColumna(cxGrdDBTabPrin, 'TIPO_APLICACION_TARC', SCaptionCambioAplicacion, 150);
-    CrearColumna(cxGrdDBTabPrin, 'VALOR_APLICACION_TARC', SCaptionCambioValor, 90);
+                 @SCaptionCambioTarifaDestino, 120);
+    CrearColumna(cxGrdDBTabPrin, 'TIPO_APLICACION_TARC', @SCaptionCambioAplicacion, 150);
+    CrearColumna(cxGrdDBTabPrin, 'VALOR_APLICACION_TARC', @SCaptionCambioValor, 90);
   end;
 end;
 
@@ -1250,34 +1347,34 @@ var
 begin
   if tvLineas.ColumnCount = 0 then
   begin
-    CrearColumna(tvLineas, 'ESAPLICAR_TARCLIN', SCaptionCambioAplicar, 65);
-    CrearColumna(tvLineas, 'ESTADO_TARCLIN', SCaptionCambioTarifaEstado, 90);
-    CrearColumna(tvLineas, 'CODIGO_ART_TARCLIN', SCaptionCambioArticulo, 140);
+    CrearColumna(tvLineas, 'ESAPLICAR_TARCLIN', @SCaptionCambioAplicar, 65);
+    CrearColumna(tvLineas, 'ESTADO_TARCLIN', @SCaptionCambioTarifaEstado, 90);
+    CrearColumna(tvLineas, 'CODIGO_ART_TARCLIN', @SCaptionCambioArticulo, 140);
     CrearColumna(tvLineas, 'CODIGO_UNIDAD_SKU_TARCLIN',
-      SCaptionColSku, 160).Options.Editing := False;
-    CrearColumna(tvLineas, 'DESCRIPCION_ART', SCaptionCambioDescripcion, 240);
+      @SCaptionColSku, 160).Options.Editing := False;
+    CrearColumna(tvLineas, 'DESCRIPCION_ART', @SCaptionCambioDescripcion, 240);
     FormatoImporte(CrearColumna(tvLineas, 'PRECIO_ORIGEN_TARCLIN',
-                   SCaptionCambioPrecioOrigen, 90), FMT_EUROS);
+                   @SCaptionCambioPrecioOrigen, 90), FMT_EUROS);
     FormatoImporte(CrearColumna(tvLineas, 'PRECIO_COSTE_TARCLIN',
-                   SCaptionCambioCoste, 90), FMT_EUROS);
+                   @SCaptionCambioCoste, 90), FMT_EUROS);
     FormatoImporte(CrearColumna(tvLineas, 'PRECIO_SALIDA_ACTUAL_TARCLIN',
-                   SCaptionCambioSalidaActual, 100), FMT_EUROS);
+                   @SCaptionCambioSalidaActual, 100), FMT_EUROS);
     FormatoImporte(CrearColumna(tvLineas, 'PRECIO_FINAL_ACTUAL_TARCLIN',
-                   SCaptionCambioFinalActual, 100), FMT_EUROS);
+                   @SCaptionCambioFinalActual, 100), FMT_EUROS);
     FormatoImporte(CrearColumna(tvLineas, 'PRECIO_NUEVO_TARCLIN',
-                   SCaptionCambioSalidaNueva, 100), FMT_EUROS);
+                   @SCaptionCambioSalidaNueva, 100), FMT_EUROS);
     FormatoImporte(CrearColumna(tvLineas, 'PRECIO_DTO_NUEVO_TARCLIN',
-                   SCaptionCambioDtoNuevo, 90), FMT_EUROS);
+                   @SCaptionCambioDtoNuevo, 90), FMT_EUROS);
     FormatoImporte(CrearColumna(tvLineas, 'PORCENTAJE_DTO_NUEVO_TARCLIN',
-                   SCaptionCambioPorcentajeDto, 90), FMT_PORCENTAJE);
+                   @SCaptionCambioPorcentajeDto, 90), FMT_PORCENTAJE);
     FormatoImporte(CrearColumna(tvLineas, 'PRECIO_FINAL_NUEVO_TARCLIN',
-                   SCaptionCambioFinalNuevo, 100), FMT_EUROS);
+                   @SCaptionCambioFinalNuevo, 100), FMT_EUROS);
     // FZ-ISSUE-944: los precios (editables en cada periodo) antes que la
     // familia y el proveedor, que dejaban fuera de la vista Salida nueva.
-    CrearColumna(tvLineas, 'NOMBRE_FAM_FAM', SCaptionCambioFamilia, 160);
-    CrearColumna(tvLineas, 'RAZON_SOCIAL_PRV', SCaptionCambioProveedor, 180);
-    CrearColumna(tvLineas, 'MENSAJE_TARCLIN', SCaptionCambioMensaje, 180);
-    oStock := CrearColumna(tvLineas, 'STOCK_ACTUAL', SCaptionColStock, 100);
+    CrearColumna(tvLineas, 'NOMBRE_FAM_FAM', @SCaptionCambioFamilia, 160);
+    CrearColumna(tvLineas, 'RAZON_SOCIAL_PRV', @SCaptionCambioProveedor, 180);
+    CrearColumna(tvLineas, 'MENSAJE_TARCLIN', @SCaptionCambioMensaje, 180);
+    oStock := CrearColumna(tvLineas, 'STOCK_ACTUAL', @SCaptionColStock, 100);
     FormatoImporte(oStock, '#,##0.######');
     oStock.Options.Editing := False;
     // FZ-ISSUE-944: líneas sin stock (0 o negativo) sombreadas.
@@ -1310,7 +1407,7 @@ begin
 end;
 
 procedure TfrmMtoTarifasCambios.CrearEtiqueta(AParent: TWinControl;
-  const ATexto: string; AIzq, ATop: Integer);
+  ATexto: PResStringRec; AIzq, ATop: Integer);
 var
   lbl: TcxLabel;
 begin
@@ -1318,19 +1415,20 @@ begin
   lbl.Parent := AParent;
   lbl.Left := AIzq;
   lbl.Top := ATop;
-  lbl.Caption := ATexto;
+  AsignarTexto(lbl, 'Caption', ATexto);
   lbl.Transparent := True;
 end;
 
 function TfrmMtoTarifasCambios.CrearColumna(AView: TcxGridDBTableView;
-  const ACampo, ATitulo: string; AAncho: Integer): TcxGridDBColumn;
+  const ACampo: string; ATitulo: PResStringRec;
+  AAncho: Integer): TcxGridDBColumn;
 begin
   Result := AView.CreateColumn;
   Result.DataBinding.FieldName := ACampo;
-  Result.Caption := ATitulo;
+  AsignarTexto(Result, 'Caption', ATitulo);
   Result.Width := Esc(AAncho);
-  if Result.Width < AnchoTexto(ATitulo) + Esc(20) then
-    Result.Width := AnchoTexto(ATitulo) + Esc(20);
+  if Result.Width < AnchoTexto(Result.Caption) + Esc(20) then
+    Result.Width := AnchoTexto(Result.Caption) + Esc(20);
 end;
 
 // Importes con dos decimales, alineados a la derecha, tambien al editar.

@@ -139,6 +139,9 @@ type
     function Asegurar(
       const ALote: TLoteCatalogo;
       const AUsuario: string): TResultadoAsegurarLote;
+    // Catálogo por SKU y lote, incluso sin existencias.
+    function BuscarLote(const ACodigoSku, ALote: string;
+      out ACatalogo: TLoteCatalogo): Boolean;
     // Lotes con existencias del SKU en el almacén, sin ordenar: el orden
     // El orden FEFO lo decide SeleccionarFefo.
     function Disponibles(

@@ -16,6 +16,8 @@ type
     FLista: TcxGridTableView;
     FAnadir, FQuitar, FGuardar: TcxButton;
     FAyuda: TcxLabel;
+    FRepetirEtiqueta, FDesdeEtiqueta, FHastaEtiqueta: TcxLabel;
+    FAyudaGuardada: Boolean;
     FPeriodos: TPeriodosTarifa;
     FCodigo: string;
     FUsuario: string;
@@ -30,6 +32,7 @@ type
     constructor Create(AOwner: TComponent; APestanas: TcxPageControl;
       const ARepositorio: IRepositorioPeriodicidadTarifa;
       const AUsuario: string); reintroduce;
+    procedure AplicarTextos;
     procedure Cargar(const ATarifa: string; APuedeEditar: Boolean);
   end;
 
@@ -38,7 +41,7 @@ implementation
 uses
   System.SysUtils, System.Variants, Winapi.Windows,
   Vcl.Controls, Vcl.ExtCtrls, Vcl.Forms,
-  cxGridLevel, cxGridCustomTableView, cxTextEdit;
+  cxGridLevel, cxGridCustomTableView, cxTextEdit, inLibMsgArticulos;
 
 procedure Limites(AControl: TControl; X, Y, Ancho, Alto, Ppi: Integer);
 begin
@@ -67,7 +70,7 @@ begin
   FTab := TcxTabSheet.Create(Self);
   FTab.Name := 'tsPeriodicidad';
   FTab.PageControl := APestanas;
-  FTab.Caption := 'Periodicidad';
+  FTab.Caption := SPeriodicidadTitulo;
   Cabecera := TPanel.Create(Self);
   Cabecera.Parent := FTab;
   Cabecera.Align := alTop;
@@ -80,29 +83,29 @@ begin
   FAyuda.AutoSize := False;
   FAyuda.Height := MulDiv(80, Ppi, 96);
   FAyuda.Properties.WordWrap := True;
-  FAyuda.Caption := 'Sin rangos: todos los días. Cada fila es una ' +
-    'alternativa. Desde = hasta: un día. Desde > hasta: cruza el final ' +
-    'de semana, mes o año. Las fechas generales también se respetan.';
+  FAyuda.Caption := SPeriodicidadAyuda;
   Etiqueta := TcxLabel.Create(Self);
   Etiqueta.Parent := Cabecera;
   Etiqueta.Transparent := True;
   Limites(Etiqueta, 12, 86, 200, 22, Ppi);
-  Etiqueta.Caption := 'Repetir';
+  Etiqueta.Caption := SPeriodicidadRepetir;
+  FRepetirEtiqueta := Etiqueta;
   FTipo := TcxComboBox.Create(Self);
   FTipo.Name := 'cmbPeriodoTipo';
   FTipo.Parent := Cabecera;
   Limites(FTipo, 12, 112, 175, 28, Ppi);
   FTipo.Properties.DropDownListStyle := lsFixedList;
-  FTipo.Properties.Items.Add('Por día de semana');
-  FTipo.Properties.Items.Add('Por día de mes');
-  FTipo.Properties.Items.Add('Por día de año');
+  FTipo.Properties.Items.Add(SPeriodicidadSemana);
+  FTipo.Properties.Items.Add(SPeriodicidadMes);
+  FTipo.Properties.Items.Add(SPeriodicidadAno);
   FTipo.ItemIndex := 0;
   FTipo.Properties.OnChange := CambiarTipo;
   Etiqueta := TcxLabel.Create(Self);
   Etiqueta.Parent := Cabecera;
   Etiqueta.Transparent := True;
   Limites(Etiqueta, 204, 86, 160, 22, Ppi);
-  Etiqueta.Caption := 'Desde (año: día/mes)';
+  Etiqueta.Caption := SPeriodicidadDesdeAno;
+  FDesdeEtiqueta := Etiqueta;
   FDesde := TcxComboBox.Create(Self);
   FDesde.Name := 'cmbPeriodoDesde';
   FDesde.Parent := Cabecera;
@@ -111,7 +114,8 @@ begin
   Etiqueta.Parent := Cabecera;
   Etiqueta.Transparent := True;
   Limites(Etiqueta, 380, 86, 160, 22, Ppi);
-  Etiqueta.Caption := 'Hasta (incluido)';
+  Etiqueta.Caption := SPeriodicidadHasta;
+  FHastaEtiqueta := Etiqueta;
   FHasta := TcxComboBox.Create(Self);
   FHasta.Name := 'cmbPeriodoHasta';
   FHasta.Parent := Cabecera;
@@ -120,7 +124,7 @@ begin
   FAnadir.Name := 'btnPeriodoAnadir';
   FAnadir.Parent := Cabecera;
   Limites(FAnadir, 12, 152, 160, 32, Ppi);
-  FAnadir.Caption := 'Añadir rango';
+  FAnadir.Caption := SPeriodicidadAnadir;
   FAnadir.OnClick := Anadir;
   Pie := TPanel.Create(Self);
   Pie.Parent := FTab;
@@ -131,13 +135,13 @@ begin
   FQuitar.Name := 'btnPeriodoQuitar';
   FQuitar.Parent := Pie;
   Limites(FQuitar, 12, 8, 165, 34, Ppi);
-  FQuitar.Caption := 'Quitar rango';
+  FQuitar.Caption := SPeriodicidadQuitar;
   FQuitar.OnClick := Quitar;
   FGuardar := TcxButton.Create(Self);
   FGuardar.Name := 'btnPeriodoGuardar';
   FGuardar.Parent := Pie;
   Limites(FGuardar, 204, 8, 220, 34, Ppi);
-  FGuardar.Caption := 'Guardar periodicidad';
+  FGuardar.Caption := SPeriodicidadGuardar;
   FGuardar.OnClick := Guardar;
   Rejilla := TcxGrid.Create(Self);
   Rejilla.Name := 'grdPeriodicidad';
@@ -149,20 +153,68 @@ begin
   FLista.OptionsView.GroupByBox := False;
   FLista.OptionsView.ColumnAutoWidth := True;
   Columna := FLista.CreateColumn;
-  Columna.Caption := 'Periodicidad';
+  Columna.Caption := SPeriodicidadTitulo;
   Columna.DataBinding.ValueType := 'String';
   Columna.Width := 240;
   Columna := FLista.CreateColumn;
-  Columna.Caption := 'Desde';
+  Columna.Caption := SPeriodicidadDesde;
   Columna.DataBinding.ValueType := 'String';
   Columna.Width := 200;
   Columna := FLista.CreateColumn;
-  Columna.Caption := 'Hasta (incluido)';
+  Columna.Caption := SPeriodicidadHasta;
   Columna.DataBinding.ValueType := 'String';
   Columna.Width := 200;
   Nivel := Rejilla.Levels.Add;
   Nivel.GridView := FLista;
   CambiarTipo(nil);
+end;
+
+procedure TEditorPeriodicidadTarifa.AplicarTextos;
+var
+  I, Desde, Hasta, Tipo: Integer;
+begin
+  Desde := FDesde.ItemIndex;
+  Hasta := FHasta.ItemIndex;
+  Tipo := FTipo.ItemIndex;
+  FTab.Caption := SPeriodicidadTitulo;
+  FRepetirEtiqueta.Caption := SPeriodicidadRepetir;
+  FDesdeEtiqueta.Caption := SPeriodicidadDesdeAno;
+  FHastaEtiqueta.Caption := SPeriodicidadHasta;
+  // Traducir la lista no es un cambio de tipo ni debe reiniciar dias.
+  FTipo.Properties.OnChange := nil;
+  try
+    FTipo.Properties.Items[0] := SPeriodicidadSemana;
+    FTipo.Properties.Items[1] := SPeriodicidadMes;
+    FTipo.Properties.Items[2] := SPeriodicidadAno;
+    FTipo.ItemIndex := Tipo;
+  finally
+    FTipo.Properties.OnChange := CambiarTipo;
+  end;
+  FAnadir.Caption := SPeriodicidadAnadir;
+  FQuitar.Caption := SPeriodicidadQuitar;
+  FGuardar.Caption := SPeriodicidadGuardar;
+  FLista.Columns[0].Caption := SPeriodicidadTitulo;
+  FLista.Columns[1].Caption := SPeriodicidadDesde;
+  FLista.Columns[2].Caption := SPeriodicidadHasta;
+  if FTipo.ItemIndex = Ord(pptSemana) then
+  begin
+    for I := 1 to 7 do
+    begin
+      FDesde.Properties.Items[I - 1] := TextoDiaPeriodo(pptSemana, I);
+      FHasta.Properties.Items[I - 1] := TextoDiaPeriodo(pptSemana, I);
+    end;
+    if Desde >= 0 then
+      FDesde.ItemIndex := Desde;
+    if Hasta >= 0 then
+      FHasta.ItemIndex := Hasta;
+  end;
+  if not FRepositorio.Disponible then
+    FAyuda.Caption := SPeriodicidadNoDisponible
+  else if FAyudaGuardada then
+    FAyuda.Caption := SPeriodicidadGuardada
+  else
+    FAyuda.Caption := SPeriodicidadAyuda;
+  MostrarRangos;
 end;
 
 procedure TEditorPeriodicidadTarifa.CambiarTipo(Sender: TObject);
@@ -235,8 +287,8 @@ begin
   if FPuedeEditar then
   begin
     FRepositorio.Guardar(FCodigo, FPeriodos, FUsuario);
-    FAyuda.Caption := 'Periodicidad guardada. ' +
-      'Todos los rangos son alternativas y respetan las fechas generales.';
+    FAyudaGuardada := True;
+    FAyuda.Caption := SPeriodicidadGuardada;
   end;
 end;
 
@@ -276,6 +328,7 @@ procedure TEditorPeriodicidadTarifa.Cargar(const ATarifa: string;
 begin
   if FCodigo <> ATarifa then
   begin
+    FAyudaGuardada := False;
     FCodigo := ATarifa;
     FPeriodos := FRepositorio.Cargar(FCodigo);
     MostrarRangos;
@@ -283,8 +336,11 @@ begin
   FPuedeEditar := APuedeEditar and (FCodigo <> '') and
     FRepositorio.Disponible;
   if not FRepositorio.Disponible then
-    FAyuda.Caption := 'Periodicidad disponible al instalar la ' +
-      'actualización de base de datos 727.';
+    FAyuda.Caption := SPeriodicidadNoDisponible
+  else if FAyudaGuardada then
+    FAyuda.Caption := SPeriodicidadGuardada
+  else
+    FAyuda.Caption := SPeriodicidadAyuda;
   ActualizarEstado;
 end;
 

@@ -65,10 +65,6 @@ uses
   inLibMensajesVcl,
   inLibUser, inLibMsgArticulos;
 
-resourcestring
-  SCaptionExcluirArticulosYaEnSesionTarifa =
-    'Excluir articulos ya cargados en la sesion';
-
 class function TfrmModalCargarSesionTarifa.Ejecutar(
   AOwner: TComponent;
   ACodigoTarc: Integer;

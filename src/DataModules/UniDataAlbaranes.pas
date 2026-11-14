@@ -1054,6 +1054,7 @@ end;
 
 function TdmAlbaranes.DocumentoLotes: TDocumentoLineaLote;
 begin
+  Result := Default(TDocumentoLineaLote);
   Result.TipoDocumento := 'AV';
   Result.Serie := Trim(unqryTablaG.FieldByName('SERIE_ALB').AsString);
   Result.Numero := Trim(unqryTablaG.FieldByName('NUMERO_ALB').AsString);

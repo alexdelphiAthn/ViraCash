@@ -506,7 +506,7 @@ begin
     '       GROUP_CONCAT(DISTINCT d.ROL_EN_OPERACION '                +
     '                    ORDER BY d.ROL_EN_OPERACION '                +
     '                    SEPARATOR '','')      AS ROL_EN_OPERACION '  +
-    '  FROM fza_caja_depositos_view d '                               +
+    '  FROM vi_caja_depositos d '                               +
     ' WHERE d.CODIGO_EMPRESA_OP   = :PEMP '                           +
     '   AND d.CODIGO_ALMACEN_OP   = :PALM '                           +
     '   AND d.CODIGO_CAJA_OP      = :PCAJA '                          +

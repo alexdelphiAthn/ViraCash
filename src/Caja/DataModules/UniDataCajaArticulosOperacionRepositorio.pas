@@ -73,7 +73,7 @@ begin
     '        SELECT d.CODIGO_ART_DEP, ' +
     '               COALESCE(d.CODIGO_UNIDAD_DEP, ''''), ' +
     '               1000 ' +
-    '          FROM fza_caja_depositos_view d ' +
+    '          FROM vi_caja_depositos d ' +
     '         WHERE d.CODIGO_EMPRESA_OP = :PEMP ' +
     '           AND d.CODIGO_ALMACEN_OP = :PALM ' +
     '           AND d.CODIGO_CAJA_OP = :PCAJA ' +

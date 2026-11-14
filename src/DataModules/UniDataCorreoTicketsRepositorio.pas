@@ -75,7 +75,7 @@ begin
       '         SEPARATOR '','') AS TIPOS_OPERACION,' +
       '       SUM(CASE WHEN f.NUMERO_FAC IS NULL THEN 0 ELSE 1 END) ' +
       '         AS NUM_FACTURAS,' +
-      '       (SELECT COUNT(*) FROM fza_caja_depositos_view d' +
+      '       (SELECT COUNT(*) FROM vi_caja_depositos d' +
       '         WHERE d.CODIGO_EMPRESA_OP = :EMP' +
       '           AND d.CODIGO_ALMACEN_OP = :ALM' +
       '           AND d.CODIGO_CAJA_OP = :CAJA' +

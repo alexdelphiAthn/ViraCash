@@ -176,6 +176,9 @@ begin
     raise EArgumentException.Create(
       SErrorRutaPerfilConexionObligatoria);
   Result := Default(TConfiguracionConexionResuelta);
+  // Un perfil con fines de línea ajenos se lee y reescribe mal: deja
+  // dos claves en la misma línea (FZ-ISSUE-945).
+  NormalizarFormatoIni(ARutaIni);
   oIni := TIniFile.Create(ARutaIni);
   try
     sMotor := Trim(oIni.ReadString('ConnData', 'Motor', ''));
@@ -302,6 +305,7 @@ begin
     raise EArgumentException.Create(
       Format(SErrorPerfilConexionNoValido, [sMotivo]));
   ValidarReferenciaCredencial(AConfiguracion.ReferenciaCredencial);
+  NormalizarFormatoIni(ARutaIni);
   oIni := TIniFile.Create(ARutaIni);
   try
     oIni.WriteString(

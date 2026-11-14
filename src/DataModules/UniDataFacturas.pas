@@ -2153,6 +2153,7 @@ end;
 
 function TdmFacturas.DocumentoLotes: TDocumentoLineaLote;
 begin
+  Result := Default(TDocumentoLineaLote);
   Result.TipoDocumento := 'FV';
   Result.Serie := Trim(unqryTablaG.FieldByName('SERIE_FAC').AsString);
   Result.Numero := Trim(unqryTablaG.FieldByName('NUMERO_FAC').AsString);

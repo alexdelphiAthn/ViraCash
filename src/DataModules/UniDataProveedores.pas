@@ -66,6 +66,7 @@ type
     // Proveedores abiertas, los kits de la segunda seguian a la primera.
     procedure AsignarMaestroCabecera(ADataSource: TDataSource); override;
     procedure GetCodigoAutoProveedor;
+    procedure ValidarIbanProveedor;
     procedure ActualizarIvaExentoIntracomunitarioPorPais(
       const APais: string);
     // Override: ya no abre nada en el flujo inicial. Las dos queries
@@ -87,7 +88,7 @@ type
 implementation
 
 uses
-  inLibDocumentoFiscal, inLibErroresBBDD,
+  inLibDocumentoFiscal, inLibErroresBBDD, inLibIBAN,
   UniDataValoresAutomaticosRepositorio, System.Diagnostics,
   UniDataAperturaConsultas,
   inLibMsgCompras;
@@ -506,12 +507,39 @@ begin
       SErrorNifProveedorFacturacionDirecta);
 end;
 
+// Se valida al grabar, tanto desde la ficha como desde la rejilla.
+// El IBAN es opcional; los espanoles deben superar tambien el CCC.
+procedure TdmProveedores.ValidarIbanProveedor;
+var
+  Campo: TField;
+  Iban: string;
+  Errores: TStringList;
+begin
+  Campo := unqryTablaG.FieldByName('IBAN_PRV');
+  if Trim(Campo.AsString) <> '' then
+  begin
+    Iban := TIBAN.FormatearElectronico(Campo.AsString);
+    Errores := TStringList.Create;
+    try
+      if (Copy(Iban, 1, 2) = 'ES') and
+         not TIBAN.ValidarCCC(Iban, Errores) then
+        raise EValidacionBBDD.Create(Trim(Errores.Text));
+      if not TIBAN.ValidarIBAN(Iban, Errores) then
+        raise EValidacionBBDD.Create(Trim(Errores.Text));
+      Campo.AsString := Iban;
+    finally
+      Errores.Free;
+    end;
+  end;
+end;
+
 procedure TdmProveedores.unqryTablaGBeforePost(DataSet: TDataSet);
 var
   sPais: string;
 begin
   inherited;
   ValidarDatosObligatorios;
+  ValidarIbanProveedor;
   if unqryTablaG.FindField('PAIS_PRV') <> nil then
   begin
     // Preferimos el codigo exacto del combo (CODIGO_PAI_PRV) sobre el

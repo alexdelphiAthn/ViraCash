@@ -41,6 +41,7 @@ type
     Serie: string;
     Numero: string;
     CodigoAlmacen: string;
+    CodigoProveedor: string;
   end;
 
   TAnadirLineasLoteEvent = reference to procedure(const ACodigo: string;
@@ -103,6 +104,8 @@ type
     procedure ComprobarLoteTecleado(ALinea: TDataSet;
       const ADocumento: TDocumentoLineaLote;
       const ATrazabilidad: TTrazabilidadArticulo; const ALote: string);
+    procedure ComprobarCatalogoEntrada(ALinea: TDataSet;
+      const ADocumento: TDocumentoLineaLote; const ALote: string);
     function SentidoLinea(ALinea: TDataSet): TSentidoLoteLectura;
     procedure Rechazar(const AMensaje: string);
   public
@@ -157,7 +160,7 @@ implementation
 uses
   System.SysUtils, System.Classes, System.Math, System.Variants,
   System.Generics.Collections, inLibArticulosValidadorIntf,
-  inLibMsgTrazabilidad, inLibLecturaGs1Pendiente;
+  inLibMsgTrazabilidad, inLibLecturaGs1Pendiente, inLibErroresBBDD;
 
 const
   // Problemas que se enumeran al enviar; del resto solo se da la cuenta.
@@ -393,8 +396,10 @@ end;
 
 procedure TLotesLineasDocumento.Rechazar(const AMensaje: string);
 begin
+  // El aviso se presenta fuera del Post: un modal dentro de la validacion
+  // de un editor puede volver a guardar la misma linea al cambiar el foco.
   if AMensaje <> '' then
-    FConfig.Avisar(AMensaje);
+    raise EValidacionBBDD.Create(AMensaje);
   Abort;
 end;
 
@@ -531,6 +536,40 @@ begin
     oCaducidad.AsDateTime := rDecision.Asignaciones[0].FechaCaducidad;
 end;
 
+procedure TLotesLineasDocumento.ComprobarCatalogoEntrada(
+  ALinea: TDataSet; const ADocumento: TDocumentoLineaLote;
+  const ALote: string);
+var
+  rCatalogo: TLoteCatalogo;
+  oCaducidad: TField;
+  sProveedor: string;
+begin
+  if (ALote <> '') and Assigned(FConfig.Repositorio) and
+     (SentidoLinea(ALinea) = sllEntrada) and
+     FConfig.Repositorio.BuscarLote(
+       TextoCampo(ALinea, FConfig.Campos.Sku), ALote, rCatalogo) then
+  begin
+    sProveedor := Trim(rCatalogo.CodigoProveedor);
+    if (sProveedor <> '') and (sProveedor <> '0') and
+       (Trim(ADocumento.CodigoProveedor) <> '') and
+       (Trim(ADocumento.CodigoProveedor) <> '0') and
+       not SameText(sProveedor, Trim(ADocumento.CodigoProveedor)) then
+      Rechazar(Format(SErrorLoteProveedorDistinto,
+        [ALote, sProveedor]));
+    oCaducidad := ALinea.FindField(FConfig.Campos.Caducidad);
+    if Assigned(oCaducidad) and
+       (rCatalogo.FechaCaducidad <> SIN_FECHA) then
+    begin
+      if oCaducidad.IsNull then
+        oCaducidad.AsDateTime := rCatalogo.FechaCaducidad
+      else if Trunc(oCaducidad.AsDateTime) <>
+              Trunc(rCatalogo.FechaCaducidad) then
+        Rechazar(Format(SErrorLoteCaducidadContradictoria,
+          [ALote, DateToStr(rCatalogo.FechaCaducidad)]));
+    end;
+  end;
+end;
+
 procedure TLotesLineasDocumento.AntesDePostLinea(ALinea: TDataSet;
   const ADocumento: TDocumentoLineaLote);
 var
@@ -539,8 +578,6 @@ var
   oValidacion: TValidacionLineaLote;
   rGs1: TLecturaGs1Pendiente;
   rTrazabilidad: TTrazabilidadArticulo;
-  Catalogo: TValidacionSalidaLote;
-  Caducidad: TDate;
   sArticulo: string;
   sLote: string;
 begin
@@ -584,27 +621,15 @@ begin
             ((oModo = mtSerie) or
              (SentidoLinea(ALinea) = sllSalida)) then
       ComprobarLoteTecleado(ALinea, ADocumento, rTrazabilidad, sLote);
+    // Recuperar la fecha antes de exigir la caducidad obligatoria.
+    if RequiereLote(oModo) then
+      ComprobarCatalogoEntrada(ALinea, ADocumento,
+        NormalizarLote(TextoCampo(ALinea, FConfig.Campos.Lote)));
     oValidacion := PrepararLoteLinea(ALinea, FConfig.Campos,
       FConfig.Activacion, rTrazabilidad);
     sLote := NormalizarLote(TextoCampo(ALinea, FConfig.Campos.Lote));
     if oValidacion <> vllCorrecta then
       Rechazar(TextoValidacionLineaLote(oValidacion, sArticulo, sLote));
-    // FZ-ISSUE-467: rechazar antes de persistir la línea y sus totales.
-    // El catálogo conserva su caducidad incluso con stock cero o en
-    // otro almacén. ValidarSalida solo consulta; no se exige stock
-    // para recibir. Comprobar también si solo se ha editado la fecha.
-    Caducidad := FechaCampo(ALinea, FConfig.Campos.Caducidad);
-    if bConRegla and (SentidoLinea(ALinea) = sllEntrada) and
-       (sLote <> '') and (Caducidad <> SIN_FECHA) then
-    begin
-      Catalogo := FConfig.Repositorio.ValidarSalida(
-        TextoCampo(ALinea, FConfig.Campos.Sku),
-        ADocumento.CodigoAlmacen, sLote, 0);
-      if (Catalogo.FechaCaducidad <> SIN_FECHA) and
-         (Trunc(Caducidad) <> Trunc(Catalogo.FechaCaducidad)) then
-        Rechazar(Format(SErrorLoteCaducidadContradictoria,
-          [sLote, DateToStr(Catalogo.FechaCaducidad)]));
-    end;
     if (oModo = mtSerie) and (sLote <> '') and
        ContieneLote(FConfig.Lectura.LotesOtrasLineas(FConfig.Tabla,
          FConfig.CampoSerie, FConfig.CampoNumero, FConfig.Campos.Linea,

@@ -17,6 +17,8 @@ unit inLibMsgTrazabilidad;
 interface
 
 resourcestring
+  SErrorLoteProveedorDistinto =
+    'El lote %s ya pertenece al proveedor %s. Indique otro lote.';
   SErrorRepartoLotesCaja =
     'Seleccione «Elegir lote» para repartir las unidades ' +
     'entre los lotes disponibles.';

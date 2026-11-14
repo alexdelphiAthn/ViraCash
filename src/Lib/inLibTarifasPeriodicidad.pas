@@ -40,7 +40,7 @@ function CumplePeriodicidadTarifa(const APeriodos: TPeriodosTarifa;
 implementation
 
 uses
-  System.SysUtils, System.DateUtils;
+  System.SysUtils, System.DateUtils, inLibMsgArticulos;
 
 function TarifaInicialConPeriodicidad(const ABase, APromocional: string;
   const ARepositorio: IRepositorioPeriodicidadTarifa;
@@ -71,7 +71,7 @@ begin
     pptMes: Result := 'MES';
     pptAno: Result := 'ANO';
   else
-    raise EArgumentException.Create('Periodicidad no válida.');
+    raise EArgumentException.Create(SPeriodicidadErrorTipo);
   end;
 end;
 
@@ -84,7 +84,7 @@ begin
   else if SameText(ATexto, 'ANO') then
     Result := pptAno
   else
-    raise EArgumentException.Create('Periodicidad no válida.');
+    raise EArgumentException.Create(SPeriodicidadErrorTipo);
 end;
 
 function DiaValido(ATipo: TTipoPeriodoTarifa; AValor: Integer): Boolean;
@@ -109,7 +109,8 @@ begin
   Result := 0;
   if ATipo = pptSemana then
     for I := Low(DIAS_SEMANA) to High(DIAS_SEMANA) do
-      if SameText(Trim(ATexto), DIAS_SEMANA[I]) then
+      if SameText(Trim(ATexto), DIAS_SEMANA[I]) or
+         SameText(Trim(ATexto), TextoDiaPeriodo(pptSemana, I)) then
         Result := I;
   if (ATipo <> pptAno) and (Result = 0) then
     Result := StrToIntDef(Trim(ATexto), 0);
@@ -122,15 +123,24 @@ begin
   end;
   if not DiaValido(ATipo, Result) then
     raise EArgumentException.Create(
-      'Día no válido. Use lunes a domingo, 1 a 31 o día/mes.');
+      SPeriodicidadErrorDia);
 end;
 
 function TextoDiaPeriodo(ATipo: TTipoPeriodoTarifa; AValor: Integer): string;
 begin
   if not DiaValido(ATipo, AValor) then
-    raise EArgumentException.Create('Día del periodo no válido.');
+    raise EArgumentException.Create(SPeriodicidadErrorDiaPeriodo);
   case ATipo of
-    pptSemana: Result := DIAS_SEMANA[AValor];
+    pptSemana:
+      case AValor of
+        1: Result := SPeriodicidadLunes;
+        2: Result := SPeriodicidadMartes;
+        3: Result := SPeriodicidadMiercoles;
+        4: Result := SPeriodicidadJueves;
+        5: Result := SPeriodicidadViernes;
+        6: Result := SPeriodicidadSabado;
+        7: Result := SPeriodicidadDomingo;
+      end;
     pptMes: Result := IntToStr(AValor);
     pptAno: Result := Format('%.2d/%.2d', [AValor mod 100, AValor div 100]);
   end;
@@ -144,12 +154,12 @@ begin
   begin
     if not DiaValido(APeriodos[I].Tipo, APeriodos[I].Desde) or
        not DiaValido(APeriodos[I].Tipo, APeriodos[I].Hasta) then
-      raise EArgumentException.Create('Rango de periodicidad no válido.');
+      raise EArgumentException.Create(SPeriodicidadErrorRango);
     for J := 0 to I - 1 do
       if (APeriodos[I].Tipo = APeriodos[J].Tipo) and
          (APeriodos[I].Desde = APeriodos[J].Desde) and
          (APeriodos[I].Hasta = APeriodos[J].Hasta) then
-        raise EArgumentException.Create('El rango ya está añadido.');
+        raise EArgumentException.Create(SPeriodicidadErrorDuplicado);
   end;
 end;
 
