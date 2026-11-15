@@ -429,7 +429,9 @@ begin
     CrearAplicacionArticuloDevolucionCompra(
       AContexto.ValidadorArticulos,
       oResolver,
-      AContexto.Datos);
+      AContexto.Datos,
+      CrearRepositorioLecturasArticuloCompraUniDAC(AConexion,
+        AContexto.ValidadorArticulos, oResolver));
   AContexto.BusquedasArticulos :=
     CrearBusquedasCompraPersistenciaUniDAC(AConexion);
   AsignarBusquedas(

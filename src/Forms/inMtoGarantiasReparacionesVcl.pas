@@ -932,6 +932,8 @@ var
   oVista: TcxGridDBTableView;
   iColumna: Integer;
 begin
+  FDatos.ConfigurarArticulosServicio(FEnlaces.TarifaActual(),
+    FEnlaces.EmpresaActual());
   oVista := CrearVista(alClient, 0, FDatos.TiposEditables);
   oVista.Name := 'tvTiposServicio';
   FVistaTipos := oVista;

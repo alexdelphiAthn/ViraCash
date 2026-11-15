@@ -18,13 +18,15 @@ interface
 uses
   inLibArticulosResolverIntf,
   inLibArticulosValidadorIntf,
+  inLibAplicacionArticuloCompraIntf,
   inLibComprasPantallaIntf,
   inLibDevolucionesCompraPersistenciaIntf;
 
 function CrearAplicacionArticuloDevolucionCompra(
   const AValidador: IArticulosValidador;
   const AResolver: IArticulosResolver;
-  const ADatos: IRepositorioDatosDevolucionCompra):
+  const ADatos: IRepositorioDatosDevolucionCompra;
+  const ALecturas: IRepositorioLecturasArticuloCompra):
   IAplicacionArticuloDevolucionCompra;
 
 implementation
@@ -40,6 +42,7 @@ type
     FValidador: IArticulosValidador;
     FResolver: IArticulosResolver;
     FDatos: IRepositorioDatosDevolucionCompra;
+    FLecturas: IRepositorioLecturasArticuloCompra;
     FUltimaClaveAvisoProveedor: string;
     function AvisoProveedorDistinto(
       const ACodigoArticulo,
@@ -57,7 +60,8 @@ type
     constructor Create(
       const AValidador: IArticulosValidador;
       const AResolver: IArticulosResolver;
-      const ADatos: IRepositorioDatosDevolucionCompra);
+      const ADatos: IRepositorioDatosDevolucionCompra;
+      const ALecturas: IRepositorioLecturasArticuloCompra);
     function Ejecutar(
       const AEntrada: TEntradaArticuloDevolucionCompra):
       TResultadoArticuloDevolucionCompra;
@@ -66,19 +70,22 @@ type
 function CrearAplicacionArticuloDevolucionCompra(
   const AValidador: IArticulosValidador;
   const AResolver: IArticulosResolver;
-  const ADatos: IRepositorioDatosDevolucionCompra):
+  const ADatos: IRepositorioDatosDevolucionCompra;
+  const ALecturas: IRepositorioLecturasArticuloCompra):
   IAplicacionArticuloDevolucionCompra;
 begin
   Result := TAplicacionArticuloDevolucionCompra.Create(
     AValidador,
     AResolver,
-    ADatos);
+    ADatos,
+    ALecturas);
 end;
 
 constructor TAplicacionArticuloDevolucionCompra.Create(
   const AValidador: IArticulosValidador;
   const AResolver: IArticulosResolver;
-  const ADatos: IRepositorioDatosDevolucionCompra);
+  const ADatos: IRepositorioDatosDevolucionCompra;
+  const ALecturas: IRepositorioLecturasArticuloCompra);
 begin
   if AValidador = nil then
     raise EArgumentNilException.Create('AValidador');
@@ -86,10 +93,13 @@ begin
     raise EArgumentNilException.Create('AResolver');
   if ADatos = nil then
     raise EArgumentNilException.Create('ADatos');
+  if ALecturas = nil then
+    raise EArgumentNilException.Create('ALecturas');
   inherited Create;
   FValidador := AValidador;
   FResolver := AResolver;
   FDatos := ADatos;
+  FLecturas := ALecturas;
 end;
 
 function TAplicacionArticuloDevolucionCompra.AvisoProveedorDistinto(
@@ -149,10 +159,10 @@ function TAplicacionArticuloDevolucionCompra.CargarDatos(
   const AEntrada: TEntradaArticuloDevolucionCompra;
   const AResolucion: TArtResolucionEntrada): TArticuloDatos;
 begin
-  Result := FResolver.ResolverDatos(
+  // Misma prioridad de SKU y proveedor que en la entrada de compras.
+  Result := FLecturas.ResolverDatos(
     AResolucion.CodigoArticulo,
     AResolucion.CodigoSku,
-    '',
     AEntrada.Fecha,
     AEntrada.CodigoAlmacen,
     AEntrada.CodigoProveedor);

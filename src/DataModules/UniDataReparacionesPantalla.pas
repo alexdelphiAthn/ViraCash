@@ -32,6 +32,9 @@ type
     FFases: TDatosFasesReparacion;
     FConexion: TUniConnection;
     FUsuario: string;
+    FTarifaArticulos: string;
+    FEmpresaArticulos: string;
+    FCreandoArticulo: Boolean;
     FCatalogo: ICatalogoReparaciones;
     FReparaciones: IRepositorioReparaciones;
     FLiquidaciones: ILiquidacionesReparaciones;
@@ -46,6 +49,8 @@ type
     function NuevaConsulta(const ASql: string): TUniQuery;
     function NuevoOrigen(ADatos: TDataSet): TDataSource;
     function TipoArticuloActual: TTipoServicio;
+    function DebeSincronizarArticulo: Boolean;
+    procedure SincronizarArticuloActual;
     procedure TiposNewRecord(DataSet: TDataSet);
     procedure TiposBeforePost(DataSet: TDataSet);
     procedure TiposBeforeDelete(DataSet: TDataSet);
@@ -56,6 +61,7 @@ type
   public
     constructor CreateDatos(AOwner: TComponent; AConexion: TUniConnection;
       const AUsuario: string);
+    procedure ConfigurarArticulosServicio(const ATarifa, AEmpresa: string);
     // Las líneas siguen al expediente de la lista (campo ID_GAR).
     procedure AsignarMaestro(ADatos: TDataSource);
     property Circuito: TDatosCircuitoOrden read FCircuito;
@@ -98,6 +104,58 @@ uses
   UniDataReparacionesArticuloServicio,
   inLibMsgReparaciones, inLibErroresBBDD,
   UniDataReparacionesRepositorio;
+
+type
+  // Incluye el artículo y el enlace en el mismo Post, también al navegar.
+  TConsultaTiposServicio = class(TUniQuery)
+  protected
+    procedure InternalPost; override;
+  end;
+
+procedure TConsultaTiposServicio.InternalPost;
+var
+  oDatos: TDatosPantallaReparaciones;
+  oTransaccion: TUniQuery;
+  bPropia: Boolean;
+begin
+  oDatos := Owner as TDatosPantallaReparaciones;
+  if oDatos.DebeSincronizarArticulo then
+  begin
+    bPropia := not oDatos.FConexion.InTransaction;
+    oTransaccion := oDatos.NuevaConsulta('SAVEPOINT REP_ENLACE_SERVICIO');
+    try
+      if bPropia then
+        oDatos.FConexion.StartTransaction
+      else
+        oTransaccion.Execute;
+      try
+        oDatos.SincronizarArticuloActual;
+        inherited InternalPost;
+        if bPropia then
+          oDatos.FConexion.Commit
+        else
+        begin
+          oTransaccion.SQL.Text := 'RELEASE SAVEPOINT REP_ENLACE_SERVICIO';
+          oTransaccion.Execute;
+        end;
+      except
+        if bPropia then
+          oDatos.FConexion.Rollback
+        else
+        begin
+          oTransaccion.SQL.Text :=
+            'ROLLBACK TO SAVEPOINT REP_ENLACE_SERVICIO';
+          oTransaccion.Execute;
+        end;
+        raise;
+      end;
+    finally
+      FreeAndNil(oTransaccion);
+    end;
+  end
+  else
+    inherited InternalPost;
+end;
 
 const
   SQL_LINEAS =
@@ -273,7 +331,9 @@ begin
   if not Assigned(FTipos) then
   begin
     ExigirEsquemaTrabajosCortinas(FConexion);
-    FTipos := NuevaConsulta(SQL_TIPOS);
+    FTipos := TConsultaTiposServicio.Create(Self);
+    FTipos.Connection := FConexion;
+    FTipos.SQL.Text := SQL_TIPOS;
     FTipos.KeyFields := 'CODIGO_GARTIP';
     FTipos.UpdatingTable := 'fza_garantias_tipos';
     FTipos.OnNewRecord := TiposNewRecord;
@@ -284,6 +344,50 @@ begin
   if not FTipos.Active then
     FTipos.Open;
   Result := FdsTipos;
+end;
+
+procedure TDatosPantallaReparaciones.ConfigurarArticulosServicio(
+  const ATarifa, AEmpresa: string);
+begin
+  FTarifaArticulos := ATarifa;
+  FEmpresaArticulos := AEmpresa;
+end;
+
+function TDatosPantallaReparaciones.DebeSincronizarArticulo: Boolean;
+const
+  CAMPOS: array[0..3] of string = ('CODIGO_ART_GARTIP',
+    'CODIGO_PRV_GARTIP', 'PRECIO_COSTE_GARTIP', 'PRECIO_CLIENTE_GARTIP');
+var
+  sCampo: string;
+begin
+  Result := False;
+  if not FCreandoArticulo and
+     (Trim(FTipos.FieldByName('CODIGO_ART_GARTIP').AsString) <> '') then
+  begin
+    Result := FTipos.State = dsInsert;
+    for sCampo in CAMPOS do
+      Result := Result or not VarSameValue(
+        FTipos.FieldByName(sCampo).OldValue,
+        FTipos.FieldByName(sCampo).Value);
+  end;
+end;
+
+procedure TDatosPantallaReparaciones.SincronizarArticuloActual;
+var
+  rEntrada: TArticuloServicioReparacion;
+  oArticulos: TArticulosServicioReparacion;
+begin
+  rEntrada.Tipo := TipoArticuloActual;
+  rEntrada.Tarifa := FTarifaArticulos;
+  rEntrada.Empresa := FEmpresaArticulos;
+  rEntrada.Usuario := FUsuario;
+  oArticulos := TArticulosServicioReparacion.Create(FConexion);
+  try
+    oArticulos.Sincronizar(rEntrada,
+      FTipos.FieldByName('CODIGO_ART_GARTIP').AsString);
+  finally
+    FreeAndNil(oArticulos);
+  end;
 end;
 
 // Los mismos valores por defecto que fza_garantias_tipos.
@@ -409,6 +513,7 @@ var
   oTransaccion: TUniQuery;
   bPropia: Boolean;
 begin
+  ConfigurarArticulosServicio(ATarifa, AEmpresa);
   rEntrada.Tipo := TipoArticuloActual;
   rEntrada.Tarifa := ATarifa;
   rEntrada.Empresa := AEmpresa;
@@ -417,6 +522,7 @@ begin
   bPropia := not FConexion.InTransaction;
   oArticulos := TArticulosServicioReparacion.Create(FConexion);
   oTransaccion := NuevaConsulta('SAVEPOINT REP_ARTICULO_SERVICIO');
+  FCreandoArticulo := True;
   try
     if bPropia then
       FConexion.StartTransaction
@@ -448,6 +554,7 @@ begin
       raise;
     end;
   finally
+    FCreandoArticulo := False;
     FreeAndNil(oTransaccion);
     FreeAndNil(oArticulos);
   end;

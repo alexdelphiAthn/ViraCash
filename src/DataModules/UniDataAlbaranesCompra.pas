@@ -1027,10 +1027,18 @@ end;
 
 procedure TdmAlbaranesCompra.ConfigurarLotesLineas(
   const AConfig: TConfiguracionLotesLineas);
+var
+  rConfig: TConfiguracionLotesLineas;
 begin
   FreeAndNil(FLotesLineas);
   if AConfig.Activacion.AlgunModoActivo then
-    FLotesLineas := TLotesLineasDocumento.Create(AConfig);
+  begin
+    // Las series pertenecen a la misma compra: conservan su precio y dto.
+    // El lector volvería a proponer el coste neto recién actualizado.
+    rConfig := AConfig;
+    rConfig.CopiarLineasPendientes := True;
+    FLotesLineas := TLotesLineasDocumento.Create(rConfig);
+  end;
 end;
 
 function TdmAlbaranesCompra.DocumentoLotes: TDocumentoLineaLote;

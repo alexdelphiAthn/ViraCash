@@ -24,8 +24,8 @@ type
     FConexion: TUniConnection;
     function Consulta(const ASql: string;
       const AEntrada: TArticuloServicioReparacion): TUniQuery;
-    function GuardarArticulo(const AEntrada: TArticuloServicioReparacion):
-      string;
+    function GuardarArticulo(const AEntrada: TArticuloServicioReparacion;
+      ACrear: Boolean = True): string;
     function PrecioTarifa(const AEntrada: TArticuloServicioReparacion;
       const ATipoIva: string): Double;
     procedure GuardarSku(const AEntrada: TArticuloServicioReparacion);
@@ -39,6 +39,8 @@ type
     constructor Create(AConexion: TUniConnection);
     // La transacción pertenece al llamador e incluye el tipo de servicio.
     procedure Guardar(const AEntrada: TArticuloServicioReparacion);
+    procedure Sincronizar(const AEntrada: TArticuloServicioReparacion;
+      const AArticulo: string);
   end;
 
 function SqlArticulosConMarcaReparacion(AConexion: TUniConnection;
@@ -48,7 +50,7 @@ implementation
 
 uses
   System.SysUtils, System.RegularExpressions, Data.DB,
-  inLibMsgReparaciones, inLibImpuestosComun;
+  inLibMsgReparaciones, inLibMsgArticulos, inLibImpuestosComun;
 
 constructor TArticulosServicioReparacion.Create(AConexion: TUniConnection);
 begin
@@ -126,7 +128,7 @@ begin
 end;
 
 function TArticulosServicioReparacion.GuardarArticulo(
-  const AEntrada: TArticuloServicioReparacion): string;
+  const AEntrada: TArticuloServicioReparacion; ACrear: Boolean): string;
 var
   oConsulta: TUniQuery;
   bExiste: Boolean;
@@ -150,24 +152,31 @@ begin
   finally
     FreeAndNil(oConsulta);
   end;
-  if bExiste then
-    oConsulta := Consulta('UPDATE fza_articulos SET ' +
-      'DESCRIPCION_ART = :DESCRIPCION, ESSERVICIO_REPARACION_ART = ''S'', ' +
-      'ESACTIVO_ART = ''S'', INSTANTE_MODIF = NOW(), USUARIO_MODIF = :USUARIO '+
-      'WHERE CODIGO_ART_ART = :CODIGO', AEntrada)
-  else
-    oConsulta := Consulta('INSERT INTO fza_articulos ' +
-      '(CODIGO_ART_ART, ORDEN_ART, ESACTIVO_ART, ESWEB_ART, TIPO_ART, ' +
-      'DESCRIPCION_ART, TIPO_IVA_ART, ESACTIVO_FIJO_ART, TIPO_CANTIDAD_ART, ' +
-      'ESVARIACION_ART, ESTRAZABLE_ART, ESSERVICIO_REPARACION_ART, ' +
-      'INSTANTE_ALTA, USUARIO_ALTA, USUARIO_MODIF) ' +
-      'SELECT :CODIGO, COALESCE(MAX(ORDEN_ART), 0) + 1, ''S'', ''N'', ' +
-      '''SERVICIO'', :DESCRIPCION, ''N'', ''N'', ''Uds'', ''N'', ''N'', ' +
-      '''S'', NOW(), :USUARIO, :USUARIO FROM fza_articulos', AEntrada);
-  try
-    oConsulta.Execute;
-  finally
-    FreeAndNil(oConsulta);
+  if not ACrear and not bExiste then
+    raise EArgumentException.CreateFmt(SErrorArticuloNoExiste,
+      [AEntrada.Tipo.Codigo]);
+  if ACrear then
+  begin
+    if bExiste then
+      oConsulta := Consulta('UPDATE fza_articulos SET ' +
+        'DESCRIPCION_ART = :DESCRIPCION, ESSERVICIO_REPARACION_ART = ''S'', ' +
+        'ESACTIVO_ART = ''S'', INSTANTE_MODIF = NOW(), ' +
+        'USUARIO_MODIF = :USUARIO WHERE CODIGO_ART_ART = :CODIGO', AEntrada)
+    else
+      oConsulta := Consulta('INSERT INTO fza_articulos ' +
+        '(CODIGO_ART_ART, ORDEN_ART, ESACTIVO_ART, ESWEB_ART, TIPO_ART, ' +
+        'DESCRIPCION_ART, TIPO_IVA_ART, ESACTIVO_FIJO_ART, ' +
+        'TIPO_CANTIDAD_ART, ESVARIACION_ART, ESTRAZABLE_ART, ' +
+        'ESSERVICIO_REPARACION_ART, INSTANTE_ALTA, ' +
+        'USUARIO_ALTA, USUARIO_MODIF) ' +
+        'SELECT :CODIGO, COALESCE(MAX(ORDEN_ART), 0) + 1, ''S'', ''N'', ' +
+        '''SERVICIO'', :DESCRIPCION, ''N'', ''N'', ''Uds'', ''N'', ''N'', ' +
+        '''S'', NOW(), :USUARIO, :USUARIO FROM fza_articulos', AEntrada);
+    try
+      oConsulta.Execute;
+    finally
+      FreeAndNil(oConsulta);
+    end;
   end;
 end;
 
@@ -354,6 +363,26 @@ begin
   GuardarProveedor(AEntrada);
   GuardarTarifa(AEntrada, dPrecio);
   GuardarCoste(AEntrada);
+end;
+
+procedure TArticulosServicioReparacion.Sincronizar(
+  const AEntrada: TArticuloServicioReparacion; const AArticulo: string);
+var
+  rEntrada: TArticuloServicioReparacion;
+  sTipoIva: string;
+  dPrecio: Double;
+begin
+  rEntrada := AEntrada;
+  rEntrada.Tipo.Codigo := Trim(AArticulo);
+  ComprobarEsquema;
+  Validar(rEntrada);
+  // El enlace no crea artículos ni cambia su descripción o estado.
+  sTipoIva := GuardarArticulo(rEntrada, False);
+  dPrecio := PrecioTarifa(rEntrada, sTipoIva);
+  GuardarSku(rEntrada);
+  GuardarProveedor(rEntrada);
+  GuardarTarifa(rEntrada, dPrecio);
+  GuardarCoste(rEntrada);
 end;
 
 function SqlArticulosConMarcaReparacion(AConexion: TUniConnection;
