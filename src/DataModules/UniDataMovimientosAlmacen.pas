@@ -34,6 +34,9 @@ type
     procedure unqryTablaGBeforeDelete(DataSet: TDataSet);
   private
     procedure BloquearEdicion(const aOp: string);
+  public
+    function ConsultarReparacionesPrenda(const AEmpresa: string;
+      APrenda: Int64): TDataSet;
   end;
 
 implementation
@@ -46,6 +49,33 @@ uses
 {$R *.dfm}
 
 procedure ForceReferenceToClass(C: TClass); begin end;
+
+function TdmMovimientosAlmacen.ConsultarReparacionesPrenda(
+  const AEmpresa: string; APrenda: Int64): TDataSet;
+var
+  Consulta: TUniQuery;
+begin
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := unqryTablaG.Connection;
+    Consulta.SQL.Text :=
+      'SELECT DISTINCT G.ID_GAR, G.DESCRIPCION_OBJETO_GAR, ' +
+      'G.NOMBRE_CLIENTE_GAR, G.ESTADO_GAR ' +
+      'FROM fza_reparaciones_prendas P ' +
+      'JOIN fza_reparaciones_prendas_trabajos T ' +
+      'ON T.ID_GARPRE_GARPT=P.ID_GARPRE ' +
+      'JOIN fza_garantias_reclamaciones G ON G.ID_GAR=T.ID_GAR_GARPT ' +
+      'WHERE P.ID_GARPRE=:PRENDA AND P.CODIGO_EMP_GARPRE=:EMPRESA ' +
+      'ORDER BY G.ID_GAR';
+    Consulta.ParamByName('PRENDA').AsLargeInt := APrenda;
+    Consulta.ParamByName('EMPRESA').AsString := AEmpresa;
+    Consulta.Open;
+    Result := Consulta;
+  except
+    Consulta.Free;
+    raise;
+  end;
+end;
 
 procedure TdmMovimientosAlmacen.BloquearEdicion(const aOp: string);
 begin

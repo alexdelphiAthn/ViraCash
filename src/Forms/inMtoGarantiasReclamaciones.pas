@@ -240,6 +240,7 @@ type
     destructor Destroy; override;
     procedure CrearTablaPrincipal; override;
     procedure ResetForm; override;
+    procedure PrepararBusquedaExterna(const ABusq: string); override;
   end;
 
 implementation
@@ -1025,8 +1026,15 @@ begin
   if Assigned(FScrollFicha) and Assigned(pnlFicha) and
     (tsFicha.ClientHeight > 0) then
   begin
-    FScrollFicha.Height := Min(pnlFicha.Height,
-      Max(EscalarDpi(100), tsFicha.ClientHeight div 3));
+    // El reparto inicial se aplica una sola vez. Al arrastrar el
+    // separador, el OnResize del scroll solo debe ajustar el ancho.
+    if Sender = nil then
+      FScrollFicha.Height := Min(pnlFicha.Height,
+        Max(EscalarDpi(100), tsFicha.ClientHeight div 3))
+    else if (Sender = tsFicha) and Assigned(FSeparadorFicha) then
+      FScrollFicha.Height := Min(FScrollFicha.Height,
+        Max(FSeparadorFicha.MinSize, tsFicha.ClientHeight -
+          FSeparadorFicha.Height - EscalarDpi(80)));
     // Un contenido libre conserva su ancho sin imponer un minimo a la
     // ventana principal ni anular el desplazamiento del contenedor.
     pnlFicha.Width := Max(FScrollFicha.ClientWidth,
@@ -1350,6 +1358,13 @@ end;
 function TfrmMtoGarantiasReclamaciones.SqlRestriccionUsuario: string;
 begin
   Result := SqlFiltroOrdenesTrabajo(ContextoSesion, ParametrosApp);
+end;
+
+procedure TfrmMtoGarantiasReclamaciones.PrepararBusquedaExterna(
+  const ABusq: string);
+begin
+  if ABusq <> '' then
+    dmmGarantias.PrepararReparacionPorId(ABusq);
 end;
 
 procedure TfrmMtoGarantiasReclamaciones.ResetForm;

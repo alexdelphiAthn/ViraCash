@@ -82,6 +82,7 @@ type
     // ATexto: parte de la serie, del SKU, del cliente, del contacto o del
     // RMA; '' = sin filtro.
     // AModalidad: un MODALIDAD_GAR o '' (todas).
+    procedure PrepararReparacionPorId(const AId: string);
     procedure AplicarFiltros(const AEstado, ATexto: string;
       const AModalidad: string = '');
     procedure AsignarMaestroCabecera(ADataSource: TDataSource); override;
@@ -552,6 +553,17 @@ end;
 function TdmGarantiasReclamaciones.FiltroAlmacenUsuario: string;
 begin
   Result := SqlFiltroOrdenesTrabajo(ContextoSesion, ParametrosApp);
+end;
+
+procedure TdmGarantiasReclamaciones.PrepararReparacionPorId(
+  const AId: string);
+begin
+  PrepararBusquedaExterna('ID_GAR', AId);
+  // El documento puede estar terminado o fuera de los filtros de la lista.
+  unqryTablaG.ParamByName('ESTADO').AsString := '';
+  unqryTablaG.ParamByName('TEXTO').AsString := '';
+  unqryTablaG.ParamByName('PATRON').AsString := '%';
+  unqryTablaG.ParamByName('MODALIDAD').AsString := '';
 end;
 
 procedure TdmGarantiasReclamaciones.AplicarFiltros(

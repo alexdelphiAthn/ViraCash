@@ -105,6 +105,7 @@ type
     function ValorCampoMovimiento(const ACampo: string): string;
     function EsTipoOperacionCaja(const ATipoDocumento: string): Boolean;
     procedure AbrirOperacionCajaMovimiento;
+    procedure AbrirReparacionMovimiento;
     procedure AbrirDocumentoSerieNumero(const ACall: string;
       const AInvertirClave: Boolean = False);
     procedure CargarAnyosFiltro;
@@ -174,6 +175,11 @@ end;
 resourcestring
   SAvisoMovimientoSinDocumento =
     'El movimiento seleccionado no tiene un documento asociado.';
+  SSeleccionarReparacionMovimiento =
+    'Seleccionar reparación de la prenda';
+  SAvisoMovimientoSinReparacion =
+    'No se ha encontrado una reparación asociada a la prenda ' +
+    'del movimiento seleccionado.';
   SAvisoMovimientoCajaSinClave =
     'No se puede abrir la operación de caja porque el movimiento no ' +
     'conserva la clave completa de empresa, almacén, caja y operación.';
@@ -232,6 +238,43 @@ begin
     ShowMessage_fza(SAvisoMovimientoCajaSinClave);
 end;
 
+procedure TfrmMtoMovimientosAlmacen.AbrirReparacionMovimiento;
+var
+  Prenda: Int64;
+  Reparaciones: TDataSet;
+  Abrir: Boolean;
+begin
+  Prenda := StrToInt64Def(ValorCampoMovimiento('NUMERO_DOC_MOV'), 0);
+  if (Prenda <= 0) or
+     not SameText(ValorCampoMovimiento('SERIE_DOC_MOV'), 'TALLER') then
+    ShowMessage_fza(SAvisoMovimientoSinDocumento)
+  else
+  begin
+    Reparaciones := dmmMovimientosAlmacen.ConsultarReparacionesPrenda(
+      ValorCampoMovimiento('CODIGO_EMP_MOV'), Prenda);
+    try
+      if Reparaciones.IsEmpty then
+        ShowMessage_fza(SAvisoMovimientoSinReparacion)
+      else
+      begin
+        // Una prenda puede tener varios trabajos: no elegir uno al azar.
+        Reparaciones.Last;
+        Abrir := Reparaciones.RecordCount = 1;
+        Reparaciones.First;
+        if not Abrir then
+          Abrir := BusquedaVisual.EjecutarBusquedaDataSet(
+            SSeleccionarReparacionMovimiento, Reparaciones,
+            'MovimientoReparacionesPrenda', Self);
+        if Abrir then
+          ShowMto(Self.Owner, 'GarantiasReclamaciones',
+            Reparaciones.FieldByName('ID_GAR').AsString);
+      end;
+    finally
+      Reparaciones.Free;
+    end;
+  end;
+end;
+
 procedure TfrmMtoMovimientosAlmacen.AbrirDocumentoSerieNumero(
   const ACall: string; const AInvertirClave: Boolean);
 var
@@ -266,6 +309,8 @@ begin
   begin
     if EsTipoOperacionCaja(sTipo) then
       AbrirOperacionCajaMovimiento
+    else if sTipo = 'RT' then
+      AbrirReparacionMovimiento
     else if sTipo = 'PE' then
       AbrirDocumentoSerieNumero('Pedidos')
     else if sTipo = 'AV' then
