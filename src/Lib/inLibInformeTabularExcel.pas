@@ -18,6 +18,11 @@ procedure ExportarInformeTabularExcel(AControl: TdxSpreadSheet;
   const AColumnas: TColumnasInformeTabular;
   const AResumen: TArray<string>);
 
+procedure AnadirHojaInformeTabularExcel(AControl: TdxSpreadSheet;
+  ADatos: TDataSet; const ANombre: string;
+  const AColumnas: TColumnasInformeTabular;
+  ATotalGeneral: Boolean = False);
+
 implementation
 
 uses
@@ -123,6 +128,58 @@ begin
   end;
 end;
 
+procedure AnadirHojaInformeTabularExcel(AControl: TdxSpreadSheet;
+  ADatos: TDataSet; const ANombre: string;
+  const AColumnas: TColumnasInformeTabular;
+  ATotalGeneral: Boolean);
+var
+  oHoja: TdxSpreadSheetTableView;
+  oServicios: TServiciosHojaCalculo;
+  iFila, iColumna, iIndice: Integer;
+  sColumna: string;
+begin
+  oHoja := AControl.AddSheet(ANombre,
+    TdxSpreadSheetTableView) as TdxSpreadSheetTableView;
+  oServicios := CrearServiciosHojaCalculoDevExTabla(oHoja);
+  oServicios.Escritor.IniciarLote;
+  try
+    EscribirDatos(oServicios, ADatos, AColumnas);
+    if ATotalGeneral then
+    begin
+      iFila := ADatos.RecordCount + 1;
+      oServicios.Escritor.Escribir(iFila, 0, SInformeTotalGeneral);
+      for iColumna := 0 to High(AColumnas) do
+      begin
+        oServicios.Formateador.Negrita(iFila, iColumna);
+        if AColumnas[iColumna].Numerica then
+        begin
+          sColumna := '';
+          iIndice := iColumna + 1;
+          while iIndice > 0 do
+          begin
+            Dec(iIndice);
+            sColumna := Char(Ord('A') + iIndice mod 26) + sColumna;
+            iIndice := iIndice div 26;
+          end;
+          if iFila > 1 then
+            oServicios.Escritor.EscribirFormula(iFila, iColumna,
+              Format('=SUM(%s2:%s%d)', [sColumna, sColumna, iFila]))
+          else
+            oServicios.Escritor.Escribir(iFila, iColumna, 0);
+          if AColumnas[iColumna].Formato = '%g' then
+            oServicios.Formateador.AplicarFormato(
+              iFila, iColumna, 'General')
+          else
+            oServicios.Formateador.AplicarFormato(
+              iFila, iColumna, '#,##0.00');
+        end;
+      end;
+    end;
+  finally
+    oServicios.Escritor.FinalizarLote;
+  end;
+end;
+
 procedure ExportarInformeTabularExcel(AControl: TdxSpreadSheet;
   ADatos: TDataSet; const ATitulo: string;
   const AColumnas: TColumnasInformeTabular;
@@ -133,15 +190,8 @@ var
   i: Integer;
 begin
   AControl.ClearAll;
-  oHoja := AControl.AddSheet(SInformeHojaDatos,
-    TdxSpreadSheetTableView) as TdxSpreadSheetTableView;
-  oServicios := CrearServiciosHojaCalculoDevExTabla(oHoja);
-  oServicios.Escritor.IniciarLote;
-  try
-    EscribirDatos(oServicios, ADatos, AColumnas);
-  finally
-    oServicios.Escritor.FinalizarLote;
-  end;
+  AnadirHojaInformeTabularExcel(AControl, ADatos,
+    SInformeHojaDatos, AColumnas);
   oHoja := AControl.AddSheet(SInformeHojaSeleccion,
     TdxSpreadSheetTableView) as TdxSpreadSheetTableView;
   oServicios := CrearServiciosHojaCalculoDevExTabla(oHoja);

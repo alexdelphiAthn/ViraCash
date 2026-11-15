@@ -84,6 +84,7 @@ type
     // periodo / caja actuales (todas marcadas por defecto).
     procedure CargarFormasPago;
     function ConstruirSolicitud: TSolicitudInformeCaja;
+    procedure ExportarExcelNativo(Sender: TObject);
   protected
     procedure DoShow; override;
     procedure DescribirSelecciones(
@@ -102,7 +103,8 @@ implementation
 {$R *.dfm}
 
 uses
-  inMtoModalCajDef, inLibResumenSeleccionesVcl;
+  inMtoModalCajDef, inLibResumenSeleccionesVcl, inMtoPreviewExcel,
+  inLibInformeTabular, inLibInformeTabularExcel, inLibMsgComun;
 
 { TfrmPrintPagos }
 
@@ -114,6 +116,58 @@ begin
   FRepositorioPersistencia := ADependencias.Repositorio;
   FRepositorioCajasDefecto := ADependencias.CajasDefecto;
   inherited Create(AOwner);
+  btnExcel.OnClick := ExportarExcelNativo;
+end;
+
+procedure TfrmPrintPagos.ExportarExcelNativo(Sender: TObject);
+var
+  oPreview: TfrmMtoPreviewExcel;
+  oCursor: TCursor;
+begin
+  oPreview := nil;
+  oCursor := Screen.Cursor;
+  Screen.Cursor := crHourGlass;
+  try
+    IniciarEspera(SCaptionEsperaConsultandoDatosInforme);
+    IniciarMedicionDatos;
+    preparar_consulta;
+    PausarMedicionDatos;
+    oPreview := TfrmMtoPreviewExcel.Create(Self);
+    oPreview.PopupParent := Self;
+    oPreview.DialogoGuardar.InitialDir :=
+      ParametrosApp.GetPath('appDirExcel');
+    oPreview.DialogoGuardar.FileName := 'Historico_pagos.xlsx';
+    IniciarEspera(SCaptionEsperaGenerandoHojaCalculo);
+    ExportarInformeTabularExcel(oPreview.dxSpreadSheet1,
+      dsPagosPrint.DataSet, Caption,
+      [ColumnaInforme('NUMERO_OPERACION_PAGO', 'Operación', 1),
+       ColumnaInforme('NUMERO_LINEA_PAGO', 'Lín.', 0.4, '%g'),
+       ColumnaInforme('FECHA_PAGO', 'Fecha', 0.8),
+       ColumnaInforme('SERIE_FAC_PAGO', 'Serie Fac.', 0.6),
+       ColumnaInforme('NUMERO_FAC_PAGO', 'Nº Factura', 1),
+       ColumnaInforme('CODIGO_FP_CFP', 'Forma pago', 0.8),
+       ColumnaInforme('CODIGO_DIVISA_PAGO', 'Divisa', 0.5),
+       ColumnaInforme('IMPORTE_ENTREGADO_PAGO', 'Entregado', 1, '%n'),
+       ColumnaInforme('IMPORTE_CAMBIO_PAGO', 'Cambio', 1, '%n'),
+       ColumnaInforme('REFERENCIA_FACPAG', 'Referencia', 2)],
+      LineasResumenSelecciones);
+    AnadirHojaInformeTabularExcel(oPreview.dxSpreadSheet1,
+      dsTotalesPagosPrint.DataSet, 'Totales por forma de pago',
+      [ColumnaInforme('CODIGO_FP_CFP', 'Forma pago', 0.8),
+       ColumnaInforme('DESCRIPCION_FP_PAGO', 'Descripción', 2),
+       ColumnaInforme('NUMERO_PAGOS_INF', 'Pagos', 0.6, '%g'),
+       ColumnaInforme('ENTREGADO_INF', 'Entregado', 1, '%n'),
+       ColumnaInforme('CAMBIO_INF', 'Cambio', 1, '%n'),
+       ColumnaInforme('NETO_INF', 'Neto', 1, '%n')], True);
+    oPreview.dxSpreadSheet1.ActiveSheetIndex := 0;
+    TerminarEspera;
+    Screen.Cursor := oCursor;
+    oPreview.ShowModal;
+  finally
+    TerminarEspera;
+    oPreview.Free;
+    Screen.Cursor := oCursor;
+  end;
 end;
 
 destructor TfrmPrintPagos.Destroy;
