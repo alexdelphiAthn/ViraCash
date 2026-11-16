@@ -1178,7 +1178,8 @@ begin
       TextoResolucionGarantia(oDatos.FieldByName('RESOLUCION_GAR').AsString);
     txtModalidadFicha.Text := TextoModalidadReparacion(
       oDatos.FieldByName('MODALIDAD_GAR').AsString) + ' - ' +
-      oDatos.FieldByName('FASE_ACTUAL').AsString;
+      TextoFaseActualReparacion(oDatos.FieldByName('FASE_REP').AsString,
+        oDatos.FieldByName('FASE_ACTUAL').AsString);
     lblResumenTrabajos.Caption := UnirNoVacios([
       SRotuloNumeroDeposito + ' ' +
         oDatos.FieldByName('REFERENCIA_ORDEN').AsString,
@@ -1209,7 +1210,8 @@ begin
     if Assigned(oDatos) and oDatos.Active and not oDatos.IsEmpty then
       FPanelFases.MostrarReparacion(IdActual,
         oDatos.FieldByName('CODIGO_FASE_ACTUAL').AsString,
-        oDatos.FieldByName('FASE_ACTUAL').AsString)
+        TextoFaseActualReparacion(oDatos.FieldByName('FASE_REP').AsString,
+          oDatos.FieldByName('FASE_ACTUAL').AsString))
     else
       FPanelFases.MostrarReparacion(0, '', '');
   end;
@@ -2105,10 +2107,9 @@ var
   oColumna: TcxGridDBColumn;
 begin
   oColumna := cxGrdDBTabPrin.GetColumnByFieldName('FASE_REP');
-  if Assigned(ARecord) and Assigned(oColumna) and
-     (VarToStr(ARecord.Values[oColumna.Index]) =
-       FASE_REPARACION_RECHAZADO) then
-    AText := TextoFaseReparacion(FASE_REPARACION_RECHAZADO);
+  if Assigned(ARecord) and Assigned(oColumna) then
+    AText := TextoFaseActualReparacion(
+      VarToStr(ARecord.Values[oColumna.Index]), AText);
 end;
 
 procedure TfrmMtoGarantiasReclamaciones.FaseReparacionGetDisplayText(

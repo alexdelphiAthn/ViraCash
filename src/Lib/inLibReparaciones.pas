@@ -63,6 +63,7 @@ const
   FASE_REPARACION_RECIBIDO = 'RECIBIDO';
   FASE_REPARACION_PRESUPUESTO = 'PRESUPUESTO';
   FASE_REPARACION_RECHAZADO = 'RECHAZADO';
+  FASE_REPARACION_RECLAMACION_RECHAZADA = 'RECHAZADA';
   FASE_REPARACION_EN_REPARACION = 'EN_REPARACION';
   FASE_REPARACION_REPARADO = 'REPARADO';
   FASE_REPARACION_ENTREGADO = 'ENTREGADO';
@@ -248,6 +249,7 @@ function EsModoCobroReparacion(const AValor: string): Boolean;
 function EsOrigenReparacion(const AValor: string): Boolean;
 function TextoModalidadReparacion(const AValor: string): string;
 function TextoFaseReparacion(const AValor: string): string;
+function TextoFaseActualReparacion(const ASituacion, AFase: string): string;
 function TextoModoCobroReparacion(const AValor: string): string;
 function TextoOrigenReparacion(const AValor: string): string;
 function TextoEjecutorReparacion(const AValor: string): string;
@@ -256,7 +258,8 @@ function TextoModoLiquidacion(const AValor: string): string;
 implementation
 
 uses
-  System.SysUtils, System.Math, inLibGarantias, inLibMsgReparaciones;
+  System.SysUtils, System.Math, inLibGarantias, inLibMsgReparaciones,
+  inLibMsgGarantias;
 
 function AplicarTipoServicio(const AReparacion: TReparacionNueva;
   const ATipo: TTipoServicio;
@@ -412,7 +415,9 @@ begin
   if ASituacion.Estado = ESTADO_REPARACION_ANULADA then
     Result := FASE_REPARACION_ANULADO
   else if ASituacion.Entregado then
-    Result := FASE_REPARACION_ENTREGADO;
+    Result := FASE_REPARACION_ENTREGADO
+  else if ASituacion.Estado = ESTADO_GARANTIA_RECHAZADA then
+    Result := FASE_REPARACION_RECLAMACION_RECHAZADA;
 end;
 
 function FaseAbierta(const ASituacion: TSituacionReparacion): string;
@@ -503,11 +508,21 @@ begin
   Result := TextoDe(AValor, [FASE_REPARACION_RECIBIDO,
     FASE_REPARACION_PRESUPUESTO, FASE_REPARACION_RECHAZADO,
     FASE_REPARACION_EN_REPARACION, FASE_REPARACION_REPARADO,
-    FASE_REPARACION_ENTREGADO, FASE_REPARACION_ANULADO],
+    FASE_REPARACION_ENTREGADO, FASE_REPARACION_ANULADO,
+    FASE_REPARACION_RECLAMACION_RECHAZADA],
     [SFaseReparacionRecibido, SFaseReparacionPresupuesto,
      SFaseReparacionRechazado, SFaseReparacionEnReparacion,
      SFaseReparacionReparado, SFaseReparacionEntregado,
-     SFaseReparacionAnulado]);
+     SFaseReparacionAnulado, SCaptionGarantiaRechazada]);
+end;
+
+function TextoFaseActualReparacion(const ASituacion, AFase: string): string;
+begin
+  if (ASituacion = FASE_REPARACION_RECHAZADO) or
+     (ASituacion = FASE_REPARACION_RECLAMACION_RECHAZADA) then
+    Result := TextoFaseReparacion(ASituacion)
+  else
+    Result := AFase;
 end;
 
 function TextoModoCobroReparacion(const AValor: string): string;

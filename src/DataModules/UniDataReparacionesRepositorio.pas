@@ -19,7 +19,8 @@ unit UniDataReparacionesRepositorio;
 interface
 
 uses
-  System.SysUtils, Uni, inLibReparaciones, inLibReparacionesIntf;
+  System.SysUtils, Uni, inLibReparaciones, inLibReparacionesIntf,
+  inLibGarantias;
 
 type
   TRepositorioReparacionesUniDAC = class(TInterfacedObject,
@@ -122,6 +123,8 @@ const
     ''' THEN ''' + FASE_REPARACION_ANULADO + ''' ' +
     'WHEN G.FECHA_ENTREGA_CLI_GAR IS NOT NULL THEN ''' +
     FASE_REPARACION_ENTREGADO + ''' ' +
+    'WHEN G.ESTADO_GAR = ''' + ESTADO_GARANTIA_RECHAZADA +
+    ''' THEN ''' + FASE_REPARACION_RECLAMACION_RECHAZADA + ''' ' +
     'WHEN G.ESPRESUPUESTO_GAR = ''S'' AND G.ESTADO_PRESUPUESTO_GAR = ''' +
     PRESUPUESTO_RECHAZADO + ''' THEN ''' + FASE_REPARACION_RECHAZADO +
     ''' ' +
@@ -145,7 +148,7 @@ implementation
 uses
   UniDataMedidasCliente, UniDataReparacionesPrendas,
   UniDataReparacionesCobertura, UniDataReparacionesProteccion,
-  System.Generics.Collections, Data.DB, inLibGarantias,
+  System.Generics.Collections, Data.DB,
   inLibMsgReparaciones, UniDataReparacionesFases, UniDataTrabajosCortinas,
   UniDataProveedoresTexto;
 
