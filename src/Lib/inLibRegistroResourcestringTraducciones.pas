@@ -32915,7 +32915,8 @@ begin
   ARegistrar('inLibMsgFacturas.SProformaColIdPeriodo',
     'src/Lib/inLibMsgFacturas.pas', @inLibMsgFacturas.SProformaColIdPeriodo);
   ARegistrar('inLibMsgFacturas.SProformaColEstadoPeriodo',
-    'src/Lib/inLibMsgFacturas.pas', @inLibMsgFacturas.SProformaColEstadoPeriodo);
+    'src/Lib/inLibMsgFacturas.pas',
+      @inLibMsgFacturas.SProformaColEstadoPeriodo);
   ARegistrar('inLibMsgFacturas.SProformaColSerie',
     'src/Lib/inLibMsgFacturas.pas', @inLibMsgFacturas.SProformaColSerie);
   ARegistrar('inLibMsgFacturas.SProformaColNumero',
@@ -33235,7 +33236,8 @@ begin
     'SCaptionExistenciasFinalesBalanceTallas', 'src/Lib/inLibMsgArticulos.pas',
     @inLibMsgArticulos.SCaptionExistenciasFinalesBalanceTallas);
   ARegistrar('inLibMsgArticulos.' +
-    'SCaptionExistenciasInicialesBalanceTallas', 'src/Lib/inLibMsgArticulos.pas',
+    'SCaptionExistenciasInicialesBalanceTallas',
+      'src/Lib/inLibMsgArticulos.pas',
     @inLibMsgArticulos.SCaptionExistenciasInicialesBalanceTallas);
   ARegistrar('inLibMsgArticulos.' +
     'SCaptionEntradaCompraBalanceTallas', 'src/Lib/inLibMsgArticulos.pas',
@@ -33289,10 +33291,12 @@ begin
     'SCaptionVentasBalanceSinTallas', 'src/Lib/inLibMsgArticulos.pas',
     @inLibMsgArticulos.SCaptionVentasBalanceSinTallas);
   ARegistrar('inLibMsgArticulos.' +
-    'SCaptionExistenciasFinalesBalanceSinTallas', 'src/Lib/inLibMsgArticulos.pas',
+    'SCaptionExistenciasFinalesBalanceSinTallas',
+      'src/Lib/inLibMsgArticulos.pas',
     @inLibMsgArticulos.SCaptionExistenciasFinalesBalanceSinTallas);
   ARegistrar('inLibMsgArticulos.' +
-    'SCaptionExistenciasInicialesBalanceSinTallas', 'src/Lib/inLibMsgArticulos.pas',
+    'SCaptionExistenciasInicialesBalanceSinTallas',
+      'src/Lib/inLibMsgArticulos.pas',
     @inLibMsgArticulos.SCaptionExistenciasInicialesBalanceSinTallas);
   ARegistrar('inLibMsgArticulos.' +
     'SCaptionEntradaCompraBalanceSinTallas', 'src/Lib/inLibMsgArticulos.pas',
@@ -33310,7 +33314,8 @@ begin
     'SCaptionRegularizacionesBalanceSinTallas', 'src/Lib/inLibMsgArticulos.pas',
     @inLibMsgArticulos.SCaptionRegularizacionesBalanceSinTallas);
   ARegistrar('inLibMsgArticulos.' +
-    'SCaptionDevolucionProveedorBalanceSinTallas', 'src/Lib/inLibMsgArticulos.pas',
+    'SCaptionDevolucionProveedorBalanceSinTallas',
+      'src/Lib/inLibMsgArticulos.pas',
     @inLibMsgArticulos.SCaptionDevolucionProveedorBalanceSinTallas);
   ARegistrar('inLibMsgArticulos.' +
     'SCaptionOtrosMovimientosBalanceSinTallas', 'src/Lib/inLibMsgArticulos.pas',
@@ -33536,7 +33541,8 @@ begin
   ARegistrar('inLibMsgIntegridadEsquema.SErrorComprobarIntegridadArranque',
     'src/Lib/inLibMsgIntegridadEsquema.pas',
     @inLibMsgIntegridadEsquema.SErrorComprobarIntegridadArranque);
-  ARegistrar('inLibMsgIntegridadEsquema.SIntegridadResultadoDiferenciasArranque',
+  ARegistrar(
+    'inLibMsgIntegridadEsquema.SIntegridadResultadoDiferenciasArranque',
     'src/Lib/inLibMsgIntegridadEsquema.pas',
     @inLibMsgIntegridadEsquema.SIntegridadResultadoDiferenciasArranque);
   ARegistrar('inLibMsgTrazabilidad.SCaptionSesionArticuloPorLotes',
@@ -35526,6 +35532,3594 @@ begin
   ARegistrar('inLibMsgVentas.SAvisoAbonoVentaNoEmitido',
     'src/Lib/inLibMsgVentas.pas',
     @inLibMsgVentas.SAvisoAbonoVentaNoEmitido);
+
+  // Literales de interfaz y validación extraídos del código fuente.
+  ARegistrar('inLibMsgCaja.' +
+    'STextoFaltaLaTransaccionDeLaVentaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoFaltaLaTransaccionDeLaVentaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoIndiqueUnaSerieDeEntre1YCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoIndiqueUnaSerieDeEntre1YCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoLaSerieRequiereLaTransaccionDeLaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoLaSerieRequiereLaTransaccionDeLaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoLaNumeracionDelDocumentoRequiereUnaTransaccionCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoLaNumeracionDelDocumentoRequiereUnaTransaccionCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoFaltaLaFacturaRectificadaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoFaltaLaFacturaRectificadaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoTipoDeFacturaDeCajaDesconocidoCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoTipoDeFacturaDeCajaDesconocidoCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoFaltaElDataModuleDeCajaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoFaltaElDataModuleDeCajaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoNoHayUnaSerieDeFacturaDisponibleCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoNoHayUnaSerieDeFacturaDisponibleCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoLaSerieNoPuedeSuperarLos12Caja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoLaSerieNoPuedeSuperarLos12Caja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoLineasCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoLineasCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoRectificaLaFacturaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoRectificaLaFacturaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoIrAArticuloCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoIrAArticuloCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoIrADepositoCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoIrADepositoCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoIrAFormaDePagoCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoIrAFormaDePagoCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoCodigoCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoCodigoCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoDescripcionCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoDescripcionCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoFamiliaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoFamiliaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoTemporadaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoTemporadaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoRefProveedorCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoRefProveedorCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoTarifaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoTarifaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoNombreTarifaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoNombreTarifaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoNombreCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoNombreCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoCtaClienteCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoCtaClienteCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoBuscarModifCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoBuscarModifCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoBuscarTicketCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoBuscarTicketCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoLosDatosDeLaOperacionDeCajaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoLosDatosDeLaOperacionDeCajaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoRespuestaDeBandejaNoValidaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoRespuestaDeBandejaNoValidaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoFaltanLosDatosDeLaBandejaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoFaltanLosDatosDeLaBandejaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoArqueoCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoArqueoCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoDesdeCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoDesdeCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoHastaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoHastaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoVentasCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoVentasCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoEfectivoCajaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoEfectivoCajaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoOtrosIngresosCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoOtrosIngresosCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoRecuentoCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoRecuentoCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoDiferenciaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoDiferenciaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoRetiradaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoRetiradaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoEfectivoDejadoCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoEfectivoDejadoCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoConceptoRetiradaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoConceptoRetiradaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoBitacoraCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoBitacoraCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoMeteorologiaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoMeteorologiaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoOperacionCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoOperacionCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoLinCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoLinCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoFechaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoFechaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoSerieFacCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoSerieFacCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoNoFacturaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoNoFacturaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoFormaPagoCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoFormaPagoCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoDivisaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoDivisaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoEntregadoCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoEntregadoCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoCambioCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoCambioCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoReferenciaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoReferenciaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoTotalesPorFormaDePagoCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoTotalesPorFormaDePagoCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoPagosCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoPagosCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoNetoCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoNetoCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoDeudoresPorEmpresaYTiendaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoDeudoresPorEmpresaYTiendaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoSeleccioneUnClienteCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoSeleccioneUnClienteCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoExtractoDeCuentaDelClienteCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoExtractoDeCuentaDelClienteCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoTodasLasEmpresasYTiendasCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoTodasLasEmpresasYTiendasCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoRepositorioDeCuentaNoDisponibleCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoRepositorioDeCuentaNoDisponibleCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoAmbitoCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoAmbitoCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoSituacionCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoSituacionCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoSaldoActualNoSaldoAFechaHistoricaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoSaldoActualNoSaldoAFechaHistoricaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoDepositoCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoDepositoCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoClienteCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoClienteCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoSkuCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoSkuCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoPrecioVentaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoPrecioVentaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoAnticipoCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoAnticipoCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoEstadoCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoEstadoCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoLimiteGlobalCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoLimiteGlobalCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoEmpresaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoEmpresaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoTiendaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoTiendaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoAntiguedadDiasCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoAntiguedadDiasCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoPendienteCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoPendienteCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoImporteCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoImporteCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoTotalesPorClienteCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoTotalesPorClienteCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoAlmacenCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoAlmacenCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoCajaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoCajaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoDocumentoCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoDocumentoCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoLineaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoLineaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoArticuloCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoArticuloCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoColorAromaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoColorAromaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoCopaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoCopaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoTallaMedidaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoTallaMedidaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoProveedorCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoProveedorCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoModeloCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoModeloCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoCantidadCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoCantidadCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoBrutoCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoBrutoCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoDescuentoCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoDescuentoCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoNetoArticuloCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoNetoArticuloCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoIngresosCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoIngresosCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoVendedorCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoVendedorCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoFormaDePagoCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoFormaDePagoCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoElInformeDeOperacionesDeVentaSigueCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoElInformeDeOperacionesDeVentaSigueCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoVinculoCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoVinculoCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoPrecioSinIvaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoPrecioSinIvaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoIvaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoIvaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoTotalCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoTotalCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoSerieCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoSerieCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoNumeroCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoNumeroCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoNifEmpresaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoNifEmpresaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoBaseImponibleCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoBaseImponibleCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoImpuestosCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoImpuestosCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoLaConsultaDelHistoricoDeCajaNoCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoLaConsultaDelHistoricoDeCajaNoCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoLaConsultaDelHistoricoDePagosDeCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoLaConsultaDelHistoricoDePagosDeCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoExtractoDeCuentaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoExtractoDeCuentaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoCodigoDeClienteCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoCodigoDeClienteCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoFechaHoraCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoFechaHoraCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoTipoCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoTipoCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoConceptoCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoConceptoCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoIdDepositoCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoIdDepositoCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoSerieRefCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoSerieRefCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoNroRefCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoNroRefCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoMotivoDevCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoMotivoDevCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoEstDevCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoEstDevCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoImpDivisaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoImpDivisaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoRedCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoRedCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoObservacionesCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoObservacionesCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoRolCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoRolCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoCodValeCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoCodValeCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoPinCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoPinCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoNominalCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoNominalCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoRedimidoCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoRedimidoCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoFEmisionCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoFEmisionCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoFCaducidadCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoFCaducidadCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoFRedencionCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoFRedencionCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoValePadreCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoValePadreCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoNoMovCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoNoMovCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoTipoDocCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoTipoDocCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoContraCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoContraCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoPmpCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoPmpCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoTotalCosteCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoTotalCosteCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoRazonSocialCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoRazonSocialCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoNifCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoNifCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoMovilCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoMovilCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoEmailCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoEmailCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoDireccionCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoDireccionCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoPoblacionCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoPoblacionCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoProvinciaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoProvinciaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoDeudaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoDeudaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoCantidadPdteCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoCantidadPdteCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoIvaCaja2',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoIvaCaja2);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoFechaAltaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoFechaAltaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoFechaEntregaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoFechaEntregaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoEmpCancelCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoEmpCancelCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoAlmCancelCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoAlmCancelCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoCajaCancelCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoCajaCancelCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoOpCancelCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoOpCancelCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoDepositosCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoDepositosCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoBasesCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoBasesCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoLiquidoCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoLiquidoCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoLinCaja2',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoLinCaja2);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoCantCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoCantCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoPSIvaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoPSIvaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoPCIvaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoPCIvaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoDtoCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoDtoCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoTIvaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoTIvaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoTotSIvaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoTotSIvaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoTotCIvaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoTotCIvaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoMmCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoMmCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoInteraccionDeFacturaIncompletaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoInteraccionDeFacturaIncompletaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoInteraccionDeCreditoIncompletaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoInteraccionDeCreditoIncompletaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoInteraccionDeCierreIncompletaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoInteraccionDeCierreIncompletaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoInteraccionDeCobroIncompletaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoInteraccionDeCobroIncompletaCaja);
+  ARegistrar('inLibMsgCaja.' +
+    'STextoInteraccionDeSalidaIncompletaCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      STextoInteraccionDeSalidaIncompletaCaja);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoEstadoDePropuestaNoValidoAlGrabarDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoEstadoDePropuestaNoValidoAlGrabarDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoSSSDLineasSDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoSSSDLineasSDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoAnadirSkuYUnidadesDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoAnadirSkuYUnidadesDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoAnadirSkuAlDocumentoDeDistribucionDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoAnadirSkuAlDocumentoDeDistribucionDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoAlmacenDeOrigenDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoAlmacenDeOrigenDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoIndiqueUnNumeroDeUnidadesValidoDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoIndiqueUnNumeroDeUnidadesValidoDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoSkuAnadidoPuedeAnadirOtroOPulsarDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoSkuAnadidoPuedeAnadirOtroOPulsarDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoFotoDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoFotoDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoLineaDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoLineaDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoArticuloDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoArticuloDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoSkuUnidadDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoSkuUnidadDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoDescripcionDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoDescripcionDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoPedidaDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoPedidaDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoServidaDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoServidaDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoPendienteDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoPendienteDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoAtendidaDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoAtendidaDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoMotivoDeRechazoDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoMotivoDeRechazoDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoSolicitanteDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoSolicitanteDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoSolicitadaDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoSolicitadaDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoCajaDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoCajaDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoEmpleadoDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoEmpleadoDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoObservacionesDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoObservacionesDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoSinArticuloDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoSinArticuloDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoSinLineasSolicitadasDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoSinLineasSolicitadasDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoSolicitudesDeTraspasoDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoSolicitudesDeTraspasoDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoPeriodoDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoPeriodoDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoTotalSolicitudDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoTotalSolicitudDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoSinFotoDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoSinFotoDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoSolicitudesDeTraspasoDistribucionTiendas2',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoSolicitudesDeTraspasoDistribucionTiendas2);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoLasUnidadesDebenSerPositivasDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoLasUnidadesDebenSerPositivasDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoIndiqueEmpresaAlmacenYSkuDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoIndiqueEmpresaAlmacenYSkuDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoElDocumentoDebeEstarCreadoDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoElDocumentoDebeEstarCreadoDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoSkuOAlmacenNoDisponibleDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoSkuOAlmacenNoDisponibleDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoNoHayStockSuficienteParaElSkuDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoNoHayStockSuficienteParaElSkuDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoPropuestaDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoPropuestaDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoOrigenDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoOrigenDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoDestinoDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoDestinoDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoDocumentoDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoDocumentoDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoEstadoDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoEstadoDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoFechaDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoFechaDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoColorDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoColorDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoTallasDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoTallasDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoUnidadesDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoUnidadesDistribucionTiendas);
+  ARegistrar('inLibMsgDistribucionTiendas.' +
+    'STextoTotalesPorPropuestaDistribucionTiendas',
+    'src/Lib/inLibMsgDistribucionTiendas.pas',
+    @inLibMsgDistribucionTiendas.
+      STextoTotalesPorPropuestaDistribucionTiendas);
+  ARegistrar('inLibMsgArticulos.' +
+    'STextoLaComprobacionDeStockRequiereLaTransaccionArticulos',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      STextoLaComprobacionDeStockRequiereLaTransaccionArticulos);
+  ARegistrar('inLibMsgArticulos.' +
+    'STextoElTicketRequiereTclientdatasetArticulos',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      STextoElTicketRequiereTclientdatasetArticulos);
+  ARegistrar('inLibMsgArticulos.' +
+    'STextoEsteArticuloNoTieneVariacionesActivadasArticulos',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      STextoEsteArticuloNoTieneVariacionesActivadasArticulos);
+  ARegistrar('inLibMsgArticulos.' +
+    'STextoCodigoArticulos',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      STextoCodigoArticulos);
+  ARegistrar('inLibMsgArticulos.' +
+    'STextoDescripcionArticulos',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      STextoDescripcionArticulos);
+  ARegistrar('inLibMsgArticulos.' +
+    'STextoFamiliaArticulos',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      STextoFamiliaArticulos);
+  ARegistrar('inLibMsgArticulos.' +
+    'STextoTemporadaArticulos',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      STextoTemporadaArticulos);
+  ARegistrar('inLibMsgArticulos.' +
+    'STextoProveedorArticulos',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      STextoProveedorArticulos);
+  ARegistrar('inLibMsgArticulos.' +
+    'STextoRefProveedorArticulos',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      STextoRefProveedorArticulos);
+  ARegistrar('inLibMsgArticulos.' +
+    'STextoStockArticulos',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      STextoStockArticulos);
+  ARegistrar('inLibMsgArticulos.' +
+    'STextoCodBarrasArticulos',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      STextoCodBarrasArticulos);
+  ARegistrar('inLibMsgArticulos.' +
+    'STextoSinAsignarArticulos',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      STextoSinAsignarArticulos);
+  ARegistrar('inLibMsgArticulos.' +
+    'STextoArticuloArticulos',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      STextoArticuloArticulos);
+  ARegistrar('inLibMsgArticulos.' +
+    'STextoSiArticulos',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      STextoSiArticulos);
+  ARegistrar('inLibMsgArticulos.' +
+    'STextoSkuArticulos',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      STextoSkuArticulos);
+  ARegistrar('inLibMsgComun.' +
+    'STextoCambioDeClienteFilaNoActualizadaComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoCambioDeClienteFilaNoActualizadaComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoLaConexionDeConfiguracionDeCamposNoComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoLaConexionDeConfiguracionDeCamposNoComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoLaConexionDeEstructuraNoEstaActivaComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoLaConexionDeEstructuraNoEstaActivaComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoNoSeHaIndicadoLaClaseDelComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoNoSeHaIndicadoLaClaseDelComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoElDataModuleSNoEsDeComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoElDataModuleSNoEsDeComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoElIdentificadorNoPuedeEstarVacioComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoElIdentificadorNoPuedeEstarVacioComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoIdentificadorDeBaseDeDatosNoValidoComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoIdentificadorDeBaseDeDatosNoValidoComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoIdentificadorDeGuiaNoValidoSComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoIdentificadorDeGuiaNoValidoSComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoElDatasetMasterNoEsUnaConsultaComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoElDatasetMasterNoEsUnaConsultaComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoLaConsultaMasterNoContieneSqlComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoLaConsultaMasterNoContieneSqlComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoLaGuiaNoDefineColumnasORelacionesComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoLaGuiaNoDefineColumnasORelacionesComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoDebeIndicarLaEmpresaDeSesionComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoDebeIndicarLaEmpresaDeSesionComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoLaConexionDeLicenciaNoEstaActivaComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoLaConexionDeLicenciaNoEstaActivaComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoDebeSeleccionarAlMenosUnObjetoDeComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoDebeSeleccionarAlMenosUnObjetoDeComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoLaUnidadDeTrabajoDeMovimientosYaComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoLaUnidadDeTrabajoDeMovimientosYaComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoLaUnidadDeTrabajoDeMovimientosNoComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoLaUnidadDeTrabajoDeMovimientosNoComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoUnMovimientoDeAlmacenNoPuedeTenerComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoUnMovimientoDeAlmacenNoPuedeTenerComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoLaConexionDePermisosNoEstaActivaComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoLaConexionDePermisosNoEstaActivaComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoLeertotalmaximolineaempresaFaltaLaConexionComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoLeertotalmaximolineaempresaFaltaLaConexionComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoTvigilantetotalmaximolineaFaltaElDatasetDeLineasComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoTvigilantetotalmaximolineaFaltaElDatasetDeLineasComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoTvigilantetotalmaximolineaFaltaElLectorDelMaximoComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoTvigilantetotalmaximolineaFaltaElLectorDelMaximoComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoLaConexionDeValoresAutomaticosNoEstaComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoLaConexionDeValoresAutomaticosNoEstaComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoParaUsarLaCajaNuevaEnElComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoParaUsarLaCajaNuevaEnElComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoCodigoNombreHexOBotonParaElegirComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoCodigoNombreHexOBotonParaElegirComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoCodigoNombreOHexDelColorBasicoComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoCodigoNombreOHexDelColorBasicoComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoIntroduzcaElValorYPulseEntrarComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoIntroduzcaElValorYPulseEntrarComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoColumnasAlPortapapelesComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoColumnasAlPortapapelesComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoSDRegistrosEnDMsComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoSDRegistrosEnDMsComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoOkFilasAfectadasDEnDMsComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoOkFilasAfectadasDEnDMsComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoSDFilasAfectadasEnDMsComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoSDFilasAfectadasEnDMsComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoEjecucionCanceladaPorElUsuarioComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoEjecucionCanceladaPorElUsuarioComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoLineasAnadidasAlAlbaranDesdeElPedidoComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoLineasAnadidasAlAlbaranDesdeElPedidoComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoAlbaranCreadoDesdeElPedidoSSComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoAlbaranCreadoDesdeElPedidoSSComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoAlbaranComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoAlbaranComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoDelimiterSinSeparadorComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoDelimiterSinSeparadorComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoRestaurandoSqlComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoRestaurandoSqlComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoPreparandoLaBaseDeDatosComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoPreparandoLaBaseDeDatosComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoConectandoParaRestaurarComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoConectandoParaRestaurarComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoNivelDeBalanceInvalidoComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoNivelDeBalanceInvalidoComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoBalanceDeAlmacenPorTallasComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoBalanceDeAlmacenPorTallasComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoBalanceDeAlmacenSinTallasComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoBalanceDeAlmacenSinTallasComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoConceptoComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoConceptoComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoColorComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoColorComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoCdadComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoCdadComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoCantidadComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoCantidadComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoPrecioComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoPrecioComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoImporteComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoImporteComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoVentasComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoVentasComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoTotalComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoTotalComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoTotalComun2',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoTotalComun2);
+  ARegistrar('inLibMsgComun.' +
+    'STextoFamiliaComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoFamiliaComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoArticuloComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoArticuloComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoTotalGeneralComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoTotalGeneralComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoCamposDeSalidaObligatoriosAusentesSComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoCamposDeSalidaObligatoriosAusentesSComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoElSqlEstaVacioComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoElSqlEstaVacioComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoSoloSeAdmiteUnaSentenciaSqlComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoSoloSeAdmiteUnaSentenciaSqlComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoElSqlContieneUnaOperacionDdlNoComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoElSqlContieneUnaOperacionDdlNoComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoSeEsperabaUnaSentenciaSComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoSeEsperabaUnaSentenciaSComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoParametrosEsperadosSEncontradosSComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoParametrosEsperadosSEncontradosSComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoElRepositorioDeLaDefinicionEstaVacioComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoElRepositorioDeLaDefinicionEstaVacioComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoLaOperacionDeLaDefinicionEstaVaciaComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoLaOperacionDeLaDefinicionEstaVaciaComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoLaVersionDeLaDefinicionDebeSerComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoLaVersionDeLaDefinicionDebeSerComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoUnaLecturaDebeDeclararSusCamposDeComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoUnaLecturaDebeDeclararSusCamposDeComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoLaPoliticaDeLecturaConFallbackSoloComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoLaPoliticaDeLecturaConFallbackSoloComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoUnaLecturaNoPuedeUsarLaPoliticaComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoUnaLecturaNoPuedeUsarLaPoliticaComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoRepresentacionFnmtComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoRepresentacionFnmtComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoNominalFnmtComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoNominalFnmtComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoDatosDeEntradaVaciosComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoDatosDeEntradaVaciosComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoErrorAlDecodificarBase64Comun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoErrorAlDecodificarBase64Comun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoErrorDuranteLaDesencriptacionComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoErrorDuranteLaDesencriptacionComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoDescripcionComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoDescripcionComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoStockComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoStockComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoElPerfilDeArranqueDebeSerUnComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoElPerfilDeArranqueDebeSerUnComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoLaRutaDelIniDeUsuarioNoComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoLaRutaDelIniDeUsuarioNoComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoPasswordenNoContieneUnaContrasenaAesValidaComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoPasswordenNoContieneUnaContrasenaAesValidaComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoDeudoresPorEmpresaYTiendaComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoDeudoresPorEmpresaYTiendaComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoExtractoDeCuentaDelClienteComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoExtractoDeCuentaDelClienteComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoSituacionActualADateImportesEnComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoSituacionActualADateImportesEnComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoEmpresaComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoEmpresaComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoTiendaComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoTiendaComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoPendienteDesdeComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoPendienteDesdeComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoAntiguedadDiasComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoAntiguedadDiasComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoPendienteComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoPendienteComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoFechaComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoFechaComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoDepositoComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoDepositoComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoEstadoComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoEstadoComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoEntregadoComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoEntregadoComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoPaginaPageDeTotalpagesComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoPaginaPageDeTotalpagesComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoNoSeEncuentraElDocumentoParaRecuperarComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoNoSeEncuentraElDocumentoParaRecuperarComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoEstructuraCorrectaComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoEstructuraCorrectaComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoLaBaseDeDatosSNoExisteComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoLaBaseDeDatosSNoExisteComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoLaBaseDeDatosSExistePeroComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoLaBaseDeDatosSExistePeroComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoErrorDeConexionComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoErrorDeConexionComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoEstadoDesconocidoComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoEstadoDesconocidoComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoNoSeHaConfiguradoElLectorDeComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoNoSeHaConfiguradoElLectorDeComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoLibroDeExcelXlsxXlsxComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoLibroDeExcelXlsxXlsxComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoSeNecesitanAlMenosDosEfectosParaComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoSeNecesitanAlMenosDosEfectosParaComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoApartadoDesconocidoSComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoApartadoDesconocidoSComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoFaltaElObjetoSComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoFaltaElObjetoSComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoElEsquemaIdealNoEsJsonComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoElEsquemaIdealNoEsJsonComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoNoSeHaConfiguradoElRepositorioDeComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoNoSeHaConfiguradoElRepositorioDeComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoLogNoProporcionadoComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoLogNoProporcionadoComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoTotalArticuloComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoTotalArticuloComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoArticuloComun2',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoArticuloComun2);
+  ARegistrar('inLibMsgComun.' +
+    'STextoAlmacenComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoAlmacenComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoMovimientosDeVentasPorArticulosYFechasComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoMovimientosDeVentasPorArticulosYFechasComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoElTamanoDelLoteDebeSerMayorComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoElTamanoDelLoteDebeSerMayorComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoNoSeHaConfiguradoElRepositorioDeComun2',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoNoSeHaConfiguradoElRepositorioDeComun2);
+  ARegistrar('inLibMsgComun.' +
+    'STextoElServidorDeBaseDeDatosNoComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoElServidorDeBaseDeDatosNoComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoElPuertoDeBaseDeDatosNoComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoElPuertoDeBaseDeDatosNoComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoLaBaseDeDatosNoPuedeEstarComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoLaBaseDeDatosNoPuedeEstarComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoElUsuarioDeBaseDeDatosNoComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoElUsuarioDeBaseDeDatosNoComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoLaRutaDeLaCopiaNoPuedeComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoLaRutaDeLaCopiaNoPuedeComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoElPropietarioNoProporcionaIregistrologComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoElPropietarioNoProporcionaIregistrologComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoNoSeHaConfiguradoElRepositorioDeComun3',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoNoSeHaConfiguradoElRepositorioDeComun3);
+  ARegistrar('inLibMsgComun.' +
+    'STextoTotalVentasDComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoTotalVentasDComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoTotalCobradoSComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoTotalCobradoSComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoNombreDeAdjuntoNoValidoComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoNombreDeAdjuntoNoValidoComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoNombreAlmacenComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoNombreAlmacenComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoFamiliaComun2',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoFamiliaComun2);
+  ARegistrar('inLibMsgComun.' +
+    'STextoSkuComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoSkuComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoLoteComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoLoteComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoCaducidadComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoCaducidadComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoDiasParaCaducarComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoDiasParaCaducarComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoValorTotalComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoValorTotalComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoTotalesPorAlmacenComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoTotalesPorAlmacenComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoEfectoComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoEfectoComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoTipoComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoTipoComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoProveedorComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoProveedorComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoNombreProveedorComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoNombreProveedorComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoSituacionComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoSituacionComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoFechaSeleccionadaComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoFechaSeleccionadaComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoVencimientoComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoVencimientoComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoDiasComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoDiasComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoFechaDocumentoComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoFechaDocumentoComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoFechaValorComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoFechaValorComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoPagadoComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoPagadoComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoCompensadoComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoCompensadoComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoRemesaComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoRemesaComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoBancoRemesaComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoBancoRemesaComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoTotalesNivelDComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoTotalesNivelDComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoListaSInexistenteComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoListaSInexistenteComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoFinaliceLaOperacionActualAntesDeRetirarComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoFinaliceLaOperacionActualAntesDeRetirarComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoGuardePrimeroLaTarifaComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoGuardePrimeroLaTarifaComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoInstaleLaActualizacion727Comun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoInstaleLaActualizacion727Comun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoHayUnaTransaccionEnCursoComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoHayUnaTransaccionEnCursoComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoLaTarifaYaNoExisteComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoLaTarifaYaNoExisteComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoReferenciaProveedorComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoReferenciaProveedorComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoTallaComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoTallaComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoPestanaComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoPestanaComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoMarcaComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoMarcaComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoTemporadaComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoTemporadaComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoLoteSerieComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoLoteSerieComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoDetalleLoteComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoDetalleLoteComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoPrecioPorUnidadComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoPrecioPorUnidadComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoFechaAplicacionComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoFechaAplicacionComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoCopaComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoCopaComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoClienteComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoClienteComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoNombreComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoNombreComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoDireccionComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoDireccionComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoDireccionAdicionalComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoDireccionAdicionalComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoCodigoPostalComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoCodigoPostalComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoPoblacionComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoPoblacionComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoProvinciaComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoProvinciaComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoPaisComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoPaisComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoTransitoComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoTransitoComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoEmpresaOrigenComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoEmpresaOrigenComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoOrigenComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoOrigenComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoEmpresaDestinoComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoEmpresaDestinoComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoDestinoComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoDestinoComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoCargaComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoCargaComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoDocumentoComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoDocumentoComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoOperacionComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoOperacionComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoFechaDeCargaComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoFechaDeCargaComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoUnidadesComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoUnidadesComun);
+  ARegistrar('inLibMsgComun.' +
+    'STextoParametrosDeCajaNoDisponiblesComun',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STextoParametrosDeCajaNoDisponiblesComun);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoLasFotosProvisionalesRequierenConfirmarLaTransaccionCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoLasFotosProvisionalesRequierenConfirmarLaTransaccionCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoElRepositorioRequiereElContextoDeLaCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoElRepositorioRequiereElContextoDeLaCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoElTipoNoTieneEjeDeFilasCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoElTipoNoTieneEjeDeFilasCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoFaltaLaEmpresaDeLaSesionCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoFaltaLaEmpresaDeLaSesionCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoPedidoImportadoDLineasDFotosYCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoPedidoImportadoDLineasDFotosYCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoDLineasQuedanPendientesDeFamiliaYCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoDLineasQuedanPendientesDeFamiliaYCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoNoSeEncontroLaFotoSCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoNoSeEncontroLaFotoSCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoFotosDelPedidoCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoFotosDelPedidoCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoPedidoOriginalCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoPedidoOriginalCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoElOcrHaCompletadoAlgunasCantidadesMedianteCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoElOcrHaCompletadoAlgunasCantidadesMedianteCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoAlbaranCreadoDesdeElPedidoSSCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoAlbaranCreadoDesdeElPedidoSSCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoAlbaranCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoAlbaranCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoElPedidoTieneCantidadesPendientesDeRecibirCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoElPedidoTieneCantidadesPendientesDeRecibirCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoNoSeEncontroElArticuloSCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoNoSeEncontroElArticuloSCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoDesgloseIvaReCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoDesgloseIvaReCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoTipoCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoTipoCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoBaseCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoBaseCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoIvaCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoIvaCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoIvaCompras2',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoIvaCompras2);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoReCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoReCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoReCompras2',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoReCompras2);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoSuperReducidoCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoSuperReducidoCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoTotalBrutoCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoTotalBrutoCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoDtoComercialCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoDtoComercialCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoTotalBasesCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoTotalBasesCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoImpuestosCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoImpuestosCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoRetencionIrpfCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoRetencionIrpfCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoDtoFinancieroCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoDtoFinancieroCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoTotalLiquidoCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoTotalLiquidoCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoProveedorCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoProveedorCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoDocumentoCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoDocumentoCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoFechaCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoFechaCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoEstadoCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoEstadoCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoRefPrvCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoRefPrvCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoCodArtCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoCodArtCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoRefPrvCompras2',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoRefPrvCompras2);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoDescripcionCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoDescripcionCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoColorCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoColorCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoSisCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoSisCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoUdsCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoUdsCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoImporteCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoImporteCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoTotalesCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoTotalesCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoLineaCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoLineaCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoArticuloCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoArticuloCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoSkuCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoSkuCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoCantCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoCantCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoPrecioCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoPrecioCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoTotalCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoTotalCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoTotalBaseCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoTotalBaseCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoTotalUdsCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoTotalUdsCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoTipoDeDocumentoCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoTipoDeDocumentoCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoProveedorCompras2',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoProveedorCompras2);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoNombreProveedorCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoNombreProveedorCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoDocumentoCompras2',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoDocumentoCompras2);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoFechaCompras2',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoFechaCompras2);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoReferenciaProveedorCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoReferenciaProveedorCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoAlmacenCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoAlmacenCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoTemporadaCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoTemporadaCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoCantidadCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoCantidadCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoBaseImponibleCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoBaseImponibleCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoRecargoCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoRecargoCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoTotalLiquidoCompras2',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoTotalLiquidoCompras2);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoTotalesPorTipoYProveedorCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoTotalesPorTipoYProveedorCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoComprasNetasCompras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoComprasNetasCompras);
+  ARegistrar('inLibMsgCompras.' +
+    'STextoMargen100Compras',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      STextoMargen100Compras);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoFaltaElResolverDeArticulosFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoFaltaElResolverDeArticulosFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoLosServiciosDeFacturaNoEstanConfiguradosFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoLosServiciosDeFacturaNoEstanConfiguradosFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoFaltaLaTransaccionDeBorradoFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoFaltaLaTransaccionDeBorradoFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoAlmacenFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoAlmacenFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoDescripcionFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoDescripcionFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoModeloFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoModeloFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoFamiliaFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoFamiliaFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoProveedorFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoProveedorFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoTemporadaFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoTemporadaFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoStockFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoStockFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoCantidadFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoCantidadFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoOrigenFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoOrigenFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoInstanteStockFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoInstanteStockFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoElPresupuestoPerteneceAVentasFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoElPresupuestoPerteneceAVentasFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoLaDevolucionDeVentaSeRepresentaMedianteFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoLaDevolucionDeVentaSeRepresentaMedianteFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoNifInvalidoFormatoEsperado12345678aFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoNifInvalidoFormatoEsperado12345678aFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoNieInvalidoFormatoEsperadoX1234567aFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoNieInvalidoFormatoEsperadoX1234567aFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoCifInvalidoFormatoEsperadoA12345674Facturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoCifInvalidoFormatoEsperadoA12345674Facturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoNifNieOCifVacioONoFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoNifNieOCifVacioONoFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoSinFotoFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoSinFotoFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoDocumentoDeTrabajoFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoDocumentoDeTrabajoFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoIdFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoIdFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoTituloFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoTituloFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoTipoFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoTipoFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoEstadoFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoEstadoFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoPropietarioFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoPropietarioFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoEmpresaFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoEmpresaFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoAlmacenFacturas2',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoAlmacenFacturas2);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoFechaFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoFechaFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoLineaFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoLineaFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoArticuloFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoArticuloFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoSkuFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoSkuFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoDescripcionArticuloFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoDescripcionArticuloFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoTarifaFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoTarifaFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoPrecioTarifaFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoPrecioTarifaFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoDescripcionUnidadFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoDescripcionUnidadFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoDocumentoDeTrabajoFacturas2',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoDocumentoDeTrabajoFacturas2);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoFacturaSimplificadaFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoFacturaSimplificadaFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoFacturaRectificativaFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoFacturaRectificativaFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoFacturaProformaFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoFacturaProformaFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoNifFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoNifFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoFechaFacturas2',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoFechaFacturas2);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoNumeroFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoNumeroFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoPrecioFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoPrecioFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoIvaFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoIvaFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoTotalFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoTotalFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoBaseImponibleFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoBaseImponibleFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoTipoIvaFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoTipoIvaFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoCuotaIvaFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoCuotaIvaFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoReFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoReFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoTotalReFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoTotalReFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoTotalBaseImponibleFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoTotalBaseImponibleFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoTotalImpuestosIvaReFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoTotalImpuestosIvaReFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoTotalAPagarFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoTotalAPagarFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoFormaDePagoFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoFormaDePagoFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoProveedorNoEncontradoFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoProveedorNoEncontradoFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoVariacionFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoVariacionFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoTallasFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoTallasFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoDetalleFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoDetalleFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoUnidadFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoUnidadFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoIvaFacturas2',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoIvaFacturas2);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoPrecioAntesDelDescuentoFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoPrecioAntesDelDescuentoFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoDescuentoFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoDescuentoFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoSerieFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoSerieFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoNumeroFacturas2',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoNumeroFacturas2);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoFechaFacturas3',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoFechaFacturas3);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoEmpresaFacturas2',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoEmpresaFacturas2);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoNifEmpresaFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoNifEmpresaFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoDireccionEmpresaFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoDireccionEmpresaFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoClienteProveedorFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoClienteProveedorFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoNifTerceroFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoNifTerceroFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoDireccionTerceroFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoDireccionTerceroFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoFormaDePagoFacturas2',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoFormaDePagoFacturas2);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoValidezFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoValidezFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoBaseImponibleFacturas2',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoBaseImponibleFacturas2);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoIvaFacturas3',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoIvaFacturas3);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoRecargoFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoRecargoFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoRetencionFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoRetencionFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoNotasFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoNotasFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoTipoDeIvaFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoTipoDeIvaFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoRecargoFacturas2',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoRecargoFacturas2);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoCuotaRecargoFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoCuotaRecargoFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoBeneficiarioDelPagoFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoBeneficiarioDelPagoFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoRecibiElBeneficiarioFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoRecibiElBeneficiarioFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoFacturaFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoFacturaFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoPlazoFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoPlazoFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoEstadoFacturas2',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoEstadoFacturas2);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoCodigoTerceroFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoCodigoTerceroFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoNombreTerceroFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoNombreTerceroFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoDireccionFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoDireccionFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoCodigoPostalFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoCodigoPostalFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoPoblacionFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoPoblacionFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoProvinciaFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoProvinciaFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoIbanFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoIbanFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoExpedicionFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoExpedicionFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoVencimientoFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoVencimientoFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoImporteFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoImporteFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoTotalesPorTerceroFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoTotalesPorTerceroFacturas);
+  ARegistrar('inLibMsgFacturas.' +
+    'STextoSelectDeLineasSinFromFacturas',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.
+      STextoSelectDeLineasSinFromFacturas);
+  ARegistrar('inLibMsgFotos.' +
+    'STextoNoSePudoBloquearLaGaleriaParaFotos',
+    'src/Lib/inLibMsgFotos.pas',
+    @inLibMsgFotos.
+      STextoNoSePudoBloquearLaGaleriaParaFotos);
+  ARegistrar('inLibMsgFotos.' +
+    'STextoNoSePuedenModificarFotosDentroDeFotos',
+    'src/Lib/inLibMsgFotos.pas',
+    @inLibMsgFotos.
+      STextoNoSePuedenModificarFotosDentroDeFotos);
+  ARegistrar('inLibMsgFotos.' +
+    'STextoElOrdenDeLaFotoDebeSerFotos',
+    'src/Lib/inLibMsgFotos.pas',
+    @inLibMsgFotos.
+      STextoElOrdenDeLaFotoDebeSerFotos);
+  ARegistrar('inLibMsgFotos.' +
+    'STextoSinColorFotos',
+    'src/Lib/inLibMsgFotos.pas',
+    @inLibMsgFotos.
+      STextoSinColorFotos);
+  ARegistrar('inLibMsgFotos.' +
+    'STextoSinTallaFotos',
+    'src/Lib/inLibMsgFotos.pas',
+    @inLibMsgFotos.
+      STextoSinTallaFotos);
+  ARegistrar('inLibMsgFotos.' +
+    'STextoNombreDeFotoInvalidoFotos',
+    'src/Lib/inLibMsgFotos.pas',
+    @inLibMsgFotos.
+      STextoNombreDeFotoInvalidoFotos);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoNoEstaConfiguradaLaCarpetaDeFotosIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoNoEstaConfiguradaLaCarpetaDeFotosIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoNoExisteElArticuloLocalSIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoNoExisteElArticuloLocalSIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElArticuloLocalSNoEstaActivoIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElArticuloLocalSNoEstaActivoIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElArticuloLocalSNoEstaMarcadoIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElArticuloLocalSNoEstaMarcadoIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoLaEmpresaSNoExisteONoIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoLaEmpresaSNoExisteONoIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoLaTarifaWebSNoExisteOIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoLaTarifaWebSNoExisteOIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoNoSePuedeResolverElIvaSIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoNoSePuedeResolverElIvaSIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElArticuloSNoTienePrecioVigenteIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElArticuloSNoTienePrecioVigenteIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElArticuloSNoTieneFamiliaIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElArticuloSNoTieneFamiliaIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoLaFamiliaDelArticuloSSuperaDIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoLaFamiliaDelArticuloSSuperaDIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoLaJerarquiaDeFamiliasContieneUnCicloIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoLaJerarquiaDeFamiliasContieneUnCicloIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoNoExisteLaFamiliaLocalSIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoNoExisteLaFamiliaLocalSIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoLaFamiliaLocalSNoEstaActivaIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoLaFamiliaLocalSNoEstaActivaIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoLaVariacionSDelSkuSNoIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoLaVariacionSDelSkuSNoIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElSkuSContieneUnAtributoAjenoIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElSkuSContieneUnAtributoAjenoIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElSkuSUsaUnValorDeIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElSkuSUsaUnValorDeIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElSkuSUsaUnAtributoBasicoIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElSkuSUsaUnAtributoBasicoIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElSkuSTieneMasDeUnIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElSkuSTieneMasDeUnIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElSkuSTieneDAtributosYIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElSkuSTieneDAtributosYIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElStockDeSNoCabeEnIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElStockDeSNoCabeEnIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElArticuloVariableSNoTieneTipoIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElArticuloVariableSNoTieneTipoIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElArticuloVariableSContieneUnSkuIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElArticuloVariableSContieneUnSkuIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElSkuSNoPerteneceALaIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElSkuSNoPerteneceALaIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElSkuSNoTienePrecioVigenteIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElSkuSNoTienePrecioVigenteIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElArticuloVariableSNoTieneSkuIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElArticuloVariableSNoTieneSkuIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoNoExisteLaFotoRealSIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoNoExisteLaFotoRealSIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoLaCopiaRealDeLaFotoNoIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoLaCopiaRealDeLaFotoNoIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoLaFotoRealSNoEsLegibleIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoLaFotoRealSNoEsLegibleIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoLaFotoRealSNoTieneDimensionesIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoLaFotoRealSNoTieneDimensionesIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoLaClaveDeFotoSNoPerteneceIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoLaClaveDeFotoSNoPerteneceIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoNoSeEncuentraLaCopiaRealDeIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoNoSeEncuentraLaCopiaRealDeIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoLaRutaDeFotoRealEstaDuplicadaIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoLaRutaDeFotoRealEstaDuplicadaIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElArticuloSTieneMasDeUnaIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElArticuloSTieneMasDeUnaIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElArticuloSNoTieneUnaFotoIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElArticuloSNoTieneUnaFotoIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoSNoPuedeEstarVacioIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoSNoPuedeEstarVacioIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoSSuperaLosDCaracteresPermitidosIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoSSuperaLosDCaracteresPermitidosIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoSNoPuedeSerInfinitoNiNanIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoSNoPuedeSerInfinitoNiNanIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoSNoPuedeSerNegativoIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoSNoPuedeSerNegativoIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoReferenciaDelProductoIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoReferenciaDelProductoIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoNombreDelProductoIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoNombreDelProductoIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoEnlaceDelProductoIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoEnlaceDelProductoIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoLaDescripcionCortaSuperaLosDCaracteresIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoLaDescripcionCortaSuperaLosDCaracteresIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoLaDescripcionSuperaLosDCaracteresPermitidosIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoLaDescripcionSuperaLosDCaracteresPermitidosIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElProductoDebeTenerAlMenosUnaIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElProductoDebeTenerAlMenosUnaIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoCodigoDeFamiliaIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoCodigoDeFamiliaIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoNombreDeFamiliaIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoNombreDeFamiliaIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoEnlaceDeFamiliaIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoEnlaceDeFamiliaIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoLaFamiliaSEstaDuplicadaIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoLaFamiliaSEstaDuplicadaIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoLaPrimeraFamiliaDeLaRutaNoIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoLaPrimeraFamiliaDeLaRutaNoIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoLaRutaJerarquicaDeFamiliasNoEsIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoLaRutaJerarquicaDeFamiliasNoEsIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoCodigoDeGrupoIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoCodigoDeGrupoIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoNombreDeGrupoIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoNombreDeGrupoIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoNombrePublicoDeGrupoIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoNombrePublicoDeGrupoIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoCodigoDeValorIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoCodigoDeValorIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoNombreDeValorIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoNombreDeValorIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElGrupoSTieneUnTipoNoIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElGrupoSTieneUnTipoNoIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElGrupoDeAtributoSTieneDatosIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElGrupoDeAtributoSTieneDatosIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElValorDeAtributoSTieneDatosIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElValorDeAtributoSTieneDatosIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoReferenciaDeCombinacionIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoReferenciaDeCombinacionIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoPrecioDeCombinacionSinIvaIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoPrecioDeCombinacionSinIvaIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoImpactoDePrecioIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoImpactoDePrecioIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElStockDelSkuSNoPuedeIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElStockDelSkuSNoPuedeIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElSkuSEstaDuplicadoIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElSkuSEstaDuplicadoIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElSkuSNoTieneAtributosIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElSkuSNoTieneAtributosIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElProductoVariableDebeTenerCombinacionesActivasIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElProductoVariableDebeTenerCombinacionesActivasIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElProductoSimpleNoDebeCrearCombinacionesIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElProductoSimpleNoDebeCrearCombinacionesIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElProductoDebeTenerUnaFotoGeneralIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElProductoDebeTenerUnaFotoGeneralIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoNombreDeFotoIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoNombreDeFotoIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoRutaRealDeFotoIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoRutaRealDeFotoIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElTipoDeIvaSNoSeIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElTipoDeIvaSNoSeIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoPorcentajeDeIvaIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoPorcentajeDeIvaIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoPrecioBaseSinIvaIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoPrecioBaseSinIvaIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoLaCantidadTotalNoPuedeSerNegativaIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoLaCantidadTotalNoPuedeSerNegativaIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElCodigoDeArticuloNoPuedeEstarIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElCodigoDeArticuloNoPuedeEstarIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElUsuarioDelPerfilNoPuedeEstarIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElUsuarioDelPerfilNoPuedeEstarIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoLaEmpresaWebNoPuedeEstarVaciaIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoLaEmpresaWebNoPuedeEstarVaciaIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoLaTarifaWebNoPuedeEstarVaciaIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoLaTarifaWebNoPuedeEstarVaciaIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoLaEmpresaSNoTieneAlmacenesWebIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoLaEmpresaSNoTieneAlmacenesWebIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElCambioPrestashopNoIdentificaArticuloNiIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElCambioPrestashopNoIdentificaArticuloNiIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoLaVisibilidadPrestashopNoIdentificaElArticuloIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoLaVisibilidadPrestashopNoIdentificaElArticuloIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElArticuloSNoTieneUnPrecioIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElArticuloSNoTieneUnPrecioIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElArticuloSNoTieneUnTipoIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElArticuloSNoTieneUnTipoIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoLaEmpresaSNoTieneAlmacenesWebIntegraciones2',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoLaEmpresaSNoTieneAlmacenesWebIntegraciones2);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElArticuloVariableSNoTieneSkuIntegraciones2',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElArticuloVariableSNoTieneSkuIntegraciones2);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElArticuloSNoTieneUnidadesValidasIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElArticuloSNoTieneUnidadesValidasIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoEstadoDeReintentoPrestashopNoValidoIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoEstadoDeReintentoPrestashopNoValidoIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoNoSeCompletoElGuardadoDelArticuloIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoNoSeCompletoElGuardadoDelArticuloIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoLaPublicacionAplazadaDePrestashopNoEsIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoLaPublicacionAplazadaDePrestashopNoEsIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoNoSePudoRegistrarLaPublicacionAplazadaIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoNoSePudoRegistrarLaPublicacionAplazadaIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoUnaPublicacionAplazadaNoPuedeDesactivarElIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoUnaPublicacionAplazadaNoPuedeDesactivarElIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoFaltanUrlOTiendaParaAplazarLaIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoFaltanUrlOTiendaParaAplazarLaIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElSqlNoContieneElMarcadorDeIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElSqlNoContieneElMarcadorDeIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoNoSePudoConstruirElPrecioCondicionalIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoNoSePudoConstruirElPrecioCondicionalIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoNoExisteElCierreDeCajaSIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoNoExisteElCierreDeCajaSIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoCierreSolicitadoTrasLaOperacionRemotaActualIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoCierreSolicitadoTrasLaOperacionRemotaActualIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoNoSeResolvioUnAtributoDeLaIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoNoSeResolvioUnAtributoDeLaIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElArticuloNoTieneUnaFotoRealIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElArticuloNoTieneUnaFotoRealIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElClienteDeAltasPrestashopNoEstaIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElClienteDeAltasPrestashopNoEstaIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoLaConfiguracionPrestashopCambioAntesDelAltaIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoLaConfiguracionPrestashopCambioAntesDelAltaIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoLaConfiguracionPrestashopCambioDuranteElAltaIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoLaConfiguracionPrestashopCambioDuranteElAltaIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoLaConfiguracionPrestashopCambioDuranteElEnvioIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoLaConfiguracionPrestashopCambioDuranteElEnvioIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoElContextoDelHistorialPrestashopNoEsIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoElContextoDelHistorialPrestashopNoEsIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoLaFabricaNoCreoLaSesionVentaswsIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoLaFabricaNoCreoLaSesionVentaswsIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoLaSesionVentaswsNoTieneRepositorioIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoLaSesionVentaswsNoTieneRepositorioIntegraciones);
+  ARegistrar('inLibMsgIntegraciones.' +
+    'STextoLaSesionVentaswsNoTieneSerializadorIntegraciones',
+    'src/Lib/inLibMsgIntegraciones.pas',
+    @inLibMsgIntegraciones.
+      STextoLaSesionVentaswsNoTieneSerializadorIntegraciones);
+  ARegistrar('inLibMsgReparaciones.' +
+    'STextoSeccionDeImpresoDesconocidaReparaciones',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      STextoSeccionDeImpresoDesconocidaReparaciones);
+  ARegistrar('inLibMsgReparaciones.' +
+    'STextoReferenciaReparaciones',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      STextoReferenciaReparaciones);
+  ARegistrar('inLibMsgReparaciones.' +
+    'STextoFechaReparaciones',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      STextoFechaReparaciones);
+  ARegistrar('inLibMsgReparaciones.' +
+    'STextoEntregaAlClienteReparaciones',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      STextoEntregaAlClienteReparaciones);
+  ARegistrar('inLibMsgReparaciones.' +
+    'STextoObjetoReparaciones',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      STextoObjetoReparaciones);
+  ARegistrar('inLibMsgReparaciones.' +
+    'STextoTrabajoReparaciones',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      STextoTrabajoReparaciones);
+  ARegistrar('inLibMsgReparaciones.' +
+    'STextoDetallesReparaciones',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      STextoDetallesReparaciones);
+  ARegistrar('inLibMsgReparaciones.' +
+    'STextoDireccionReparaciones',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      STextoDireccionReparaciones);
+  ARegistrar('inLibMsgReparaciones.' +
+    'STextoPoblacionReparaciones',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      STextoPoblacionReparaciones);
+  ARegistrar('inLibMsgReparaciones.' +
+    'STextoTelefonoReparaciones',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      STextoTelefonoReparaciones);
+  ARegistrar('inLibMsgReparaciones.' +
+    'STextoLiquidacionReparaciones',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      STextoLiquidacionReparaciones);
+  ARegistrar('inLibMsgReparaciones.' +
+    'STextoReciboDeEvidenciaInvalidoReparaciones',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      STextoReciboDeEvidenciaInvalidoReparaciones);
+  ARegistrar('inLibMsgReparaciones.' +
+    'STextoNombreDeEvidenciaInvalidoReparaciones',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.
+      STextoNombreDeEvidenciaInvalidoReparaciones);
+  ARegistrar('inLibMsgVerifactu.' +
+    'STextoFlujoDeEmisionFiscalNoSoportadoVerifactu',
+    'src/Lib/inLibMsgVerifactu.pas',
+    @inLibMsgVerifactu.
+      STextoFlujoDeEmisionFiscalNoSoportadoVerifactu);
+  ARegistrar('inLibMsgVerifactu.' +
+    'STextoModoDeEmisionFiscalNoSoportadoVerifactu',
+    'src/Lib/inLibMsgVerifactu.pas',
+    @inLibMsgVerifactu.
+      STextoModoDeEmisionFiscalNoSoportadoVerifactu);
+  ARegistrar('inLibMsgVerifactu.' +
+    'STextoElTipoFiscalDeRectificativaDebeSerVerifactu',
+    'src/Lib/inLibMsgVerifactu.pas',
+    @inLibMsgVerifactu.
+      STextoElTipoFiscalDeRectificativaDebeSerVerifactu);
+  ARegistrar('inLibMsgVerifactu.' +
+    'STextoLaRectificativaSustitutivaNoTieneLosImportesVerifactu',
+    'src/Lib/inLibMsgVerifactu.pas',
+    @inLibMsgVerifactu.
+      STextoLaRectificativaSustitutivaNoTieneLosImportesVerifactu);
+  ARegistrar('inLibMsgVerifactu.' +
+    'STextoElExpedidorDelegadoDebeSerDDestinatarioVerifactu',
+    'src/Lib/inLibMsgVerifactu.pas',
+    @inLibMsgVerifactu.
+      STextoElExpedidorDelegadoDebeSerDDestinatarioVerifactu);
+  ARegistrar('inLibMsgVerifactu.' +
+    'STextoElTipoVeriFactuDeLaRectificativaVerifactu',
+    'src/Lib/inLibMsgVerifactu.pas',
+    @inLibMsgVerifactu.
+      STextoElTipoVeriFactuDeLaRectificativaVerifactu);
+
+  ARegistrar('inLibMsgArticulos.' +
+    'SCabeceraMovVentasUnidadesEntrada',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      SCabeceraMovVentasUnidadesEntrada);
+  ARegistrar('inLibMsgArticulos.' +
+    'SCabeceraMovVentasImporteEntrada',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      SCabeceraMovVentasImporteEntrada);
+  ARegistrar('inLibMsgArticulos.' +
+    'SCabeceraMovVentasUnidadesVenta',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      SCabeceraMovVentasUnidadesVenta);
+  ARegistrar('inLibMsgArticulos.' +
+    'SCabeceraMovVentasPrecioSalida',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      SCabeceraMovVentasPrecioSalida);
+  ARegistrar('inLibMsgArticulos.' +
+    'SCabeceraMovVentasPrecioFinal',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      SCabeceraMovVentasPrecioFinal);
+  ARegistrar('inLibMsgArticulos.' +
+    'SCabeceraMovVentasImporteVenta',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      SCabeceraMovVentasImporteVenta);
+  ARegistrar('inLibMsgArticulos.' +
+    'SCabeceraMovVentasImporteCoste',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      SCabeceraMovVentasImporteCoste);
+  ARegistrar('inLibMsgArticulos.' +
+    'SCabeceraMovVentasBeneficio',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      SCabeceraMovVentasBeneficio);
+  ARegistrar('inLibMsgArticulos.' +
+    'SCabeceraMovVentasPorcentajeBeneficio',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      SCabeceraMovVentasPorcentajeBeneficio);
+  ARegistrar('inLibMsgArticulos.' +
+    'SCabeceraMovVentasVentaMenosEntrada',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      SCabeceraMovVentasVentaMenosEntrada);
+  ARegistrar('inLibMsgArticulos.' +
+    'SCabeceraMovVentasPorcentajeVentaEntrada',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      SCabeceraMovVentasPorcentajeVentaEntrada);
+  ARegistrar('inLibMsgArticulos.' +
+    'SCabeceraMovVentasMargenPrimero',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      SCabeceraMovVentasMargenPrimero);
+  ARegistrar('inLibMsgArticulos.' +
+    'SCabeceraMovVentasMargenSegundo',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      SCabeceraMovVentasMargenSegundo);
+  ARegistrar('inLibMsgArticulos.' +
+    'SCabeceraMovVentasPorcentajeVendido',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      SCabeceraMovVentasPorcentajeVendido);
+  ARegistrar('inLibMsgArticulos.' +
+    'SCabeceraMovVentasPorcentajeVentas',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      SCabeceraMovVentasPorcentajeVentas);
+  ARegistrar('inLibMsgArticulos.' +
+    'SAvisoMovimientoSinDocumento',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      SAvisoMovimientoSinDocumento);
+  ARegistrar('inLibMsgArticulos.' +
+    'SSeleccionarReparacionMovimiento',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      SSeleccionarReparacionMovimiento);
+  ARegistrar('inLibMsgArticulos.' +
+    'SAvisoMovimientoSinReparacion',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      SAvisoMovimientoSinReparacion);
+  ARegistrar('inLibMsgArticulos.' +
+    'SAvisoMovimientoCajaSinClave',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      SAvisoMovimientoCajaSinClave);
+  ARegistrar('inLibMsgArticulos.' +
+    'SAvisoTipoDocumentoMovimientoNoSoportado',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.
+      SAvisoTipoDocumentoMovimientoNoSoportado);
+  ARegistrar('inLibMsgComun.' +
+    'SLimiteGlobalCuenta',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      SLimiteGlobalCuenta);
+  ARegistrar('inLibMsgComun.' +
+    'SSinLimiteCuenta',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      SSinLimiteCuenta);
+  ARegistrar('inLibMsgComun.' +
+    'STotalPendienteClienteCuenta',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STotalPendienteClienteCuenta);
+  ARegistrar('inLibMsgComun.' +
+    'STotalPendienteCuenta',
+    'src/Lib/inLibMsgComun.pas',
+    @inLibMsgComun.
+      STotalPendienteCuenta);
 end;
 {$WARN SYMBOL_DEPRECATED ON}
 

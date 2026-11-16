@@ -144,6 +144,7 @@ function EsScriptCopiaSeguridadCompleto(
 implementation
 
 uses
+  inLibMsgComun,
   Winapi.Windows,
   Core_Interfaces, ScriptWriters, System.IOUtils,
   inLibMsgConfiguracion;
@@ -697,7 +698,7 @@ end;
 procedure TRestoreWorker.ActualizarProgresoSQL(
   APosicion, ATotal, ASentencias: Integer);
 begin
-  FProgresoEtapa := 'Restaurando SQL';
+  FProgresoEtapa := STextoRestaurandoSqlComun;
   FPosicion := APosicion;
   FTotal := ATotal;
   FSentenciasEjecutadas := ASentencias;
@@ -712,7 +713,7 @@ var
 begin
   oFlujo := CrearFlujoRestauracion;
   try
-    FProgresoEtapa := 'Preparando la base de datos';
+    FProgresoEtapa := STextoPreparandoLaBaseDeDatosComun;
     FPosicion := 0;
     FTotal := 0;
     Synchronize(SyncProgreso);
@@ -791,7 +792,7 @@ begin
           [FRutaFichero]));
       end;
       ComprobarCancelacion;
-      FProgresoEtapa := 'Conectando para restaurar';
+      FProgresoEtapa := STextoConectandoParaRestaurarComun;
       FPosicion := 0;
       FTotal := 0;
       Synchronize(SyncProgreso);

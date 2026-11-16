@@ -17,6 +17,7 @@ uses
   Data.DB;
 
 type
+  // TODOS comprende los almacenes de la empresa de la caja.
   TAmbitoCanjeVale = (acvTodos, acvAlmacen, acvCaja);
 
   TRestriccionCanjeVale = record
@@ -124,19 +125,20 @@ begin
   Result.Empresa := Trim(AEmpresa);
   Result.Almacen := Trim(AAlmacen);
   Result.Caja := Trim(ACaja);
-  if (Result.Ambito <> acvTodos) and
-     ((Result.Empresa = '') or (Result.Almacen = '') or
-      ((Result.Ambito = acvCaja) and (Result.Caja = ''))) then
+  if (Result.Empresa = '') or
+     ((Result.Ambito <> acvTodos) and (Result.Almacen = '')) or
+     ((Result.Ambito = acvCaja) and (Result.Caja = '')) then
     raise EValidacionBBDD.Create(SErrorUbicacionCanjeValeNoConfigurada);
 end;
 
 function TRestriccionCanjeVale.Permite(const AEmpresa, AAlmacen,
   ACaja: string): Boolean;
 begin
-  Result := (Ambito = acvTodos) or
-    (SameText(Trim(AEmpresa), Empresa) and
-     SameText(Trim(AAlmacen), Almacen) and
-     ((Ambito = acvAlmacen) or SameText(Trim(ACaja), Caja)));
+  Result := (Trim(Empresa) <> '') and
+    SameText(Trim(AEmpresa), Trim(Empresa)) and
+    ((Ambito = acvTodos) or
+     (SameText(Trim(AAlmacen), Almacen) and
+      ((Ambito = acvAlmacen) or SameText(Trim(ACaja), Caja))));
 end;
 
 function TRestriccionCanjeVale.MensajeRechazo(const ACodigo,
@@ -144,7 +146,9 @@ function TRestriccionCanjeVale.MensajeRechazo(const ACodigo,
 var
   sAmbito: string;
 begin
-  sAmbito := SCanjeValeMismoAlmacen;
+  sAmbito := SCaptionColEmpresaVale + ' ' + Empresa;
+  if Ambito = acvAlmacen then
+    sAmbito := SCanjeValeMismoAlmacen;
   if Ambito = acvCaja then
     sAmbito := SCanjeValeMismaCaja;
   Result := Format(SErrorValeFueraAmbitoCaja,

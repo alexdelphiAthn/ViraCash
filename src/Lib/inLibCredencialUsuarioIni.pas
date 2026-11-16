@@ -27,6 +27,7 @@ procedure EliminarContrasenaUsuarioRecordada(
 implementation
 
 uses
+  inLibMsgComun,
   System.IniFiles,
   System.SysUtils,
   inLibCifrado,
@@ -54,7 +55,7 @@ begin
   if Trim(ARutaIni) = '' then
   begin
     raise EArgumentException.Create(
-      'La ruta del INI de usuario no puede estar vacía.');
+      STextoLaRutaDelIniDeUsuarioNoComun);
   end;
 end;
 
@@ -122,7 +123,7 @@ begin
     (CifrarAES(Result) <> ADatoCifrado) then
   begin
     raise EConvertError.Create(
-      'PasswordEn no contiene una contraseña AES válida.');
+      STextoPasswordenNoContieneUnaContrasenaAesValidaComun);
   end;
 end;
 

@@ -119,6 +119,7 @@ type
 implementation
 
 uses
+  inLibMsgComun,
   System.DateUtils;
 
 // =============================================================================
@@ -137,7 +138,8 @@ end;
 
 function TVentasDia.GetHintText: string;
 begin
-  Result := Format('Total Ventas: %d' + sLineBreak + 'Total Cobrado: %s €',
+  Result := Format(STextoTotalVentasDComun + sLineBreak +
+    STextoTotalCobradoSComun,
                    [FTotalVentas, FormatFloat('#,##0.00', FTotalCobrado)]);
 end;
 

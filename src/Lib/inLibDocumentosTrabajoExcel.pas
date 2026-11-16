@@ -32,6 +32,9 @@ procedure ExportarDocumentoTrabajoExcel(
 
 implementation
 
+uses
+  inLibMsgFacturas;
+
 const
   fidDtr = 'ID_DTR';
   ftituloDtr = 'TITULO_DTR';
@@ -206,34 +209,34 @@ begin
     end;
   end
   else
-    W(FHoja, AFila, COL_FOTO, 'Sin foto', False, ssahCenter);
+    W(FHoja, AFila, COL_FOTO, STextoSinFotoFacturas, False, ssahCenter);
 end;
 
 procedure TExportadorDocumentoTrabajo.EscribirCabeceraDocumento;
 begin
   FFila := 1;
-  W(FHoja, FFila, 0, 'DOCUMENTO DE TRABAJO', True);
+  W(FHoja, FFila, 0, STextoDocumentoDeTrabajoFacturas, True);
   FHoja.Cells[FFila, 0].Style.Font.Size := 16;
   Merge(FHoja, FFila, 0, COL_MAX + 1, 1);
   Inc(FFila, 2);
-  W(FHoja, FFila, 0, 'ID:', True);
+  W(FHoja, FFila, 0, STextoIdFacturas, True);
   W(FHoja, FFila, 1, FCabecera.FieldByName(fidDtr).AsLargeInt);
-  W(FHoja, FFila, 3, 'Título:', True);
+  W(FHoja, FFila, 3, STextoTituloFacturas, True);
   W(FHoja, FFila, 4, FCabecera.FieldByName(ftituloDtr).AsString);
   Merge(FHoja, FFila, 4, 4, 1);
   Inc(FFila);
-  W(FHoja, FFila, 0, 'Tipo:', True);
+  W(FHoja, FFila, 0, STextoTipoFacturas, True);
   W(FHoja, FFila, 1, FCabecera.FieldByName(ftipoDtr).AsString);
-  W(FHoja, FFila, 3, 'Estado:', True);
+  W(FHoja, FFila, 3, STextoEstadoFacturas, True);
   W(FHoja, FFila, 4, FCabecera.FieldByName(festadoDtr).AsString);
-  W(FHoja, FFila, 6, 'Propietario:', True);
+  W(FHoja, FFila, 6, STextoPropietarioFacturas, True);
   W(FHoja, FFila, 7, FCabecera.FieldByName(fusuarioDtr).AsString);
   Inc(FFila);
-  W(FHoja, FFila, 0, 'Empresa:', True);
+  W(FHoja, FFila, 0, STextoEmpresaFacturas, True);
   W(FHoja, FFila, 1, FCabecera.FieldByName(fcodEmpDtr).AsString);
-  W(FHoja, FFila, 3, 'Almacén:', True);
+  W(FHoja, FFila, 3, STextoAlmacenFacturas2, True);
   W(FHoja, FFila, 4, FCabecera.FieldByName(fcodAlmDtr).AsString);
-  W(FHoja, FFila, 6, 'Fecha:', True);
+  W(FHoja, FFila, 6, STextoFechaFacturas, True);
   EscribirFecha(FFila, 7, FCabecera.FindField(finstanteDtr));
   Inc(FFila, 2);
 end;
@@ -245,24 +248,25 @@ begin
   W(FHoja, FFila, COL_FOTO,
     Format('Foto %d x %d', [cTamanoFoto, cTamanoFoto]),
     True, ssahCenter);
-  W(FHoja, FFila, COL_LINEA, 'Línea', True, ssahCenter);
-  W(FHoja, FFila, COL_ARTICULO, 'Artículo', True, ssahCenter);
-  W(FHoja, FFila, COL_SKU, 'SKU', True, ssahCenter);
-  W(FHoja, FFila, COL_ALMACEN, 'Almacén', True, ssahCenter);
-  W(FHoja, FFila, COL_DESCRIPCION_ART, 'Descripción artículo',
+  W(FHoja, FFila, COL_LINEA, STextoLineaFacturas, True, ssahCenter);
+  W(FHoja, FFila, COL_ARTICULO, STextoArticuloFacturas, True, ssahCenter);
+  W(FHoja, FFila, COL_SKU, STextoSkuFacturas, True, ssahCenter);
+  W(FHoja, FFila, COL_ALMACEN, STextoAlmacenFacturas, True, ssahCenter);
+  W(FHoja, FFila, COL_DESCRIPCION_ART, STextoDescripcionArticuloFacturas,
     True, ssahCenter);
-  W(FHoja, FFila, COL_MODELO, 'Modelo', True, ssahCenter);
-  W(FHoja, FFila, COL_FAMILIA, 'Familia', True, ssahCenter);
-  W(FHoja, FFila, COL_PROVEEDOR, 'Proveedor', True, ssahCenter);
-  W(FHoja, FFila, COL_TEMPORADA, 'Temporada', True, ssahCenter);
-  W(FHoja, FFila, COL_TARIFA, 'Tarifa', True, ssahCenter);
-  W(FHoja, FFila, COL_PRECIO_TARIFA, 'Precio tarifa', True, ssahRight);
-  W(FHoja, FFila, COL_DESCRIPCION_SKU, 'Descripción unidad',
+  W(FHoja, FFila, COL_MODELO, STextoModeloFacturas, True, ssahCenter);
+  W(FHoja, FFila, COL_FAMILIA, STextoFamiliaFacturas, True, ssahCenter);
+  W(FHoja, FFila, COL_PROVEEDOR, STextoProveedorFacturas, True, ssahCenter);
+  W(FHoja, FFila, COL_TEMPORADA, STextoTemporadaFacturas, True, ssahCenter);
+  W(FHoja, FFila, COL_TARIFA, STextoTarifaFacturas, True, ssahCenter);
+  W(FHoja, FFila, COL_PRECIO_TARIFA, STextoPrecioTarifaFacturas, True,
+    ssahRight);
+  W(FHoja, FFila, COL_DESCRIPCION_SKU, STextoDescripcionUnidadFacturas,
     True, ssahCenter);
-  W(FHoja, FFila, COL_STOCK, 'Stock', True, ssahRight);
-  W(FHoja, FFila, COL_CANTIDAD, 'Cantidad', True, ssahRight);
-  W(FHoja, FFila, COL_ORIGEN, 'Origen', True, ssahCenter);
-  W(FHoja, FFila, COL_INSTANTE_STOCK, 'Instante stock',
+  W(FHoja, FFila, COL_STOCK, STextoStockFacturas, True, ssahRight);
+  W(FHoja, FFila, COL_CANTIDAD, STextoCantidadFacturas, True, ssahRight);
+  W(FHoja, FFila, COL_ORIGEN, STextoOrigenFacturas, True, ssahCenter);
+  W(FHoja, FFila, COL_INSTANTE_STOCK, STextoInstanteStockFacturas,
     True, ssahCenter);
   for iColumna := 0 to COL_MAX do
   begin
@@ -373,7 +377,7 @@ end;
 procedure TExportadorDocumentoTrabajo.Ejecutar;
 begin
   FControl.ClearAll;
-  FHoja := FControl.AddSheet('Documento de trabajo',
+  FHoja := FControl.AddSheet(STextoDocumentoDeTrabajoFacturas2,
     TdxSpreadSheetTableView) as TdxSpreadSheetTableView;
   FFotosLinea := TDictionary<string, TFotoInfo>.Create;
   FHoja.BeginUpdate;

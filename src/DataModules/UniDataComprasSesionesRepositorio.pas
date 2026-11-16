@@ -914,7 +914,7 @@ procedure TRepositorioComprasSesiones.AsegurarDataModule;
 begin
   if not Assigned(FDataModule) then
     raise EInvalidOperation.Create(
-      'El repositorio requiere el contexto de la sesión de compra');
+      STextoElRepositorioRequiereElContextoDeLaCompras);
 end;
 
 class function TRepositorioComprasSesiones.DefinicionesSql:

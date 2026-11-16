@@ -579,12 +579,15 @@ begin
       begin
         FSesion := FFabricaSesion.CrearSesion;
         if not Assigned(FSesion) then
-          raise Exception.Create('La fábrica no creó la sesión VentasWs');
+          raise Exception.Create(
+            STextoLaFabricaNoCreoLaSesionVentaswsIntegraciones);
         FRepositorio := FSesion.Repositorio;
         if not Assigned(FRepositorio) then
-          raise Exception.Create('La sesión VentasWs no tiene repositorio');
+          raise Exception.Create(
+            STextoLaSesionVentaswsNoTieneRepositorioIntegraciones);
         if not Assigned(FSesion.Json) then
-          raise Exception.Create('La sesión VentasWs no tiene serializador');
+          raise Exception.Create(
+            STextoLaSesionVentaswsNoTieneSerializadorIntegraciones);
         FRegistradorIntentos := FSesion.RegistradorIntentos;
       end;
       FRepositorio.ReencolarProcesandoCaducadas;

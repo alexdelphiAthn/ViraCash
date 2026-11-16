@@ -36,6 +36,7 @@ function TipoMovimientoStockLinea(
 implementation
 
 uses
+  inLibMsgFacturas,
   inLibRedondeo,
   System.Math, System.SysUtils;
 
@@ -149,7 +150,8 @@ procedure ConfigurarPresupuesto(
   var AConfiguracion: TConfiguracionDocumento);
 begin
   if AConfiguracion.Sentido <> sdVenta then
-    raise EArgumentException.Create('El presupuesto pertenece a ventas.');
+    raise EArgumentException.Create(
+      STextoElPresupuestoPerteneceAVentasFacturas);
   ConfigurarIdentidad(AConfiguracion, 'presupuesto',
     'fza_presupuestos', 'fza_presupuestos_lineas', 'PRE', 'PRELIN', 'PV');
 end;
@@ -194,7 +196,7 @@ procedure ConfigurarDevolucion(
 begin
   if AConfiguracion.Sentido = sdVenta then
     raise EArgumentException.Create(
-      'La devolución de venta se representa mediante factura rectificativa.');
+      STextoLaDevolucionDeVentaSeRepresentaMedianteFacturas);
   ConfigurarIdentidad(
     AConfiguracion,
     'devolución de compra',

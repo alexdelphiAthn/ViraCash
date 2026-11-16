@@ -25,6 +25,7 @@ function CrearCasoUsoRestauracionConexion(
 implementation
 
 uses
+  inLibMsgComun,
   System.SysUtils,
   inLibCopiasSeguridadIntf,
   inLibCopiasSeguridadReglas,
@@ -63,19 +64,19 @@ procedure TCasoUsoRestauracionConexion.Ejecutar(
 begin
   if Trim(ASolicitud.Host) = '' then
     raise EArgumentException.Create(
-      'El servidor de base de datos no puede estar vacío.');
+      STextoElServidorDeBaseDeDatosNoComun);
   if ASolicitud.Puerto <= 0 then
     raise EArgumentException.Create(
-      'El puerto de base de datos no es válido.');
+      STextoElPuertoDeBaseDeDatosNoComun);
   if Trim(ASolicitud.BaseDatos) = '' then
     raise EArgumentException.Create(
-      'La base de datos no puede estar vacía.');
+      STextoLaBaseDeDatosNoPuedeEstarComun);
   if Trim(ASolicitud.Usuario) = '' then
     raise EArgumentException.Create(
-      'El usuario de base de datos no puede estar vacío.');
+      STextoElUsuarioDeBaseDeDatosNoComun);
   if Trim(ASolicitud.RutaFichero) = '' then
     raise EArgumentException.Create(
-      'La ruta de la copia no puede estar vacía.');
+      STextoLaRutaDeLaCopiaNoPuedeComun);
   if not TPoliticaCopiasSeguridad.PuedeRestaurar(
            ASolicitud.AdministradorAutenticado,
            ASolicitud.RutaFichero) then

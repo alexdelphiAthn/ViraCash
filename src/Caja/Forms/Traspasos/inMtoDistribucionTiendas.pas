@@ -176,7 +176,7 @@ begin
       btnPrioridadesClick);
     CrearBoton(SCaptionRefrescarHistorialDistribucion, 802, 54, 110,
       btnRefrescarClick);
-    CrearBoton('Añadir SKU y unidades...', 12, 98, 240,
+    CrearBoton(STextoAnadirSkuYUnidadesDistribucionTiendas, 12, 98, 240,
       btnAgregarSkuClick);
     oEtiqueta := TcxLabel.Create(Self);
     oEtiqueta.Parent := pnlDistribucion;
@@ -317,17 +317,21 @@ begin
   else
   begin
     Valores := TArray<string>.Create('', '1', UbicacionSesion.Almacen);
-    if InputQuery_fza('Añadir SKU al documento de distribución',
-      ['SKU', 'Unidades', 'Almacén de origen'], Valores, nil) then
+    if InputQuery_fza(
+      STextoAnadirSkuAlDocumentoDeDistribucionDistribucionTiendas,
+      ['SKU', 'Unidades', STextoAlmacenDeOrigenDistribucionTiendas], Valores,
+        nil) then
     begin
       if not TryStrToFloat(Valores[1], Cantidad) then
-        ShowMessage_fza('Indique un número de unidades válido')
+        ShowMessage_fza(
+          STextoIndiqueUnNumeroDeUnidadesValidoDistribucionTiendas)
       else
         try
           AgregarSkuManualDistribucion(dmmDistribucion.ConexionPrincipal,
             cbbDocumento.EditValue, UbicacionSesion.Empresa, Trim(Valores[2]),
             Trim(Valores[0]), Cantidad, IdentidadSesion.Usuario);
-          ShowMessage_fza('SKU añadido. Puede añadir otro o pulsar Distribuir.');
+          ShowMessage_fza(
+            STextoSkuAnadidoPuedeAnadirOtroOPulsarDistribucionTiendas);
         except
           on E: EArgumentException do ShowMessage_fza(E.Message);
         end;

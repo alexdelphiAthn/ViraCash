@@ -67,6 +67,7 @@ function LeerGrupoIvaEmpresaPrestaShop(
 implementation
 
 uses
+  inLibMsgIntegraciones,
   System.SysUtils, Data.DB, inLibPrestaCatalogo,
   inLibPrestaShopColaSenal,
   UniDataPrestaShopPrecioCondicional;
@@ -254,7 +255,7 @@ function PrepararMensajePublicacionAplazada(
 begin
   Result := Trim(AMensaje);
   if Result = '' then
-    Result := 'No se completo el guardado del articulo';
+    Result := STextoNoSeCompletoElGuardadoDelArticuloIntegraciones;
   Result := Copy(
     CMarcaGuardadoArticuloPrestaShop + Result,
     1,
@@ -305,7 +306,7 @@ begin
         AAccion := avpActivar
       else if sAccionAnterior <> 'N' then
         raise EDatabaseError.Create(
-          'La publicacion aplazada de PrestaShop no es valida');
+          STextoLaPublicacionAplazadaDePrestashopNoEsIntegraciones);
     end;
   finally
     FreeAndNil(oConsulta);
@@ -347,7 +348,7 @@ begin
     oConsulta.Execute;
     if oConsulta.RowsAffected <> 1 then
       raise EDatabaseError.Create(
-        'No se pudo registrar la publicacion aplazada de PrestaShop');
+        STextoNoSePudoRegistrarLaPublicacionAplazadaIntegraciones);
   finally
     FreeAndNil(oConsulta);
   end;
@@ -372,7 +373,7 @@ begin
     raise EArgumentException.Create('ACodigoArticulo');
   if AAccion = avpDesactivar then
     raise EArgumentException.Create(
-      'Una publicacion aplazada no puede desactivar el articulo');
+      STextoUnaPublicacionAplazadaNoPuedeDesactivarElIntegraciones);
   sMensaje := PrepararMensajePublicacionAplazada(AMensaje);
   sUsuarioAuditoria :=
     PrepararUsuarioAuditoriaPublicacionAplazada(AUsuario);
@@ -386,7 +387,7 @@ begin
       sClaveInstalacion,
       iIdTienda) then
       raise EDatabaseError.Create(
-        'Faltan URL o tienda para aplazar la publicacion PrestaShop');
+        STextoFaltanUrlOTiendaParaAplazarLaIntegraciones);
     if not AAccionExplicita then
       AjustarAccionPublicacionAplazada(
         AConexion,
@@ -467,7 +468,7 @@ begin
               'ACCION_VISIBILIDAD_PSCOLA').AsString));
           if (sAccion <> 'A') and (sAccion <> 'N') then
             raise EDatabaseError.Create(
-              'La publicacion aplazada de PrestaShop no es valida');
+              STextoLaPublicacionAplazadaDePrestashopNoEsIntegraciones);
           oConsulta.Close;
           EjecutarEncoladoVisibilidadPrestaShop(
             AConexion,

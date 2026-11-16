@@ -78,7 +78,7 @@ var
   oConsulta: TUniQuery;
 begin
   if Trim(ACriterios.Empresa) = '' then
-    raise EArgumentException.Create('Falta la empresa de la sesion.');
+    raise EArgumentException.Create(STextoFaltaLaEmpresaDeLaSesionCompras);
   oConsulta := TUniQuery.Create(nil);
   try
     oConsulta.Connection := FConexion;

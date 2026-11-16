@@ -68,6 +68,7 @@ type
 implementation
 
 uses
+  inLibMsgCaja,
   System.DateUtils, Vcl.Forms, Winapi.Windows, Vcl.Graphics,
   cxContainer, cxEdit, cxGridLevel,
   inLibMeteorologiaCajaVcl, inLibMsgMeteorologiaCaja;
@@ -264,7 +265,7 @@ begin
   FMaxima.Caption := 'MAX — °C';
   FMinima.Caption := 'MIN — °C';
   FCielo.Caption := '☀ / ☁ —';
-  FLluvia.Caption := '🌧 — mm';
+  FLluvia.Caption := STextoMmCaja;
   FConsulta := IniciarTareaMeteorologiaCaja(
     function(const ACancelar: TFunc<Boolean>): TPartesMeteorologiaCaja
     begin

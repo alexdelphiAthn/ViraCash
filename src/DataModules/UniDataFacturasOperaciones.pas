@@ -26,6 +26,7 @@ function CrearPersistenciaFacturasUniDAC(
 implementation
 
 uses
+  inLibMsgFacturas,
   UniDataFormatoDocumentoRepositorio,
   System.SysUtils, System.Hash, System.IOUtils, Data.DB,
   UniDataMovimientosAlmacenRecalculo, UniDataMovimientosLote;
@@ -217,7 +218,7 @@ var
   Afectados, Qry: TUniQuery;
 begin
   if not FConexion.InTransaction then
-    raise EInvalidOpException.Create('Falta la transaccion de borrado.');
+    raise EInvalidOpException.Create(STextoFaltaLaTransaccionDeBorradoFacturas);
   Afectados := NuevaConsulta;
   Qry := NuevaConsulta;
   try

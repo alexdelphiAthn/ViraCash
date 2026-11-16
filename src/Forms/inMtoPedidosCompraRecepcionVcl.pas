@@ -273,10 +273,10 @@ begin
   Formulario.OnClose := nil;
   try
     Formulario.lblTitulo.Caption := Format(
-      'Albarán creado desde el pedido %s/%s',
+      STextoAlbaranCreadoDesdeElPedidoSSCompras,
       [AEntrada.SeriePedido, AEntrada.NumeroPedido]);
     Formulario.Agregar(
-      'Albarán', AResultado.SerieAlbaran,
+      STextoAlbaranCompras, AResultado.SerieAlbaran,
       AResultado.NumeroAlbaran, ASolicitud.CodigoAlmacen);
     Formulario.ShowModal;
     if Formulario.Confirmado then
@@ -303,9 +303,7 @@ begin
        AResultado.AlmacenMarcadoSiguiente]))
   else if SameText(FCabecera.FieldByName('ESTADO_PEDC').AsString,
        'PARCIAL') then
-    if MessageDlg_fza('El pedido tiene cantidades pendientes de recibir. ' +
-         '¿Desea cancelar lo pendiente y dar por terminada la recepción? ' +
-         'Se conservarán las cantidades recibidas y sus albaranes.',
+    if MessageDlg_fza(STextoElPedidoTieneCantidadesPendientesDeRecibirCompras,
          mtConfirmation, [mbYes, mbNo], 0, mbNo) = mrYes then
     begin
       CancelarRestoPedidoCompra(FConexion, AEntrada.SeriePedido,

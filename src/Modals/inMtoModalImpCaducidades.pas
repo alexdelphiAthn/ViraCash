@@ -18,6 +18,7 @@ unit inMtoModalImpCaducidades;
 interface
 
 uses
+  dxSpreadSheet,
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   inMtoModalGenImp, cxGraphics, cxLookAndFeels, cxLookAndFeelPainters,
@@ -39,6 +40,8 @@ type
     FFiltros: TFiltrosLotes;
     FSelecciones: TArray<string>;
   protected
+    procedure DoShow; override;
+    procedure ConstruirExcelNativo(AControl: TdxSpreadSheet); override;
     procedure DescribirSelecciones(
       AResumen: TResumenSeleccionesInforme); override;
   public
@@ -51,6 +54,10 @@ type
   end;
 
 implementation
+
+uses
+  inLibMsgComun,
+  inLibInformeTabular, inLibInformeTabularExcel;
 
 {$R *.dfm}
 
@@ -86,6 +93,37 @@ begin
     AResumen.Anadir(FSelecciones[iSeleccion], FSelecciones[iSeleccion + 1]);
     Inc(iSeleccion, 2);
   end;
+end;
+
+procedure TfrmPrintCaducidades.DoShow;
+begin
+  inherited;
+  btnExcel.OnClick := btnExcelNativoClick;
+end;
+
+procedure TfrmPrintCaducidades.ConstruirExcelNativo(
+  AControl: TdxSpreadSheet);
+begin
+  ExportarInformeTabularExcel(AControl, dsCaducidadesPrint.DataSet,
+    Caption,
+    [ColumnaInforme('CODIGO_ALM_STK', STextoAlmacenComun, 1),
+     ColumnaInforme('NOMBRE_ALM_ALM', STextoNombreAlmacenComun, 2),
+     ColumnaInforme('DESCRIPCION_FAM', STextoFamiliaComun2, 2),
+     ColumnaInforme('CODIGO_ART_SKU', STextoArticuloComun2, 1),
+     ColumnaInforme('DESCRIPCION_ART', STextoDescripcionComun, 3),
+     ColumnaInforme('CODIGO_UNIDAD_STK', STextoSkuComun, 1),
+     ColumnaInforme('LOTE_STK', STextoLoteComun, 1),
+     ColumnaInforme('FECHA_CADUCIDAD', STextoCaducidadComun, 1),
+     ColumnaInforme('DIAS_PARA_CADUCAR', STextoDiasParaCaducarComun, 1, '%g'),
+     ColumnaInforme('CANTIDAD_STK', STextoCantidadComun, 1, '%g'),
+     ColumnaInforme('VALOR_TOTAL_STK', STextoValorTotalComun, 1, '%n')],
+    LineasResumenSelecciones);
+  AnadirResumenInformeTabularExcel(AControl, dsCaducidadesPrint.DataSet,
+    STextoTotalesPorAlmacenComun,
+    [ColumnaInforme('CODIGO_ALM_STK', STextoAlmacenComun, 1),
+     ColumnaInforme('NOMBRE_ALM_ALM', STextoNombreAlmacenComun, 2),
+     ColumnaInforme('CANTIDAD_STK', STextoCantidadComun, 1, '%g'),
+     ColumnaInforme('VALOR_TOTAL_STK', STextoValorTotalComun, 1, '%n')]);
 end;
 
 end.

@@ -163,7 +163,7 @@ var
 begin
   if not Supports(AOwner, IProveedorRegistroLog, Proveedor) then
     raise EServicioNoDisponible.Create(
-      'El propietario no proporciona IRegistroLog.');
+      STextoElPropietarioNoProporcionaIregistrologComun);
   Result := Proveedor.RegistroLog;
 end;
 

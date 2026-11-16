@@ -11,6 +11,7 @@ function CrearRepositorioInformeEfectosPagoUniDAC(
 implementation
 
 uses
+  inLibMsgComun,
   System.SysUtils, System.Classes, Data.DB;
 
 type
@@ -403,7 +404,7 @@ var
   oConsulta: TUniQuery;
 begin
   if Trim(ACriterios.Empresa) = '' then
-    raise EArgumentException.Create('Debe indicar la empresa de sesion');
+    raise EArgumentException.Create(STextoDebeIndicarLaEmpresaDeSesionComun);
   oConsulta := TUniQuery.Create(nil);
   try
     oConsulta.Connection := FConexion;

@@ -1082,6 +1082,340 @@ resourcestring
   SInfoDeudaOtraTienda =
     'Tiene %s € pendientes en %s (empresa %s).';
 
+
+  // Textos de interfaz y validación revisados en noviembre de 2026.
+  STextoFaltaLaTransaccionDeLaVentaCaja =
+    'Falta la transacción de la venta.';
+  STextoIndiqueUnaSerieDeEntre1YCaja =
+    'Indique una serie de entre 1 y 12 caracteres.';
+  STextoLaSerieRequiereLaTransaccionDeLaCaja =
+    'La serie requiere la transacción de la venta.';
+  STextoLaNumeracionDelDocumentoRequiereUnaTransaccionCaja =
+    'La numeración del documento requiere una transacción activa.';
+  STextoFaltaLaFacturaRectificadaCaja =
+    'Falta la factura rectificada';
+  STextoTipoDeFacturaDeCajaDesconocidoCaja =
+    'Tipo de factura de caja desconocido';
+  STextoFaltaElDataModuleDeCajaCaja =
+    'Falta el data module de caja.';
+  STextoNoHayUnaSerieDeFacturaDisponibleCaja =
+    'No hay una serie de factura disponible para esta empresa, ' +
+    'almacén y caja. Configúrela en Archivo > Empresas > Series ' +
+    '(factura simplificada o rectificativa, según la venta).';
+  STextoLaSerieNoPuedeSuperarLos12Caja =
+    'La serie no puede superar los 12 caracteres.';
+  STextoLineasCaja =
+    'Líneas';
+  STextoRectificaLaFacturaCaja =
+    '  -  RECTIFICA la factura ';
+  STextoIrAArticuloCaja =
+    'Ir a artículo';
+  STextoIrADepositoCaja =
+    'Ir a depósito';
+  STextoIrAFormaDePagoCaja =
+    'Ir a forma de pago';
+  STextoCodigoCaja =
+    'Código';
+  STextoDescripcionCaja =
+    'Descripción';
+  STextoFamiliaCaja =
+    'Familia';
+  STextoTemporadaCaja =
+    'Temporada';
+  STextoRefProveedorCaja =
+    'Ref. proveedor';
+  STextoTarifaCaja =
+    'Tarifa';
+  STextoNombreTarifaCaja =
+    'Nombre tarifa';
+  STextoNombreCaja =
+    'Nombre';
+  STextoCtaClienteCaja =
+    'Cta. Cliente';
+  STextoBuscarModifCaja =
+    'Buscar/Modif.';
+  STextoBuscarTicketCaja =
+    'Buscar ticket';
+  STextoLosDatosDeLaOperacionDeCajaCaja =
+    'Los datos de la operación de caja no están configurados';
+  STextoRespuestaDeBandejaNoValidaCaja =
+    'Respuesta de bandeja no válida.';
+  STextoFaltanLosDatosDeLaBandejaCaja =
+    'Faltan los datos de la bandeja.';
+  STextoArqueoCaja =
+    'Arqueo';
+  STextoDesdeCaja =
+    'Desde';
+  STextoHastaCaja =
+    'Hasta';
+  STextoVentasCaja =
+    'Ventas';
+  STextoEfectivoCajaCaja =
+    'Efectivo caja';
+  STextoOtrosIngresosCaja =
+    'Otros ingresos';
+  STextoRecuentoCaja =
+    'Recuento';
+  STextoDiferenciaCaja =
+    'Diferencia';
+  STextoRetiradaCaja =
+    'Retirada';
+  STextoEfectivoDejadoCaja =
+    'Efectivo dejado';
+  STextoConceptoRetiradaCaja =
+    'Concepto retirada';
+  STextoBitacoraCaja =
+    'Bitácora';
+  STextoMeteorologiaCaja =
+    'Meteorología';
+  STextoOperacionCaja =
+    'Operación';
+  STextoLinCaja =
+    'Lín.';
+  STextoFechaCaja =
+    'Fecha';
+  STextoSerieFacCaja =
+    'Serie Fac.';
+  STextoNoFacturaCaja =
+    'Nº Factura';
+  STextoFormaPagoCaja =
+    'Forma pago';
+  STextoDivisaCaja =
+    'Divisa';
+  STextoEntregadoCaja =
+    'Entregado';
+  STextoCambioCaja =
+    'Cambio';
+  STextoReferenciaCaja =
+    'Referencia';
+  STextoTotalesPorFormaDePagoCaja =
+    'Totales por forma de pago';
+  STextoPagosCaja =
+    'Pagos';
+  STextoNetoCaja =
+    'Neto';
+  STextoDeudoresPorEmpresaYTiendaCaja =
+    'Deudores por empresa y tienda';
+  STextoSeleccioneUnClienteCaja =
+    'Seleccione un cliente.';
+  STextoExtractoDeCuentaDelClienteCaja =
+    'Extracto de cuenta del cliente';
+  STextoTodasLasEmpresasYTiendasCaja =
+    'Todas las empresas y tiendas';
+  STextoRepositorioDeCuentaNoDisponibleCaja =
+    'Repositorio de cuenta no disponible.';
+  STextoAmbitoCaja =
+    'Ámbito';
+  STextoSituacionCaja =
+    'Situación';
+  STextoSaldoActualNoSaldoAFechaHistoricaCaja =
+    'Saldo actual, no saldo a fecha histórica';
+  STextoDepositoCaja =
+    'Depósito';
+  STextoClienteCaja =
+    'Cliente';
+  STextoSkuCaja =
+    'SKU';
+  STextoPrecioVentaCaja =
+    'Precio venta';
+  STextoAnticipoCaja =
+    'Anticipo';
+  STextoEstadoCaja =
+    'Estado';
+  STextoLimiteGlobalCaja =
+    'Límite global';
+  STextoEmpresaCaja =
+    'Empresa';
+  STextoTiendaCaja =
+    'Tienda';
+  STextoAntiguedadDiasCaja =
+    'Antigüedad (días)';
+  STextoPendienteCaja =
+    'Pendiente';
+  STextoImporteCaja =
+    'Importe';
+  STextoTotalesPorClienteCaja =
+    'Totales por cliente';
+  STextoAlmacenCaja =
+    'Almacén';
+  STextoCajaCaja =
+    'Caja';
+  STextoDocumentoCaja =
+    'Documento';
+  STextoLineaCaja =
+    'Línea';
+  STextoArticuloCaja =
+    'Artículo';
+  STextoColorAromaCaja =
+    'Color / Aroma';
+  STextoCopaCaja =
+    'Copa';
+  STextoTallaMedidaCaja =
+    'Talla / Medida';
+  STextoProveedorCaja =
+    'Proveedor';
+  STextoModeloCaja =
+    'Modelo';
+  STextoCantidadCaja =
+    'Cantidad';
+  STextoBrutoCaja =
+    'Bruto';
+  STextoDescuentoCaja =
+    '% descuento';
+  STextoNetoArticuloCaja =
+    'Neto artículo';
+  STextoIngresosCaja =
+    'Ingresos';
+  STextoVendedorCaja =
+    'Vendedor';
+  STextoFormaDePagoCaja =
+    'Forma de pago';
+  STextoElInformeDeOperacionesDeVentaSigueCaja =
+    'El informe de operaciones de venta sigue en curso.';
+  STextoVinculoCaja =
+    'Vínculo';
+  STextoPrecioSinIvaCaja =
+    'Precio sin IVA';
+  STextoIvaCaja =
+    'IVA %';
+  STextoTotalCaja =
+    'Total';
+  STextoSerieCaja =
+    'Serie';
+  STextoNumeroCaja =
+    'Número';
+  STextoNifEmpresaCaja =
+    'NIF empresa';
+  STextoBaseImponibleCaja =
+    'Base imponible';
+  STextoImpuestosCaja =
+    'Impuestos';
+  STextoLaConsultaDelHistoricoDeCajaNoCaja =
+    'La consulta del histórico de caja no es compatible con UniDAC.';
+  STextoLaConsultaDelHistoricoDePagosDeCaja =
+    'La consulta del histórico de pagos de caja no es compatible ' +
+    'con UniDAC.';
+  STextoExtractoDeCuentaCaja =
+    'Extracto de cuenta';
+  STextoCodigoDeClienteCaja =
+    'Código de cliente:';
+  STextoFechaHoraCaja =
+    'Fecha/Hora';
+  STextoTipoCaja =
+    'Tipo';
+  STextoConceptoCaja =
+    'Concepto';
+  STextoIdDepositoCaja =
+    'Id depósito';
+  STextoSerieRefCaja =
+    'Serie ref.';
+  STextoNroRefCaja =
+    'Nro ref.';
+  STextoMotivoDevCaja =
+    'Motivo dev.';
+  STextoEstDevCaja =
+    'Est.Dev.';
+  STextoImpDivisaCaja =
+    'Imp.divisa';
+  STextoRedCaja =
+    'Red';
+  STextoObservacionesCaja =
+    'Observaciones';
+  STextoRolCaja =
+    'Rol';
+  STextoCodValeCaja =
+    'Cód. vale';
+  STextoPinCaja =
+    'PIN';
+  STextoNominalCaja =
+    'Nominal';
+  STextoRedimidoCaja =
+    'Redimido';
+  STextoFEmisionCaja =
+    'F. Emisión';
+  STextoFCaducidadCaja =
+    'F. Caducidad';
+  STextoFRedencionCaja =
+    'F. Redención';
+  STextoValePadreCaja =
+    'Vale padre';
+  STextoNoMovCaja =
+    'Nº Mov';
+  STextoTipoDocCaja =
+    'Tipo Doc';
+  STextoContraCaja =
+    'Contra';
+  STextoPmpCaja =
+    'PMP';
+  STextoTotalCosteCaja =
+    'Total coste';
+  STextoRazonSocialCaja =
+    'Razón social';
+  STextoNifCaja =
+    'NIF';
+  STextoMovilCaja =
+    'Móvil';
+  STextoEmailCaja =
+    'Email';
+  STextoDireccionCaja =
+    'Dirección';
+  STextoPoblacionCaja =
+    'Población';
+  STextoProvinciaCaja =
+    'Provincia';
+  STextoDeudaCaja =
+    'Deuda';
+  STextoCantidadPdteCaja =
+    'Cantidad pdte.';
+  STextoIvaCaja2 =
+    '% IVA';
+  STextoFechaAltaCaja =
+    'Fecha alta';
+  STextoFechaEntregaCaja =
+    'Fecha entrega';
+  STextoEmpCancelCaja =
+    'Emp. cancel.';
+  STextoAlmCancelCaja =
+    'Alm. cancel.';
+  STextoCajaCancelCaja =
+    'Caja cancel.';
+  STextoOpCancelCaja =
+    'Op. cancel.';
+  STextoDepositosCaja =
+    'Depósitos';
+  STextoBasesCaja =
+    'Bases';
+  STextoLiquidoCaja =
+    'Líquido';
+  STextoLinCaja2 =
+    'Lín';
+  STextoCantCaja =
+    'Cant.';
+  STextoPSIvaCaja =
+    'P.S.IVA';
+  STextoPCIvaCaja =
+    'P.C.IVA';
+  STextoDtoCaja =
+    '% Dto';
+  STextoTIvaCaja =
+    'T.IVA';
+  STextoTotSIvaCaja =
+    'Tot. S.IVA';
+  STextoTotCIvaCaja =
+    'Tot. C.IVA';
+  STextoMmCaja =
+    '🌧 — mm';
+  STextoInteraccionDeFacturaIncompletaCaja =
+    'Interacción de factura incompleta';
+  STextoInteraccionDeCreditoIncompletaCaja =
+    'Interacción de crédito incompleta';
+  STextoInteraccionDeCierreIncompletaCaja =
+    'Interacción de cierre incompleta';
+  STextoInteraccionDeCobroIncompletaCaja =
+    'Interacción de cobro incompleta';
+  STextoInteraccionDeSalidaIncompletaCaja =
+    'Interacción de salida incompleta';
+
 implementation
 
 end.

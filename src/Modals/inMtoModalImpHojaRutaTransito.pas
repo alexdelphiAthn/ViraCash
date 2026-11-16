@@ -7,6 +7,7 @@ unit inMtoModalImpHojaRutaTransito;
 interface
 
 uses
+  dxSpreadSheet,
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Classes,
   System.Types,
   Vcl.Controls, cxCheckBox, cxLabel, Data.DB, Uni,
@@ -35,6 +36,7 @@ type
     procedure CargarCargasViaje;
     function CargasSeleccionadas: TArray<Int64>;
   protected
+    procedure ConstruirExcelNativo(AControl: TdxSpreadSheet); override;
     procedure DoCreate; override;
     procedure DoShow; override;
     procedure Resize; override;
@@ -58,6 +60,8 @@ procedure AsignarTextosHojaRuta(AInforme: TfrxReport);
 implementation
 
 uses
+  inLibMsgComun,
+  inLibInformeTabular, inLibInformeTabularExcel,
   Vcl.Graphics, Vcl.Forms,
   cxLookAndFeelPainters, frBaseGraphicsTypes, inLibMsgCaja,
   inLibMensajesVcl, inLibCorreoDocumentoIntf, inLibCorreoDocumentoVcl,
@@ -608,6 +612,7 @@ end;
 procedure TfrmPrintHojaRutaTransito.DoShow;
 begin
   inherited;
+  btnExcel.OnClick := btnExcelNativoClick;
   if not FInicializado then
   begin
     CargarCargasViaje;
@@ -696,6 +701,38 @@ begin
   frxrprt1.DataSets.Add(FDataset);
   AsignarTextosHojaRuta(frxrprt1);
   frxrprt1.Variables['VIAJE'] := QuotedStr(Trim(edtViaje.Text));
+end;
+
+procedure TfrmPrintHojaRutaTransito.ConstruirExcelNativo(
+  AControl: TdxSpreadSheet);
+begin
+  ExportarInformeTabularExcel(AControl, FDatos,
+    Caption,
+    [ColumnaInforme('TRANSITO', STextoTransitoComun, 1),
+     ColumnaInforme('ENTREGA', STextoEmpresaOrigenComun, 2),
+     ColumnaInforme('ORIGEN', STextoOrigenComun, 2),
+     ColumnaInforme('RECIBE', STextoEmpresaDestinoComun, 2),
+     ColumnaInforme('DESTINO', STextoDestinoComun, 2),
+     ColumnaInforme('ID_CARGA', STextoCargaComun, 1),
+     ColumnaInforme('DOCUMENTO', STextoDocumentoComun, 1),
+     ColumnaInforme('OPERACION', STextoOperacionComun, 1),
+     ColumnaInforme('FECHA_CARGA', STextoFechaDeCargaComun, 1),
+     ColumnaInforme('SKU', STextoSkuComun, 1),
+     ColumnaInforme('LOTE', STextoLoteComun, 1),
+     ColumnaInforme('DESCRIPCION', STextoDescripcionComun, 3),
+     ColumnaInforme('UNIDADES', STextoUnidadesComun, 1, '%g')],
+    LineasResumenSelecciones);
+  AnadirResumenInformeTabularExcel(AControl, FDatos,
+    'Totales por carga',
+    [ColumnaInforme('TRANSITO', STextoTransitoComun, 1),
+     ColumnaInforme('ENTREGA', STextoEmpresaOrigenComun, 2),
+     ColumnaInforme('ORIGEN', STextoOrigenComun, 2),
+     ColumnaInforme('RECIBE', STextoEmpresaDestinoComun, 2),
+     ColumnaInforme('DESTINO', STextoDestinoComun, 2),
+     ColumnaInforme('ID_CARGA', STextoCargaComun, 1),
+     ColumnaInforme('DOCUMENTO', STextoDocumentoComun, 1),
+     ColumnaInforme('OPERACION', STextoOperacionComun, 1),
+     ColumnaInforme('UNIDADES', STextoUnidadesComun, 1, '%g')]);
 end;
 
 end.

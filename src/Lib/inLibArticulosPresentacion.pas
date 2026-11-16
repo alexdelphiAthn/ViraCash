@@ -266,7 +266,7 @@ function EtiquetaFuenteAtributoBasico(const ACodigo: string): string;
 begin
   // 'A' = override por articulo, 'C' = conjunto del articulo, 'G' = global.
   if ACodigo = 'A' then
-    Result := 'Artículo'
+    Result := STextoArticuloArticulos
   else if ACodigo = 'C' then
     Result := 'Conjunto'
   else if ACodigo = 'G' then

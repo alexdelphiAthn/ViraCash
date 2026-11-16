@@ -134,11 +134,11 @@ function FormatearResultadoImportacionPedidoOcr(
   const AResultado: TResultadoImportacionPedidoOcr): string;
 begin
   Result := Format(
-    'Pedido importado: %d líneas, %d fotos y %d páginas TIFF.',
+    STextoPedidoImportadoDLineasDFotosYCompras,
     [AResultado.Lineas, AResultado.Fotos, AResultado.Paginas]);
   if AResultado.LineasSinCodigo > 0 then
     Result := Result + sLineBreak + Format(
-      '%d líneas quedan pendientes de familia y código interno.',
+      STextoDLineasQuedanPendientesDeFamiliaYCompras,
       [AResultado.LineasSinCodigo]);
   if Trim(AResultado.Advertencias) <> '' then
     Result := Result + sLineBreak + sLineBreak +
@@ -554,7 +554,7 @@ begin
     if (ATrabajo.Lineas[iLinea].Datos.CodigoFoto <> '') and
        (sFichero = '') then
       AAdvertencias.Add(Format(
-        'No se encontró la foto %s.',
+        STextoNoSeEncontroLaFotoSCompras,
         [ATrabajo.Lineas[iLinea].Datos.CodigoFoto]));
     if (sFichero <> '') and PuedeGuardarFotosPedidoOcr(AEntorno) then
     begin
@@ -597,7 +597,7 @@ begin
         AResultado.Fotos := Length(aFotos);
       except
         on E: Exception do
-          oAdvertencias.Add('Fotos del pedido: ' + E.Message);
+          oAdvertencias.Add(STextoFotosDelPedidoCompras + E.Message);
       end;
     end;
     try
@@ -609,7 +609,7 @@ begin
         ATrabajo.Paginas);
     except
       on E: Exception do
-        oAdvertencias.Add('Pedido original: ' + E.Message);
+        oAdvertencias.Add(STextoPedidoOriginalCompras + E.Message);
     end;
     AResultado.Advertencias := Trim(oAdvertencias.Text);
   finally
@@ -637,8 +637,7 @@ begin
   if Trabajo.Pedido.RequiereRevision then
   begin
     Result.Advertencias :=
-      'El OCR ha completado algunas cantidades mediante inferencias ' +
-      'seguras. Revise estas líneas:';
+      STextoElOcrHaCompletadoAlgunasCantidadesMedianteCompras;
     if Trim(Trabajo.Pedido.InferenciasValidacion) <> '' then
       Result.Advertencias := Result.Advertencias + sLineBreak +
         Trim(Trabajo.Pedido.InferenciasValidacion);

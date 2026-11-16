@@ -26,6 +26,7 @@ type
 implementation
 
 uses
+  inLibMsgComun,
   System.SysUtils, System.Generics.Collections,
   inLibPermisosUniDAC;
 
@@ -48,7 +49,7 @@ begin
   begin
     Result := TResultadoLecturaPermisos.Fallido(
       elpConexionNoDisponible,
-      'La conexión de permisos no está activa.');
+      STextoLaConexionDePermisosNoEstaActivaComun);
   end
   else
   begin

@@ -18,6 +18,7 @@ unit inMtoModalImpEfectosPago;
 interface
 
 uses
+  dxSpreadSheet,
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.DateUtils, System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms,
   Vcl.Dialogs,
@@ -67,6 +68,7 @@ type
     procedure ReportBeforePrint(Component: TfrxReportComponent);
     procedure RotularFechaElegida;
   protected
+    procedure ConstruirExcelNativo(AControl: TdxSpreadSheet); override;
     function FiltrosUsados: TFiltrosReport; override;
     procedure DescribirSelecciones(
       AResumen: TResumenSeleccionesInforme); override;
@@ -83,6 +85,8 @@ implementation
 {$R *.dfm}
 
 uses
+  inLibMsgComun,
+  inLibInformeTabular, inLibInformeTabularExcel,
   inLibMsgFacturas, UniDataInformeEfectosPagoRepositorio,
   inLibResumenSeleccionesVcl;
 
@@ -111,6 +115,7 @@ end;
 procedure TfrmPrintEfectosPago.DoShow;
 begin
   inherited;
+  btnExcel.OnClick := btnExcelNativoClick;
   if not FInicializado then
   begin
     FRepositorioEfectos := CrearRepositorioInformeEfectosPagoUniDAC(
@@ -365,7 +370,9 @@ begin
   if FRepositorioEfectos = nil then
     FRepositorioEfectos := CrearRepositorioInformeEfectosPagoUniDAC(
       ConexionPrincipal);
+  fxdsEfectosPago.DataSet := nil;
   FResultadoEfectos := FRepositorioEfectos.Preparar(criterios);
+  fxdsEfectosPago.DataSet := FResultadoEfectos.DataSet;
   fxdsEfectosPago.UpdateBounds;
 end;
 
@@ -444,6 +451,54 @@ begin
       TfrxBand(Component).Visible :=
         (FchkSoloTotales = nil) or (not FchkSoloTotales.Checked);
   end;
+end;
+
+procedure TfrmPrintEfectosPago.ConstruirExcelNativo(
+  AControl: TdxSpreadSheet);
+var
+  aGrupos, aImportes: TColumnasInformeTabular;
+  iNivel, iNiveles: Integer;
+begin
+  AControl.ClearAll;
+  if (FchkSoloTotales = nil) or (not FchkSoloTotales.Checked) then
+    AnadirHojaInformeTabularExcel(AControl, FResultadoEfectos.DataSet,
+      'Efectos',
+      [ColumnaInforme('IDENTIFICADOR_EFECTO', STextoEfectoComun, 1),
+       ColumnaInforme('TIPO_EFECTO_EFEC', STextoTipoComun, 1),
+       ColumnaInforme('CODIGO_ALM_EFEC', STextoAlmacenComun, 1),
+       ColumnaInforme('CODIGO_PRV_EFEC', STextoProveedorComun, 1),
+       ColumnaInforme('PROVEEDOR_EFEC', STextoNombreProveedorComun, 1),
+       ColumnaInforme('SITUACION_EFEC', STextoSituacionComun, 1),
+       ColumnaInforme('FECHA_FILTRO_EFEC', STextoFechaSeleccionadaComun, 1),
+       ColumnaInforme('FECHA_VENCIMIENTO_EFEC', STextoVencimientoComun, 1),
+       ColumnaInforme('DIAS_EFEC', STextoDiasComun, 1, '%g'),
+       ColumnaInforme('FECHA_DOCUMENTO_EFEC', STextoFechaDocumentoComun, 1),
+       ColumnaInforme('FECHA_VALOR_EFEC', STextoFechaValorComun, 1),
+       ColumnaInforme('IMPORTE_EFEC', STextoImporteComun, 1, '%n'),
+       ColumnaInforme('IMPORTE_PAGADO_EFEC', STextoPagadoComun, 1, '%n'),
+       ColumnaInforme('IMPORTE_PENDIENTE_EFEC', STextoPendienteComun, 1, '%n'),
+       ColumnaInforme('IMPORTE_COMPENSADO_EFEC', STextoCompensadoComun, 1,
+         '%n'),
+       ColumnaInforme('REMESA_EFEC', STextoRemesaComun, 1),
+       ColumnaInforme('BANCO_REMESA_EFEC', STextoBancoRemesaComun, 1)]);
+  aImportes :=
+    [ColumnaInforme('IMPORTE_EFEC', STextoImporteComun, 1, '%n'),
+     ColumnaInforme('IMPORTE_PAGADO_EFEC', STextoPagadoComun, 1, '%n'),
+     ColumnaInforme('IMPORTE_PENDIENTE_EFEC', STextoPendienteComun, 1, '%n'),
+     ColumnaInforme('IMPORTE_COMPENSADO_EFEC', STextoCompensadoComun, 1, '%n')];
+  aGrupos := nil;
+  iNiveles := Length(NivelesTotales);
+  if iNiveles > 3 then
+    iNiveles := 3;
+  for iNivel := 1 to iNiveles do
+  begin
+    aGrupos := aGrupos + [ColumnaInforme(
+      Format('GRUPO%d_ETIQ', [iNivel]),
+      Format('Grupo %d', [iNivel]), 2)];
+    AnadirResumenInformeTabularExcel(AControl, FResultadoEfectos.DataSet,
+      Format(STextoTotalesNivelDComun, [iNivel]), aGrupos + aImportes);
+  end;
+  AnadirSeleccionInformeExcel(AControl, Caption, LineasResumenSelecciones);
 end;
 
 end.

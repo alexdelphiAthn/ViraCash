@@ -37,16 +37,17 @@ implementation
 uses
   System.SysUtils, Data.DB, UniDataValoresAutomaticosRepositorio,
   UniDataAlmacenesEmpresaRepositorio, inLibAlmacenesEmpresaPersistenciaIntf,
-  inLibMsgCaja;
+  inLibMsgCaja, inLibErroresBBDD;
 
 function FiltroAmbitoCanjeVale(
   const ARestriccion: TRestriccionCanjeVale): string;
 begin
-  Result := '';
+  if Trim(ARestriccion.Empresa) = '' then
+    raise EValidacionBBDD.Create(SErrorUbicacionCanjeValeNoConfigurada);
+  Result := ' AND CODIGO_EMP_EMI_VL = :EMP_CANJE';
   if ARestriccion.Ambito <> acvTodos then
   begin
-    Result := ' AND CODIGO_EMP_EMI_VL = :EMP_CANJE' +
-      ' AND CODIGO_ALM_EMI_VL = :ALM_CANJE';
+    Result := Result + ' AND CODIGO_ALM_EMI_VL = :ALM_CANJE';
     if ARestriccion.Ambito = acvCaja then
       Result := Result + ' AND CODIGO_CAJA_EMI_VL = :CAJA_CANJE';
   end;
@@ -55,9 +56,9 @@ end;
 procedure AsignarAmbitoCanjeVale(AConsulta: TUniQuery;
   const ARestriccion: TRestriccionCanjeVale);
 begin
+  AConsulta.ParamByName('EMP_CANJE').AsString := Trim(ARestriccion.Empresa);
   if ARestriccion.Ambito <> acvTodos then
   begin
-    AConsulta.ParamByName('EMP_CANJE').AsString := ARestriccion.Empresa;
     AConsulta.ParamByName('ALM_CANJE').AsString := ARestriccion.Almacen;
     if ARestriccion.Ambito = acvCaja then
       AConsulta.ParamByName('CAJA_CANJE').AsString := ARestriccion.Caja;
@@ -138,9 +139,9 @@ var
 
 begin
   if (Trim(ASerie) = '') or (Length(ASerie) > 12) then
-    raise Exception.Create('Indique una serie de entre 1 y 12 caracteres.');
+    raise Exception.Create(STextoIndiqueUnaSerieDeEntre1YCaja);
   if not AConexion.InTransaction then
-    raise Exception.Create('La serie requiere la transacción de la venta.');
+    raise Exception.Create(STextoLaSerieRequiereLaTransaccionDeLaCaja);
   Consulta := TUniQuery.Create(nil);
   try
     Consulta.Connection := AConexion;

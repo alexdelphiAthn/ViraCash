@@ -18,6 +18,7 @@ unit inMtoModalImpPropuestasTraspaso;
 interface
 
 uses
+  dxSpreadSheet,
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Classes,
   System.Variants, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   Vcl.Menus, Vcl.StdCtrls, Vcl.ExtCtrls, Vcl.ComCtrls, Data.DB,
@@ -50,6 +51,8 @@ type
       const AHoja: THojaInformePropuestaTraspaso;
       const ALinea: TLineaInformePropuestaTraspaso);
   protected
+    procedure DoShow; override;
+    procedure ConstruirExcelNativo(AControl: TdxSpreadSheet); override;
     procedure DoCreate; override;
   public
     class procedure Mostrar(
@@ -64,6 +67,7 @@ implementation
 {$R *.dfm}
 
 uses
+  inLibInformeTabular, inLibInformeTabularExcel,
   inLibMsgDistribucionTiendas;
 
 const
@@ -214,6 +218,37 @@ begin
   fxdsLineas.UpdateBounds;
   frxpdfxprtPedWeb.FileName := Format(
     SNombreArchivoPropuestasTraspaso, [FIdDocumento]);
+end;
+
+procedure TfrmPrintPropuestasTraspaso.DoShow;
+begin
+  inherited;
+  btnExcel.OnClick := btnExcelNativoClick;
+end;
+
+procedure TfrmPrintPropuestasTraspaso.ConstruirExcelNativo(
+  AControl: TdxSpreadSheet);
+begin
+  ExportarInformeTabularExcel(AControl, cdsLineas,
+    Caption,
+    [ColumnaInforme('NUMERO', STextoPropuestaDistribucionTiendas, 1),
+     ColumnaInforme('ORIGEN', STextoOrigenDistribucionTiendas, 2),
+     ColumnaInforme('DESTINO', STextoDestinoDistribucionTiendas, 2),
+     ColumnaInforme('DOCUMENTO', STextoDocumentoDistribucionTiendas, 1),
+     ColumnaInforme('ESTADO', STextoEstadoDistribucionTiendas, 1),
+     ColumnaInforme('FECHA', STextoFechaDistribucionTiendas, 1),
+     ColumnaInforme('ARTICULO', STextoArticuloDistribucionTiendas, 1),
+     ColumnaInforme('DESCRIPCION', STextoDescripcionDistribucionTiendas, 3),
+     ColumnaInforme('COLOR', STextoColorDistribucionTiendas, 1),
+     ColumnaInforme('TALLAS', STextoTallasDistribucionTiendas, 3),
+     ColumnaInforme('UNIDADES', STextoUnidadesDistribucionTiendas, 1, '%g')],
+    LineasResumenSelecciones);
+  AnadirResumenInformeTabularExcel(AControl, cdsLineas,
+    STextoTotalesPorPropuestaDistribucionTiendas,
+    [ColumnaInforme('NUMERO', STextoPropuestaDistribucionTiendas, 1),
+     ColumnaInforme('ORIGEN', STextoOrigenDistribucionTiendas, 2),
+     ColumnaInforme('DESTINO', STextoDestinoDistribucionTiendas, 2),
+     ColumnaInforme('UNIDADES', STextoUnidadesDistribucionTiendas, 1, '%g')]);
 end;
 
 end.

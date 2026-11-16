@@ -214,7 +214,7 @@ begin
     Etiqueta.Left := MARGEN_H;
     Etiqueta.Top := MARGEN_V;
     Etiqueta.Caption :=
-      'Este artículo no tiene variaciones activadas.';
+      STextoEsteArticuloNoTieneVariacionesActivadasArticulos;
     Etiqueta.Transparent := True;
   end
   else

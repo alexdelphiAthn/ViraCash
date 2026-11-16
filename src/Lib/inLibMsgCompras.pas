@@ -1186,6 +1186,142 @@ resourcestring
   SErrorAbonoDevolucionNoGenerado =
     'No se ha generado el abono de la devolución.';
 
+
+  // Textos de interfaz y validación revisados en noviembre de 2026.
+  STextoLasFotosProvisionalesRequierenConfirmarLaTransaccionCompras =
+    'Las fotos provisionales requieren confirmar la transacción.';
+  STextoElRepositorioRequiereElContextoDeLaCompras =
+    'El repositorio requiere el contexto de la sesión de compra';
+  STextoElTipoNoTieneEjeDeFilasCompras =
+    'El tipo no tiene eje de filas.';
+  STextoFaltaLaEmpresaDeLaSesionCompras =
+    'Falta la empresa de la sesion.';
+  STextoPedidoImportadoDLineasDFotosYCompras =
+    'Pedido importado: %d líneas, %d fotos y %d páginas TIFF.';
+  STextoDLineasQuedanPendientesDeFamiliaYCompras =
+    '%d líneas quedan pendientes de familia y código interno.';
+  STextoNoSeEncontroLaFotoSCompras =
+    'No se encontró la foto %s.';
+  STextoFotosDelPedidoCompras =
+    'Fotos del pedido: ';
+  STextoPedidoOriginalCompras =
+    'Pedido original: ';
+  STextoElOcrHaCompletadoAlgunasCantidadesMedianteCompras =
+    'El OCR ha completado algunas cantidades mediante inferencias ' +
+    'seguras. Revise estas líneas:';
+  STextoAlbaranCreadoDesdeElPedidoSSCompras =
+    'Albarán creado desde el pedido %s/%s';
+  STextoAlbaranCompras =
+    'Albarán';
+  STextoElPedidoTieneCantidadesPendientesDeRecibirCompras =
+    'El pedido tiene cantidades pendientes de recibir. ¿Desea ' +
+    'cancelar lo pendiente y dar por terminada la recepción? Se ' +
+    'conservarán las cantidades recibidas y sus albaranes.';
+  STextoNoSeEncontroElArticuloSCompras =
+    'No se encontró el artículo "%s".';
+  STextoDesgloseIvaReCompras =
+    'DESGLOSE IVA / RE';
+  STextoTipoCompras =
+    'Tipo';
+  STextoBaseCompras =
+    'Base';
+  STextoIvaCompras =
+    '% IVA';
+  STextoIvaCompras2 =
+    'IVA';
+  STextoReCompras =
+    '% RE';
+  STextoReCompras2 =
+    'RE';
+  STextoSuperReducidoCompras =
+    'Super reducido';
+  STextoTotalBrutoCompras =
+    'Total bruto';
+  STextoDtoComercialCompras =
+    'Dto. comercial';
+  STextoTotalBasesCompras =
+    'Total bases';
+  STextoImpuestosCompras =
+    'Impuestos';
+  STextoRetencionIrpfCompras =
+    'Retencion IRPF';
+  STextoDtoFinancieroCompras =
+    'Dto. financiero';
+  STextoTotalLiquidoCompras =
+    'TOTAL LIQUIDO';
+  STextoProveedorCompras =
+    'PROVEEDOR';
+  STextoDocumentoCompras =
+    'DOCUMENTO';
+  STextoFechaCompras =
+    'Fecha: ';
+  STextoEstadoCompras =
+    'Estado: ';
+  STextoRefPrvCompras =
+    'Ref. Prv.: ';
+  STextoCodArtCompras =
+    'Cod. Art.';
+  STextoRefPrvCompras2 =
+    'Ref. Prv.';
+  STextoDescripcionCompras =
+    'Descripcion';
+  STextoColorCompras =
+    'Color';
+  STextoSisCompras =
+    'Sis.';
+  STextoUdsCompras =
+    'Uds.';
+  STextoImporteCompras =
+    'Importe';
+  STextoTotalesCompras =
+    'TOTALES';
+  STextoLineaCompras =
+    'Linea';
+  STextoArticuloCompras =
+    'Articulo';
+  STextoSkuCompras =
+    'SKU';
+  STextoCantCompras =
+    'Cant.';
+  STextoPrecioCompras =
+    'Precio';
+  STextoTotalCompras =
+    'Total';
+  STextoTotalBaseCompras =
+    'Total Base:';
+  STextoTotalUdsCompras =
+    'Total Uds:';
+  STextoTipoDeDocumentoCompras =
+    'Tipo de documento';
+  STextoProveedorCompras2 =
+    'Proveedor';
+  STextoNombreProveedorCompras =
+    'Nombre proveedor';
+  STextoDocumentoCompras2 =
+    'Documento';
+  STextoFechaCompras2 =
+    'Fecha';
+  STextoReferenciaProveedorCompras =
+    'Referencia proveedor';
+  STextoAlmacenCompras =
+    'Almacén';
+  STextoTemporadaCompras =
+    'Temporada';
+  STextoCantidadCompras =
+    'Cantidad';
+  STextoBaseImponibleCompras =
+    'Base imponible';
+  STextoRecargoCompras =
+    'Recargo';
+  STextoTotalLiquidoCompras2 =
+    'Total líquido';
+  STextoTotalesPorTipoYProveedorCompras =
+    'Totales por tipo y proveedor';
+  STextoComprasNetasCompras =
+    'Compras netas';
+  STextoMargen100Compras =
+    'Margen >= 100';
+
 implementation
 
 end.

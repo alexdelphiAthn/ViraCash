@@ -62,6 +62,7 @@ const
 implementation
 
 uses
+  inLibMsgComun,
   System.Classes;
 
 function TDBStructureCheckResult.IsOK: Boolean;
@@ -82,10 +83,10 @@ var
 begin
   case AResultado.Status of
     dbsOK:
-      Result := 'Estructura correcta.';
+      Result := STextoEstructuraCorrectaComun;
     dbsDatabaseNotExists:
       Result := Format(
-        'La base de datos "%s" no existe en el servidor.',
+        STextoLaBaseDeDatosSNoExisteComun,
         [AResultado.DatabaseName]);
     dbsMissingObjects:
       begin
@@ -96,14 +97,13 @@ begin
             '  - ' + sObjeto + sLineBreak;
         end;
         Result := Format(
-          'La base de datos "%s" existe, pero faltan los ' +
-          'siguientes objetos requeridos:' + sLineBreak + '%s',
+          STextoLaBaseDeDatosSExistePeroComun + sLineBreak + '%s',
           [AResultado.DatabaseName, sFaltantes]);
       end;
     dbsConnectionError:
-      Result := 'Error de conexión: ' + AResultado.ErrorMessage;
+      Result := STextoErrorDeConexionComun + AResultado.ErrorMessage;
   else
-    Result := 'Estado desconocido.';
+    Result := STextoEstadoDesconocidoComun;
   end;
 end;
 
@@ -123,7 +123,7 @@ begin
     Result.Status := dbsConnectionError;
     Result.Error := eleConexionNoDisponible;
     Result.ErrorMessage :=
-      'No se ha configurado el lector de estructura.';
+      STextoNoSeHaConfiguradoElLectorDeComun;
   end
   else
   begin

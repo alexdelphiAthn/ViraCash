@@ -22,6 +22,7 @@ unit inMtoModalImpDepositos;
 interface
 
 uses
+  dxSpreadSheet,
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.DateUtils, System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms,
   Vcl.Dialogs,
@@ -76,6 +77,7 @@ type
     procedure SeleccionarAlmacenCaja;
     function ConstruirSolicitud: TSolicitudInformeCaja;
   protected
+    procedure ConstruirExcelNativo(AControl: TdxSpreadSheet); override;
     procedure DoShow; override;
     procedure DescribirSelecciones(
       AResumen: TResumenSeleccionesInforme); override;
@@ -93,6 +95,8 @@ implementation
 {$R *.dfm}
 
 uses
+  inLibMsgCaja,
+  inLibInformeTabular, inLibInformeTabularExcel,
   inMtoModalCajDef, inLibCuentaClientesInforme;
 
 { TfrmPrintDepositos }
@@ -117,16 +121,16 @@ begin
   if AResumen then
   begin
     Name := 'frmPrintDeudoresClientes';
-    Caption := 'Deudores por empresa y tienda';
+    Caption := STextoDeudoresPorEmpresaYTiendaCaja;
   end
   else
   begin
     if FClienteCuenta = '' then
-      raise EArgumentException.Create('Seleccione un cliente.');
+      raise EArgumentException.Create(STextoSeleccioneUnClienteCaja);
     Name := 'frmPrintExtractoCliente';
-    Caption := 'Extracto de cuenta del cliente';
+    Caption := STextoExtractoDeCuentaDelClienteCaja;
   end;
-  lblFechas.Caption := 'Todas las empresas y tiendas';
+  lblFechas.Caption := STextoTodasLasEmpresasYTiendasCaja;
   lblFechas.Width := 260;
   lblDesde.Visible := False;
   lblHasta.Visible := False;
@@ -146,6 +150,7 @@ end;
 procedure TfrmPrintDepositos.DoShow;
 begin
   inherited;
+  btnExcel.OnClick := btnExcelNativoClick;
   ComponerDependencias;
   // Por defecto: rango del primer dia del mes en curso hasta hoy, y la
   // empresa / almacen / caja activos del usuario. El usuario puede ampliar
@@ -222,7 +227,7 @@ begin
   begin
     if not Supports(FRepositorioPersistencia,
       IRepositorioCuentaClientes, Cuenta) then
-      raise EIntfCastError.Create('Repositorio de cuenta no disponible.');
+      raise EIntfCastError.Create(STextoRepositorioDeCuentaNoDisponibleCaja);
     FResultado := Cuenta.ConsultarCuentaClientes(
       FClienteCuenta, FResumenCuenta);
   end
@@ -239,9 +244,10 @@ begin
   inherited;
   if FEsCuenta then
   begin
-    AResumen.Anadir('Ámbito', 'Todas las empresas y tiendas');
+    AResumen.Anadir(STextoAmbitoCaja, STextoTodasLasEmpresasYTiendasCaja);
     AResumen.Anadir('Cliente', FClienteCuenta);
-    AResumen.Anadir('Situación', 'Saldo actual, no saldo a fecha histórica');
+    AResumen.Anadir(STextoSituacionCaja,
+      STextoSaldoActualNoSaldoAFechaHistoricaCaja);
   end
   else
   begin
@@ -260,6 +266,60 @@ begin
   Result.Caja := bedCaja.Text;
   Result.FechaDesde := dteDesde.Date;
   Result.FechaHasta := dteHasta.Date;
+end;
+
+procedure TfrmPrintDepositos.ConstruirExcelNativo(
+  AControl: TdxSpreadSheet);
+var
+  aColumnas: TColumnasInformeTabular;
+begin
+  if not FEsCuenta then
+  begin
+    ExportarInformeTabularExcel(AControl, dsDepositosPrint.DataSet,
+      Caption,
+      [ColumnaInforme('ID_DEPOSITO_DEP', STextoDepositoCaja, 1),
+       ColumnaInforme('FECHA_CREACION_DEP', STextoFechaCaja, 1),
+       ColumnaInforme('CODIGO_CLI_DEP', STextoClienteCaja, 1),
+       ColumnaInforme('CODIGO_UNIDAD_DEP', STextoSkuCaja, 1),
+       ColumnaInforme('PRECIO_VENTA_DEP', STextoPrecioVentaCaja, 1, '%n'),
+       ColumnaInforme('IMPORTE_ANTICIPO_DEP', STextoAnticipoCaja, 1, '%n'),
+       ColumnaInforme('ESTADO_DEP', STextoEstadoCaja, 1),
+       ColumnaInforme('NUMERO_OPERACION_DEP', STextoOperacionCaja, 1)],
+      LineasResumenSelecciones);
+  end
+  else
+  begin
+    if FResumenCuenta then
+      aColumnas :=
+        [ColumnaInforme('CLIENTE', STextoClienteCaja, 1),
+         ColumnaInforme('NOMBRE', STextoNombreCaja, 1),
+         ColumnaInforme('LIMITE', STextoLimiteGlobalCaja, 1, '%n'),
+         ColumnaInforme('NOMBRE_EMPRESA', STextoEmpresaCaja, 1),
+         ColumnaInforme('TIENDA', STextoTiendaCaja, 1),
+         ColumnaInforme('FECHA', STextoFechaCaja, 1),
+         ColumnaInforme('DIAS', STextoAntiguedadDiasCaja, 1, '%g'),
+         ColumnaInforme('PENDIENTE', STextoPendienteCaja, 1, '%n')]
+    else
+      aColumnas :=
+        [ColumnaInforme('CLIENTE', STextoClienteCaja, 1),
+         ColumnaInforme('NOMBRE', STextoNombreCaja, 1),
+         ColumnaInforme('LIMITE', STextoLimiteGlobalCaja, 1, '%n'),
+         ColumnaInforme('NOMBRE_EMPRESA', STextoEmpresaCaja, 1),
+         ColumnaInforme('TIENDA', STextoTiendaCaja, 1),
+         ColumnaInforme('FECHA', STextoFechaCaja, 1),
+         ColumnaInforme('DEPOSITO', STextoDepositoCaja, 1),
+         ColumnaInforme('ESTADO', STextoEstadoCaja, 1),
+         ColumnaInforme('IMPORTE', STextoImporteCaja, 1, '%n'),
+         ColumnaInforme('ENTREGADO', STextoEntregadoCaja, 1, '%n'),
+         ColumnaInforme('PENDIENTE', STextoPendienteCaja, 1, '%n')];
+    ExportarInformeTabularExcel(AControl, dsDepositosPrint.DataSet,
+      Caption, aColumnas, LineasResumenSelecciones);
+    AnadirResumenInformeTabularExcel(AControl, dsDepositosPrint.DataSet,
+      STextoTotalesPorClienteCaja,
+      [ColumnaInforme('CLIENTE', STextoClienteCaja, 1),
+       ColumnaInforme('NOMBRE', STextoNombreCaja, 1),
+       ColumnaInforme('PENDIENTE', STextoPendienteCaja, 1, '%n')]);
+  end;
 end;
 
 end.

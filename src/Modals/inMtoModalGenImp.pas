@@ -48,7 +48,7 @@ uses
   frLanguageSpanish, frxSmartMemo, inLibImpresionPersistenciaIntf,
   inLibVentanaEspera, cxCheckBox, inLibCorreoTickets,
   inLibCorreoDocumentoIntf, inLibResumenSeleccionesInforme,
-  System.Diagnostics;
+  System.Diagnostics, dxSpreadSheet;
 
 const
   WM_INICIAR_ENVIO_CORREO_DOCUMENTO = WM_APP + $462;
@@ -208,6 +208,8 @@ type
     // Ventana de espera compartida por los flujos de impresión; los
     // descendientes la usan en sus propios flujos (p. ej. Excel).
     procedure IniciarEspera(const AFase: string);
+    procedure btnExcelNativoClick(Sender: TObject);
+    procedure ConstruirExcelNativo(AControl: TdxSpreadSheet); virtual;
     procedure ActualizarDetalleEspera(const ADetalle: string);
     procedure OcultarEspera;
     procedure TerminarEspera;
@@ -322,7 +324,7 @@ uses
   inLibFormatoCantidadesInforme,
   inLibVentasPantallaIntf, inLibCorreoDocumentoVcl,
   UniDataVentasPantallaComposicion, UniDataCorreoDocumento,
-  inLibResumenSeleccionesFrx;
+  inLibResumenSeleccionesFrx, inMtoPreviewExcel;
 
 {$R *.dfm}
 
@@ -517,7 +519,7 @@ begin
   if ANombreAdjunto <> '' then
   begin
     if ExtractFileName(ANombreAdjunto) <> ANombreAdjunto then
-      raise EArgumentException.Create('Nombre de adjunto no válido.');
+      raise EArgumentException.Create(STextoNombreDeAdjuntoNoValidoComun);
     sRutaPdf := ExtractFilePath(sRutaPdf) + ANombreAdjunto;
   end;
   oRutas := TStringList.Create;
@@ -1218,6 +1220,46 @@ begin
   end;
   end;
   Self.Show;
+end;
+
+procedure TfrmPrint.ConstruirExcelNativo(AControl: TdxSpreadSheet);
+begin
+  raise ENotImplemented.Create(ClassName + '.ConstruirExcelNativo');
+end;
+
+procedure TfrmPrint.btnExcelNativoClick(Sender: TObject);
+var
+  oPreview: TfrmMtoPreviewExcel;
+  oCursor: TCursor;
+begin
+  oPreview := nil;
+  oCursor := Screen.Cursor;
+  try
+    AvisarAntesDeConsulta;
+    Screen.Cursor := crHourGlass;
+    IniciarEspera(SCaptionEsperaConsultandoDatosInforme);
+    IniciarMedicionDatos;
+    try
+      preparar_consulta;
+    finally
+      PausarMedicionDatos;
+    end;
+    oPreview := TfrmMtoPreviewExcel.Create(Self);
+    oPreview.PopupParent := Self;
+    oPreview.DialogoGuardar.InitialDir :=
+      ParametrosApp.GetPath('appDirExcel');
+    oPreview.DialogoGuardar.FileName := NombreExportacionPorDefecto('.xlsx');
+    IniciarEspera(SCaptionEsperaGenerandoHojaCalculo);
+    ConstruirExcelNativo(oPreview.dxSpreadSheet1);
+    oPreview.dxSpreadSheet1.ActiveSheetIndex := 0;
+    TerminarEspera;
+    Screen.Cursor := oCursor;
+    oPreview.ShowModal;
+  finally
+    TerminarEspera;
+    oPreview.Free;
+    Screen.Cursor := oCursor;
+  end;
 end;
 
 procedure TfrmPrint.btnExcelClick(Sender: TObject);

@@ -29,6 +29,7 @@ function AplicarPrecioCondicionalPrestaShop(
 implementation
 
 uses
+  inLibMsgIntegraciones,
   System.SysUtils;
 
 function EsquemaDescuentoCondicionalDisponible(
@@ -191,7 +192,7 @@ function AplicarPrecioCondicionalPrestaShop(
 begin
   if Pos(CMarcadorPrecioCondicionalPrestaShop, ASql) = 0 then
     raise EArgumentException.Create(
-      'El SQL no contiene el marcador de precio de PrestaShop');
+      STextoElSqlNoContieneElMarcadorDeIntegraciones);
   Result := StringReplace(
     ASql,
     CMarcadorPrecioCondicionalPrestaShop,
@@ -204,7 +205,7 @@ begin
     [rfReplaceAll]);
   if Pos(CMarcadorPrecioCondicionalPrestaShop, Result) > 0 then
     raise EArgumentException.Create(
-      'No se pudo construir el precio condicional de PrestaShop');
+      STextoNoSePudoConstruirElPrecioCondicionalIntegraciones);
 end;
 
 end.

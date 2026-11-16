@@ -78,6 +78,7 @@ type
 
 implementation
 uses
+  inLibMsgCompras,
   System.SysUtils,
   UniDataComprasSesionesAlbaranes,
   UniDataComprasSesionesArticulos,
@@ -167,7 +168,7 @@ procedure TPersistenciaMaterializacionComprasSesiones.
 begin
   if FConexion.InTransaction then
     raise Exception.Create(
-      'Las fotos provisionales requieren confirmar la transacción.');
+      STextoLasFotosProvisionalesRequierenConfirmarLaTransaccionCompras);
   MigrarFotosArticulosSesion(
     FDataModule, FFotos, FLecturas.Articulos, AUsuario);
 end;

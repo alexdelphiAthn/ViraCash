@@ -582,7 +582,7 @@ procedure THiloPrestaShopCola.ComprobarCierreSeguro;
 begin
   if FControlTrabajo.DebeLiberarTrabajo then
     raise ECierreForzadoPrestaShop.Create(
-      'Cierre solicitado tras la operación remota actual');
+      STextoCierreSolicitadoTrasLaOperacionRemotaActualIntegraciones);
 end;
 
 function THiloPrestaShopCola.AsegurarFamiliasAlta(
@@ -741,7 +741,7 @@ begin
         AArticulo.Skus[iSku].Atributos[iAtributo]);
       if not AValores.TryGetValue(sClaveValor, iValor) then
         raise EInvalidOpException.Create(
-          'No se resolvió un atributo de la combinación PrestaShop');
+          STextoNoSeResolvioUnAtributoDeLaIntegraciones);
       aIdsValores[iAtributo] := iValor;
       Inc(iAtributo);
     end;
@@ -771,7 +771,7 @@ var
 begin
   if Length(AArticulo.Fotos) = 0 then
     raise EAltaArticuloPrestaLocal.Create(
-      'El artículo no tiene una foto real válida para publicar');
+      STextoElArticuloNoTieneUnaFotoRealIntegraciones);
   iFoto := 0;
   iIndice := 0;
   while iIndice <= High(AArticulo.Fotos) do
@@ -803,7 +803,7 @@ var
 begin
   if not Assigned(ACliente) then
     raise EInvalidOpException.Create(
-      'El cliente de altas PrestaShop no está asignado');
+      STextoElClienteDeAltasPrestashopNoEstaIntegraciones);
   if not Assigned(FRepositorioAlta) then
     raise EInvalidOpException.Create(
       SRepositorioAltaPrestaShopNoCreado);
@@ -823,7 +823,7 @@ begin
     AsegurarLease(ATrabajo);
     if not SigueVigente(AConfiguracion) then
       raise EInvalidOpException.Create(
-        'La configuración PrestaShop cambió antes del alta');
+        STextoLaConfiguracionPrestashopCambioAntesDelAltaIntegraciones);
     if not FRepositorio.MarcarAltaEnCurso(
              ATrabajo.IdCola,
              ATrabajo.Token) then
@@ -845,7 +845,7 @@ begin
         oValores);
       if not SigueVigente(AConfiguracion) then
         raise EInvalidOpException.Create(
-          'La configuración PrestaShop cambió durante el alta');
+          STextoLaConfiguracionPrestashopCambioDuranteElAltaIntegraciones);
       iIdProducto := AsegurarProductoAlta(
         ATrabajo,
         oArticulo,
@@ -1182,7 +1182,7 @@ begin
     AsegurarLease(ATrabajo);
     if not SigueVigente(AConfiguracion) then
       raise EInvalidOpException.Create(
-        'La configuración PrestaShop cambió durante el envío');
+        STextoLaConfiguracionPrestashopCambioDuranteElEnvioIntegraciones);
     if ATrabajo.AccionVisibilidad = avpDesactivar then
       ProcesarDesactivacion(ATrabajo, ACliente)
     else

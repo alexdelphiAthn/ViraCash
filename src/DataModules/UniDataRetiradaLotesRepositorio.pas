@@ -48,6 +48,7 @@ type
 implementation
 
 uses
+  inLibMsgComun,
   System.SysUtils, System.Classes, Data.DB,
   inLibRetiradaLotes, inLibMsgRetiradaLotes,
   UniDataValoresAutomaticosRepositorio;
@@ -251,7 +252,7 @@ begin
   if not SameText(AOrden.Empresa, FEmpresa) then
     raise Exception.Create(SErrorRetiradaAlmacen);
   if (Length(AOrden.Id) <> 36) or FConexion.InTransaction then
-    raise Exception.Create('Finalice la operación actual antes de retirar.');
+    raise Exception.Create(STextoFinaliceLaOperacionActualAntesDeRetirarComun);
   FConexion.StartTransaction;
   try
     // La clave primaria arbitra también dos peticiones simultáneas.

@@ -39,6 +39,7 @@ function ExtraerDatosResultadoProceso(
 implementation
 
 uses
+  inLibMsgComun,
   System.Classes,
   System.Diagnostics,
   System.SyncObjs,
@@ -139,12 +140,13 @@ var
 begin
   Result := Trim(AValor);
   if Result = '' then
-    raise EArgumentException.Create('El identificador no puede estar vacío');
+    raise EArgumentException.Create(
+      STextoElIdentificadorNoPuedeEstarVacioComun);
   for I := 1 to Length(Result) do
   begin
     if not CharInSet(Result[I], ['A'..'Z', 'a'..'z', '0'..'9', '_', '$']) then
       raise EArgumentException.CreateFmt(
-        'Identificador de base de datos no válido: %s',
+        STextoIdentificadorDeBaseDeDatosNoValidoComun,
         [Result]);
   end;
 end;

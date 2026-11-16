@@ -161,9 +161,11 @@ var
   Solicitado: Double;
 begin
   if (ACantidad <= 0) or IsNan(ACantidad) or IsInfinite(ACantidad) then
-    raise EArgumentException.Create('Las unidades deben ser positivas');
+    raise EArgumentException.Create(
+      STextoLasUnidadesDebenSerPositivasDistribucionTiendas);
   if (Trim(AEmpresa) = '') or (Trim(AAlmacen) = '') or (Trim(ASku) = '') then
-    raise EArgumentException.Create('Indique empresa, almacen y SKU');
+    raise EArgumentException.Create(
+      STextoIndiqueEmpresaAlmacenYSkuDistribucionTiendas);
   Propia := not AConexion.InTransaction;
   Consulta := TUniQuery.Create(nil);
   try
@@ -177,7 +179,8 @@ begin
       Consulta.Open;
       if Consulta.IsEmpty or
          not SameText(Consulta.FieldByName('ESTADO_DTR').AsString,'CREADO') then
-        raise EArgumentException.Create('El documento debe estar creado');
+        raise EArgumentException.Create(
+          STextoElDocumentoDebeEstarCreadoDistribucionTiendas);
       Consulta.Close;
       Consulta.SQL.Text := 'SELECT SK.CODIGO_ART_SKU, A.DESCRIPCION_ART, ' +
         '(SELECT COALESCE(SUM(S.CANTIDAD_STK),0) ' +
@@ -194,7 +197,8 @@ begin
       Consulta.ParamByName('EMP').AsString := AEmpresa;
       Consulta.Open;
       if Consulta.IsEmpty then
-        raise EArgumentException.Create('SKU o almacen no disponible');
+        raise EArgumentException.Create(
+          STextoSkuOAlmacenNoDisponibleDistribucionTiendas);
       Linea := Default(TDocTrabajoLineaOrigen);
       Linea.CodigoArticulo := Consulta.FieldByName('CODIGO_ART_SKU').AsString;
       Linea.DescripcionArticulo :=
@@ -214,7 +218,8 @@ begin
       Consulta.Open;
       Solicitado := Consulta.FieldByName('CANT').AsFloat;
       if ACantidad + Solicitado > Linea.CantidadStock + TOLERANCIA_CANTIDAD then
-        raise EArgumentException.Create('No hay stock suficiente para el SKU');
+        raise EArgumentException.Create(
+          STextoNoHayStockSuficienteParaElSkuDistribucionTiendas);
       Repos := CrearRepositoriosDocumentosTrabajo(AConexion);
       Repos.Lecturas.CompletarDatosArticulo(Linea);
       Repos.Escritura.InsertarLinea(AIdDocumento, Linea, AUsuario);

@@ -24,6 +24,7 @@ function CrearPersistenciaGuiasGridUniDAC(
 implementation
 
 uses
+  inLibMsgComun,
   System.SysUtils, System.Classes, System.Variants,
   Data.DB,
   inLibInformesGuiasCache;
@@ -120,7 +121,7 @@ begin
   end;
   if not EsValido then
     raise EArgumentException.CreateFmt(
-      'Identificador de guía no válido: %s', [AValor]);
+      STextoIdentificadorDeGuiaNoValidoSComun, [AValor]);
 end;
 
 function TPersistenciaGuiasGridUniDAC.SepararCampos(

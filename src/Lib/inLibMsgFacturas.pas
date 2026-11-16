@@ -885,6 +885,208 @@ resourcestring
   SEventoFacturacionPrestamos =
     'Facturación de préstamos: %d préstamos, período %s - %s';
 
+
+  // Textos de interfaz y validación revisados en noviembre de 2026.
+  STextoFaltaElResolverDeArticulosFacturas =
+    'Falta el resolver de artículos';
+  STextoLosServiciosDeFacturaNoEstanConfiguradosFacturas =
+    'Los servicios de factura no están configurados';
+  STextoFaltaLaTransaccionDeBorradoFacturas =
+    'Falta la transaccion de borrado.';
+  STextoAlmacenFacturas =
+    'Almacén';
+  STextoDescripcionFacturas =
+    'Descripción';
+  STextoModeloFacturas =
+    'Modelo';
+  STextoFamiliaFacturas =
+    'Familia';
+  STextoProveedorFacturas =
+    'Proveedor';
+  STextoTemporadaFacturas =
+    'Temporada';
+  STextoStockFacturas =
+    'Stock';
+  STextoCantidadFacturas =
+    'Cantidad';
+  STextoOrigenFacturas =
+    'Origen';
+  STextoInstanteStockFacturas =
+    'Instante stock';
+  STextoElPresupuestoPerteneceAVentasFacturas =
+    'El presupuesto pertenece a ventas.';
+  STextoLaDevolucionDeVentaSeRepresentaMedianteFacturas =
+    'La devolución de venta se representa mediante factura ' +
+    'rectificativa.';
+  STextoNifInvalidoFormatoEsperado12345678aFacturas =
+    'NIF invalido. Formato esperado: 12345678A';
+  STextoNieInvalidoFormatoEsperadoX1234567aFacturas =
+    'NIE invalido. Formato esperado: X1234567A';
+  STextoCifInvalidoFormatoEsperadoA12345674Facturas =
+    'CIF invalido. Formato esperado: A12345674';
+  STextoNifNieOCifVacioONoFacturas =
+    'NIF, NIE o CIF vacio o no reconocido: ';
+  STextoSinFotoFacturas =
+    'Sin foto';
+  STextoDocumentoDeTrabajoFacturas =
+    'DOCUMENTO DE TRABAJO';
+  STextoIdFacturas =
+    'ID:';
+  STextoTituloFacturas =
+    'Título:';
+  STextoTipoFacturas =
+    'Tipo:';
+  STextoEstadoFacturas =
+    'Estado:';
+  STextoPropietarioFacturas =
+    'Propietario:';
+  STextoEmpresaFacturas =
+    'Empresa:';
+  STextoAlmacenFacturas2 =
+    'Almacén:';
+  STextoFechaFacturas =
+    'Fecha:';
+  STextoLineaFacturas =
+    'Línea';
+  STextoArticuloFacturas =
+    'Artículo';
+  STextoSkuFacturas =
+    'SKU';
+  STextoDescripcionArticuloFacturas =
+    'Descripción artículo';
+  STextoTarifaFacturas =
+    'Tarifa';
+  STextoPrecioTarifaFacturas =
+    'Precio tarifa';
+  STextoDescripcionUnidadFacturas =
+    'Descripción unidad';
+  STextoDocumentoDeTrabajoFacturas2 =
+    'Documento de trabajo';
+  STextoFacturaSimplificadaFacturas =
+    'FACTURA SIMPLIFICADA';
+  STextoFacturaRectificativaFacturas =
+    'FACTURA RECTIFICATIVA';
+  STextoFacturaProformaFacturas =
+    'FACTURA PROFORMA';
+  STextoNifFacturas =
+    'NIF: ';
+  STextoFechaFacturas2 =
+    'Fecha: ';
+  STextoNumeroFacturas =
+    'Número: ';
+  STextoPrecioFacturas =
+    'Precio';
+  STextoIvaFacturas =
+    '% IVA';
+  STextoTotalFacturas =
+    'Total';
+  STextoBaseImponibleFacturas =
+    'Base Imponible';
+  STextoTipoIvaFacturas =
+    'Tipo IVA';
+  STextoCuotaIvaFacturas =
+    'Cuota IVA';
+  STextoReFacturas =
+    '% RE';
+  STextoTotalReFacturas =
+    'Total RE';
+  STextoTotalBaseImponibleFacturas =
+    'Total Base Imponible:';
+  STextoTotalImpuestosIvaReFacturas =
+    'Total Impuestos (IVA+RE):';
+  STextoTotalAPagarFacturas =
+    'TOTAL A PAGAR:';
+  STextoFormaDePagoFacturas =
+    'Forma de Pago:';
+  STextoProveedorNoEncontradoFacturas =
+    ' - (proveedor no encontrado)';
+  STextoVariacionFacturas =
+    'Variación';
+  STextoTallasFacturas =
+    'Tallas';
+  STextoDetalleFacturas =
+    'Detalle';
+  STextoUnidadFacturas =
+    'Unidad';
+  STextoIvaFacturas2 =
+    'IVA %';
+  STextoPrecioAntesDelDescuentoFacturas =
+    'Precio antes del descuento';
+  STextoDescuentoFacturas =
+    'Descuento %';
+  STextoSerieFacturas =
+    'Serie';
+  STextoNumeroFacturas2 =
+    'Número';
+  STextoFechaFacturas3 =
+    'Fecha';
+  STextoEmpresaFacturas2 =
+    'Empresa';
+  STextoNifEmpresaFacturas =
+    'NIF empresa';
+  STextoDireccionEmpresaFacturas =
+    'Dirección empresa';
+  STextoClienteProveedorFacturas =
+    'Cliente / proveedor';
+  STextoNifTerceroFacturas =
+    'NIF tercero';
+  STextoDireccionTerceroFacturas =
+    'Dirección tercero';
+  STextoFormaDePagoFacturas2 =
+    'Forma de pago';
+  STextoValidezFacturas =
+    'Validez';
+  STextoBaseImponibleFacturas2 =
+    'Base imponible';
+  STextoIvaFacturas3 =
+    'IVA';
+  STextoRecargoFacturas =
+    'Recargo';
+  STextoRetencionFacturas =
+    'Retención';
+  STextoNotasFacturas =
+    'Notas';
+  STextoTipoDeIvaFacturas =
+    'Tipo de IVA';
+  STextoRecargoFacturas2 =
+    'Recargo %';
+  STextoCuotaRecargoFacturas =
+    'Cuota recargo';
+  STextoBeneficiarioDelPagoFacturas =
+    'BENEFICIARIO DEL PAGO:';
+  STextoRecibiElBeneficiarioFacturas =
+    'RECIBÍ, EL BENEFICIARIO';
+  STextoFacturaFacturas =
+    'Factura';
+  STextoPlazoFacturas =
+    'Plazo';
+  STextoEstadoFacturas2 =
+    'Estado';
+  STextoCodigoTerceroFacturas =
+    'Código tercero';
+  STextoNombreTerceroFacturas =
+    'Nombre tercero';
+  STextoDireccionFacturas =
+    'Dirección';
+  STextoCodigoPostalFacturas =
+    'Código postal';
+  STextoPoblacionFacturas =
+    'Población';
+  STextoProvinciaFacturas =
+    'Provincia';
+  STextoIbanFacturas =
+    'IBAN';
+  STextoExpedicionFacturas =
+    'Expedición';
+  STextoVencimientoFacturas =
+    'Vencimiento';
+  STextoImporteFacturas =
+    'Importe';
+  STextoTotalesPorTerceroFacturas =
+    'Totales por tercero';
+  STextoSelectDeLineasSinFromFacturas =
+    'SELECT de líneas sin FROM';
+
 implementation
 
 uses

@@ -13,6 +13,7 @@ function SqlPeriodicidadTarifa(const ATarifa, AFecha: string): string;
 implementation
 
 uses
+  inLibMsgComun,
   System.SysUtils, System.DateUtils, Data.DB;
 
 type
@@ -109,11 +110,11 @@ var
 begin
   ValidarPeriodosTarifa(APeriodos);
   if Trim(ATarifa) = '' then
-    raise EArgumentException.Create('Guarde primero la tarifa.');
+    raise EArgumentException.Create(STextoGuardePrimeroLaTarifaComun);
   if not Disponible then
-    raise EInvalidOp.Create('Instale la actualización 727.');
+    raise EInvalidOp.Create(STextoInstaleLaActualizacion727Comun);
   if FConexion.InTransaction then
-    raise EInvalidOp.Create('Hay una transacción en curso.');
+    raise EInvalidOp.Create(STextoHayUnaTransaccionEnCursoComun);
   Consulta := TUniQuery.Create(nil);
   try
     Consulta.Connection := FConexion;
@@ -124,7 +125,7 @@ begin
       Consulta.ParamByName('TARIFA').AsString := ATarifa;
       Consulta.Open;
       if Consulta.IsEmpty then
-        raise EArgumentException.Create('La tarifa ya no existe.');
+        raise EArgumentException.Create(STextoLaTarifaYaNoExisteComun);
       Consulta.Close;
       Consulta.SQL.Text := 'DELETE FROM fza_tarifas_periodos ' +
         'WHERE CODIGO_TAR_TPER = :TARIFA';

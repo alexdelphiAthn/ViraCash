@@ -454,7 +454,7 @@ begin
     else
     begin
       AError := True;
-      AErrorText := 'Sin asignar.';
+      AErrorText := STextoSinAsignarArticulos;
     end;
   end;
   if not AError and ObtenerContextoActual(oContexto) then
@@ -473,7 +473,7 @@ begin
       else
       begin
         AError := True;
-        AErrorText := 'Sin asignar.';
+        AErrorText := STextoSinAsignarArticulos;
       end;
     end;
     if not AError then

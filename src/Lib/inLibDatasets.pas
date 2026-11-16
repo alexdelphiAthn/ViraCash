@@ -69,6 +69,7 @@ function ExistePeriodoUnico(
 implementation
 
 uses
+  inLibMsgComun,
   System.SysUtils, System.DateUtils,
   Uni, Datasnap.Provider, Datasnap.DBClient, MidasLib;
 
@@ -426,7 +427,7 @@ begin
            not Datos.Locate(AEdiciones[i].Clave,
              AEdiciones[i].ValoresClave, []) then
           raise EDatabaseError.Create(
-            'No se encuentra el documento para recuperar su edición.');
+            STextoNoSeEncuentraElDocumentoParaRecuperarComun);
         Datos.Edit;
       end;
       for j := 0 to High(AEdiciones[i].Campos) do

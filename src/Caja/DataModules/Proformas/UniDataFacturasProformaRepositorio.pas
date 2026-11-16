@@ -202,6 +202,7 @@ type
 implementation
 
 uses
+  inLibMsgCaja,
   System.SysUtils,
   System.Generics.Collections,
   Data.DB,
@@ -1746,7 +1747,7 @@ var
 begin
   if not FConexion.InTransaction then
     raise Exception.Create(
-      'La numeración del documento requiere una transacción activa.');
+      STextoLaNumeracionDelDocumentoRequiereUnaTransaccionCaja);
   sEmpresa := Trim(AEmpresa);
   if sEmpresa = '' then
     sEmpresa := '-';

@@ -4027,12 +4027,12 @@ begin
   if SameText(ATipo, 'RECTIFICATIVA') then
   begin
     if Trim(ATipoOriginal) = '' then
-      raise EArgumentException.Create('Falta la factura rectificada');
+      raise EArgumentException.Create(STextoFaltaLaFacturaRectificadaCaja);
     if SameText(ATipoOriginal, 'SIMPLIFICADA') then Result := 'R5'
     else Result := 'R1';
   end;
   if Result = '' then
-    raise EArgumentException.Create('Tipo de factura de caja desconocido');
+    raise EArgumentException.Create(STextoTipoDeFacturaDeCajaDesconocidoCaja);
 end;
 
 procedure CompletarTipoFiscalFacturaCaja(AConsulta: TUniQuery;

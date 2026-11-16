@@ -205,7 +205,7 @@ constructor TAdaptadorRegistroLog.Create(ALog: TLog);
 begin
   inherited Create;
   if not Assigned(ALog) then
-    raise EArgumentNilException.Create('Log no proporcionado.');
+    raise EArgumentNilException.Create(STextoLogNoProporcionadoComun);
   FLog := ALog;
 end;
 

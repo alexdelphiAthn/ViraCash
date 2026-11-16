@@ -17,6 +17,7 @@ unit inMtoModalImpFacturasProforma;
 interface
 
 uses
+  dxSpreadSheet,
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Classes,
   System.Variants, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   Vcl.Menus, Vcl.StdCtrls, Vcl.ExtCtrls, Vcl.ComCtrls, Data.DB,
@@ -40,6 +41,8 @@ type
     FIdProforma: Int64;
     procedure ConfigurarNombrePdf;
   protected
+    procedure DoShow; override;
+    procedure ConstruirExcelNativo(AControl: TdxSpreadSheet); override;
     procedure PrepararDatosEdicion; override;
     function TraducirContenidoInforme: Boolean; override;
   public
@@ -51,6 +54,10 @@ type
   end;
 
 implementation
+
+uses
+  inLibMsgCaja,
+  inLibInformeTabular, inLibInformeTabularExcel;
 
 {$R *.dfm}
 
@@ -139,6 +146,40 @@ function TfrmPrintFacturasProforma.TraducirContenidoInforme: Boolean;
 begin
   // La advertencia de documento no fiscal debe conservar su texto legal.
   Result := False;
+end;
+
+procedure TfrmPrintFacturasProforma.DoShow;
+begin
+  inherited;
+  btnExcel.OnClick := btnExcelNativoClick;
+end;
+
+procedure TfrmPrintFacturasProforma.ConstruirExcelNativo(
+  AControl: TdxSpreadSheet);
+begin
+  ExportarInformeTabularExcel(AControl, dsLineasProforma.DataSet,
+    Caption,
+    [ColumnaInforme('DESCRIPCION_VINCULO_PROCLIN', STextoVinculoCaja, 2),
+     ColumnaInforme('NUMERO_OPERACION_PROCLIN', STextoOperacionCaja, 1),
+     ColumnaInforme('FECHA_OPERACION_PROCLIN', STextoFechaCaja, 1),
+     ColumnaInforme('CODIGO_ART_PROCLIN', STextoArticuloCaja, 1),
+     ColumnaInforme('CODIGO_UNIDAD_PROCLIN', STextoSkuCaja, 1),
+     ColumnaInforme('DESCRIPCION_ARTICULO_PROCLIN', STextoDescripcionCaja, 3),
+     ColumnaInforme('CANTIDAD_PROCLIN', STextoCantidadCaja, 1, '%g'),
+     ColumnaInforme('PRECIO_SIVA_PROCLIN', STextoPrecioSinIvaCaja, 1, '%n'),
+     ColumnaInforme('PORCENTAJE_IVA_PROCLIN', STextoIvaCaja, 1, '%n'),
+     ColumnaInforme('TOTAL_PROCLIN', STextoTotalCaja, 1, '%n')],
+    LineasResumenSelecciones);
+  AnadirHojaInformeTabularExcel(AControl, dsProforma.DataSet,
+    'Cabecera',
+    [ColumnaInforme('SERIE_PROCAJ', STextoSerieCaja, 1),
+     ColumnaInforme('NUMERO_PROCAJ', STextoNumeroCaja, 1),
+     ColumnaInforme('RAZON_SOCIAL_EMPRESA_PROCAJ', STextoEmpresaCaja, 3),
+     ColumnaInforme('NIF_EMPRESA_PROCAJ', STextoNifEmpresaCaja, 1),
+     ColumnaInforme('RAZON_SOCIAL_CLIENTE_PROCAJ', STextoClienteCaja, 3),
+     ColumnaInforme('TOTAL_BASE_PROCAJ', STextoBaseImponibleCaja, 1, '%n'),
+     ColumnaInforme('TOTAL_IMPUESTOS_PROCAJ', STextoImpuestosCaja, 1, '%n'),
+     ColumnaInforme('TOTAL_PROCAJ', STextoTotalCaja, 1, '%n')]);
 end;
 
 end.

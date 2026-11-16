@@ -387,11 +387,7 @@ type
     function ComprobarUbicacionSesionArranque: Boolean;
     function PuedeAbrirMenu(AItem: TMenuItem): Boolean;
     procedure AvisarFalloCargaPermisos(const ADetalle: string);
-    procedure ConfigurarTiposDestinoCopia(
-      AEsAdministrador: Boolean);
-    function ModoDestinoCopia(
-      AEsAdministrador: Boolean
-    ): TModoProteccionCopia;
+    procedure ConfigurarTiposDestinoCopia;
     function SolicitarDestinoCopia(
       out ARutaFichero: string
     ): Boolean;
@@ -1009,71 +1005,37 @@ begin
     ShowMto(Self, 'Tarifas');
 end;
 
-procedure TfrmMtoPrincipal.ConfigurarTiposDestinoCopia(
-  AEsAdministrador: Boolean);
+procedure TfrmMtoPrincipal.ConfigurarTiposDestinoCopia;
 var
   oTipoFichero: TFileTypeItem;
 begin
   saveDialog.FileTypes.Clear;
-  if AEsAdministrador then
-  begin
-    oTipoFichero := saveDialog.FileTypes.Add;
-    oTipoFichero.DisplayName := SCaptionFiltroArchivosSql;
-    oTipoFichero.FileMask := '*.sql';
-    oTipoFichero := saveDialog.FileTypes.Add;
-    oTipoFichero.DisplayName := SCaptionFiltroCopiasZip;
-    oTipoFichero.FileMask := '*.zip';
-  end;
   oTipoFichero := saveDialog.FileTypes.Add;
   oTipoFichero.DisplayName := SCaptionFiltroCopiasCifradas;
   oTipoFichero.FileMask := '*.crypt';
   saveDialog.FileTypeIndex := 1;
 end;
 
-function TfrmMtoPrincipal.ModoDestinoCopia(
-  AEsAdministrador: Boolean): TModoProteccionCopia;
-begin
-  Result := mpcCifrada;
-  if AEsAdministrador then
-  begin
-    case saveDialog.FileTypeIndex of
-      1:
-        Result := mpcTextoPlano;
-      2:
-        Result := mpcZip;
-      3:
-        Result := mpcCifrada;
-    end;
-  end;
-end;
-
 function TfrmMtoPrincipal.SolicitarDestinoCopia(
   out ARutaFichero: string): Boolean;
 var
-  bEsAdministrador: Boolean;
-  Modo: TModoProteccionCopia;
   sExtension: string;
 begin
   ARutaFichero := '';
-  bEsAdministrador := FCoordinadorOperaciones.ModoCreacionCopia =
-    mpcTextoPlano;
-  Modo := FCoordinadorOperaciones.ModoCreacionCopia;
-  sExtension := TPoliticaCopiasSeguridad.ExtensionModo(Modo);
+  sExtension := TPoliticaCopiasSeguridad.ExtensionModo(mpcCifrada);
   saveDialog.Title := STituloGuardarCopiaSeguridad;
   saveDialog.DefaultExtension := Copy(sExtension, 2, MaxInt);
   saveDialog.DefaultFolder := ParametrosApp.GetPath(
     'appDirCopiasSeguridad');
   saveDialog.Options := saveDialog.Options +
     [fdoStrictFileTypes, fdoOverwritePrompt];
-  ConfigurarTiposDestinoCopia(bEsAdministrador);
+  ConfigurarTiposDestinoCopia;
   saveDialog.FileName := Format(
     SNombreArchivoCopiaSeguridad,
     [FormatDateTime('_dd_mm_yyyy_HH_nn_ss', Now)]) + sExtension;
   Result := saveDialog.Execute;
   if Result then
   begin
-    Modo := ModoDestinoCopia(bEsAdministrador);
-    sExtension := TPoliticaCopiasSeguridad.ExtensionModo(Modo);
     ARutaFichero := ChangeFileExt(
       saveDialog.FileName,
       sExtension);

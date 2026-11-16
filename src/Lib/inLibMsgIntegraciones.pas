@@ -419,6 +419,223 @@ resourcestring
   SAvisoSalirTrasActualizacion =
     'ViraCash se va a cerrar. Vuelva a abrirlo para seguir trabajando ' +
     'con la versión correcta.';
+
+  // Textos de interfaz y validación revisados en noviembre de 2026.
+  STextoNoEstaConfiguradaLaCarpetaDeFotosIntegraciones =
+    'No está configurada la carpeta de fotos appDirFotos.';
+  STextoNoExisteElArticuloLocalSIntegraciones =
+    'No existe el artículo local "%s".';
+  STextoElArticuloLocalSNoEstaActivoIntegraciones =
+    'El artículo local "%s" no está activo.';
+  STextoElArticuloLocalSNoEstaMarcadoIntegraciones =
+    'El artículo local "%s" no está marcado para web.';
+  STextoLaEmpresaSNoExisteONoIntegraciones =
+    'La empresa "%s" no existe o no está activa.';
+  STextoLaTarifaWebSNoExisteOIntegraciones =
+    'La tarifa web "%s" no existe o no está activa.';
+  STextoNoSePuedeResolverElIvaSIntegraciones =
+    'No se puede resolver el IVA %s del artículo "%s" para la ' +
+    'empresa "%s".';
+  STextoElArticuloSNoTienePrecioVigenteIntegraciones =
+    'El artículo "%s" no tiene precio vigente en la tarifa "%s".';
+  STextoElArticuloSNoTieneFamiliaIntegraciones =
+    'El artículo "%s" no tiene familia.';
+  STextoLaFamiliaDelArticuloSSuperaDIntegraciones =
+    'La familia del artículo "%s" supera %d niveles.';
+  STextoLaJerarquiaDeFamiliasContieneUnCicloIntegraciones =
+    'La jerarquía de familias contiene un ciclo en "%s".';
+  STextoNoExisteLaFamiliaLocalSIntegraciones =
+    'No existe la familia local "%s".';
+  STextoLaFamiliaLocalSNoEstaActivaIntegraciones =
+    'La familia local "%s" no está activa.';
+  STextoLaVariacionSDelSkuSNoIntegraciones =
+    'La variación "%s" del SKU "%s" no define atributos.';
+  STextoElSkuSContieneUnAtributoAjenoIntegraciones =
+    'El SKU "%s" contiene un atributo ajeno a la variación "%s".';
+  STextoElSkuSUsaUnValorDeIntegraciones =
+    'El SKU "%s" usa un valor de atributo inactivo.';
+  STextoElSkuSUsaUnAtributoBasicoIntegraciones =
+    'El SKU "%s" usa un atributo básico inactivo.';
+  STextoElSkuSTieneMasDeUnIntegraciones =
+    'El SKU "%s" tiene más de un valor para el atributo "%s".';
+  STextoElSkuSTieneDAtributosYIntegraciones =
+    'El SKU "%s" tiene %d atributos y su variación exige %d.';
+  STextoElStockDeSNoCabeEnIntegraciones =
+    'El stock de "%s" no cabe en un entero válido.';
+  STextoElArticuloVariableSNoTieneTipoIntegraciones =
+    'El artículo variable "%s" no tiene tipo de variación.';
+  STextoElArticuloVariableSContieneUnSkuIntegraciones =
+    'El artículo variable "%s" contiene un SKU base sin atributos.';
+  STextoElSkuSNoPerteneceALaIntegraciones =
+    'El SKU "%s" no pertenece a la variación "%s".';
+  STextoElSkuSNoTienePrecioVigenteIntegraciones =
+    'El SKU "%s" no tiene precio vigente en la tarifa "%s".';
+  STextoElArticuloVariableSNoTieneSkuIntegraciones =
+    'El artículo variable "%s" no tiene SKU activos.';
+  STextoNoExisteLaFotoRealSIntegraciones =
+    'No existe la foto real "%s".';
+  STextoLaCopiaRealDeLaFotoNoIntegraciones =
+    'La copia real de la foto no es PNG: "%s".';
+  STextoLaFotoRealSNoEsLegibleIntegraciones =
+    'La foto real "%s" no es legible: %s';
+  STextoLaFotoRealSNoTieneDimensionesIntegraciones =
+    'La foto real "%s" no tiene dimensiones válidas.';
+  STextoLaClaveDeFotoSNoPerteneceIntegraciones =
+    'La clave de foto "%s" no pertenece al artículo "%s".';
+  STextoNoSeEncuentraLaCopiaRealDeIntegraciones =
+    'No se encuentra la copia real de la foto "%s".';
+  STextoLaRutaDeFotoRealEstaDuplicadaIntegraciones =
+    'La ruta de foto real está duplicada: "%s".';
+  STextoElArticuloSTieneMasDeUnaIntegraciones =
+    'El artículo "%s" tiene más de una foto general.';
+  STextoElArticuloSNoTieneUnaFotoIntegraciones =
+    'El artículo "%s" no tiene una foto general real.';
+  STextoSNoPuedeEstarVacioIntegraciones =
+    '%s no puede estar vacío.';
+  STextoSSuperaLosDCaracteresPermitidosIntegraciones =
+    '%s supera los %d caracteres permitidos.';
+  STextoSNoPuedeSerInfinitoNiNanIntegraciones =
+    '%s no puede ser infinito ni NaN.';
+  STextoSNoPuedeSerNegativoIntegraciones =
+    '%s no puede ser negativo.';
+  STextoReferenciaDelProductoIntegraciones =
+    'Referencia del producto';
+  STextoNombreDelProductoIntegraciones =
+    'Nombre del producto';
+  STextoEnlaceDelProductoIntegraciones =
+    'Enlace del producto';
+  STextoLaDescripcionCortaSuperaLosDCaracteresIntegraciones =
+    'La descripción corta supera los %d caracteres permitidos.';
+  STextoLaDescripcionSuperaLosDCaracteresPermitidosIntegraciones =
+    'La descripción supera los %d caracteres permitidos.';
+  STextoElProductoDebeTenerAlMenosUnaIntegraciones =
+    'El producto debe tener al menos una familia local.';
+  STextoCodigoDeFamiliaIntegraciones =
+    'Código de familia';
+  STextoNombreDeFamiliaIntegraciones =
+    'Nombre de familia';
+  STextoEnlaceDeFamiliaIntegraciones =
+    'Enlace de familia';
+  STextoLaFamiliaSEstaDuplicadaIntegraciones =
+    'La familia "%s" está duplicada.';
+  STextoLaPrimeraFamiliaDeLaRutaNoIntegraciones =
+    'La primera familia de la ruta no es una raíz local.';
+  STextoLaRutaJerarquicaDeFamiliasNoEsIntegraciones =
+    'La ruta jerárquica de familias no es continua.';
+  STextoCodigoDeGrupoIntegraciones =
+    'Código de grupo';
+  STextoNombreDeGrupoIntegraciones =
+    'Nombre de grupo';
+  STextoNombrePublicoDeGrupoIntegraciones =
+    'Nombre público de grupo';
+  STextoCodigoDeValorIntegraciones =
+    'Código de valor';
+  STextoNombreDeValorIntegraciones =
+    'Nombre de valor';
+  STextoElGrupoSTieneUnTipoNoIntegraciones =
+    'El grupo "%s" tiene un tipo no válido.';
+  STextoElGrupoDeAtributoSTieneDatosIntegraciones =
+    'El grupo de atributo "%s" tiene datos contradictorios.';
+  STextoElValorDeAtributoSTieneDatosIntegraciones =
+    'El valor de atributo "%s" tiene datos contradictorios.';
+  STextoReferenciaDeCombinacionIntegraciones =
+    'Referencia de combinación';
+  STextoPrecioDeCombinacionSinIvaIntegraciones =
+    'Precio de combinación sin IVA';
+  STextoImpactoDePrecioIntegraciones =
+    'Impacto de precio';
+  STextoElStockDelSkuSNoPuedeIntegraciones =
+    'El stock del SKU "%s" no puede ser negativo.';
+  STextoElSkuSEstaDuplicadoIntegraciones =
+    'El SKU "%s" está duplicado.';
+  STextoElSkuSNoTieneAtributosIntegraciones =
+    'El SKU "%s" no tiene atributos.';
+  STextoElProductoVariableDebeTenerCombinacionesActivasIntegraciones =
+    'El producto variable debe tener combinaciones activas.';
+  STextoElProductoSimpleNoDebeCrearCombinacionesIntegraciones =
+    'El producto simple no debe crear combinaciones.';
+  STextoElProductoDebeTenerUnaFotoGeneralIntegraciones =
+    'El producto debe tener una foto general real.';
+  STextoNombreDeFotoIntegraciones =
+    'Nombre de foto';
+  STextoRutaRealDeFotoIntegraciones =
+    'Ruta real de foto';
+  STextoElTipoDeIvaSNoSeIntegraciones =
+    'El tipo de IVA "%s" no se puede publicar.';
+  STextoPorcentajeDeIvaIntegraciones =
+    'Porcentaje de IVA';
+  STextoPrecioBaseSinIvaIntegraciones =
+    'Precio base sin IVA';
+  STextoLaCantidadTotalNoPuedeSerNegativaIntegraciones =
+    'La cantidad total no puede ser negativa.';
+  STextoElCodigoDeArticuloNoPuedeEstarIntegraciones =
+    'El código de artículo no puede estar vacío.';
+  STextoElUsuarioDelPerfilNoPuedeEstarIntegraciones =
+    'El usuario del perfil no puede estar vacío.';
+  STextoLaEmpresaWebNoPuedeEstarVaciaIntegraciones =
+    'La empresa web no puede estar vacía.';
+  STextoLaTarifaWebNoPuedeEstarVaciaIntegraciones =
+    'La tarifa web no puede estar vacía.';
+  STextoLaEmpresaSNoTieneAlmacenesWebIntegraciones =
+    'La empresa "%s" no tiene almacenes web activos, físicos y ' +
+    'estándar.';
+  STextoElCambioPrestashopNoIdentificaArticuloNiIntegraciones =
+    'El cambio PrestaShop no identifica artículo ni unidad';
+  STextoLaVisibilidadPrestashopNoIdentificaElArticuloIntegraciones =
+    'La visibilidad PrestaShop no identifica el artículo';
+  STextoElArticuloSNoTieneUnPrecioIntegraciones =
+    'El artículo %s no tiene un precio web válido';
+  STextoElArticuloSNoTieneUnTipoIntegraciones =
+    'El artículo %s no tiene un tipo de IVA válido';
+  STextoLaEmpresaSNoTieneAlmacenesWebIntegraciones2 =
+    'La empresa %s no tiene almacenes web activos, físicos y ' +
+    'estándar';
+  STextoElArticuloVariableSNoTieneSkuIntegraciones2 =
+    'El artículo variable %s no tiene SKU diferenciados válidos';
+  STextoElArticuloSNoTieneUnidadesValidasIntegraciones =
+    'El artículo %s no tiene unidades válidas para sincronizar ' +
+    'stock';
+  STextoEstadoDeReintentoPrestashopNoValidoIntegraciones =
+    'Estado de reintento PrestaShop no válido';
+  STextoNoSeCompletoElGuardadoDelArticuloIntegraciones =
+    'No se completo el guardado del articulo';
+  STextoLaPublicacionAplazadaDePrestashopNoEsIntegraciones =
+    'La publicacion aplazada de PrestaShop no es valida';
+  STextoNoSePudoRegistrarLaPublicacionAplazadaIntegraciones =
+    'No se pudo registrar la publicacion aplazada de PrestaShop';
+  STextoUnaPublicacionAplazadaNoPuedeDesactivarElIntegraciones =
+    'Una publicacion aplazada no puede desactivar el articulo';
+  STextoFaltanUrlOTiendaParaAplazarLaIntegraciones =
+    'Faltan URL o tienda para aplazar la publicacion PrestaShop';
+  STextoElSqlNoContieneElMarcadorDeIntegraciones =
+    'El SQL no contiene el marcador de precio de PrestaShop';
+  STextoNoSePudoConstruirElPrecioCondicionalIntegraciones =
+    'No se pudo construir el precio condicional de PrestaShop';
+  STextoNoExisteElCierreDeCajaSIntegraciones =
+    'No existe el cierre de caja %s de la empresa %s.';
+  STextoCierreSolicitadoTrasLaOperacionRemotaActualIntegraciones =
+    'Cierre solicitado tras la operación remota actual';
+  STextoNoSeResolvioUnAtributoDeLaIntegraciones =
+    'No se resolvió un atributo de la combinación PrestaShop';
+  STextoElArticuloNoTieneUnaFotoRealIntegraciones =
+    'El artículo no tiene una foto real válida para publicar';
+  STextoElClienteDeAltasPrestashopNoEstaIntegraciones =
+    'El cliente de altas PrestaShop no está asignado';
+  STextoLaConfiguracionPrestashopCambioAntesDelAltaIntegraciones =
+    'La configuración PrestaShop cambió antes del alta';
+  STextoLaConfiguracionPrestashopCambioDuranteElAltaIntegraciones =
+    'La configuración PrestaShop cambió durante el alta';
+  STextoLaConfiguracionPrestashopCambioDuranteElEnvioIntegraciones =
+    'La configuración PrestaShop cambió durante el envío';
+  STextoElContextoDelHistorialPrestashopNoEsIntegraciones =
+    'El contexto del historial PrestaShop no es válido';
+  STextoLaFabricaNoCreoLaSesionVentaswsIntegraciones =
+    'La fábrica no creó la sesión VentasWs';
+  STextoLaSesionVentaswsNoTieneRepositorioIntegraciones =
+    'La sesión VentasWs no tiene repositorio';
+  STextoLaSesionVentaswsNoTieneSerializadorIntegraciones =
+    'La sesión VentasWs no tiene serializador';
+
 implementation
 
 end.

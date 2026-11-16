@@ -144,6 +144,7 @@ function IntegridadPermiteArranque(
 implementation
 
 uses
+  inLibMsgComun,
   System.Hash,
   System.JSON,
   System.Generics.Defaults,
@@ -444,7 +445,7 @@ begin
     end;
   end;
   if not bEncontrado then
-    raise EEsquemaIdealInvalido.CreateFmt('Apartado desconocido: %s',
+    raise EEsquemaIdealInvalido.CreateFmt(STextoApartadoDesconocidoSComun,
                                           [ATexto]);
 end;
 
@@ -475,7 +476,7 @@ function ObjetoJson(AObjeto: TJSONObject; const ANombre: string):
   TJSONObject;
 begin
   if not (AObjeto.GetValue(ANombre) is TJSONObject) then
-    raise EEsquemaIdealInvalido.CreateFmt('Falta el objeto "%s"',
+    raise EEsquemaIdealInvalido.CreateFmt(STextoFaltaElObjetoSComun,
                                           [ANombre]);
   Result := TJSONObject(AObjeto.GetValue(ANombre));
 end;
@@ -490,7 +491,7 @@ begin
   oRaiz := TJSONObject.ParseJSONValue(AJson);
   try
     if not (oRaiz is TJSONObject) then
-      raise EEsquemaIdealInvalido.Create('El esquema ideal no es JSON');
+      raise EEsquemaIdealInvalido.Create(STextoElEsquemaIdealNoEsJsonComun);
     oDatos := TJSONObject(oRaiz);
     FVersionHuella := oDatos.GetValue<Integer>('version_huella');
     FModelo := oDatos.GetValue<string>('modelo');

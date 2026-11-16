@@ -638,19 +638,19 @@ begin
   begin
     lblValor.Caption := SCaptionColorObjetivo;
     edtValor.Properties.Nullstring :=
-      'Código, nombre, HEX o botón para elegir color';
+      STextoCodigoNombreHexOBotonParaElegirComun;
   end
   else if cbbCampo.ItemIndex = CAMPO_COLOR_BASICO then
   begin
     lblValor.Caption := SCaptionColorBasico;
     edtValor.Properties.Nullstring :=
-      'Código, nombre o HEX del color básico';
+      STextoCodigoNombreOHexDelColorBasicoComun;
   end
   else
   begin
     lblValor.Caption := SCaptionTextoABuscar;
     edtValor.Properties.Nullstring :=
-      'Introduzca el valor y pulse Entrar';
+      STextoIntroduzcaElValorYPulseEntrarComun;
   end;
 end;
 

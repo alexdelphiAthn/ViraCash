@@ -76,6 +76,7 @@ function FiltrarFotosNube(const AArchivos: TArray<string>;
 implementation
 
 uses
+  inLibMsgFotos,
   System.IOUtils, System.StrUtils, System.JSON,
   System.Net.HttpClient, System.Net.URLClient, System.NetEncoding,
   System.Zip,
@@ -242,7 +243,8 @@ begin
               if (ExtractFileName(nombres[i]) <> nombres[i]) or
                  (Pos('..', nombres[i]) > 0) or
                  (Pos(':', nombres[i]) > 0) then
-                raise EArgumentException.Create('Nombre de foto inválido');
+                raise EArgumentException.Create(
+                  STextoNombreDeFotoInvalidoFotos);
               if SameText(ExtractFileExt(nombres[i]), '.png') or
                  ((AReparacion > 0) and
                   SameText(ExtractFileExt(nombres[i]), '.json')) then

@@ -103,6 +103,7 @@ implementation
 {$R *.dfm}
 
 uses
+  inLibMsgCaja,
   inMtoModalCajDef, inLibResumenSeleccionesVcl, inMtoPreviewExcel,
   inLibInformeTabular, inLibInformeTabularExcel, inLibMsgComun;
 
@@ -140,25 +141,25 @@ begin
     IniciarEspera(SCaptionEsperaGenerandoHojaCalculo);
     ExportarInformeTabularExcel(oPreview.dxSpreadSheet1,
       dsPagosPrint.DataSet, Caption,
-      [ColumnaInforme('NUMERO_OPERACION_PAGO', 'Operación', 1),
-       ColumnaInforme('NUMERO_LINEA_PAGO', 'Lín.', 0.4, '%g'),
-       ColumnaInforme('FECHA_PAGO', 'Fecha', 0.8),
-       ColumnaInforme('SERIE_FAC_PAGO', 'Serie Fac.', 0.6),
-       ColumnaInforme('NUMERO_FAC_PAGO', 'Nº Factura', 1),
-       ColumnaInforme('CODIGO_FP_CFP', 'Forma pago', 0.8),
-       ColumnaInforme('CODIGO_DIVISA_PAGO', 'Divisa', 0.5),
-       ColumnaInforme('IMPORTE_ENTREGADO_PAGO', 'Entregado', 1, '%n'),
-       ColumnaInforme('IMPORTE_CAMBIO_PAGO', 'Cambio', 1, '%n'),
-       ColumnaInforme('REFERENCIA_FACPAG', 'Referencia', 2)],
+      [ColumnaInforme('NUMERO_OPERACION_PAGO', STextoOperacionCaja, 1),
+       ColumnaInforme('NUMERO_LINEA_PAGO', STextoLinCaja, 0.4, '%g'),
+       ColumnaInforme('FECHA_PAGO', STextoFechaCaja, 0.8),
+       ColumnaInforme('SERIE_FAC_PAGO', STextoSerieFacCaja, 0.6),
+       ColumnaInforme('NUMERO_FAC_PAGO', STextoNoFacturaCaja, 1),
+       ColumnaInforme('CODIGO_FP_CFP', STextoFormaPagoCaja, 0.8),
+       ColumnaInforme('CODIGO_DIVISA_PAGO', STextoDivisaCaja, 0.5),
+       ColumnaInforme('IMPORTE_ENTREGADO_PAGO', STextoEntregadoCaja, 1, '%n'),
+       ColumnaInforme('IMPORTE_CAMBIO_PAGO', STextoCambioCaja, 1, '%n'),
+       ColumnaInforme('REFERENCIA_FACPAG', STextoReferenciaCaja, 2)],
       LineasResumenSelecciones);
     AnadirHojaInformeTabularExcel(oPreview.dxSpreadSheet1,
-      dsTotalesPagosPrint.DataSet, 'Totales por forma de pago',
-      [ColumnaInforme('CODIGO_FP_CFP', 'Forma pago', 0.8),
-       ColumnaInforme('DESCRIPCION_FP_PAGO', 'Descripción', 2),
-       ColumnaInforme('NUMERO_PAGOS_INF', 'Pagos', 0.6, '%g'),
-       ColumnaInforme('ENTREGADO_INF', 'Entregado', 1, '%n'),
-       ColumnaInforme('CAMBIO_INF', 'Cambio', 1, '%n'),
-       ColumnaInforme('NETO_INF', 'Neto', 1, '%n')], True);
+      dsTotalesPagosPrint.DataSet, STextoTotalesPorFormaDePagoCaja,
+      [ColumnaInforme('CODIGO_FP_CFP', STextoFormaPagoCaja, 0.8),
+       ColumnaInforme('DESCRIPCION_FP_PAGO', STextoDescripcionCaja, 2),
+       ColumnaInforme('NUMERO_PAGOS_INF', STextoPagosCaja, 0.6, '%g'),
+       ColumnaInforme('ENTREGADO_INF', STextoEntregadoCaja, 1, '%n'),
+       ColumnaInforme('CAMBIO_INF', STextoCambioCaja, 1, '%n'),
+       ColumnaInforme('NETO_INF', STextoNetoCaja, 1, '%n')], True);
     oPreview.dxSpreadSheet1.ActiveSheetIndex := 0;
     TerminarEspera;
     Screen.Cursor := oCursor;

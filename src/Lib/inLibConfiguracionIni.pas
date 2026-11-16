@@ -45,6 +45,7 @@ procedure NormalizarFormatoIni(const ARutaIni: string);
 implementation
 
 uses
+  inLibMsgComun,
   System.IniFiles, System.IOUtils, System.SysUtils;
 
 const
@@ -135,7 +136,7 @@ begin
         (Pos(':', Result) > 0) or
         not SameText(ExtractFileExt(Result), '.ini')) then
       raise EConvertError.Create(
-        'El perfil de arranque debe ser un nombre de archivo INI.');
+        STextoElPerfilDeArranqueDebeSerUnComun);
   end;
 end;
 

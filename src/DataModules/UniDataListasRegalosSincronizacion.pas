@@ -27,6 +27,7 @@ function CrearRepositorioSincronizacionListas(AConexion: TUniConnection;
 implementation
 
 uses
+  inLibMsgComun,
   System.SysUtils, System.Classes, Data.DB;
 
 const
@@ -146,7 +147,7 @@ begin
     oConsulta.ParamByName('CODIGO').AsString := ACodigo;
     oConsulta.Open;
     if oConsulta.IsEmpty then
-      raise EDatabaseError.CreateFmt('Lista %s inexistente', [ACodigo]);
+      raise EDatabaseError.CreateFmt(STextoListaSInexistenteComun, [ACodigo]);
     Result.Codigo := oConsulta.FieldByName('CODIGO_LRG').AsString;
     Result.ClavePublica := oConsulta.FieldByName('CLAVE_PUBLICA_LRG').AsString;
     Result.Tipo := oConsulta.FieldByName('TIPO_LRG').AsString;

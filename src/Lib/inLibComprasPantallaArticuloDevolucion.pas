@@ -32,6 +32,7 @@ function CrearAplicacionArticuloDevolucionCompra(
 implementation
 
 uses
+  inLibMsgCompras,
   System.SysUtils, inLibMsgArticulos;
 
 type
@@ -151,7 +152,7 @@ begin
     Result := FValidador.Resolver(ACodigo);
   if (not Result.Encontrado) and (Result.Mensaje = '') then
     Result.Mensaje := Format(
-      'No se encontró el artículo "%s".',
+      STextoNoSeEncontroElArticuloSCompras,
       [ACodigo]);
 end;
 

@@ -47,6 +47,7 @@ function CrearTransportePrestaShopConHistorial(
 implementation
 
 uses
+  inLibMsgIntegraciones,
   System.Diagnostics, System.Hash, System.IOUtils,
   System.RegularExpressions, System.SysUtils,
   inLibColasHistorialIntf;
@@ -176,7 +177,7 @@ begin
   end
   else
     FUltimoErrorRegistro :=
-      'El contexto del historial PrestaShop no es válido';
+      STextoElContextoDelHistorialPrestashopNoEsIntegraciones;
 end;
 
 procedure TTransportePrestaShopConHistorial.LimpiarContexto;

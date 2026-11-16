@@ -16,17 +16,28 @@ uses
 procedure ExportarInformeTabularExcel(AControl: TdxSpreadSheet;
   ADatos: TDataSet; const ATitulo: string;
   const AColumnas: TColumnasInformeTabular;
-  const AResumen: TArray<string>);
+  const AResumen: TArray<string>; ATotalGeneral: Boolean = False);
 
 procedure AnadirHojaInformeTabularExcel(AControl: TdxSpreadSheet;
   ADatos: TDataSet; const ANombre: string;
   const AColumnas: TColumnasInformeTabular;
   ATotalGeneral: Boolean = False);
 
+// Las columnas de texto agrupan; solo se suman las columnas numéricas.
+// ACampoIncluir permite excluir filas del resumen sin filtrar el detalle.
+procedure AnadirResumenInformeTabularExcel(AControl: TdxSpreadSheet;
+  ADatos: TDataSet; const ANombre: string;
+  const AColumnas: TColumnasInformeTabular;
+  const ACampoIncluir: string = ''; ATotalGeneral: Boolean = True);
+
+procedure AnadirSeleccionInformeExcel(AControl: TdxSpreadSheet;
+  const ATitulo: string; const AResumen: TArray<string>);
+
 implementation
 
 uses
-  System.SysUtils, System.Variants, dxSpreadSheetCore,
+  System.SysUtils, System.Variants, System.Generics.Collections,
+  Datasnap.DBClient, dxSpreadSheetCore,
   inLibHojaCalculoIntf,
   inLibHojaCalculoDevEx, inLibMsgInformesCliente;
 
@@ -63,7 +74,8 @@ begin
       oFormato.ShortDateFormat := 'dd/mm/yyyy';
       oFormato.DateSeparator := '/';
       if ((ADefinicion.Campo = 'FECHA') or
-          (ADefinicion.Campo = 'FECHA_ANT')) and
+          (ADefinicion.Campo = 'FECHA_ANT') or
+          (ADefinicion.Campo = 'CADUCIDAD_ETI')) and
         TryStrToDate(Copy(ACampo.AsString, 1, 10), oFecha, oFormato) then
       begin
         AServicios.Escritor.Escribir(AFila, AColumna,
@@ -180,18 +192,97 @@ begin
   end;
 end;
 
-procedure ExportarInformeTabularExcel(AControl: TdxSpreadSheet;
-  ADatos: TDataSet; const ATitulo: string;
+procedure AnadirResumenInformeTabularExcel(AControl: TdxSpreadSheet;
+  ADatos: TDataSet; const ANombre: string;
   const AColumnas: TColumnasInformeTabular;
-  const AResumen: TArray<string>);
+  const ACampoIncluir: string; ATotalGeneral: Boolean);
+var
+  oIndice: TDictionary<string, Integer>;
+  oFilas: TList<TArray<Variant>>;
+  oResumen: TClientDataSet;
+  oMarca: TBookmark;
+  aValores: TArray<Variant>;
+  sClave, sValor: string;
+  i, iFila: Integer;
+  bIncluir: Boolean;
+begin
+  oIndice := TDictionary<string, Integer>.Create;
+  oFilas := TList<TArray<Variant>>.Create;
+  oResumen := TClientDataSet.Create(nil);
+  try
+    for i := 0 to High(AColumnas) do
+      if AColumnas[i].Numerica then
+        oResumen.FieldDefs.Add(AColumnas[i].Campo, ftFloat)
+      else
+        oResumen.FieldDefs.Add(AColumnas[i].Campo, ftWideMemo);
+    oResumen.CreateDataSet;
+    oMarca := ADatos.Bookmark;
+    ADatos.DisableControls;
+    try
+      ADatos.First;
+      while not ADatos.Eof do
+      begin
+        bIncluir := True;
+        if ACampoIncluir <> '' then
+          bIncluir := ADatos.FieldByName(ACampoIncluir).AsInteger = 1;
+        if bIncluir then
+        begin
+          sClave := '';
+          for i := 0 to High(AColumnas) do
+            if not AColumnas[i].Numerica then
+            begin
+              sValor := ADatos.FieldByName(AColumnas[i].Campo).AsString;
+              sClave := sClave + IntToStr(Length(sValor)) + ':' + sValor;
+            end;
+          if oIndice.TryGetValue(sClave, iFila) then
+            aValores := oFilas[iFila]
+          else
+          begin
+            aValores := nil;
+            SetLength(aValores, Length(AColumnas));
+            for i := 0 to High(AColumnas) do
+              if AColumnas[i].Numerica then
+                aValores[i] := 0.0
+              else
+                aValores[i] :=
+                  ADatos.FieldByName(AColumnas[i].Campo).AsString;
+            oIndice.Add(sClave, oFilas.Add(aValores));
+          end;
+          for i := 0 to High(AColumnas) do
+            if AColumnas[i].Numerica then
+              aValores[i] := aValores[i] +
+                ADatos.FieldByName(AColumnas[i].Campo).AsFloat;
+        end;
+        ADatos.Next;
+      end;
+    finally
+      if ADatos.BookmarkValid(oMarca) then
+        ADatos.Bookmark := oMarca;
+      ADatos.EnableControls;
+    end;
+    for aValores in oFilas do
+    begin
+      oResumen.Append;
+      for i := 0 to High(AColumnas) do
+        oResumen.Fields[i].Value := aValores[i];
+      oResumen.Post;
+    end;
+    AnadirHojaInformeTabularExcel(AControl, oResumen, ANombre,
+      AColumnas, ATotalGeneral);
+  finally
+    oResumen.Free;
+    oFilas.Free;
+    oIndice.Free;
+  end;
+end;
+
+procedure AnadirSeleccionInformeExcel(AControl: TdxSpreadSheet;
+  const ATitulo: string; const AResumen: TArray<string>);
 var
   oHoja: TdxSpreadSheetTableView;
   oServicios: TServiciosHojaCalculo;
   i: Integer;
 begin
-  AControl.ClearAll;
-  AnadirHojaInformeTabularExcel(AControl, ADatos,
-    SInformeHojaDatos, AColumnas);
   oHoja := AControl.AddSheet(SInformeHojaSeleccion,
     TdxSpreadSheetTableView) as TdxSpreadSheetTableView;
   oServicios := CrearServiciosHojaCalculoDevExTabla(oHoja);
@@ -201,6 +292,17 @@ begin
   for i := 0 to High(AResumen) do
     oServicios.Escritor.Escribir(i + 2, 0, AResumen[i]);
   AControl.ActiveSheetIndex := 0;
+end;
+
+procedure ExportarInformeTabularExcel(AControl: TdxSpreadSheet;
+  ADatos: TDataSet; const ATitulo: string;
+  const AColumnas: TColumnasInformeTabular;
+  const AResumen: TArray<string>; ATotalGeneral: Boolean);
+begin
+  AControl.ClearAll;
+  AnadirHojaInformeTabularExcel(AControl, ADatos,
+    SInformeHojaDatos, AColumnas, ATotalGeneral);
+  AnadirSeleccionInformeExcel(AControl, ATitulo, AResumen);
 end;
 
 end.

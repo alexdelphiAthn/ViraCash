@@ -255,6 +255,7 @@ type
 implementation
 
 uses
+  inLibMsgComun,
   inLibAtributosPaleta, inLibMsgArticulos, inLibDevExp, inLibPestanasEje;
 
 function EventosDataSetPivoteIguales(const AEventoUno,
@@ -587,7 +588,7 @@ begin
     FColColor.Options.Editing := False;
     FColColor.DataBinding.ValueTypeClass := TcxStringValueType;
     FColPestana := FCfg.View.CreateColumn;
-    FColPestana.Caption := 'Copa';
+    FColPestana.Caption := STextoCopaComun;
     FColPestana.DataBinding.FieldName := CAMPO_PESTANA_VISTA_PIVOTE;
     PrepararAnchoColumna(FColPestana, 75);
     FColPestana.Options.Editing := False;

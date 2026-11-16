@@ -81,6 +81,7 @@ type
 implementation
 
 uses
+  inLibMsgFotos,
   System.SysUtils,
   inLibMsgArticulos;
 
@@ -439,9 +440,9 @@ begin
   sTallas :=
     Trim(ADataSet.FieldByName(CAMPO_TALLAS_RELACIONADAS).AsString);
   if sColores = '' then
-    sColores := 'sin color';
+    sColores := STextoSinColorFotos;
   if sTallas = '' then
-    sTallas := 'sin talla';
+    sTallas := STextoSinTallaFotos;
   PosicionTarjetaFotos(AIndice, AColumnas, iX, iY);
   Panel := TPanel.Create(FContenedor);
   Panel.Parent := FContenedor;

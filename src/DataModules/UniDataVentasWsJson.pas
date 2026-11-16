@@ -25,6 +25,7 @@ function CrearVentasWsJsonUniDAC(
 implementation
 
 uses
+  inLibMsgIntegraciones,
   inLibFormatoDocumento, UniDataFormatoDocumentoRepositorio,
   System.SysUtils, System.JSON, System.Classes,
   System.DateUtils, System.NetEncoding,
@@ -293,7 +294,7 @@ begin
       Qry.Open;
       if Qry.IsEmpty then
         raise Exception.CreateFmt(
-          'No existe el cierre de caja %s de la empresa %s.',
+          STextoNoExisteElCierreDeCajaSIntegraciones,
           [ACodigo, AEmpresa]);
       oCabecera := RegistroAJson(Qry);
       Result := oCabecera;

@@ -15,6 +15,7 @@ unit inMtoModalEtiqPed;
 interface
 
 uses
+  dxSpreadSheet,
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   inMtoModalGenImp, cxGraphics, cxLookAndFeels, cxLookAndFeelPainters,
@@ -52,6 +53,9 @@ type
     function ObtenerAlmacenesCsv: string;
     procedure ReportBeforePrintEtiquetas(
       Component: TfrxReportComponent);
+  protected
+    procedure DoShow; override;
+    procedure ConstruirExcelNativo(AControl: TdxSpreadSheet); override;
   public
     DMArt:  TdmArticulos;
     DMPedc: TdmPedidosCompra;
@@ -69,6 +73,7 @@ implementation
 {$R *.dfm}
 
 uses
+  inLibInformeTabularExcel,
   inLibMensajesVcl,
   inLibMsgArticulos,
   inLibEtiquetasImpresion;
@@ -224,6 +229,25 @@ begin
     DMArt.fxdsEtiquetasArt.DataSet := DMArt.cdsEtiquetasArt;
     DMArt.fxdsEtiquetasArt.FieldAliases.Clear;
   end;
+end;
+
+procedure TfrmPrintEtiqPed.DoShow;
+begin
+  inherited;
+  btnExcel.OnClick := btnExcelNativoClick;
+end;
+
+procedure TfrmPrintEtiqPed.ConstruirExcelNativo(
+  AControl: TdxSpreadSheet);
+begin
+  ExportarInformeTabularExcel(AControl, DMArt.cdsEtiquetasArt,
+    Caption, ColumnasExcelEtiquetas(DMArt.cdsEtiquetasArt),
+    LineasResumenSelecciones + [
+      'Tarifa: ' + ObtenerCodigoTarifa,
+      'Almacenes: ' + ObtenerAlmacenesCsv,
+      'Fecha aplicación: ' +
+        FormatDateTime('dd/mm/yyyy', dtFechaAplicacion.Date),
+      'Documento: ' + Serie + '/' + Numero]);
 end;
 
 end.

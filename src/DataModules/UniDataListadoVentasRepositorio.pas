@@ -21,6 +21,7 @@ function CrearRepositorioListadoVentasUniDAC(
 implementation
 
 uses
+  inLibMsgComun,
   System.Classes, System.SysUtils, Data.DB, UniDataRectificativasSql,
   UniDataProveedoresTexto;
 
@@ -376,7 +377,7 @@ var
   Consulta: TUniQuery;
 begin
   if Trim(AFiltro.Empresa) = '' then
-    raise EArgumentException.Create('Debe indicar la empresa de sesion');
+    raise EArgumentException.Create(STextoDebeIndicarLaEmpresaDeSesionComun);
   Consulta := TUniQuery.Create(nil);
   try
     Consulta.Connection := FConexion;

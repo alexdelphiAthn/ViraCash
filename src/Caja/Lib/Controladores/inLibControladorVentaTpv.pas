@@ -46,6 +46,7 @@ type
 implementation
 
 uses
+  inLibMsgCaja,
   System.SysUtils, inLibDocumentoFiscal;
 
 class function TControladorVentaTpv.RechazoFactura(
@@ -77,7 +78,7 @@ begin
      not Assigned(AInteraccion.RecalcularComoFactura) or
      not Assigned(AInteraccion.SolicitarDocumento) or
      not Assigned(AInteraccion.Aceptar) then
-    raise EArgumentException.Create('Interacción de factura incompleta');
+    raise EArgumentException.Create(STextoInteraccionDeFacturaIncompletaCaja);
   oRechazo := RechazoFactura(AEstado);
   if oRechazo = rfNinguno then
   begin
@@ -128,7 +129,7 @@ begin
      not Assigned(AInteraccion.EstablecerCredito) or
      not Assigned(AInteraccion.ActualizarVista) or
      not Assigned(AInteraccion.ConfirmarConTicket) then
-    raise EArgumentException.Create('Interacción de crédito incompleta');
+    raise EArgumentException.Create(STextoInteraccionDeCreditoIncompletaCaja);
   oRechazo := RechazoCredito(AEstado);
   if oRechazo = rcNinguno then
   begin
@@ -157,7 +158,7 @@ begin
      not Assigned(AInteraccion.ConfirmarArqueo) or
      not Assigned(AInteraccion.Grabar) or
      not Assigned(AInteraccion.PresentarResultado) then
-    raise EArgumentException.Create('Interacción de cierre incompleta');
+    raise EArgumentException.Create(STextoInteraccionDeCierreIncompletaCaja);
   Result := False;
   oResultado := Default(TResultadoGrabacionTpv);
   iPendiente := AModelo.LocalizarAtributoPendiente;
@@ -194,7 +195,7 @@ begin
      not Assigned(AInteraccion.RecalcularComoTicket) or
      not Assigned(AInteraccion.AutorizarEmision) or
      not Assigned(AInteraccion.Aceptar) then
-    raise EArgumentException.Create('Interacción de cobro incompleta');
+    raise EArgumentException.Create(STextoInteraccionDeCobroIncompletaCaja);
   // La factura completa conserva su selección propia de serie y fecha.
   if (ATipo in [tiConTicket, tiSinTicket, tiTicketRegalo]) and
      not (AEsSubsanacion and (ATipo = tiTicketRegalo)) then
@@ -222,7 +223,7 @@ begin
      not Assigned(AInteraccion.ConfirmarAbandono) or
      not Assigned(AInteraccion.CancelarEdicion) or
      not Assigned(AInteraccion.Cerrar) then
-    raise EArgumentException.Create('Interacción de salida incompleta');
+    raise EArgumentException.Create(STextoInteraccionDeSalidaIncompletaCaja);
   Result := True;
   if AEstado.EsSubsanacion then
     Result := AInteraccion.CerrarSubsanacion()

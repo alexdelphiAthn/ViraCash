@@ -1210,14 +1210,14 @@ function AsegurarDataModuleDocumento(
 begin
   if not Assigned(AClaseDataModule) then
     raise EArgumentNilException.Create(
-      'No se ha indicado la clase del data module.');
+      STextoNoSeHaIndicadoLaClaseDelComun);
   if Assigned(ADataModule) then
   begin
     if ADataModule.ClassType.InheritsFrom(AClaseDataModule) then
       Result := TdmBase(ADataModule)
     else
       raise EInvalidCast.CreateFmt(
-        'El data module %s no es de la clase %s.',
+        STextoElDataModuleSNoEsDeComun,
         [ADataModule.ClassName, AClaseDataModule.ClassName]);
   end
   else

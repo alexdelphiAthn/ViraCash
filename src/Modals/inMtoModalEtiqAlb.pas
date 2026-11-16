@@ -22,6 +22,7 @@ unit inMtoModalEtiqAlb;
 interface
 
 uses
+  dxSpreadSheet,
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   inMtoModalGenImp, cxGraphics, cxLookAndFeels, cxLookAndFeelPainters,
@@ -61,6 +62,9 @@ type
     procedure ReportBeforePrintEtiquetas(
       Component: TfrxReportComponent);
     function ObtenerAlmacenesCsv: string;
+  protected
+    procedure DoShow; override;
+    procedure ConstruirExcelNativo(AControl: TdxSpreadSheet); override;
   public
     DMArt:    TdmArticulos;        // datasets fxds / cdsEtiquetasArt
     DMAlbc:   TdmAlbaranesCompra;  // queries del albaran
@@ -78,6 +82,7 @@ implementation
 {$R *.dfm}
 
 uses
+  inLibInformeTabularExcel,
   inLibMensajesVcl,
   inLibMsgArticulos,
   inLibEtiquetasImpresion;
@@ -255,6 +260,25 @@ begin
     DMArt.fxdsEtiquetasArt.DataSet := DMArt.cdsEtiquetasArt;
     DMArt.fxdsEtiquetasArt.FieldAliases.Clear;
   end;
+end;
+
+procedure TfrmPrintEtiqAlb.DoShow;
+begin
+  inherited;
+  btnExcel.OnClick := btnExcelNativoClick;
+end;
+
+procedure TfrmPrintEtiqAlb.ConstruirExcelNativo(
+  AControl: TdxSpreadSheet);
+begin
+  ExportarInformeTabularExcel(AControl, DMArt.cdsEtiquetasArt,
+    Caption, ColumnasExcelEtiquetas(DMArt.cdsEtiquetasArt),
+    LineasResumenSelecciones + [
+      'Tarifa: ' + ObtenerCodigoTarifa,
+      'Almacenes: ' + ObtenerAlmacenesCsv,
+      'Fecha aplicación: ' +
+        FormatDateTime('dd/mm/yyyy', dtFechaAplicacion.Date),
+      'Documento: ' + Serie + '/' + Numero]);
 end;
 
 end.

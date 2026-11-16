@@ -58,10 +58,7 @@ uses
 class function TPoliticaCopiasSeguridad.ModoCreacion(
   AEsAdministrador: Boolean): TModoProteccionCopia;
 begin
-  if AEsAdministrador then
-    Result := mpcTextoPlano
-  else
-    Result := mpcCifrada;
+  Result := mpcCifrada;
 end;
 
 class function TPoliticaCopiasSeguridad.ExtensionCreacion(

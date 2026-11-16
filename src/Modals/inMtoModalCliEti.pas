@@ -17,6 +17,7 @@ unit inMtoModalCliEti;
 interface
 
 uses
+  dxSpreadSheet,
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, inMtoModalGenImp, cxGraphics,
@@ -38,6 +39,8 @@ type
   private
     FDataModule: TdmClientes;
   protected
+    procedure DoShow; override;
+    procedure ConstruirExcelNativo(AControl: TdxSpreadSheet); override;
     procedure PrepararDatosEdicion; override;
   public
     procedure Preparar(ADataModule: TdmClientes);
@@ -45,6 +48,10 @@ type
   end;
 
 implementation
+
+uses
+  inLibMsgComun,
+  inLibInformeTabular, inLibInformeTabularExcel;
 
 {$R *.dfm}
 
@@ -74,6 +81,28 @@ begin
   if not Assigned(ADataModule) then
     raise EArgumentNilException.Create(SErrorModuloClientesObligatorio);
   FDataModule := ADataModule;
+end;
+
+procedure TfrmPrintCliEti.DoShow;
+begin
+  inherited;
+  btnExcel.OnClick := btnExcelNativoClick;
+end;
+
+procedure TfrmPrintCliEti.ConstruirExcelNativo(
+  AControl: TdxSpreadSheet);
+begin
+  ExportarInformeTabularExcel(AControl, FDataModule.unqryCliPrint,
+    Caption,
+    [ColumnaInforme('CODIGO_CLI_CLI', STextoClienteComun, 1),
+     ColumnaInforme('RAZON_SOCIAL_CLI', STextoNombreComun, 3),
+     ColumnaInforme('DIRECCION1_CLI', STextoDireccionComun, 3),
+     ColumnaInforme('DIRECCION2_CLI', STextoDireccionAdicionalComun, 3),
+     ColumnaInforme('CODIGO_POSTAL_CLI', STextoCodigoPostalComun, 1),
+     ColumnaInforme('POBLACION_CLI', STextoPoblacionComun, 2),
+     ColumnaInforme('PROVINCIA_CLI', STextoProvinciaComun, 2),
+     ColumnaInforme('NOMBRE_PAI_CLI', STextoPaisComun, 1)],
+    LineasResumenSelecciones + ['Cliente: ' + edtCodCli.Text]);
 end;
 
 end.

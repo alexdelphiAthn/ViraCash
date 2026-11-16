@@ -49,7 +49,7 @@ constructor TUnidadTrabajoVentaCajaUniDAC.Create(
 begin
   inherited Create;
   if not Assigned(ADatosCaja) then
-    raise EArgumentNilException.Create('Falta el data module de caja.');
+    raise EArgumentNilException.Create(STextoFaltaElDataModuleDeCajaCaja);
   FDatosCaja := ADatosCaja;
 end;
 

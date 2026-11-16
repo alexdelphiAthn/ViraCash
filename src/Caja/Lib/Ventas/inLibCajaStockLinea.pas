@@ -38,6 +38,7 @@ function CrearVigilanteStockVentaCaja(
 implementation
 
 uses
+  inLibMsgArticulos,
   System.Generics.Collections, Datasnap.DBClient;
 
 const
@@ -210,7 +211,8 @@ var
 begin
   Result := SinIncidencia;
   if not (ALineas is TClientDataSet) then
-    raise EArgumentException.Create('El ticket requiere TClientDataSet');
+    raise EArgumentException.Create(
+      STextoElTicketRequiereTclientdatasetArticulos);
   Clon := TClientDataSet.Create(nil);
   Cantidades := TDictionary<string, Double>.Create;
   try

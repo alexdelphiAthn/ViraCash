@@ -48,6 +48,7 @@ type
 implementation
 
 uses
+  inLibMsgComun,
   System.SysUtils, DBAccess;
 
 type
@@ -299,7 +300,7 @@ begin
   AError := '';
   if not (ADataSet is TUniQuery) then
   begin
-    AError := 'el dataset master no es una consulta UniDAC';
+    AError := STextoElDatasetMasterNoEsUnaConsultaComun;
   end
   else
   begin
@@ -308,7 +309,7 @@ begin
     sBase := NormalizarSql(sOriginal);
     if sBase = '' then
     begin
-      AError := 'la consulta master no contiene SQL';
+      AError := STextoLaConsultaMasterNoContieneSqlComun;
     end
     else
     begin
@@ -323,7 +324,7 @@ begin
           AGuia.DetailFields);
         if (sSeleccion = '') or (sRelacion = '') then
         begin
-          AError := 'la guia no define columnas o relaciones validas';
+          AError := STextoLaGuiaNoDefineColumnasORelacionesComun;
         end
         else
         begin

@@ -199,7 +199,8 @@ begin
     if aTitulos[i] = ATitulo then
       Result := 'Seccion' + IntToStr(i);
   if Result = '' then
-    raise EArgumentException.Create('Sección de impreso desconocida.');
+    raise EArgumentException.Create(
+      STextoSeccionDeImpresoDesconocidaReparaciones);
 end;
 
 procedure TDisenoReparacion.Seccion(const ATitulo, ATexto: string;

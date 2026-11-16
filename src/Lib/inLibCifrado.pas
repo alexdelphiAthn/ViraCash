@@ -35,6 +35,7 @@ function DescifrarDatosAES(
 implementation
 
 uses
+  inLibMsgComun,
   System.Classes, System.SysUtils,
   DCPcrypt2, DCPrijndael, dcpbase64;
 
@@ -93,14 +94,14 @@ begin
   Result := '';
   try
     if Length(ADatos) = 0 then
-      raise Exception.Create('Datos de entrada vacíos');
+      raise Exception.Create(STextoDatosDeEntradaVaciosComun);
     aBytesClave := TEncoding.ASCII.GetBytes(String(AClave));
     aBytesVectorInicializacion :=
       TEncoding.ASCII.GetBytes(String(AVectorInicializacion));
     aOrigen := DecodificarBase64(
       TEncoding.UTF8.GetBytes(ADatos));
     if Length(aOrigen) = 0 then
-      raise Exception.Create('Error al decodificar Base64');
+      raise Exception.Create(STextoErrorAlDecodificarBase64Comun);
     oCifrador := TDCP_rijndael.Create(nil);
     try
       oCifrador.CipherMode := cmCBC;
@@ -116,7 +117,7 @@ begin
         iLongitud);
       if Length(aDestino) = 0 then
         raise Exception.Create(
-          'Error durante la desencriptación');
+          STextoErrorDuranteLaDesencriptacionComun);
       iRelleno := aDestino[iLongitud - 1];
       SetLength(
         aDestino,

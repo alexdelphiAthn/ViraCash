@@ -81,6 +81,7 @@ procedure ValidarLimiteDemoFacturas(
 implementation
 
 uses
+  inLibMsgComun,
   IniFiles, Math, System.Hash,
   inLibConfiguracionIni, inLibDir, inLibMsgConfiguracion,
   inLibMsgFacturas;
@@ -162,7 +163,7 @@ begin
   begin
     raise EErrorPersistenciaLicenciaAplicacion.Create(
       eplConexionNoDisponible,
-      'No se ha configurado el repositorio de licencia.');
+      STextoNoSeHaConfiguradoElRepositorioDeComun);
   end;
   oResultado := ARepositorio.ContarFacturasDia(AFecha);
   if not oResultado.Exito then
@@ -282,7 +283,7 @@ begin
   begin
     raise EErrorPersistenciaLicenciaAplicacion.Create(
       eplConexionNoDisponible,
-      'No se ha configurado el repositorio de licencia.');
+      STextoNoSeHaConfiguradoElRepositorioDeComun);
   end;
   oResultado := ARepositorio.CargarNifsEmpresas;
   if not oResultado.Exito then

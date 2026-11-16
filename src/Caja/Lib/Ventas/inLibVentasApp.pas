@@ -37,6 +37,7 @@ type
 implementation
 
 uses
+  inLibMsgCaja,
   System.IOUtils, System.Hash, System.Generics.Collections,
   inLibViraCashApi;
 
@@ -48,10 +49,10 @@ begin
   oRaiz := TJSONObject.ParseJSONValue(ARespuesta);
   try
     if not (oRaiz is TJSONObject) then
-      raise Exception.Create('Respuesta de bandeja no válida.');
+      raise Exception.Create(STextoRespuestaDeBandejaNoValidaCaja);
     oDatos := TJSONObject(oRaiz).GetValue('datos');
     if not (oDatos is TJSONObject) then
-      raise Exception.Create('Faltan los datos de la bandeja.');
+      raise Exception.Create(STextoFaltanLosDatosDeLaBandejaCaja);
     Result := TJSONObject(oDatos.Clone);
   finally
     oRaiz.Free;

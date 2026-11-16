@@ -412,7 +412,7 @@ begin
      (not Assigned(FServicioEfectos)) then
   begin
     raise Exception.Create(
-      'Los servicios de factura no están configurados');
+      STextoLosServiciosDeFacturaNoEstanConfiguradosFacturas);
   end;
 end;
 

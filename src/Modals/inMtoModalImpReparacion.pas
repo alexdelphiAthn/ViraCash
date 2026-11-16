@@ -16,6 +16,7 @@ unit inMtoModalImpReparacion;
 interface
 
 uses
+  dxSpreadSheet,
   System.Classes, cxDropDownEdit, frxClass, inMtoModalGenImp,
   inLibGarantiasResguardo, inLibCorreoTickets,
   inLibReparacionesPlantillas, inLibReparacionesDocumentos;
@@ -36,6 +37,8 @@ type
     function PrepararTicket: Boolean;
     procedure SalidaTicket(const ARuta: string; ASoloPdf: Boolean);
   protected
+    procedure DoShow; override;
+    procedure ConstruirExcelNativo(AControl: TdxSpreadSheet); override;
     procedure PrepararDatosEdicion; override;
     procedure EnviarCorreoDocumento(ATipo: TTipoDocumentoCorreo;
       const ASerie, ANumero: string); override;
@@ -58,6 +61,8 @@ type
 implementation
 
 uses
+  inLibInformeTabular, inLibInformeTabularExcel,
+  Data.DB, Datasnap.DBClient,
   System.SysUtils, Vcl.Controls, Vcl.Dialogs, cxLabel,
   inLibMsgReparaciones, inLibCorreoDocumentoIntf,
   inLibCorreoDocumentoVcl, inLibDir, inLibFTicket, inLibTicketTextoFR;
@@ -341,6 +346,77 @@ begin
     rCorreo.FormatoDocumento := '';
     EnviarCorreoDocumentoPreparado(ATipo, ASerie, ANumero, Caption,
       sEmail, rCorreo, NOMBRES[FTipo] + '_REP_' + ANumero + '.pdf');
+  end;
+end;
+
+procedure TfrmPrintReparacion.DoShow;
+begin
+  inherited;
+  btnExcel.OnClick := btnExcelNativoClick;
+end;
+
+procedure TfrmPrintReparacion.ConstruirExcelNativo(
+  AControl: TdxSpreadSheet);
+var
+  oDatos: TClientDataSet;
+  rLinea: TLineaHojaReparacion;
+  aColumnas: TColumnasInformeTabular;
+begin
+  oDatos := TClientDataSet.Create(nil);
+  try
+    oDatos.FieldDefs.Add('REFERENCIA', ftWideString, 100);
+    oDatos.FieldDefs.Add('FECHA', ftDateTime);
+    oDatos.FieldDefs.Add('ENTREGA', ftDateTime);
+    oDatos.FieldDefs.Add('OBJETO', ftWideMemo);
+    oDatos.FieldDefs.Add('TRABAJO', ftWideMemo);
+    oDatos.FieldDefs.Add('DETALLES', ftWideMemo);
+    oDatos.FieldDefs.Add('CANTIDAD', ftFloat);
+    oDatos.FieldDefs.Add('IMPORTE', ftCurrency);
+    oDatos.CreateDataSet;
+    for rLinea in FHoja.Lineas do
+    begin
+      oDatos.Append;
+      if rLinea.Referencia = '' then
+        oDatos.FieldByName('REFERENCIA').AsString :=
+          IntToStr(rLinea.Reparacion)
+      else
+        oDatos.FieldByName('REFERENCIA').AsString := rLinea.Referencia;
+      if rLinea.Fecha > 0 then
+        oDatos.FieldByName('FECHA').AsDateTime := rLinea.Fecha;
+      if rLinea.FechaEntregaCliente > 0 then
+        oDatos.FieldByName('ENTREGA').AsDateTime :=
+          rLinea.FechaEntregaCliente;
+      oDatos.FieldByName('OBJETO').AsString := rLinea.Objeto;
+      oDatos.FieldByName('TRABAJO').AsString := rLinea.Trabajo;
+      oDatos.FieldByName('DETALLES').AsString := rLinea.Detalles;
+      oDatos.FieldByName('CANTIDAD').AsFloat := rLinea.Cantidad;
+      oDatos.FieldByName('IMPORTE').AsCurrency := rLinea.Importe;
+      oDatos.Post;
+    end;
+    aColumnas := [
+      ColumnaInforme('REFERENCIA', STextoReferenciaReparaciones, 1),
+      ColumnaInforme('FECHA', STextoFechaReparaciones, 1),
+      ColumnaInforme('ENTREGA', STextoEntregaAlClienteReparaciones, 1),
+      ColumnaInforme('OBJETO', STextoObjetoReparaciones, 2),
+      ColumnaInforme('TRABAJO', STextoTrabajoReparaciones, 3),
+      ColumnaInforme('DETALLES', STextoDetallesReparaciones, 3),
+      ColumnaInforme('CANTIDAD', SImpresoCantidadColumna, 1, '%g')];
+    if FHoja.EsImporte then
+      aColumnas := aColumnas + [ColumnaInforme(
+        'IMPORTE', SImpresoImporteColumna, 1, '%n')];
+    ExportarInformeTabularExcel(AControl, oDatos, Caption, aColumnas,
+      LineasResumenSelecciones + [
+        'Empresa: ' + FHoja.Tienda.Empresa,
+        'NIF: ' + FHoja.Tienda.Nif,
+        'Tienda: ' + FHoja.Tienda.Tienda,
+        STextoDireccionReparaciones + FHoja.Tienda.Direccion,
+        STextoPoblacionReparaciones + FHoja.Tienda.Poblacion,
+        STextoTelefonoReparaciones + FHoja.Tienda.Telefono,
+        'Proveedor: ' + FHoja.Proveedor,
+        'Fecha: ' + FormatDateTime('dd/mm/yyyy', FHoja.Fecha),
+        STextoLiquidacionReparaciones + IntToStr(FHoja.Liquidacion)], True);
+  finally
+    oDatos.Free;
   end;
 end;
 

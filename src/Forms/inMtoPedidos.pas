@@ -379,6 +379,7 @@ type
 implementation
 
 uses
+  inLibMsgComun,
   inMtoModalImpDocumento,
   inLibMensajesVcl,
   inLibDevExp,
@@ -2002,14 +2003,14 @@ begin
   try
     if AEsExistente then
       frmDocs.lblTitulo.Caption := Format(
-        'Líneas añadidas al albarán desde el pedido %s/%s',
+        STextoLineasAnadidasAlAlbaranDesdeElPedidoComun,
         [sSeriePedido, sNumeroPedido])
     else
       frmDocs.lblTitulo.Caption := Format(
-        'Albarán creado desde el pedido %s/%s',
+        STextoAlbaranCreadoDesdeElPedidoSSComun,
         [sSeriePedido, sNumeroPedido]);
     frmDocs.Agregar(
-      'Albarán',
+      STextoAlbaranComun,
       AResultado.Serie,
       AResultado.Numero,
       ACodigoAlmacen);

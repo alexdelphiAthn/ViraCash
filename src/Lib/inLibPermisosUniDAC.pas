@@ -40,6 +40,7 @@ type
 implementation
 
 uses
+  inLibMsgComun,
   System.Generics.Collections,
   inLibPermisos;
 
@@ -62,7 +63,7 @@ begin
   begin
     raise EErrorCargaPermisos.Create(
       elpConexionNoDisponible,
-      'No se ha configurado el repositorio de permisos.');
+      STextoNoSeHaConfiguradoElRepositorioDeComun2);
   end;
   oResultado := ARepositorio.CargarReglas(AIdentidad);
   if not oResultado.Exito then

@@ -416,17 +416,19 @@ begin
       FContexto.DatosCaja.cdsCabecera.FieldByName(
         'FECHA_FAC').AsDateTime);
   Datos := Resultado.DataSet;
-  ConfigurarCampo(Datos.FindField('CODIGO_ART_ART'), 'Código', '');
-  ConfigurarCampo(Datos.FindField('DESCRIPCION_ART'), 'Descripción', '');
-  ConfigurarCampo(Datos.FindField('DESCRIPCION_FAM'), 'Familia', '');
-  ConfigurarCampo(Datos.FindField('TEMPORADA'), 'Temporada', '');
+  ConfigurarCampo(Datos.FindField('CODIGO_ART_ART'), STextoCodigoCaja, '');
+  ConfigurarCampo(Datos.FindField('DESCRIPCION_ART'), STextoDescripcionCaja,
+    '');
+  ConfigurarCampo(Datos.FindField('DESCRIPCION_FAM'), STextoFamiliaCaja, '');
+  ConfigurarCampo(Datos.FindField('TEMPORADA'), STextoTemporadaCaja, '');
   ConfigurarCampo(
     Datos.FindField('RAZON_SOCIAL_PROVEEDOR'),
     'Proveedor',
     '');
-  ConfigurarCampo(Datos.FindField('REF_PROVEEDOR'), 'Ref. proveedor', '');
-  ConfigurarCampo(Datos.FindField('CODIGO_TAR_ARTTAR'), 'Tarifa', '');
-  ConfigurarCampo(Datos.FindField('NOMBRE_TAR_TAR'), 'Nombre tarifa', '');
+  ConfigurarCampo(Datos.FindField('REF_PROVEEDOR'), STextoRefProveedorCaja, '');
+  ConfigurarCampo(Datos.FindField('CODIGO_TAR_ARTTAR'), STextoTarifaCaja, '');
+  ConfigurarCampo(Datos.FindField('NOMBRE_TAR_TAR'), STextoNombreTarifaCaja,
+    '');
   ConfigurarCampo(
     Datos.FindField('PRECIO_FINAL_ARTTAR'),
     'Precio',

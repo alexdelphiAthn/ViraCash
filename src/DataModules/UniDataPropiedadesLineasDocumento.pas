@@ -19,6 +19,7 @@ procedure ConfigurarPropiedadesLineas(AConsulta: TUniQuery;
 implementation
 
 uses
+  inLibMsgFacturas,
   System.SysUtils, DBAccess;
 
 // Solo recibe expresiones de campos definidas por el programa.
@@ -64,7 +65,7 @@ begin
   // Las consultas de líneas son SELECT simples de una tabla o vista.
   iDesde := Pos('FROM ', UpperCase(ASql));
   if iDesde = 0 then
-    raise EArgumentException.Create('SELECT de líneas sin FROM');
+    raise EArgumentException.Create(STextoSelectDeLineasSinFromFacturas);
   Result := Copy(ASql, 1, iDesde - 1) + ', ' +
     SqlPropiedadesLinea('CODIGO_ART_' + ASufijo,
       'CODIGO_UNIDAD_' + ASufijo) +

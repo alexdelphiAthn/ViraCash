@@ -27,6 +27,7 @@ function CrearCatalogoMetadatosBBDDUniDAC(
 implementation
 
 uses
+  inLibMsgComun,
   System.SysUtils, Data.DB,
   inLibPlanEjecucionMariaDB, inLibProteccionDatosFacturacion;
 
@@ -178,14 +179,14 @@ begin
   Result := Trim(AValor);
   if Result = '' then
     raise EArgumentException.Create(
-      'El identificador no puede estar vacío');
+      STextoElIdentificadorNoPuedeEstarVacioComun);
   for i := 1 to Length(Result) do
   begin
     if not CharInSet(
       Result[i],
       ['A'..'Z', 'a'..'z', '0'..'9', '_', '$']) then
       raise EArgumentException.CreateFmt(
-        'Identificador de base de datos no válido: %s',
+        STextoIdentificadorDeBaseDeDatosNoValidoComun,
         [Result]);
   end;
 end;
@@ -198,7 +199,7 @@ begin
   Result := '';
   if Length(AObjetos) = 0 then
     raise EArgumentException.Create(
-      'Debe seleccionar al menos un objeto de base de datos');
+      STextoDebeSeleccionarAlMenosUnObjetoDeComun);
   for i := 0 to Length(AObjetos) - 1 do
   begin
     if Result <> '' then

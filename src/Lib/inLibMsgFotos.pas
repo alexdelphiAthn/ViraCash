@@ -74,6 +74,23 @@ resourcestring
     'Foto del artículo / SKU de la línea activa. Pulse para abrirla ' +
     '(Ctrl+F)';
 
+
+  // Textos de interfaz y validación revisados en noviembre de 2026.
+  STextoNoSePudoBloquearLaGaleriaParaFotos =
+    'No se pudo bloquear la galería para modificarla. Inténtalo de ' +
+    'nuevo.';
+  STextoNoSePuedenModificarFotosDentroDeFotos =
+    'No se pueden modificar fotos dentro de una transacción ' +
+    'externa.';
+  STextoElOrdenDeLaFotoDebeSerFotos =
+    'El orden de la foto debe ser mayor que cero.';
+  STextoSinColorFotos =
+    'sin color';
+  STextoSinTallaFotos =
+    'sin talla';
+  STextoNombreDeFotoInvalidoFotos =
+    'Nombre de foto inválido';
+
 implementation
 
 end.

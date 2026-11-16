@@ -127,14 +127,14 @@ begin
   if FMaster.FindField('TIPO_FAC') <> nil then
   begin
     if SameText(CampoTexto('TIPO_FAC'), 'SIMPLIFICADA') then
-      Result := 'FACTURA SIMPLIFICADA'
+      Result := STextoFacturaSimplificadaFacturas
     else if SameText(CampoTexto('TIPO_FAC'), 'RECTIFICATIVA') then
-      Result := 'FACTURA RECTIFICATIVA';
+      Result := STextoFacturaRectificativaFacturas;
   end;
   // Mientras el borrador no este consolidado no es una factura
   // emitida: sale como proforma, igual que en el informe.
   if EsFacturaPendienteConsolidar(FMaster) then
-    Result := 'FACTURA PROFORMA';
+    Result := STextoFacturaProformaFacturas;
 end;
 
 function TExportadorFacturaDevExpress.PuedeIncrustarQR: Boolean;
@@ -233,7 +233,7 @@ begin
   W(FHoja, 4, AColumna, ATitulo, True);
   W(FHoja, 5, AColumna, CampoTexto(ACampoRazonSocial));
   Merge(FHoja, 5, AColumna, AAncho, 1);
-  W(FHoja, 6, AColumna, 'NIF: ' + CampoTexto(ACampoNif));
+  W(FHoja, 6, AColumna, STextoNifFacturas + CampoTexto(ACampoNif));
   Merge(FHoja, 6, AColumna, AAncho, 1);
   W(FHoja, 7, AColumna, CampoTexto(ACampoDireccion));
   Merge(FHoja, 7, AColumna, AAncho, 1);
@@ -248,9 +248,9 @@ begin
   W(FHoja, 1, COL_DESC, TituloFactura, True);
   FHoja.Cells[1, COL_DESC].Style.Font.Size := 18;
   IncrustarQRVerifactu;
-  W(FHoja, 1, COL_TOTAL, 'Fecha: ' + CampoTexto('FECHA_FAC'),
+  W(FHoja, 1, COL_TOTAL, STextoFechaFacturas2 + CampoTexto('FECHA_FAC'),
     False, ssahRight);
-  W(FHoja, 2, COL_TOTAL, 'Número: ' + FDocumento, True, ssahRight);
+  W(FHoja, 2, COL_TOTAL, STextoNumeroFacturas + FDocumento, True, ssahRight);
   EscribirInterviniente(COL_DESC, 3, 'EMISOR',
     'RAZON_SOCIAL_EMPRESA_FAC', 'NIF_EMPRESA_FAC',
     'DIRECCION1_EMPRESA_FAC', 'CODIGO_POSTAL_EMPRESA_FAC',
@@ -266,11 +266,11 @@ var
   iColumna: Integer;
 begin
   FFila := 11;
-  W(FHoja, FFila, COL_DESC, 'Descripción', True);
-  W(FHoja, FFila, COL_CANT, 'Cantidad', True, ssahRight);
-  W(FHoja, FFila, COL_PRECIO, 'Precio', True, ssahRight);
-  W(FHoja, FFila, COL_PIVA, '% IVA', True, ssahRight);
-  W(FHoja, FFila, COL_TOTAL, 'Total', True, ssahRight);
+  W(FHoja, FFila, COL_DESC, STextoDescripcionFacturas, True);
+  W(FHoja, FFila, COL_CANT, STextoCantidadFacturas, True, ssahRight);
+  W(FHoja, FFila, COL_PRECIO, STextoPrecioFacturas, True, ssahRight);
+  W(FHoja, FFila, COL_PIVA, STextoIvaFacturas, True, ssahRight);
+  W(FHoja, FFila, COL_TOTAL, STextoTotalFacturas, True, ssahRight);
   for iColumna := COL_DESC to COL_TOTAL do
     if FHoja.Cells[FFila, iColumna] <> nil then
       FHoja.Cells[FFila, iColumna].Style.Borders[bBottom].Style :=
@@ -337,13 +337,13 @@ procedure TExportadorFacturaDevExpress.EscribirCabeceraImpuestos;
 var
   iColumna: Integer;
 begin
-  W(FHoja, FFila, COL_DESC, 'Base Imponible', True, ssahRight);
-  W(FHoja, FFila, COL_CANT, 'Tipo IVA', True, ssahRight);
-  W(FHoja, FFila, COL_PRECIO, 'Cuota IVA', True, ssahRight);
+  W(FHoja, FFila, COL_DESC, STextoBaseImponibleFacturas, True, ssahRight);
+  W(FHoja, FFila, COL_CANT, STextoTipoIvaFacturas, True, ssahRight);
+  W(FHoja, FFila, COL_PRECIO, STextoCuotaIvaFacturas, True, ssahRight);
   if FTieneRecargo then
   begin
-    W(FHoja, FFila, COL_PIVA, '% RE', True, ssahRight);
-    W(FHoja, FFila, COL_TOTAL, 'Total RE', True, ssahRight);
+    W(FHoja, FFila, COL_PIVA, STextoReFacturas, True, ssahRight);
+    W(FHoja, FFila, COL_TOTAL, STextoTotalReFacturas, True, ssahRight);
   end
   else
   begin
@@ -446,7 +446,7 @@ var
   Celda: TdxSpreadSheetCell;
 begin
   Inc(FFila, 2);
-  W(FHoja, FFila, COL_PIVA, 'Total Base Imponible:', True, ssahRight);
+  W(FHoja, FFila, COL_PIVA, STextoTotalBaseImponibleFacturas, True, ssahRight);
   Celda := FHoja.CreateCell(FFila, COL_TOTAL);
   Celda.SetText('=SUM(' + GetRef(AFilaInicioTabla + 1, COL_DESC) + ':' +
     GetRef(AFilaFinTabla, COL_DESC) + ')', True);
@@ -454,7 +454,7 @@ begin
   Celda.Style.AlignHorz := ssahRight;
   sRefTotalBase := GetRef(FFila, COL_TOTAL);
   Inc(FFila);
-  W(FHoja, FFila, COL_PIVA, 'Total Impuestos (IVA+RE):',
+  W(FHoja, FFila, COL_PIVA, STextoTotalImpuestosIvaReFacturas,
     True, ssahRight);
   Celda := FHoja.CreateCell(FFila, COL_TOTAL);
   Celda.SetText('=SUM(' + GetRef(AFilaInicioTabla + 1, COL_PRECIO) + ':' +
@@ -480,7 +480,7 @@ begin
     sRefRetenciones := GetRef(FFila, COL_TOTAL);
   end;
   Inc(FFila);
-  W(FHoja, FFila, COL_PIVA, 'TOTAL A PAGAR:', True, ssahRight);
+  W(FHoja, FFila, COL_PIVA, STextoTotalAPagarFacturas, True, ssahRight);
   Celda := FHoja.CreateCell(FFila, COL_TOTAL);
   sFormula := '=' + sRefTotalBase + '+' + sRefImpuestos;
   if sRefRetenciones <> '' then
@@ -498,7 +498,7 @@ var
 begin
   Inc(FFila, 2);
   Celda := FHoja.CreateCell(FFila, COL_DESC);
-  Celda.AsString := 'Forma de Pago:';
+  Celda.AsString := STextoFormaDePagoFacturas;
   Celda.Style.Font.Style := [fsBold];
   Celda.Style.AlignVert := ssavCenter;
   Celda := FHoja.CreateCell(FFila, COL_CANT);

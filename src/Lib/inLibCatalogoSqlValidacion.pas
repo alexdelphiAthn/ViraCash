@@ -33,6 +33,7 @@ function CalcularHuellaSql(const ASql: string): string;
 implementation
 
 uses
+  inLibMsgComun,
   System.SysUtils, System.Classes, System.Hash;
 
 function EsInicioIdentificador(ACaracter: Char): Boolean;
@@ -337,7 +338,7 @@ begin
         Result := oFaltantes.Count = 0;
         if not Result then
           AMensaje := Format(
-            'Campos de salida obligatorios ausentes [%s].',
+            STextoCamposDeSalidaObligatoriosAusentesSComun,
             [oFaltantes.CommaText]);
       finally
         FreeAndNil(oFaltantes);
@@ -403,13 +404,13 @@ begin
   Result.Mensaje := '';
   Result.Huella := CalcularHuellaSql(ASql);
   if Trim(ASql) = '' then
-    Result.Mensaje := 'El SQL está vacío.'
+    Result.Mensaje := STextoElSqlEstaVacioComun
   else if TieneVariasSentencias(ASql) then
-    Result.Mensaje := 'Solo se admite una sentencia SQL.'
+    Result.Mensaje := STextoSoloSeAdmiteUnaSentenciaSqlComun
   else if ContienePalabra(ASql, 'DROP') or
           ContienePalabra(ASql, 'ALTER') or
           ContienePalabra(ASql, 'TRUNCATE') then
-    Result.Mensaje := 'El SQL contiene una operación DDL no permitida.'
+    Result.Mensaje := STextoElSqlContieneUnaOperacionDdlNoComun
   else
   begin
     sTipoEsperado := NombreTipoSentencia(
@@ -425,7 +426,7 @@ begin
             (AMotor = mbSQLServer) and
             (sPrimerToken = 'EXECUTE')) then
       Result.Mensaje := Format(
-        'Se esperaba una sentencia %s.', [sTipoEsperado])
+        STextoSeEsperabaUnaSentenciaSComun, [sTipoEsperado])
     else
     begin
       oEsperados := ParametrosEsperados(
@@ -443,7 +444,7 @@ begin
         end
         else
           Result.Mensaje := Format(
-            'Parámetros esperados [%s], encontrados [%s].',
+            STextoParametrosEsperadosSEncontradosSComun,
             [oEsperados.CommaText, oEncontrados.CommaText]);
       finally
         FreeAndNil(oEncontrados);
@@ -463,29 +464,28 @@ begin
   Result.Huella := CalcularHuellaSql(
     ADefinicion.SqlBase);
   if Trim(ADefinicion.Repositorio) = '' then
-    Result.Mensaje := 'El repositorio de la definición está vacío.'
+    Result.Mensaje := STextoElRepositorioDeLaDefinicionEstaVacioComun
   else if Trim(ADefinicion.Operacion) = '' then
-    Result.Mensaje := 'La operación de la definición está vacía.'
+    Result.Mensaje := STextoLaOperacionDeLaDefinicionEstaVaciaComun
   else if ADefinicion.Version <= 0 then
-    Result.Mensaje := 'La versión de la definición debe ser mayor que cero.'
+    Result.Mensaje := STextoLaVersionDeLaDefinicionDebeSerComun
   else if ((ADefinicion.TipoSentencia = tssSelect) or
            (ADefinicion.Politica =
             pesPerfilLecturaConFallback)) and
           (Trim(ADefinicion.CamposResultado) = '') then
     Result.Mensaje :=
-      'Una lectura debe declarar sus campos de salida obligatorios.'
+      STextoUnaLecturaDebeDeclararSusCamposDeComun
   else if (ADefinicion.Politica =
            pesPerfilLecturaConFallback) and
           (not (ADefinicion.TipoSentencia in
             [tssSelect, tssCall])) then
     Result.Mensaje :=
-      'La política de lectura con fallback solo admite consultas ' +
-      'o procedimientos que devuelvan datos.'
+      STextoLaPoliticaDeLecturaConFallbackSoloComun
   else if (ADefinicion.Politica =
            pesPerfilEscrituraTransaccional) and
           (ADefinicion.TipoSentencia = tssSelect) then
     Result.Mensaje :=
-      'Una lectura no puede usar la política de escritura transaccional.'
+      STextoUnaLecturaNoPuedeUsarLaPoliticaComun
   else
   begin
     Result := ValidarSql(

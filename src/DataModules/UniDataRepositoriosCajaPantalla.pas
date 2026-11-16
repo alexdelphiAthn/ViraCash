@@ -80,6 +80,7 @@ type
 implementation
 
 uses
+  inLibMsgCaja,
   System.SysUtils, UniDataCajasDefectoRepositorio,
   UniDataFaseCobroRepositorio, UniDataCajaOperacionesHistRepositorio,
   UniDataCajaPagosHistRepositorio, UniDataCajaConsultasRepositorio,
@@ -104,7 +105,7 @@ function TRepositoriosCajaPantallaUniDAC.CrearRepositorioCajaOperacionesHist(
 begin
   if not (ADataSet is TUniQuery) then
     raise Exception.Create(
-      'La consulta del histórico de caja no es compatible con UniDAC.');
+      STextoLaConsultaDelHistoricoDeCajaNoCaja);
   Result := CrearRepositorioCajaOperacionesHistUniDAC(TUniQuery(ADataSet));
 end;
 
@@ -113,8 +114,7 @@ function TRepositoriosCajaPantallaUniDAC.CrearRepositorioCajaPagosHist(
 begin
   if not (ADataSet is TUniQuery) then
     raise Exception.Create(
-      'La consulta del histórico de pagos de caja no es compatible ' +
-      'con UniDAC.');
+      STextoLaConsultaDelHistoricoDePagosDeCaja);
   Result := CrearRepositorioCajaPagosHistUniDAC(TUniQuery(ADataSet));
 end;
 

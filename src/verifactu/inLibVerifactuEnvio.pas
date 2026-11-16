@@ -460,7 +460,7 @@ begin
        (not MatchText(ADatos.TipoFacturaRectificativa,
          ['R1', 'R2', 'R3', 'R4', 'R5'])) then
       raise Exception.Create(
-        'El tipo VERI*FACTU de la rectificativa no es válido.');
+        STextoElTipoVeriFactuDeLaRectificativaVerifactu);
     ADatos.TipoRectificativa := UpperCase(Trim(
       AQry.FieldByName('TIPO_RECTIFICATIVA_FAC').AsString));
     if ADatos.TipoRectificativa = '' then
@@ -468,7 +468,7 @@ begin
     if (ADatos.TipoRectificativa <> 'I') and
        (ADatos.TipoRectificativa <> 'S') then
       raise Exception.Create(
-        'El tipo fiscal de rectificativa debe ser I o S.');
+        STextoElTipoFiscalDeRectificativaDebeSerVerifactu);
   end;
   ADatos.NifCliente := NormalizarNifVerifactu(
     AQry.FieldByName('NIF_CLIENTE_FAC').AsString);

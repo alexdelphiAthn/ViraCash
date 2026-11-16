@@ -191,7 +191,7 @@ begin
       Result := '';
   else
     raise EArgumentOutOfRangeException.Create(
-      'Flujo de emisión fiscal no soportado.');
+      STextoFlujoDeEmisionFiscalNoSoportadoVerifactu);
   end;
 end;
 
@@ -438,7 +438,7 @@ begin
         AServicioCola);
   else
     raise EArgumentOutOfRangeException.Create(
-      'Modo de emisión fiscal no soportado.');
+      STextoModoDeEmisionFiscalNoSoportadoVerifactu);
   end;
   Result := TServicioEmisionFiscal.Create(Estrategia);
 end;

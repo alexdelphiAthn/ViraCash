@@ -24,6 +24,7 @@ function CrearCambioCodigoCliente(AConexion: TUniConnection):
 implementation
 
 uses
+  inLibMsgComun,
   System.SysUtils, System.Generics.Collections, Data.DB;
 
 const
@@ -255,7 +256,8 @@ begin
       oConsulta.ParamByName('ANTERIOR').AsString := AAnterior;
       oConsulta.ExecSQL;
       if oConsulta.RowsAffected <> 1 then
-        raise EDatabaseError.Create('Cambio de cliente: fila no actualizada');
+        raise EDatabaseError.Create(
+          STextoCambioDeClienteFilaNoActualizadaComun);
     finally
       FreeAndNil(oConsulta);
     end;

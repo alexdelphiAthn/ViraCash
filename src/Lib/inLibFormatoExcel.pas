@@ -37,6 +37,7 @@ function FiltroGuardar(AFormato: TFormatoExcel): string;
 implementation
 
 uses
+  inLibMsgComun,
   System.SysUtils;
 
 function FormatoExcelDesde(const AValor: string): TFormatoExcel;
@@ -60,7 +61,7 @@ begin
   if AFormato = feXls then
     Result := 'Excel 97 (*.xls)|*.xls'
   else
-    Result := 'Libro de Excel (*.xlsx)|*.xlsx';
+    Result := STextoLibroDeExcelXlsxXlsxComun;
 end;
 
 end.

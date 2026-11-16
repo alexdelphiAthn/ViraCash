@@ -2029,20 +2029,15 @@ begin
   ARutaCopia := '';
   oRepositorio := TRepositorioCopiasSeguridadUniDAC.Create(
     ContextoSesion, ConexionPrincipal);
-  saveDialog.Title := STituloGuardarCopiaSeguridad;
-  saveDialog.DefaultExtension := oRepositorio.ExtensionCreacion;
-  saveDialog.FileTypes.Clear;
-  saveDialog.FileTypes.Add.DisplayName := STituloGuardarCopiaSeguridad;
-  saveDialog.FileTypes[0].FileMask := '*' + oRepositorio.ExtensionCreacion;
-  saveDialog.Options := saveDialog.Options + [fdoOverWritePrompt];
+  ConfigurarDialogoCopiaProtegida;
   saveDialog.FileName := 'viracash_antes_actualizacion_' +
     FormatDateTime('yyyymmdd_hhnnss', Now) +
-    oRepositorio.ExtensionCreacion;
+    '.crypt';
   // La copia se solicita desde el modal de actualizacion: el login esta
   // deshabilitado mientras ese modal sigue abierto.
   if saveDialog.Execute(GetActiveWindow) then
   begin
-    sRuta := saveDialog.FileName;
+    sRuta := ChangeFileExt(saveDialog.FileName, '.crypt');
     eResultado := rcsFallida;
     oEspera := CrearVentanaEspera(BoundsRect, CurrentPPI, Handle);
     oEspera.Mostrar(SCaptionPreparandoCopiaSeguridad);

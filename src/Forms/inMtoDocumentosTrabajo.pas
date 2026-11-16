@@ -268,6 +268,7 @@ function CrearDocumentosTrabajoCompraInyectada(
 implementation
 
 uses
+  inLibMsgFacturas,
   inLibMensajesVcl, UniDataDocumentosTrabajoRepositorio,
   inLibListasRegalos, inLibMsgListasRegalos,
   UniDataArticulos, inLibGenBusq, inMtoModalEtiqArt,
@@ -679,19 +680,19 @@ var
   Columna: TcxGridDBColumn;
 begin
   // Columnas propias del documento tras el ClearItems del contrato.
-  Col('Almacén', 'CODIGO_ALM_DTL', 70, True);
-  Col('Descripción', 'DESCRIPCION_ARTICULO_DTL', 200, False);
-  Col('Modelo', 'REF_PROVEEDOR', 120, False);
-  Col('Familia', 'DESCRIPCION_FAM', 160, False);
-  Col('Proveedor', 'NOMBRE_PRV', 180, False);
-  Col('Temporada', 'TEMPORADA_ART', 110, False);
-  Columna := Col('Stock', 'CANTIDAD_STOCK_DTL', 80, False);
+  Col(STextoAlmacenFacturas, 'CODIGO_ALM_DTL', 70, True);
+  Col(STextoDescripcionFacturas, 'DESCRIPCION_ARTICULO_DTL', 200, False);
+  Col(STextoModeloFacturas, 'REF_PROVEEDOR', 120, False);
+  Col(STextoFamiliaFacturas, 'DESCRIPCION_FAM', 160, False);
+  Col(STextoProveedorFacturas, 'NOMBRE_PRV', 180, False);
+  Col(STextoTemporadaFacturas, 'TEMPORADA_ART', 110, False);
+  Columna := Col(STextoStockFacturas, 'CANTIDAD_STOCK_DTL', 80, False);
   Columna.HeaderAlignmentHorz := taRightJustify;
-  Columna := Col('Cantidad', 'CANTIDAD_DTL', 80,
+  Columna := Col(STextoCantidadFacturas, 'CANTIDAD_DTL', 80,
     FModoEntradaSel <> mcsTallasInline);
   Columna.HeaderAlignmentHorz := taRightJustify;
-  Col('Origen', 'ORIGEN_DTL', 80, False);
-  Col('Instante stock', 'INSTANTE_STOCK_DTL', 120, False);
+  Col(STextoOrigenFacturas, 'ORIGEN_DTL', 80, False);
+  Col(STextoInstanteStockFacturas, 'INSTANTE_STOCK_DTL', 120, False);
 end;
 
 procedure TfrmMtoDocumentosTrabajo.MostrarColumnasAtributoGlobalesDTR;

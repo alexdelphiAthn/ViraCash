@@ -19,6 +19,7 @@ type
 implementation
 
 uses
+  inLibMsgComun,
   System.SysUtils, System.Generics.Collections;
 
 constructor TRepositorioConfigCamposUniDAC.Create(
@@ -40,7 +41,7 @@ begin
   begin
     Result := TResultadoConfigCampos.Fallido(
       elcConexionNoDisponible,
-      'La conexión de configuración de campos no está activa.');
+      STextoLaConexionDeConfiguracionDeCamposNoComun);
   end
   else
   begin

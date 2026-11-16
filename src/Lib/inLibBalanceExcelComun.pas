@@ -44,6 +44,7 @@ procedure ExportarBalanceExcel(AControl: TdxSpreadSheet;
 implementation
 
 uses
+  inLibMsgComun,
   System.SysUtils, System.Classes, System.Generics.Collections,
   Vcl.Graphics, cxGraphics, dxSpreadSheetCore, dxSpreadSheetTypes,
   dxSpreadSheetContainers, dxSpreadSheetGraphics, dxSpreadSheetStyles,
@@ -232,7 +233,7 @@ begin
   FEsConTallas := ATipo = tbeConTallas;
   if FEsConTallas then
   begin
-    FTitulo := 'BALANCE DE ALMACEN POR TALLAS';
+    FTitulo := STextoBalanceDeAlmacenPorTallasComun;
     FColCantidad := COL_T1 + N_TALLAS;
     FColPrecio := FColCantidad + 1;
     FColImporte := FColCantidad + 2;
@@ -240,7 +241,7 @@ begin
   end
   else
   begin
-    FTitulo := 'BALANCE DE ALMACEN SIN TALLAS';
+    FTitulo := STextoBalanceDeAlmacenSinTallasComun;
     FColCantidad := COL_T1;
     FColPrecio := FColCantidad + 1;
     FColImporte := FColCantidad + 2;
@@ -357,8 +358,8 @@ var
   iTalla: Integer;
 begin
   if not FEsConTallas then
-    W(FHoja, FFila, COL_BANDA, 'Concepto', True, ssahLeft);
-  W(FHoja, FFila, COL_COLOR, 'Color', True, ssahLeft);
+    W(FHoja, FFila, COL_BANDA, STextoConceptoComun, True, ssahLeft);
+  W(FHoja, FFila, COL_COLOR, STextoColorComun, True, ssahLeft);
   if FEsConTallas then
   begin
     for iTalla := 1 to N_TALLAS do
@@ -369,12 +370,12 @@ begin
     end;
   end;
   if FEsConTallas then
-    W(FHoja, FFila, FColCantidad, 'Cdad.', True, ssahRight)
+    W(FHoja, FFila, FColCantidad, STextoCdadComun, True, ssahRight)
   else
-    W(FHoja, FFila, FColCantidad, 'Cantidad', True, ssahRight);
-  W(FHoja, FFila, FColPrecio, 'Precio', True, ssahRight);
-  W(FHoja, FFila, FColImporte, 'Importe', True, ssahRight);
-  W(FHoja, FFila, FColVentas, 'Ventas', True, ssahRight);
+    W(FHoja, FFila, FColCantidad, STextoCantidadComun, True, ssahRight);
+  W(FHoja, FFila, FColPrecio, STextoPrecioComun, True, ssahRight);
+  W(FHoja, FFila, FColImporte, STextoImporteComun, True, ssahRight);
+  W(FHoja, FFila, FColVentas, STextoVentasComun, True, ssahRight);
   FormatearFila(CL_CABECERA, False, False, True);
 end;
 
@@ -424,7 +425,7 @@ begin
   begin
     oBanda := FBandas[FOrdenBandas[iIndice]];
     W(FHoja, FFila, COL_BANDA, oBanda.Etiqueta, True, ssahLeft);
-    W(FHoja, FFila, COL_COLOR, 'TOTAL', True, ssahLeft);
+    W(FHoja, FFila, COL_COLOR, STextoTotalComun, True, ssahLeft);
     if FEsConTallas then
     begin
       for iTalla := 1 to N_TALLAS do
@@ -473,7 +474,7 @@ procedure TExportadorBalanceExcel.EmitirResumenGrupo(ANivel: Integer);
 begin
   if FGrupoUsado[ANivel] and (FGrupoFilas[ANivel].Count > 0) then
   begin
-    W(FHoja, FFila, 0, 'TOTAL ' + FGrupoEtiquetas[ANivel],
+    W(FHoja, FFila, 0, STextoTotalComun2 + FGrupoEtiquetas[ANivel],
       True, ssahLeft);
     if FGrupoCompatibilidad[ANivel].Sumable then
       EscribirNumero(FColCantidad, FGrupoExistenciasCantidad[ANivel],
@@ -564,7 +565,7 @@ procedure TExportadorBalanceExcel.GestionarCabeceras(
 begin
   if AFamilia <> FFamiliaActual then
   begin
-    W(FHoja, FFila, 0, 'FAMILIA  ' + AFamilia + '  ' +
+    W(FHoja, FFila, 0, STextoFamiliaComun + AFamilia + '  ' +
       FDatos.FieldByName(fdesfam).AsString, True);
     FormatearFila(CL_FAMILIA, False, False, False);
     Inc(FFila);
@@ -573,7 +574,7 @@ begin
   end;
   if AArticulo <> FArticuloActual then
   begin
-    W(FHoja, FFila, 0, 'ARTICULO  ' + AArticulo + '  ' +
+    W(FHoja, FFila, 0, STextoArticuloComun + AArticulo + '  ' +
       FDatos.FieldByName(fdesart).AsString, True);
     if FDatos.FindField(frefprv) <> nil then
     begin
@@ -690,7 +691,7 @@ begin
         for iNivel := N_NIVELES downto 1 do
           EmitirResumenGrupo(iNivel);
       end;
-      W(FHoja, FFila, 0, 'TOTAL GENERAL', True, ssahLeft);
+      W(FHoja, FFila, 0, STextoTotalGeneralComun, True, ssahLeft);
       if FTotalCompatibilidad.Sumable then
         EscribirNumero(FColCantidad,
           FTotalExistenciasCantidad, FormatoCantidadTotal, False);

@@ -310,9 +310,26 @@ end;
 procedure TEscritorHojaCalculoDevEx.Escribir(
   AFila, ACol: Integer;
   const AValor: Variant);
+var
+  oCelda: TdxSpreadSheetCell;
+  sTexto: string;
 begin
   AsegurarTabla;
-  FTabla.CreateCell(AFila, ACol).AsVariant := AValor;
+  oCelda := FTabla.CreateCell(AFila, ACol);
+  if VarIsStr(AValor) then
+  begin
+    // AsVariant interpreta números y fórmulas dentro de las cadenas.
+    // Conservar ceros iniciales, apóstrofos y referencias literales.
+    sTexto := VarToStr(AValor);
+    if (sTexto <> '') and (sTexto[1] = '''') then
+      oCelda.AsString := '''' + sTexto
+    else
+      oCelda.AsString := sTexto;
+    if (Pos(#10, sTexto) > 0) or (Pos(#13, sTexto) > 0) then
+      oCelda.Style.WordWrap := True;
+  end
+  else
+    oCelda.AsVariant := AValor;
 end;
 
 procedure TEscritorHojaCalculoDevEx.EscribirConFormato(

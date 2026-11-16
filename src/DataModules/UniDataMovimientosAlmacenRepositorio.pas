@@ -33,6 +33,7 @@ procedure CrearEscrituraMovimientosAlmacenUniDAC(
 implementation
 
 uses
+  inLibMsgComun,
   Data.DB,
   System.SysUtils,
   inLibFiltroUsuario,
@@ -310,7 +311,7 @@ procedure TUnidadTrabajoMovimientosAlmacenUniDAC.Iniciar;
 begin
   if FIniciada then
     raise EInvalidOpException.Create(
-      'La unidad de trabajo de movimientos ya está iniciada');
+      STextoLaUnidadDeTrabajoDeMovimientosYaComun);
   FPropietaria := not FConexion.InTransaction;
   if FPropietaria then
     FConexion.StartTransaction
@@ -325,7 +326,7 @@ var
 begin
   if not FIniciada then
     raise EInvalidOpException.Create(
-      'La unidad de trabajo de movimientos no está iniciada');
+      STextoLaUnidadDeTrabajoDeMovimientosNoComun);
   EsPropietaria := FPropietaria;
   if EsPropietaria then
     FConexion.Commit
@@ -450,7 +451,7 @@ var
 begin
   if AMovimiento.Cantidad = 0 then
     raise EArgumentException.Create(
-      'Un movimiento de almacén no puede tener cantidad cero');
+      STextoUnMovimientoDeAlmacenNoPuedeTenerComun);
   Numero := Trim(AMovimiento.Numero);
   if Numero = '' then
     Numero := ObtenerSiguienteContador(

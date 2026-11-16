@@ -81,6 +81,7 @@ function LeerTotalMaximoLinea(AConexion: TUniConnection;
 implementation
 
 uses
+  inLibMsgComun,
   System.SysUtils;
 
 const
@@ -110,7 +111,7 @@ var
 begin
   if not Assigned(AConexion) then
     raise EArgumentNilException.Create(
-      'LeerTotalMaximoLineaEmpresa: falta la conexión.');
+      STextoLeertotalmaximolineaempresaFaltaLaConexionComun);
   Result := 0;
   oConsulta := TUniQuery.Create(nil);
   try
@@ -182,10 +183,10 @@ constructor TVigilanteTotalMaximoLinea.Create(
 begin
   if not Assigned(ALineas) then
     raise EArgumentNilException.Create(
-      'TVigilanteTotalMaximoLinea: falta el dataset de líneas.');
+      STextoTvigilantetotalmaximolineaFaltaElDatasetDeLineasComun);
   if not Assigned(ALector) then
     raise EArgumentNilException.Create(
-      'TVigilanteTotalMaximoLinea: falta el lector del máximo.');
+      STextoTvigilantetotalmaximolineaFaltaElLectorDelMaximoComun);
   inherited Create(AOwner);
   FLineas := ALineas;
   FCampoTotal := ACampoTotal;

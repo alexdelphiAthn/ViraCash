@@ -19,6 +19,7 @@ function EnviarDocumentoAListaRegalos(AConexion: TUniConnection;
 implementation
 
 uses
+  inLibMsgFacturas,
   System.SysUtils, System.Math, Data.DB, DBAccess, UniDataPedidosCompraPendientes,
   UniDataProveedoresTexto,
   inLibDocumentosTrabajoEstados, inLibMsgVentas,
@@ -1438,7 +1439,7 @@ var
   bCompra: Boolean;
 begin
   if not Assigned(FResolver) then
-    raise EInvalidOpException.Create('Falta el resolver de artículos');
+    raise EInvalidOpException.Create(STextoFaltaElResolverDeArticulosFacturas);
   ConfigurarDatosComerciales(ATipo, sTabla, sCab, sLin,
     sCampos, sCamposLinea);
   bCompra := (ATipo = 'PC') or (ATipo = 'AB') or (ATipo = 'DC');

@@ -82,6 +82,7 @@ function ResumenCantidadesCompra(ALineas: TDataSet): string;
 implementation
 
 uses
+  inLibMsgCompras,
   System.Classes, System.Generics.Collections, inLibFormatoDocumento;
 
 function ResumenCantidadesCompra(ALineas: TDataSet): string;
@@ -297,30 +298,31 @@ begin
       iColFin := AColInicio + 5;
     Inc(ARow, 2);
     iFilaInicio := ARow;
-    W(Sheet, ARow, AColInicio, 'DESGLOSE IVA / RE', True);
+    W(Sheet, ARow, AColInicio, STextoDesgloseIvaReCompras, True);
     Merge(Sheet, ARow, AColInicio, iColFin - AColInicio + 1, 1);
     Inc(ARow);
-    W(Sheet, ARow, AColInicio, 'Tipo', True);
-    W(Sheet, ARow, AColInicio + 1, 'Base', True, ssahRight);
-    W(Sheet, ARow, AColInicio + 2, '% IVA', True, ssahRight);
-    W(Sheet, ARow, AColInicio + 3, 'IVA', True, ssahRight);
+    W(Sheet, ARow, AColInicio, STextoTipoCompras, True);
+    W(Sheet, ARow, AColInicio + 1, STextoBaseCompras, True, ssahRight);
+    W(Sheet, ARow, AColInicio + 2, STextoIvaCompras, True, ssahRight);
+    W(Sheet, ARow, AColInicio + 3, STextoIvaCompras2, True, ssahRight);
     if bTieneRe then
     begin
-      W(Sheet, ARow, AColInicio + 4, '% RE', True, ssahRight);
-      W(Sheet, ARow, AColInicio + 5, 'RE', True, ssahRight);
+      W(Sheet, ARow, AColInicio + 4, STextoReCompras, True, ssahRight);
+      W(Sheet, ARow, AColInicio + 5, STextoReCompras2, True, ssahRight);
     end;
     PintarLineaFiscalCompra(Sheet, ADataSet, sSufijo, 'Normal',
       'IVAN', 'REN', ARow, AColInicio, bTieneRe);
     PintarLineaFiscalCompra(Sheet, ADataSet, sSufijo, 'Reducido',
       'IVAR', 'RER', ARow, AColInicio, bTieneRe);
-    PintarLineaFiscalCompra(Sheet, ADataSet, sSufijo, 'Super reducido',
+    PintarLineaFiscalCompra(Sheet, ADataSet, sSufijo,
+      STextoSuperReducidoCompras,
       'IVAS', 'RES', ARow, AColInicio, bTieneRe);
     PintarLineaFiscalCompra(Sheet, ADataSet, sSufijo, 'Exento',
       'IVAE', 'REE', ARow, AColInicio, bTieneRe);
     Inc(ARow);
     if bTieneDtoComercial then
     begin
-      W(Sheet, ARow, AColInicio, 'Total bruto', True);
+      W(Sheet, ARow, AColInicio, STextoTotalBrutoCompras, True);
       W(Sheet, ARow, AColInicio + 1,
         CampoFloatPrimero(ADataSet,
         ['TOTAL_BRUTO_' + sSufijo, 'TOTAL_BRUTO_' + sSufijo + '_PRINT']),
@@ -328,7 +330,7 @@ begin
       Sheet.Cells[ARow, AColInicio + 1].Style.DataFormat.FormatCode :=
         FMT_EUR;
       Inc(ARow);
-      W(Sheet, ARow, AColInicio, 'Dto. comercial', True);
+      W(Sheet, ARow, AColInicio, STextoDtoComercialCompras, True);
       W(Sheet, ARow, AColInicio + 2,
         CampoFloatPrimero(ADataSet,
         ['PORCENTAJE_DTO_COMERCIAL_' + sSufijo,
@@ -346,18 +348,18 @@ begin
       Sheet.Cells[ARow, AColInicio + 3].Style.Font.Color := clRed;
       Inc(ARow);
     end;
-    W(Sheet, ARow, AColInicio, 'Total bases', True);
+    W(Sheet, ARow, AColInicio, STextoTotalBasesCompras, True);
     W(Sheet, ARow, AColInicio + 1,
       CampoFloat(ADataSet, 'TOTAL_BASES_' + sSufijo), True, ssahRight);
     Sheet.Cells[ARow, AColInicio + 1].Style.DataFormat.FormatCode := FMT_EUR;
-    W(Sheet, ARow, AColInicio + 2, 'Impuestos', True, ssahRight);
+    W(Sheet, ARow, AColInicio + 2, STextoImpuestosCompras, True, ssahRight);
     W(Sheet, ARow, AColInicio + 3,
       CampoFloat(ADataSet, 'TOTAL_IMPUESTOS_' + sSufijo), True, ssahRight);
     Sheet.Cells[ARow, AColInicio + 3].Style.DataFormat.FormatCode := FMT_EUR;
     if bTieneRetencion then
     begin
       Inc(ARow);
-      W(Sheet, ARow, AColInicio, 'Retencion IRPF', True);
+      W(Sheet, ARow, AColInicio, STextoRetencionIrpfCompras, True);
       W(Sheet, ARow, AColInicio + 2,
         CampoFloat(ADataSet, 'PORCENTAJE_RETENCION_' + sSufijo),
         False, ssahRight);
@@ -373,7 +375,7 @@ begin
     if bTieneDtoFinanciero then
     begin
       Inc(ARow);
-      W(Sheet, ARow, AColInicio, 'Dto. financiero', True);
+      W(Sheet, ARow, AColInicio, STextoDtoFinancieroCompras, True);
       W(Sheet, ARow, AColInicio + 2,
         CampoFloatPrimero(ADataSet,
         ['PORCENTAJE_DTO_FINANCIERO_' + sSufijo,
@@ -391,7 +393,7 @@ begin
       Sheet.Cells[ARow, AColInicio + 3].Style.Font.Color := clRed;
     end;
     Inc(ARow);
-    W(Sheet, ARow, AColInicio + 2, 'TOTAL LIQUIDO', True, ssahRight);
+    W(Sheet, ARow, AColInicio + 2, STextoTotalLiquidoCompras, True, ssahRight);
     W(Sheet, ARow, AColInicio + 3,
       CampoFloat(ADataSet, 'TOTAL_LIQUIDO_' + sSufijo), True, ssahRight);
     Sheet.Cells[ARow, AColInicio + 3].Style.DataFormat.FormatCode := FMT_EUR;
@@ -442,7 +444,7 @@ begin
   Merge(Sheet, iRow, 0, 4, 1);
   // Bloque derecho: proveedor (desde columna 5)
   iRow := 3;
-  W(Sheet, iRow, 5, 'PROVEEDOR', True);
+  W(Sheet, iRow, 5, STextoProveedorCompras, True);
   Inc(iRow);
   W(Sheet, iRow, 5, QMaster.FieldByName(ACfg.FieldRazonPrv).AsString, True);
   Merge(Sheet, iRow, 5, 4, 1);
@@ -476,22 +478,22 @@ begin
     ACfg.FieldSerie,
     ACfg.FieldNumero);
   iRow := 3;
-  W(Sheet, iRow, cDoc, 'DOCUMENTO', True);
+  W(Sheet, iRow, cDoc, STextoDocumentoCompras, True);
   Inc(iRow);
   W(Sheet, iRow, cDoc, sDocumento, True);
   Merge(Sheet, iRow, cDoc, 4, 1);
   Inc(iRow);
-  W(Sheet, iRow, cDoc, 'Fecha: ' +
+  W(Sheet, iRow, cDoc, STextoFechaCompras +
     QMaster.FieldByName(ACfg.FieldFecha).AsString);
   Merge(Sheet, iRow, cDoc, 4, 1);
   Inc(iRow);
-  W(Sheet, iRow, cDoc, 'Estado: ' +
+  W(Sheet, iRow, cDoc, STextoEstadoCompras +
     QMaster.FieldByName(ACfg.FieldEstado).AsString);
   Merge(Sheet, iRow, cDoc, 4, 1);
   Inc(iRow);
   if ACfg.FieldRefPrv <> '' then
   begin
-    W(Sheet, iRow, cDoc, 'Ref. Prv.: ' +
+    W(Sheet, iRow, cDoc, STextoRefPrvCompras +
       QMaster.FieldByName(ACfg.FieldRefPrv).AsString);
     Merge(Sheet, iRow, cDoc, 4, 1);
   end;
@@ -577,11 +579,12 @@ var
   iColumna: Integer;
   iTalla: Integer;
 begin
-  W(Sheet, AFila, AColumnas.Articulo, 'Cod. Art.', True, ssahCenter);
-  W(Sheet, AFila, AColumnas.Referencia, 'Ref. Prv.', True, ssahCenter);
-  W(Sheet, AFila, AColumnas.Descripcion, 'Descripcion', True, ssahCenter);
-  W(Sheet, AFila, AColumnas.Color, 'Color', True, ssahCenter);
-  W(Sheet, AFila, AColumnas.Sistema, 'Sis.', True, ssahCenter);
+  W(Sheet, AFila, AColumnas.Articulo, STextoCodArtCompras, True, ssahCenter);
+  W(Sheet, AFila, AColumnas.Referencia, STextoRefPrvCompras2, True, ssahCenter);
+  W(Sheet, AFila, AColumnas.Descripcion, STextoDescripcionCompras, True,
+    ssahCenter);
+  W(Sheet, AFila, AColumnas.Color, STextoColorCompras, True, ssahCenter);
+  W(Sheet, AFila, AColumnas.Sistema, STextoSisCompras, True, ssahCenter);
   W(Sheet, AFila, AColumnas.PrecioCompra,
     'Pr. Compra', True, ssahRight);
   if AColumnas.PrecioVenta >= 0 then
@@ -590,8 +593,8 @@ begin
   for iTalla := 1 to ANumTallas do
     W(Sheet, AFila, AColumnas.PrimeraTalla + iTalla - 1,
       Format('T%.2d', [iTalla]), True, ssahCenter);
-  W(Sheet, AFila, AColumnas.Unidades, 'Uds.', True, ssahRight);
-  W(Sheet, AFila, AColumnas.Importe, 'Importe', True, ssahRight);
+  W(Sheet, AFila, AColumnas.Unidades, STextoUdsCompras, True, ssahRight);
+  W(Sheet, AFila, AColumnas.Importe, STextoImporteCompras, True, ssahRight);
   for iColumna := 0 to AColumnas.Ultima do
   begin
     if Sheet.Cells[AFila, iColumna] <> nil then
@@ -691,7 +694,7 @@ begin
   if AFilaFin >= AFilaInicio then
   begin
     Inc(AFila);
-    W(Sheet, AFila, AColumnas.Sistema, 'TOTALES', True, ssahRight);
+    W(Sheet, AFila, AColumnas.Sistema, STextoTotalesCompras, True, ssahRight);
     for iTalla := 1 to ANumTallas do
     begin
       iColumna := AColumnas.PrimeraTalla + iTalla - 1;
@@ -800,14 +803,14 @@ procedure PintarCabeceraLineasVertical(Sheet: TdxSpreadSheetTableView;
 var
   iColumna: Integer;
 begin
-  W(Sheet, AFila, V_COL_LINEA, 'Linea', True, ssahCenter);
-  W(Sheet, AFila, V_COL_ART, 'Articulo', True, ssahCenter);
-  W(Sheet, AFila, V_COL_SKU, 'SKU', True, ssahCenter);
-  W(Sheet, AFila, V_COL_REF, 'Ref. Prv.', True, ssahCenter);
-  W(Sheet, AFila, V_COL_DESC, 'Descripcion', True, ssahCenter);
-  W(Sheet, AFila, V_COL_CANT, 'Cant.', True, ssahRight);
-  W(Sheet, AFila, V_COL_PREC, 'Precio', True, ssahRight);
-  W(Sheet, AFila, V_COL_TOTAL, 'Total', True, ssahRight);
+  W(Sheet, AFila, V_COL_LINEA, STextoLineaCompras, True, ssahCenter);
+  W(Sheet, AFila, V_COL_ART, STextoArticuloCompras, True, ssahCenter);
+  W(Sheet, AFila, V_COL_SKU, STextoSkuCompras, True, ssahCenter);
+  W(Sheet, AFila, V_COL_REF, STextoRefPrvCompras2, True, ssahCenter);
+  W(Sheet, AFila, V_COL_DESC, STextoDescripcionCompras, True, ssahCenter);
+  W(Sheet, AFila, V_COL_CANT, STextoCantCompras, True, ssahRight);
+  W(Sheet, AFila, V_COL_PREC, STextoPrecioCompras, True, ssahRight);
+  W(Sheet, AFila, V_COL_TOTAL, STextoTotalCompras, True, ssahRight);
   for iColumna := V_COL_LINEA to V_COL_TOTAL do
   begin
     if Sheet.Cells[AFila, iColumna] <> nil then
@@ -884,12 +887,12 @@ begin
   if AFilaFin >= AFilaInicio then
   begin
     Inc(AFila);
-    W(Sheet, AFila, V_COL_PREC, 'Total Base:', True, ssahRight);
+    W(Sheet, AFila, V_COL_PREC, STextoTotalBaseCompras, True, ssahRight);
     WFormula(Sheet, AFila, V_COL_TOTAL,
       '=SUM(' + GetRef(AFilaInicio, V_COL_TOTAL) + ':' +
       GetRef(AFilaFin, V_COL_TOTAL) + ')', FMT_EUR);
     Sheet.Cells[AFila, V_COL_TOTAL].Style.Font.Style := [fsBold];
-    W(Sheet, AFila, V_COL_DESC, 'Total Uds:', True, ssahRight);
+    W(Sheet, AFila, V_COL_DESC, STextoTotalUdsCompras, True, ssahRight);
     WFormula(Sheet, AFila, V_COL_CANT,
       '=SUM(' + GetRef(AFilaInicio, V_COL_CANT) + ':' +
       GetRef(AFilaFin, V_COL_CANT) + ')', '0');

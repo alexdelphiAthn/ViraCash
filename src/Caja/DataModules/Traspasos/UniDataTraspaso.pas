@@ -1194,7 +1194,7 @@ begin
           SameText(AEstado,
             ESTADO_PROPUESTA_TRASPASO_TRASLADADO_PARCIAL)) then
     raise EArgumentException.CreateFmt(
-      'Estado de propuesta no válido al grabar: %s', [AEstado]);
+      STextoEstadoDePropuestaNoValidoAlGrabarDistribucionTiendas, [AEstado]);
   FEstadoPropuestaAlGrabar := AEstado;
 end;
 
@@ -3842,7 +3842,7 @@ begin
   try
     while not qryAux.Eof do
     begin
-      AItems.Add(Format('%s/%s  ->  %s  ·  %d líneas  ·  %s',
+      AItems.Add(Format(STextoSSSDLineasSDistribucionTiendas,
         [qryAux.FieldByName('SERIE_TRSOL').AsString,
          qryAux.FieldByName('NUMERO_TRSOL').AsString,
          qryAux.FieldByName('CODIGO_ALM_DESTINO_TRSOL').AsString,

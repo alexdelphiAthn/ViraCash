@@ -25,6 +25,7 @@ function CrearCasoUsoFusionEfectos(
 implementation
 
 uses
+  inLibMsgComun,
   System.SysUtils;
 
 type
@@ -56,7 +57,7 @@ function TCasoUsoFusionEfectos.Ejecutar(
 begin
   if Length(AClaves) < 2 then
     raise EArgumentException.Create(
-      'Se necesitan al menos dos efectos para fusionar.');
+      STextoSeNecesitanAlMenosDosEfectosParaComun);
   Result := FRepositorio.Fusionar(AClaves);
 end;
 

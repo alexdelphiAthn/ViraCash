@@ -53,6 +53,7 @@ procedure AplicarTemporadaDefecto(ADataSet, ATemporadas: TDataSet;
 implementation
 
 uses
+  inLibMsgComun,
   System.SysUtils;
 
 procedure AplicarTemporadaDefecto(ADataSet, ATemporadas: TDataSet;
@@ -142,7 +143,7 @@ begin
   begin
     Result := TResultadoContadorAutomatico.Fallido(
       evaConexionNoDisponible,
-      'No se ha configurado el repositorio de valores automáticos.');
+      STextoNoSeHaConfiguradoElRepositorioDeComun3);
   end;
 end;
 

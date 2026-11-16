@@ -63,6 +63,8 @@ procedure ExportarMovVentasArtExcel(
 implementation
 
 uses
+  inLibMsgArticulos,
+  inLibMsgComun,
   System.Generics.Collections, inLibResumenSeleccionesHoja;
 
 const
@@ -344,14 +346,26 @@ begin
 end;
 
 procedure TExportadorMovVentasArt.EscribirCabeceraColumnas;
-const
-  TITULOS: array[COL_UNIENT..COL_MAX] of string = (
-    'Uni.Ent.', 'Imp.Ent.', 'Uds Vta', 'P. Salida', 'P. Final', 'Imp Venta',
-    'Imp Coste', 'Beneficio', '% Bnf', 'Venta-Ent', 'VentEnt%',
-    'Margen 1', 'Margen 2', '% Vdo', '% Vtas');
 var
+  Titulos: TArray<string>;
   iColumna: Integer;
 begin
+  Titulos := TArray<string>.Create(
+    SCabeceraMovVentasUnidadesEntrada,
+    SCabeceraMovVentasImporteEntrada,
+    SCabeceraMovVentasUnidadesVenta,
+    SCabeceraMovVentasPrecioSalida,
+    SCabeceraMovVentasPrecioFinal,
+    SCabeceraMovVentasImporteVenta,
+    SCabeceraMovVentasImporteCoste,
+    SCabeceraMovVentasBeneficio,
+    SCabeceraMovVentasPorcentajeBeneficio,
+    SCabeceraMovVentasVentaMenosEntrada,
+    SCabeceraMovVentasPorcentajeVentaEntrada,
+    SCabeceraMovVentasMargenPrimero,
+    SCabeceraMovVentasMargenSegundo,
+    SCabeceraMovVentasPorcentajeVendido,
+    SCabeceraMovVentasPorcentajeVentas);
   EscribirValor(COL_FOTO, '', True);
   EscribirValor(COL_ART, TituloColumnaDetalle, True);
   for iColumna := -FDesplazamientoColumnas to COL_MAX do
@@ -564,18 +578,18 @@ begin
     Result := StringOfChar(' ', (ANivel - 1) * 2) +
       FGrupoEtiquetas[ANivel]
   else if EsGrupoArticulo(ANivel) then
-    Result := 'TOTAL ARTÍCULO ' + FGrupoCodigos[ANivel]
+    Result := STextoTotalArticuloComun + FGrupoCodigos[ANivel]
   else
     Result := 'TOTAL ' + FGrupoEtiquetas[ANivel];
 end;
 
 function TExportadorMovVentasArt.TituloColumnaDetalle: string;
 begin
-  Result := 'Artículo';
+  Result := STextoArticuloComun2;
   if FResumenAgrupado then
   begin
     if SameText(FGrupoTipos[FNivelDetalle], 'ALM') then
-      Result := 'Almacén'
+      Result := STextoAlmacenComun
     else if SameText(FGrupoTipos[FNivelDetalle], 'PRV') then
       Result := 'Proveedor'
     else if SameText(FGrupoTipos[FNivelDetalle], 'FAM') then
@@ -793,7 +807,7 @@ begin
       FFila := 1;
       EscribirValor(
         COL_ART,
-        'MOVIMIENTOS DE VENTAS POR ARTÍCULOS Y FECHAS',
+        STextoMovimientosDeVentasPorArticulosYFechasComun,
         True);
       FFormateador.TamanoFuente(FFila, ColumnaExcel(COL_ART), 14);
       Inc(FFila, 2);
@@ -836,7 +850,7 @@ begin
         for iNivel := N_NIVELES downto 1 do
           EmitirResumenGrupo(iNivel);
       end;
-      EscribirTotales(FTotalAcumulado, 'TOTAL GENERAL', CL_GRUPO_H,
+      EscribirTotales(FTotalAcumulado, STextoTotalGeneralComun, CL_GRUPO_H,
         FTotalAcumulado.UdsVta);
       FFormateador.BordeCelda(
         FFila - 1, ColumnaExcel(COL_ART), lbInferior, ebFino);
@@ -858,7 +872,7 @@ var
 begin
   if AMaximoRegistros <= 0 then
     raise EArgumentOutOfRangeException.Create(
-      'El tamaño del lote debe ser mayor que cero');
+      STextoElTamanoDelLoteDebeSerMayorComun);
   try
     Iniciar;
     iProcesados := 0;

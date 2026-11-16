@@ -52,6 +52,7 @@ procedure EjecutarContadorDocumentoUniDAC(AProcedimiento: TUniStoredProc;
 implementation
 
 uses
+  inLibMsgComun,
   UniDataOpcionesDocumentoRepositorio, inLibOpcionesDocumento,
   inLibOpcionesDocumentoIntf, inLibErroresBBDD,
   System.Generics.Collections, inLibDocumento, inLibDocumentoIntf,
@@ -308,7 +309,7 @@ begin
   begin
     raise EValoresAutomaticosPersistencia.Create(
       evaConexionNoDisponible,
-      'La conexión de valores automáticos no está activa.');
+      STextoLaConexionDeValoresAutomaticosNoEstaComun);
   end;
   // Tras agotar LocalFailover UniDAC deja Connected=False. Reconectar
   // antes de una petición nueva; nunca repetir una reserva de contador.

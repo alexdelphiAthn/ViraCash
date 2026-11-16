@@ -94,6 +94,7 @@ type
 implementation
 
 uses
+  inLibMsgCaja,
   inLibWin, inMtoModalImpDepositos, inLibMensajesVcl, inLibMsgFacturas,
   inMtoCajaFormatosTicket;
 
@@ -207,7 +208,8 @@ begin
   Codigo := '';
   if dsTablaG.DataSet.Active and not dsTablaG.DataSet.IsEmpty then
     Codigo := dsTablaG.DataSet.FieldByName('CODIGO_CLI_DEP').AsString;
-  if InputQuery('Extracto de cuenta', 'Código de cliente:', Codigo) then
+  if InputQuery(STextoExtractoDeCuentaCaja, STextoCodigoDeClienteCaja, Codigo)
+    then
     if Trim(Codigo) <> '' then
       AbrirCuenta(Codigo, False);
 end;

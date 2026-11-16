@@ -523,6 +523,21 @@ resourcestring
   SErrorReferenciaInstalacionSifNoAutorizada =
     'La API no pertenece a la referencia indicada.';
 
+
+  // Textos de interfaz y validación revisados en noviembre de 2026.
+  STextoFlujoDeEmisionFiscalNoSoportadoVerifactu =
+    'Flujo de emisión fiscal no soportado.';
+  STextoModoDeEmisionFiscalNoSoportadoVerifactu =
+    'Modo de emisión fiscal no soportado.';
+  STextoElTipoFiscalDeRectificativaDebeSerVerifactu =
+    'El tipo fiscal de rectificativa debe ser I o S.';
+  STextoLaRectificativaSustitutivaNoTieneLosImportesVerifactu =
+    'La rectificativa sustitutiva no tiene los importes originales.';
+  STextoElExpedidorDelegadoDebeSerDDestinatarioVerifactu =
+    'El expedidor delegado debe ser D (destinatario) o T (tercero).';
+  STextoElTipoVeriFactuDeLaRectificativaVerifactu =
+    'El tipo VERI*FACTU de la rectificativa no es válido.';
+
 implementation
 
 end.

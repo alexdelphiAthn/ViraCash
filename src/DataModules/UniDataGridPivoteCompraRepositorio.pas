@@ -24,6 +24,7 @@ function CrearRepositorioGridPivoteCompraUniDAC(
 implementation
 
 uses
+  inLibMsgCompras,
   System.SysUtils, System.StrUtils, Data.DB,
   inLibCodigosSinBarra,
   inLibResolucionSku,
@@ -243,7 +244,7 @@ begin
     Consulta.ParamByName('variacion').AsString := AVariacion;
     Consulta.Open;
     if Consulta.IsEmpty then
-      raise EArgumentException.Create('El tipo no tiene eje de filas.');
+      raise EArgumentException.Create(STextoElTipoNoTieneEjeDeFilasCompras);
     Result := AsegurarValorAtributoNormalizado(Consulta,
       Consulta.FieldByName('ID_ATB_VA').AsString,
       AValor, ADescripcion, AUsuario, 0, AIdBasico);

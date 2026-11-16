@@ -109,7 +109,7 @@ var
   oConsulta: TUniQuery;
 begin
   if not AConexion.InTransaction then
-    raise EInvalidOpException.Create('Falta la transacción de la venta.');
+    raise EInvalidOpException.Create(STextoFaltaLaTransaccionDeLaVentaCaja);
   aCodigos := ConsultarArqueosCambioVenta(AConexion,
     ASerie, ANumero, ANuevoTotal, AModo);
   if (Length(aCodigos) > 0) and not AEsRoot then

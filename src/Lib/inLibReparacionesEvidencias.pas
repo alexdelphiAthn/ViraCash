@@ -250,7 +250,8 @@ begin
     TEncoding.UTF8));
   try
     if not Assigned(oJson) then
-      raise EArgumentException.Create('Recibo de evidencia inválido.');
+      raise EArgumentException.Create(
+        STextoReciboDeEvidenciaInvalidoReparaciones);
     oDatos := oJson.GetValue<TJSONObject>('datos');
     Result.Nombre := oDatos.GetValue<string>('nombre');
     Result.Fase := oDatos.GetValue<string>('fase');
@@ -260,7 +261,8 @@ begin
     begin
       if (ExtractFileName(Result.Nombre) <> Result.Nombre) or
          (Pos('..', Result.Nombre) > 0) or (Pos(':', Result.Nombre) > 0) then
-        raise EArgumentException.Create('Nombre de evidencia inválido.');
+        raise EArgumentException.Create(
+          STextoNombreDeEvidenciaInvalidoReparaciones);
       sImagen := oDatos.GetValue<string>('archivo_local',
         Result.Nombre + '_real.png');
       if (sImagen = '') or (ExtractFileName(sImagen) <> sImagen) or

@@ -150,6 +150,7 @@ type
 implementation
 
 uses
+  inLibMsgComun,
   inLibMensajesVcl,
   inLibGridArticulos,
   inLibLineaSku, inLibMsgArticulos;
@@ -369,11 +370,11 @@ begin
   FBusqColInput.Options.IncSearch := False;
   FBusqColInput.Options.Grouping := False;
   Columna := FBusqView.CreateColumn;
-  Columna.Caption := 'Descripción';
+  Columna.Caption := STextoDescripcionComun;
   Columna.DataBinding.FieldName := 'DESCRIPCION';
   Columna.Width := 240;
   Columna := FBusqView.CreateColumn;
-  Columna.Caption := 'Stock';
+  Columna.Caption := STextoStockComun;
   Columna.DataBinding.FieldName := 'STOCK';
   Columna.Width := 60;
   // 3. Item de edicion ExtLookupComboBox sobre ese view.

@@ -30,6 +30,7 @@ function CrearBusquedaArticulosPadreGridUniDAC(
 implementation
 
 uses
+  inLibMsgArticulos,
   System.Classes, Data.DB, UniDataBusquedasCompraRepositorio;
 
 const
@@ -214,14 +215,14 @@ begin
     Ord(Assigned(FProveedor));
   FConsulta.ParamByName('PROVEEDOR').AsString := sProveedor;
   FConsulta.Open;
-  EtiquetarCampo('ARTICULO', 'Código');
-  EtiquetarCampo('DESCRIPCION', 'Descripción');
-  EtiquetarCampo('FAMILIA', 'Familia');
-  EtiquetarCampo('TEMPORADA', 'Temporada');
-  EtiquetarCampo('PROVEEDOR', 'Proveedor');
-  EtiquetarCampo('REFPRV', 'Ref. proveedor');
-  EtiquetarCampo('STOCK', 'Stock');
-  EtiquetarCampo('CODBARRAS', 'Cód. barras');
+  EtiquetarCampo('ARTICULO', STextoCodigoArticulos);
+  EtiquetarCampo('DESCRIPCION', STextoDescripcionArticulos);
+  EtiquetarCampo('FAMILIA', STextoFamiliaArticulos);
+  EtiquetarCampo('TEMPORADA', STextoTemporadaArticulos);
+  EtiquetarCampo('PROVEEDOR', STextoProveedorArticulos);
+  EtiquetarCampo('REFPRV', STextoRefProveedorArticulos);
+  EtiquetarCampo('STOCK', STextoStockArticulos);
+  EtiquetarCampo('CODBARRAS', STextoCodBarrasArticulos);
   // FZ-ISSUE-940: solo para buscar; la rejilla no la muestra.
   if FConsulta.FindField('CODBARRAS') <> nil then
     FConsulta.FieldByName('CODBARRAS').Visible := False;

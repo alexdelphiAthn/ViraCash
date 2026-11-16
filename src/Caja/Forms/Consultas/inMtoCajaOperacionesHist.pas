@@ -961,7 +961,7 @@ begin
   actIrFacturaSimplif.Hint := Format(SHintIrABorrador,
     [ShortCutToText(actIrFacturaSimplif.ShortCut)]);
   FactIrArticulo := CrearAccionFicha('actHistIrArticulo',
-                                     'Ir a artículo',
+                                     STextoIrAArticuloCaja,
                                      'Ctrl+R',
                                      actIrArticuloExecute);
   FactIrCliente := CrearAccionFicha('actHistIrCliente',
@@ -969,11 +969,11 @@ begin
                                     'Ctrl+Shift+L',
                                     actIrClienteExecute);
   FactIrDeposito := CrearAccionFicha('actHistIrDeposito',
-                                     'Ir a depósito',
+                                     STextoIrADepositoCaja,
                                      'Ctrl+D',
                                      actIrDepositoExecute);
   FactIrFormaPago := CrearAccionFicha('actHistIrFormaPago',
-                                      'Ir a forma de pago',
+                                      STextoIrAFormaDePagoCaja,
                                       'Ctrl+Shift+P',
                                       actIrFormaPagoExecute);
   FactIrPagoHist := CrearAccionFicha('actHistIrPagoHist',

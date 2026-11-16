@@ -24,6 +24,7 @@ function PaisEsEspana(const ACodigoPais, ANombrePais: string): Boolean;
 implementation
 
 uses
+  inLibMsgFacturas,
   System.SysUtils;
 
 type
@@ -220,13 +221,13 @@ begin
   oTipo := DetectarTipoDocumentoFiscal(ADocumento);
   case oTipo of
     tdfNIF:
-      Result := 'NIF invalido. Formato esperado: 12345678A';
+      Result := STextoNifInvalidoFormatoEsperado12345678aFacturas;
     tdfNIE:
-      Result := 'NIE invalido. Formato esperado: X1234567A';
+      Result := STextoNieInvalidoFormatoEsperadoX1234567aFacturas;
     tdfCIF:
-      Result := 'CIF invalido. Formato esperado: A12345674';
+      Result := STextoCifInvalidoFormatoEsperadoA12345674Facturas;
   else
-    Result := 'NIF, NIE o CIF vacio o no reconocido: ' + ADocumento;
+    Result := STextoNifNieOCifVacioONoFacturas + ADocumento;
   end;
 end;
 

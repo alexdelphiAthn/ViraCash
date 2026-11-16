@@ -52,6 +52,7 @@ function EjecutarScriptActualizacion(
 implementation
 
 uses
+  inLibMsgComun,
   System.Classes,
   System.Hash,
   System.IOUtils,
@@ -459,7 +460,7 @@ begin
         EjecutarBloque;
         sDelimitador := Trim(Copy(sDirectiva, 11, MaxInt));
         if sDelimitador = '' then
-          raise EArgumentException.Create('DELIMITER sin separador.');
+          raise EArgumentException.Create(STextoDelimiterSinSeparadorComun);
       end
       else
       begin

@@ -55,6 +55,7 @@ type
 implementation
 
 uses
+  inLibMsgComun,
   System.SysUtils, System.Variants, System.UITypes, Vcl.Controls, Vcl.Dialogs,
   cxGrid, cxGridLevel, cxGroupBox, cxLabel, cxCustomData, cxDataStorage,
   cxCurrencyEdit, inLibRetiradaLotes, inLibRetiradaLotesTicket,
@@ -230,7 +231,7 @@ procedure TfrmModalRetiradaLotes.EnviarTicket(
   const AOrden: TOrdenRetiradaLotes);
 begin
   if not Assigned(ParametrosCaja) then
-    raise Exception.Create('Parámetros de caja no disponibles.');
+    raise Exception.Create(STextoParametrosDeCajaNoDisponiblesComun);
   ImprimirTicketRetirada(PreviewTicket, AOrden,
     ParametrosCaja.ImpresoraCaja,
     ParametrosCaja.GetString(PARAMETRO_FORMATO_RETIRADA_LOTES, 'TEXTO42'));

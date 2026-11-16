@@ -21,6 +21,7 @@ unit inMtoModalImpDocsProveedor;
 interface
 
 uses
+  dxSpreadSheet,
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   inMtoModalImpMultiFiltro, cxGraphics, cxLookAndFeels, cxLookAndFeelPainters,
@@ -51,6 +52,7 @@ type
     function CSVTipos: string;
     function CSVSeries: string;
   protected
+    procedure ConstruirExcelNativo(AControl: TdxSpreadSheet); override;
     function FiltrosUsados: TFiltrosReport; override;
     function EmpresaAlmacenes: string; override;
     procedure DescribirSelecciones(
@@ -66,6 +68,7 @@ type
 implementation
 
 uses
+  inLibInformeTabular, inLibInformeTabularExcel,
   UniDataDocsProveedor,
   UniDataInformeDocumentosProveedorRepositorio,
   inLibResumenSeleccionesVcl, inLibInformeDocumentosProveedorTotales,
@@ -95,6 +98,7 @@ end;
 procedure TfrmPrintDocsProveedor.DoShow;
 begin
   inherited;
+  btnExcel.OnClick := btnExcelNativoClick;
   if not FInicializado then
   begin
     Caption := Format('%s (%s %s)', [Caption,
@@ -191,7 +195,9 @@ begin
   if FRepositorioDocumentos = nil then
     FRepositorioDocumentos :=
       CrearRepositorioInformeDocumentosProveedorUniDAC(ConexionPrincipal);
+  fxdsDocsProveedor.DataSet := nil;
   FResultadoDocumentos := FRepositorioDocumentos.Preparar(criterios);
+  fxdsDocsProveedor.DataSet := FResultadoDocumentos.DataSet;
   fxdsDocsProveedor.UpdateBounds;
 end;
 
@@ -205,6 +211,50 @@ begin
   // la misma compra.
   AjustarTotalGeneralDocumentosProveedor(frxrprt1,
     fxdsDocsProveedor.UserName, STotalComprasNetasInformeProveedor);
+end;
+
+procedure TfrmPrintDocsProveedor.ConstruirExcelNativo(
+  AControl: TdxSpreadSheet);
+begin
+  ExportarInformeTabularExcel(AControl, FResultadoDocumentos.DataSet,
+    Caption,
+    [ColumnaInforme('TIPO_DOC_NOMBRE', STextoTipoDeDocumentoCompras, 1),
+     ColumnaInforme('CODIGO_PRV', STextoProveedorCompras2, 1),
+     ColumnaInforme('RAZON_SOCIAL_PRV', STextoNombreProveedorCompras, 1),
+     ColumnaInforme('TIPO_DOC', STextoTipoCompras, 1),
+     ColumnaInforme('DOCUMENTO_DOC', STextoDocumentoCompras2, 1),
+     ColumnaInforme('FECHA_DOC', STextoFechaCompras2, 1),
+     ColumnaInforme('REF_PROVEEDOR_DOC', STextoReferenciaProveedorCompras, 1),
+     ColumnaInforme('CODIGO_ALM_DOC', STextoAlmacenCompras, 1),
+     ColumnaInforme('TEMPORADA_DOC', STextoTemporadaCompras, 1),
+     ColumnaInforme('CANTIDAD_DOC', STextoCantidadCompras, 1, '%g'),
+     ColumnaInforme('TOTAL_BASES_DOC', STextoBaseImponibleCompras, 1, '%n'),
+     ColumnaInforme('TOTAL_IVA_DOC', STextoIvaCompras2, 1, '%n'),
+     ColumnaInforme('TOTAL_RE_DOC', STextoRecargoCompras, 1, '%n'),
+     ColumnaInforme('TOTAL_LIQUIDO_DOC', STextoTotalLiquidoCompras2, 1, '%n')],
+    LineasResumenSelecciones);
+  AnadirResumenInformeTabularExcel(AControl, FResultadoDocumentos.DataSet,
+    STextoTotalesPorTipoYProveedorCompras,
+    [ColumnaInforme('TIPO_DOC_NOMBRE', STextoTipoDeDocumentoCompras, 1),
+     ColumnaInforme('CODIGO_PRV', STextoProveedorCompras2, 1),
+     ColumnaInforme('RAZON_SOCIAL_PRV', STextoNombreProveedorCompras, 1),
+     ColumnaInforme('CANTIDAD_DOC', STextoCantidadCompras, 1, '%g'),
+     ColumnaInforme('TOTAL_BASES_DOC', STextoBaseImponibleCompras, 1, '%n'),
+     ColumnaInforme('TOTAL_IVA_DOC', STextoIvaCompras2, 1, '%n'),
+     ColumnaInforme('TOTAL_RE_DOC', STextoRecargoCompras, 1, '%n'),
+     ColumnaInforme('TOTAL_LIQUIDO_DOC', STextoTotalLiquidoCompras2, 1, '%n')],
+    '', False);
+  AnadirResumenInformeTabularExcel(AControl, FResultadoDocumentos.DataSet,
+    STextoComprasNetasCompras,
+    [ColumnaInforme('TIPO_DOC_NOMBRE', STextoTipoDeDocumentoCompras, 1),
+     ColumnaInforme('CODIGO_PRV', STextoProveedorCompras2, 1),
+     ColumnaInforme('RAZON_SOCIAL_PRV', STextoNombreProveedorCompras, 1),
+     ColumnaInforme('CANTIDAD_DOC', STextoCantidadCompras, 1, '%g'),
+     ColumnaInforme('TOTAL_BASES_DOC', STextoBaseImponibleCompras, 1, '%n'),
+     ColumnaInforme('TOTAL_IVA_DOC', STextoIvaCompras2, 1, '%n'),
+     ColumnaInforme('TOTAL_RE_DOC', STextoRecargoCompras, 1, '%n'),
+     ColumnaInforme('TOTAL_LIQUIDO_DOC', STextoTotalLiquidoCompras2, 1, '%n')],
+    'COMPRA_NETA_DOC');
 end;
 
 end.

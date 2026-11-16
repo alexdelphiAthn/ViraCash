@@ -12,6 +12,7 @@ unit inMtoModalImpDocumento;
 interface
 
 uses
+  dxSpreadSheet,
   inLibMsgPresupuestos,
   System.Classes, Data.DB, frxClass,
   inMtoModalGenImp, inLibDocumentoIntf, UniDataInformeDocumento;
@@ -25,6 +26,8 @@ type
     FNumero: string;
     procedure CrearInforme;
   protected
+    procedure DoShow; override;
+    procedure ConstruirExcelNativo(AControl: TdxSpreadSheet); override;
     procedure PrepararDatosEdicion; override;
   public
     procedure preparar_consulta; override;
@@ -40,6 +43,8 @@ type
 implementation
 
 uses
+  inLibMsgFacturas,
+  inLibInformeTabular, inLibInformeTabularExcel,
   System.SysUtils, Vcl.Forms, inLibInformeDocumento,
   inLibDocumento, inLibCorreoTickets, UniDataFacturas, inMtoModalImpFac;
 
@@ -217,6 +222,66 @@ begin
        SameText(TfrxDataBand(oObjeto).DataSetName, 'Impuestos') then
       TfrxDataBand(oObjeto).DataSet := FDatos.Impuestos;
   end;
+end;
+
+procedure TfrmPrintDocumento.DoShow;
+begin
+  inherited;
+  btnExcel.OnClick := btnExcelNativoClick;
+end;
+
+procedure TfrmPrintDocumento.ConstruirExcelNativo(
+  AControl: TdxSpreadSheet);
+var
+  aColumnas: TColumnasInformeTabular;
+begin
+  aColumnas :=
+    [ColumnaInforme('LINEA', STextoLineaFacturas, 1, '%g'),
+     ColumnaInforme('ARTICULO', STextoArticuloFacturas, 1),
+     ColumnaInforme('SKU', STextoSkuFacturas, 1),
+     ColumnaInforme('DESCRIPCION', STextoDescripcionFacturas, 3),
+     ColumnaInforme('VARIACION', STextoVariacionFacturas, 1),
+     ColumnaInforme('TALLAS', STextoTallasFacturas, 3),
+     ColumnaInforme('DETALLE', STextoDetalleFacturas, 3),
+     ColumnaInforme('UNIDAD', STextoUnidadFacturas, 1),
+     ColumnaInforme('CANTIDAD', STextoCantidadFacturas, 1, '%g'),
+     ColumnaInforme('PRECIO', STextoPrecioFacturas, 1, '%n'),
+     ColumnaInforme('IVA', STextoIvaFacturas2, 1, '%n'),
+     ColumnaInforme('TOTAL', STextoTotalFacturas, 1, '%n')];
+  if FConfiguracion.TipoDocumento = tdPresupuesto then
+    aColumnas := aColumnas + [
+      ColumnaInforme('PRECIO_ANTES_DTO', STextoPrecioAntesDelDescuentoFacturas,
+        2, '%n'),
+      ColumnaInforme('PORCENTAJE_DTO', STextoDescuentoFacturas, 1, '%n')];
+  ExportarInformeTabularExcel(AControl, FDatos.Lineas.DataSet,
+    Caption, aColumnas, LineasResumenSelecciones);
+  AnadirHojaInformeTabularExcel(AControl, FDatos.Cabecera.DataSet,
+    'Cabecera',
+    [ColumnaInforme('SERIE', STextoSerieFacturas, 1),
+     ColumnaInforme('NUMERO', STextoNumeroFacturas2, 1),
+     ColumnaInforme('FECHA', STextoFechaFacturas3, 1),
+     ColumnaInforme('EMPRESA', STextoEmpresaFacturas2, 3),
+     ColumnaInforme('NIF_EMPRESA', STextoNifEmpresaFacturas, 1),
+     ColumnaInforme('BLOQUE_EMPRESA', STextoDireccionEmpresaFacturas, 3),
+     ColumnaInforme('TERCERO', STextoClienteProveedorFacturas, 3),
+     ColumnaInforme('NIF_TERCERO', STextoNifTerceroFacturas, 1),
+     ColumnaInforme('BLOQUE_TERCERO', STextoDireccionTerceroFacturas, 3),
+     ColumnaInforme('FORMA_PAGO_DESCRIPCION', STextoFormaDePagoFacturas2, 2),
+     ColumnaInforme('VALIDEZ', STextoValidezFacturas, 2),
+     ColumnaInforme('BASES', STextoBaseImponibleFacturas2, 1, '%n'),
+     ColumnaInforme('TOTAL_IVA', STextoIvaFacturas3, 1, '%n'),
+     ColumnaInforme('RECARGO', STextoRecargoFacturas, 1, '%n'),
+     ColumnaInforme('RETENCION', STextoRetencionFacturas, 1, '%n'),
+     ColumnaInforme('TOTAL', STextoTotalFacturas, 1, '%n'),
+     ColumnaInforme('NOTAS', STextoNotasFacturas, 4)]);
+  AnadirHojaInformeTabularExcel(AControl, FDatos.Impuestos.DataSet,
+    'Impuestos',
+    [ColumnaInforme('NOMBRE', STextoTipoDeIvaFacturas, 1),
+     ColumnaInforme('PORCENTAJE', STextoIvaFacturas2, 1, '%n'),
+     ColumnaInforme('BASE', STextoBaseImponibleFacturas2, 1, '%n'),
+     ColumnaInforme('CUOTA', STextoCuotaIvaFacturas, 1, '%n'),
+     ColumnaInforme('PORCENTAJE_RE', STextoRecargoFacturas2, 1, '%n'),
+     ColumnaInforme('CUOTA_RE', STextoCuotaRecargoFacturas, 1, '%n')]);
 end;
 
 end.

@@ -2157,6 +2157,98 @@ resourcestring
   SPeriodicidadDomingo =
     'Domingo';
 
+
+  // Textos de interfaz y validación revisados en noviembre de 2026.
+  STextoLaComprobacionDeStockRequiereLaTransaccionArticulos =
+    'La comprobación de stock requiere la transacción del cobro.';
+  STextoElTicketRequiereTclientdatasetArticulos =
+    'El ticket requiere TClientDataSet';
+  STextoEsteArticuloNoTieneVariacionesActivadasArticulos =
+    'Este artículo no tiene variaciones activadas.';
+  STextoCodigoArticulos =
+    'Código';
+  STextoDescripcionArticulos =
+    'Descripción';
+  STextoFamiliaArticulos =
+    'Familia';
+  STextoTemporadaArticulos =
+    'Temporada';
+  STextoProveedorArticulos =
+    'Proveedor';
+  STextoRefProveedorArticulos =
+    'Ref. proveedor';
+  STextoStockArticulos =
+    'Stock';
+  STextoCodBarrasArticulos =
+    'Cód. barras';
+  STextoSinAsignarArticulos =
+    'Sin asignar.';
+  STextoArticuloArticulos =
+    'Artículo';
+  STextoSiArticulos =
+    'Sí';
+  STextoSkuArticulos =
+    'SKU';
+
+  SCabeceraMovVentasUnidadesEntrada =
+    'Uni.Ent.';
+
+  SCabeceraMovVentasImporteEntrada =
+    'Imp.Ent.';
+
+  SCabeceraMovVentasUnidadesVenta =
+    'Uds Vta';
+
+  SCabeceraMovVentasPrecioSalida =
+    'P. Salida';
+
+  SCabeceraMovVentasPrecioFinal =
+    'P. Final';
+
+  SCabeceraMovVentasImporteVenta =
+    'Imp Venta';
+
+  SCabeceraMovVentasImporteCoste =
+    'Imp Coste';
+
+  SCabeceraMovVentasBeneficio =
+    'Beneficio';
+
+  SCabeceraMovVentasPorcentajeBeneficio =
+    '% Bnf';
+
+  SCabeceraMovVentasVentaMenosEntrada =
+    'Venta-Ent';
+
+  SCabeceraMovVentasPorcentajeVentaEntrada =
+    'VentEnt%';
+
+  SCabeceraMovVentasMargenPrimero =
+    'Margen 1';
+
+  SCabeceraMovVentasMargenSegundo =
+    'Margen 2';
+
+  SCabeceraMovVentasPorcentajeVendido =
+    '% Vdo';
+
+  SCabeceraMovVentasPorcentajeVentas =
+    '% Vtas';
+
+  SAvisoMovimientoSinDocumento =
+    'El movimiento seleccionado no tiene un documento asociado.';
+  SSeleccionarReparacionMovimiento =
+    'Seleccionar reparación de la prenda';
+  SAvisoMovimientoSinReparacion =
+    'No se ha encontrado una reparación asociada a la prenda ' +
+    'del movimiento seleccionado.';
+  SAvisoMovimientoCajaSinClave =
+    'No se puede abrir la operación de caja porque el movimiento no ' +
+    'conserva la clave completa de empresa, almacén, caja y operación.';
+  SAvisoTipoDocumentoMovimientoNoSoportado =
+    'No hay una pantalla asociada al tipo de documento "%s".';
+
+
 implementation
 
 end.

@@ -26,6 +26,7 @@ function CrearRepositorioAltaArticuloPrestaUniDAC(
 implementation
 
 uses
+  inLibMsgIntegraciones,
   inLibRedondeo,
   UniDataTarifasPrecioSql,
   System.Classes, System.Generics.Collections, System.Math,
@@ -324,7 +325,7 @@ begin
   Result := ExpandPathTokens(Result);
   if Trim(Result) = '' then
     raise EAltaArticuloPrestaLocal.Create(
-      'No está configurada la carpeta de fotos appDirFotos.');
+      STextoNoEstaConfiguradaLaCarpetaDeFotosIntegraciones);
 end;
 
 function TRepositorioAltaArticuloPrestaUniDAC.CrearEnlace(
@@ -389,13 +390,13 @@ begin
     oConsulta.Open;
     if oConsulta.IsEmpty then
       raise EAltaArticuloPrestaLocal.CreateFmt(
-        'No existe el artículo local "%s".', [ACodigoArticulo]);
+        STextoNoExisteElArticuloLocalSIntegraciones, [ACodigoArticulo]);
     if oConsulta.FieldByName('ESACTIVO_ART').AsString <> 'S' then
       raise EAltaArticuloPrestaLocal.CreateFmt(
-        'El artículo local "%s" no está activo.', [ACodigoArticulo]);
+        STextoElArticuloLocalSNoEstaActivoIntegraciones, [ACodigoArticulo]);
     if oConsulta.FieldByName('ESWEB_ART').AsString <> 'S' then
       raise EAltaArticuloPrestaLocal.CreateFmt(
-        'El artículo local "%s" no está marcado para web.',
+        STextoElArticuloLocalSNoEstaMarcadoIntegraciones,
         [ACodigoArticulo]);
     AArticulo.Codigo := Trim(
       oConsulta.FieldByName('CODIGO_ART_ART').AsString);
@@ -446,21 +447,20 @@ begin
     oConsulta.Open;
     if oConsulta.FieldByName('EMPRESA_OK').IsNull then
       raise EAltaArticuloPrestaLocal.CreateFmt(
-        'La empresa "%s" no existe o no está activa.',
+        STextoLaEmpresaSNoExisteONoIntegraciones,
         [AConfiguracion.CodigoEmpresa]);
     if oConsulta.FieldByName('TARIFA_OK').IsNull then
       raise EAltaArticuloPrestaLocal.CreateFmt(
-        'La tarifa web "%s" no existe o no está activa.',
+        STextoLaTarifaWebSNoExisteOIntegraciones,
         [AConfiguracion.CodigoTarifa]);
     if oConsulta.FieldByName('PORCENTAJE_IVA').IsNull then
       raise EAltaArticuloPrestaLocal.CreateFmt(
-        'No se puede resolver el IVA %s del artículo "%s" ' +
-        'para la empresa "%s".',
+        STextoNoSePuedeResolverElIvaSIntegraciones,
         [AArticulo.TipoIva, AArticulo.Codigo,
          AConfiguracion.CodigoEmpresa]);
     if oConsulta.FieldByName('PRECIO_BRUTO').IsNull then
       raise EAltaArticuloPrestaLocal.CreateFmt(
-        'El artículo "%s" no tiene precio vigente en la tarifa "%s".',
+        STextoElArticuloSNoTienePrecioVigenteIntegraciones,
         [AArticulo.Codigo, AConfiguracion.CodigoTarifa]);
     AArticulo.PorcentajeIva :=
       oConsulta.FieldByName('PORCENTAJE_IVA').AsFloat;
@@ -489,7 +489,7 @@ begin
   SetLength(AArticulo.Familias, 0);
   if Trim(ACodigoFamilia) = '' then
     raise EAltaArticuloPrestaLocal.CreateFmt(
-      'El artículo "%s" no tiene familia.', [AArticulo.Codigo]);
+      STextoElArticuloSNoTieneFamiliaIntegraciones, [AArticulo.Codigo]);
   oVisitadas := TDictionary<string, Boolean>.Create;
   oConsulta := NuevaConsulta;
   try
@@ -500,12 +500,12 @@ begin
       Inc(iNivel);
       if iNivel > CMaximoNivelesFamilia then
         raise EAltaArticuloPrestaLocal.CreateFmt(
-          'La familia del artículo "%s" supera %d niveles.',
+          STextoLaFamiliaDelArticuloSSuperaDIntegraciones,
           [AArticulo.Codigo, CMaximoNivelesFamilia]);
       sClave := UpperCase(sCodigo);
       if oVisitadas.ContainsKey(sClave) then
         raise EAltaArticuloPrestaLocal.CreateFmt(
-          'La jerarquía de familias contiene un ciclo en "%s".',
+          STextoLaJerarquiaDeFamiliasContieneUnCicloIntegraciones,
           [sCodigo]);
       oVisitadas.Add(sClave, True);
       oConsulta.Close;
@@ -514,10 +514,10 @@ begin
       oConsulta.Open;
       if oConsulta.IsEmpty then
         raise EAltaArticuloPrestaLocal.CreateFmt(
-          'No existe la familia local "%s".', [sCodigo]);
+          STextoNoExisteLaFamiliaLocalSIntegraciones, [sCodigo]);
       if oConsulta.FieldByName('ESACTIVO_FAM').AsString <> 'S' then
         raise EAltaArticuloPrestaLocal.CreateFmt(
-          'La familia local "%s" no está activa.', [sCodigo]);
+          STextoLaFamiliaLocalSNoEstaActivaIntegraciones, [sCodigo]);
       oFamilia := Default(TFamiliaAltaArticuloPresta);
       oFamilia.Codigo := Trim(
         oConsulta.FieldByName('CODIGO_FAM_FAM').AsString);
@@ -570,7 +570,7 @@ begin
   iEsperados := LeerNumeroAtributos(ACodigoVariacion);
   if iEsperados = 0 then
     raise EAltaArticuloPrestaLocal.CreateFmt(
-      'La variación "%s" del SKU "%s" no define atributos.',
+      STextoLaVariacionSDelSkuSNoIntegraciones,
       [ACodigoVariacion, ACodigoSku]);
   oGrupos := TDictionary<string, Boolean>.Create;
   oConsulta := NuevaConsulta;
@@ -585,15 +585,15 @@ begin
     begin
       if oConsulta.FieldByName('GRUPO_VALIDO').IsNull then
         raise EAltaArticuloPrestaLocal.CreateFmt(
-          'El SKU "%s" contiene un atributo ajeno a la variación "%s".',
+          STextoElSkuSContieneUnAtributoAjenoIntegraciones,
           [ACodigoSku, ACodigoVariacion]);
       if oConsulta.FieldByName('ESACTIVO_AV').AsString <> 'S' then
         raise EAltaArticuloPrestaLocal.CreateFmt(
-          'El SKU "%s" usa un valor de atributo inactivo.', [ACodigoSku]);
+          STextoElSkuSUsaUnValorDeIntegraciones, [ACodigoSku]);
       if (not oConsulta.FieldByName('ID_ATB').IsNull) and
          (oConsulta.FieldByName('ESACTIVO_ATB').AsString <> 'S') then
         raise EAltaArticuloPrestaLocal.CreateFmt(
-          'El SKU "%s" usa un atributo básico inactivo.', [ACodigoSku]);
+          STextoElSkuSUsaUnAtributoBasicoIntegraciones, [ACodigoSku]);
       oAtributo := Default(TAtributoAltaArticuloPresta);
       oAtributo.CodigoGrupo := Trim(
         oConsulta.FieldByName('ID_VA_AV').AsString);
@@ -613,7 +613,7 @@ begin
         oConsulta.FieldByName('COLOR_HTML').AsString);
       if oGrupos.ContainsKey(UpperCase(oAtributo.CodigoGrupo)) then
         raise EAltaArticuloPrestaLocal.CreateFmt(
-          'El SKU "%s" tiene más de un valor para el atributo "%s".',
+          STextoElSkuSTieneMasDeUnIntegraciones,
           [ACodigoSku, oAtributo.CodigoGrupo]);
       oGrupos.Add(UpperCase(oAtributo.CodigoGrupo), True);
       SetLength(Result, iAtributo + 1);
@@ -627,7 +627,7 @@ begin
   end;
   if Length(Result) <> iEsperados then
     raise EAltaArticuloPrestaLocal.CreateFmt(
-      'El SKU "%s" tiene %d atributos y su variación exige %d.',
+      STextoElSkuSTieneDAtributosYIntegraciones,
       [ACodigoSku, Length(Result), iEsperados]);
 end;
 
@@ -649,7 +649,7 @@ begin
       iCantidad := oConsulta.FieldByName('CANTIDAD').AsLargeInt;
     if (iCantidad < 0) or (iCantidad > MaxInt) then
       raise EAltaArticuloPrestaLocal.CreateFmt(
-        'El stock de "%s" no cabe en un entero válido.',
+        STextoElStockDeSNoCabeEnIntegraciones,
         [ACodigoUnidad]);
     Result := Integer(iCantidad);
   finally
@@ -679,7 +679,7 @@ begin
   begin
     if Trim(ACodigoVariacion) = '' then
       raise EAltaArticuloPrestaLocal.CreateFmt(
-        'El artículo variable "%s" no tiene tipo de variación.',
+        STextoElArticuloVariableSNoTieneTipoIntegraciones,
         [AArticulo.Codigo]);
     oConsulta := NuevaConsulta;
     try
@@ -705,17 +705,17 @@ begin
           oConsulta.FieldByName('CODIGO_UNIDAD_SKU').AsString);
         if SameText(oSku.Codigo, AArticulo.Codigo) then
           raise EAltaArticuloPrestaLocal.CreateFmt(
-            'El artículo variable "%s" contiene un SKU base sin atributos.',
+            STextoElArticuloVariableSContieneUnSkuIntegraciones,
             [AArticulo.Codigo]);
         if not SameText(
              Trim(oConsulta.FieldByName('CODIGO_VAR_SKU').AsString),
              ACodigoVariacion) then
           raise EAltaArticuloPrestaLocal.CreateFmt(
-            'El SKU "%s" no pertenece a la variación "%s".',
+            STextoElSkuSNoPerteneceALaIntegraciones,
             [oSku.Codigo, ACodigoVariacion]);
         if oConsulta.FieldByName('PRECIO_BRUTO').IsNull then
           raise EAltaArticuloPrestaLocal.CreateFmt(
-            'El SKU "%s" no tiene precio vigente en la tarifa "%s".',
+            STextoElSkuSNoTienePrecioVigenteIntegraciones,
             [oSku.Codigo, AConfiguracion.CodigoTarifa]);
         dPrecioBruto :=
           oConsulta.FieldByName('PRECIO_BRUTO').AsFloat;
@@ -740,7 +740,7 @@ begin
     end;
     if Length(AArticulo.Skus) = 0 then
       raise EAltaArticuloPrestaLocal.CreateFmt(
-        'El artículo variable "%s" no tiene SKU activos.',
+        STextoElArticuloVariableSNoTieneSkuIntegraciones,
         [AArticulo.Codigo]);
   end;
 end;
@@ -752,10 +752,10 @@ var
 begin
   if not FileExists(ARuta) then
     raise EAltaArticuloPrestaLocal.CreateFmt(
-      'No existe la foto real "%s".', [ARuta]);
+      STextoNoExisteLaFotoRealSIntegraciones, [ARuta]);
   if not SameText(ExtractFileExt(ARuta), '.png') then
     raise EAltaArticuloPrestaLocal.CreateFmt(
-      'La copia real de la foto no es PNG: "%s".', [ARuta]);
+      STextoLaCopiaRealDeLaFotoNoIntegraciones, [ARuta]);
   oImagen := TPngImage.Create;
   try
     try
@@ -763,11 +763,11 @@ begin
     except
       on E: Exception do
         raise EAltaArticuloPrestaLocal.CreateFmt(
-          'La foto real "%s" no es legible: %s', [ARuta, E.Message]);
+          STextoLaFotoRealSNoEsLegibleIntegraciones, [ARuta, E.Message]);
     end;
     if (oImagen.Width <= 0) or (oImagen.Height <= 0) then
       raise EAltaArticuloPrestaLocal.CreateFmt(
-        'La foto real "%s" no tiene dimensiones válidas.', [ARuta]);
+        STextoLaFotoRealSNoTieneDimensionesIntegraciones, [ARuta]);
   finally
     FreeAndNil(oImagen);
   end;
@@ -808,7 +808,7 @@ begin
       if (oFoto.CodigoUnidad <> '') and
          (not StartsText(AArticulo.Codigo + '/', oFoto.CodigoUnidad)) then
         raise EAltaArticuloPrestaLocal.CreateFmt(
-          'La clave de foto "%s" no pertenece al artículo "%s".',
+          STextoLaClaveDeFotoSNoPerteneceIntegraciones,
           [oFoto.CodigoUnidad, AArticulo.Codigo]);
       oFoto.Nombre := Trim(
         oConsulta.FieldByName('NOMBRE_FOT_FOT').AsString);
@@ -832,19 +832,19 @@ begin
       oFoto.RutaReal := oAlmacenamiento.RutaFoto(oInfo, frReal);
       if oFoto.RutaReal = '' then
         raise EAltaArticuloPrestaLocal.CreateFmt(
-          'No se encuentra la copia real de la foto "%s".',
+          STextoNoSeEncuentraLaCopiaRealDeIntegraciones,
           [oFoto.Nombre]);
       ValidarImagenPng(oFoto.RutaReal);
       if oRutas.ContainsKey(UpperCase(oFoto.RutaReal)) then
         raise EAltaArticuloPrestaLocal.CreateFmt(
-          'La ruta de foto real está duplicada: "%s".',
+          STextoLaRutaDeFotoRealEstaDuplicadaIntegraciones,
           [oFoto.RutaReal]);
       oRutas.Add(UpperCase(oFoto.RutaReal), True);
       if oFoto.Principal then
       begin
         if bPrincipal then
           raise EAltaArticuloPrestaLocal.CreateFmt(
-            'El artículo "%s" tiene más de una foto general.',
+            STextoElArticuloSTieneMasDeUnaIntegraciones,
             [AArticulo.Codigo]);
         bPrincipal := True;
       end;
@@ -862,7 +862,7 @@ begin
   end;
   if not bPrincipal then
     raise EAltaArticuloPrestaLocal.CreateFmt(
-      'El artículo "%s" no tiene una foto general real.',
+      STextoElArticuloSNoTieneUnaFotoIntegraciones,
       [AArticulo.Codigo]);
 end;
 
@@ -871,10 +871,10 @@ procedure ComprobarTexto(const AValor, ANombre: string;
 begin
   if Trim(AValor) = '' then
     raise EAltaArticuloPrestaLocal.CreateFmt(
-      '%s no puede estar vacío.', [ANombre]);
+      STextoSNoPuedeEstarVacioIntegraciones, [ANombre]);
   if Length(AValor) > ALongitudMaxima then
     raise EAltaArticuloPrestaLocal.CreateFmt(
-      '%s supera los %d caracteres permitidos.',
+      STextoSSuperaLosDCaracteresPermitidosIntegraciones,
       [ANombre, ALongitudMaxima]);
 end;
 
@@ -883,29 +883,29 @@ procedure ComprobarDecimal(AValor: Double; const ANombre: string;
 begin
   if IsNan(AValor) or IsInfinite(AValor) then
     raise EAltaArticuloPrestaLocal.CreateFmt(
-      '%s no puede ser infinito ni NaN.', [ANombre]);
+      STextoSNoPuedeSerInfinitoNiNanIntegraciones, [ANombre]);
   if (not APermiteNegativo) and (AValor < 0) then
     raise EAltaArticuloPrestaLocal.CreateFmt(
-      '%s no puede ser negativo.', [ANombre]);
+      STextoSNoPuedeSerNegativoIntegraciones, [ANombre]);
 end;
 
 procedure TRepositorioAltaArticuloPrestaUniDAC.ValidarTextosArticulo(
   const AArticulo: TArticuloCompletoAltaPresta);
 begin
-  ComprobarTexto(AArticulo.Codigo, 'Referencia del producto',
+  ComprobarTexto(AArticulo.Codigo, STextoReferenciaDelProductoIntegraciones,
     CLongitudReferenciaPresta);
-  ComprobarTexto(AArticulo.Nombre, 'Nombre del producto',
+  ComprobarTexto(AArticulo.Nombre, STextoNombreDelProductoIntegraciones,
     CLongitudNombrePresta);
-  ComprobarTexto(AArticulo.Enlace, 'Enlace del producto',
+  ComprobarTexto(AArticulo.Enlace, STextoEnlaceDelProductoIntegraciones,
     CLongitudEnlacePresta);
   if Length(AArticulo.DescripcionCorta) >
      CLongitudDescripcionCortaPresta then
     raise EAltaArticuloPrestaLocal.CreateFmt(
-      'La descripción corta supera los %d caracteres permitidos.',
+      STextoLaDescripcionCortaSuperaLosDCaracteresIntegraciones,
       [CLongitudDescripcionCortaPresta]);
   if Length(AArticulo.Descripcion) > CLongitudDescripcionPresta then
     raise EAltaArticuloPrestaLocal.CreateFmt(
-      'La descripción supera los %d caracteres permitidos.',
+      STextoLaDescripcionSuperaLosDCaracteresPermitidosIntegraciones,
       [CLongitudDescripcionPresta]);
 end;
 
@@ -918,34 +918,34 @@ var
 begin
   if Length(AArticulo.Familias) = 0 then
     raise EAltaArticuloPrestaLocal.Create(
-      'El producto debe tener al menos una familia local.');
+      STextoElProductoDebeTenerAlMenosUnaIntegraciones);
   oCodigosFamilia := TDictionary<string, Boolean>.Create;
   try
     for iFamilia := 0 to High(AArticulo.Familias) do
     begin
       ComprobarTexto(AArticulo.Familias[iFamilia].Codigo,
-        'Código de familia', CLongitudReferenciaPresta);
+        STextoCodigoDeFamiliaIntegraciones, CLongitudReferenciaPresta);
       ComprobarTexto(AArticulo.Familias[iFamilia].Nombre,
-        'Nombre de familia', CLongitudNombrePresta);
+        STextoNombreDeFamiliaIntegraciones, CLongitudNombrePresta);
       ComprobarTexto(AArticulo.Familias[iFamilia].Enlace,
-        'Enlace de familia', CLongitudEnlacePresta);
+        STextoEnlaceDeFamiliaIntegraciones, CLongitudEnlacePresta);
       sClave := UpperCase(AArticulo.Familias[iFamilia].Codigo);
       if oCodigosFamilia.ContainsKey(sClave) then
         raise EAltaArticuloPrestaLocal.CreateFmt(
-          'La familia "%s" está duplicada.',
+          STextoLaFamiliaSEstaDuplicadaIntegraciones,
           [AArticulo.Familias[iFamilia].Codigo]);
       oCodigosFamilia.Add(sClave, True);
       if iFamilia = 0 then
       begin
         if AArticulo.Familias[iFamilia].CodigoPadre <> '' then
           raise EAltaArticuloPrestaLocal.Create(
-            'La primera familia de la ruta no es una raíz local.');
+            STextoLaPrimeraFamiliaDeLaRutaNoIntegraciones);
       end
       else if not SameText(
                     AArticulo.Familias[iFamilia].CodigoPadre,
                     AArticulo.Familias[iFamilia - 1].Codigo) then
         raise EAltaArticuloPrestaLocal.Create(
-          'La ruta jerárquica de familias no es continua.');
+          STextoLaRutaJerarquicaDeFamiliasNoEsIntegraciones);
     end;
   finally
     FreeAndNil(oCodigosFamilia);
@@ -961,20 +961,20 @@ var
   sFirma: string;
 begin
   ComprobarTexto(AAtributo.CodigoGrupo,
-    'Código de grupo', CLongitudNombrePresta);
+    STextoCodigoDeGrupoIntegraciones, CLongitudNombrePresta);
   ComprobarTexto(AAtributo.NombreGrupo,
-    'Nombre de grupo', CLongitudNombrePresta);
+    STextoNombreDeGrupoIntegraciones, CLongitudNombrePresta);
   ComprobarTexto(AAtributo.NombrePublicoGrupo,
-    'Nombre público de grupo', CLongitudNombrePublicoPresta);
+    STextoNombrePublicoDeGrupoIntegraciones, CLongitudNombrePublicoPresta);
   ComprobarTexto(AAtributo.CodigoValor,
-    'Código de valor', CLongitudNombrePresta);
+    STextoCodigoDeValorIntegraciones, CLongitudNombrePresta);
   ComprobarTexto(AAtributo.NombreValor,
-    'Nombre de valor', CLongitudNombrePresta);
+    STextoNombreDeValorIntegraciones, CLongitudNombrePresta);
   if (AAtributo.TipoGrupo <> 'select') and
      (AAtributo.TipoGrupo <> 'radio') and
      (AAtributo.TipoGrupo <> 'color') then
     raise EAltaArticuloPrestaLocal.CreateFmt(
-      'El grupo "%s" tiene un tipo no válido.',
+      STextoElGrupoSTieneUnTipoNoIntegraciones,
       [AAtributo.CodigoGrupo]);
   sClave := UpperCase(AAtributo.CodigoGrupo);
   sFirma := AAtributo.NombreGrupo + #1 +
@@ -983,7 +983,7 @@ begin
   begin
     if AClavesGrupo[sClave] <> sFirma then
       raise EAltaArticuloPrestaLocal.CreateFmt(
-        'El grupo de atributo "%s" tiene datos contradictorios.',
+        STextoElGrupoDeAtributoSTieneDatosIntegraciones,
         [AAtributo.CodigoGrupo]);
   end
   else
@@ -994,7 +994,7 @@ begin
   begin
     if AClavesAtributo[sClave] <> sFirma then
       raise EAltaArticuloPrestaLocal.CreateFmt(
-        'El valor de atributo "%s" tiene datos contradictorios.',
+        STextoElValorDeAtributoSTieneDatosIntegraciones,
         [AAtributo.CodigoValor]);
   end
   else
@@ -1011,23 +1011,23 @@ var
   sClave: string;
 begin
   ComprobarTexto(ASku.Codigo,
-    'Referencia de combinación', CLongitudReferenciaPresta);
+    STextoReferenciaDeCombinacionIntegraciones, CLongitudReferenciaPresta);
   ComprobarDecimal(ASku.PrecioSinIva,
-    'Precio de combinación sin IVA', False);
+    STextoPrecioDeCombinacionSinIvaIntegraciones, False);
   ComprobarDecimal(ASku.ImpactoPrecio,
-    'Impacto de precio', True);
+    STextoImpactoDePrecioIntegraciones, True);
   if ASku.Cantidad < 0 then
     raise EAltaArticuloPrestaLocal.CreateFmt(
-      'El stock del SKU "%s" no puede ser negativo.',
+      STextoElStockDelSkuSNoPuedeIntegraciones,
       [ASku.Codigo]);
   sClave := UpperCase(ASku.Codigo);
   if ACodigosSku.ContainsKey(sClave) then
     raise EAltaArticuloPrestaLocal.CreateFmt(
-      'El SKU "%s" está duplicado.', [ASku.Codigo]);
+      STextoElSkuSEstaDuplicadoIntegraciones, [ASku.Codigo]);
   ACodigosSku.Add(sClave, True);
   if Length(ASku.Atributos) = 0 then
     raise EAltaArticuloPrestaLocal.CreateFmt(
-      'El SKU "%s" no tiene atributos.', [ASku.Codigo]);
+      STextoElSkuSNoTieneAtributosIntegraciones, [ASku.Codigo]);
   for iAtributo := 0 to High(ASku.Atributos) do
     ValidarAtributo(
       ASku.Atributos[iAtributo],
@@ -1046,11 +1046,11 @@ begin
   if AArticulo.TieneVariaciones and
      (Length(AArticulo.Skus) = 0) then
     raise EAltaArticuloPrestaLocal.Create(
-      'El producto variable debe tener combinaciones activas.');
+      STextoElProductoVariableDebeTenerCombinacionesActivasIntegraciones);
   if (not AArticulo.TieneVariaciones) and
      (Length(AArticulo.Skus) <> 0) then
     raise EAltaArticuloPrestaLocal.Create(
-      'El producto simple no debe crear combinaciones.');
+      STextoElProductoSimpleNoDebeCrearCombinacionesIntegraciones);
   oCodigosSku := TDictionary<string, Boolean>.Create;
   oClavesGrupo := TDictionary<string, string>.Create;
   oClavesAtributo := TDictionary<string, string>.Create;
@@ -1077,13 +1077,13 @@ var
 begin
   if Length(AArticulo.Fotos) = 0 then
     raise EAltaArticuloPrestaLocal.Create(
-      'El producto debe tener una foto general real.');
+      STextoElProductoDebeTenerUnaFotoGeneralIntegraciones);
   for iFoto := 0 to High(AArticulo.Fotos) do
   begin
     ComprobarTexto(AArticulo.Fotos[iFoto].Nombre,
-      'Nombre de foto', 255);
+      STextoNombreDeFotoIntegraciones, 255);
     ComprobarTexto(AArticulo.Fotos[iFoto].RutaReal,
-      'Ruta real de foto', 32767);
+      STextoRutaRealDeFotoIntegraciones, 32767);
   end;
 end;
 
@@ -1094,14 +1094,14 @@ begin
   if (AArticulo.TipoIva <> 'N') and (AArticulo.TipoIva <> 'R') and
      (AArticulo.TipoIva <> 'S') and (AArticulo.TipoIva <> 'E') then
     raise EAltaArticuloPrestaLocal.CreateFmt(
-      'El tipo de IVA "%s" no se puede publicar.', [AArticulo.TipoIva]);
+      STextoElTipoDeIvaSNoSeIntegraciones, [AArticulo.TipoIva]);
   ComprobarDecimal(AArticulo.PorcentajeIva,
-    'Porcentaje de IVA', False);
+    STextoPorcentajeDeIvaIntegraciones, False);
   ComprobarDecimal(AArticulo.PrecioBaseSinIva,
-    'Precio base sin IVA', False);
+    STextoPrecioBaseSinIvaIntegraciones, False);
   if AArticulo.Cantidad < 0 then
     raise EAltaArticuloPrestaLocal.Create(
-      'La cantidad total no puede ser negativa.');
+      STextoLaCantidadTotalNoPuedeSerNegativaIntegraciones);
   ValidarFamilias(AArticulo);
   ValidarSkus(AArticulo);
   ValidarFotos(AArticulo);
@@ -1120,16 +1120,16 @@ begin
   Result := Default(TArticuloCompletoAltaPresta);
   if Trim(ACodigoArticulo) = '' then
     raise EAltaArticuloPrestaLocal.Create(
-      'El código de artículo no puede estar vacío.');
+      STextoElCodigoDeArticuloNoPuedeEstarIntegraciones);
   if Trim(AUsuario) = '' then
     raise EAltaArticuloPrestaLocal.Create(
-      'El usuario del perfil no puede estar vacío.');
+      STextoElUsuarioDelPerfilNoPuedeEstarIntegraciones);
   if Trim(AConfiguracion.CodigoEmpresa) = '' then
     raise EAltaArticuloPrestaLocal.Create(
-      'La empresa web no puede estar vacía.');
+      STextoLaEmpresaWebNoPuedeEstarVaciaIntegraciones);
   if Trim(AConfiguracion.CodigoTarifa) = '' then
     raise EAltaArticuloPrestaLocal.Create(
-      'La tarifa web no puede estar vacía.');
+      STextoLaTarifaWebNoPuedeEstarVaciaIntegraciones);
   CargarArticulo(Trim(ACodigoArticulo), Result,
     sCodigoFamilia, sCodigoVariacion);
   CargarPrecio(AConfiguracion, Result, bImpuestoIncluido);
@@ -1144,8 +1144,8 @@ begin
       oConsulta.Open;
       if oConsulta.FieldByName('NUMERO').AsInteger = 0 then
         raise EAltaArticuloPrestaLocal.CreateFmt(
-          'La empresa "%s" no tiene almacenes web activos, ' +
-          'físicos y estándar.', [AConfiguracion.CodigoEmpresa]);
+          STextoLaEmpresaSNoTieneAlmacenesWebIntegraciones,
+            [AConfiguracion.CodigoEmpresa]);
     finally
       FreeAndNil(oConsulta);
     end;

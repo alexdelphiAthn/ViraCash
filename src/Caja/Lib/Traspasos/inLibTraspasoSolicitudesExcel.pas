@@ -29,6 +29,7 @@ procedure ExportarSolicitudesTraspasoExcel(
 implementation
 
 uses
+  inLibMsgDistribucionTiendas,
   System.SysUtils, System.Types, System.Generics.Collections,
   Vcl.Graphics,
   cxGraphics,
@@ -197,16 +198,19 @@ end;
 
 procedure TExportadorSolicitudesTraspasoExcel.EscribirCabeceraDetalle;
 begin
-  W(FHoja, FFila, COL_FOTO, 'Foto', True, ssahCenter);
-  W(FHoja, FFila, COL_LINEA, 'Línea', True, ssahCenter);
-  W(FHoja, FFila, COL_ARTICULO, 'Artículo', True);
-  W(FHoja, FFila, COL_SKU, 'SKU / unidad', True);
-  W(FHoja, FFila, COL_DESCRIPCION, 'Descripción', True);
-  W(FHoja, FFila, COL_PEDIDA, 'Pedida', True, ssahRight);
-  W(FHoja, FFila, COL_SERVIDA, 'Servida', True, ssahRight);
-  W(FHoja, FFila, COL_PENDIENTE, 'Pendiente', True, ssahRight);
-  W(FHoja, FFila, COL_ATENDIDA, 'Atendida', True, ssahCenter);
-  W(FHoja, FFila, COL_MOTIVO, 'Motivo de rechazo', True);
+  W(FHoja, FFila, COL_FOTO, STextoFotoDistribucionTiendas, True, ssahCenter);
+  W(FHoja, FFila, COL_LINEA, STextoLineaDistribucionTiendas, True, ssahCenter);
+  W(FHoja, FFila, COL_ARTICULO, STextoArticuloDistribucionTiendas, True);
+  W(FHoja, FFila, COL_SKU, STextoSkuUnidadDistribucionTiendas, True);
+  W(FHoja, FFila, COL_DESCRIPCION, STextoDescripcionDistribucionTiendas, True);
+  W(FHoja, FFila, COL_PEDIDA, STextoPedidaDistribucionTiendas, True, ssahRight);
+  W(FHoja, FFila, COL_SERVIDA, STextoServidaDistribucionTiendas, True,
+    ssahRight);
+  W(FHoja, FFila, COL_PENDIENTE, STextoPendienteDistribucionTiendas, True,
+    ssahRight);
+  W(FHoja, FFila, COL_ATENDIDA, STextoAtendidaDistribucionTiendas, True,
+    ssahCenter);
+  W(FHoja, FFila, COL_MOTIVO, STextoMotivoDeRechazoDistribucionTiendas, True);
   FormatearFila(FFila, COLOR_CABECERA, True, False, True);
   Inc(FFila);
 end;
@@ -247,10 +251,10 @@ begin
     TextoCodigoNombre(
       CampoTexto('CODIGO_ALM_ORIGEN_TRSOL'),
       CampoTexto('NOMBRE_ALMACEN_ORIGEN_TRSOL'));
-  W(FHoja, FFila, 0, 'Solicitante:', True);
+  W(FHoja, FFila, 0, STextoSolicitanteDistribucionTiendas, True);
   W(FHoja, FFila, 1, sSolicitante);
   Merge(FHoja, FFila, 1, 4, 1);
-  W(FHoja, FFila, 5, 'Solicitada:', True);
+  W(FHoja, FFila, 5, STextoSolicitadaDistribucionTiendas, True);
   W(FHoja, FFila, 6, sSolicitada);
   Merge(FHoja, FFila, 6, 4, 1);
   Inc(FFila);
@@ -261,16 +265,16 @@ begin
   sEmpleado := TextoCodigoNombre(
     CampoTexto('CODIGO_EMPLEADO_TRSOL'),
     CampoTexto('NOMBRE_EMPLEADO_TRSOL'));
-  W(FHoja, FFila, 0, 'Caja:', True);
+  W(FHoja, FFila, 0, STextoCajaDistribucionTiendas, True);
   W(FHoja, FFila, 1, sCaja);
   Merge(FHoja, FFila, 1, 4, 1);
-  W(FHoja, FFila, 5, 'Empleado:', True);
+  W(FHoja, FFila, 5, STextoEmpleadoDistribucionTiendas, True);
   W(FHoja, FFila, 6, sEmpleado);
   Merge(FHoja, FFila, 6, 4, 1);
   Inc(FFila);
 
   sObservaciones := CampoTexto('OBSERVACIONES_TRSOL');
-  W(FHoja, FFila, 0, 'Observaciones:', True);
+  W(FHoja, FFila, 0, STextoObservacionesDistribucionTiendas, True);
   W(FHoja, FFila, 1, sObservaciones);
   Merge(FHoja, FFila, 1, COL_MAXIMA, 1);
   FHoja.Cells[FFila, 1].Style.WordWrap := True;
@@ -308,7 +312,8 @@ begin
   if sArticulo <> '' then
     IncrustarFoto(FFila, sArticulo)
   else
-    W(FHoja, FFila, COL_FOTO, 'Sin artículo', False, ssahCenter);
+    W(FHoja, FFila, COL_FOTO, STextoSinArticuloDistribucionTiendas, False,
+      ssahCenter);
   W(FHoja, FFila, COL_LINEA,
     CampoTexto('LINEA_TRSOLLIN'), False, ssahCenter);
   W(FHoja, FFila, COL_ARTICULO, sArticulo);
@@ -357,7 +362,8 @@ end;
 
 procedure TExportadorSolicitudesTraspasoExcel.EscribirSinLineas;
 begin
-  W(FHoja, FFila, COL_FOTO, 'Sin líneas solicitadas', False, ssahCenter);
+  W(FHoja, FFila, COL_FOTO, STextoSinLineasSolicitadasDistribucionTiendas,
+    False, ssahCenter);
   Merge(FHoja, FFila, COL_FOTO, COL_MAXIMA + 1, 1);
   FHoja.Cells[FFila, COL_FOTO].Style.Font.Style := [fsItalic];
   PintarCuadro(
@@ -375,13 +381,13 @@ var
   oServicios: TServiciosHojaCalculo;
 begin
   FFila := 1;
-  W(FHoja, FFila, 0, 'SOLICITUDES DE TRASPASO', True);
+  W(FHoja, FFila, 0, STextoSolicitudesDeTraspasoDistribucionTiendas, True);
   Merge(FHoja, FFila, 0, COL_MAXIMA + 1, 1);
   FHoja.Cells[FFila, 0].Style.Font.Size := 16;
   FHoja.Cells[FFila, 0].Style.Font.Color := clWhite;
   FormatearFila(FFila, COLOR_TITULO, True, False, False);
   Inc(FFila);
-  W(FHoja, FFila, 0, 'Periodo:', True);
+  W(FHoja, FFila, 0, STextoPeriodoDistribucionTiendas, True);
   EscribirFecha(FFila, 1, FFechaDesde, 'dd/mm/yyyy');
   W(FHoja, FFila, 2, 'a', False, ssahCenter);
   EscribirFecha(FFila, 3, FFechaHasta, 'dd/mm/yyyy');
@@ -395,7 +401,7 @@ end;
 procedure TExportadorSolicitudesTraspasoExcel.
   EscribirTotalesSolicitud;
 begin
-  W(FHoja, FFila, 0, 'TOTAL SOLICITUD', True, ssahRight);
+  W(FHoja, FFila, 0, STextoTotalSolicitudDistribucionTiendas, True, ssahRight);
   Merge(FHoja, FFila, 0, COL_PEDIDA, 1);
   EscribirNumero(FFila, COL_PEDIDA, FTotalPedida);
   EscribirNumero(FFila, COL_SERVIDA, FTotalServida);
@@ -490,7 +496,8 @@ begin
     end;
   end
   else
-    W(FHoja, AFila, COL_FOTO, 'Sin foto', False, ssahCenter);
+    W(FHoja, AFila, COL_FOTO, STextoSinFotoDistribucionTiendas, False,
+      ssahCenter);
 end;
 
 procedure TExportadorSolicitudesTraspasoExcel.ProcesarDatos;
@@ -544,7 +551,7 @@ procedure TExportadorSolicitudesTraspasoExcel.Ejecutar;
 begin
   FControl.ClearAll;
   FHoja := FControl.AddSheet(
-    'Solicitudes de traspaso',
+    STextoSolicitudesDeTraspasoDistribucionTiendas2,
     TdxSpreadSheetTableView) as TdxSpreadSheetTableView;
   FHoja.BeginUpdate;
   try

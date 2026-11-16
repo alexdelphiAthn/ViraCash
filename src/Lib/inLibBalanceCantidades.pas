@@ -51,6 +51,7 @@ type
 implementation
 
 uses
+  inLibMsgComun,
   System.SysUtils;
 
 procedure TCompatibilidadCantidadBalance.Agregar(const AUnidad: string);
@@ -88,7 +89,8 @@ var
   i: Integer;
 begin
   if (ANivel < 1) or (ANivel > Length(ACodigos)) then
-    raise EArgumentOutOfRangeException.Create('Nivel de balance inválido');
+    raise EArgumentOutOfRangeException.Create(
+      STextoNivelDeBalanceInvalidoComun);
   Result := '';
   for i := 0 to ANivel - 1 do
     Result := Result + IntToStr(Length(ACodigos[i])) + ':' + ACodigos[i];

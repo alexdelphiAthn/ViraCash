@@ -19,6 +19,7 @@ unit inMtoModalEtiqArt;
 interface
 
 uses
+  dxSpreadSheet,
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   inMtoModalGenImp, cxGraphics, cxLookAndFeels, cxLookAndFeelPainters,
@@ -73,6 +74,8 @@ type
     procedure ReportBeforePrintEtiquetas(
       Component: TfrxReportComponent);
   protected
+    procedure DoShow; override;
+    procedure ConstruirExcelNativo(AControl: TdxSpreadSheet); override;
     procedure AvisarAntesDeConsulta; override;
   public
     // Data module asignado por el Mto Articulos que invoca este modal
@@ -110,6 +113,7 @@ implementation
 {$R *.dfm}
 
 uses
+  inLibInformeTabularExcel,
   inLibMensajesVcl,
   inLibMsgArticulos,
   inLibEtiquetasImpresion;
@@ -549,6 +553,25 @@ begin
   finally
     FreeAndNil(oEtiquetas);
   end;
+end;
+
+procedure TfrmPrintEtiqArt.DoShow;
+begin
+  inherited;
+  btnExcel.OnClick := btnExcelNativoClick;
+end;
+
+procedure TfrmPrintEtiqArt.ConstruirExcelNativo(
+  AControl: TdxSpreadSheet);
+begin
+  ExportarInformeTabularExcel(AControl, DM.cdsEtiquetasArt,
+    Caption, ColumnasExcelEtiquetas(DM.cdsEtiquetasArt),
+    LineasResumenSelecciones + [
+      'Tarifa: ' + ObtenerCodigoTarifa,
+      'Almacenes: ' + ObtenerAlmacenesCsv,
+      'Fecha aplicación: ' +
+        FormatDateTime('dd/mm/yyyy', dtFechaAplicacion.Date),
+      'Origen: ' + FTextoOrigenExterno]);
 end;
 
 end.

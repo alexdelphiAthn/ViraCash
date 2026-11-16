@@ -1012,13 +1012,11 @@ begin
      (cbbSERIE_FAC.Properties.Items.Count = 0) then
     ShowMessage_fza(SAvisoSinSerieRectificativaCaja)
   else if not Result then
-    ShowMessage_fza('No hay una serie de factura disponible para esta ' +
-      'empresa, almacén y caja. Configúrela en Archivo > Empresas > ' +
-      'Series (factura simplificada o rectificativa, según la venta).');
+    ShowMessage_fza(STextoNoHayUnaSerieDeFacturaDisponibleCaja);
   if Result and (Length(sSerie) > 12) then
   begin
     Result := False;
-    ShowMessage_fza('La serie no puede superar los 12 caracteres.');
+    ShowMessage_fza(STextoLaSerieNoPuedeSuperarLos12Caja);
   end;
   if not Result and cbbSERIE_FAC.CanFocus then
     cbbSERIE_FAC.SetFocus;
@@ -1624,7 +1622,7 @@ begin
     // número de líneas y conservar el desglose completo en la ayuda.
     if Pos(' + ', txtCantidadLineas.Text) > 0 then
     begin
-      lblSuma.Caption := 'Líneas';
+      lblSuma.Caption := STextoLineasCaja;
       txtCantidadLineas.Text := IntToStr(TotalesFactura.Lineas.RecordCount);
     end;
     txtBrutoLineas.Value := TotalesFactura.Totales.TotalBruto;
@@ -1934,7 +1932,7 @@ begin
   FEmailEnvio := Trim(FEmailCliente);
   // Modo rectificación: número de la factura rectificada a la vista
   if FRectificaA <> '' then
-    Caption := Caption + '  -  RECTIFICA la factura ' + FRectificaA;
+    Caption := Caption + STextoRectificaLaFacturaCaja + FRectificaA;
   if Trim(FCodigoCliente) <> '' then
   begin
     if FRepositorioPersistencia.ObtenerCliente(

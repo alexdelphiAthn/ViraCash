@@ -593,6 +593,35 @@ resourcestring
   SPagadorTrabajoBloqueado = 'La orden tiene albaranes vinculados: revisa esos documentos antes de cambiar el titular, pagador o franquicia.';
   SRepartoTrabajo = 'Titular: %s € · Pagador: %s €';
 
+
+  // Textos de interfaz y validación revisados en noviembre de 2026.
+  STextoSeccionDeImpresoDesconocidaReparaciones =
+    'Sección de impreso desconocida.';
+  STextoReferenciaReparaciones =
+    'Referencia';
+  STextoFechaReparaciones =
+    'Fecha';
+  STextoEntregaAlClienteReparaciones =
+    'Entrega al cliente';
+  STextoObjetoReparaciones =
+    'Objeto';
+  STextoTrabajoReparaciones =
+    'Trabajo';
+  STextoDetallesReparaciones =
+    'Detalles';
+  STextoDireccionReparaciones =
+    'Dirección: ';
+  STextoPoblacionReparaciones =
+    'Población: ';
+  STextoTelefonoReparaciones =
+    'Teléfono: ';
+  STextoLiquidacionReparaciones =
+    'Liquidación: ';
+  STextoReciboDeEvidenciaInvalidoReparaciones =
+    'Recibo de evidencia inválido.';
+  STextoNombreDeEvidenciaInvalidoReparaciones =
+    'Nombre de evidencia inválido.';
+
 implementation
 
 end.

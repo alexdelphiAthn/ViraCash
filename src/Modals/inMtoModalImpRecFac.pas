@@ -17,6 +17,7 @@ unit inMtoModalImpRecFac;
 interface
 
 uses
+  dxSpreadSheet,
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, inMtoModalGenImp, cxGraphics,
@@ -48,6 +49,8 @@ type
     FConsultaPagos: TUniQuery;
     FDatasetPagos: TfrxDBDataset;
   protected
+    procedure DoShow; override;
+    procedure ConstruirExcelNativo(AControl: TdxSpreadSheet); override;
     procedure PrepararDatosEdicion; override;
   public
     procedure preparar_consulta; override;
@@ -67,6 +70,7 @@ type
 implementation
 
 uses
+  inLibInformeTabular, inLibInformeTabularExcel,
   UniDataInformeRecibosFacturaRepositorio, inLibMsgFacturas,
   inLibInformeDocumento;
 
@@ -102,9 +106,9 @@ begin
       if Banda is TfrxMemoView then
       begin
         if Pos('DOMICILIO Y NOMBRE', string(TfrxMemoView(Banda).Text)) > 0 then
-          TfrxMemoView(Banda).Text := 'BENEFICIARIO DEL PAGO:';
+          TfrxMemoView(Banda).Text := STextoBeneficiarioDelPagoFacturas;
         if Pos('CONFORME, EL LIBRADO', string(TfrxMemoView(Banda).Text)) > 0 then
-          TfrxMemoView(Banda).Text := 'RECIBÍ, EL BENEFICIARIO';
+          TfrxMemoView(Banda).Text := STextoRecibiElBeneficiarioFacturas;
         // FZ-ISSUE-749: sin cuenta no hay «<IBAN>» que mostrar.
         if Pos('<IBAN>', string(TfrxMemoView(Banda).Text)) > 0 then
           TfrxMemoView(Banda).Text :=
@@ -224,6 +228,46 @@ begin
   inherited;
   //dedDesde.Enabled := true;
   //dedHasta.Enabled := true;
+end;
+
+procedure TfrmPrintRecFac.DoShow;
+begin
+  inherited;
+  btnExcel.OnClick := btnExcelNativoClick;
+end;
+
+procedure TfrmPrintRecFac.ConstruirExcelNativo(
+  AControl: TdxSpreadSheet);
+var
+  oDatos: TDataSet;
+begin
+  if Assigned(FConsultaPagos) then
+    oDatos := FConsultaPagos
+  else
+    oDatos := dmFac.unqryRecibosPrint;
+  ExportarInformeTabularExcel(AControl, oDatos,
+    Caption,
+    [ColumnaInforme('DOCUMENTO_FACTURA_FORMATO', STextoFacturaFacturas, 1),
+     ColumnaInforme('NUMERO_PLAZO_REC', STextoPlazoFacturas, 1),
+     ColumnaInforme('ESTADO_RECIBO_REC', STextoEstadoFacturas2, 1),
+     ColumnaInforme('CODIGO_CLI_REC', STextoCodigoTerceroFacturas, 1),
+     ColumnaInforme('RAZON_SOCIAL_CLI_REC', STextoNombreTerceroFacturas, 3),
+     ColumnaInforme('DIRECCION1_CLIENTE_RECIBO_REC', STextoDireccionFacturas,
+       3),
+     ColumnaInforme('CODIGO_POSTAL_CLI_REC', STextoCodigoPostalFacturas, 1),
+     ColumnaInforme('POBLACION_CLI_REC', STextoPoblacionFacturas, 1),
+     ColumnaInforme('PROVINCIA_CLI_REC', STextoProvinciaFacturas, 1),
+     ColumnaInforme('IBAN_CLI_REC', STextoIbanFacturas, 2),
+     ColumnaInforme('FECHA_EXPEDICION_RECIBO_REC', STextoExpedicionFacturas, 1),
+     ColumnaInforme('FECHA_VENCIMIENTO_RECIBO_REC', STextoVencimientoFacturas,
+       1),
+     ColumnaInforme('EUROS_RECIBO_REC', STextoImporteFacturas, 1, '%n')],
+    LineasResumenSelecciones);
+  AnadirResumenInformeTabularExcel(AControl, oDatos,
+    STextoTotalesPorTerceroFacturas,
+    [ColumnaInforme('CODIGO_CLI_REC', STextoCodigoTerceroFacturas, 1),
+     ColumnaInforme('RAZON_SOCIAL_CLI_REC', STextoNombreTerceroFacturas, 3),
+     ColumnaInforme('EUROS_RECIBO_REC', STextoImporteFacturas, 1, '%n')]);
 end;
 
 end.

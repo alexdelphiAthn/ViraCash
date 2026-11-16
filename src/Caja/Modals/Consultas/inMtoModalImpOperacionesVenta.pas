@@ -166,27 +166,27 @@ class function TfrmPrintOperacionesVenta.ColumnasExcel:
   TColumnasInformeTabular;
 begin
   Result := [
-    ColumnaInforme('FECHA_DIA', 'Fecha', 1),
-    ColumnaInforme('CODIGO_EMP_OPCAJA', 'Empresa', 0.6),
-    ColumnaInforme('CODIGO_ALM_OPCAJA', 'Almacén', 0.6),
-    ColumnaInforme('CODIGO_CAJA_OPCAJA', 'Caja', 0.5),
-    ColumnaInforme('NUMERO_OPERACION_OPCAJA', 'Operación', 0.9),
-    ColumnaInforme('DOCUMENTO', 'Documento', 1.6),
-    ColumnaInforme('LINEA_FACLIN', 'Línea', 0.5),
-    ColumnaInforme('ARTICULO', 'Artículo', 1),
-    ColumnaInforme('COLOR', 'Color / Aroma', 1),
-    ColumnaInforme('COPA', 'Copa', 0.5),
-    ColumnaInforme('TALLA', 'Talla / Medida', 0.8),
-    ColumnaInforme('PROVEEDOR', 'Proveedor', 0.8),
-    ColumnaInforme('MODELO', 'Modelo', 1),
-    ColumnaInforme('DESCRIPCION', 'Descripción', 2),
-    ColumnaInforme('CANTIDAD', 'Cantidad', 0.7, '%g'),
-    ColumnaInforme('BRUTO', 'Bruto', 0.8, '%2.2n'),
-    ColumnaInforme('PORCENTAJE_DTO', '% descuento', 0.7, '%g'),
-    ColumnaInforme('NETO_ARTICULO', 'Neto artículo', 0.8, '%2.2n'),
-    ColumnaInforme('INGRESOS', 'Ingresos', 0.8, '%2.2n'),
-    ColumnaInforme('VENDEDOR', 'Vendedor', 0.8),
-    ColumnaInforme('FORMA_PAGO', 'Forma de pago', 1)];
+    ColumnaInforme('FECHA_DIA', STextoFechaCaja, 1),
+    ColumnaInforme('CODIGO_EMP_OPCAJA', STextoEmpresaCaja, 0.6),
+    ColumnaInforme('CODIGO_ALM_OPCAJA', STextoAlmacenCaja, 0.6),
+    ColumnaInforme('CODIGO_CAJA_OPCAJA', STextoCajaCaja, 0.5),
+    ColumnaInforme('NUMERO_OPERACION_OPCAJA', STextoOperacionCaja, 0.9),
+    ColumnaInforme('DOCUMENTO', STextoDocumentoCaja, 1.6),
+    ColumnaInforme('LINEA_FACLIN', STextoLineaCaja, 0.5),
+    ColumnaInforme('ARTICULO', STextoArticuloCaja, 1),
+    ColumnaInforme('COLOR', STextoColorAromaCaja, 1),
+    ColumnaInforme('COPA', STextoCopaCaja, 0.5),
+    ColumnaInforme('TALLA', STextoTallaMedidaCaja, 0.8),
+    ColumnaInforme('PROVEEDOR', STextoProveedorCaja, 0.8),
+    ColumnaInforme('MODELO', STextoModeloCaja, 1),
+    ColumnaInforme('DESCRIPCION', STextoDescripcionCaja, 2),
+    ColumnaInforme('CANTIDAD', STextoCantidadCaja, 0.7, '%g'),
+    ColumnaInforme('BRUTO', STextoBrutoCaja, 0.8, '%2.2n'),
+    ColumnaInforme('PORCENTAJE_DTO', STextoDescuentoCaja, 0.7, '%g'),
+    ColumnaInforme('NETO_ARTICULO', STextoNetoArticuloCaja, 0.8, '%2.2n'),
+    ColumnaInforme('INGRESOS', STextoIngresosCaja, 0.8, '%2.2n'),
+    ColumnaInforme('VENDEDOR', STextoVendedorCaja, 0.8),
+    ColumnaInforme('FORMA_PAGO', STextoFormaDePagoCaja, 1)];
 end;
 
 procedure TfrmPrintOperacionesVenta.ExportarExcelDatos;
@@ -615,7 +615,7 @@ var
 begin
   if frxrprt1.Engine.Running then
     raise EInvalidOperation.Create(
-      'El informe de operaciones de venta sigue en curso.');
+      STextoElInformeDeOperacionesDeVentaSigueCaja);
   inherited;
   if dteDesde.Date <= 0 then
     dteDesde.Date := EncodeDate(YearOf(Date), 1, 1);

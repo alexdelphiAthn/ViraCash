@@ -383,7 +383,7 @@ begin
      (not Assigned(ALineas)) then
   begin
     raise Exception.Create(
-      'Los datos de la operación de caja no están configurados');
+      STextoLosDatosDeLaOperacionDeCajaCaja);
   end;
   ConsultaCabecera :=
     FRepositorio.ConsultarCabeceraFactura(

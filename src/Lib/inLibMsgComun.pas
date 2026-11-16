@@ -666,6 +666,378 @@ resourcestring
   SHintBorrarDetalle = 'Borrar la línea seleccionada';
 
 
+
+  // Textos de interfaz y validación revisados en noviembre de 2026.
+  STextoCambioDeClienteFilaNoActualizadaComun =
+    'Cambio de cliente: fila no actualizada';
+  STextoLaConexionDeConfiguracionDeCamposNoComun =
+    'La conexión de configuración de campos no está activa.';
+  STextoLaConexionDeEstructuraNoEstaActivaComun =
+    'La conexión de estructura no está activa.';
+  STextoNoSeHaIndicadoLaClaseDelComun =
+    'No se ha indicado la clase del data module.';
+  STextoElDataModuleSNoEsDeComun =
+    'El data module %s no es de la clase %s.';
+  STextoElIdentificadorNoPuedeEstarVacioComun =
+    'El identificador no puede estar vacío';
+  STextoIdentificadorDeBaseDeDatosNoValidoComun =
+    'Identificador de base de datos no válido: %s';
+  STextoIdentificadorDeGuiaNoValidoSComun =
+    'Identificador de guía no válido: %s';
+  STextoElDatasetMasterNoEsUnaConsultaComun =
+    'el dataset master no es una consulta UniDAC';
+  STextoLaConsultaMasterNoContieneSqlComun =
+    'la consulta master no contiene SQL';
+  STextoLaGuiaNoDefineColumnasORelacionesComun =
+    'la guia no define columnas o relaciones validas';
+  STextoDebeIndicarLaEmpresaDeSesionComun =
+    'Debe indicar la empresa de sesion';
+  STextoLaConexionDeLicenciaNoEstaActivaComun =
+    'La conexión de licencia no está activa.';
+  STextoDebeSeleccionarAlMenosUnObjetoDeComun =
+    'Debe seleccionar al menos un objeto de base de datos';
+  STextoLaUnidadDeTrabajoDeMovimientosYaComun =
+    'La unidad de trabajo de movimientos ya está iniciada';
+  STextoLaUnidadDeTrabajoDeMovimientosNoComun =
+    'La unidad de trabajo de movimientos no está iniciada';
+  STextoUnMovimientoDeAlmacenNoPuedeTenerComun =
+    'Un movimiento de almacén no puede tener cantidad cero';
+  STextoLaConexionDePermisosNoEstaActivaComun =
+    'La conexión de permisos no está activa.';
+  STextoLeertotalmaximolineaempresaFaltaLaConexionComun =
+    'LeerTotalMaximoLineaEmpresa: falta la conexión.';
+  STextoTvigilantetotalmaximolineaFaltaElDatasetDeLineasComun =
+    'TVigilanteTotalMaximoLinea: falta el dataset de líneas.';
+  STextoTvigilantetotalmaximolineaFaltaElLectorDelMaximoComun =
+    'TVigilanteTotalMaximoLinea: falta el lector del máximo.';
+  STextoLaConexionDeValoresAutomaticosNoEstaComun =
+    'La conexión de valores automáticos no está activa.';
+  STextoParaUsarLaCajaNuevaEnElComun =
+    'Para usar la caja nueva en el TPV, configure sus series de ' +
+    'factura simplificada y rectificativa en Archivo > Empresas > ' +
+    'Series, indicando este almacén y el código de caja.';
+  STextoCodigoNombreHexOBotonParaElegirComun =
+    'Código, nombre, HEX o botón para elegir color';
+  STextoCodigoNombreOHexDelColorBasicoComun =
+    'Código, nombre o HEX del color básico';
+  STextoIntroduzcaElValorYPulseEntrarComun =
+    'Introduzca el valor y pulse Entrar';
+  STextoColumnasAlPortapapelesComun =
+    ' columnas al portapapeles.';
+  STextoSDRegistrosEnDMsComun =
+    '%s: %d registros en %d ms';
+  STextoOkFilasAfectadasDEnDMsComun =
+    '-- [OK] Filas afectadas: %d en %d ms';
+  STextoSDFilasAfectadasEnDMsComun =
+    '%s: %d filas afectadas en %d ms';
+  STextoEjecucionCanceladaPorElUsuarioComun =
+    '-- Ejecución cancelada por el usuario.';
+  STextoLineasAnadidasAlAlbaranDesdeElPedidoComun =
+    'Líneas añadidas al albarán desde el pedido %s/%s';
+  STextoAlbaranCreadoDesdeElPedidoSSComun =
+    'Albarán creado desde el pedido %s/%s';
+  STextoAlbaranComun =
+    'Albarán';
+  STextoDelimiterSinSeparadorComun =
+    'DELIMITER sin separador.';
+  STextoRestaurandoSqlComun =
+    'Restaurando SQL';
+  STextoPreparandoLaBaseDeDatosComun =
+    'Preparando la base de datos';
+  STextoConectandoParaRestaurarComun =
+    'Conectando para restaurar';
+  STextoNivelDeBalanceInvalidoComun =
+    'Nivel de balance inválido';
+  STextoBalanceDeAlmacenPorTallasComun =
+    'BALANCE DE ALMACEN POR TALLAS';
+  STextoBalanceDeAlmacenSinTallasComun =
+    'BALANCE DE ALMACEN SIN TALLAS';
+  STextoConceptoComun =
+    'Concepto';
+  STextoColorComun =
+    'Color';
+  STextoCdadComun =
+    'Cdad.';
+  STextoCantidadComun =
+    'Cantidad';
+  STextoPrecioComun =
+    'Precio';
+  STextoImporteComun =
+    'Importe';
+  STextoVentasComun =
+    'Ventas';
+  STextoTotalComun =
+    'TOTAL';
+  STextoTotalComun2 =
+    'TOTAL ';
+  STextoFamiliaComun =
+    'FAMILIA  ';
+  STextoArticuloComun =
+    'ARTICULO  ';
+  STextoTotalGeneralComun =
+    'TOTAL GENERAL';
+  STextoCamposDeSalidaObligatoriosAusentesSComun =
+    'Campos de salida obligatorios ausentes [%s].';
+  STextoElSqlEstaVacioComun =
+    'El SQL está vacío.';
+  STextoSoloSeAdmiteUnaSentenciaSqlComun =
+    'Solo se admite una sentencia SQL.';
+  STextoElSqlContieneUnaOperacionDdlNoComun =
+    'El SQL contiene una operación DDL no permitida.';
+  STextoSeEsperabaUnaSentenciaSComun =
+    'Se esperaba una sentencia %s.';
+  STextoParametrosEsperadosSEncontradosSComun =
+    'Parámetros esperados [%s], encontrados [%s].';
+  STextoElRepositorioDeLaDefinicionEstaVacioComun =
+    'El repositorio de la definición está vacío.';
+  STextoLaOperacionDeLaDefinicionEstaVaciaComun =
+    'La operación de la definición está vacía.';
+  STextoLaVersionDeLaDefinicionDebeSerComun =
+    'La versión de la definición debe ser mayor que cero.';
+  STextoUnaLecturaDebeDeclararSusCamposDeComun =
+    'Una lectura debe declarar sus campos de salida obligatorios.';
+  STextoLaPoliticaDeLecturaConFallbackSoloComun =
+    'La política de lectura con fallback solo admite consultas o ' +
+    'procedimientos que devuelvan datos.';
+  STextoUnaLecturaNoPuedeUsarLaPoliticaComun =
+    'Una lectura no puede usar la política de escritura ' +
+    'transaccional.';
+  STextoRepresentacionFnmtComun =
+    'Representación FNMT';
+  STextoNominalFnmtComun =
+    'Nominal FNMT';
+  STextoDatosDeEntradaVaciosComun =
+    'Datos de entrada vacíos';
+  STextoErrorAlDecodificarBase64Comun =
+    'Error al decodificar Base64';
+  STextoErrorDuranteLaDesencriptacionComun =
+    'Error durante la desencriptación';
+  STextoDescripcionComun =
+    'Descripción';
+  STextoStockComun =
+    'Stock';
+  STextoElPerfilDeArranqueDebeSerUnComun =
+    'El perfil de arranque debe ser un nombre de archivo INI.';
+  STextoLaRutaDelIniDeUsuarioNoComun =
+    'La ruta del INI de usuario no puede estar vacía.';
+  STextoPasswordenNoContieneUnaContrasenaAesValidaComun =
+    'PasswordEn no contiene una contraseña AES válida.';
+  STextoDeudoresPorEmpresaYTiendaComun =
+    'DEUDORES POR EMPRESA Y TIENDA';
+  STextoExtractoDeCuentaDelClienteComun =
+    'EXTRACTO DE CUENTA DEL CLIENTE';
+  STextoSituacionActualADateImportesEnComun =
+    'Situación actual a %s · Importes en €';
+  STextoEmpresaComun =
+    'Empresa';
+  STextoTiendaComun =
+    'Tienda';
+  STextoPendienteDesdeComun =
+    'Pendiente desde';
+  STextoAntiguedadDiasComun =
+    'Antigüedad (días)';
+  STextoPendienteComun =
+    'Pendiente';
+  STextoFechaComun =
+    'Fecha';
+  STextoDepositoComun =
+    'Depósito';
+  STextoEstadoComun =
+    'Estado';
+  STextoEntregadoComun =
+    'Entregado';
+  STextoPaginaPageDeTotalpagesComun =
+    'Página %s de %s';
+  STextoNoSeEncuentraElDocumentoParaRecuperarComun =
+    'No se encuentra el documento para recuperar su edición.';
+  STextoEstructuraCorrectaComun =
+    'Estructura correcta.';
+  STextoLaBaseDeDatosSNoExisteComun =
+    'La base de datos "%s" no existe en el servidor.';
+  STextoLaBaseDeDatosSExistePeroComun =
+    'La base de datos "%s" existe, pero faltan los siguientes ' +
+    'objetos requeridos:';
+  STextoErrorDeConexionComun =
+    'Error de conexión: ';
+  STextoEstadoDesconocidoComun =
+    'Estado desconocido.';
+  STextoNoSeHaConfiguradoElLectorDeComun =
+    'No se ha configurado el lector de estructura.';
+  STextoLibroDeExcelXlsxXlsxComun =
+    'Libro de Excel (*.xlsx)|*.xlsx';
+  STextoSeNecesitanAlMenosDosEfectosParaComun =
+    'Se necesitan al menos dos efectos para fusionar.';
+  STextoApartadoDesconocidoSComun =
+    'Apartado desconocido: %s';
+  STextoFaltaElObjetoSComun =
+    'Falta el objeto "%s"';
+  STextoElEsquemaIdealNoEsJsonComun =
+    'El esquema ideal no es JSON';
+  STextoNoSeHaConfiguradoElRepositorioDeComun =
+    'No se ha configurado el repositorio de licencia.';
+  STextoLogNoProporcionadoComun =
+    'Log no proporcionado.';
+  STextoTotalArticuloComun =
+    'TOTAL ARTÍCULO ';
+  STextoArticuloComun2 =
+    'Artículo';
+  STextoAlmacenComun =
+    'Almacén';
+  STextoMovimientosDeVentasPorArticulosYFechasComun =
+    'MOVIMIENTOS DE VENTAS POR ARTÍCULOS Y FECHAS';
+  STextoElTamanoDelLoteDebeSerMayorComun =
+    'El tamaño del lote debe ser mayor que cero';
+  STextoNoSeHaConfiguradoElRepositorioDeComun2 =
+    'No se ha configurado el repositorio de permisos.';
+  STextoElServidorDeBaseDeDatosNoComun =
+    'El servidor de base de datos no puede estar vacío.';
+  STextoElPuertoDeBaseDeDatosNoComun =
+    'El puerto de base de datos no es válido.';
+  STextoLaBaseDeDatosNoPuedeEstarComun =
+    'La base de datos no puede estar vacía.';
+  STextoElUsuarioDeBaseDeDatosNoComun =
+    'El usuario de base de datos no puede estar vacío.';
+  STextoLaRutaDeLaCopiaNoPuedeComun =
+    'La ruta de la copia no puede estar vacía.';
+  STextoElPropietarioNoProporcionaIregistrologComun =
+    'El propietario no proporciona IRegistroLog.';
+  STextoNoSeHaConfiguradoElRepositorioDeComun3 =
+    'No se ha configurado el repositorio de valores automáticos.';
+  STextoTotalVentasDComun =
+    'Total Ventas: %d';
+  STextoTotalCobradoSComun =
+    'Total Cobrado: %s €';
+  STextoNombreDeAdjuntoNoValidoComun =
+    'Nombre de adjunto no válido.';
+  STextoNombreAlmacenComun =
+    'Nombre almacén';
+  STextoFamiliaComun2 =
+    'Familia';
+  STextoSkuComun =
+    'SKU';
+  STextoLoteComun =
+    'Lote';
+  STextoCaducidadComun =
+    'Caducidad';
+  STextoDiasParaCaducarComun =
+    'Días para caducar';
+  STextoValorTotalComun =
+    'Valor total';
+  STextoTotalesPorAlmacenComun =
+    'Totales por almacén';
+  STextoEfectoComun =
+    'Efecto';
+  STextoTipoComun =
+    'Tipo';
+  STextoProveedorComun =
+    'Proveedor';
+  STextoNombreProveedorComun =
+    'Nombre proveedor';
+  STextoSituacionComun =
+    'Situación';
+  STextoFechaSeleccionadaComun =
+    'Fecha seleccionada';
+  STextoVencimientoComun =
+    'Vencimiento';
+  STextoDiasComun =
+    'Días';
+  STextoFechaDocumentoComun =
+    'Fecha documento';
+  STextoFechaValorComun =
+    'Fecha valor';
+  STextoPagadoComun =
+    'Pagado';
+  STextoCompensadoComun =
+    'Compensado';
+  STextoRemesaComun =
+    'Remesa';
+  STextoBancoRemesaComun =
+    'Banco remesa';
+  STextoTotalesNivelDComun =
+    'Totales nivel %d';
+  STextoListaSInexistenteComun =
+    'Lista %s inexistente';
+  STextoFinaliceLaOperacionActualAntesDeRetirarComun =
+    'Finalice la operación actual antes de retirar.';
+  STextoGuardePrimeroLaTarifaComun =
+    'Guarde primero la tarifa.';
+  STextoInstaleLaActualizacion727Comun =
+    'Instale la actualización 727.';
+  STextoHayUnaTransaccionEnCursoComun =
+    'Hay una transacción en curso.';
+  STextoLaTarifaYaNoExisteComun =
+    'La tarifa ya no existe.';
+  STextoReferenciaProveedorComun =
+    'Referencia proveedor';
+  STextoTallaComun =
+    'Talla';
+  STextoPestanaComun =
+    'Pestaña';
+  STextoMarcaComun =
+    'Marca';
+  STextoTemporadaComun =
+    'Temporada';
+  STextoLoteSerieComun =
+    'Lote / serie';
+  STextoDetalleLoteComun =
+    'Detalle lote';
+  STextoPrecioPorUnidadComun =
+    'Precio por unidad';
+  STextoFechaAplicacionComun =
+    'Fecha aplicación';
+  STextoCopaComun =
+    'Copa';
+  STextoClienteComun =
+    'Cliente';
+  STextoNombreComun =
+    'Nombre';
+  STextoDireccionComun =
+    'Dirección';
+  STextoDireccionAdicionalComun =
+    'Dirección adicional';
+  STextoCodigoPostalComun =
+    'Código postal';
+  STextoPoblacionComun =
+    'Población';
+  STextoProvinciaComun =
+    'Provincia';
+  STextoPaisComun =
+    'País';
+  STextoTransitoComun =
+    'Tránsito';
+  STextoEmpresaOrigenComun =
+    'Empresa origen';
+  STextoOrigenComun =
+    'Origen';
+  STextoEmpresaDestinoComun =
+    'Empresa destino';
+  STextoDestinoComun =
+    'Destino';
+  STextoCargaComun =
+    'Carga';
+  STextoDocumentoComun =
+    'Documento';
+  STextoOperacionComun =
+    'Operación';
+  STextoFechaDeCargaComun =
+    'Fecha de carga';
+  STextoUnidadesComun =
+    'Unidades';
+  STextoParametrosDeCajaNoDisponiblesComun =
+    'Parámetros de caja no disponibles.';
+
+  SLimiteGlobalCuenta =
+    'Límite global: %s';
+
+  SSinLimiteCuenta =
+    'Sin límite';
+
+  STotalPendienteClienteCuenta =
+    'Total pendiente del cliente: %s';
+
+  STotalPendienteCuenta =
+    'TOTAL PENDIENTE: %s';
+
 implementation
 
 end.

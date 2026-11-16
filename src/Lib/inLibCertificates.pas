@@ -159,6 +159,9 @@ type
                          csz: DWORD): DWORD;
                          stdcall; external 'crypt32.dll';
 implementation
+
+uses
+  inLibMsgComun;
 function NormalizarNumeroSerieCertificado(const AValor: string): string;
 begin
   Result := UpperCase(Trim(AValor));
@@ -263,9 +266,9 @@ end;
 function GetCertificateType(const AIssuer: string): string;
 begin
   if ContainsText(AIssuer, 'AC Representación') then
-    Result := 'Representación FNMT'
+    Result := STextoRepresentacionFnmtComun
   else if ContainsText(AIssuer, 'AC FNMT Usuarios') then
-    Result := 'Nominal FNMT'
+    Result := STextoNominalFnmtComun
   else
     Result := 'Otro';
 end;

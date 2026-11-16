@@ -253,6 +253,97 @@ resourcestring
   SFormatoTallaInformePropuesta = '%s: %s';
   SNombreArchivoPropuestasTraspaso = 'Propuestas_traspaso_%d';
 
+
+  // Textos de interfaz y validación revisados en noviembre de 2026.
+  STextoEstadoDePropuestaNoValidoAlGrabarDistribucionTiendas =
+    'Estado de propuesta no válido al grabar: %s';
+  STextoSSSDLineasSDistribucionTiendas =
+    '%s/%s  ->  %s  ·  %d líneas  ·  %s';
+  STextoAnadirSkuYUnidadesDistribucionTiendas =
+    'Añadir SKU y unidades...';
+  STextoAnadirSkuAlDocumentoDeDistribucionDistribucionTiendas =
+    'Añadir SKU al documento de distribución';
+  STextoAlmacenDeOrigenDistribucionTiendas =
+    'Almacén de origen';
+  STextoIndiqueUnNumeroDeUnidadesValidoDistribucionTiendas =
+    'Indique un número de unidades válido';
+  STextoSkuAnadidoPuedeAnadirOtroOPulsarDistribucionTiendas =
+    'SKU añadido. Puede añadir otro o pulsar Distribuir.';
+  STextoFotoDistribucionTiendas =
+    'Foto';
+  STextoLineaDistribucionTiendas =
+    'Línea';
+  STextoArticuloDistribucionTiendas =
+    'Artículo';
+  STextoSkuUnidadDistribucionTiendas =
+    'SKU / unidad';
+  STextoDescripcionDistribucionTiendas =
+    'Descripción';
+  STextoPedidaDistribucionTiendas =
+    'Pedida';
+  STextoServidaDistribucionTiendas =
+    'Servida';
+  STextoPendienteDistribucionTiendas =
+    'Pendiente';
+  STextoAtendidaDistribucionTiendas =
+    'Atendida';
+  STextoMotivoDeRechazoDistribucionTiendas =
+    'Motivo de rechazo';
+  STextoSolicitanteDistribucionTiendas =
+    'Solicitante:';
+  STextoSolicitadaDistribucionTiendas =
+    'Solicitada:';
+  STextoCajaDistribucionTiendas =
+    'Caja:';
+  STextoEmpleadoDistribucionTiendas =
+    'Empleado:';
+  STextoObservacionesDistribucionTiendas =
+    'Observaciones:';
+  STextoSinArticuloDistribucionTiendas =
+    'Sin artículo';
+  STextoSinLineasSolicitadasDistribucionTiendas =
+    'Sin líneas solicitadas';
+  STextoSolicitudesDeTraspasoDistribucionTiendas =
+    'SOLICITUDES DE TRASPASO';
+  STextoPeriodoDistribucionTiendas =
+    'Periodo:';
+  STextoTotalSolicitudDistribucionTiendas =
+    'TOTAL SOLICITUD';
+  STextoSinFotoDistribucionTiendas =
+    'Sin foto';
+  STextoSolicitudesDeTraspasoDistribucionTiendas2 =
+    'Solicitudes de traspaso';
+  STextoLasUnidadesDebenSerPositivasDistribucionTiendas =
+    'Las unidades deben ser positivas';
+  STextoIndiqueEmpresaAlmacenYSkuDistribucionTiendas =
+    'Indique empresa, almacen y SKU';
+  STextoElDocumentoDebeEstarCreadoDistribucionTiendas =
+    'El documento debe estar creado';
+  STextoSkuOAlmacenNoDisponibleDistribucionTiendas =
+    'SKU o almacen no disponible';
+  STextoNoHayStockSuficienteParaElSkuDistribucionTiendas =
+    'No hay stock suficiente para el SKU';
+  STextoPropuestaDistribucionTiendas =
+    'Propuesta';
+  STextoOrigenDistribucionTiendas =
+    'Origen';
+  STextoDestinoDistribucionTiendas =
+    'Destino';
+  STextoDocumentoDistribucionTiendas =
+    'Documento';
+  STextoEstadoDistribucionTiendas =
+    'Estado';
+  STextoFechaDistribucionTiendas =
+    'Fecha';
+  STextoColorDistribucionTiendas =
+    'Color';
+  STextoTallasDistribucionTiendas =
+    'Tallas';
+  STextoUnidadesDistribucionTiendas =
+    'Unidades';
+  STextoTotalesPorPropuestaDistribucionTiendas =
+    'Totales por propuesta';
+
 implementation
 
 end.

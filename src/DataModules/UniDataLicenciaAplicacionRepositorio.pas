@@ -34,6 +34,7 @@ procedure ValidarLimiteDemoFacturas(AConexion: TUniConnection;
 implementation
 
 uses
+  inLibMsgComun,
   System.SysUtils, System.Generics.Collections;
 
 constructor TRepositorioLicenciaAplicacionUniDAC.Create(
@@ -47,7 +48,7 @@ function TRepositorioLicenciaAplicacionUniDAC.PrepararConexion(
   out AMensaje: string): Boolean;
 begin
   Result := False;
-  AMensaje := 'La conexión de licencia no está activa.';
+  AMensaje := STextoLaConexionDeLicenciaNoEstaActivaComun;
   if Assigned(FConexion) then
   begin
     try

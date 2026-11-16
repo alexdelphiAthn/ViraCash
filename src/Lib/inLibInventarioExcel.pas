@@ -175,7 +175,7 @@ begin
   Inc(AFila, 2);
   W(AHoja, AFila, COL_LINEA, SCaptionLineaExcelInventario, True, ssahCenter);
   W(AHoja, AFila, COL_ART, SCaptionArticuloExcelInventario, True, ssahCenter);
-  W(AHoja, AFila, COL_SKU, 'SKU', True, ssahCenter);
+  W(AHoja, AFila, COL_SKU, STextoSkuArticulos, True, ssahCenter);
   W(AHoja, AFila, COL_DESC, SCaptionDescripcionColExcelInventario, True,
     ssahCenter);
   W(AHoja, AFila, COL_LOTE, SCaptionLoteExcelInventario, True, ssahCenter);

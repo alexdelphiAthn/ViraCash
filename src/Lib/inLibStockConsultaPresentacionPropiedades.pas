@@ -54,6 +54,7 @@ function LetreroPropiedadesColorStock(
 implementation
 
 uses
+  inLibMsgArticulos,
   System.StrUtils, System.SysUtils;
 
 const
@@ -71,7 +72,7 @@ begin
     if Trim(AValorLibre) = '' then
       Result := ''
     else if SameText(Trim(AValorLibre), 'S') then
-      Result := 'Sí'
+      Result := STextoSiArticulos
     else
       Result := 'No';
   end

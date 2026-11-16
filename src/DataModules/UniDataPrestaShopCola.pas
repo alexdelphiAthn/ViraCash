@@ -25,6 +25,7 @@ function CrearRepositorioPrestaShopColaUniDAC(
 implementation
 
 uses
+  inLibMsgIntegraciones,
   inLibRedondeo,
   UniDataTarifasPrecioSql,
   System.Math, System.StrUtils, System.SysUtils, Data.DB,
@@ -324,7 +325,7 @@ begin
   if (Trim(ACodigoArticulo) = '') and
      (Trim(ACodigoUnidad) = '') then
     raise EArgumentException.Create(
-      'El cambio PrestaShop no identifica artículo ni unidad');
+      STextoElCambioPrestashopNoIdentificaArticuloNiIntegraciones);
   oConsulta := NuevaConsulta;
   try
     oConsulta.SQL.Text :=
@@ -361,7 +362,7 @@ var
 begin
   if Trim(ACodigoArticulo) = '' then
     raise EArgumentException.Create(
-      'La visibilidad PrestaShop no identifica el artículo');
+      STextoLaVisibilidadPrestashopNoIdentificaElArticuloIntegraciones);
   oConsulta := NuevaConsulta;
   try
     oConsulta.SQL.Text :=
@@ -895,7 +896,7 @@ begin
     begin
       if not ATrabajo.TieneProximoCambioPrecio then
         raise EDatabaseError.CreateFmt(
-          'El artículo %s no tiene un precio web válido',
+          STextoElArticuloSNoTieneUnPrecioIntegraciones,
           [ATrabajo.CodigoArticulo]);
     end
     else
@@ -903,7 +904,7 @@ begin
       if (oConsulta.FieldByName('ESIMP_INCL_TAR').AsString = 'S') and
          oConsulta.FieldByName('PORCENTAJE_IVA').IsNull then
         raise EDatabaseError.CreateFmt(
-          'El artículo %s no tiene un tipo de IVA válido',
+          STextoElArticuloSNoTieneUnTipoIntegraciones,
           [ATrabajo.CodigoArticulo]);
       ATrabajo.TienePrecioProducto := True;
       ATrabajo.PrecioProducto := PrecioSinIva(
@@ -944,7 +945,7 @@ begin
       oConsulta.Open;
       if oConsulta.FieldByName('NUMERO_ALMACENES').AsInteger = 0 then
         raise EDatabaseError.CreateFmt(
-          'La empresa %s no tiene almacenes web activos, físicos y estándar',
+          STextoLaEmpresaSNoTieneAlmacenesWebIntegraciones2,
           [AConfiguracion.CodigoEmpresa]);
       oConsulta.Close;
     end;
@@ -975,7 +976,7 @@ begin
          ((oConsulta.FieldByName('ESSKU_REAL').AsString <> 'S') or
           SameText(oLinea.CodigoSku, ATrabajo.CodigoArticulo)) then
         raise EDatabaseError.CreateFmt(
-          'El artículo variable %s no tiene SKU diferenciados válidos',
+          STextoElArticuloVariableSNoTieneSkuIntegraciones2,
           [ATrabajo.CodigoArticulo]);
       bEsCombinacion :=
         (oConsulta.FieldByName('ESVARIACION_ART').AsString = 'S') and
@@ -999,7 +1000,7 @@ begin
         if (oConsulta.FieldByName('ESIMP_INCL_TAR').AsString = 'S') and
            oConsulta.FieldByName('PORCENTAJE_IVA').IsNull then
           raise EDatabaseError.CreateFmt(
-            'El artículo %s no tiene un tipo de IVA válido',
+            STextoElArticuloSNoTieneUnTipoIntegraciones,
             [ATrabajo.CodigoArticulo]);
         oLinea.Precio := PrecioSinIva(
           oConsulta.FieldByName('PRECIO_SKU_BRUTO').AsFloat,
@@ -1102,7 +1103,7 @@ begin
       CargarLineas(AConfiguracion, ATrabajo);
     if ATrabajo.TieneStock and (Length(ATrabajo.Lineas) = 0) then
       raise EDatabaseError.CreateFmt(
-        'El artículo %s no tiene unidades válidas para sincronizar stock',
+        STextoElArticuloSNoTieneUnidadesValidasIntegraciones,
         [ATrabajo.CodigoArticulo]);
   end;
 end;
@@ -1329,7 +1330,7 @@ var
 begin
   if (AEstado <> 'PENDIENTE') and (AEstado <> 'ERROR') then
     raise EArgumentException.Create(
-      'Estado de reintento PrestaShop no válido');
+      STextoEstadoDeReintentoPrestashopNoValidoIntegraciones);
   if AEsperaSegundos < 0 then
     raise EArgumentOutOfRangeException.Create('AEsperaSegundos');
   oConsulta := NuevaConsulta;

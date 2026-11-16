@@ -182,8 +182,7 @@ resourcestring
     '   Muestra este texto en la consola y termina con código 0.' +
     sLineBreak + sLineBreak +
     'En línea de comandos, la copia siempre se genera como ZIP cifrado ' +
-    '(.crypt). SQL y ZIP sin cifrar solo están disponibles desde el menú ' +
-    'para administradores.';
+    '(.crypt), igual que desde el menú y antes de las actualizaciones.';
   SErrorRutaComandoCopiaSeguridad =
     'La ruta de la copia de seguridad no es válida.';
   SErrorExtensionComandoCopiaSeguridad =

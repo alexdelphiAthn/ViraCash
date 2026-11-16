@@ -43,7 +43,7 @@ var
 begin
   if not AConexion.InTransaction then
     raise EInvalidOpException.Create(
-      'La comprobación de stock requiere la transacción del cobro.');
+      STextoLaComprobacionDeStockRequiereLaTransaccionArticulos);
   Lineas := TClientDataSet.Create(nil);
   Consulta := TUniQuery.Create(nil);
   Cantidades := TDictionary<string, Double>.Create;

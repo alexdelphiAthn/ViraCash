@@ -785,8 +785,8 @@ begin
     Consulta.DataSet.Filter :=
       'ESACTIVO_TAR = ''S'' AND ESIMP_INCL_TAR = ''S''';
     Consulta.DataSet.Filtered := True;
-    Consulta.DataSet.FieldByName('CODIGO_TAR').DisplayLabel := 'Tarifa';
-    Consulta.DataSet.FieldByName('NOMBRE_TAR').DisplayLabel := 'Nombre';
+    Consulta.DataSet.FieldByName('CODIGO_TAR').DisplayLabel := STextoTarifaCaja;
+    Consulta.DataSet.FieldByName('NOMBRE_TAR').DisplayLabel := STextoNombreCaja;
     Consulta.DataSet.FieldByName('ESACTIVO_TAR').Visible := False;
     Consulta.DataSet.FieldByName('ESIMP_INCL_TAR').Visible := False;
     Formulario := TfrmMtoSearch.Create(nil);
@@ -5324,12 +5324,12 @@ begin
   InicializarVentanaOperacionCajaVcl(Self);
   // Conserva el texto nuevo aunque la instalacion tenga el catalogo anterior.
   if SameText(lblCargarCta.Caption, 'Cargar cta.') then
-    lblCargarCta.Caption := 'Cta. Cliente';
+    lblCargarCta.Caption := STextoCtaClienteCaja;
   if SameText(lblBuscarModificar.Caption, 'Buscar/Mod.') then
-    lblBuscarModificar.Caption := 'Buscar/Modif.';
+    lblBuscarModificar.Caption := STextoBuscarModifCaja;
   if SameText(lblBusqTick.Caption, 'Búsq Tick') or
      SameText(lblBusqTick.Caption, 'Busq Tick') then
-    lblBusqTick.Caption := 'Buscar ticket';
+    lblBusqTick.Caption := STextoBuscarTicketCaja;
   FPresentacion.AjustarFuentesBotonera;
   AplicarEstiloCaja;
   FDependenciasPantalla.Validar;

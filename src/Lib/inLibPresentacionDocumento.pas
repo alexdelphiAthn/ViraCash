@@ -35,6 +35,7 @@ procedure MostrarRecargoDocumento(ADatos: TDataSet;
 implementation
 
 uses
+  inLibMsgFacturas,
   System.SysUtils;
 
 function TextoProveedorDocumento(
@@ -56,7 +57,7 @@ begin
   if sCodigo <> '' then
   begin
     if sCodigo <> '0' then
-      Result := sCodigo + ' - (proveedor no encontrado)';
+      Result := sCodigo + STextoProveedorNoEncontradoFacturas;
     if Assigned(AProveedores) and AProveedores.Active and
        AProveedores.Locate(
          'CODIGO_PRV_PRV', sCodigo, []) then

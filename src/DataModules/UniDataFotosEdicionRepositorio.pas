@@ -141,7 +141,7 @@ begin
   AConsulta.Open;
   if AConsulta.FieldByName('ADQUIRIDO').AsInteger <> 1 then
     raise Exception.Create(
-      'No se pudo bloquear la galería para modificarla. Inténtalo de nuevo.');
+      STextoNoSePudoBloquearLaGaleriaParaFotos);
   AConsulta.Close;
 end;
 
@@ -180,7 +180,7 @@ procedure TRepositorioEdicionFotosUniDAC.ComprobarSinTransaccionExterna;
 begin
   if FConexion.InTransaction then
     raise Exception.Create(
-      'No se pueden modificar fotos dentro de una transacción externa.');
+      STextoNoSePuedenModificarFotosDentroDeFotos);
 end;
 
 function TRepositorioEdicionFotosUniDAC.
@@ -544,7 +544,7 @@ var
 begin
   if AOrden < 1 then
     raise EArgumentOutOfRangeException.Create(
-      'El orden de la foto debe ser mayor que cero.');
+      STextoElOrdenDeLaFotoDebeSerFotos);
   ComprobarSinTransaccionExterna;
   sClaveBloqueo := ClaveBloqueoColeccion(
     ACodigoArticulo, ACodigoUnidad);

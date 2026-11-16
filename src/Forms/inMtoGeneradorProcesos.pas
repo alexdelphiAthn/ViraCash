@@ -1005,7 +1005,7 @@ begin
     end;
     cxmResul.Lines.Add('Copiadas ' + IntToStr(iFilas) + ' filas y ' +
                        IntToStr(AVista.VisibleColumnCount) +
-                       ' columnas al portapapeles.');
+                       STextoColumnasAlPortapapelesComun);
   end;
 end;
 
@@ -1231,7 +1231,7 @@ begin
           CrearPestanaVistaDatos(Titulo, Datos);
       end;
       cxmResul.Lines.Add(Format(
-        '%s: %d registros en %d ms',
+        STextoSDRegistrosEnDMsComun,
         [Titulo, Resultado.Filas, Resultado.Milisegundos]));
     end
     else
@@ -1243,10 +1243,10 @@ begin
         CrearPestanaComando(
           Titulo,
           Format(
-            '-- [OK] Filas afectadas: %d en %d ms',
+            STextoOkFilasAfectadasDEnDMsComun,
             [Resultado.Filas, Resultado.Milisegundos]));
         cxmResul.Lines.Add(Format(
-          '%s: %d filas afectadas en %d ms',
+          STextoSDFilasAfectadasEnDMsComun,
           [Titulo, Resultado.Filas, Resultado.Milisegundos]));
       end
       else
@@ -1262,7 +1262,7 @@ begin
   if Assigned(PrimeraPestana) then
     pcPestana.ActivePage := PrimeraPestana;
   if AEjecucion.Cancelada then
-    cxmResul.Lines.Add('-- Ejecución cancelada por el usuario.');
+    cxmResul.Lines.Add(STextoEjecucionCanceladaPorElUsuarioComun);
   cxmResul.Lines.Add('--------------------------------------------------');
 end;
 

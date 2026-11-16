@@ -575,6 +575,9 @@ var
   iFilasAfectadas: Integer;
   sMensaje: string;
 begin
+  if (Trim(AEmpresa) = '') or
+     not SameText(Trim(AEmpresa), Trim(ARestriccion.Empresa)) then
+    raise EValidacionBBDD.Create(SErrorUbicacionCanjeValeNoConfigurada);
   AConsulta.SQL.Text :=
     'UPDATE fza_caja_vales SET ESTADO_VL = ''REDIMIDO'', ' +
     'FECHA_REDENCION_VL = NOW(), IMPORTE_REDIMIDO_VL = :IMPORTE, ' +

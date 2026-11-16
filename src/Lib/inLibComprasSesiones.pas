@@ -104,6 +104,7 @@ function MargenVentaDesdeCoeficiente(ACoeficiente: Double): Double;
 implementation
 
 uses
+  inLibMsgCompras,
   System.Math, System.SysUtils;
 
 constructor TServicioComprasSesiones.Create(
@@ -329,7 +330,7 @@ end;
 function CoeficienteDesdeMargenVenta(AMargen: Double): Double;
 begin
   if AMargen >= 100 then
-    raise EArgumentOutOfRangeException.Create('Margen >= 100');
+    raise EArgumentOutOfRangeException.Create(STextoMargen100Compras);
   Result := 100 / (1 - AMargen / 100);
 end;
 

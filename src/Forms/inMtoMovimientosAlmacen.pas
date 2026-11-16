@@ -172,20 +172,6 @@ begin
     ShowMto(Self.Owner, 'Articulos', sCodArt);
 end;
 
-resourcestring
-  SAvisoMovimientoSinDocumento =
-    'El movimiento seleccionado no tiene un documento asociado.';
-  SSeleccionarReparacionMovimiento =
-    'Seleccionar reparación de la prenda';
-  SAvisoMovimientoSinReparacion =
-    'No se ha encontrado una reparación asociada a la prenda ' +
-    'del movimiento seleccionado.';
-  SAvisoMovimientoCajaSinClave =
-    'No se puede abrir la operación de caja porque el movimiento no ' +
-    'conserva la clave completa de empresa, almacén, caja y operación.';
-  SAvisoTipoDocumentoMovimientoNoSoportado =
-    'No hay una pantalla asociada al tipo de documento "%s".';
-
 function TfrmMtoMovimientosAlmacen.ValorCampoMovimiento(
   const ACampo: string): string;
 var

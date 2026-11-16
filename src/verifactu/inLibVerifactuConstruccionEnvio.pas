@@ -102,6 +102,7 @@ function EsRespuestaAeatDefinitiva(
 implementation
 
 uses
+  inLibMsgVerifactu,
   inLibFormatoDocumento,
   System.Hash, System.StrUtils,
   inLibMsgFacturas, inLibVerifactuTipos;
@@ -151,7 +152,7 @@ begin
      (AEntrada.TipoRectificativa <> 'I') and
      (AEntrada.TipoRectificativa <> 'S') then
     raise Exception.Create(
-      'El tipo fiscal de rectificativa debe ser I o S.');
+      STextoElTipoFiscalDeRectificativaDebeSerVerifactu);
 end;
 
 function ConstruirTipoRectificativa(
@@ -224,7 +225,7 @@ begin
      (AEntrada.TipoRectificativa = 'S') and
      (not AEntrada.TieneImporteRectificacion) then
     raise Exception.Create(
-      'La rectificativa sustitutiva no tiene los importes originales.');
+      STextoLaRectificativaSustitutivaNoTieneLosImportesVerifactu);
 end;
 
 function ConstruirImporteRectificacion(
@@ -339,7 +340,7 @@ begin
     if (AEntrada.EmitidaPorTerceroODestinatario <> 'D') and
        (AEntrada.EmitidaPorTerceroODestinatario <> 'T') then
       raise EArgumentException.Create(
-        'El expedidor delegado debe ser D (destinatario) o T (tercero).');
+        STextoElExpedidorDelegadoDebeSerDDestinatarioVerifactu);
     Result := '<sum1:EmitidaPorTerceroODestinatario>' +
       AEntrada.EmitidaPorTerceroODestinatario +
       '</sum1:EmitidaPorTerceroODestinatario>';

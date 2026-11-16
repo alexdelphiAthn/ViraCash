@@ -30,6 +30,7 @@ type
 implementation
 
 uses
+  inLibMsgComun,
   System.SysUtils;
 
 constructor TRepositorioEstructuraBBDDUniDAC.Create(
@@ -46,7 +47,7 @@ begin
   begin
     raise ELecturaEstructuraBBDD.Create(
       eleConexionNoDisponible,
-      'La conexión de estructura no está activa.');
+      STextoLaConexionDeEstructuraNoEstaActivaComun);
   end;
 end;
 

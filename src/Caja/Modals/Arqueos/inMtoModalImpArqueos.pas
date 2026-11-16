@@ -22,6 +22,7 @@ unit inMtoModalImpArqueos;
 interface
 
 uses
+  dxSpreadSheet,
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.DateUtils, System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms,
   Vcl.Dialogs,
@@ -81,6 +82,7 @@ type
     procedure SeleccionarAlmacenCaja;
     function ConstruirSolicitud: TSolicitudInformeCaja;
   protected
+    procedure ConstruirExcelNativo(AControl: TdxSpreadSheet); override;
     procedure DoShow; override;
     procedure DescribirSelecciones(
       AResumen: TResumenSeleccionesInforme); override;
@@ -100,6 +102,9 @@ implementation
 {$R *.dfm}
 
 uses
+  inLibMsgCaja,
+  dxSpreadSheetCore, inLibHojaCalculoIntf, inLibHojaCalculoDevEx,
+  inLibInformeTabular, inLibInformeTabularExcel,
   inMtoModalCajDef, inLibArqueoBitacoraFrx, inLibMsgMeteorologiaCaja;
 
 { TfrmPrintArqueos }
@@ -199,6 +204,7 @@ end;
 procedure TfrmPrintArqueos.DoShow;
 begin
   inherited;
+  btnExcel.OnClick := btnExcelNativoClick;
   ComponerDependencias;
   // Por defecto: rango del primer dia del mes en curso hasta hoy, y la
   // empresa / almacen / caja activos del usuario. El usuario puede ampliar
@@ -296,6 +302,67 @@ begin
   Result.Caja := bedCaja.Text;
   Result.FechaDesde := dteDesde.Date;
   Result.FechaHasta := dteHasta.Date;
+end;
+
+procedure TfrmPrintArqueos.ConstruirExcelNativo(
+  AControl: TdxSpreadSheet);
+var
+  oHoja: TdxSpreadSheetTableView;
+  oServicios: TServiciosHojaCalculo;
+  oDatos: TDataSet;
+  oMarca: TBookmark;
+  iFila: Integer;
+  sMeteorologia, sBitacora: string;
+begin
+  ExportarInformeTabularExcel(AControl, dsArqueosPrint.DataSet,
+    Caption,
+    [ColumnaInforme('CODIGO_ARQ', STextoArqueoCaja, 1),
+     ColumnaInforme('FECHA_DESDE_ARQ', STextoDesdeCaja, 1),
+     ColumnaInforme('FECHA_HASTA_ARQ', STextoHastaCaja, 1),
+     ColumnaInforme('TOTAL_VENTAS_ARQ', STextoVentasCaja, 1, '%n'),
+     ColumnaInforme('TOTAL_EFECTIVO_CAJA_ARQ', STextoEfectivoCajaCaja, 1, '%n'),
+     ColumnaInforme('TOTAL_OTROS_INGRESOS_ARQ', STextoOtrosIngresosCaja, 1,
+       '%n'),
+     ColumnaInforme('TOTAL_RECUENTO_ARQ', STextoRecuentoCaja, 1, '%n'),
+     ColumnaInforme('DIFERENCIA_TOTAL_ARQ', STextoDiferenciaCaja, 1, '%n'),
+     ColumnaInforme('IMPORTE_RETIRADA_ARQ', STextoRetiradaCaja, 1, '%n'),
+     ColumnaInforme('EFECTIVO_DEJADO_CAJA_ARQ', STextoEfectivoDejadoCaja, 1,
+       '%n'),
+     ColumnaInforme('CONCEPTO_RETIRADA_ARQ', STextoConceptoRetiradaCaja, 1)],
+    LineasResumenSelecciones);
+  if chkBitacora.Checked then
+  begin
+    oHoja := AControl.AddSheet(STextoBitacoraCaja,
+      TdxSpreadSheetTableView) as TdxSpreadSheetTableView;
+    oServicios := CrearServiciosHojaCalculoDevExTabla(oHoja);
+    oServicios.Escritor.Escribir(0, 0, 'Arqueo');
+    oServicios.Escritor.Escribir(0, 1, STextoMeteorologiaCaja);
+    oServicios.Escritor.Escribir(0, 2, STextoBitacoraCaja);
+    oServicios.Formateador.AnchoColumna(0, 160);
+    oServicios.Formateador.AnchoColumna(1, 420);
+    oServicios.Formateador.AnchoColumna(2, 700);
+    oDatos := dsArqueosPrint.DataSet;
+    oMarca := oDatos.Bookmark;
+    oDatos.DisableControls;
+    try
+      oDatos.First;
+      iFila := 1;
+      while not oDatos.Eof do
+      begin
+        TextosBitacoraArqueoActual(sMeteorologia, sBitacora);
+        oServicios.Escritor.Escribir(iFila, 0,
+          oDatos.FieldByName('CODIGO_ARQ').AsString);
+        oServicios.Escritor.Escribir(iFila, 1, sMeteorologia);
+        oServicios.Escritor.Escribir(iFila, 2, sBitacora);
+        Inc(iFila);
+        oDatos.Next;
+      end;
+    finally
+      if oDatos.BookmarkValid(oMarca) then
+        oDatos.Bookmark := oMarca;
+      oDatos.EnableControls;
+    end;
+  end;
 end;
 
 end.

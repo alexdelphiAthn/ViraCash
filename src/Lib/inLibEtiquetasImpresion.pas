@@ -20,7 +20,8 @@ unit inLibEtiquetasImpresion;
 interface
 
 uses
-  System.Generics.Collections, Data.DB, Datasnap.DBClient, frxClass;
+  System.Generics.Collections, Data.DB, Datasnap.DBClient, frxClass,
+  inLibInformeTabular;
 
 type
   // Unidades a etiquetar por SKU (clave: CODIGO_UNIDAD_SKU).
@@ -52,9 +53,13 @@ procedure OcultarCodigoBarrasVacio(AComponente: TfrxReportComponent);
 // QuitarEtiquetasSinPrecio cuando reconstruye el dataset con las guías.
 function ComprobarEtiquetasAntesDeImprimir(ADataSet: TDataSet): Boolean;
 
+function ColumnasExcelEtiquetas(ADataSet: TDataSet):
+  TColumnasInformeTabular;
+
 implementation
 
 uses
+  inLibMsgComun,
   System.SysUtils, System.Variants, System.UITypes, Vcl.Dialogs,
   frxBarcode, inLibMensajesVcl, inLibMsgArticulos;
 
@@ -70,6 +75,39 @@ const
   CAMPO_NOMBRE_TARIFA = 'NOMBRE_TAR_TAR';
   CAMPO_CODIGO_TARIFA = 'CODIGO_TAR_ARTTAR';
   MAXIMO_SKUS_SIN_PRECIO_LISTADOS = 5;
+
+function ColumnasExcelEtiquetas(ADataSet: TDataSet):
+  TColumnasInformeTabular;
+var
+  aOpcionales: TColumnasInformeTabular;
+  rColumna: TColumnaInformeTabular;
+begin
+  Result := [
+    ColumnaInforme('CODIGO_ART_ART', STextoArticuloComun2, 1),
+    ColumnaInforme('DESCRIPCION_ART', STextoDescripcionComun, 3),
+    ColumnaInforme(CAMPO_SKU, 'SKU', 1),
+    ColumnaInforme(CAMPO_CODIGO_BARRAS, 'Código de barras', 2),
+    ColumnaInforme(CAMPO_PRECIO_SALIDA, 'Precio salida', 1, '%n'),
+    ColumnaInforme(CAMPO_PRECIO_FINAL, 'Precio final', 1, '%n'),
+    ColumnaInforme(CAMPO_CODIGO_TARIFA, 'Tarifa', 1),
+    ColumnaInforme(CAMPO_NOMBRE_TARIFA, 'Nombre tarifa', 2)];
+  aOpcionales := [
+    ColumnaInforme('REF_PROVEEDOR', STextoReferenciaProveedorComun, 2),
+    ColumnaInforme('NOMBRE_PRV', STextoProveedorComun, 2),
+    ColumnaInforme('ATR_CO', STextoColorComun, 1),
+    ColumnaInforme('ATR_TAL', STextoTallaComun, 1),
+    ColumnaInforme('ATR_PESTANA', STextoPestanaComun, 1),
+    ColumnaInforme('PROP_MARCA', STextoMarcaComun, 1),
+    ColumnaInforme('COD_TEMPORADA', STextoTemporadaComun, 1),
+    ColumnaInforme('LOTE_ETI', STextoLoteSerieComun, 1),
+    ColumnaInforme('CADUCIDAD_ETI', STextoCaducidadComun, 1),
+    ColumnaInforme('TEXTO_LOTE_ETI', STextoDetalleLoteComun, 2),
+    ColumnaInforme('PRECIO_UNIDAD_TEXTO', STextoPrecioPorUnidadComun, 2),
+    ColumnaInforme('FECHA_APLICACION', STextoFechaAplicacionComun, 1)];
+  for rColumna in aOpcionales do
+    if ADataSet.FindField(rColumna.Campo) <> nil then
+      Result := Result + [rColumna];
+end;
 
 procedure LiberarCamposEtiquetas(ADataSet: TClientDataSet);
 var

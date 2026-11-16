@@ -13,6 +13,7 @@ procedure ConstruirInformeCuentaClientes(AInforme: TfrxReport;
 implementation
 
 uses
+  inLibMsgComun,
   System.SysUtils, Vcl.Graphics, Vcl.Printers, frBaseGraphicsTypes,
   inLibTraduccionesInforme;
 
@@ -81,11 +82,12 @@ begin
   Titulo.Name := 'TituloCuenta';
   Titulo.Height := 50;
   if AResumen then
-    Nombre := 'DEUDORES POR EMPRESA Y TIENDA'
+    Nombre := STextoDeudoresPorEmpresaYTiendaComun
   else
-    Nombre := 'EXTRACTO DE CUENTA DEL CLIENTE';
+    Nombre := STextoExtractoDeCuentaDelClienteComun;
   Texto(Titulo, 'NombreInforme', Nombre, 0, 1047, True);
-  Texto(Titulo, 'FechaInforme', 'Situación actual a [Date] · Importes en €',
+  Texto(Titulo, 'FechaInforme', Format(
+    STextoSituacionActualADateImportesEnComun, ['[Date]']),
     0, 1047);
   (AInforme.FindObject('FechaInforme') as TfrxMemoView).Top := 28;
   Cabecera := TfrxPageHeader.Create(Pagina);
@@ -103,8 +105,10 @@ begin
   Texto(Cliente, 'NombreCliente',
     '[Cuenta."CLIENTE"] · [Cuenta."NOMBRE"]', 0, 760, True);
   Texto(Cliente, 'LimiteCliente',
-    'Límite global: [IIF(<Cuenta."LIMITE"> = 0, ''Sin límite'', ' +
-    'FormatFloat(''#,##0.00'', <Cuenta."LIMITE">))]', 760, 287);
+    Format(SLimiteGlobalCuenta,
+      ['[IIF(<Cuenta."LIMITE"> = 0, ' +
+       QuotedStr(SSinLimiteCuenta) + ', ' +
+       'FormatFloat(''#,##0.00'', <Cuenta."LIMITE">))]']), 760, 287);
   Detalle := TfrxMasterData.Create(Pagina);
   Detalle.Name := 'DetalleCuenta';
   Detalle.Top := 150;
@@ -113,22 +117,25 @@ begin
   Detalle.DataSet := ADatos;
   if AResumen then
   begin
-    Columna(Cabecera, Detalle, 'NOMBRE_EMPRESA', 'Empresa', 0, 270);
-    Columna(Cabecera, Detalle, 'TIENDA', 'Tienda', 270, 270);
-    Columna(Cabecera, Detalle, 'FECHA', 'Pendiente desde', 540, 200);
-    Columna(Cabecera, Detalle, 'DIAS', 'Antigüedad (días)', 740, 150);
-    Columna(Cabecera, Detalle, 'PENDIENTE', 'Pendiente', 890, 157, True);
+    Columna(Cabecera, Detalle, 'NOMBRE_EMPRESA', STextoEmpresaComun, 0, 270);
+    Columna(Cabecera, Detalle, 'TIENDA', STextoTiendaComun, 270, 270);
+    Columna(Cabecera, Detalle, 'FECHA', STextoPendienteDesdeComun, 540, 200);
+    Columna(Cabecera, Detalle, 'DIAS', STextoAntiguedadDiasComun, 740, 150);
+    Columna(Cabecera, Detalle, 'PENDIENTE', STextoPendienteComun, 890, 157,
+      True);
   end
   else
   begin
-    Columna(Cabecera, Detalle, 'FECHA', 'Fecha', 0, 80);
-    Columna(Cabecera, Detalle, 'NOMBRE_EMPRESA', 'Empresa', 80, 155);
-    Columna(Cabecera, Detalle, 'TIENDA', 'Tienda', 235, 140);
-    Columna(Cabecera, Detalle, 'DEPOSITO', 'Depósito', 375, 210);
-    Columna(Cabecera, Detalle, 'ESTADO', 'Estado', 585, 100);
-    Columna(Cabecera, Detalle, 'IMPORTE', 'Importe', 685, 120, True);
-    Columna(Cabecera, Detalle, 'ENTREGADO', 'Entregado', 805, 120, True);
-    Columna(Cabecera, Detalle, 'PENDIENTE', 'Pendiente', 925, 122, True);
+    Columna(Cabecera, Detalle, 'FECHA', STextoFechaComun, 0, 80);
+    Columna(Cabecera, Detalle, 'NOMBRE_EMPRESA', STextoEmpresaComun, 80, 155);
+    Columna(Cabecera, Detalle, 'TIENDA', STextoTiendaComun, 235, 140);
+    Columna(Cabecera, Detalle, 'DEPOSITO', STextoDepositoComun, 375, 210);
+    Columna(Cabecera, Detalle, 'ESTADO', STextoEstadoComun, 585, 100);
+    Columna(Cabecera, Detalle, 'IMPORTE', STextoImporteComun, 685, 120, True);
+    Columna(Cabecera, Detalle, 'ENTREGADO', STextoEntregadoComun, 805, 120,
+      True);
+    Columna(Cabecera, Detalle, 'PENDIENTE', STextoPendienteComun, 925, 122,
+      True);
   end;
   (AInforme.FindObject('DatoFECHA') as TfrxMemoView).DisplayFormat.Kind :=
     fkDateTime;
@@ -139,21 +146,23 @@ begin
   TotalCliente.Top := 190;
   TotalCliente.Height := 30;
   Texto(TotalCliente, 'TotalPorCliente',
-    'Total pendiente del cliente: ' +
-    '[FormatFloat(''#,##0.00'', SUM(<Cuenta."PENDIENTE">, ' +
-    'DetalleCuenta))] €', 600, 447, True);
+    Format(STotalPendienteClienteCuenta,
+      ['[FormatFloat(''#,##0.00'', SUM(<Cuenta."PENDIENTE">, ' +
+       'DetalleCuenta))] €']), 600, 447, True);
   Total := TfrxReportSummary.Create(Pagina);
   Total.Name := 'TotalCuenta';
   Total.Top := 230;
   Total.Height := 36;
   Texto(Total, 'TotalGeneral',
-    'TOTAL PENDIENTE: [FormatFloat(''#,##0.00'', ' +
-    'SUM(<Cuenta."PENDIENTE">, DetalleCuenta))] €', 600, 447, True);
+    Format(STotalPendienteCuenta,
+      ['[FormatFloat(''#,##0.00'', ' +
+       'SUM(<Cuenta."PENDIENTE">, DetalleCuenta))] €']), 600, 447, True);
   Pie := TfrxPageFooter.Create(Pagina);
   Pie.Name := 'PieCuenta';
   Pie.Top := 280;
   Pie.Height := 24;
-  Texto(Pie, 'Pagina', 'Página [Page#] de [TotalPages#]', 800, 247);
+  Texto(Pie, 'Pagina', Format(STextoPaginaPageDeTotalpagesComun,
+      ['[Page#]', '[TotalPages#]']), 800, 247);
 end;
 
 end.
