@@ -12,6 +12,18 @@ unit inLibMsgPresupuestos;
 interface
 
 resourcestring
+  SCaptionCambiarEstadoPresupuesto = 'Cambiar estado';
+  SCaptionRechazarPresupuesto = 'Rechazar';
+  SCaptionAnularPresupuesto = 'Anular';
+  SCaptionReabrirPresupuesto = 'Reabrir';
+  SPreguntaCambioEstadoPresupuesto =
+    'Presupuesto %s/%s: ¿desea aplicar la acción «%s»?';
+  SErrorCambioEstadoPresupuesto =
+    'No se puede cambiar el estado. El presupuesto ha cambiado o ya ' +
+    'tiene un documento creado. Actualícelo antes de continuar.';
+  SErrorPresupuestoNoDisponibleVenta =
+    'El presupuesto no está abierto, está caducado o ya tiene un ' +
+    'documento creado. Revise su estado y fecha de validez.';
   SErrorPresupuestoVentaNoAbierto =
     'No está abierto el presupuesto de venta.';
   SErrorPresupuestoVentaNoInicializado =

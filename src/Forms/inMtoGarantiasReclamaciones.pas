@@ -222,6 +222,8 @@ type
     function Enlaces: TEnlacesReparaciones;
     procedure ModalidadGetDisplayText(Sender: TcxCustomGridTableItem;
       ARecord: TcxCustomGridRecord; var AText: string);
+    procedure FaseActualGetDisplayText(Sender: TcxCustomGridTableItem;
+      ARecord: TcxCustomGridRecord; var AText: string);
     procedure FaseReparacionGetDisplayText(Sender: TcxCustomGridTableItem;
       ARecord: TcxCustomGridRecord; var AText: string);
     procedure btnNuevaReparacionClick(Sender: TObject);
@@ -1266,7 +1268,8 @@ begin
     CrearColumna('REFERENCIA_ORDEN', SCaptionColGarantiaId, 130);
     CrearColumna('MODALIDAD_GAR', SColModalidad, 100).OnGetDisplayText :=
       ModalidadGetDisplayText;
-    CrearColumna('FASE_ACTUAL', SFaseActual, 280);
+    CrearColumna('FASE_ACTUAL', SFaseActual, 280).OnGetDisplayText :=
+      FaseActualGetDisplayText;
     CrearColumna('FASE_REP', SFaseSituacionTrabajos, 130).OnGetDisplayText :=
       FaseReparacionGetDisplayText;
     CrearColumna('CATEGORIA_GAR', SColTipoCategoria, 90);
@@ -2093,6 +2096,19 @@ procedure TfrmMtoGarantiasReclamaciones.ModalidadGetDisplayText(
   var AText: string);
 begin
   AText := TextoModalidadReparacion(AText);
+end;
+
+procedure TfrmMtoGarantiasReclamaciones.FaseActualGetDisplayText(
+  Sender: TcxCustomGridTableItem; ARecord: TcxCustomGridRecord;
+  var AText: string);
+var
+  oColumna: TcxGridDBColumn;
+begin
+  oColumna := cxGrdDBTabPrin.GetColumnByFieldName('FASE_REP');
+  if Assigned(ARecord) and Assigned(oColumna) and
+     (VarToStr(ARecord.Values[oColumna.Index]) =
+       FASE_REPARACION_RECHAZADO) then
+    AText := TextoFaseReparacion(FASE_REPARACION_RECHAZADO);
 end;
 
 procedure TfrmMtoGarantiasReclamaciones.FaseReparacionGetDisplayText(

@@ -41,6 +41,8 @@ procedure RevertirMovimientosFacturaCompra(AConexion: TUniConnection;
   const ASerie, ANumero: string);
 function FacturaCompraTieneMovimientos(AConexion: TUniConnection;
   const ASerie, ANumero: string): Boolean;
+function FacturaCompraSoloServicios(AConexion: TUniConnection;
+  const ASerie, ANumero: string): Boolean;
 // Líneas que meterían stock y líneas de stock sin almacén efectivo.
 procedure ContarLineasStockFacturaCompra(AConexion: TUniConnection;
   const ASerie, ANumero, AAlmacenCabecera: string;
@@ -84,6 +86,8 @@ const
     '       END AS PRECIO, ';
   SQL_LINEAS_FACTURA =
     '  FROM fza_facturas_compra_lineas L ' +
+    '  LEFT JOIN fza_articulos AR ' +
+    '    ON AR.CODIGO_ART_ART = L.CODIGO_ART_FACCLIN ' +
     '  JOIN fza_facturas_compra F ' +
     '    ON F.SERIE_FACC  = L.SERIE_FACC_FACCLIN ' +
     '   AND F.NUMERO_FACC = L.NUMERO_FACC_FACCLIN ';
@@ -100,7 +104,9 @@ function SqlOrigenMovimientos: string;
 begin
   Result :=
     'SELECT L.LINEA_FACCLIN AS LINEA, L.CODIGO_UNIDAD_FACCLIN AS SKU, ' +
-    '       L.CODIGO_ART_FACCLIN AS ARTICULO, L.LOTE_FACCLIN AS LOTE, ' +
+    '       L.CODIGO_ART_FACCLIN AS ARTICULO, ' +
+    '       COALESCE(AR.TIPO_ART, ''ESTANDAR'') AS TIPO_ARTICULO, ' +
+    '       L.LOTE_FACCLIN AS LOTE, ' +
     '       L.FECHA_CADUCIDAD_FACCLIN AS FECHA_CADUCIDAD, ' +
     '       L.CANTIDAD_FACCLIN AS CANTIDAD, ' +
     SQL_PRECIO_COSTE +
@@ -113,7 +119,8 @@ begin
     '   AND NOT EXISTS (' + SQL_CELDAS_LINEA + ') ' +
     'UNION ALL ' +
     'SELECT L.LINEA_FACCLIN, L.CODIGO_UNIDAD_FACCLIN, ' +
-    '       L.CODIGO_ART_FACCLIN, L.LOTE_FACCLIN, ' +
+    '       L.CODIGO_ART_FACCLIN, ' +
+    '       COALESCE(AR.TIPO_ART, ''ESTANDAR''), L.LOTE_FACCLIN, ' +
     '       L.FECHA_CADUCIDAD_FACCLIN, C.CANTIDAD_FACCCEL, ' +
     SQL_PRECIO_COSTE +
     '       IFNULL(NULLIF(C.CODIGO_ALM_FACCCEL, ''''), ' +
@@ -150,6 +157,33 @@ begin
     '   AND M.SERIE_DOC_MOV  = :SERIE_FACC ' +
     '   AND M.NUMERO_DOC_MOV = :NUMERO_FACC ' +
     ' ORDER BY M.LINEA_MOV, M.NUMERO_MOV';
+end;
+
+function FacturaCompraSoloServicios(AConexion: TUniConnection;
+  const ASerie, ANumero: string): Boolean;
+var
+  oConsulta: TUniQuery;
+begin
+  oConsulta := TUniQuery.Create(nil);
+  try
+    oConsulta.Connection := AConexion;
+    oConsulta.SQL.Text := 'SELECT COUNT(*) AS LINEAS, ' +
+      'SUM(COALESCE(AR.TIPO_ART, ''ESTANDAR'')=''SERVICIO'') AS SERVICIOS ' +
+      'FROM fza_facturas_compra_lineas L LEFT JOIN fza_articulos AR ' +
+      'ON AR.CODIGO_ART_ART=L.CODIGO_ART_FACCLIN ' +
+      'WHERE L.SERIE_FACC_FACCLIN=:SERIE ' +
+      'AND L.NUMERO_FACC_FACCLIN=:NUMERO AND ' +
+      '(COALESCE(L.CANTIDAD_FACCLIN,0)<>0 OR EXISTS (' +
+      SQL_CELDAS_LINEA + '))';
+    oConsulta.ParamByName('SERIE').AsString := ASerie;
+    oConsulta.ParamByName('NUMERO').AsString := ANumero;
+    oConsulta.Open;
+    Result := (oConsulta.FieldByName('LINEAS').AsInteger > 0) and
+      (oConsulta.FieldByName('LINEAS').AsInteger =
+        oConsulta.FieldByName('SERVICIOS').AsInteger);
+  finally
+    FreeAndNil(oConsulta);
+  end;
 end;
 
 function FacturaCompraTieneMovimientos(AConexion: TUniConnection;
@@ -192,8 +226,11 @@ begin
       '                  ''''), :alm) = '''' THEN 1 ELSE 0 END) ' +
       '         AS SIN_ALMACEN ' +
       '  FROM fza_facturas_compra_lineas L ' +
+    '  LEFT JOIN fza_articulos AR ' +
+    '    ON AR.CODIGO_ART_ART = L.CODIGO_ART_FACCLIN ' +
       ' WHERE L.SERIE_FACC_FACCLIN  = :s ' +
       '   AND L.NUMERO_FACC_FACCLIN = :n ' +
+      '   AND COALESCE(AR.TIPO_ART, ''ESTANDAR'') <> ''SERVICIO'' ' +
       '   AND IFNULL(L.CODIGO_UNIDAD_FACCLIN, '''') <> '''' ' +
       '   AND IFNULL(L.CANTIDAD_FACCLIN, 0) <> 0';
     qChk.ParamByName('alm').AsString := Trim(AAlmacenCabecera);
@@ -310,7 +347,7 @@ var
   spIns, spInsLote: TUniStoredProc;
   sEmpresa: string;
   dtFecha: TDateTime;
-  iCount: Integer;
+  iCount, iServicios: Integer;
 begin
   dtFecha := LeerFechaFactura(AConexion, ASerie, ANumero, sEmpresa);
   if FacturaCompraTieneMovimientos(AConexion, ASerie, ANumero) then
@@ -329,10 +366,14 @@ begin
     qSrc.Open;
     PrepararInsercion(AConexion, spIns);
     iCount := 0;
+    iServicios := 0;
     while not qSrc.Eof do
     begin
       // Sin SKU (servicios) o sin almacén efectivo no hay stock.
-      if (qSrc.FieldByName('SKU').AsString <> '') and
+      if qSrc.FieldByName('TIPO_ARTICULO').AsString = 'SERVICIO' then
+        Inc(iServicios);
+      if (qSrc.FieldByName('TIPO_ARTICULO').AsString <> 'SERVICIO') and
+         (qSrc.FieldByName('SKU').AsString <> '') and
          (qSrc.FieldByName('ALMACEN').AsString <> '') then
       begin
         AsignarMovimiento(spIns, qSrc, ASerie, ANumero, sEmpresa, AUsuario,
@@ -344,12 +385,14 @@ begin
       end;
       qSrc.Next;
     end;
-    if iCount = 0 then
+    if (iCount = 0) and
+       ((qSrc.RecordCount = 0) or (iServicios < qSrc.RecordCount)) then
       raise Exception.CreateFmt(SErrorCompraDirectaSinLineasStock,
         [ASerie, ANumero]);
-    FecharYEncolarMovimientosDocumento(AConexion,
-      TIPO_DOC_MOV_FACTURA_COMPRA, ASerie, ANumero, dtFecha,
-      'FACTURA_COMPRA', AUsuario);
+    if iCount > 0 then
+      FecharYEncolarMovimientosDocumento(AConexion,
+        TIPO_DOC_MOV_FACTURA_COMPRA, ASerie, ANumero, dtFecha,
+        'FACTURA_COMPRA', AUsuario);
   finally
     FreeAndNil(qSrc);
     FreeAndNil(spInsLote);

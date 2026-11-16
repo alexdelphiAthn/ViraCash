@@ -189,6 +189,8 @@ type
     cxGrdDBTabPrinUSUARIOMODIF: TcxGridDBColumn;
     chkESVERBANCOEMPRESA_FORMA_PAGO_FP: TcxDBCheckBox;
     cxGrdDBTabPrinCODIGO_FACTURAE_FP: TcxGridDBColumn;
+    lblTipoEfecto: TcxLabel;
+    cbbTipoEfecto: TcxDBLookupComboBox;
     lblCodigoFacturae: TcxLabel;
     txtCODIGO_FACTURAE_FP: TcxDBTextEdit;
     procedure btnGrabarClick(Sender: TObject);
@@ -372,6 +374,7 @@ begin
   tvFacturacion.DataController.DataSource := dmmFormasdePago.dsFacturas;
   tvLineasFacturacion.DataController.DataSource :=
                                                dmmFormasdePago.dsFacturasLineas;
+  cbbTipoEfecto.Properties.ListSource := dmmFormasdePago.dsTiposEfecto;
   pcPestana.ActivePage := tsMasDatos;
   pkFieldName := 'CODIGO_FP_FP';
 end;

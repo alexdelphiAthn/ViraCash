@@ -164,6 +164,7 @@ type
     Observaciones: string;
     Fabricante: string;
     FechaPrevista: TDateTime;
+    DetallesServicio: TArray<TPrendaVentaReparacion>;
     EsPresupuesto: Boolean;
     ModoCobro: string;
     EsCobrado: Boolean;

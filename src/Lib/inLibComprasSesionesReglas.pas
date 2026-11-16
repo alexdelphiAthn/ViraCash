@@ -27,7 +27,7 @@ function ResolverCodigoColorBasico(
   const ACodigos, ANombres: array of string;
   out ACodigo: string): Boolean;
 // Números que deben recibir las líneas para quedar de 10 en 10 ordenadas
-// por artículo, color y línea; las que aún no tienen código van al final.
+// por artículo y línea; las que aún no tienen código van al final.
 // Devuelve todas las líneas, o nada si ya están así. AReservados son
 // números que no se pueden reutilizar (FZ-ISSUE-416).
 function RenumeracionLineasSesion(
@@ -118,8 +118,8 @@ begin
   begin
     Result := CompareText(Trim(AIzquierda.Articulo),
       Trim(ADerecha.Articulo));
-    if (Result = 0) and (not bSinIzquierda) then
-      Result := CompareText(Trim(AIzquierda.Color), Trim(ADerecha.Color));
+    // Dentro del artículo se conserva el orden de creación: la copia
+    // nunca adelanta a su maestra, ni con el color vacío ni al rellenarlo.
     if Result = 0 then
       Result := AIzquierda.Linea - ADerecha.Linea;
   end;

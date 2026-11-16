@@ -81,6 +81,7 @@ type
     procedure ModalidadCambiada(Sender: TObject);
     procedure Recoger;
     procedure RecogerEjecutor;
+    function PedirDetallesServicio: Boolean;
     function Grabar: Boolean;
     procedure CerrarSinLiberar(Sender: TObject; var Action: TCloseAction);
   protected
@@ -102,7 +103,8 @@ implementation
 
 uses
   System.SysUtils, cxLabel, inLibMsgReparaciones, inLibMensajesVcl,
-  inLibTrabajosCortinas, inMtoModalMedidasCliente;
+  System.Math, inLibTrabajosCortinas, inMtoModalMedidasCliente,
+  inMtoModalTrabajoCortina;
 
 const
   ANCHO_ROTULO = 200;
@@ -329,7 +331,9 @@ begin
     FTelefono.Text := FReparacion.TelefonoCliente;
     FFabricante.Text := FReparacion.Fabricante;
     if FReparacion.FechaPrevista > 0 then
-      FPrevista.Date := FReparacion.FechaPrevista;
+      FPrevista.Date := FReparacion.FechaPrevista
+    else
+      FPrevista.Date := Trunc(FReparacion.Fecha);
     MostrarEjecutor;
     FCantidad.Value := FReparacion.Cantidad;
     FPrecioCliente.Value := FReparacion.PrecioCliente;
@@ -429,6 +433,34 @@ begin
   FReparacion.NumeroCobro := Trim(FNumeroCobro.Text);
 end;
 
+function TfrmModalReparacion.PedirDetallesServicio: Boolean;
+var
+  sClase: string;
+  iUnidad: Integer;
+begin
+  Result := True;
+  FReparacion.DetallesServicio := nil;
+  if FTipo.ItemIndex > 0 then
+  begin
+    sClase := FTipos[FTipo.ItemIndex - 1].ClaseServicio;
+    if (sClase = CLASE_SERVICIO_ALTURA) or
+       (sClase = CLASE_SERVICIO_INSTALACION) then
+    begin
+      SetLength(FReparacion.DetallesServicio, Ceil(FReparacion.Cantidad));
+      for iUnidad := 0 to High(FReparacion.DetallesServicio) do
+        if Result then
+        begin
+          FReparacion.DetallesServicio[iUnidad].UnidadServicio :=
+            iUnidad + 1;
+          FReparacion.DetallesServicio[iUnidad].Trabajo.Clase := sClase;
+          Result := TfrmModalTrabajoCortina.Editar(Self,
+            Format(SDetalleUnidad, [iUnidad + 1]),
+            FReparacion.DetallesServicio[iUnidad].Trabajo);
+        end;
+    end;
+  end;
+end;
+
 function TfrmModalReparacion.Grabar: Boolean;
 var
   sError: string;
@@ -444,6 +476,8 @@ begin
     if FTipos[FTipo.ItemIndex - 1].ClaseServicio = CLASE_SERVICIO_TRAJE then
       Result := TfrmModalMedidasCliente.Elegir(Self, FReparacion.Cliente,
         FReparacion.IdMedicionCliente);
+  if Result then
+    Result := PedirDetallesServicio;
   if Result then
     FId := FRepositorio.Alta(FReparacion);
 end;

@@ -27,6 +27,8 @@ type
     unstrdprcContador: TUniStoredProc;
     unqryFacturasLineas: TUniQuery;
     unqryFacturas: TUniQuery;
+    unqryTiposEfecto: TUniQuery;
+    dsTiposEfecto: TDataSource;
     dsFacturas: TDataSource;
     dsFacturasLineas: TDataSource;
     procedure unqryTablaGAfterInsert(DataSet: TDataSet);
@@ -71,6 +73,7 @@ procedure TdmFormasdePago.DataModuleCreate(Sender: TObject);
 begin
   inherited;
   // Solo Connection + MasterSource. Los .Open se han movido a AbrirDetalles.
+  unqryTiposEfecto.Connection := ConexionPrincipal;
   unstrdprcContador.Connection := ConexionPrincipal;
   unqryFacturas.Connection := ConexionPrincipal;
   unqryFacturasLineas.Connection := ConexionPrincipal;
@@ -90,6 +93,8 @@ var sw: TStopwatch;
 begin
   inherited;
   sw := TStopwatch.StartNew;
+  AbrirConsultaConTiempo(
+    unqryTiposEfecto, TAG, 'unqryTiposEfecto', RegistroLog);
   AbrirConsultaConTiempo(
     unqryFacturas, TAG, 'unqryFacturas', RegistroLog);
   AbrirConsultaConTiempo(

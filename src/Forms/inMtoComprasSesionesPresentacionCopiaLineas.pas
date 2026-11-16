@@ -327,10 +327,27 @@ end;
 procedure TCoordinadorCopiaLineasSesion.DuplicarLineaActiva;
 var
   Resultado: TResultadoCopiaLineaCompra;
+  Gestor: TGestorGridTallas;
+  iLineaInicial: Integer;
 begin
-  Resultado := DuplicarConModo(mclOtroColor, '');
-  if Resultado.Aplicada then
-    ColocarFocoEnCopia(Resultado.LineaDestino);
+  iLineaInicial := 0;
+  if FEntorno.Lineas.Active and not FEntorno.Lineas.IsEmpty then
+    iLineaInicial := FEntorno.Lineas.FieldByName('LINEA_SESLIN').AsInteger;
+  if FGestor.PrepararOrigenOtroColor then
+  begin
+    // Cancelar la fila nueva reconstruye el grid: recuperar cantidades
+    // de la maestra antes de capturar los valores no enlazados.
+    if iLineaInicial <>
+       FEntorno.Lineas.FieldByName('LINEA_SESLIN').AsInteger then
+    begin
+      Gestor := GestorTallas;
+      if Assigned(Gestor) then
+        Gestor.CargarCantidadesTodasLineas;
+    end;
+    Resultado := DuplicarConModo(mclOtroColor, '');
+    if Resultado.Aplicada then
+      ColocarFocoEnCopia(Resultado.LineaDestino);
+  end;
 end;
 
 procedure TCoordinadorCopiaLineasSesion.DuplicarLineaOtroLote;

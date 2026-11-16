@@ -222,7 +222,7 @@ resourcestring
   SErrorCarteraEfectosNoAbierta =
     'No hay cartera de efectos abierta.';
   SPreguntaFusionarEfectos =
-    '¿Fusionar los efectos seleccionados en un único efecto pendiente?';
+    '¿Fusionar o compensar los efectos seleccionados?';
   SInfoEfectosConciliados = 'Efectos conciliados en %s.';
   SErrorFusionarEfectos =
     'No se pudieron fusionar los efectos.';

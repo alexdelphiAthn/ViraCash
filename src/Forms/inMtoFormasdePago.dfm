@@ -285,6 +285,26 @@
                 TabOrder = 6
                 Transparent = True
               end
+              object lblTipoEfecto: TcxLabel
+                Left = 56
+                Top = 300
+                Caption = 'Tipo de efecto'
+                TabOrder = 9
+                Transparent = True
+              end
+              object cbbTipoEfecto: TcxDBLookupComboBox
+                Left = 191
+                Top = 299
+                DataBinding.DataField = 'CODIGO_TEFE_FP'
+                DataBinding.DataSource = dsTablaG
+                Properties.KeyFieldNames = 'CODIGO_TEFE'
+                Properties.ListColumns = <
+                  item
+                    FieldName = 'DESCRIPCION_TEFE'
+                  end>
+                TabOrder = 10
+                Width = 280
+              end
               object lblCodigoFacturae: TcxLabel
                 Left = 56
                 Top = 248

@@ -162,6 +162,7 @@ var
   sArticulo: string;
   Prenda: TPrendaVentaReparacion;
   dCosteTipo: Currency;
+  rDetalle: TPrendaVentaReparacion;
 begin
   Result := Default(TReparacionNueva);
   Result.Fecha := AVenta.Fecha;
@@ -187,6 +188,13 @@ begin
     Result.Trabajo := sArticulo;
   Result.DescripcionObjeto := Result.Trabajo;
   Result.ReferenciaObjeto := sArticulo;
+  for Prenda in AVenta.Prendas do
+    if Prenda.LineaServicio = ALinea.Linea then
+    begin
+      rDetalle := Prenda;
+      rDetalle.LineaServicio := '';
+      Result.DetallesServicio := Result.DetallesServicio + [rDetalle];
+    end;
   for Prenda in AVenta.Prendas do
     if (Prenda.LineaServicio=ALinea.Linea) and
        ((Prenda.LineaPrenda<>'') or

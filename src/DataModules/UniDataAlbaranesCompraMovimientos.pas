@@ -344,7 +344,7 @@ var
   sCodigoEmp, sCodigoAlmCab, sCodigoAlm, sCodigoSku, sCodigoArt,
   sNumeroMov, sLinea, sTipoMov: string;
   dtInstanteMovimiento: TDateTime;
-  iCount: Integer;
+  iCount, iServicios: Integer;
   rCantidad, rPrecio, rTotal: Double;
 begin
   LeerCabeceraAlbaran(AConn, ASerieAlbc, ANumAlbc, sCodigoEmp, sCodigoAlmCab,
@@ -391,6 +391,7 @@ begin
     qSrc.Open;
     PrepararInsercionMovimiento(AConn, spIns);
     iCount := 0;
+    iServicios := 0;
     while not qSrc.Eof do
     begin
       sCodigoSku := qSrc.FieldByName('SKU').AsString;
@@ -407,7 +408,10 @@ begin
       // Lineas sin SKU no pueden mover stock; las saltamos. No es
       // fatal porque pueden ser lineas de servicio o lineas en
       // construccion. Lo mismo para sin almacen efectivo.
-      if (sCodigoSku <> '') and (sCodigoAlm <> '') then
+      if qSrc.FieldByName('TIPO_ARTICULO').AsString = 'SERVICIO' then
+        Inc(iServicios);
+      if (qSrc.FieldByName('TIPO_ARTICULO').AsString <> 'SERVICIO') and
+         (sCodigoSku <> '') and (sCodigoAlm <> '') then
       begin
         sNumeroMov := ObtenerSiguienteContador(
           AConn, 'MV', AUsuario);
@@ -442,7 +446,8 @@ begin
       end;
       qSrc.Next;
     end;
-    if iCount = 0 then
+    if (iCount = 0) and
+       ((qSrc.RecordCount = 0) or (iServicios < qSrc.RecordCount)) then
       raise Exception.CreateFmt(
         SErrorAlbaranCompraSinCantidadParaMovimientos,
         [ASerieAlbc, ANumAlbc]);
@@ -450,14 +455,15 @@ begin
       ANumAlbc, AUsuario);
     ActualizarCostesSkuDesdeAlbaranCompra(AConn, ASerieAlbc, ANumAlbc,
       AUsuario);
-    FecharYEncolarMovimientosDocumento(
-      AConn,
-      EstrategiaAlbaranCompra.TipoDocumentoMovimientoStock,
-      ASerieAlbc,
-      ANumAlbc,
-      dtInstanteMovimiento,
-      'ALBARAN_COMPRA',
-      AUsuario);
+    if iCount > 0 then
+      FecharYEncolarMovimientosDocumento(
+        AConn,
+        EstrategiaAlbaranCompra.TipoDocumentoMovimientoStock,
+        ASerieAlbc,
+        ANumAlbc,
+        dtInstanteMovimiento,
+        'ALBARAN_COMPRA',
+        AUsuario);
   finally
     FreeAndNil(qSrc);
     FreeAndNil(spInsLote);

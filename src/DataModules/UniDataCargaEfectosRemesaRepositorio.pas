@@ -124,6 +124,16 @@ begin
   end;
 end;
 
+function FiltroTipoRemesable(
+  const AConfig: TConfigPersistenciaRemesa): string;
+begin
+  Result := '';
+  if AConfig.SufijoEfecto = 'EFV' then
+    Result := 'AND EXISTS (SELECT 1 FROM fza_tipos_efecto TE ' +
+      'WHERE TE.CODIGO_TEFE = CODIGO_TEFE_EFV ' +
+      'AND TE.ESREMESABLE_TEFE = ''S'' AND TE.ESACTIVO_TEFE = ''S'') ';
+end;
+
 function ConstruirSqlEfectos(
   const AConfig: TConfigPersistenciaRemesa): string;
 begin
@@ -143,7 +153,9 @@ begin
     QuotedStr('') + ') IN (' + QuotedStr('PENDIENTE') + ', ' +
     QuotedStr('PARCIAL') + ') AND COALESCE(IMPORTE_PENDIENTE_' +
     AConfig.SufijoEfecto + ', 0) > 0 AND FECHA_VENCIMIENTO_' +
-    AConfig.SufijoEfecto + ' <= :HASTA ORDER BY FECHA_VENCIMIENTO_' +
+    AConfig.SufijoEfecto + ' <= :HASTA ' +
+    FiltroTipoRemesable(AConfig) +
+    'ORDER BY FECHA_VENCIMIENTO_' +
     AConfig.SufijoEfecto + ', ' + AConfig.CampoTercero;
 end;
 

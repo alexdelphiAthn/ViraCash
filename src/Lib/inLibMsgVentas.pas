@@ -181,7 +181,8 @@ resourcestring
   SErrorFusionarEfectosVentaOrigen =
     'Solo se pueden fusionar efectos de la misma empresa y cliente.';
   SErrorFusionarEfectosVentaSinPendiente =
-    'Los efectos seleccionados no tienen importe pendiente.';
+    'Seleccione un efecto a cobrar y abonos que no superen su importe ' +
+    'pendiente.';
   SErrorOperacionIntracomunitariaClienteNoUE =
     'La operación "%s" es intracomunitaria, pero el cliente no es de la UE ' +
     '(país %s). Corrija el tipo de operación o el país del cliente.';
@@ -291,7 +292,7 @@ resourcestring
     'Este albarán no tiene borrador creado.';
   SInfoIbanValidado = 'IBAN Validado OK';
   SErrorEfectosVentaFusionInsuficientes =
-    'Selecciona dos o más efectos imcobrados.';
+    'Selecciona dos o más efectos pendientes.';
   SErrorDocumentoTrabajoNoSeleccionadoListado =
     'Seleccione un Documento de Trabajo antes de sacar el listado.';
   SErrorDocumentoTrabajoSinGrabarListado =
@@ -736,6 +737,9 @@ resourcestring
   SNombreArchivoMovimientosVentasArticulos =
     'Movimientos_ventas_articulos';
 
+
+  SErrorEfectoNoAdmiteAdeudoSepa =
+    'La remesa contiene un efecto cuyo tipo no admite adeudos SEPA.';
 
 implementation
 

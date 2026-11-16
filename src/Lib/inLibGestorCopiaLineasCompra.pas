@@ -74,6 +74,7 @@ type
       ACabecera: TDataSet;
       ALineas: TDataSet;
       AObtenerSiguienteLinea: TObtenerSiguienteLineaCompra);
+    function PrepararOrigenOtroColor: Boolean;
     function DuplicarLineaActual: TResultadoCopiaLineaCompra; overload;
     function DuplicarLineaActual(AModo: TModoCopiaLineaCompra;
       const APestana: string): TResultadoCopiaLineaCompra; overload;
@@ -110,6 +111,54 @@ begin
     Result := FCabecera.Active and FLineas.Active;
   if Result then
     Result := (not FCabecera.IsEmpty) and (not FLineas.IsEmpty);
+end;
+
+// Una inserción vacía debajo de una línea toma esa línea como origen.
+// Se cancela solo el borrador vacío; la copia ocupa su lugar.
+function TGestorCopiaLineasCompra.PrepararOrigenOtroColor: Boolean;
+var
+  iLineaNueva, iAnterior, iLinea: Integer;
+  sCampo: string;
+  bVacia: Boolean;
+begin
+  Result := PuedeDuplicar;
+  if Result and (FLineas.State = dsInsert) then
+  begin
+    bVacia := True;
+    for sCampo in ['CODIGO_ART_TENTATIVO_SESLIN', 'REF_PRV_SESLIN',
+      'DESCRIPCION_SESLIN', 'COLOR_TEXTO_SESLIN'] do
+      bVacia := bVacia and
+        (Trim(FLineas.FieldByName(sCampo).AsString) = '');
+    for sCampo in ['PRECIO_COMPRA_SESLIN', 'PRECIO_VENTA_SESLIN',
+      'TOTAL_UNIDADES_SESLIN'] do
+      if FLineas.FindField(sCampo) <> nil then
+        bVacia := bVacia and (FLineas.FieldByName(sCampo).AsFloat = 0);
+    if bVacia and (FLineas.RecordCount > 0) then
+    begin
+      iLineaNueva := FLineas.FieldByName('LINEA_SESLIN').AsInteger;
+      FLineas.Cancel;
+      iAnterior := 0;
+      FLineas.DisableControls;
+      try
+        FLineas.First;
+        while not FLineas.Eof do
+        begin
+          iLinea := FLineas.FieldByName('LINEA_SESLIN').AsInteger;
+          if (iLinea < iLineaNueva) and (iLinea > iAnterior) then
+            iAnterior := iLinea;
+          FLineas.Next;
+        end;
+        Result := (iAnterior > 0) and
+          FLineas.Locate('LINEA_SESLIN', iAnterior, []);
+        if not Result then
+          FLineas.Append;
+      finally
+        FLineas.EnableControls;
+      end;
+    end
+    else if bVacia then
+      Result := False;
+  end;
 end;
 
 function TGestorCopiaLineasCompra.CapturarLineaActual:
@@ -164,7 +213,7 @@ procedure TGestorCopiaLineasCompra.InsertarLineaCopiada(
   AModo: TModoCopiaLineaCompra;
   const APestana: string);
 begin
-  FLineas.Insert;
+  FLineas.Append;
   // Las copias conservan el tipo de la linea, aunque difiera del defecto.
   if FLineas.FindField('CODIGO_VAR_SESLIN') <> nil then
     FLineas.FieldByName('CODIGO_VAR_SESLIN').AsString :=

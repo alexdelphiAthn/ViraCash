@@ -30,6 +30,7 @@ begin
     'SELECT L.LINEA_ALBCLIN                     AS LINEA, ' +
     '       L.CODIGO_UNIDAD_ALBCLIN             AS SKU, ' +
     '       L.CODIGO_ART_ALBCLIN                AS ARTICULO, ' +
+    '       COALESCE(AR.TIPO_ART, ''ESTANDAR'') AS TIPO_ARTICULO, ' +
     '       L.LOTE_ALBCLIN                      AS LOTE, ' +
     '       L.FECHA_CADUCIDAD_ALBCLIN           AS FECHA_CADUCIDAD, ' +
     '       C.CANTIDAD_ALBCCEL                  AS CANTIDAD, ' +
@@ -67,6 +68,8 @@ begin
     '              IFNULL(NULLIF(L.CODIGO_ALMACEN_ALBCLIN, ''''), ' +
     ':alm_cab2)) AS ALMACEN ' +
     '  FROM fza_albaranes_compra_lineas L ' +
+    '  LEFT JOIN fza_articulos AR ' +
+    '    ON AR.CODIGO_ART_ART = L.CODIGO_ART_ALBCLIN ' +
     '  JOIN fza_albaranes_compra A ' +
     '    ON A.SERIE_ALBC  = L.SERIE_ALBC_ALBCLIN ' +
     '   AND A.NUMERO_ALBC = L.NUMERO_ALBC_ALBCLIN ' +
@@ -88,6 +91,7 @@ begin
     'SELECT L.LINEA_ALBCLIN                     AS LINEA, ' +
     '       L.CODIGO_UNIDAD_ALBCLIN             AS SKU, ' +
     '       L.CODIGO_ART_ALBCLIN                AS ARTICULO, ' +
+    '       COALESCE(AR.TIPO_ART, ''ESTANDAR'') AS TIPO_ARTICULO, ' +
     '       L.LOTE_ALBCLIN                      AS LOTE, ' +
     '       L.FECHA_CADUCIDAD_ALBCLIN           AS FECHA_CADUCIDAD, ' +
     '       L.CANTIDAD_ALBCLIN                  AS CANTIDAD, ' +
@@ -124,6 +128,8 @@ begin
     '       IFNULL(NULLIF(L.CODIGO_ALMACEN_ALBCLIN, ''''), :alm_cab1) AS ' +
     'ALMACEN ' +
     '  FROM fza_albaranes_compra_lineas L ' +
+    '  LEFT JOIN fza_articulos AR ' +
+    '    ON AR.CODIGO_ART_ART = L.CODIGO_ART_ALBCLIN ' +
     '  JOIN fza_albaranes_compra A ' +
     '    ON A.SERIE_ALBC  = L.SERIE_ALBC_ALBCLIN ' +
     '   AND A.NUMERO_ALBC = L.NUMERO_ALBC_ALBCLIN ' +

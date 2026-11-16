@@ -237,8 +237,11 @@ begin
       '       cli.FECHA_FIRMA_MANDATO_SEPA_CLI, ' +
       '       COALESCE(e.IMPORTE_PENDIENTE_EFV, ' +
       '         e.IMPORTE_EFV, 0) AS IMPORTE, ' +
-      '       e.REFERENCIA_DOCUMENTO_EFV ' +
+      '       e.REFERENCIA_DOCUMENTO_EFV, TE.ESREMESABLE_TEFE, ' +
+      '       TE.ESDOMICILIADO_TEFE, TE.ESACTIVO_TEFE ' +
       '  FROM fza_efectos_venta e ' +
+      '  LEFT JOIN fza_tipos_efecto TE ' +
+      '    ON TE.CODIGO_TEFE = e.CODIGO_TEFE_EFV ' +
       '  LEFT JOIN fza_clientes cli ' +
       '    ON cli.CODIGO_CLI_CLI = e.CODIGO_CLI_EFV ' +
       ' WHERE e.SERIE_REMV_EFV = :SERIE ' +
@@ -252,6 +255,10 @@ begin
     oConsulta.Open;
     while not oConsulta.Eof do
     begin
+      if (LeerTexto(oConsulta, 'ESREMESABLE_TEFE') <> 'S') or
+         (LeerTexto(oConsulta, 'ESDOMICILIADO_TEFE') <> 'S') or
+         (LeerTexto(oConsulta, 'ESACTIVO_TEFE') <> 'S') then
+        raise EArgumentException.Create(SErrorEfectoNoAdmiteAdeudoSepa);
       iIndice := Length(ARemesa.Efectos);
       SetLength(ARemesa.Efectos, iIndice + 1);
       ARemesa.Efectos[iIndice].NombreCliente :=

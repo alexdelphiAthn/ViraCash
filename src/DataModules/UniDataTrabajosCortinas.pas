@@ -30,6 +30,10 @@ type
       const ADetalle: TPrendaVentaReparacion; const AUsuario: string);
   public
     constructor Create(AConexion: TUniConnection);
+    function ClaseTipo(const ATipo: string): string;
+    function ClaseOrden(AReparacion: Int64): string;
+    procedure GuardarAlta(AReparacion: Int64;
+      const AAlta: TReparacionNueva);
     function Leer(AReparacion: Int64): TArray<TPrendaVentaReparacion>;
     procedure Guardar(AReparacion: Int64;
       const ADetalles: TArray<TPrendaVentaReparacion>; const AUsuario: string);
@@ -92,6 +96,50 @@ begin
   finally
     FreeAndNil(oConsulta);
   end;
+end;
+
+function TDatosTrabajosCortinas.ClaseTipo(const ATipo: string): string;
+var
+  oConsulta: TUniQuery;
+begin
+  Result := CLASE_SERVICIO_TALLER;
+  oConsulta := Consulta('SELECT CLASE_SERVICIO_GARTIP ' +
+    'FROM fza_garantias_tipos WHERE CODIGO_GARTIP=:TIPO');
+  try
+    oConsulta.ParamByName('TIPO').AsString := ATipo;
+    oConsulta.Open;
+    if not oConsulta.IsEmpty then
+      Result := oConsulta.Fields[0].AsString;
+  finally
+    FreeAndNil(oConsulta);
+  end;
+end;
+
+function TDatosTrabajosCortinas.ClaseOrden(AReparacion: Int64): string;
+var
+  oConsulta: TUniQuery;
+begin
+  oConsulta := Consulta('SELECT CODIGO_GARTIP_GAR ' +
+    'FROM fza_garantias_reclamaciones WHERE ID_GAR=:ID');
+  try
+    oConsulta.ParamByName('ID').AsLargeInt := AReparacion;
+    oConsulta.Open;
+    Result := ClaseTipo(oConsulta.Fields[0].AsString);
+  finally
+    FreeAndNil(oConsulta);
+  end;
+end;
+
+procedure TDatosTrabajosCortinas.GuardarAlta(AReparacion: Int64;
+  const AAlta: TReparacionNueva);
+var
+  rVenta: TVentaServiciosReparacion;
+begin
+  rVenta := Default(TVentaServiciosReparacion);
+  rVenta.Usuario := AAlta.Usuario;
+  rVenta.Prendas := AAlta.DetallesServicio;
+  GuardarVenta(AReparacion, '', ClaseTipo(AAlta.Tipo), AAlta.Cantidad,
+    rVenta);
 end;
 
 function TDatosTrabajosCortinas.Leer(AReparacion: Int64):

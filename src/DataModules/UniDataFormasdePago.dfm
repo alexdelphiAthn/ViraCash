@@ -155,4 +155,19 @@
     Left = 359
     Top = 80
   end
+  object unqryTiposEfecto: TUniQuery
+    SQL.Strings = (
+      'SELECT CODIGO_TEFE, DESCRIPCION_TEFE'
+      '  FROM fza_tipos_efecto'
+      ' WHERE ESACTIVO_TEFE = '#39'S'#39
+      ' ORDER BY ORDEN_TEFE, CODIGO_TEFE')
+    ReadOnly = True
+    Left = 440
+    Top = 24
+  end
+  object dsTiposEfecto: TDataSource
+    DataSet = unqryTiposEfecto
+    Left = 440
+    Top = 80
+  end
 end

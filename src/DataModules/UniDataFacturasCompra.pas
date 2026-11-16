@@ -1069,7 +1069,9 @@ begin
       DataSet.FieldByName('NUMERO_FACC').AsString,
       DataSet.FieldByName('CODIGO_ALM_FACC').AsString,
       iLineasStock, iSinAlmacen);
-    if iLineasStock = 0 then
+    if (iLineasStock = 0) and not FacturaCompraSoloServicios(
+      ConexionEscritura, DataSet.FieldByName('SERIE_FACC').AsString,
+      DataSet.FieldByName('NUMERO_FACC').AsString) then
       raise EValidacionBBDD.CreateFmt(SErrorCompraDirectaSinLineasStock,
         [DataSet.FieldByName('SERIE_FACC').AsString,
          DataSet.FieldByName('NUMERO_FACC').AsString]);

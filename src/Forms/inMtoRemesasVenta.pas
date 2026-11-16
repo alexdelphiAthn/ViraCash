@@ -29,6 +29,7 @@ uses
   cxGridDBTableView, cxGrid, cxPC, Vcl.ExtCtrls, UniDataRemesasVenta,
   cxCheckBox, cxSpinEdit, cxBlobEdit, dxScrollbarAnnotations, dxCore,
   cxRadioGroup, Vcl.AppEvnts, JvComponentBase, JvEnterTab, dxShellDialogs,
+  inMtoModalRegistrarPago,
   cxDBEdit, cxMaskEdit, cxDropDownEdit, cxCalendar, cxCurrencyEdit, cxMemo,
   cxLookupEdit, cxDBLookupEdit, cxDBLookupComboBox,
   inLibPermisosIntf,
@@ -122,7 +123,9 @@ type
     procedure nvNavegadorButtonsButtonClick(Sender: TObject;
       AButtonIndex: Integer; var ADone: Boolean);
     function BancoRemesaAsignado: Boolean;
-    function PedirFechaCobroRemesa: Boolean;
+    function PedirFechaCobroRemesa(
+      AInformar: Boolean = True): Boolean;
+    procedure PrepararCobroDomiciliado(AFormulario: TfrmModalRegistrarPago);
     function RemesaSeleccionada: Boolean;
   public
     dmmRemesasVenta: TdmRemesasVenta;
@@ -140,7 +143,7 @@ implementation
 uses
   inLibMensajesVcl,
   inLibWin,
-  inMtoModalCargarEfectosRemesa, inMtoModalRegistrarPago,
+  inMtoModalCargarEfectosRemesa,
   inMtoModalSepaRemesaVenta, inLibSepaRemesasVenta,
   inLibMsgVentas;
 
@@ -309,15 +312,7 @@ begin
        dmmRemesasVenta.unqryBancosEmpresa.Locate('IBAN_EMPBAN', sIban, []) then
       cbbBancoCobroRemesa.EditValue :=
         dmmRemesasVenta.unqryBancosEmpresa.FieldByName('CODIGO_EMPBAN')
-          .AsString
-    else if (sIban = '') and
-            (not dmmRemesasVenta.unqryBancosEmpresa.IsEmpty) then
-    begin
-      dmmRemesasVenta.unqryBancosEmpresa.First;
-      cbbBancoCobroRemesa.EditValue :=
-        dmmRemesasVenta.unqryBancosEmpresa.FieldByName('CODIGO_EMPBAN')
           .AsString;
-    end;
   end;
 end;
 
@@ -409,6 +404,7 @@ begin
       try
         frm.SetDatos(Format(STextoEfectoPendienteRemesaVenta,
           [q.FieldByName('NUMERO_EFV').AsInteger, fPend]), fPend);
+        PrepararCobroDomiciliado(frm);
         if frm.ShowModal = mrOk then
         begin
           iRes := dmmRemesasVenta.RegistrarCobroEfectoActual(frm.Fecha,
@@ -424,6 +420,17 @@ begin
       end;
     end;
   end;
+end;
+
+procedure TfrmMtoRemesasVenta.PrepararCobroDomiciliado(
+  AFormulario: TfrmModalRegistrarPago);
+begin
+  AFormulario.cbbTipo.ItemIndex :=
+    AFormulario.cbbTipo.Properties.Items.IndexOf('DOMICILIADO');
+  if not dmmRemesasVenta.unqryTablaG.FieldByName('FECHA_CARGO_REMV')
+    .IsNull then
+    AFormulario.dteFecha.Date := dmmRemesasVenta.unqryTablaG.FieldByName(
+      'FECHA_CARGO_REMV').AsDateTime;
 end;
 
 procedure TfrmMtoRemesasVenta.btnCobrarRemesaClick(Sender: TObject);
@@ -447,6 +454,7 @@ begin
       frm := TfrmModalRegistrarPago.Create(nil);
       try
         frm.SetDatos(Format(STextoRemesaVentaPendiente, [fPend]), fPend);
+        PrepararCobroDomiciliado(frm);
         if frm.ShowModal = mrOk then
         begin
           iRes := dmmRemesasVenta.RegistrarCobroRemesa(frm.Fecha,
@@ -498,7 +506,8 @@ begin
   PedirFechaCobroRemesa;
 end;
 
-function TfrmMtoRemesasVenta.PedirFechaCobroRemesa: Boolean;
+function TfrmMtoRemesasVenta.PedirFechaCobroRemesa(
+  AInformar: Boolean): Boolean;
 var
   sFecha: string;
   dFecha: TDateTime;
@@ -521,7 +530,8 @@ begin
       begin
         if dmmRemesasVenta.ActualizarFechaCobro(dFecha) then
         begin
-          ShowMessage_fza(SInfoFechaCobroRemesaActualizada);
+          if AInformar then
+            ShowMessage_fza(SInfoFechaCobroRemesaActualizada);
           Result := True;
         end
         else
@@ -551,7 +561,7 @@ begin
   begin
     bSeguir := True;
     if dmmRemesasVenta.unqryTablaG.FieldByName('FECHA_CARGO_REMV').IsNull then
-      bSeguir := PedirFechaCobroRemesa;
+      bSeguir := PedirFechaCobroRemesa(False);
     if bSeguir then
     begin
       if dmmRemesasVenta.PendienteRemesa <= 0.0001 then

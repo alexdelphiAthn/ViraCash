@@ -8282,6 +8282,34 @@ begin
     'inLibMsgPresupuestos.SErrorSeleccionePresupuesto',
     'src/Lib/inLibMsgPresupuestos.pas',
     @inLibMsgPresupuestos.SErrorSeleccionePresupuesto);
+  ARegistrar('inLibMsgPresupuestos.SCaptionCambiarEstadoPresupuesto',
+    'src/Lib/inLibMsgPresupuestos.pas',
+    @inLibMsgPresupuestos.SCaptionCambiarEstadoPresupuesto);
+
+  ARegistrar('inLibMsgPresupuestos.SCaptionRechazarPresupuesto',
+    'src/Lib/inLibMsgPresupuestos.pas',
+    @inLibMsgPresupuestos.SCaptionRechazarPresupuesto);
+
+  ARegistrar('inLibMsgPresupuestos.SCaptionAnularPresupuesto',
+    'src/Lib/inLibMsgPresupuestos.pas',
+    @inLibMsgPresupuestos.SCaptionAnularPresupuesto);
+
+  ARegistrar('inLibMsgPresupuestos.SCaptionReabrirPresupuesto',
+    'src/Lib/inLibMsgPresupuestos.pas',
+    @inLibMsgPresupuestos.SCaptionReabrirPresupuesto);
+
+  ARegistrar('inLibMsgPresupuestos.SPreguntaCambioEstadoPresupuesto',
+    'src/Lib/inLibMsgPresupuestos.pas',
+    @inLibMsgPresupuestos.SPreguntaCambioEstadoPresupuesto);
+
+  ARegistrar('inLibMsgPresupuestos.SErrorCambioEstadoPresupuesto',
+    'src/Lib/inLibMsgPresupuestos.pas',
+    @inLibMsgPresupuestos.SErrorCambioEstadoPresupuesto);
+
+  ARegistrar('inLibMsgPresupuestos.SErrorPresupuestoNoDisponibleVenta',
+    'src/Lib/inLibMsgPresupuestos.pas',
+    @inLibMsgPresupuestos.SErrorPresupuestoNoDisponibleVenta);
+
   ARegistrar(
     'inLibMsgPresupuestos.SErrorPresupuestoNoExiste',
     'src/Lib/inLibMsgPresupuestos.pas',
@@ -39128,6 +39156,9 @@ begin
     'src/Lib/inLibMsgComun.pas',
     @inLibMsgComun.
       STotalPendienteCuenta);
+  ARegistrar('inLibMsgVentas.SErrorEfectoNoAdmiteAdeudoSepa',
+    'src/Lib/inLibMsgVentas.pas',
+    @inLibMsgVentas.SErrorEfectoNoAdmiteAdeudoSepa);
 end;
 {$WARN SYMBOL_DEPRECATED ON}
 

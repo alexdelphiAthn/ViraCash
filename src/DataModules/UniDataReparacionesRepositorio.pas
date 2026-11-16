@@ -240,18 +240,36 @@ end;
 procedure TRepositorioReparacionesUniDAC.EnTransaccion(AAccion: TProc);
 var
   bPropia: Boolean;
+  oPunto: TUniQuery;
 begin
   bPropia := not FConexion.InTransaction;
-  if bPropia then
-    FConexion.StartTransaction;
+  oPunto := NuevaConsulta('SAVEPOINT REPARACION_OPERACION');
   try
-    AAccion();
     if bPropia then
-      FConexion.Commit;
-  except
-    if bPropia then
-      FConexion.Rollback;
-    raise;
+      FConexion.StartTransaction
+    else
+      oPunto.Execute;
+    try
+      AAccion();
+      if bPropia then
+        FConexion.Commit
+      else
+      begin
+        oPunto.SQL.Text := 'RELEASE SAVEPOINT REPARACION_OPERACION';
+        oPunto.Execute;
+      end;
+    except
+      if bPropia then
+        FConexion.Rollback
+      else
+      begin
+        oPunto.SQL.Text := 'ROLLBACK TO SAVEPOINT REPARACION_OPERACION';
+        oPunto.Execute;
+      end;
+      raise;
+    end;
+  finally
+    FreeAndNil(oPunto);
   end;
 end;
 
@@ -399,6 +417,8 @@ begin
     var
       oConsulta: TUniQuery;
       oPrendas: TDatosPrendasReparacion;
+      oDetalles: TDatosTrabajosCortinas;
+      bInstalacion: Boolean;
     begin
       oConsulta := NuevaConsulta(SQL_ALTA_REPARACION);
       try
@@ -458,9 +478,18 @@ begin
         TRepositorioMedidasCliente.VincularAlta(FConexion, iId,
           AReparacion.Cliente, AReparacion.IdMedicionCliente,
           AReparacion.Usuario);
+      oDetalles := TDatosTrabajosCortinas.Create(FConexion);
+      try
+        oDetalles.GuardarAlta(iId, AReparacion);
+        bInstalacion := oDetalles.ClaseTipo(AReparacion.Tipo) =
+          'INSTALACION';
+      finally
+        FreeAndNil(oDetalles);
+      end;
       InsertarPrimeraLinea(iId, AReparacion);
       RegistrarFaseAlta(iId, AReparacion.Usuario);
       if (AReparacion.Origen = ORIGEN_REPARACION_CLIENTE) and
+         not bInstalacion and
          (AReparacion.SerieVenta = '') then
       begin
         oPrendas := TDatosPrendasReparacion.Create(FConexion);

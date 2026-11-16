@@ -37,7 +37,8 @@ type
     class procedure EditarOrden(AOwner: TComponent;
       AConexion: TUniConnection; AReparacion: Int64; const AUsuario: string);
     class function Editar(AOwner: TComponent; const ATitulo: string;
-      var ATrabajo: TDatosTrabajoReparacion): Boolean;
+      var ATrabajo: TDatosTrabajoReparacion;
+      AClaseFija: Boolean = True): Boolean;
   end;
 
 implementation
@@ -100,7 +101,7 @@ begin
     FClase.ItemIndex := 1
   else if ATrabajo.Clase=CLASE_SERVICIO_INSTALACION then
     FClase.ItemIndex := 2;
-  FClase.Properties.ReadOnly := FClase.ItemIndex>0;
+  FClase.Properties.ReadOnly := False;
   FClase.Properties.OnEditValueChanged := CambiarClase;
   CambiarClase(FClase);
 end;
@@ -172,14 +173,14 @@ begin
     begin
       SetLength(Detalles,1);
       Detalles[0].UnidadServicio := 1;
-      Detalles[0].Trabajo.Clase := CLASE_SERVICIO_TALLER;
+      Detalles[0].Trabajo.Clase := oDatos.ClaseOrden(AReparacion);
     end;
     bAceptar := True;
     for i := 0 to High(Detalles) do
       if bAceptar then
         bAceptar := Editar(AOwner,SMedidasCita+' · '+
           Format(SDetalleUnidad,[Detalles[i].UnidadServicio]),
-          Detalles[i].Trabajo);
+          Detalles[i].Trabajo, False);
     if bAceptar then
       oDatos.GuardarEdicion(AReparacion,Detalles,AUsuario);
   finally
@@ -188,7 +189,8 @@ begin
 end;
 
 class function TfrmModalTrabajoCortina.Editar(AOwner: TComponent;
-  const ATitulo: string; var ATrabajo: TDatosTrabajoReparacion): Boolean;
+  const ATitulo: string; var ATrabajo: TDatosTrabajoReparacion;
+  AClaseFija: Boolean): Boolean;
 var
   oFormulario: TfrmModalTrabajoCortina;
 begin
@@ -200,6 +202,8 @@ begin
       oFormulario.pnlButton.Height;
     oFormulario.OnClose := oFormulario.CerrarSinLiberar;
     oFormulario.CrearControles(ATrabajo);
+    oFormulario.FClase.Properties.ReadOnly :=
+      AClaseFija and (oFormulario.FClase.ItemIndex > 0);
     oFormulario.ShowModal;
     Result := oFormulario.sFicha='S';
     if Result then

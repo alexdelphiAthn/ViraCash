@@ -792,8 +792,10 @@ begin
   Fecha := Date;
   if not unqryTablaG.FieldByName('FECHA_PRE').IsNull then
     Fecha := unqryTablaG.FieldByName('FECHA_PRE').AsDateTime;
-  if unqryTablaG.FieldByName(
-    'ESRETENCIONES_EMPRESA_PRE').AsString = 'S' then
+  if (unqryTablaG.FieldByName(
+    'ESRETENCIONES_EMPRESA_PRE').AsString = 'S') and
+     (unqryTablaG.FieldByName(
+    'ESRETENCIONES_CLIENTE_PRE').AsString = 'S') then
     Porcentaje := CrearLecturasImpuestos(
       unqryTablaG.Connection).LeerRetencionEmpresa(
         unqryTablaG.FieldByName('CODIGO_EMP_PRE').AsString, Fecha);

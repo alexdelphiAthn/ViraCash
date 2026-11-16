@@ -19,7 +19,7 @@ function EnviarDocumentoAListaRegalos(AConexion: TUniConnection;
 implementation
 
 uses
-  inLibMsgFacturas,
+  UniDataPresupuestosSql, inLibMsgFacturas,
   System.SysUtils, System.Math, Data.DB, DBAccess, UniDataPedidosCompraPendientes,
   UniDataProveedoresTexto,
   inLibDocumentosTrabajoEstados, inLibMsgVentas,
@@ -644,6 +644,10 @@ begin
        AOrigen.NumeroParaMostrar,
        Trim(AOrigen.Empresa)]);
   end;
+  if SameText(AOrigen.TipoDocumento,
+       TIPO_DOCUMENTO_ORIGEN_PRESUPUESTO_VENTA) then
+    ComprobarPresupuestoDisponible(AConsulta.Connection,
+      AOrigen.Serie, AOrigen.Numero);
   if SameText(Trim(AConsulta.FieldByName('ESTADO').AsString),
               'CANCELADO') then
   begin

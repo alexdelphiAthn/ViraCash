@@ -11,6 +11,7 @@
         ExplicitHeight = 484
         inherited cxGrdPrincipal: TcxGrid
           inherited cxGrdDBTabPrin: TcxGridDBTableView
+            OptionsSelection.CheckBoxVisibility = [cbvDataRow]
             OptionsSelection.MultiSelect = True
             object dbcGrdDBTabPrinNUMERO_FAC_EFV: TcxGridDBColumn
               Caption = 'Borrador'
@@ -111,7 +112,7 @@
       Top = 250
       Width = 137
       Height = 44
-      Caption = 'Fusionar efectos'
+      Caption = 'Fusionar / compensar'
       TabOrder = 3
       OnClick = btnFusionarEfectosClick
     end

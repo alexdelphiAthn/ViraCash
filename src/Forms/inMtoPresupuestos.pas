@@ -28,7 +28,8 @@ uses
   cxSpinEdit, cxCurrencyEdit, cxNavigator,
   dxDateRanges, dxScrollbarAnnotations, Vcl.Menus, cxBlobEdit, dxShellDialogs,
   JvComponentBase, JvEnterTab, cxLocalization, Vcl.StdCtrls, cxRadioGroup,
-  cxDBNavigator, Vcl.Buttons, System.UITypes, cxMemo, cxCheckBox, cxGroupBox,
+  cxDBNavigator, Vcl.Buttons, System.Types, System.UITypes, cxMemo,
+  cxCheckBox, cxGroupBox,
   cxDBLabel, cxButtonEdit, System.Generics.Collections,
   cxGridBandedTableView, cxGridDBBandedTableView, UniDataPresupuestos,
   System.Actions, Vcl.ActnList,
@@ -209,6 +210,9 @@ type
     dmmPresupuestos: TdmPresupuestos;
     btnPasarDocumento: TcxButton;
     btnEnviarCaja: TcxButton;
+    btnCambiarEstado: TcxButton;
+    MenuEstado: TPopupMenu;
+    MenuRechazar, MenuAnular, MenuReabrir: TMenuItem;
     FBuscandoDatosCabecera: Boolean;
     FAplicandoArticulo: Boolean;
     FOldLineasAfterPost: TDataSetNotifyEvent;
@@ -278,6 +282,9 @@ type
     procedure dsLineasDataChangeHook(Sender: TObject; Field: TField);
     procedure DesactivarEnterAsTabEnCombo(AComp: TcxDBLookupComboBox);
     procedure CrearAccionesPresupuesto;
+    procedure AbrirMenuEstado(Sender: TObject);
+    procedure CambiarEstadoClick(Sender: TObject);
+    procedure ActualizarAccionesEstado;
     procedure PasarPresupuestoDocumento;
     function DestinosPermitidosPresupuesto: TDestinosPresupuesto;
     function DestinoConvertidoPresupuesto(
@@ -1271,6 +1278,7 @@ procedure TfrmMtoPresupuestos.dsTablaGDataChangeHook(Sender: TObject;
                                                    Field: TField);
 begin
   ActualizarDesgloseRecargo;
+  ActualizarAccionesEstado;
   if (Field = nil) and Assigned(dmmPresupuestos) and
      dmmPresupuestos.unqryTablaG.Active and
      (not dmmPresupuestos.unqryTablaG.IsEmpty) then
@@ -1712,6 +1720,87 @@ begin
     btnEnviarCaja := CrearBoton(SCaptionEnviarPresupuestoCaja,
       EnviarCajaClick);
     btnEnviarCaja.Top := 210;
+    btnCambiarEstado := CrearBoton(SCaptionCambiarEstadoPresupuesto,
+      AbrirMenuEstado);
+    btnCambiarEstado.Top := 274;
+    MenuEstado := TPopupMenu.Create(Self);
+    MenuRechazar := TMenuItem.Create(MenuEstado);
+    MenuRechazar.Caption := SCaptionRechazarPresupuesto;
+    MenuRechazar.Tag := 0;
+    MenuRechazar.OnClick := CambiarEstadoClick;
+    MenuEstado.Items.Add(MenuRechazar);
+    MenuAnular := TMenuItem.Create(MenuEstado);
+    MenuAnular.Caption := SCaptionAnularPresupuesto;
+    MenuAnular.Tag := 1;
+    MenuAnular.OnClick := CambiarEstadoClick;
+    MenuEstado.Items.Add(MenuAnular);
+    MenuReabrir := TMenuItem.Create(MenuEstado);
+    MenuReabrir.Caption := SCaptionReabrirPresupuesto;
+    MenuReabrir.Tag := 2;
+    MenuReabrir.OnClick := CambiarEstadoClick;
+    MenuEstado.Items.Add(MenuReabrir);
+  end;
+end;
+
+procedure TfrmMtoPresupuestos.ActualizarAccionesEstado;
+var
+  Estado: string;
+begin
+  if Assigned(btnCambiarEstado) then
+  begin
+    Estado := '';
+    if Assigned(dmmPresupuestos) and
+       dmmPresupuestos.unqryTablaG.Active and
+       not dmmPresupuestos.unqryTablaG.IsEmpty and
+       (dmmPresupuestos.unqryTablaG.State <> dsInsert) and
+       (dmmPresupuestos.unqryTablaG.FieldByName(
+         'NUMERO_DESTINO_PRE').AsString = '') then
+      Estado := dmmPresupuestos.unqryTablaG.FieldByName(
+        'ESTADO_PRE').AsString;
+    MenuRechazar.Enabled :=
+      TransicionEstadoPresupuestoPermitida(Estado, 'RECHAZADO');
+    MenuAnular.Enabled :=
+      TransicionEstadoPresupuestoPermitida(Estado, 'ANULADO');
+    MenuReabrir.Enabled :=
+      TransicionEstadoPresupuestoPermitida(Estado, 'ABIERTO');
+    btnCambiarEstado.Enabled := MenuRechazar.Enabled or
+      MenuAnular.Enabled or MenuReabrir.Enabled;
+  end;
+end;
+
+procedure TfrmMtoPresupuestos.AbrirMenuEstado(Sender: TObject);
+var
+  Posicion: TPoint;
+begin
+  if PuedeAccionMto(apmModificar) then
+  begin
+    ActualizarAccionesEstado;
+    if btnCambiarEstado.Enabled then
+    begin
+      Posicion := btnCambiarEstado.ClientToScreen(
+        Point(0, btnCambiarEstado.Height));
+      MenuEstado.Popup(Posicion.X, Posicion.Y);
+    end;
+  end;
+end;
+
+procedure TfrmMtoPresupuestos.CambiarEstadoClick(Sender: TObject);
+const
+  Estados: array[0..2] of string = ('RECHAZADO', 'ANULADO', 'ABIERTO');
+var
+  Opcion: TMenuItem;
+begin
+  if PuedeAccionMto(apmModificar) then
+  begin
+    Opcion := Sender as TMenuItem;
+    if MessageDlg_fza(Format(SPreguntaCambioEstadoPresupuesto,
+      [dmmPresupuestos.unqryTablaG.FieldByName('SERIE_PRE').AsString,
+       dmmPresupuestos.unqryTablaG.FieldByName('NUMERO_PRE').AsString,
+       Opcion.Caption]), mtConfirmation, [mbYes, mbNo], 0, mbNo) = mrYes then
+    begin
+      dmmPresupuestos.CambiarEstado(Estados[Opcion.Tag]);
+      ActualizarAccionesEstado;
+    end;
   end;
 end;
 

@@ -18,7 +18,7 @@ interface
 uses
   inLibRegistroPantallas,
   System.SysUtils, System.Classes, UniDataGen, Data.DB, MemDS, DBAccess, Uni,
-  inLibUser, UniDataConn, inLibEfectosCalculo;
+  inLibUser, UniDataConn, inLibEfectosCalculo, inLibFusionEfectosIntf;
 
 type
   TClaveEfectoVenta = record
@@ -32,6 +32,12 @@ type
   TdmEfectosVenta = class(TdmBase)
     procedure unqryTablaGBeforeDelete(DataSet: TDataSet);
   private
+    procedure BloquearOrigenesFusion(AConsulta: TUniQuery;
+      ACantidad: Integer);
+    function ElegirOrigenFusion(AConsulta: TUniQuery): TClaveEfectoVenta;
+    function AplicarFusion(AConsulta: TUniQuery;
+      const AResumen: TResumenFusionEfectos;
+      out AReferencia: string): Integer;
     procedure PrepararClavesFusion(
       AConsulta: TUniQuery;
       const AClaves: TClavesEfectoVenta);
@@ -60,7 +66,7 @@ type
     function RegistrarCobro(const ASerie, ANumero: string; ANumEfec: Integer;
       AFecha: TDateTime; AImporte: Double;
       const ATipo, AReferencia: string): Integer;
-    // Agrupa varios efectos imcobrados en uno unico. Los origenes quedan en
+    // Agrupa varios efectos pendientes en uno unico. Los origenes quedan en
     // estado CONCILIADO y referenciados al efecto resumen.
     function FusionarEfectosPendientes(const AClaves: TClavesEfectoVenta;
       out AReferencia: string): Integer;
@@ -100,6 +106,65 @@ begin
     raise Exception.Create(SErrorBorrarEfectoVentaCobrado);
 end;
 
+procedure TdmEfectosVenta.BloquearOrigenesFusion(
+  AConsulta: TUniQuery; ACantidad: Integer);
+begin
+  AConsulta.SQL.Text := 'SELECT F.SERIE_FAC FROM fza_facturas F ' +
+    'JOIN tmp_efv_fusion T ON T.SERIE_FAC=F.SERIE_FAC ' +
+    'AND T.NUMERO_FAC=F.NUMERO_FAC WHERE F.ESCONSOLIDADA_FAC=''S'' ' +
+    'AND COALESCE(F.FASE_FAC, '''') NOT IN (''BORRADOR'', ''ERROR'', ' +
+    '''ERROR_BORRADOR'', ''CANCELADA'', ''SIN_VERIF_ANULADA'', ' +
+    '''VERIFACTU_ANULADA'', ''NOVERIFACTU_ANULADA'') ' +
+    'ORDER BY F.SERIE_FAC,F.NUMERO_FAC FOR UPDATE';
+  AConsulta.Open;
+  if AConsulta.RecordCount <> ACantidad then
+    raise EValidacionFusionEfectos.Create(SErrorFusionarEfectosVentaEstado);
+  AConsulta.Close;
+  AConsulta.SQL.Text := 'SELECT E.NUMERO_EFV FROM fza_efectos_venta E ' +
+    'JOIN tmp_efv_fusion T ON T.SERIE_FAC=E.SERIE_FAC_EFV ' +
+    'AND T.NUMERO_FAC=E.NUMERO_FAC_EFV AND T.NUMERO_EFV=E.NUMERO_EFV ' +
+    'ORDER BY E.SERIE_FAC_EFV,E.NUMERO_FAC_EFV,E.NUMERO_EFV FOR UPDATE';
+  AConsulta.Open;
+  AConsulta.Close;
+end;
+
+function TdmEfectosVenta.ElegirOrigenFusion(
+  AConsulta: TUniQuery): TClaveEfectoVenta;
+begin
+  AConsulta.SQL.Text := 'SELECT E.SERIE_FAC_EFV,E.NUMERO_FAC_EFV, ' +
+    'E.NUMERO_EFV FROM fza_efectos_venta E JOIN tmp_efv_fusion T ' +
+    'ON T.SERIE_FAC=E.SERIE_FAC_EFV AND T.NUMERO_FAC=E.NUMERO_FAC_EFV ' +
+    'AND T.NUMERO_EFV=E.NUMERO_EFV WHERE E.IMPORTE_PENDIENTE_EFV>0 ' +
+    'ORDER BY E.SERIE_FAC_EFV,E.NUMERO_FAC_EFV,E.NUMERO_EFV LIMIT 1';
+  AConsulta.Open;
+  if AConsulta.IsEmpty then
+    raise EValidacionFusionEfectos.Create(
+      SErrorFusionarEfectosVentaSinPendiente);
+  Result.SerieFac := AConsulta.Fields[0].AsString;
+  Result.NumeroFac := AConsulta.Fields[1].AsString;
+  Result.NumeroEfec := AConsulta.Fields[2].AsInteger;
+  AConsulta.Close;
+end;
+
+function TdmEfectosVenta.AplicarFusion(AConsulta: TUniQuery;
+  const AResumen: TResumenFusionEfectos; out AReferencia: string): Integer;
+var
+  rOrigen: TClaveEfectoVenta;
+  iNuevo: Integer;
+begin
+  rOrigen := ElegirOrigenFusion(AConsulta);
+  iNuevo := rOrigen.NumeroEfec;
+  if AResumen.ImportePendiente > 0.0001 then
+    iNuevo := ObtenerNumeroFusion(AConsulta,
+      rOrigen.SerieFac, rOrigen.NumeroFac);
+  AReferencia := TCalculoFusionEfectos.CrearReferencia(
+    rOrigen.SerieFac, rOrigen.NumeroFac, iNuevo);
+  if AResumen.ImportePendiente > 0.0001 then
+    InsertarEfectoFusionado(AConsulta, rOrigen, iNuevo, AReferencia);
+  Result := ConciliarEfectosOrigen(AConsulta,
+    rOrigen.SerieFac, rOrigen.NumeroFac, iNuevo, AReferencia);
+end;
+
 procedure TdmEfectosVenta.PrepararClavesFusion(
   AConsulta: TUniQuery;
   const AClaves: TClavesEfectoVenta);
@@ -117,7 +182,7 @@ begin
   AConsulta.SQL.Text := 'DELETE FROM tmp_efv_fusion';
   AConsulta.ExecSQL;
   AConsulta.SQL.Text :=
-    'INSERT INTO tmp_efv_fusion ' +
+    'INSERT IGNORE INTO tmp_efv_fusion ' +
     '  (SERIE_FAC, NUMERO_FAC, NUMERO_EFV) ' +
     'VALUES (:serie, :numero, :efecto)';
   for i := 0 to Length(AClaves) - 1 do
@@ -146,8 +211,8 @@ begin
     '   AND T.NUMERO_FAC = E.NUMERO_FAC_EFV ' +
     '   AND T.NUMERO_EFV = E.NUMERO_EFV ' +
     ' WHERE COALESCE(E.ESTADO_EFV, '''') IN ('''', ''PENDIENTE'') ' +
-    '   AND COALESCE(E.IMPORTE_COBRADO_EFV, 0) <= 0.0001 ' +
-    '   AND COALESCE(E.IMPORTE_PENDIENTE_EFV, 0) > 0.0001 ' +
+    '   AND ABS(COALESCE(E.IMPORTE_COBRADO_EFV, 0)) <= 0.0001 ' +
+    '   AND ABS(COALESCE(E.IMPORTE_PENDIENTE_EFV, 0)) > 0.0001 ' +
     '   AND COALESCE(E.ESCONCILIADO_EFV, ''N'') <> ''S'' ' +
     '   AND COALESCE(E.SERIE_REMV_EFV, '''') = '''' ' +
     '   AND COALESCE(E.NUMERO_REMV_EFV, '''') = '''' ' +
@@ -166,11 +231,13 @@ procedure TdmEfectosVenta.ValidarResumenFusion(
 begin
   case TCalculoFusionEfectos.Validar(AResumen, ACantidadEsperada) of
     efeCantidadInvalida:
-      raise Exception.Create(SErrorFusionarEfectosVentaEstado);
+      raise EValidacionFusionEfectos.Create(SErrorFusionarEfectosVentaEstado);
     efeOrigenInvalido:
-      raise Exception.Create(SErrorFusionarEfectosVentaOrigen);
+      raise EValidacionFusionEfectos.Create(SErrorFusionarEfectosVentaOrigen);
     efeSinImportePendiente:
-      raise Exception.Create(SErrorFusionarEfectosVentaSinPendiente);
+      if AResumen.ImportePendiente < -0.0001 then
+        raise EValidacionFusionEfectos.Create(
+          SErrorFusionarEfectosVentaSinPendiente);
   end;
 end;
 
@@ -309,10 +376,7 @@ function TdmEfectosVenta.FusionarEfectosPendientes(
 var
   q: TUniQuery;
   EsTransaccionPropia: Boolean;
-  iNuevoEfec: Integer;
   oResumen: TResumenFusionEfectos;
-  sNumeroDestino: string;
-  sSerieDestino: string;
 begin
   Result := 0;
   AReferencia := '';
@@ -323,39 +387,36 @@ begin
       q.Connection := ConexionPrincipal;
       EsTransaccionPropia := not ConexionPrincipal.InTransaction;
       if EsTransaccionPropia then
-        ConexionPrincipal.StartTransaction;
+        ConexionPrincipal.StartTransaction
+      else
+      begin
+        q.SQL.Text := 'SAVEPOINT FUSION_EFV';
+        q.Execute;
+      end;
       try
         PrepararClavesFusion(q, AClaves);
+        BloquearOrigenesFusion(q, Length(AClaves));
         oResumen := LeerResumenFusion(q);
         ValidarResumenFusion(oResumen, Length(AClaves));
-        sSerieDestino := AClaves[0].SerieFac;
-        sNumeroDestino := AClaves[0].NumeroFac;
-        iNuevoEfec := ObtenerNumeroFusion(
-          q,
-          sSerieDestino,
-          sNumeroDestino);
-        AReferencia := TCalculoFusionEfectos.CrearReferencia(
-          sSerieDestino,
-          sNumeroDestino,
-          iNuevoEfec);
-        InsertarEfectoFusionado(
-          q,
-          AClaves[0],
-          iNuevoEfec,
-          AReferencia);
-        Result := ConciliarEfectosOrigen(
-          q,
-          sSerieDestino,
-          sNumeroDestino,
-          iNuevoEfec,
-          AReferencia);
+        Result := AplicarFusion(q, oResumen, AReferencia);
         q.SQL.Text := 'DROP TEMPORARY TABLE IF EXISTS tmp_efv_fusion';
         q.ExecSQL;
         if EsTransaccionPropia then
-          ConexionPrincipal.Commit;
+          ConexionPrincipal.Commit
+        else
+        begin
+          q.SQL.Text := 'RELEASE SAVEPOINT FUSION_EFV';
+          q.Execute;
+        end;
       except
         if EsTransaccionPropia and ConexionPrincipal.InTransaction then
-          ConexionPrincipal.Rollback;
+          ConexionPrincipal.Rollback
+        else if ConexionPrincipal.InTransaction then
+        begin
+          q.Close;
+          q.SQL.Text := 'ROLLBACK TO SAVEPOINT FUSION_EFV';
+          q.Execute;
+        end;
         raise;
       end;
     finally

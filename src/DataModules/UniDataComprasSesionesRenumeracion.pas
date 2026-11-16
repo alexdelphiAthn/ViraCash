@@ -10,7 +10,7 @@
 {                                                                              }
 {  Descripción:                                                                }
 {    Renumera de 10 en 10 las líneas de una sesión de compra siguiendo el      }
-{    orden artículo, color y línea, y arrastra las tablas que cuelgan de la    }
+{    orden artículo y línea, y arrastra las tablas que cuelgan de la           }
 {    línea (FZ-ISSUE-416).                                                     }
 {******************************************************************************}
 unit UniDataComprasSesionesRenumeracion;
