@@ -22,10 +22,15 @@ procedure ComprobarPresupuestoEditable(AConexion: TUniConnection;
 procedure EliminarDetallePresupuesto(AConexion: TUniConnection;
   const ASerie, ANumero: string);
 
+procedure CambiarEstadoPresupuesto(AConexion: TUniConnection;
+  const AEmpresa, ASerie, ANumero, AAnterior, ANuevo, AUsuario: string);
+procedure ComprobarPresupuestoDisponible(AConexion: TUniConnection;
+  const ASerie, ANumero: string; AAdmitirConvertido: Boolean = False);
+
 implementation
 
 uses
-  System.SysUtils, Data.DB, inLibErroresBBDD;
+  System.SysUtils, Data.DB, inLibErroresBBDD, inLibPresupuestosIntf;
 
 const
   COLUMNAS_CABECERA =
@@ -359,7 +364,7 @@ begin
   try
     oConsulta.Connection := AConexion;
     oConsulta.SQL.Text :=
-      'SELECT NUMERO_DESTINO_PRE FROM fza_presupuestos ' +
+      'SELECT ESTADO_PRE, NUMERO_DESTINO_PRE FROM fza_presupuestos ' +
       'WHERE SERIE_PRE = :SERIE AND NUMERO_PRE = :NUMERO FOR UPDATE';
     oConsulta.ParamByName('SERIE').AsString := ASerie;
     oConsulta.ParamByName('NUMERO').AsString := ANumero;
@@ -369,8 +374,74 @@ begin
       // Rechazo de negocio: el gestor global lo presenta como aviso.
       raise EValidacionBBDD.Create(
         SErrorPresupuestoConvertidoSoloLectura);
+    if not oConsulta.IsEmpty and
+       not SameText(oConsulta.FieldByName('ESTADO_PRE').AsString,
+         'ABIERTO') then
+      raise EValidacionBBDD.Create(SErrorPresupuestoVentaNoAbierto);
   finally
     FreeAndNil(oConsulta);
+  end;
+end;
+
+procedure CambiarEstadoPresupuesto(AConexion: TUniConnection;
+  const AEmpresa, ASerie, ANumero, AAnterior, ANuevo, AUsuario: string);
+var
+  Consulta: TUniQuery;
+begin
+  if not TransicionEstadoPresupuestoPermitida(AAnterior, ANuevo) or
+     (Trim(AUsuario) = '') or (Trim(AEmpresa) = '') then
+    raise EValidacionBBDD.Create(SErrorCambioEstadoPresupuesto);
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := AConexion;
+    Consulta.SQL.Text := 'UPDATE fza_presupuestos ' +
+      'SET ESTADO_PRE=:NUEVO, USUARIO_MODIF=:USUARIO, ' +
+      'INSTANTE_MODIF=NOW() WHERE CODIGO_EMP_PRE=:EMPRESA ' +
+      'AND SERIE_PRE=:SERIE AND NUMERO_PRE=:NUMERO ' +
+      'AND ESTADO_PRE=:ANTERIOR ' +
+      'AND COALESCE(NUMERO_DESTINO_PRE, '''')=''''';
+    Consulta.ParamByName('NUEVO').AsString := ANuevo;
+    Consulta.ParamByName('ANTERIOR').AsString := AAnterior;
+    Consulta.ParamByName('EMPRESA').AsString := AEmpresa;
+    Consulta.ParamByName('SERIE').AsString := ASerie;
+    Consulta.ParamByName('NUMERO').AsString := ANumero;
+    Consulta.ParamByName('USUARIO').AsString := AUsuario;
+    Consulta.Execute;
+    if Consulta.RowsAffected <> 1 then
+      raise EValidacionBBDD.Create(SErrorCambioEstadoPresupuesto);
+  finally
+    Consulta.Free;
+  end;
+end;
+
+procedure ComprobarPresupuestoDisponible(AConexion: TUniConnection;
+  const ASerie, ANumero: string; AAdmitirConvertido: Boolean);
+var
+  Consulta: TUniQuery;
+  Convertido: Boolean;
+begin
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := AConexion;
+    Consulta.SQL.Text := 'SELECT ESTADO_PRE, NUMERO_DESTINO_PRE, ' +
+      'FECHA_VALIDEZ_PRE FROM fza_presupuestos ' +
+      'WHERE SERIE_PRE=:SERIE AND NUMERO_PRE=:NUMERO FOR UPDATE';
+    Consulta.ParamByName('SERIE').AsString := ASerie;
+    Consulta.ParamByName('NUMERO').AsString := ANumero;
+    Consulta.Open;
+    if Consulta.IsEmpty then
+      raise EValidacionBBDD.Create(SErrorPresupuestoNoExiste);
+    Convertido := SameText(
+      Consulta.FieldByName('ESTADO_PRE').AsString, 'CONVERTIDO') and
+      (Consulta.FieldByName('NUMERO_DESTINO_PRE').AsString <> '');
+    if not (AAdmitirConvertido and Convertido) and
+       not PresupuestoDisponibleParaVenta(
+         Consulta.FieldByName('ESTADO_PRE').AsString,
+         Consulta.FieldByName('NUMERO_DESTINO_PRE').AsString,
+         Consulta.FieldByName('FECHA_VALIDEZ_PRE').AsDateTime, Date) then
+      raise EValidacionBBDD.Create(SErrorPresupuestoNoDisponibleVenta);
+  finally
+    Consulta.Free;
   end;
 end;
 

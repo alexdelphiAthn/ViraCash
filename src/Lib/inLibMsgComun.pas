@@ -539,8 +539,8 @@ resourcestring
     'Enviar copia de seguridad protegida (ZIP)';
   STituloContrasenaCopiaError = 'Proteger copia de seguridad';
   SInfoContrasenaCopiaError =
-    'La copia se cifrará y comprimirá. Guarde esta contraseña: deberá ' +
-    'enviarla por correo al desarrollador.';
+    'La copia se cifra automáticamente. La clave de recuperación ' +
+    'se incluye cifrada en el nombre del fichero.';
   SCaptionContrasenaCopiaError = 'Contraseña';
   SCaptionRepetirContrasenaCopiaError = 'Repita la contraseña';
   SErrorContrasenaCopiaErrorVacia =
@@ -587,8 +587,8 @@ resourcestring
   SInfoSeguimientoError =
     'Puede consultar la comunicación en: %s';
   SInfoEnviarContrasenaCopiaError =
-    'La contraseña no se ha enviado ni almacenado. Envíela usted por ' +
-    'correo a info@viracash.net e indique esta referencia: %s';
+    'La copia incluye la clave de recuperación cifrada en el nombre ' +
+    'del fichero .crypt dentro del ZIP.';
   SCaptionSinFiltrosGuardados = '(Sin filtros guardados)';
   SCaptionGuardarFiltroActual = 'Guardar filtro actual...';
   SCaptionGestionarCompartirFiltros = 'Gestionar y compartir filtros...';

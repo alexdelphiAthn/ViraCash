@@ -112,6 +112,7 @@ procedure LimpiarLineasDepositoSinImporteCaja(ALineas: TDataSet);
 implementation
 
 uses
+  inLibPresupuestosIntf,
   inLibFormatoDocumento, UniDataFormatoDocumentoRepositorio,
   inLibMsgCaja, inLibMsgPresupuestos, inLibErroresBBDD,
   UniDataFaseCobroRepositorio, UniDataCajaConsultasRepositorio,
@@ -220,7 +221,8 @@ begin
   Consulta := CrearConsulta;
   try
     Consulta.SQL.Text :=
-      'SELECT ESTADO_PRE, NUMERO_DESTINO_PRE FROM fza_presupuestos ' +
+      'SELECT ESTADO_PRE, NUMERO_DESTINO_PRE, FECHA_VALIDEZ_PRE ' +
+      'FROM fza_presupuestos ' +
       'WHERE CODIGO_EMP_PRE = :EMPRESA AND SERIE_PRE = :SERIE ' +
       'AND NUMERO_PRE = :NUMERO FOR UPDATE';
     Consulta.ParamByName('EMPRESA').AsString := AEmpresa;
@@ -229,9 +231,10 @@ begin
     Consulta.Open;
     if Consulta.IsEmpty then
       raise EValidacionBBDD.Create(SErrorPresupuestoNoExiste);
-    if not SameText(Consulta.FieldByName('ESTADO_PRE').AsString,
-      'ABIERTO') or
-      (Trim(Consulta.FieldByName('NUMERO_DESTINO_PRE').AsString) <> '') then
+    if not PresupuestoDisponibleParaVenta(
+      Consulta.FieldByName('ESTADO_PRE').AsString,
+      Consulta.FieldByName('NUMERO_DESTINO_PRE').AsString,
+      Consulta.FieldByName('FECHA_VALIDEZ_PRE').AsDateTime, Date) then
       raise EValidacionBBDD.Create(SErrorPresupuestoCajaNoDisponible);
   finally
     FreeAndNil(Consulta);
@@ -256,10 +259,12 @@ begin
       'USUARIO_MODIF = :USUARIO, INSTANTE_MODIF = NOW() ' +
       'WHERE CODIGO_EMP_PRE = :EMPRESA AND SERIE_PRE = :SERIE ' +
       'AND NUMERO_PRE = :NUMERO AND ESTADO_PRE = ''ABIERTO'' ' +
-      'AND LENGTH(COALESCE(NUMERO_DESTINO_PRE, SPACE(0))) = 0';
+      'AND LENGTH(COALESCE(NUMERO_DESTINO_PRE, SPACE(0))) = 0 ' +
+      'AND (FECHA_VALIDEZ_PRE IS NULL OR FECHA_VALIDEZ_PRE >= :HOY)';
     Consulta.ParamByName('EMPRESA').AsString := AEmpresa;
     Consulta.ParamByName('SERIE').AsString := ASerie;
     Consulta.ParamByName('NUMERO').AsString := ANumero;
+    Consulta.ParamByName('HOY').AsDate := Date;
     Consulta.ParamByName('FACTURA_SERIE').AsString := ASerieFactura;
     Consulta.ParamByName('FACTURA_NUMERO').AsString := ANumeroFactura;
     Consulta.ParamByName('USUARIO').AsString := FUsuarioAuditoria;
@@ -448,7 +453,7 @@ begin
     // los cobros del ticket sustituido para impedir un doble reembolso.
     // La unión parte de esos documentos, no de todas las ventas de caja.
     Result.SQL.Text :=
-      'SELECT O.CODIGO_EMP_OPCAJA, O.CODIGO_ALM_OPCAJA, ' +
+      'SELECT O.ID_OPCAJA, O.CODIGO_EMP_OPCAJA, O.CODIGO_ALM_OPCAJA, ' +
       ' O.CODIGO_CAJA_OPCAJA, O.NUMERO_OPERACION_OPCAJA, ' +
       ' O.IMPORTE_TOTAL_OPCAJA, O.IMPORTE_DEVUELTO_ACUM_OPCAJA ' +
       ' FROM (SELECT :SERIE AS SERIE_DOC, :NUMERO AS NUMERO_DOC ' +
@@ -461,7 +466,12 @@ begin
       ' ON O.CODIGO_EMP_OPCAJA = :EMP ' +
       ' AND O.SERIE_FAC_OPCAJA = D.SERIE_DOC ' +
       ' AND O.NUMERO_FAC_OPCAJA = D.NUMERO_DOC ' +
-      ' WHERE O.TIPO_OPERACION_OPCAJA = ''VE'' ' +
+      ' WHERE (O.TIPO_OPERACION_OPCAJA = ''VE'' OR ' +
+      ' (O.TIPO_OPERACION_OPCAJA IN (''DE'', ''CB'') AND EXISTS (' +
+      ' SELECT 1 FROM fza_depositos_cliente DAP ' +
+      ' WHERE DAP.ID_DEPOSITO_DEP = O.ID_DEPOSITO_OPCAJA ' +
+      ' AND DAP.CODIGO_EMP_DEP = O.CODIGO_EMP_OPCAJA ' +
+      ' AND DAP.ESAPARTADO_DEP = ''S''))) ' +
       ' AND O.IMPORTE_TOTAL_OPCAJA > 0 ' +
       ' AND (:ALM = '''' OR O.CODIGO_ALM_OPCAJA = :ALM ' +
       ' OR D.SERIE_DOC <> :SERIE OR D.NUMERO_DOC <> :NUMERO) ' +
@@ -492,7 +502,7 @@ begin
     'WHERE CODIGO_EMP_OPCAJA = :EMP AND CODIGO_ALM_OPCAJA = :ALM ' +
     ' AND CODIGO_CAJA_OPCAJA = :CAJA ' +
     ' AND NUMERO_OPERACION_OPCAJA = :OPERACION ' +
-    ' AND TIPO_OPERACION_OPCAJA = ''VE'' ' +
+    ' AND ID_OPCAJA = :ID ' +
     ' AND COALESCE(IMPORTE_DEVUELTO_ACUM_OPCAJA, 0) + :IMPORTE <= ' +
     ' IMPORTE_TOTAL_OPCAJA';
   AConsulta.ParamByName('EMP').AsString :=
@@ -503,6 +513,8 @@ begin
     AOrigen.FieldByName('CODIGO_CAJA_OPCAJA').AsString;
   AConsulta.ParamByName('OPERACION').AsString :=
     AOrigen.FieldByName('NUMERO_OPERACION_OPCAJA').AsString;
+  AConsulta.ParamByName('ID').AsLargeInt :=
+    AOrigen.FieldByName('ID_OPCAJA').AsLargeInt;
   AConsulta.ParamByName('IMPORTE').AsCurrency := AImporte;
   AConsulta.ParamByName('USUARIO').AsString := FUsuarioAuditoria;
   AConsulta.Execute;

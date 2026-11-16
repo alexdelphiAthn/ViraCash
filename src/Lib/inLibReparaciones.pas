@@ -197,6 +197,7 @@ type
   // Lo necesario para calcular la fase del expediente.
   TSituacionReparacion = record
     Estado: string;
+    ReparadaPorSat: Boolean;
     Entregado: Boolean;
     EsPresupuesto: Boolean;
     EstadoPresupuesto: string;
@@ -421,6 +422,9 @@ begin
   else if not PuedeEmpezarReparacion(ASituacion.EsPresupuesto,
           ASituacion.EstadoPresupuesto) then
     Result := FASE_REPARACION_PRESUPUESTO
+  else if ASituacion.ReparadaPorSat and
+          (ASituacion.LineasManoObra = 0) then
+    Result := FASE_REPARACION_REPARADO
   else if (ASituacion.LineasManoObra > 0) and
           (ASituacion.LineasTerminadas >= ASituacion.LineasManoObra) then
     Result := FASE_REPARACION_REPARADO

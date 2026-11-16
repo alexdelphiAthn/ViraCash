@@ -103,7 +103,6 @@ type
       const AContacto: TContactoError): TResultadoEnvioError;
     function PrepararCopiaSeguridad(
       var AEvidencia: TEvidenciaError;
-      const AContrasena: string;
       out AError: string): Boolean;
     procedure DescartarCopiaSeguridad(
       var AEvidencia: TEvidenciaError);

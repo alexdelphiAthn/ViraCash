@@ -242,6 +242,20 @@ begin
       CampoDestino.Value := CampoOrigen.Value;
     end;
   end;
+  // Anticipos antiguos: se guardaba el precio base con IVA incluido.
+  // Corregir su indicador al cargar evita convertir el IVA en descuento.
+  if SameText(AOrigen.FieldByName('CODIGO_ART_FACLIN').AsString,
+       'ANTICIPO') and
+     (AOrigen.FindField('ESIMP_INCL_TARIFA_FACLIN') <> nil) and
+     (ADestino.FindField('ESIMP_INCL_TARIFA_FACLIN') <> nil) and
+     (AOrigen.FindField('PRECIO_SALIDA_FACLIN') <> nil) and
+     (AOrigen.FindField('PRECIO_VENTA_SIVA_ARTICULO_FACLIN') <> nil) and
+     (AOrigen.FindField('PORCENTAJE_DTO_FACLIN') <> nil) and
+     (AOrigen.FieldByName('PORCENTAJE_DTO_FACLIN').AsFloat = 0) and
+     (Abs(AOrigen.FieldByName('PRECIO_SALIDA_FACLIN').AsCurrency -
+       AOrigen.FieldByName(
+         'PRECIO_VENTA_SIVA_ARTICULO_FACLIN').AsCurrency) < 0.0001) then
+    ADestino.FieldByName('ESIMP_INCL_TARIFA_FACLIN').AsString := 'N';
   CopiarAtributos(AOrigen, ADestino);
   // La sustitutiva conserva ventas, devoluciones y líneas gratuitas.
   // Sólo diferencias y devoluciones fuerzan el signo negativo.

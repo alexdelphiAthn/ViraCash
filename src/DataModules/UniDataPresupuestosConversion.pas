@@ -26,7 +26,7 @@ uses
   System.SysUtils, Data.DB,
   inLibDocumento, inLibDocumentoIntf,
   inLibValoresAutomaticos, UniDataValoresAutomaticosRepositorio,
-  UniDataAlbaranes, UniDataPedidos;
+  UniDataAlbaranes, UniDataPedidos, UniDataPresupuestosSql;
 
 function ResolverSerieDestino(AConexion: TUniConnection;
   const ASolicitud: TSolicitudConversionPresupuesto): string;
@@ -205,6 +205,8 @@ begin
   Result.Pantalla := PantallaDestinoPresupuesto(ASolicitud.Destino);
   AConexion.StartTransaction;
   try
+    ComprobarPresupuestoDisponible(AConexion, ASolicitud.Serie,
+      ASolicitud.Numero, True);
     if ASolicitud.ConOpciones then
     begin
       Result.Serie := Trim(ASolicitud.Opciones.SerieDestino);

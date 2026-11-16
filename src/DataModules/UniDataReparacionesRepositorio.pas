@@ -128,6 +128,10 @@ const
     'WHEN G.ESPRESUPUESTO_GAR = ''S'' AND ' +
     'COALESCE(G.ESTADO_PRESUPUESTO_GAR, '''') <> ''' + PRESUPUESTO_ACEPTADO +
     ''' THEN ''' + FASE_REPARACION_PRESUPUESTO + ''' ' +
+    'WHEN G.MODALIDAD_GAR = ''GARANTIA'' ' +
+    ' AND G.CODIGO_GARFA_GAR = ''ENTREGA_CLIENTE'' ' +
+    ' AND COALESCE(R.LINEAS_MANO_OBRA, 0) = 0 THEN ''' +
+    FASE_REPARACION_REPARADO + ''' ' +
     'WHEN COALESCE(R.LINEAS_MANO_OBRA, 0) > 0 ' +
     ' AND R.LINEAS_TERMINADAS >= R.LINEAS_MANO_OBRA THEN ''' +
     FASE_REPARACION_REPARADO + ''' ' +
@@ -831,6 +835,7 @@ begin
   Result := Default(TSituacionReparacion);
   oConsulta := NuevaConsulta(
     'SELECT G.ESTADO_GAR, G.FECHA_ENTREGA_CLI_GAR, G.ESPRESUPUESTO_GAR, ' +
+    '       G.MODALIDAD_GAR, G.CODIGO_GARFA_GAR, ' +
     '       G.ESTADO_PRESUPUESTO_GAR, ' +
     '       COALESCE(SUM(L.TIPO_LINEA_GARLIN = ''' +
     LINEA_REPARACION_MANO_OBRA + '''), 0) AS MANO_OBRA, ' +
@@ -850,6 +855,11 @@ begin
       raise EFaseReparacion.CreateFmt(SErrorReparacionNoExiste,
         [AReparacion]);
     Result.Estado := oConsulta.FieldByName('ESTADO_GAR').AsString;
+    Result.ReparadaPorSat :=
+      (oConsulta.FieldByName('MODALIDAD_GAR').AsString =
+        MODALIDAD_REPARACION_GARANTIA) and
+      (oConsulta.FieldByName('CODIGO_GARFA_GAR').AsString =
+        'ENTREGA_CLIENTE');
     Result.Entregado :=
       not oConsulta.FieldByName('FECHA_ENTREGA_CLI_GAR').IsNull;
     Result.EsPresupuesto :=

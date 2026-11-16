@@ -71,6 +71,9 @@ type
     function DocumentoVenta: string;
   end;
 
+function CoberturaGarantiaAcreditada(
+  const ADatos: TDatosSerieGarantia): Boolean;
+
 function EstadoGarantiaAbierto(const AEstado: string): Boolean;
 function AlmacenRecepcionGarantia(const ADatos: TDatosSerieGarantia;
   const AAlmacenSesion: string): string;
@@ -87,6 +90,14 @@ implementation
 
 uses
   System.SysUtils, inLibMsgGarantias;
+
+function CoberturaGarantiaAcreditada(
+  const ADatos: TDatosSerieGarantia): Boolean;
+begin
+  Result := ADatos.Vendida and (ADatos.FechaVenta > 0) and
+    ADatos.TieneMeses and (ADatos.FechaFinGarantia > 0) and
+    ADatos.EnGarantia;
+end;
 
 function TDatosSerieGarantia.DocumentoVenta: string;
 begin

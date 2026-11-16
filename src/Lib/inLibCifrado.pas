@@ -36,14 +36,13 @@ implementation
 
 uses
   inLibMsgComun,
-  System.Classes, System.SysUtils,
+  System.Classes, System.SysUtils, System.Hash,
   DCPcrypt2, DCPrijndael, dcpbase64;
 
+{$I inLibClavesCifrado.local.inc}
+
 const
-  CLAVE_AES_PREDETERMINADA =
-    'Key1234567890-1234567890-1234567';
-  VECTOR_AES_PREDETERMINADO =
-    '12345678901234561234567890123456';
+  MARCADOR_AES_ACTUAL = 'VCA2';
 
 function DecodificarBase64(const AEntrada: TBytes): TBytes;
 var
@@ -123,6 +122,8 @@ begin
         aDestino,
         iLongitud - iRelleno);
       Result := TEncoding.UTF8.GetString(aDestino);
+      if CifrarDatosAES(Result, AClave, AVectorInicializacion) <> ADatos then
+        Result := '';
     finally
       FreeAndNil(oCifrador);
     end;
@@ -179,40 +180,47 @@ begin
   end;
 end;
 
+function ClaveActualConContrasena(
+  const AContrasena: AnsiString): AnsiString;
+begin
+  Result := AnsiString(Copy(THashSHA2.GetHashString(
+    CLAVE_AES_ACTUAL + string(AContrasena)), 1, 32));
+end;
+
 function CifrarAESConContrasena(
   const ADatos: string;
   const AContrasena: AnsiString): string;
 begin
-  Result := CifrarDatosAES(
-    ADatos,
-    CLAVE_AES_PREDETERMINADA + AContrasena,
-    VECTOR_AES_PREDETERMINADO);
+  Result := MARCADOR_AES_ACTUAL + CifrarDatosAES(
+    ADatos, ClaveActualConContrasena(AContrasena), VECTOR_AES_ACTUAL);
 end;
 
 function CifrarAES(const ADatos: string): string;
 begin
-  Result := CifrarDatosAES(
-    ADatos,
-    CLAVE_AES_PREDETERMINADA,
-    VECTOR_AES_PREDETERMINADO);
+  Result := MARCADOR_AES_ACTUAL + CifrarDatosAES(
+    ADatos, CLAVE_AES_ACTUAL, VECTOR_AES_ACTUAL);
 end;
 
 function DescifrarAESConContrasena(
   const ADatos: string;
   const AContrasena: AnsiString): string;
 begin
-  Result := DescifrarDatosAES(
-    ADatos,
-    CLAVE_AES_PREDETERMINADA + AContrasena,
-    VECTOR_AES_PREDETERMINADO);
+  if ADatos.StartsWith(MARCADOR_AES_ACTUAL) then
+    Result := DescifrarDatosAES(Copy(ADatos, 5, MaxInt),
+      ClaveActualConContrasena(AContrasena), VECTOR_AES_ACTUAL)
+  else
+    Result := DescifrarDatosAES(ADatos,
+      CLAVE_AES_LEGADA + AContrasena, VECTOR_AES_LEGADO);
 end;
 
 function DescifrarAES(const ADatos: string): string;
 begin
-  Result := DescifrarDatosAES(
-    ADatos,
-    CLAVE_AES_PREDETERMINADA,
-    VECTOR_AES_PREDETERMINADO);
+  if ADatos.StartsWith(MARCADOR_AES_ACTUAL) then
+    Result := DescifrarDatosAES(Copy(ADatos, 5, MaxInt),
+      CLAVE_AES_ACTUAL, VECTOR_AES_ACTUAL)
+  else
+    Result := DescifrarDatosAES(ADatos,
+      CLAVE_AES_LEGADA, VECTOR_AES_LEGADO);
 end;
 
 end.

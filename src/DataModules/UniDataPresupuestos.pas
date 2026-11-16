@@ -49,6 +49,7 @@ type
   public
     procedure PrepararGuardadoDocumento;
     procedure GuardarDocumento;
+    procedure CambiarEstado(const ANuevo: string);
     // F-LOTEC-016: lote y serie de las líneas (solo con interruptores).
     procedure ConfigurarLotesLineas(const AConfig: TConfiguracionLotesLineas);
     function DocumentoLotes: TDocumentoLineaLote;
@@ -1239,6 +1240,26 @@ begin
     raise Exception.Create(SErrorSeleccionePresupuesto);
 end;
 
+
+procedure TdmPresupuestos.CambiarEstado(const ANuevo: string);
+begin
+  if not unqryTablaG.Active or unqryTablaG.IsEmpty then
+    raise EValidacionBBDD.Create(SErrorSeleccionePresupuesto);
+  if SameText(unqryTablaG.FieldByName('ESTADO_PRE').AsString,
+       'ABIERTO') then
+    GuardarDocumento
+  else if (unqryTablaG.State in dsEditModes) or
+          (unqryAlbaranesLineas.State in dsEditModes) then
+    raise EValidacionBBDD.Create(SErrorOperacionPendientePresupuesto);
+  CambiarEstadoPresupuesto(ConexionEscritura,
+    unqryTablaG.FieldByName('CODIGO_EMP_PRE').AsString,
+    unqryTablaG.FieldByName('SERIE_PRE').AsString,
+    unqryTablaG.FieldByName('NUMERO_PRE').AsString,
+    unqryTablaG.FieldByName('ESTADO_PRE').AsString,
+    ANuevo, IdentidadSesion.Usuario);
+  unqryTablaG.RefreshRecord;
+end;
+
 function TdmPresupuestos.Convertir(ADestino: TDestinoPresupuesto):
   TResultadoConversionPresupuesto;
 begin
@@ -1273,6 +1294,9 @@ var
 begin
   q := TUniQuery.Create(nil);
   try
+    ComprobarPresupuestoDisponible(ConexionEscritura,
+      unqryTablaG.FieldByName('SERIE_PRE').AsString,
+      unqryTablaG.FieldByName('NUMERO_PRE').AsString);
     unqryTablaG.RefreshRecord;
     if not SameText(unqryTablaG.FieldByName('ESTADO_PRE').AsString,
       'ABIERTO') or

@@ -75,7 +75,11 @@ resourcestring
     'Vendida el %s a %s (%s). El artículo no tiene meses de garantía.';
   SAvisoFueraGarantia =
     'La serie %s está fuera de garantía (terminó el %s). ' +
-    '¿Registrar la reclamación igualmente?';
+    '¿Registrar la reclamación igualmente como reparación de pago?';
+  SAvisoGarantiaNoAcreditada =
+    'La serie %s no tiene una venta y un plazo de garantía acreditados. ' +
+    '¿Registrar como reparación de pago? Si corresponde, podrá elegir ' +
+    'cortesía en la ficha.';
   SAvisoReclamacionAbierta =
     'La serie %s ya tiene una reclamación abierta. ' +
     '¿Registrar otra igualmente?';

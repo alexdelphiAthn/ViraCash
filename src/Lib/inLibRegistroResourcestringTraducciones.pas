@@ -35350,6 +35350,14 @@ begin
     'src/Lib/inLibMsgReparaciones.pas',
     @inLibMsgReparaciones.SReparacionTrabajosPendientes);
 
+  ARegistrar('inLibMsgGarantias.SAvisoGarantiaNoAcreditada',
+    'src/Lib/inLibMsgGarantias.pas',
+    @inLibMsgGarantias.SAvisoGarantiaNoAcreditada);
+
+  ARegistrar('inLibMsgReparaciones.SReparacionSinTrabajos',
+    'src/Lib/inLibMsgReparaciones.pas',
+    @inLibMsgReparaciones.SReparacionSinTrabajos);
+
   ARegistrar('inLibMsgReparaciones.SReparacionNoReabrible',
     'src/Lib/inLibMsgReparaciones.pas',
     @inLibMsgReparaciones.SReparacionNoReabrible);

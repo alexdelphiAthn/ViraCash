@@ -32,6 +32,10 @@ resourcestring
     'Quedan trabajos sin terminar. Use Trabajos > Empezar y Terminar ' +
     'antes de marcar la reparación como reparada. Si ya figura resuelta, ' +
     'use Cambiar estado > Reanudar trabajos pendientes.';
+  SReparacionSinTrabajos =
+    'No hay trabajos registrados. Añada y termine el trabajo antes de ' +
+    'marcar la reparación como reparada. Una garantía que vuelve del ' +
+    'SAT puede pasar directamente desde En SAT a lista para entregar.';
   SReparacionNoReabrible =
     'Solo se reabren reparaciones marcadas como reparadas, sin entregar ' +
     'y con trabajos pendientes.';

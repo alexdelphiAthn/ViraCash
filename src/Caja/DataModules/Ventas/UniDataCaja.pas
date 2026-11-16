@@ -299,6 +299,7 @@ type
     function BuscarApartadoTicket(
       const ASerie, ANumero: string): TApartadoTicketCaja;
     procedure CargarApartadoTicket(const ASerie, ANumero: string);
+    procedure CargarRetornoApartadoTicket(const ASerie, ANumero: string);
     function GenerarSkuFinal(ArticuloBase: string): string;
     function BuscarYMostrarNombre(TipoEntidad, Codigo: string;
                                   var LabelDestino: String):Boolean;
@@ -1739,6 +1740,55 @@ begin
   QryTrx.Execute;
 end;
 
+procedure TdmCajaOpe.CargarRetornoApartadoTicket(
+  const ASerie, ANumero: string);
+var
+  Consulta: TUniQuery;
+  Ubicacion: TUbicacionSesion;
+  Campo: string;
+begin
+  Ubicacion := UbicacionCaja;
+  Consulta := TUniQuery.Create(nil);
+  cdsLineas.DisableControls;
+  try
+    Consulta.Connection := FConexion;
+    Consulta.SQL.Text := SQL_DEPOSITOS_PENDIENTES_CAJA +
+      ' WHERE ' + SQL_FILTRO_APARTADO_TICKET +
+      ' AND d.CODIGO_EMP_DEP = :EMPRESA ' +
+      ' AND d.CODIGO_ALM_DEP = :ALMACEN ' +
+      ' AND d.CODIGO_CAJA_DEP = :CAJA ';
+    Consulta.ParamByName('SERIE').AsString := ASerie;
+    Consulta.ParamByName('NUMERO').AsString := ANumero;
+    Consulta.ParamByName('EMPRESA').AsString := Ubicacion.Empresa;
+    Consulta.ParamByName('ALMACEN').AsString := Ubicacion.Almacen;
+    Consulta.ParamByName('CAJA').AsString := Ubicacion.Caja;
+    Consulta.Open;
+    if Consulta.IsEmpty then
+      raise Exception.Create(SErrorOperacionCajaNoEncontrada);
+    while not Consulta.Eof do
+    begin
+      // El abono ya contiene el anticipo negativo del ticket original.
+      // Estas líneas solo cierran depósitos y devuelven las prendas.
+      IncorporarPrendaDeposito(Consulta, cdsLineas);
+      cdsLineas.Edit;
+      cdsLineas.FieldByName('CANTIDAD_FACLIN').AsFloat :=
+        -Abs(Consulta.FieldByName('CANTIDAD_PENDIENTE_DEP').AsFloat);
+      cdsLineas.FieldByName('ACCION_DEPOSITO').AsString := 'CANCELAR';
+      cdsLineas.FieldByName('ESMARCADA_DEP').AsString := 'S';
+      for Campo in TArray<string>.Create(
+        'PRECIO_SALIDA_FACLIN', 'PRECIO_VENTA_CIVA_ARTICULO_FACLIN',
+        'PRECIO_VENTA_SIVA_ARTICULO_FACLIN', 'TOTAL_FACLIN',
+        'TOTAL_FAC_SIVA_FACLIN', 'ANTICIPO_PREVIO') do
+        cdsLineas.FieldByName(Campo).AsCurrency := 0;
+      cdsLineas.Post;
+      Consulta.Next;
+    end;
+  finally
+    cdsLineas.EnableControls;
+    Consulta.Free;
+  end;
+end;
+
 class function TdmCajaOpe.FechaUltimoTicketSerie(
                           AConexion: TUniConnection;
                           const AEmpresa, ASerie: string): TDateTime;
@@ -2244,7 +2294,7 @@ begin
       FQuery, FSerieGenerada, FNumeroFactura,
       ALinea.Linea, 'ANTICIPO', 'ANTICIPO',
       ALinea.Descripcion, '', '', '', 'SERVICIO', 'Uds',
-      1, 0, '', 'S', dPrecioBase, 0, 0, dPrecioBase, AImporte,
+      1, 0, '', 'N', dPrecioBase, 0, 0, dPrecioBase, AImporte,
       ALinea.TipoIva, ALinea.PorcIva, dPrecioBase, AImporte,
       ALinea.Vendedor, FEmpresa, FAlmacen, FCaja,
       FNumeroOperacion, '', FUsuarioSesion);

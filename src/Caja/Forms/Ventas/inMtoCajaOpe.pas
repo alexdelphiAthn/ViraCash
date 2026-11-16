@@ -3676,11 +3676,12 @@ procedure TfrmMtoOpeCaja.CargarDevolucionPorTicket;
 var
   Seleccion: TOrigenDevolucionCajaVcl;
   Apartado: TApartadoTicketCaja;
+  Respuesta: Integer;
 begin
   // F4: localizar el ticket de origen (escaneo del EAN-13, operación o
   // documento). Si el ticket cobró a cuenta un apartado pendiente del
-  // cliente de Varios se carga el apartado para cobrar el resto; si no,
-  // se carga la devolución.
+  // cliente de Varios se elige entre cobrar el resto o devolver la
+  // entrega y las prendas. Cancelar conserva la operación vacía.
   if not OperacionVentaVacia(DatosCaja.cdsLineas) then
     ShowMessage_fza(SErrorDevolucionTicketOperacionEnCurso)
   else if SeleccionarTicketDevolucionCajaVcl(
@@ -3705,7 +3706,36 @@ begin
       Seleccion.Serie,
       Seleccion.Numero);
     if Apartado.Encontrado then
-      CargarApartadoTicket(Seleccion, Apartado)
+    begin
+      if not (SameText(Apartado.Empresa, FCodigoEmpresa) and
+              SameText(Apartado.Almacen, FCodigoAlmacen) and
+              SameText(Apartado.Caja, FCodigoCaja)) then
+        ShowMessage_fza(Format(SErrorApartadoCajaOtraCaja,
+          [Apartado.Almacen, Apartado.Caja]))
+      else
+      begin
+        Respuesta := MessageDlg_fza(Format(SPreguntaCompletarApartadoCaja,
+          [Seleccion.Serie, Seleccion.Numero, Apartado.Prendas,
+           Apartado.NombreContacto]), mtConfirmation,
+          [mbYes, mbNo, mbCancel], 0);
+        case Respuesta of
+          mrYes: CargarApartadoTicket(Seleccion, Apartado);
+          mrNo:
+            begin
+              CargarDevolucionTicket(Seleccion);
+              CancelarEdicionLineas;
+              FEditorLineas.ActualizandoDepositos := True;
+              try
+                DatosCaja.CargarRetornoApartadoTicket(
+                  Seleccion.Serie, Seleccion.Numero);
+              finally
+                FEditorLineas.ActualizandoDepositos := False;
+              end;
+              RefrescarTotalOperacion;
+            end;
+        end;
+      end;
+    end
     else
       CargarDevolucionTicket(Seleccion);
   end;

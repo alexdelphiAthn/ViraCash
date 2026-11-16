@@ -465,7 +465,7 @@ procedure TDatosFasesReparacion.PrepararRecogida(AReparacion: Int64;
   const AObservaciones, AUsuario: string; AReabrir: Boolean);
 var
   oOrden: TUniQuery;
-  bPropia, bCierreAnterior: Boolean;
+  bPropia, bCierreAnterior, bVueltaSat: Boolean;
   rCambio: TCambioFaseReparacion;
 begin
   bPropia := not FConexion.InTransaction;
@@ -503,9 +503,18 @@ begin
           (oOrden.FieldByName('PENDIENTES').AsInteger = 0) then
           raise EArgumentException.Create(SReparacionNoReabrible);
       end
-      else if (oOrden.FieldByName('PENDIENTES').AsInteger > 0) or
-        (oOrden.FieldByName('TRABAJOS').AsInteger = 0) then
-        raise EArgumentException.Create(SReparacionTrabajosPendientes);
+      else
+      begin
+        bVueltaSat :=
+          (oOrden.FieldByName('ESTADO_GAR').AsString = 'EN_SAT') and
+          (oOrden.FieldByName('MODALIDAD_GAR').AsString =
+            MODALIDAD_REPARACION_GARANTIA);
+        if oOrden.FieldByName('PENDIENTES').AsInteger > 0 then
+          raise EArgumentException.Create(SReparacionTrabajosPendientes);
+        if (oOrden.FieldByName('TRABAJOS').AsInteger = 0) and
+           not bVueltaSat then
+          raise EArgumentException.Create(SReparacionSinTrabajos);
+      end;
       RegistrarInicial(AReparacion, AUsuario);
       oOrden.Close;
       oOrden.SQL.Text := 'UPDATE fza_garantias_reclamaciones ' +

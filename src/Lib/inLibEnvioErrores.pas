@@ -46,6 +46,8 @@ uses
   Vcl.Graphics,
   Vcl.Imaging.pngimage,
   inLibViraCashApi,
+  inLibCifrado,
+  inLibComandoCopiaSeguridad,
   inLibGlobalVar,
   inLibLicenciaAplicacion,
   inLibMsgComun,
@@ -114,7 +116,6 @@ type
       const AContacto: TContactoError): TResultadoEnvioError;
     function PrepararCopiaSeguridad(
       var AEvidencia: TEvidenciaError;
-      const AContrasena: string;
       out AError: string): Boolean;
     procedure DescartarCopiaSeguridad(
       var AEvidencia: TEvidenciaError);
@@ -321,12 +322,13 @@ end;
 
 function TServicioEnvioErrores.PrepararCopiaSeguridad(
   var AEvidencia: TEvidenciaError;
-  const AContrasena: string;
   out AError: string): Boolean;
 var
   ResultadoCopia: TResultadoCopiaSeguridad;
   RutaCifrada: string;
   RutaZip: string;
+  sContrasena: string;
+  sNombreCopia: string;
   Zip: TZipFile;
 begin
   Result := False;
@@ -334,11 +336,15 @@ begin
   RutaCifrada := '';
   RutaZip := '';
   try
+    sContrasena := TGUID.NewGuid.ToString;
+    sNombreCopia := IncluirClaveCifradaEnRutaCopia(
+      'copia_seguridad_viracash.crypt', CifrarAES(sContrasena));
     RutaCifrada := CrearRutaTemporal('.crypt');
-    RutaZip := CrearRutaTemporal('.zip');
+    RutaZip := IncluirClaveCifradaEnRutaCopia(
+      CrearRutaTemporal('.zip'), CifrarAES(sContrasena));
     ResultadoCopia := FRepositorioCopias.CrearCopiaProtegida(
       RutaCifrada,
-      AContrasena,
+      sContrasena,
       nil,
       AError);
     if ResultadoCopia = rcsCompletada then
@@ -348,7 +354,7 @@ begin
         Zip.Open(RutaZip, zmWrite);
         Zip.Add(
           RutaCifrada,
-          'copia_seguridad_viracash.crypt');
+          sNombreCopia);
         Zip.Close;
       finally
         FreeAndNil(Zip);
@@ -373,6 +379,7 @@ begin
     on E: Exception do
       AError := E.ClassName + ': ' + E.Message;
   end;
+  sContrasena := '';
   if (RutaCifrada <> '') and FileExists(RutaCifrada) then
     DeleteFile(RutaCifrada);
   if (RutaZip <> '') and FileExists(RutaZip) then

@@ -101,3 +101,6 @@ tests/fpc/build/
 
 # Archivo de referencia conservado solo en disco
 /doc/spfe/help/oasis/UBL-2.5.zip
+
+# Claves de cifrado locales (actuales y compatibilidad histórica).
+/src/Lib/inLibClavesCifrado.local.inc

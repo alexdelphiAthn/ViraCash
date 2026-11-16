@@ -63,7 +63,33 @@ function CrearSolicitudConversionPresupuestoOpciones(
 function DestinoPresupuestoMueveStockOpcional(
   ADestino: TDestinoPresupuesto): Boolean;
 
+function TransicionEstadoPresupuestoPermitida(
+  const AAnterior, ANuevo: string): Boolean;
+function PresupuestoDisponibleParaVenta(
+  const AEstado, ANumeroDestino: string;
+  AValidez, AFechaActual: TDateTime): Boolean;
+
 implementation
+
+uses System.SysUtils;
+
+function TransicionEstadoPresupuestoPermitida(
+  const AAnterior, ANuevo: string): Boolean;
+begin
+  Result := ((AAnterior = 'ABIERTO') and
+    ((ANuevo = 'RECHAZADO') or (ANuevo = 'ANULADO'))) or
+    (((AAnterior = 'RECHAZADO') or (AAnterior = 'ANULADO')) and
+     (ANuevo = 'ABIERTO'));
+end;
+
+function PresupuestoDisponibleParaVenta(
+  const AEstado, ANumeroDestino: string;
+  AValidez, AFechaActual: TDateTime): Boolean;
+begin
+  Result := SameText(AEstado, 'ABIERTO') and
+    (Trim(ANumeroDestino) = '') and
+    ((AValidez = 0) or (Trunc(AValidez) >= Trunc(AFechaActual)));
+end;
 
 function CrearSolicitudConversionPresupuesto(
   ADestino: TDestinoPresupuesto;

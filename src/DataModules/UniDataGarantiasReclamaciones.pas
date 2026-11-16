@@ -946,6 +946,19 @@ begin
       oConsulta.SQL.Text := 'SELECT @ID_GAR AS ID';
       oConsulta.Open;
       Result := oConsulta.FieldByName('ID').AsLargeInt;
+      if not CoberturaGarantiaAcreditada(ADatos) then
+      begin
+        oConsulta.Close;
+        oConsulta.SQL.Text := 'UPDATE fza_garantias_reclamaciones ' +
+          'SET MODALIDAD_GAR=:MODALIDAD, MODO_COBRO_GAR=:COBRO ' +
+          'WHERE ID_GAR=:ID';
+        oConsulta.ParamByName('MODALIDAD').AsString :=
+          MODALIDAD_REPARACION_PAGO;
+        oConsulta.ParamByName('COBRO').AsString :=
+          COBRO_REPARACION_RECOGIDA;
+        oConsulta.ParamByName('ID').AsLargeInt := Result;
+        oConsulta.Execute;
+      end;
       AsignarNumeroOrdenReparacion(oConsulta.Connection, Result,
         IdentidadSesion.Usuario);
       if bPropia then

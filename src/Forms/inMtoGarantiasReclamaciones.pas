@@ -1448,10 +1448,17 @@ function TfrmMtoGarantiasReclamaciones.ConfirmarAlta(
   const ADatos: TDatosSerieGarantia): Boolean;
 begin
   Result := True;
-  if ADatos.Vendida and ADatos.TieneMeses and not ADatos.EnGarantia then
-    Result := MessageDlg_fza(Format(SAvisoFueraGarantia,
-      [ADatos.Serie, DateToStr(ADatos.FechaFinGarantia)]), mtWarning,
-      [mbYes, mbNo], 0, mbNo) = mrYes;
+  if not CoberturaGarantiaAcreditada(ADatos) then
+  begin
+    if ADatos.Vendida and ADatos.TieneMeses and
+       (ADatos.FechaFinGarantia > 0) then
+      Result := MessageDlg_fza(Format(SAvisoFueraGarantia,
+        [ADatos.Serie, DateToStr(ADatos.FechaFinGarantia)]), mtWarning,
+        [mbYes, mbNo], 0, mbNo) = mrYes
+    else
+      Result := MessageDlg_fza(Format(SAvisoGarantiaNoAcreditada,
+        [ADatos.Serie]), mtWarning, [mbYes, mbNo], 0, mbNo) = mrYes;
+  end;
   if Result and (ADatos.ReclamacionesAbiertas > 0) then
     Result := MessageDlg_fza(Format(SAvisoReclamacionAbierta,
       [ADatos.Serie]), mtWarning, [mbYes, mbNo], 0, mbNo) = mrYes;

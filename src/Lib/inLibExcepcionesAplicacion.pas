@@ -41,11 +41,8 @@ uses
   Vcl.Forms,
   Vcl.Graphics,
   Vcl.StdCtrls,
-  cxButtons,
   cxCheckBox,
-  cxLabel,
   cxMemo,
-  cxTextEdit,
   inLibEnvioErroresIntf,
   inLibGlobalVar,
   inLibMsgComun,
@@ -405,135 +402,6 @@ begin
   Application.Terminate;
 end;
 
-procedure ConfigurarEtiqueta(
-  AEtiqueta: TcxLabel;
-  AParent: TWinControl;
-  ALeft, ATop, AWidth, AHeight: Integer;
-  const ACaption: string);
-begin
-  AEtiqueta.Parent := AParent;
-  AEtiqueta.Left := ALeft;
-  AEtiqueta.Top := ATop;
-  AEtiqueta.Width := AWidth;
-  AEtiqueta.Height := AHeight;
-  AEtiqueta.AutoSize := False;
-  AEtiqueta.Properties.WordWrap := True;
-  AEtiqueta.Caption := ACaption;
-end;
-
-function SolicitarContrasenaCopia(
-  AOwner: TCustomForm;
-  out AContrasena: string): Boolean;
-var
-  BotonAceptar: TcxButton;
-  BotonCancelar: TcxButton;
-  Dialogo: TForm;
-  EdtConfirmacion: TcxTextEdit;
-  EdtContrasena: TcxTextEdit;
-  LabelConfirmacion: TcxLabel;
-  LabelContrasena: TcxLabel;
-  LabelExplicacion: TcxLabel;
-  bTerminar: Boolean;
-  iResultado: Integer;
-begin
-  Result := False;
-  AContrasena := '';
-  Dialogo := TForm.Create(AOwner);
-  try
-    Dialogo.Caption := STituloContrasenaCopiaError;
-    Dialogo.Position := poScreenCenter;
-    Dialogo.BorderIcons := [];
-    Dialogo.BorderStyle := bsDialog;
-    Dialogo.ClientWidth := 520;
-    Dialogo.ClientHeight := 224;
-    LabelExplicacion := TcxLabel.Create(Dialogo);
-    ConfigurarEtiqueta(
-      LabelExplicacion,
-      Dialogo,
-      24,
-      16,
-      472,
-      48,
-      SInfoContrasenaCopiaError);
-    LabelContrasena := TcxLabel.Create(Dialogo);
-    ConfigurarEtiqueta(
-      LabelContrasena,
-      Dialogo,
-      24,
-      77,
-      144,
-      24,
-      SCaptionContrasenaCopiaError);
-    EdtContrasena := TcxTextEdit.Create(Dialogo);
-    EdtContrasena.Parent := Dialogo;
-    EdtContrasena.SetBounds(176, 75, 320, 26);
-    EdtContrasena.Properties.EchoMode := eemPassword;
-    EdtContrasena.Properties.PasswordChar := #9679;
-    LabelConfirmacion := TcxLabel.Create(Dialogo);
-    ConfigurarEtiqueta(
-      LabelConfirmacion,
-      Dialogo,
-      24,
-      117,
-      144,
-      24,
-      SCaptionRepetirContrasenaCopiaError);
-    EdtConfirmacion := TcxTextEdit.Create(Dialogo);
-    EdtConfirmacion.Parent := Dialogo;
-    EdtConfirmacion.SetBounds(176, 115, 320, 26);
-    EdtConfirmacion.Properties.EchoMode := eemPassword;
-    EdtConfirmacion.Properties.PasswordChar := #9679;
-    BotonCancelar := TcxButton.Create(Dialogo);
-    BotonCancelar.Parent := Dialogo;
-    BotonCancelar.SetBounds(152, 171, 160, 32);
-    BotonCancelar.Caption := SCaptionCancelar;
-    BotonCancelar.Cancel := True;
-    BotonCancelar.ModalResult := mrCancel;
-    BotonAceptar := TcxButton.Create(Dialogo);
-    BotonAceptar.Parent := Dialogo;
-    BotonAceptar.SetBounds(328, 171, 168, 32);
-    BotonAceptar.Caption := SCaptionAceptar;
-    BotonAceptar.Default := True;
-    BotonAceptar.ModalResult := mrOk;
-    Dialogo.ActiveControl := EdtContrasena;
-    bTerminar := False;
-    while not bTerminar do
-    begin
-      iResultado := Dialogo.ShowModal;
-      if iResultado <> mrOk then
-        bTerminar := True
-      else if Trim(EdtContrasena.Text) = '' then
-      begin
-        MessageDlg_fza(
-          SErrorContrasenaCopiaErrorVacia,
-          mtWarning,
-          [mbOk],
-          0);
-        EdtContrasena.SetFocus;
-      end
-      else if EdtContrasena.Text <> EdtConfirmacion.Text then
-      begin
-        MessageDlg_fza(
-          SErrorContrasenasCopiaErrorNoCoinciden,
-          mtWarning,
-          [mbOk],
-          0);
-        EdtConfirmacion.SetFocus;
-      end
-      else
-      begin
-        AContrasena := EdtContrasena.Text;
-        Result := True;
-        bTerminar := True;
-      end;
-    end;
-    EdtContrasena.Text := '';
-    EdtConfirmacion.Text := '';
-  finally
-    FreeAndNil(Dialogo);
-  end;
-end;
-
 procedure TGestorExcepcionesAplicacion.CopiaSeguridadCambio(
   Sender: TObject);
 begin
@@ -620,40 +488,26 @@ end;
 function TGestorExcepcionesAplicacion.PrepararCopiaSeguridad:
   Boolean;
 var
-  sContrasena: string;
   sError: string;
 begin
   Result := FileExists(FEvidencia.RutaCopiaSeguridad);
-  sContrasena := '';
   if not Result then
   begin
-    Screen.Cursor := crDefault;
-    Result := SolicitarContrasenaCopia(
-      Screen.ActiveCustomForm,
-      sContrasena);
-    if Result then
+    Screen.Cursor := crHourGlass;
+    FEstadoVista.EstadoLog := SInfoPreparandoCopiaSeguridadError;
+    FEstadoVista.NivelEstado := nevaInformacion;
+    AplicarEstadoVista;
+    Result := FServicioEnvioErrores.PrepararCopiaSeguridad(
+      FEvidencia, sError);
+    if not Result then
     begin
-      Screen.Cursor := crHourGlass;
-      FEstadoVista.EstadoLog := SInfoPreparandoCopiaSeguridadError;
-      FEstadoVista.NivelEstado := nevaInformacion;
-      AplicarEstadoVista;
-      Result := FServicioEnvioErrores.PrepararCopiaSeguridad(
-        FEvidencia,
-        sContrasena,
-        sError);
-      if not Result then
-      begin
-        Screen.Cursor := crDefault;
-        MessageDlg_fza(
-          Format(SErrorPrepararCopiaSeguridadError, [sError]),
-          mtError,
-          [mbOk],
-          0);
-      end;
-      CopiaSeguridadCambio(nil);
+      Screen.Cursor := crDefault;
+      MessageDlg_fza(
+        Format(SErrorPrepararCopiaSeguridadError, [sError]),
+        mtError, [mbOk], 0);
     end;
+    CopiaSeguridadCambio(nil);
   end;
-  sContrasena := '';
 end;
 
 procedure TGestorExcepcionesAplicacion.ActivarLogClick(
@@ -732,9 +586,7 @@ begin
           if bEnviarCopia then
           begin
             sMensaje := sMensaje + sLineBreak + sLineBreak +
-              Format(
-                SInfoEnviarContrasenaCopiaError,
-                [Resultado.Referencia]);
+              SInfoEnviarContrasenaCopiaError;
           end;
           FVista.InsertarDetalle(sMensaje + sLineBreak);
           FRegistroLog.RegistrarInformacion(sMensaje);
