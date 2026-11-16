@@ -165,6 +165,8 @@ resourcestring
     'contraseña de la conexión.' + sLineBreak +
     '   La plantilla admite DIASEMANA, DIAMES, MES, AÑO, {ANO} y ' +
     'CLAVE. Sobrescribe el destino.' + sLineBreak +
+    '   El nombre incluye la contraseña cifrada de forma reversible; ' +
+    'si falta CLAVE, se añade como prefijo.' + sLineBreak +
     '   No se admite la contraseña como argumento.' +
     sLineBreak + sLineBreak +
     '3. Impresión de facturas en PDF' + sLineBreak +

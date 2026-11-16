@@ -29,7 +29,7 @@ implementation
 
 uses
   System.Classes,
-  System.Hash,
+  inLibCifrado,
   System.IOUtils,
   System.StrUtils,
   System.SysUtils,
@@ -135,7 +135,7 @@ begin
   ClavesValidacion := Default(
     TClavesPredeterminadasCopiaSeguridad);
   ClavesValidacion.Contrasena := 'validacion';
-  ClavesValidacion.ClaveCifrada := THashSHA2.GetHashString(
+  ClavesValidacion.ClaveCifrada := CifrarAES(
     ClavesValidacion.Contrasena);
   Result := InterpretarComandoCopiaSeguridad(
     AParametros,
@@ -413,7 +413,7 @@ var
 begin
   oClaves := Default(TClavesPredeterminadasCopiaSeguridad);
   oClaves.Contrasena := AConexion.Password;
-  oClaves.ClaveCifrada := THashSHA2.GetHashString(
+  oClaves.ClaveCifrada := CifrarAES(
     oClaves.Contrasena);
   oSolicitud := InterpretarComandoCopiaSeguridad(
     AParametros,

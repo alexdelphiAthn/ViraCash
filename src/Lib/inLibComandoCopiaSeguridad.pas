@@ -53,6 +53,9 @@ function ResolverPlantillaCopiaSeguridad(
 function CodificarClaveCifradaParaRuta(
   const AClaveCifrada: string
 ): string;
+function IncluirClaveCifradaEnRutaCopia(
+  const ARuta, AClaveCifrada: string
+): string;
 function ValidarRutaDestinoCopia(
   const ARuta: string
 ): TErrorComandoCopiaSeguridad;
@@ -349,6 +352,19 @@ begin
     Copy(sNombre, iFinMarcador + 1, MaxInt);
 end;
 
+function IncluirClaveCifradaEnRutaCopia(
+  const ARuta, AClaveCifrada: string): string;
+var
+  sRutaRegistro: string;
+begin
+  if IntentarExtraerMarcadorClave(ARuta, sRutaRegistro) then
+    Result := SustituirMarcadorClave(ARuta, AClaveCifrada)
+  else
+    Result := ExtractFilePath(ARuta) + '_' +
+      CodificarClaveCifradaParaRuta(AClaveCifrada) + '_' +
+      ExtractFileName(ARuta);
+end;
+
 function ContieneCaracterRutaNoValido(const ARuta: string): Boolean;
 var
   cCaracter: Char;
@@ -504,11 +520,18 @@ begin
       AClavesPredeterminadas.ClaveCifrada,
       ASolicitud,
       sClaveCifrada);
+  end
+  else
+  begin
+    sClaveCifrada := AClavesPredeterminadas.ClaveCifrada;
+    ASolicitud.RutaDestino := IncluirClaveCifradaEnRutaCopia(
+      ASolicitud.RutaDestino, sClaveCifrada);
+    IntentarExtraerMarcadorClave(
+      ASolicitud.RutaDestino, ASolicitud.RutaRegistro);
   end;
   if ASolicitud.Contrasena = '' then
     ASolicitud.Error := eccsClave;
-  if (bMarcadorLiteral or bTieneMarcador) and
-     (sClaveCifrada = '') then
+  if sClaveCifrada = '' then
     ASolicitud.Error := eccsClave;
 end;
 

@@ -1696,11 +1696,10 @@ begin
     ANumerosMovimiento[1] := InsertarMovimientoAlmacen(
       QryTrx, SolicitudMovimiento);
   end;
-  // 2. Generar ID único para el depósito (lógica original)
-  NuevoIdDep := 'DP' + FormatDateTime('yymmddhhnnsszzz',
-    FechaCajaConHora(AFechaOperacion)) +
-                RightStr(ASku, 3);  // máx 20 chars
-  NuevoIdDep := Copy(NuevoIdDep, 1, 20); // Aseguramos longitud máxima
+  // Cada prenda tiene identidad propia, aunque repita SKU y fecha.
+  // El GUID compacto mantiene el límite de 20 caracteres del depósito.
+  NuevoIdDep := 'DP' + Copy(StringReplace(
+    TGUID.NewGuid.ToString, '-', '', [rfReplaceAll]), 2, 18);
   IdGenerado := NuevoIdDep;
   Deposito := Default(TNuevoDepositoCaja);
   Deposito.Id := NuevoIdDep;

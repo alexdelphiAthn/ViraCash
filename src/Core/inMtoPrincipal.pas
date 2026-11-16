@@ -499,6 +499,8 @@ uses
   inLibMsgConfiguracion,
   inLibFirmaEjecutableVcl,
   inLibCopiasSeguridadReglas,
+  inLibComandoCopiaSeguridad,
+  inLibCifrado,
   inLibConexionPerfilIni,
   inLibDir,
   inMtoCajaMenu,
@@ -1020,8 +1022,10 @@ function TfrmMtoPrincipal.SolicitarDestinoCopia(
   out ARutaFichero: string): Boolean;
 var
   sExtension: string;
+  sClaveCifrada: string;
 begin
   ARutaFichero := '';
+  sClaveCifrada := CifrarAES(ConexionPrincipal.Password);
   sExtension := TPoliticaCopiasSeguridad.ExtensionModo(mpcCifrada);
   saveDialog.Title := STituloGuardarCopiaSeguridad;
   saveDialog.DefaultExtension := Copy(sExtension, 2, MaxInt);
@@ -1030,15 +1034,21 @@ begin
   saveDialog.Options := saveDialog.Options +
     [fdoStrictFileTypes, fdoOverwritePrompt];
   ConfigurarTiposDestinoCopia;
-  saveDialog.FileName := Format(
-    SNombreArchivoCopiaSeguridad,
-    [FormatDateTime('_dd_mm_yyyy_HH_nn_ss', Now)]) + sExtension;
+  saveDialog.FileName := IncluirClaveCifradaEnRutaCopia(
+    Format(SNombreArchivoCopiaSeguridad,
+      [FormatDateTime('_dd_mm_yyyy_HH_nn_ss', Now)]) + sExtension,
+    sClaveCifrada);
   Result := saveDialog.Execute;
   if Result then
   begin
-    ARutaFichero := ChangeFileExt(
-      saveDialog.FileName,
-      sExtension);
+    ARutaFichero := IncluirClaveCifradaEnRutaCopia(
+      ChangeFileExt(saveDialog.FileName, sExtension), sClaveCifrada);
+    if not SameText(ARutaFichero, saveDialog.FileName) and
+       FileExists(ARutaFichero) then
+      Result := MessageDlg_fza(SPreguntaReemplazarFichero,
+        mtConfirmation, [mbYes, mbNo], 0) = mrYes;
+    if not Result then
+      ARutaFichero := '';
   end;
 end;
 

@@ -251,6 +251,8 @@ uses
       inMtoModalScriptLog,
       inMtoModalGenPass,
       inLibCopiasSeguridad,
+      inLibComandoCopiaSeguridad,
+      inLibCifrado,
       inLibRestauracionCopiasConexion,
       UniDataRestauracionCopiasConexion,
       inMtoLogonRestauracionVcl,
@@ -1571,9 +1573,10 @@ begin
   oTipoFichero.DisplayName := SCaptionFiltroCopiasCifradas;
   oTipoFichero.FileMask := '*.crypt';
   saveDialog.FileTypeIndex := 1;
-  saveDialog.FileName := Format(
-    SNombreArchivoCopiaSeguridadLogon,
-    [FormatDateTime('_dd_mm_yyyy_HH_nn_ss', Now)]) + '.crypt';
+  saveDialog.FileName := IncluirClaveCifradaEnRutaCopia(
+    Format(SNombreArchivoCopiaSeguridadLogon,
+      [FormatDateTime('_dd_mm_yyyy_HH_nn_ss', Now)]) + '.crypt',
+    CifrarAES(FConexionLogon.Password));
 end;
 
 procedure TfrmLogon.btnCopiaSeguridadClick(Sender: TObject);
@@ -1588,9 +1591,9 @@ begin
   ConfigurarDialogoCopiaProtegida;
   if saveDialog.Execute then
   begin
-    saveDialog.FileName := ChangeFileExt(
-      saveDialog.FileName,
-      '.crypt');
+    saveDialog.FileName := IncluirClaveCifradaEnRutaCopia(
+      ChangeFileExt(saveDialog.FileName, '.crypt'),
+      CifrarAES(FConexionLogon.Password));
     if FileExists(savedialog.FileName) then
     begin
       iButtonSel := MessageDlg_fza(SPreguntaReemplazarFichero,
@@ -2030,40 +2033,53 @@ begin
   oRepositorio := TRepositorioCopiasSeguridadUniDAC.Create(
     ContextoSesion, ConexionPrincipal);
   ConfigurarDialogoCopiaProtegida;
-  saveDialog.FileName := 'viracash_antes_actualizacion_' +
-    FormatDateTime('yyyymmdd_hhnnss', Now) +
-    '.crypt';
+  saveDialog.Options := saveDialog.Options + [fdoOverwritePrompt];
+  saveDialog.FileName := IncluirClaveCifradaEnRutaCopia(
+    'viracash_antes_actualizacion_' +
+    FormatDateTime('yyyymmdd_hhnnss', Now) + '.crypt',
+    CifrarAES(ConexionPrincipal.Password));
   // La copia se solicita desde el modal de actualizacion: el login esta
   // deshabilitado mientras ese modal sigue abierto.
   if saveDialog.Execute(GetActiveWindow) then
   begin
-    sRuta := ChangeFileExt(saveDialog.FileName, '.crypt');
-    eResultado := rcsFallida;
-    oEspera := CrearVentanaEspera(BoundsRect, CurrentPPI, Handle);
-    oEspera.Mostrar(SCaptionPreparandoCopiaSeguridad);
-    try
-      oTarea := TTask.Run(
-        procedure
-        begin
-          try
-            eResultado := oRepositorio.CrearCopia(sRuta, '', nil, sError);
-          except
-            on E: Exception do
-              sError := E.ClassName + ': ' + E.Message;
-          end;
-        end);
-      EsperarTareaAtendiendoMensajes(oTarea);
-    finally
-      oEspera.Ocultar;
-    end;
-    Result := eResultado = rcsCompletada;
-    if Result then
-      ARutaCopia := sRuta
-    else
+    sRuta := IncluirClaveCifradaEnRutaCopia(
+      ChangeFileExt(saveDialog.FileName, '.crypt'),
+      CifrarAES(ConexionPrincipal.Password));
+    if not SameText(sRuta, saveDialog.FileName) and FileExists(sRuta) then
     begin
-      RegistroLog.RegistrarError(sError);
-      MessageDlg_fza(Format(SErrorCrearCopiaSeguridad, [sError]),
-        mtError, [mbOk], 0);
+      if MessageDlg_fza(SPreguntaReemplazarFichero,
+        mtConfirmation, [mbYes, mbNo], 0) <> mrYes then
+        sRuta := '';
+    end;
+    if sRuta <> '' then
+    begin
+      eResultado := rcsFallida;
+      oEspera := CrearVentanaEspera(BoundsRect, CurrentPPI, Handle);
+      oEspera.Mostrar(SCaptionPreparandoCopiaSeguridad);
+      try
+        oTarea := TTask.Run(
+          procedure
+          begin
+            try
+              eResultado := oRepositorio.CrearCopia(sRuta, '', nil, sError);
+            except
+              on E: Exception do
+                sError := E.ClassName + ': ' + E.Message;
+            end;
+          end);
+        EsperarTareaAtendiendoMensajes(oTarea);
+      finally
+        oEspera.Ocultar;
+      end;
+      Result := eResultado = rcsCompletada;
+      if Result then
+        ARutaCopia := sRuta
+      else
+      begin
+        RegistroLog.RegistrarError(sError);
+        MessageDlg_fza(Format(SErrorCrearCopiaSeguridad, [sError]),
+          mtError, [mbOk], 0);
+      end;
     end;
   end;
 end;
