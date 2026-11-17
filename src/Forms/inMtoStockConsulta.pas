@@ -184,11 +184,11 @@ type
     procedure AgregarLineaADocumentoTrabajo(
       const ALinea: TDocTrabajoLineaOrigen); virtual;
     procedure AvisarCeldaDocumentoTrabajo(const AMensaje: string); virtual;
-    function IsShortCut(var Message: TWMKey): Boolean; override;
     procedure CreateParams(var Params: TCreateParams); override;
     procedure CreateWnd; override;
     procedure DestroyWnd; override;
   public
+    function IsShortCut(var Message: TWMKey): Boolean; override;
     procedure SetArticuloSku(const ACodArt, ACodSku: string);
   end;
 
@@ -564,6 +564,8 @@ end;
 procedure TfrmStockConsulta.FormResize(Sender: TObject);
 begin
   AjustarFotoCabecera;
+  if Assigned(FEstados) then
+    FEstados.AjustarLeyenda;
 end;
 
 procedure TfrmStockConsulta.AbrirArticuloConsultado;

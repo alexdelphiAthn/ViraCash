@@ -22,22 +22,25 @@ uses
   inLibStockConsultaPersistenciaIntf;
 
 const
-  // Colores BGR equivalentes a las constantes clXxx de la VCL.
-  COLOR_ESTADO_EXISTENCIAS    = $00800000;  // clNavy
-  COLOR_ESTADO_ENTRADAS       = $00008000;  // clGreen
+  // Paleta familiar de la consulta legacy, en formato BGR de la VCL.
+  // Los estados adicionales conservan tonos de su familia de movimientos.
+  COLOR_ESTADO_EXISTENCIAS    = $00000000;  // stock: negro
+  COLOR_ESTADO_ENTRADAS       = $00FF0000;  // entradas: azul
   COLOR_ESTADO_SALIDAS        = $00000080;  // clMaroon
-  COLOR_ESTADO_VENTAS         = $000000FF;  // clRed
+  COLOR_ESTADO_VENTAS         = $00008000;  // vendido: verde
   COLOR_ESTADO_TRASPASO_ENT   = $00808000;  // clTeal
   COLOR_ESTADO_TRASPASO_SAL   = $00800080;  // clPurple
   COLOR_ESTADO_REGULARIZADAS  = $00800080;  // clPurple
-  COLOR_ESTADO_PDTE_RECIBIR   = $000080FF;  // naranja
-  COLOR_ESTADO_PDTE_SERVIR    = $00808000;  // clTeal
+  COLOR_ESTADO_PDTE_RECIBIR   = $00008000;  // recibir: verde
+  COLOR_ESTADO_PDTE_SERVIR    = $00000080;  // servir: granate
   COLOR_ESTADO_PRESTADAS      = $00808080;  // clGray
-  COLOR_ESTADO_ENT_COMPRA     = $00008000;  // verde oscuro
+  COLOR_ESTADO_ENT_COMPRA     = $00FF0000;  // entrada: azul
   COLOR_ESTADO_ENT_DEPOSITO   = $00CC9900;  // ambar
   COLOR_ESTADO_SAL_DEPOSITO   = $0099CCFF;  // amarillo claro
   COLOR_ESTADO_SAL_ALB_VENTA  = $000000C0;  // rojo oscuro
-  COLOR_ESTADO_ENT_ALB_ENT    = $0000C000;  // verde claro
+  COLOR_ESTADO_ENT_ALB_ENT    = $00FF0000;  // entrada: azul
+  COLOR_ESTADO_PDTE_TRASPASAR = $00800000;  // ordenes: azul marino
+  COLOR_ESTADO_PDTE_REC_TRASP = $000000FF;  // recepcion: rojo
   COLOR_ESTADO_NEUTRO         = $00000000;  // clBlack
 
 type
@@ -111,8 +114,8 @@ begin
     esSalidaDeposito:     Result := COLOR_ESTADO_SAL_DEPOSITO;
     esSalidaAlbVenta:     Result := COLOR_ESTADO_SAL_ALB_VENTA;
     esEntradaAlbEntrada:  Result := COLOR_ESTADO_ENT_ALB_ENT;
-    esPdteTraspasar:      Result := COLOR_ESTADO_TRASPASO_SAL;
-    esPdteRecTraspaso:    Result := COLOR_ESTADO_TRASPASO_ENT;
+    esPdteTraspasar:      Result := COLOR_ESTADO_PDTE_TRASPASAR;
+    esPdteRecTraspaso:    Result := COLOR_ESTADO_PDTE_REC_TRASP;
     esDisponible:         Result := COLOR_ESTADO_EXISTENCIAS;
   else
     Result := COLOR_ESTADO_NEUTRO;

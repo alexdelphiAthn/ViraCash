@@ -869,7 +869,6 @@ const
     esExistencias, esEntradas, esSalidas,
     esPdteServir, esPdteRecibir,
     esPdteTraspasar, esPdteRecTraspaso, esDisponible);
-
 var
   est: TEstadoStock;
   i: Integer;

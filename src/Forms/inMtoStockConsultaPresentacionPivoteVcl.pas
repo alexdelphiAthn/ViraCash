@@ -58,6 +58,7 @@ type
       const ACaptionSimplificado, ACaptionDesglosado: string;
       const AAlRecargar, AAlGuardarModo: TReaccionStockConsulta);
     destructor Destroy; override;
+    procedure AjustarLeyenda;
     procedure PoblarCombo;
     procedure AplicarModo(AModoDesglosado: Boolean);
     procedure MarcarModoEnRadios;
@@ -145,8 +146,9 @@ uses
   inLibMsgArticulos;
 
 const
-  // Contraste reforzado para los fondos claros y oscuros de los temas.
-  CONTRASTE_MINIMO_ESTADO = 7.0;
+  // Conservar los tonos legacy cuando ya ofrecen contraste suficiente;
+  // adaptar solo los que pierden legibilidad con el fondo del tema.
+  CONTRASTE_MINIMO_ESTADO = 4.5;
 
 function LuminanciaRelativa(AColor: TColor): Double;
 
@@ -393,11 +395,8 @@ procedure TPresentadorEstadosStock.CrearLeyenda;
 var
   i: Integer;
   Etiqueta: TLabel;
-  iIzquierda, iTop, iAlto: Integer;
+
 begin
-  iIzquierda := MARGEN_LEYENDA;
-  iTop := TOP_LEYENDA;
-  iAlto := MulDiv(22, FPanelLeyenda.CurrentPPI, 96);
   for i := Low(ESTADOS_CELDA_STOCK) to High(ESTADOS_CELDA_STOCK) do
   begin
     Etiqueta := TLabel.Create(FPanelLeyenda);
@@ -411,24 +410,43 @@ begin
     Etiqueta.Tag := Ord(ESTADOS_CELDA_STOCK[i]);
     Etiqueta.Cursor := crHandPoint;
     Etiqueta.OnClick := LeyendaClick;
-    if (iIzquierda > MARGEN_LEYENDA) and
+  end;
+  AjustarLeyenda;
+end;
+
+procedure TPresentadorEstadosStock.AjustarLeyenda;
+var
+  i, iIzquierda, iTop, iAlto, iMargen, iSeparacion: Integer;
+  Etiqueta: TControl;
+begin
+  iMargen := MulDiv(MARGEN_LEYENDA, FPanelLeyenda.CurrentPPI, 96);
+  iSeparacion := MulDiv(SEPARACION_LEYENDA,
+    FPanelLeyenda.CurrentPPI, 96);
+  iIzquierda := iMargen;
+  iTop := MulDiv(TOP_LEYENDA, FPanelLeyenda.CurrentPPI, 96);
+  iAlto := MulDiv(22, FPanelLeyenda.CurrentPPI, 96);
+  for i := 0 to FPanelLeyenda.ControlCount - 1 do
+  begin
+    Etiqueta := FPanelLeyenda.Controls[i];
+    if (iIzquierda > iMargen) and
        (iIzquierda + Etiqueta.Width > FPanelLeyenda.ClientWidth) then
     begin
-      iIzquierda := MARGEN_LEYENDA;
+      iIzquierda := iMargen;
       Inc(iTop, iAlto);
     end;
     Etiqueta.Top := iTop;
     Etiqueta.Left := iIzquierda;
-    iIzquierda := iIzquierda + Etiqueta.Width + SEPARACION_LEYENDA;
+    Inc(iIzquierda, Etiqueta.Width + iSeparacion);
   end;
-  FPanelLeyenda.Height := iTop + iAlto + TOP_LEYENDA;
+  FPanelLeyenda.Height := iTop + iAlto +
+    MulDiv(TOP_LEYENDA, FPanelLeyenda.CurrentPPI, 96);
 end;
 
 procedure TPresentadorEstadosStock.LeyendaClick(Sender: TObject);
 var
   Resultado: TResultadoLeyendaStock;
 begin
-  if Sender is TLabel then
+  if (Sender is TLabel) and not FSeleccion.ModoDesglosado then
   begin
     Resultado := FSeleccion.ResolverLeyenda(
       TEstadoStock(TLabel(Sender).Tag));
@@ -438,7 +456,8 @@ begin
       PoblarCombo;
       FAlGuardarModo();
     end;
-    if Resultado.Indice >= 0 then
+    if (Resultado.Indice >= 0) and
+       not FSeleccion.ModoDesglosado then
     begin
       if FCombo.ItemIndex <> Resultado.Indice then
         FCombo.ItemIndex := Resultado.Indice
@@ -468,6 +487,7 @@ begin
   FOrigen.DataSet := nil;
   FVista.DataController.DataSource := FOrigen;
   FVista.OptionsView.ColumnAutoWidth := False;
+  FVista.OptionsView.GridLines := glBoth;
   FVista.OnCustomDrawCell := DibujarCelda;
   CrearEstilos(AOwner);
 end;
@@ -593,6 +613,8 @@ begin
     // mínimo, DevExpress no lo guarda como asignado y al abrir el dataset
     // lo sustituye por DisplayWidth, aunque ColumnAutoWidth sea False.
     Columna.Width := EscalarAncho(Definicion.Ancho);
+    if FDetalle and (Definicion.Clase in [cpsTalla, cpsTotal]) then
+      Columna.Width := EscalarAncho(135);
     Columna.MinWidth := Columna.Width;
     Columna.Caption := Definicion.Titulo;
     Columna.DataBinding.FieldName := Definicion.Campo;
@@ -762,10 +784,15 @@ var
   rCelda, rTexto: TRect;
   Estado: TEstadoStock;
   dValor: Double;
+  cFondo: TColor;
   sCampo, sTexto: string;
 begin
   rCelda := AInfo.Bounds;
-  ACanvas.Brush.Color := AInfo.Params.Color;
+  // El azul de seleccion convierte varios tonos en negro al buscar
+  // contraste. Conservar el fondo del tema mantiene el codigo de colores;
+  // la columna de almacen sigue indicando la fila seleccionada.
+  cFondo := RootLookAndFeel.Painter.DefaultContentColor;
+  ACanvas.Brush.Color := cFondo;
   ACanvas.FillRect(rCelda);
   ACanvas.Font.Assign(AInfo.Params.Font);
   iAncho := (rCelda.Right - rCelda.Left) div 3;
@@ -781,7 +808,7 @@ begin
         rCelda.Top + (i div 3) * iAlto,
         rCelda.Left + (i mod 3 + 1) * iAncho,
         rCelda.Top + (i div 3 + 1) * iAlto);
-      ACanvas.Font.Color := ColorEstadoLegible(Estado, AInfo.Params.Color);
+      ACanvas.Font.Color := ColorEstadoLegible(Estado, cFondo);
       if Estado = esExistencias then
         ACanvas.Font.Style := [fsBold]
       else
