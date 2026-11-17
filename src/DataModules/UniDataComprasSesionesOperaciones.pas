@@ -147,6 +147,48 @@ begin
   end;
 end;
 
+function PerfilesPreciosDistintos(AConexion: TUniConnection;
+  const ASerie, ANumero: string; APrimera, ASegunda: Integer): Boolean;
+var
+  Consulta: TUniQuery;
+begin
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := AConexion;
+    // Mismo artículo/color puede figurar en bloques comerciales distintos.
+    // Se exige una diferencia explícita de coste o PVP en la misma talla;
+    // un precio ausente nunca sirve para eludir el control de duplicados.
+    Consulta.SQL.Text :=
+      'SELECT EXISTS(SELECT 1 ' +
+      'FROM fza_compras_sesiones_lineas_skus_precios P1 ' +
+      'JOIN fza_compras_sesiones_lineas_skus_precios P2 ' +
+      'ON P2.SERIE_SES_SESLINSKU = P1.SERIE_SES_SESLINSKU ' +
+      'AND P2.NUMERO_SES_SESLINSKU = P1.NUMERO_SES_SESLINSKU ' +
+      'AND P2.ID_FILA_SES_SESLINSKU = P1.ID_FILA_SES_SESLINSKU ' +
+      'AND P2.ID_AV_PIVOT_SESLINSKU = P1.ID_AV_PIVOT_SESLINSKU ' +
+      'WHERE P1.SERIE_SES_SESLINSKU = :serie ' +
+      'AND P1.NUMERO_SES_SESLINSKU = :numero ' +
+      'AND P1.LINEA_SES_SESLINSKU = :primera ' +
+      'AND P2.LINEA_SES_SESLINSKU = :segunda ' +
+      'AND ((P1.PRECIO_COMPRA_SESLINSKU IS NOT NULL ' +
+      'AND P2.PRECIO_COMPRA_SESLINSKU IS NOT NULL ' +
+      'AND ABS(P1.PRECIO_COMPRA_SESLINSKU - ' +
+      'P2.PRECIO_COMPRA_SESLINSKU) > 0.000001) ' +
+      'OR (P1.PRECIO_VENTA_SESLINSKU IS NOT NULL ' +
+      'AND P2.PRECIO_VENTA_SESLINSKU IS NOT NULL ' +
+      'AND ABS(P1.PRECIO_VENTA_SESLINSKU - ' +
+      'P2.PRECIO_VENTA_SESLINSKU) > 0.000001))) AS DISTINTOS';
+    Consulta.ParamByName('serie').AsString := ASerie;
+    Consulta.ParamByName('numero').AsString := ANumero;
+    Consulta.ParamByName('primera').AsInteger := APrimera;
+    Consulta.ParamByName('segunda').AsInteger := ASegunda;
+    Consulta.Open;
+    Result := Consulta.FieldByName('DISTINTOS').AsInteger <> 0;
+  finally
+    Consulta.Free;
+  end;
+end;
+
 function BuscarColorRepetidoSesion(AConn: TUniConnection;
   const ASerie, ANumero: string; ALinea: TDataSet): Integer;
 var
@@ -163,7 +205,10 @@ begin
       begin
         if (Consulta.FieldByName('LINEA_SESLIN').AsInteger <>
             ALinea.FieldByName('LINEA_SESLIN').AsInteger) and
-           (ClaveColorDataSet(Consulta) = Clave) then
+           (ClaveColorDataSet(Consulta) = Clave) and
+           not PerfilesPreciosDistintos(AConn, ASerie, ANumero,
+             Consulta.FieldByName('LINEA_SESLIN').AsInteger,
+             ALinea.FieldByName('LINEA_SESLIN').AsInteger) then
           Result := Consulta.FieldByName('LINEA_SESLIN').AsInteger;
         Consulta.Next;
       end;
@@ -180,6 +225,8 @@ var
   Claves: TStringList;
   Clave: string;
   Indice: Integer;
+  Repetida: Integer;
+  LineaActual: Integer;
 begin
   Consulta := ConsultarColoresSesion(AConn, ASerie, ANumero);
   Claves := TStringList.Create;
@@ -189,15 +236,25 @@ begin
       Clave := ClaveColorDataSet(Consulta);
       if Clave <> '' then
       begin
-        Indice := Claves.IndexOfName(Clave);
-        if Indice >= 0 then
+        LineaActual := Consulta.FieldByName('LINEA_SESLIN').AsInteger;
+        Indice := 0;
+        Repetida := 0;
+        // Comparar con todos los bloques anteriores de ese artículo/color,
+        // para que un tercero idéntico al segundo siga siendo rechazado.
+        while (Indice < Claves.Count) and (Repetida = 0) do
+        begin
+          if Claves.Names[Indice] = Clave then
+          begin
+            if not PerfilesPreciosDistintos(AConn, ASerie, ANumero,
+              StrToInt(Claves.ValueFromIndex[Indice]), LineaActual) then
+              Repetida := StrToInt(Claves.ValueFromIndex[Indice]);
+          end;
+          Inc(Indice);
+        end;
+        if Repetida > 0 then
           AIncidencias.Add(Format('Línea %d: ' +
-            SErrorColorRepetidoSesion,
-            [Consulta.FieldByName('LINEA_SESLIN').AsInteger,
-             StrToInt(Claves.ValueFromIndex[Indice])]))
-        else
-          Claves.Values[Clave] :=
-            Consulta.FieldByName('LINEA_SESLIN').AsString;
+            SErrorColorRepetidoSesion, [LineaActual, Repetida]));
+        Claves.Add(Clave + '=' + IntToStr(LineaActual));
       end;
       Consulta.Next;
     end;

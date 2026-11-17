@@ -20,6 +20,11 @@ type
   TTallaPedidoOcr = record
     Talla: string;
     Cantidad: Double;
+    TienePrecioCompra: Boolean;
+    PrecioCompra: Double;
+    TienePvp: Boolean;
+    Pvp: Double;
+    TarifaConflictiva: Boolean;
   end;
   TTallasPedidoOcr = TArray<TTallaPedidoOcr>;
   TLineaPedidoOcr = record
@@ -29,6 +34,8 @@ type
     ColorDetectado: string;
     CodigoFoto: string;
     FotoAusente: Boolean;
+    TienePreciosPorTalla: Boolean;
+    BloqueOrigen: Integer;
     Tallas: TTallasPedidoOcr;
     Cantidad: Double;
     PrecioCompra: Double;
@@ -63,6 +70,8 @@ type
     class procedure LeerValidacion(AObjeto: TObject;
       var APedido: TPedidoOcr); static;
     class function LeerLinea(AObjeto: TObject): TLineaPedidoOcr; static;
+    class procedure AplicarTarifasTalla(AObjeto: TObject;
+      var ALinea: TLineaPedidoOcr); static;
     class function SonEquivalentes(const APrimera,
       ASegunda: TLineaPedidoOcr): Boolean; static;
     class procedure SumarTalla(var ALinea: TLineaPedidoOcr;
@@ -73,6 +82,8 @@ type
       var ALineas: TLineasPedidoOcr); static;
   public
     class function Cargar(const AFicheroJson: string): TPedidoOcr; static;
+    class function ImporteLinea(const ALinea: TLineaPedidoOcr): Double;
+      static;
   end;
 
 function NormalizarTallaPedido(const ATalla: string): string;
@@ -298,6 +309,93 @@ begin
   end;
 end;
 
+class procedure TLectorPedidoOcr.AplicarTarifasTalla(AObjeto: TObject;
+  var ALinea: TLineaPedidoOcr);
+var
+  oJson, oBanda: TJSONObject;
+  oBandas: TJSONArray;
+  oValor, oCoste, oPvp: TJSONValue;
+  iDesde, iHasta, iNumero, iTalla, iEncontrada: Integer;
+  Talla: TTallaPedidoOcr;
+begin
+  oJson := TJSONObject(AObjeto);
+  if oJson.GetValue('precios_por_talla') is TJSONArray then
+  begin
+    ALinea.TienePreciosPorTalla := True;
+    ALinea.BloqueOrigen := Trunc(JsonDoubleODefecto(
+      oJson, 'bloque_origen', 0));
+    oBandas := TJSONArray(oJson.GetValue('precios_por_talla'));
+    for oValor in oBandas do
+    begin
+      if oValor is TJSONObject then
+      begin
+        oBanda := TJSONObject(oValor);
+        iDesde := Trunc(JsonDoubleODefecto(oBanda, 'desde', 0));
+        iHasta := Trunc(JsonDoubleODefecto(oBanda, 'hasta', -1));
+        oCoste := oBanda.GetValue('precio_unitario');
+        oPvp := oBanda.GetValue('pvp');
+        if (iDesde > 0) and (iHasta >= iDesde) and
+           (iHasta <= 1000) then
+          for iNumero := iDesde to iHasta do
+          begin
+            iEncontrada := -1;
+            for iTalla := 0 to High(ALinea.Tallas) do
+              if ALinea.Tallas[iTalla].Talla = IntToStr(iNumero) then
+                iEncontrada := iTalla;
+            if iEncontrada < 0 then
+            begin
+              iEncontrada := Length(ALinea.Tallas);
+              SetLength(ALinea.Tallas, iEncontrada + 1);
+              ALinea.Tallas[iEncontrada] := Default(TTallaPedidoOcr);
+              ALinea.Tallas[iEncontrada].Talla := IntToStr(iNumero);
+            end;
+            Talla := ALinea.Tallas[iEncontrada];
+            if oCoste is TJSONNumber then
+            begin
+              if Talla.TienePrecioCompra and not SameValue(
+                Talla.PrecioCompra, TJSONNumber(oCoste).AsDouble,
+                0.000001) then
+                Talla.TarifaConflictiva := True;
+              Talla.PrecioCompra := TJSONNumber(oCoste).AsDouble;
+              Talla.TienePrecioCompra := True;
+            end;
+            if oPvp is TJSONNumber then
+            begin
+              if Talla.TienePvp and not SameValue(
+                Talla.Pvp, TJSONNumber(oPvp).AsDouble, 0.000001) then
+                Talla.TarifaConflictiva := True;
+              Talla.Pvp := TJSONNumber(oPvp).AsDouble;
+              Talla.TienePvp := True;
+            end;
+            if Talla.TarifaConflictiva then
+            begin
+              Talla.TienePrecioCompra := False;
+              Talla.TienePvp := False;
+            end;
+            ALinea.Tallas[iEncontrada] := Talla;
+          end;
+      end;
+    end;
+    // Una media impresa nunca es el coste heredable de una tarifa por talla.
+    ALinea.PrecioCompra := 0;
+    ALinea.Pvp := 0;
+    ALinea.TienePvp := False;
+  end;
+end;
+
+class function TLectorPedidoOcr.ImporteLinea(
+  const ALinea: TLineaPedidoOcr): Double;
+var
+  Talla: TTallaPedidoOcr;
+begin
+  Result := 0;
+  for Talla in ALinea.Tallas do
+    if Talla.TienePrecioCompra then
+      Result := Result + Talla.Cantidad * Talla.PrecioCompra
+    else
+      Result := Result + Talla.Cantidad * ALinea.PrecioCompra;
+end;
+
 class function TLectorPedidoOcr.LeerLinea(
   AObjeto: TObject): TLineaPedidoOcr;
 var
@@ -341,10 +439,17 @@ begin
           TallaLeida.Talla := LeerTextoSeguro(oTalla, 'talla');
           TallaLeida.Cantidad := JsonDoubleODefecto(
             oTalla, 'cantidad', 0);
+          TallaLeida.TienePrecioCompra :=
+            oTalla.GetValue('precio_unitario') is TJSONNumber;
+          TallaLeida.PrecioCompra := JsonDoubleODefecto(
+            oTalla, 'precio_unitario', 0);
+          TallaLeida.TienePvp := oTalla.GetValue('pvp') is TJSONNumber;
+          TallaLeida.Pvp := JsonDoubleODefecto(oTalla, 'pvp', 0);
           SumarTalla(Result, TallaLeida);
         end;
       end;
     end;
+    AplicarTarifasTalla(oJson, Result);
   end;
 end;
 
@@ -357,6 +462,10 @@ begin
     (APrimera.TienePvp = ASegunda.TienePvp);
   if Result and APrimera.TienePvp then
     Result := SameValue(APrimera.Pvp, ASegunda.Pvp, 0.000001);
+  if APrimera.TienePreciosPorTalla or ASegunda.TienePreciosPorTalla then
+    Result := Result and APrimera.TienePreciosPorTalla and
+      ASegunda.TienePreciosPorTalla and (APrimera.BloqueOrigen > 0) and
+      (APrimera.BloqueOrigen = ASegunda.BloqueOrigen);
 end;
 
 class procedure TLectorPedidoOcr.SumarTalla(
@@ -376,6 +485,16 @@ begin
     begin
       ALinea.Tallas[iTalla].Cantidad :=
         ALinea.Tallas[iTalla].Cantidad + ATalla.Cantidad;
+      if ATalla.TienePrecioCompra then
+      begin
+        ALinea.Tallas[iTalla].TienePrecioCompra := True;
+        ALinea.Tallas[iTalla].PrecioCompra := ATalla.PrecioCompra;
+      end;
+      if ATalla.TienePvp then
+      begin
+        ALinea.Tallas[iTalla].TienePvp := True;
+        ALinea.Tallas[iTalla].Pvp := ATalla.Pvp;
+      end;
       bEncontrada := True;
     end;
     Inc(iTalla);

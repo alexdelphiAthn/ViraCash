@@ -105,6 +105,7 @@ begin
   FLinea := ALinea;
   FUsuario := AUsuario;
   FPrecios := Copy(APrecios);
+  OrdenarPreciosCeldasSesion(FPrecios);
   FCalculoPvp := ACalculoPvp;
   FCosteLinea := ACosteLinea;
   FPvpLinea := APvpLinea;

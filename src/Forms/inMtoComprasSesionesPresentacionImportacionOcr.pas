@@ -387,7 +387,7 @@ begin
       'TOTAL_UNIDADES_SESLIN').AsFloat := ALinea.Datos.Cantidad;
     AEntorno.Datos.unqrySesionLin.FieldByName(
       'TOTAL_LINEA_SESLIN').AsFloat :=
-        ALinea.Datos.Cantidad * ALinea.Datos.PrecioCompra;
+        TLectorPedidoOcr.ImporteLinea(ALinea.Datos);
     // Sin formula evaluable (familia sin contador) la linea entra sin
     // codigo y se cuenta en el resumen, como cualquier otra sin codigo.
     try
@@ -407,6 +407,12 @@ begin
       ACatalogoColores,
       ALinea.Datos,
       oResolucion);
+    TPersistenciaPedidoOcr.GuardarPreciosTallas(
+      AEntorno.Conexion,
+      AEntorno.Datos.unqryTablaG.FieldByName('SERIE_SES').AsString,
+      AEntorno.Datos.unqryTablaG.FieldByName('NUMERO_SES').AsString,
+      AEntorno.Usuario, ALinea.LineaSesion, ALinea.Datos,
+      ALinea.Tallas);
     AEntorno.Datos.unqrySesionLin.Post;
     AnadirCeldasPedidoOcr(ACeldas, ALinea);
   finally

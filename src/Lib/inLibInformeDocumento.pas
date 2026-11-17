@@ -21,7 +21,8 @@ uses
 procedure CrearInformeDocumento(AInforme: TfrxReport;
   ACabecera, ALineas, AImpuestos: TfrxDBDataset;
   const ATitulo, AEtiquetaTercero: string;
-  AMostrarDescuento: Boolean = False);
+  AMostrarDescuento: Boolean = False;
+  APedidoCompra: Boolean = False);
 
 // Aplica el formato español también a plantillas de factura guardadas.
 procedure AjustarFormatoBasesFactura(AInforme: TfrxReport);
@@ -173,6 +174,7 @@ type
     FEtiquetaTercero: string;
     FAncho: Extended;
     FMostrarDescuento: Boolean;
+    FPedidoCompra: Boolean;
     function Memo(AParent: TfrxComponent; const ATexto: string;
       ALeft, ATop, AWidth, AHeight: Extended): TfrxMemoView;
     function Importe(const ACampo: string): string;
@@ -186,6 +188,7 @@ type
       ABloque: string; ALeft: Extended);
     procedure CrearCabecera(APagina: TfrxReportPage);
     procedure CrearDetalle(APagina: TfrxReportPage);
+    procedure CrearDetallePedidoCompra(APagina: TfrxReportPage);
     procedure CrearDesgloseIva(AResumen: TfrxBand);
     procedure CrearFilaTotal(AResumen: TfrxBand; const AEtiqueta,
       AValor: string; ATop: Extended; const AAlVisualizar: string);
@@ -375,6 +378,84 @@ begin
     Columnas[7] - Columnas[6], haRight);
 end;
 
+// Una cabecera por modelo; las tallas y los SKU se imprimen debajo.
+procedure TInformeDocumento.CrearDetallePedidoCompra(
+  APagina: TfrxReportPage);
+const
+  ROTULOS: array[0..5] of string =
+    ('Modelo', 'SKU', 'Descripción', 'Precio', 'Cantidad', 'Total');
+var
+  oGrupo: TfrxGroupHeader;
+  oCabecera: TfrxHeader;
+  oDetalle: TfrxMasterData;
+  oFoto: TfrxPictureView;
+  oTexto: TfrxMemoView;
+  Bordes: array[0..6] of Extended;
+  Textos: array[0..5] of string;
+  iColumna: Integer;
+  eAlineacion: TfrxHAlign;
+begin
+  Bordes[0] := 0;
+  Bordes[1] := 78;
+  Bordes[2] := 308;
+  Bordes[3] := FAncho - 222;
+  Bordes[4] := FAncho - 148;
+  Bordes[5] := FAncho - 74;
+  Bordes[6] := FAncho;
+  oGrupo := TfrxGroupHeader.Create(APagina);
+  oGrupo.Name := 'CabeceraModeloCompra';
+  oGrupo.Top := 270;
+  oGrupo.Height := 88;
+  oGrupo.Condition := 'Lineas."MODELO"';
+  oGrupo.ReprintOnNewPage := False;
+  oGrupo.KeepChild := True;
+  oFoto := TfrxPictureView.Create(oGrupo);
+  oFoto.Name := 'foto300';
+  oFoto.SetBounds(0, 4, 96, 78);
+  oFoto.DataSet := FLineas;
+  oFoto.Stretched := True;
+  oFoto.KeepAspectRatio := True;
+  oTexto := Memo(oGrupo, 'Modelo [Lineas."MODELO"]',
+    108, 8, FAncho - 108, 24);
+  oTexto.Font.Size := 11;
+  oTexto.Font.Style := [fsBold];
+  Memo(oGrupo, '[Lineas."DESCRIPCION"]',
+    108, 34, FAncho - 108, 44).WordWrap := True;
+  oCabecera := TfrxHeader.Create(APagina);
+  oCabecera.CreateUniqueName;
+  oCabecera.Top := 370;
+  oCabecera.Height := 24;
+  oCabecera.ReprintOnNewPage := True;
+  oDetalle := TfrxMasterData.Create(APagina);
+  oDetalle.CreateUniqueName;
+  oDetalle.Top := 400;
+  oDetalle.DataSet := FLineas;
+  oDetalle.Height := ALTO_FILA + 4;
+  oDetalle.Stretched := True;
+  oDetalle.AllowSplit := False;
+  Textos[0] := '[Lineas."MODELO"]';
+  Textos[1] := '[Lineas."SKU"]';
+  Textos[2] := '[Lineas."DETALLE"]';
+  Textos[3] := Importe('Lineas."PRECIO"');
+  Textos[4] :=
+    '[FormatFloat(''#,##0.##'', <Lineas."CANTIDAD">)]';
+  Textos[5] := Importe('Lineas."TOTAL"');
+  for iColumna := 0 to High(ROTULOS) do
+  begin
+    eAlineacion := haLeft;
+    if iColumna >= 3 then
+      eAlineacion := haRight;
+    CeldaTitulo(oCabecera, ROTULOS[iColumna],
+      Bordes[iColumna], Bordes[iColumna + 1] - Bordes[iColumna],
+      eAlineacion);
+    oTexto := CeldaLinea(oDetalle, Textos[iColumna],
+      Bordes[iColumna], Bordes[iColumna + 1] - Bordes[iColumna],
+      eAlineacion);
+    if iColumna = 1 then
+      oTexto.Font.Size := 8;
+  end;
+end;
+
 // Desglose guardado por tipo; las dos columnas de R.E. son condicionales.
 procedure TInformeDocumento.CrearDesgloseIva(AResumen: TfrxBand);
 var
@@ -537,7 +618,10 @@ begin
   FAncho := (oPagina.PaperWidth - oPagina.LeftMargin -
     oPagina.RightMargin) * PIXELES_POR_MM;
   CrearCabecera(oPagina);
-  CrearDetalle(oPagina);
+  if FPedidoCompra then
+    CrearDetallePedidoCompra(oPagina)
+  else
+    CrearDetalle(oPagina);
   CrearTotales(oPagina);
   CrearPie(oPagina);
 end;
@@ -545,7 +629,7 @@ end;
 procedure CrearInformeDocumento(AInforme: TfrxReport;
   ACabecera, ALineas, AImpuestos: TfrxDBDataset;
   const ATitulo, AEtiquetaTercero: string;
-  AMostrarDescuento: Boolean);
+  AMostrarDescuento, APedidoCompra: Boolean);
 var
   oConstructor: TInformeDocumento;
 begin
@@ -556,6 +640,7 @@ begin
     oConstructor.FLineas := ALineas;
     oConstructor.FImpuestos := AImpuestos;
     oConstructor.FMostrarDescuento := AMostrarDescuento;
+    oConstructor.FPedidoCompra := APedidoCompra;
     oConstructor.FTitulo := ATitulo;
     oConstructor.FEtiquetaTercero := AEtiquetaTercero;
     oConstructor.CrearInforme;

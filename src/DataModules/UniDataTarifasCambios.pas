@@ -84,6 +84,8 @@ type
     unqryTarifasArticulo: TUniQuery;
     dsTarifasArticulo: TDataSource;
     unqryAlmacenesStock: TUniQuery;
+    function TienePreciosPorVariante(const AArticulo: string;
+      AFecha: TDateTime): Boolean;
     procedure AbrirTarifasArticulo;
     procedure AbrirAlmacenesStock;
     procedure FiltrarStockAlmacenes(const ACodigos: string);
@@ -105,7 +107,6 @@ type
     procedure AbrirDetalles; override;
     procedure AplicarDescuentoLote(const AIdsLinea: TArray<Integer>;
       APorcentaje: Double);
-    function  LineasSinPrecioNuevo: Integer;
     // FZ-ISSUE-944: lineas de periodo (rebajas) con la salida cambiada.
     function  LineasPeriodoConSalidaCambiada: Integer;
     // SKU de la sesion para etiquetar, entre comillas y separados por comas.
@@ -924,29 +925,33 @@ begin
     end;
 end;
 
-function TdmTarifasCambios.LineasSinPrecioNuevo: Integer;
+// Un precio de SKU, talla o color impide probar sin concretar la variante.
+function TdmTarifasCambios.TienePreciosPorVariante(
+  const AArticulo: string; AFecha: TDateTime): Boolean;
 var
-  qry: TUniQuery;
+  Consulta: TUniQuery;
 begin
-  Result := 0;
-  GrabarLineaPendiente;
-  if unqryTablaG.Active and (not unqryTablaG.IsEmpty) then
-  begin
-    qry := TUniQuery.Create(nil);
-    try
-      qry.Connection := unqryTablaG.Connection;
-      qry.SQL.Text :=
-        'SELECT COUNT(*) AS CANTIDAD FROM fza_tarifas_cambios_lineas ' +
-        'WHERE CODIGO_TARC_TARCLIN = :CODIGO AND ESAPLICAR_TARCLIN = ''S'' ' +
-        'AND (COALESCE(PRECIO_NUEVO_TARCLIN, 0) <= 0 ' +
-        '  OR COALESCE(PRECIO_FINAL_NUEVO_TARCLIN, 0) <= 0)';
-      qry.ParamByName('CODIGO').AsInteger :=
-        unqryTablaG.FieldByName('CODIGO_TARC').AsInteger;
-      qry.Open;
-      Result := qry.FieldByName('CANTIDAD').AsInteger;
-    finally
-      FreeAndNil(qry);
-    end;
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := unqryTablaG.Connection;
+    Consulta.SQL.Text :=
+      'SELECT 1 FROM fza_articulos_tarifas P ' +
+      'JOIN fza_tarifas T ' +
+      'ON T.CODIGO_TAR_ARTTAR = P.CODIGO_TAR_ARTTAR ' +
+      'AND T.ESACTIVO_ARTTAR = ''S'' ' +
+      'WHERE P.CODIGO_ART_ARTTAR = :ARTICULO ' +
+      'AND COALESCE(P.CODIGO_UNIDAD_ARTTAR, '''') <> '''' ' +
+      'AND P.ESACTIVO_ARTTAR = ''S'' ' +
+      'AND (P.FECHA_DESDE_ARTTAR IS NULL ' +
+      'OR P.FECHA_DESDE_ARTTAR <= :FECHA) ' +
+      'AND (P.FECHA_HASTA_ARTTAR IS NULL ' +
+      'OR P.FECHA_HASTA_ARTTAR >= :FECHA) LIMIT 1';
+    Consulta.ParamByName('ARTICULO').AsString := AArticulo;
+    Consulta.ParamByName('FECHA').AsDate := Trunc(AFecha);
+    Consulta.Open;
+    Result := not Consulta.IsEmpty;
+  finally
+    FreeAndNil(Consulta);
   end;
 end;
 

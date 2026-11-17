@@ -1415,11 +1415,18 @@ begin
   Lectura := Default(TArtResolucionEntrada);
   if sTexto <> '' then
     Lectura := FSimulacion.Validador.Resolver(sTexto);
+  // El código del artículo prueba su precio general, sin elegir
+  // automáticamente un SKU aunque sólo haya uno activo.
+  if Lectura.Encontrado and
+    SameText(sTexto, Lectura.CodigoArticulo) then
+    Lectura.CodigoSku := '';
   if sTexto = '' then
     AError := SErrorPruebaPrecioSinSku
   else if not Lectura.Encontrado then
     AError := Format(SErrorPruebaPrecioNoEncontrado, [sTexto])
-  else if Lectura.RequiereSku and (Lectura.CodigoSku = '') then
+  else if (Lectura.CodigoSku = '') and
+    dmmTarifasCambios.TienePreciosPorVariante(Lectura.CodigoArticulo,
+      dtePruebaFecha.Date) then
     AError := Format(SErrorPruebaPrecioRequiereSku,
       [Lectura.CodigoArticulo]);
   Result := AError = '';
@@ -1960,7 +1967,6 @@ var
   sMensaje        : string;
   iLineas         : Integer;
   iLineasAplicadas: Integer;
-  iSinPrecio      : Integer;
   iSalidaCambiada : Integer;
 begin
   if Assigned(dmmTarifasCambios) and GrabarCabeceraSiNecesario then
@@ -1968,13 +1974,10 @@ begin
     // Con periodos se aplican todos, no solo el que se ve.
     dmmTarifasCambios.SincronizarPeriodos;
     iLineas := dmmTarifasCambios.TotalLineasSesion;
-    iSinPrecio := dmmTarifasCambios.LineasSinPrecioNuevo;
     iSalidaCambiada := dmmTarifasCambios.LineasPeriodoConSalidaCambiada;
-    if iSinPrecio > 0 then
-      ShowMessage_fza(Format(SErrorLineasSinPrecioNuevoSesionTarifa,
-        [iSinPrecio]))
+    // Las lineas sin precio se aplican a cero junto con las demas.
     // FZ-ISSUE-944: rebajas con la salida cambiada, contra la ley de consumo.
-    else if (iSalidaCambiada > 0) and
+    if (iSalidaCambiada > 0) and
       (MessageDlg_fza(Format(SAvisoAplicarSalidaCambiadaRebajas,
         [iSalidaCambiada]), mtWarning, [mbYes, mbNo], 0) <> mrYes) then
       Exit

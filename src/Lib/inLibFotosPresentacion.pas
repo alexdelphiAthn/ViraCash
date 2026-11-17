@@ -70,8 +70,14 @@ begin
   Result := nil;
   if AObjeto <> nil then
   begin
+    // La cabecera de grupo no es una banda de datos. La imagen puede
+    // declarar su origen explicitamente para evitar usar la cabecera.
+    if (AObjeto is TfrxPictureView) and
+       (TfrxPictureView(AObjeto).DataSet is TfrxDBDataset) then
+      Result := TfrxDBDataset(
+        TfrxPictureView(AObjeto).DataSet).GetDataSet;
     oPadre := AObjeto.Parent;
-    bContinuar := Assigned(oPadre);
+    bContinuar := Assigned(oPadre) and (Result = nil);
     while bContinuar do
     begin
       if oPadre is TfrxDataBand then

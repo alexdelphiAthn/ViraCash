@@ -274,9 +274,31 @@ procedure TDatosInformeDocumento.ConfigurarLineas(
   const AConfig: TConfiguracionDocumento);
 var
   sSufijo, sPrecio, sVariante, sTallas, sDetalle, sPropiedades: string;
-  sDescuento: string;
+  sDescuento, sModelo, sOrden, sTalla, sEsTalla: string;
 begin
   sSufijo := '_' + AConfig.PrefijoLineas;
+  sModelo := 'L.CODIGO_ART' + sSufijo;
+  sOrden := 'LINEA' + sSufijo;
+  if (AConfig.TipoDocumento = tdPedido) and
+     (AConfig.Sentido = sdCompra) then
+  begin
+    sModelo := 'COALESCE((SELECT NULLIF(TRIM(AP.REF_PROVEEDOR_AP), ' +
+      QuotedStr('') + ') FROM fza_articulos_proveedores AP ' +
+      'JOIN fza_pedidos_compra PC ON PC.CODIGO_PRV_PEDC = ' +
+      'AP.CODIGO_PRV_AP WHERE AP.CODIGO_ART_AP = L.CODIGO_ART_PEDCLIN ' +
+      'AND PC.SERIE_PEDC = :SERIE AND PC.NUMERO_PEDC = :NUMERO ' +
+      'LIMIT 1), L.CODIGO_ART_PEDCLIN)';
+    // Los SKU con talla numerica terminan en /talla. El resto conserva
+    // el orden de sus lineas; nunca se convierte texto de talla a cero.
+    sTalla := 'SUBSTRING_INDEX(L.CODIGO_UNIDAD_PEDCLIN, ''/'', -1)';
+    sEsTalla := 'L.CODIGO_UNIDAD_PEDCLIN REGEXP ' +
+      QuotedStr('/[0-9]+([.,][0-9]+)?$');
+    sOrden := 'MODELO, ARTICULO, CASE WHEN ' + sEsTalla +
+      ' THEN LEFT(SKU, CHAR_LENGTH(SKU) - CHAR_LENGTH(' + sTalla +
+      ')) ELSE ' + QuotedStr('') + ' END, CASE WHEN ' + sEsTalla +
+      ' THEN CAST(REPLACE(' + sTalla + ', '','', ''.'') ' +
+      'AS DECIMAL(12,3)) ELSE LINEA END, LINEA';
+  end;
   sPrecio := PrecioLinea(AConfig);
   sDescuento := '';
   if AConfig.TipoDocumento = tdPresupuesto then
@@ -305,6 +327,9 @@ begin
   FLineas.SQL.Text :=
     'SELECT LINEA' + sSufijo + ' AS LINEA, CODIGO_ART' + sSufijo +
     ' AS ARTICULO, CODIGO_UNIDAD' + sSufijo + ' AS SKU, ' +
+    'CODIGO_ART' + sSufijo + ' AS CODIGO_ART, ' +
+    'CODIGO_UNIDAD' + sSufijo + ' AS CODIGO_UNIDAD, ' +
+    sModelo + ' AS MODELO, ' +
     'DESCRIPCION_ARTICULO' + sSufijo + ' AS DESCRIPCION, ' +
     sVariante + ' AS VARIACION, ' + sTallas + ' AS TALLAS, ' +
     sDetalle + ' AS DETALLE, ' +
@@ -315,7 +340,7 @@ begin
     'ROUND(CANTIDAD' + sSufijo + ' * ' + sPrecio +
     ', 2) AS TOTAL FROM ' + AConfig.TablaLineas + ' L' +
     ' WHERE ' + AConfig.CampoSerieLinea + ' = :SERIE AND ' +
-    AConfig.CampoNumeroLinea + ' = :NUMERO ORDER BY LINEA' + sSufijo;
+    AConfig.CampoNumeroLinea + ' = :NUMERO ORDER BY ' + sOrden;
 end;
 
 procedure TDatosInformeDocumento.ConfigurarImpuestos(

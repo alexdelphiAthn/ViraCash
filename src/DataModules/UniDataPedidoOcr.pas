@@ -89,6 +89,10 @@ type
   TCeldasPedidoOcr = TArray<TCeldaPedidoOcr>;
   TPersistenciaPedidoOcr = class
   public
+    class procedure GuardarPreciosTallas(AConexion: TUniConnection;
+      const ASerie, ANumero, AUsuario: string; ALinea: Integer;
+      const ADatos: TLineaPedidoOcr;
+      const ATallas: TResolucionTallasPedidoOcr); static;
     class procedure GuardarCeldas(AConexion: TUniConnection;
       const ASerie, ANumero, AUsuario: string;
       const ACeldas: TCeldasPedidoOcr); static;
@@ -118,7 +122,9 @@ uses
   Data.DB,
   System.SysUtils,
   System.Classes,
-  inLibComprasSesionesReglas;
+  inLibComprasSesionesReglas,
+  inLibComprasSesionesPreciosTalla,
+  UniDataComprasSesionesPreciosLinea;
 
 const
   SQL_COLOR_HISTORICO_SESIONES =
@@ -506,6 +512,33 @@ begin
   Result := FColores.TryGetValue(
     ClaveColorPedidoOcr(AColorProveedor),
     ACodigoColorBasico);
+end;
+
+class procedure TPersistenciaPedidoOcr.GuardarPreciosTallas(
+  AConexion: TUniConnection;
+  const ASerie, ANumero, AUsuario: string; ALinea: Integer;
+  const ADatos: TLineaPedidoOcr;
+  const ATallas: TResolucionTallasPedidoOcr);
+var
+  Precios: TPreciosCeldasSesion;
+  iTalla: Integer;
+begin
+  if ADatos.TienePreciosPorTalla then
+  begin
+    SetLength(Precios, Length(ADatos.Tallas));
+    for iTalla := 0 to High(ADatos.Tallas) do
+    begin
+      Precios[iTalla].IdFila := 1;
+      Precios[iTalla].IdAvPivot := ATallas.IdsAv[iTalla];
+      Precios[iTalla].TieneCoste :=
+        ADatos.Tallas[iTalla].TienePrecioCompra;
+      Precios[iTalla].Coste := ADatos.Tallas[iTalla].PrecioCompra;
+      Precios[iTalla].TienePvp := ADatos.Tallas[iTalla].TienePvp;
+      Precios[iTalla].Pvp := ADatos.Tallas[iTalla].Pvp;
+    end;
+    GrabarPreciosCeldasLinea(AConexion, ASerie, ANumero, ALinea,
+      Precios, AUsuario);
+  end;
 end;
 
 class procedure TPersistenciaPedidoOcr.GuardarCeldas(

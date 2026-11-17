@@ -184,7 +184,9 @@ begin
   CrearInformeDocumento(frxrprt1, FDatos.Cabecera, FDatos.Lineas,
     FDatos.Impuestos, NombreInformeDocumento(
       FConfiguracion.TipoDocumento, FConfiguracion.Sentido), sTercero,
-    FConfiguracion.TipoDocumento = tdPresupuesto);
+    FConfiguracion.TipoDocumento = tdPresupuesto,
+    (FConfiguracion.TipoDocumento = tdPedido) and
+    (FConfiguracion.Sentido = sdCompra));
   frxReportOrigen.AssignAll(frxrprt1);
 end;
 

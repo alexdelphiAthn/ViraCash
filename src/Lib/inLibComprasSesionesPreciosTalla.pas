@@ -63,6 +63,10 @@ type
   end;
   TPreciosCeldasSesion = TArray<TPrecioCeldaSesion>;
 
+// Orden visual numérico por talla dentro de cada fila/color. Las tallas
+// no numéricas conservan el orden de su sistema de atributos.
+procedure OrdenarPreciosCeldasSesion(var APrecios: TPreciosCeldasSesion);
+
 function ClaveTallaTarifa(const ACodigoArticulo, ATalla: string): string;
 // Índice de la fila que aplica al SKU con la prioridad de
 // UniDataTarifasPrecioSql (SKU > ART/*/TALLA > ART/COLOR > artículo);
@@ -90,7 +94,8 @@ implementation
 
 uses
   System.SysUtils,
-  inLibMsgCompras;
+  inLibMsgCompras,
+  inLibPivoteVentaCalculo;
 
 const
   TOLERANCIA_PRECIO = 0.00005;
@@ -136,6 +141,31 @@ begin
     AFila.Coste := AValor
   else
     AFila.Pvp := AValor;
+end;
+
+procedure OrdenarPreciosCeldasSesion(var APrecios: TPreciosCeldasSesion);
+var
+  Inicio, Fin, i: Integer;
+  Codigos: TArray<string>;
+  Indices: TArray<Integer>;
+  Originales: TPreciosCeldasSesion;
+begin
+  Inicio := 0;
+  while Inicio < Length(APrecios) do
+  begin
+    Fin := Inicio + 1;
+    while (Fin < Length(APrecios)) and
+          (APrecios[Fin].IdFila = APrecios[Inicio].IdFila) do
+      Inc(Fin);
+    SetLength(Codigos, Fin - Inicio);
+    for i := Inicio to Fin - 1 do
+      Codigos[i - Inicio] := APrecios[i].Talla;
+    Indices := IndicesOrdenNumericoTallas(Codigos);
+    Originales := Copy(APrecios, Inicio, Fin - Inicio);
+    for i := 0 to High(Indices) do
+      APrecios[Inicio + i] := Originales[Indices[i]];
+    Inicio := Fin;
+  end;
 end;
 
 function ClaveTallaTarifa(const ACodigoArticulo, ATalla: string): string;

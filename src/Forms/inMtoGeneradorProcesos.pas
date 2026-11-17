@@ -1189,6 +1189,7 @@ var
   I: Integer;
   Prefijo: string;
   PrimeraPestana: TcxTabSheet;
+  CrearPestanas: Boolean;
   Resultado: IResultadoSentenciaProceso;
   Titulo: string;
   Vistas: Integer;
@@ -1198,72 +1199,82 @@ begin
   Vistas := 0;
   Prefijo := Format('P%d.', [ANumero]);
   PrimeraPestana := nil;
-  for I := 0 to Length(AEjecucion.Resultados) - 1 do
-  begin
-    Resultado := AEjecucion.Resultados[I];
-    if Resultado.Correcto and Resultado.TieneDatos then
+  CrearPestanas := MostrarPestanasResultadosProceso(AEjecucion);
+  cxmResul.Lines.BeginUpdate;
+  try
+    for I := 0 to Length(AEjecucion.Resultados) - 1 do
     begin
-      Inc(Vistas);
-      Titulo := Prefijo + 'VistaDatos' + IntToStr(Vistas);
-      Datos := ExtraerDatosResultadoProceso(Resultado);
-      if Assigned(Datos) then
+      Resultado := AEjecucion.Resultados[I];
+      if Resultado.Correcto and Resultado.TieneDatos then
       begin
-        Result := True;
-        // La vista fija es una sola: se la queda el primer proceso
-        // que traiga un unico resultado y la tenga libre.
-        if (Length(AEjecucion.Resultados) = 1) and
-           (not Assigned(FDatosVistaFija)) then
+        Inc(Vistas);
+        Titulo := Prefijo + 'VistaDatos' + IntToStr(Vistas);
+        Datos := nil;
+        if CrearPestanas then
+          Datos := ExtraerDatosResultadoProceso(Resultado);
+        if Assigned(Datos) then
         begin
-          FDatosVistaFija := Datos;
-          FSqlVistaFija := AScript;
-          tsVistaDatos.InsertComponent(FDatosVistaFija);
-          dmmGeneradorProcesos.dsVista.DataSet := FDatosVistaFija;
-          tvVista.ClearItems;
-          tvVista.DataController.CreateAllItems();
-          tvVista.ApplyBestFit();
-          btnEditar.Enabled :=
-            not SqlReferenciaTablaFacturacionProtegida(FSqlVistaFija);
-          PrimeraPestana := tsVistaDatos;
-        end
-        else if not Assigned(PrimeraPestana) then
-          PrimeraPestana := CrearPestanaVistaDatos(Titulo, Datos)
-        else
-          CrearPestanaVistaDatos(Titulo, Datos);
-      end;
-      cxmResul.Lines.Add(Format(
-        STextoSDRegistrosEnDMsComun,
-        [Titulo, Resultado.Filas, Resultado.Milisegundos]));
-    end
-    else
-    begin
-      Inc(Comandos);
-      Titulo := Prefijo + 'Command' + IntToStr(Comandos);
-      if Resultado.Correcto then
-      begin
-        CrearPestanaComando(
-          Titulo,
-          Format(
-            STextoOkFilasAfectadasDEnDMsComun,
-            [Resultado.Filas, Resultado.Milisegundos]));
+          Result := True;
+          // La vista fija es una sola: se la queda el primer proceso
+          // que traiga un unico resultado y la tenga libre.
+          if (Length(AEjecucion.Resultados) = 1) and
+             (not Assigned(FDatosVistaFija)) then
+          begin
+            FDatosVistaFija := Datos;
+            FSqlVistaFija := AScript;
+            tsVistaDatos.InsertComponent(FDatosVistaFija);
+            dmmGeneradorProcesos.dsVista.DataSet := FDatosVistaFija;
+            tvVista.ClearItems;
+            tvVista.DataController.CreateAllItems();
+            tvVista.ApplyBestFit();
+            btnEditar.Enabled :=
+              not SqlReferenciaTablaFacturacionProtegida(FSqlVistaFija);
+            PrimeraPestana := tsVistaDatos;
+          end
+          else if not Assigned(PrimeraPestana) then
+            PrimeraPestana := CrearPestanaVistaDatos(Titulo, Datos)
+          else
+            CrearPestanaVistaDatos(Titulo, Datos);
+        end;
         cxmResul.Lines.Add(Format(
-          STextoSDFilasAfectadasEnDMsComun,
+          STextoSDRegistrosEnDMsComun,
           [Titulo, Resultado.Filas, Resultado.Milisegundos]));
       end
       else
       begin
-        CrearPestanaComando(
-          Titulo,
-          '-- [ERROR] ' + Resultado.MensajeError);
-        cxmResul.Lines.Add(
-          '-- [ERROR] ' + Titulo + ': ' + Resultado.MensajeError);
+        Inc(Comandos);
+        Titulo := Prefijo + 'Command' + IntToStr(Comandos);
+        if Resultado.Correcto then
+        begin
+          if CrearPestanas then
+            CrearPestanaComando(
+              Titulo,
+              Format(
+                STextoOkFilasAfectadasDEnDMsComun,
+                [Resultado.Filas, Resultado.Milisegundos]));
+          cxmResul.Lines.Add(Format(
+            STextoSDFilasAfectadasEnDMsComun,
+            [Titulo, Resultado.Filas, Resultado.Milisegundos]));
+        end
+        else
+        begin
+          if CrearPestanas then
+            CrearPestanaComando(
+              Titulo,
+              '-- [ERROR] ' + Resultado.MensajeError);
+          cxmResul.Lines.Add(
+            '-- [ERROR] ' + Titulo + ': ' + Resultado.MensajeError);
+        end;
       end;
     end;
+    if Assigned(PrimeraPestana) then
+      pcPestana.ActivePage := PrimeraPestana;
+    if AEjecucion.Cancelada then
+      cxmResul.Lines.Add(STextoEjecucionCanceladaPorElUsuarioComun);
+    cxmResul.Lines.Add('--------------------------------------------------');
+  finally
+    cxmResul.Lines.EndUpdate;
   end;
-  if Assigned(PrimeraPestana) then
-    pcPestana.ActivePage := PrimeraPestana;
-  if AEjecucion.Cancelada then
-    cxmResul.Lines.Add(STextoEjecucionCanceladaPorElUsuarioComun);
-  cxmResul.Lines.Add('--------------------------------------------------');
 end;
 
 procedure TfrmMtoGeneradorProcesos.btnEjecutarClick(Sender: TObject);

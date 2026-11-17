@@ -15,6 +15,9 @@ unit inLibGeneradorProcesosAplicacion;
 
 interface
 
+const
+  MAX_SENTENCIAS_CON_PESTANAS_PROCESO = 100;
+
 type
   TTipoSentenciaProceso = (
     tspConsulta,
@@ -62,6 +65,7 @@ type
     const ASentencia: string) of object;
   TResultadoEjecucionProceso = record
     Resultados: TArray<IResultadoSentenciaProceso>;
+    TotalSentencias: Integer;
     Cancelada: Boolean;
   end;
   TServicioGeneradorProcesos = class
@@ -80,6 +84,8 @@ type
 function PrimeraLineaUtilProceso(const ASQL: string): string;
 function TipoSentenciaProceso(
   const ASQL: string): TTipoSentenciaProceso;
+function MostrarPestanasResultadosProceso(
+  const AEjecucion: TResultadoEjecucionProceso): Boolean;
 
 implementation
 
@@ -87,6 +93,13 @@ uses
   System.Classes,
   System.SysUtils,
   inLibProteccionDatosFacturacion;
+
+function MostrarPestanasResultadosProceso(
+  const AEjecucion: TResultadoEjecucionProceso): Boolean;
+begin
+  Result := AEjecucion.TotalSentencias <=
+    MAX_SENTENCIAS_CON_PESTANAS_PROCESO;
+end;
 
 function PrimeraLineaUtilProceso(const ASQL: string): string;
 var
@@ -149,6 +162,7 @@ begin
   Result := Default(TResultadoEjecucionProceso);
   FRepositorio.OlvidarCancelacion;
   Sentencias := FRepositorio.SepararSentencias(Trim(AScript));
+  Result.TotalSentencias := Length(Sentencias);
   // Se valida el lote completo antes de ejecutar la primera sentencia para
   // impedir que un script mixto deje cambios parciales antes del bloqueo.
   for I := 0 to Length(Sentencias) - 1 do

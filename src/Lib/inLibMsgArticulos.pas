@@ -1699,7 +1699,7 @@ resourcestring
   SCaptionTabPruebaPrecio =
     'Prueba de precio';
   SCaptionPruebaPrecioSku =
-    'SKU';
+    'Artículo / SKU';
   SCaptionPruebaPrecioTarifa =
     'Tarifa';
   SCaptionPruebaPrecioFecha =
@@ -1714,7 +1714,8 @@ resourcestring
   SErrorPruebaPrecioNoEncontrado =
     'No se encuentra "%s".';
   SErrorPruebaPrecioRequiereSku =
-    'El artículo "%s" tiene variantes: indica el SKU completo.';
+    'El artículo "%s" tiene precios por SKU, talla o color: ' +
+    'indica el SKU completo.';
   SPruebaPrecioArticulo =
     'Artículo: %s · SKU: %s · %s';
   SPruebaPrecioTarifaTicket =

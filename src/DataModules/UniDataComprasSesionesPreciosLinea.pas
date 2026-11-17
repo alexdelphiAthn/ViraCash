@@ -101,7 +101,7 @@ const
     '          C.ID_AV_PIVOT_SESCEL, AVP.AV, AVP.ORDEN_AV, ' +
     '          L.COLOR_TEXTO_SESLIN, P.PRECIO_COMPRA_SESLINSKU, ' +
     '          P.PRECIO_VENTA_SESLINSKU ' +
-    ' ORDER BY C.ID_FILA_SES_SESCEL, AVP.ORDEN_AV, AVP.AV';
+    ' ORDER BY C.ID_FILA_SES_SESCEL, AVP.ORDEN_AV, AVP.AV, AVP.ID_AV';
   SQL_BORRAR_PRECIO_CELDA =
     'DELETE FROM fza_compras_sesiones_lineas_skus_precios ' +
     ' WHERE SERIE_SES_SESLINSKU = :SERIE ' +
@@ -198,6 +198,7 @@ begin
   finally
     FreeAndNil(oConsulta);
   end;
+  OrdenarPreciosCeldasSesion(Result);
 end;
 
 procedure GrabarPrecioCelda(AConsulta: TUniQuery;
