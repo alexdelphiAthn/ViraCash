@@ -124,7 +124,10 @@ begin
     // FZ-ISSUE-348: el precio de salida del TPV ya lleva el IVA; solo se
     // añade cuando la tarifa de la línea es sin impuestos.
     ' SELECT COALESCE(SUM(ROUND(l.CANTIDAD_FACLIN ' +
-    '* l.PRECIO_SALIDA_FACLIN ' +
+    '* COALESCE(l.PRECIO_SALIDA_FACLIN, CASE WHEN ' +
+    'l.ESIMP_INCL_TARIFA_FACLIN=''N'' THEN ' +
+    'l.PRECIO_VENTA_SIVA_ARTICULO_FACLIN ELSE ' +
+    'l.PRECIO_VENTA_CIVA_ARTICULO_FACLIN END,0) ' +
     '* CASE WHEN l.ESIMP_INCL_TARIFA_FACLIN = ''N'' ' +
     'THEN 1 + COALESCE(l.PORCENTAJE_IVA_FACLIN, 0) / 100 ' +
     'ELSE 1 END, 2)), 0) ' +
@@ -164,7 +167,9 @@ begin
     'AND o2.TIPO_OPERACION_OPCAJA = :pTIPO_DE) ' +
     'THEN o.IMPORTE_TOTAL_OPCAJA ELSE 0 END), 0) AS V_NORMALES, ' +
     'ABS(COALESCE(SUM(CASE ' +
-    'WHEN o.TIPO_OPERACION_OPCAJA = :pTIPO_DV ' +
+    'WHEN o.TIPO_OPERACION_OPCAJA = :pTIPO_DV OR ' +
+    '(o.TIPO_OPERACION_OPCAJA=:pTIPO_VE ' +
+    'AND o.IMPORTE_TOTAL_OPCAJA<0) ' +
     'THEN o.IMPORTE_TOTAL_OPCAJA ELSE 0 END), 0)) AS V_DEVOL, ' +
     'COALESCE(SUM(CASE ' +
     'WHEN o.TIPO_OPERACION_OPCAJA = :pTIPO_EC ' +
@@ -251,33 +256,43 @@ end;
 function SqlValesEmitidos: string;
 begin
   Result :=
-    'SELECT COALESCE(SUM(IMPORTE_NOMINAL_VL), 0) AS EMITIDOS ' +
-    'FROM fza_caja_vales v ' +
-    'WHERE v.CODIGO_EMP_EMI_VL = :pEMPRESA ' +
-    'AND v.CODIGO_ALM_EMI_VL = :pALMACEN ' +
-    'AND v.CODIGO_CAJA_EMI_VL = :pCAJA ' +
-    'AND v.FECHA_EMISION_VL >= :pFDESDE ' +
-    'AND v.FECHA_EMISION_VL <= :pFHASTA ' +
-    SQLExcluirVentaRetirada(
-      'v.CODIGO_EMP_EMI_VL',
-      'v.SERIE_FAC_EMI_VL',
-      'v.NUMERO_FAC_EMI_VL');
+    'SELECT COALESCE(SUM(GREATEST(-(p.IMPORTE_ENTREGADO_PAGO - ' +
+    'COALESCE(p.IMPORTE_CAMBIO_PAGO,0)),0)),0) AS EMITIDOS ' +
+    'FROM fza_caja_pagos p WHERE p.CODIGO_FP_CFP=''VALE'' ' +
+    'AND p.CODIGO_EMP_PAGO=:pEMPRESA ' +
+    'AND p.CODIGO_ALM_PAGO=:pALMACEN ' +
+    'AND p.CODIGO_CAJA_PAGO=:pCAJA ' +
+    'AND EXISTS (SELECT 1 FROM fza_caja_operaciones o ' +
+    'WHERE o.CODIGO_EMP_OPCAJA=p.CODIGO_EMP_PAGO ' +
+    'AND o.CODIGO_ALM_OPCAJA=p.CODIGO_ALM_PAGO ' +
+    'AND o.CODIGO_CAJA_OPCAJA=p.CODIGO_CAJA_PAGO ' +
+    'AND o.NUMERO_OPERACION_OPCAJA=p.NUMERO_OPERACION_PAGO ' +
+    'AND o.FECHA_OPERACION_OPCAJA>=:pFDESDE ' +
+    'AND o.FECHA_OPERACION_OPCAJA<=:pFHASTA ' +
+    SqlExcluirOperacionesArqueadasAntes +
+    SQLExcluirVentaRetirada('o.CODIGO_EMP_OPCAJA',
+      'o.SERIE_FAC_OPCAJA','o.NUMERO_FAC_OPCAJA') + ')';
 end;
 
 function SqlValesRecogidos: string;
 begin
   Result :=
-    'SELECT COALESCE(SUM(IMPORTE_REDIMIDO_VL), 0) AS RECOGIDOS ' +
-    'FROM fza_caja_vales v ' +
-    'WHERE v.CODIGO_EMP_RED_VL = :pEMPRESA ' +
-    'AND v.CODIGO_ALM_RED_VL = :pALMACEN ' +
-    'AND v.CODIGO_CAJA_RED_VL = :pCAJA ' +
-    'AND v.FECHA_REDENCION_VL >= :pFDESDE ' +
-    'AND v.FECHA_REDENCION_VL <= :pFHASTA ' +
-    SQLExcluirVentaRetirada(
-      'v.CODIGO_EMP_RED_VL',
-      'v.SERIE_FAC_RED_VL',
-      'v.NUMERO_FAC_RED_VL');
+    'SELECT COALESCE(SUM(GREATEST((p.IMPORTE_ENTREGADO_PAGO - ' +
+    'COALESCE(p.IMPORTE_CAMBIO_PAGO,0)),0)),0) AS RECOGIDOS ' +
+    'FROM fza_caja_pagos p WHERE p.CODIGO_FP_CFP=''VALE'' ' +
+    'AND p.CODIGO_EMP_PAGO=:pEMPRESA ' +
+    'AND p.CODIGO_ALM_PAGO=:pALMACEN ' +
+    'AND p.CODIGO_CAJA_PAGO=:pCAJA ' +
+    'AND EXISTS (SELECT 1 FROM fza_caja_operaciones o ' +
+    'WHERE o.CODIGO_EMP_OPCAJA=p.CODIGO_EMP_PAGO ' +
+    'AND o.CODIGO_ALM_OPCAJA=p.CODIGO_ALM_PAGO ' +
+    'AND o.CODIGO_CAJA_OPCAJA=p.CODIGO_CAJA_PAGO ' +
+    'AND o.NUMERO_OPERACION_OPCAJA=p.NUMERO_OPERACION_PAGO ' +
+    'AND o.FECHA_OPERACION_OPCAJA>=:pFDESDE ' +
+    'AND o.FECHA_OPERACION_OPCAJA<=:pFHASTA ' +
+    SqlExcluirOperacionesArqueadasAntes +
+    SQLExcluirVentaRetirada('o.CODIGO_EMP_OPCAJA',
+      'o.SERIE_FAC_OPCAJA','o.NUMERO_FAC_OPCAJA') + ')';
 end;
 
 function SqlPagosPorForma: string;

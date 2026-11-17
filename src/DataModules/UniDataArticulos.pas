@@ -177,7 +177,7 @@ type
     procedure EliminarCosteSku(const aSku: string);
     procedure ReconstruirColumnasStock(AVista: TcxGridDBTableView);
     procedure AplicarAnchosColumnasStock(AVista: TcxGridDBTableView);
-    procedure AplicarDecimalesStock;
+    procedure AplicarDecimalesStock(const ATipoCantidad: string);
     procedure ConfigurarFiltroStock(AVista: TcxGridDBTableView);
     function PrepararClaveTarifa: Integer;
     procedure AplicarEstadoTarifaPorPrecio;
@@ -208,6 +208,8 @@ type
     // llamadas, igual que antes el GetOwnerForm le devolvia nil.
     procedure AsignarMaestroCabecera(ADataSource: TDataSource); override;
     procedure AsignarVistaStock(AVista: TcxGridDBTableView);
+    procedure ConsultarStockArticulo(const ACodigoArticulo,
+      ATipoCantidad: string);
     procedure AsignarPermisoCambioMarcaWeb(APermitido: Boolean);
     procedure AsignarConfirmacionDesactivacionWeb(
       AConfirmacion: TConfirmarDesactivacionWebArticuloEvent);
@@ -1112,7 +1114,8 @@ end;
 
 // FZ-ISSUE-298: la rejilla de stock es de un solo artículo; sus cantidades
 // (tallas, total, pendientes) con los decimales de su unidad (0,60 m).
-procedure TdmArticulos.AplicarDecimalesStock;
+procedure TdmArticulos.AplicarDecimalesStock(
+  const ATipoCantidad: string);
 var
   sMascara: string;
   Indice: Integer;
@@ -1120,7 +1123,7 @@ begin
   if Assigned(UnidadesMedida) then
   begin
     sMascara := '#,##' + UnidadesMedida.Mascara(
-      unqryTablaG.FieldByName('TIPO_CANTIDAD_ART').AsString);
+      ATipoCantidad);
     for Indice := 0 to unqryStockArticulos.FieldCount - 1 do
       if unqryStockArticulos.Fields[Indice] is TNumericField then
         TNumericField(unqryStockArticulos.Fields[Indice]).DisplayFormat :=
@@ -1190,54 +1193,59 @@ begin
 end;
 
 procedure TdmArticulos.unqryStockArticulosAfterScroll(DataSet: TDataSet);
-var
-  tvArticulosStock: TcxGridDBTableView;
-  sArt: string;
-  swTotal, swTramo: TStopwatch;
-  msSP, msRebuild, msAnchos: Int64;
 begin
   inherited;
   if (not DataSet.ControlsDisabled) and DataSet.Active and
      (not DataSet.IsEmpty) then
-  begin
-    swTotal := TStopwatch.StartNew;
-    msSP := 0;
-    msRebuild := 0;
-    msAnchos := 0;
-    unqryStockArticulos.Close;
-    sArt := unqryTablaG.FieldByName('CODIGO_ART_ART').AsString;
-    tvArticulosStock := FVistaStock;
-    if tvArticulosStock <> nil then
-    begin
-      if sArt <> '' then
-      begin
-        swTramo := TStopwatch.StartNew;
-        if not AbrirConsultaStockPorPestanas(
-          unqryStockArticulos, sArt, True, True) then
-        begin
-          unqryStockArticulos.SQL.Text :=
-            'CALL PRC_GET_CAJA_STOCK_PIVOTADO_WITHZ(:CODIGO_ART_ART)';
-          unqryStockArticulos.ParamByName('CODIGO_ART_ART').AsString := sArt;
-          unqryStockArticulos.Open;
-        end;
-        msSP := swTramo.ElapsedMilliseconds;
+    ConsultarStockArticulo(
+      unqryTablaG.FieldByName('CODIGO_ART_ART').AsString,
+      unqryTablaG.FieldByName('TIPO_CANTIDAD_ART').AsString);
+end;
 
-        ReconstruirColumnasStock(tvArticulosStock);
-        if unqryStockArticulos.Active and
-           (tvArticulosStock.ColumnCount > 0) then
-        begin
-          AplicarAnchosColumnasStock(tvArticulosStock);
-          AplicarDecimalesStock;
-          ConfigurarFiltroStock(tvArticulosStock);
-        end;
+procedure TdmArticulos.ConsultarStockArticulo(
+  const ACodigoArticulo, ATipoCantidad: string);
+var
+  tvArticulosStock: TcxGridDBTableView;
+  swTotal, swTramo: TStopwatch;
+  msSP, msRebuild, msAnchos: Int64;
+begin
+  swTotal := TStopwatch.StartNew;
+  msSP := 0;
+  msRebuild := 0;
+  msAnchos := 0;
+  unqryStockArticulos.Close;
+  tvArticulosStock := FVistaStock;
+  if tvArticulosStock <> nil then
+  begin
+    if ACodigoArticulo <> '' then
+    begin
+      swTramo := TStopwatch.StartNew;
+      if not AbrirConsultaStockPorPestanas(
+        unqryStockArticulos, ACodigoArticulo, True, True) then
+      begin
+        unqryStockArticulos.SQL.Text :=
+          'CALL PRC_GET_CAJA_STOCK_PIVOTADO_WITHZ(:CODIGO_ART_ART)';
+        unqryStockArticulos.ParamByName('CODIGO_ART_ART').AsString :=
+          ACodigoArticulo;
+        unqryStockArticulos.Open;
       end;
-      RegistroLog.RegistrarRendimiento('Articulos.StockAfterScroll',
-        Format('art=%s | SP=%d ms | RebuildItems=%d ms | ' +
-          'Anchos=%d ms | cols=%d',
-          [sArt, msSP, msRebuild, msAnchos,
-           tvArticulosStock.ColumnCount]),
-        swTotal.ElapsedMilliseconds);
+      msSP := swTramo.ElapsedMilliseconds;
+
+      ReconstruirColumnasStock(tvArticulosStock);
+      if unqryStockArticulos.Active and
+         (tvArticulosStock.ColumnCount > 0) then
+      begin
+        AplicarAnchosColumnasStock(tvArticulosStock);
+        AplicarDecimalesStock(ATipoCantidad);
+        ConfigurarFiltroStock(tvArticulosStock);
+      end;
     end;
+    RegistroLog.RegistrarRendimiento('Articulos.StockAfterScroll',
+      Format('art=%s | SP=%d ms | RebuildItems=%d ms | ' +
+        'Anchos=%d ms | cols=%d',
+        [ACodigoArticulo, msSP, msRebuild, msAnchos,
+         tvArticulosStock.ColumnCount]),
+      swTotal.ElapsedMilliseconds);
   end;
 end;
 

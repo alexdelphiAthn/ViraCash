@@ -46,6 +46,8 @@ type
   end;
   TDefinicionesColumnasPivote = TArray<TDefinicionColumnaPivote>;
 
+function CampoEstadoPivoteStock(const ACampo: string;
+  AEstado: TEstadoStock): string;
 function CampoTallaPivoteStock(AIndice: Integer): string;
 function DefinirColumnasPivoteStock(
   const ATallas: TArray<TInfoColumna>;
@@ -66,6 +68,12 @@ implementation
 
 uses
   System.StrUtils, System.SysUtils;
+
+function CampoEstadoPivoteStock(const ACampo: string;
+  AEstado: TEstadoStock): string;
+begin
+  Result := Format('E%d_%s', [Ord(AEstado), ACampo]);
+end;
 
 function CampoTallaPivoteStock(AIndice: Integer): string;
 begin

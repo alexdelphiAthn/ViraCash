@@ -30,6 +30,7 @@ type
     procedure unqryTablaGBeforePost(DataSet: TDataSet);
   private
     FAjustandoPrecios: Boolean;
+    FReferenciasCoste: TDictionary<string, Double>;
     function  CampoCabecera(const ACampo: string): TField;
     function  LeerFloatLinea(const ACampo: string): Double;
     function  PrecioBaseLinea(const ACampoOrigen: string): Double;
@@ -53,6 +54,8 @@ type
     procedure RefrescarTrasCambioPeriodos(APeriodo: Integer);
     procedure MarcarSesionAplicada(AConsulta: TUniQuery);
     procedure ConfigurarQueries;
+    procedure ConfigurarConsultaTarifasArticulo;
+    procedure CambiarParametroLineas(const AParametro, AValor: string);
     procedure GrabarLineaPendiente;
     procedure AsignarParametrosLineaExcel(AConsulta: TUniQuery;
       const ALinea: TLineaSesionTarifaExcel);
@@ -78,6 +81,14 @@ type
     // Periodos (etapas de rebajas) de la sesión activa. FZ-ISSUE-944.
     unqryPeriodos: TUniQuery;
     dsPeriodos   : TDataSource;
+    unqryTarifasArticulo: TUniQuery;
+    dsTarifasArticulo: TDataSource;
+    unqryAlmacenesStock: TUniQuery;
+    procedure AbrirTarifasArticulo;
+    procedure AbrirAlmacenesStock;
+    procedure FiltrarStockAlmacenes(const ACodigos: string);
+    procedure SeleccionarTarifaAnterior(const ACodigo: string);
+    function CosteReferenciaTarifa(const AArticulo, AUnidad: string): Double;
     function  EsSesionPorPeriodos: Boolean;
     function  IdPeriodoActual: Integer;
     function  ParametrosCalculoActual: TParametrosCalculoTarifa;
@@ -115,7 +126,7 @@ uses
   System.Variants, inLibUser, inLibMsgArticulos, UniDataPrestaShopEncolado,
   inLibErroresBBDD,
   inLibPrestaShopColaSenal, inLibRedondeo, UniDataTarifasCambiosPeriodos,
-  UniDataTarifasTramos;
+  UniDataTarifasTramos, UniDataMargenRepositorio, inLibMargenPersistenciaIntf;
 
 {$R *.dfm}
 
@@ -129,6 +140,30 @@ resourcestring
 
 const
   fstockactual = 'STOCK_ACTUAL';
+
+  // Referencia de la tarifa destino, aunque haya vencido. Las filas
+  // futuras no son un precio anterior. Sin coincidencia se conserva NULL.
+  SQL_FINAL_ANTERIOR =
+    '(SELECT T.PRECIO_FINAL_ARTTAR FROM fza_articulos_tarifas T ' +
+    'WHERE T.CODIGO_ART_ARTTAR = L.CODIGO_ART_TARCLIN ' +
+    // Una linea general consulta tambien sus variantes importadas. Para
+    // un SKU concreto se permite su tarifa exacta, de color o general.
+    'AND (COALESCE(L.CODIGO_UNIDAD_SKU_TARCLIN, '''') = '''' ' +
+    'OR COALESCE(T.CODIGO_UNIDAD_ARTTAR, '''') = '''' ' +
+    'OR T.CODIGO_UNIDAD_ARTTAR = L.CODIGO_UNIDAD_SKU_TARCLIN ' +
+    'OR (LOCATE(''/*/'', T.CODIGO_UNIDAD_ARTTAR) = 0 ' +
+    'AND LEFT(L.CODIGO_UNIDAD_SKU_TARCLIN, ' +
+    'CHAR_LENGTH(T.CODIGO_UNIDAD_ARTTAR) + 1) ' +
+    '= CONCAT(T.CODIGO_UNIDAD_ARTTAR, ''/''))) ' +
+    'AND T.CODIGO_TAR_ARTTAR = COALESCE(NULLIF(:TARIFA_ANTERIOR, ''''), ' +
+    'C.CODIGO_TAR_DESTINO_TARC) ' +
+    'AND T.ESACTIVO_ARTTAR = ''S'' ' +
+    'AND (T.FECHA_DESDE_ARTTAR IS NULL OR ' +
+    'T.FECHA_DESDE_ARTTAR <= CURDATE()) ' +
+    'ORDER BY T.FECHA_DESDE_ARTTAR DESC, ' +
+    'COALESCE(T.INSTANTE_MODIF, T.INSTANTE_ALTA) DESC, ' +
+    'T.CODIGO_UNICO_ARTTAR DESC ' +
+    'LIMIT 1) AS PRECIO_FINAL_ANTERIOR_TARCLIN, ';
 
   // Precio vigente de una tarifa para el articulo/SKU de la linea L.
   SQL_PRECIO_TARIFA_LINEA =
@@ -255,12 +290,25 @@ begin
   unqryPeriodos := TUniQuery.Create(Self);
   dsPeriodos := TDataSource.Create(Self);
   dsPeriodos.DataSet := unqryPeriodos;
+  unqryTarifasArticulo := TUniQuery.Create(Self);
+  unqryAlmacenesStock := TUniQuery.Create(Self);
+  dsTarifasArticulo := TDataSource.Create(Self);
+  dsTarifasArticulo.DataSet := unqryTarifasArticulo;
+  FReferenciasCoste := TDictionary<string, Double>.Create;
   ConfigurarQueries;
 end;
 
 procedure TdmTarifasCambios.DataModuleDestroy(Sender: TObject);
 begin
   CancelarEjecucionActiva;
+  FreeAndNil(FReferenciasCoste);
+  if Assigned(unqryTarifasArticulo) then
+  begin
+    unqryTarifasArticulo.Close;
+    unqryTarifasArticulo.MasterSource := nil;
+  end;
+  if Assigned(dsTarifasArticulo) then
+    dsTarifasArticulo.DataSet := nil;
   if Assigned(dsLineas) then
     dsLineas.DataSet := nil;
   if Assigned(dsTarifas) then
@@ -305,17 +353,23 @@ begin
   unqryTablaG.OnDeleteError := ErrorBorradoTransaccional;
   unqryLineas.SQL.Text :=
     'SELECT L.*, A.DESCRIPCION_ART, A.CODIGO_FAM_ART, ' +
+    '       A.TIPO_CANTIDAD_ART, ' +
     '       F.NOMBRE_FAM_FAM, P.RAZON_SOCIAL_PRV, ' +
+    SQL_FINAL_ANTERIOR +
     // La tarifa general muestra todas las variantes; la de SKU solo ese SKU.
     '       COALESCE((SELECT SUM(S.CANTIDAD_STK) ' +
     '         FROM fza_articulos_stockactual S ' +
     '         JOIN fza_articulos_skus SKU ' +
     '           ON SKU.CODIGO_UNIDAD_SKU = S.CODIGO_UNIDAD_STK ' +
     '        WHERE SKU.CODIGO_ART_SKU = L.CODIGO_ART_TARCLIN ' +
+    '          AND (:ALMACENES_STOCK = '''' OR ' +
+    '            FIND_IN_SET(S.CODIGO_ALM_STK, :ALMACENES_STOCK) > 0) ' +
     '          AND (COALESCE(L.CODIGO_UNIDAD_SKU_TARCLIN, '''') = '''' ' +
     '            OR S.CODIGO_UNIDAD_STK = ' +
     '               L.CODIGO_UNIDAD_SKU_TARCLIN)), 0) AS STOCK_ACTUAL ' +
     '  FROM fza_tarifas_cambios_lineas L ' +
+    '  JOIN fza_tarifas_cambios C ' +
+    '    ON C.CODIGO_TARC = L.CODIGO_TARC_TARCLIN ' +
     '  LEFT JOIN fza_articulos A ' +
     '    ON A.CODIGO_ART_ART = L.CODIGO_ART_TARCLIN ' +
     '  LEFT JOIN fza_articulos_familias F ' +
@@ -327,6 +381,8 @@ begin
     '    ON P.CODIGO_PRV_PRV = AP.CODIGO_PRV_AP ' +
     ' ORDER BY L.ID_TARCLIN';
   unqryLineas.KeyFields := 'ID_TARCLIN';
+  unqryLineas.ParamByName('ALMACENES_STOCK').AsString := '';
+  unqryLineas.ParamByName('TARIFA_ANTERIOR').AsString := '';
   unqryLineas.AfterOpen := unqryLineasAfterOpen;
   unqryLineas.BeforeDelete := unqryLineasBeforeDelete;
   unqryLineas.BeforePost := unqryLineasBeforePost;
@@ -362,6 +418,98 @@ begin
     ' WHERE ESACTIVO_ARTTAR = ''S'' ' +
     ' ORDER BY ORDEN_TAR, CODIGO_TAR_ARTTAR';
   ConfigurarConsultaPeriodos;
+  ConfigurarConsultaTarifasArticulo;
+end;
+
+procedure TdmTarifasCambios.ConfigurarConsultaTarifasArticulo;
+begin
+  unqryTarifasArticulo.SQL.Text :=
+    'SELECT T.CODIGO_UNICO_ARTTAR, T.CODIGO_ART_ARTTAR, ' +
+    'T.CODIGO_UNIDAD_ARTTAR, T.CODIGO_TAR_ARTTAR, N.NOMBRE_TAR_TAR, ' +
+    'T.ESACTIVO_ARTTAR, N.ESIMP_INCL_TAR, T.PRECIO_COSTE_ARTTAR, ' +
+    'T.PRECIO_SALIDA_ARTTAR, T.PRECIO_DTO_ARTTAR, ' +
+    'T.PORCENTAJE_DTO_ARTTAR, T.PRECIO_FINAL_ARTTAR, ' +
+    'T.FECHA_DESDE_ARTTAR, T.FECHA_HASTA_ARTTAR ' +
+    'FROM fza_articulos_tarifas T ' +
+    'LEFT JOIN fza_tarifas N ' +
+    'ON N.CODIGO_TAR_ARTTAR = T.CODIGO_TAR_ARTTAR ' +
+    'ORDER BY T.CODIGO_TAR_ARTTAR, T.CODIGO_UNIDAD_ARTTAR, ' +
+    'T.FECHA_DESDE_ARTTAR DESC, T.CODIGO_UNICO_ARTTAR DESC';
+  unqryTarifasArticulo.ReadOnly := True;
+  unqryTarifasArticulo.MasterFields := 'CODIGO_ART_TARCLIN';
+  unqryTarifasArticulo.DetailFields := 'CODIGO_ART_ARTTAR';
+  unqryTarifasArticulo.MasterSource := dsLineas;
+end;
+
+procedure TdmTarifasCambios.AbrirTarifasArticulo;
+begin
+  FReferenciasCoste.Clear;
+  unqryTarifasArticulo.Connection := unqryTablaG.Connection;
+  if unqryTarifasArticulo.Active then
+    unqryTarifasArticulo.Refresh
+  else
+    unqryTarifasArticulo.Open;
+end;
+
+function TdmTarifasCambios.CosteReferenciaTarifa(
+  const AArticulo, AUnidad: string): Double;
+var
+  Clave: string;
+  Repositorio: IRepositorioMargen;
+begin
+  Clave := AArticulo + #31 + AUnidad;
+  if not FReferenciasCoste.TryGetValue(Clave, Result) then
+  begin
+    Repositorio := CrearRepositorioMargenUniDAC(unqryTablaG.Connection);
+    Result := Repositorio.UltimaCompra(AArticulo, AUnidad).Coste;
+    FReferenciasCoste.Add(Clave, Result);
+  end;
+end;
+
+procedure TdmTarifasCambios.AbrirAlmacenesStock;
+begin
+  unqryAlmacenesStock.Close;
+  unqryAlmacenesStock.Connection := unqryTablaG.Connection;
+  unqryAlmacenesStock.SQL.Text :=
+    'SELECT CODIGO_ALM_ALM, NOMBRE_ALM_ALM FROM fza_almacenes ' +
+    'ORDER BY NOMBRE_ALM_ALM, CODIGO_ALM_ALM';
+  unqryAlmacenesStock.ReadOnly := True;
+  unqryAlmacenesStock.Open;
+end;
+
+procedure TdmTarifasCambios.FiltrarStockAlmacenes(const ACodigos: string);
+begin
+  CambiarParametroLineas('ALMACENES_STOCK', ACodigos);
+end;
+
+procedure TdmTarifasCambios.SeleccionarTarifaAnterior(const ACodigo: string);
+begin
+  CambiarParametroLineas('TARIFA_ANTERIOR', ACodigo);
+end;
+
+procedure TdmTarifasCambios.CambiarParametroLineas(
+  const AParametro, AValor: string);
+var
+  IdLinea: Integer;
+  EsAbierta: Boolean;
+begin
+  EsAbierta := unqryLineas.Active;
+  if EsAbierta then
+    GrabarLineaPendiente;
+  IdLinea := 0;
+  if EsAbierta and not unqryLineas.IsEmpty then
+    IdLinea := unqryLineas.FieldByName('ID_TARCLIN').AsInteger;
+  unqryLineas.DisableControls;
+  try
+    unqryLineas.Close;
+    unqryLineas.ParamByName(AParametro).AsString := AValor;
+    if EsAbierta then
+      unqryLineas.Open;
+    if IdLinea <> 0 then
+      unqryLineas.Locate('ID_TARCLIN', IdLinea, []);
+  finally
+    unqryLineas.EnableControls;
+  end;
 end;
 
 procedure TdmTarifasCambios.ConfigurarConsultaPeriodos;
@@ -863,6 +1011,8 @@ begin
     Result := LeerFloatLinea('PRECIO_COSTE_TARCLIN')
   else if SameText(ACampoOrigen, 'PRECIO_DESTINO_ACTUAL') then
     Result := LeerFloatLinea('PRECIO_FINAL_ACTUAL_TARCLIN')
+  else if SameText(ACampoOrigen, 'PRECIO_FINAL_ANTERIOR') then
+    Result := LeerFloatLinea('PRECIO_FINAL_ANTERIOR_TARCLIN')
   else
     Result := LeerFloatLinea('PRECIO_ORIGEN_TARCLIN');
 end;
@@ -1450,6 +1600,9 @@ var
   qry               : TUniQuery;
   Seleccion: TDictionary<Integer, Boolean>;
   iId: Integer;
+  iSinFinalAnterior: Integer;
+  EsSeleccionada: Boolean;
+  EsSinFinalAnterior: Boolean;
   sCampoOrigen      : string;
   sCampoDestino     : string;
   sTipoAplicacion   : string;
@@ -1488,6 +1641,7 @@ begin
     dValorMenos := Parametros.ValorMenos;
     EsRedondearArriba := Parametros.EsRedondearArriba;
     Seleccion := TDictionary<Integer, Boolean>.Create;
+    iSinFinalAnterior := 0;
     try
       for iId in AIdsLinea do
         Seleccion.AddOrSetValue(iId, True);
@@ -1510,8 +1664,16 @@ begin
           unqryLineas.First;
           while not unqryLineas.Eof do
           begin
-            if Seleccion.ContainsKey(
-              unqryLineas.FieldByName('ID_TARCLIN').AsInteger) then
+            EsSeleccionada := Seleccion.ContainsKey(
+              unqryLineas.FieldByName('ID_TARCLIN').AsInteger);
+            EsSinFinalAnterior :=
+              SameText(sCampoOrigen, 'PRECIO_FINAL_ANTERIOR') and
+              not SameText(sTipoAplicacion, 'PRECIO_FIJO') and
+              unqryLineas.FieldByName(
+                'PRECIO_FINAL_ANTERIOR_TARCLIN').IsNull;
+            if EsSeleccionada and EsSinFinalAnterior then
+              Inc(iSinFinalAnterior);
+            if EsSeleccionada and not EsSinFinalAnterior then
             begin
               dBase := PrecioBaseLinea(sCampoOrigen);
               dNuevo := CalcularImporte(dBase, sTipoAplicacion,
@@ -1587,6 +1749,9 @@ begin
             unqryTablaG.Connection as TUniConnection, IdPeriodoActual,
             IdentidadSesion.Usuario);
         RefrescarTrasCambioPeriodos(IdPeriodoActual);
+        if iSinFinalAnterior > 0 then
+          AMensaje := Format(SInfoCalculoSinFinalAnterior,
+            [Result, iSinFinalAnterior]);
       finally
         FreeAndNil(qry);
       end;

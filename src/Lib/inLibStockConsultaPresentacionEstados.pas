@@ -70,6 +70,13 @@ type
   end;
 
 const
+  ESTADOS_CELDA_STOCK: array[0..17] of TEstadoStock = (
+    esExistencias, esVentas, esDisponible,
+    esEntradas, esSalidas, esRegularizadas,
+    esPdteRecibir, esPdteServir, esPrestadas,
+    esEntradaCompra, esEntradaTraspaso, esSalidaTraspaso,
+    esEntradaDeposito, esSalidaDeposito, esPdteTraspasar,
+    esEntradaAlbEntrada, esSalidaAlbVenta, esPdteRecTraspaso);
   ESTADOS_LEYENDA_STOCK: array[0..7] of TEstadoStock = (
     esExistencias, esEntradas, esSalidas, esVentas, esRegularizadas,
     esPdteRecibir, esPdteServir, esPrestadas);

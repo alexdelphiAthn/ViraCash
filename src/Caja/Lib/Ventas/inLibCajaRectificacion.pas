@@ -33,10 +33,12 @@ type
     function CantidadPendienteLinea(
       AOrigen: TDataSet;
       ADevuelto: TDictionary<string, Double>): Double;
+    function ImportePendienteLinea(AOrigen: TDataSet;
+      ADevuelto: TDictionary<string, Currency>): Currency;
     function QuedaAlgoPorDevolver(AOrigen: TDataSet): Boolean;
     procedure CopiarLinea(
       AOrigen, ADestino: TDataSet;
-      ASigno, ACantidad: Double);
+      ASigno, ACantidad: Double; AImportePendiente: Currency);
     procedure CopiarLineas(
       AOrigen, ADestino: TDataSet;
       ASigno: Double);
@@ -185,6 +187,25 @@ begin
     Campo.AsInteger := NumeroAtributos;
 end;
 
+// Clave con la que se reparte lo ya devuelto entre las líneas de la venta:
+// el SKU o, en una línea sin SKU ni artículo, su descripción (FZ-998).
+// Es el mismo criterio que SQL_MISMA_LINEA_DEVUELTA. Vacía si la línea no
+// se puede reconocer (anticipos y artículos sin SKU).
+function ClaveLineaDevuelta(AOrigen: TDataSet): string;
+var
+  oDescripcion: TField;
+begin
+  Result := UpperCase(Trim(AOrigen.FieldByName(
+    'CODIGO_UNIDAD_FACLIN').AsString));
+  oDescripcion := AOrigen.FindField('DESCRIPCION_ARTICULO_FACLIN');
+  if (Result = '') and Assigned(oDescripcion) and
+    (Trim(AOrigen.FieldByName('CODIGO_ART_FACLIN').AsString) = '') and
+    (Trim(oDescripcion.AsString) <> '') then
+  begin
+    Result := #1 + UpperCase(Trim(oDescripcion.AsString));
+  end;
+end;
+
 // FZ-ISSUE-392: unidades de la línea que quedan por devolver. Lo ya
 // devuelto del SKU (CANTIDAD_DEVUELTA_VENTA, igual en todas sus líneas) se
 // descuenta de las líneas de ese SKU por orden; ADevuelto lleva lo que
@@ -200,10 +221,9 @@ begin
   Result := Abs(AOrigen.FieldByName('CANTIDAD_FACLIN').AsFloat);
   oDevuelta := AOrigen.FindField('CANTIDAD_DEVUELTA_VENTA');
   oSku := AOrigen.FindField('CODIGO_UNIDAD_FACLIN');
-  if Assigned(oDevuelta) and Assigned(oSku) and
-     (Trim(oSku.AsString) <> '') then
+  sSku := ClaveLineaDevuelta(AOrigen);
+  if Assigned(oDevuelta) and Assigned(oSku) and (sSku <> '') then
   begin
-    sSku := UpperCase(Trim(oSku.AsString));
     if not ADevuelto.TryGetValue(sSku, rPorDescontar) then
       rPorDescontar := oDevuelta.AsFloat;
     rDescuento := rPorDescontar;
@@ -216,15 +236,42 @@ begin
   end;
 end;
 
+function TServicioRectificacionCaja.ImportePendienteLinea(
+  AOrigen: TDataSet;
+  ADevuelto: TDictionary<string, Currency>): Currency;
+var
+  sSku: string;
+  dDevuelto, dAplicado: Currency;
+begin
+  Result := Abs(AOrigen.FieldByName('TOTAL_FACLIN').AsCurrency);
+  sSku := ClaveLineaDevuelta(AOrigen);
+  if not ADevuelto.TryGetValue(sSku, dDevuelto) then
+  begin
+    dDevuelto := AOrigen.FieldByName('IMPORTE_DEVUELTO_VENTA').AsCurrency;
+  end;
+  dAplicado := dDevuelto;
+  if dAplicado > Result then
+  begin
+    dAplicado := Result;
+  end;
+  if dAplicado < 0 then
+  begin
+    dAplicado := 0;
+  end;
+  ADevuelto.AddOrSetValue(sSku, dDevuelto - dAplicado);
+  Result := Result - dAplicado;
+end;
+
 procedure TServicioRectificacionCaja.CopiarLinea(
   AOrigen, ADestino: TDataSet;
-  ASigno, ACantidad: Double);
+  ASigno, ACantidad: Double; AImportePendiente: Currency);
 var
   Indice: Integer;
   CampoOrigen: TField;
   CampoDestino: TField;
   rProporcion: Double;
   sImporte: string;
+  dPrecioConIva: Currency;
 begin
   rProporcion := 1;
   if AOrigen.FieldByName('CANTIDAD_FACLIN').AsFloat <> 0 then
@@ -271,6 +318,21 @@ begin
         ASigno * rProporcion *
         Abs(AOrigen.FieldByName(sImporte).AsCurrency);
   end;
+  if (ASigno < 0) and (ACantidad > 0) and
+    (AOrigen.FindField('IMPORTE_DEVUELTO_VENTA') <> nil) and
+    not SameText(AOrigen.FieldByName('CODIGO_ART_FACLIN').AsString,
+      'ANTICIPO') and
+    (AOrigen.FieldByName('CANTIDAD_FACLIN').AsFloat > 0) then
+  begin
+    // El ultimo resto absorbe los centimos redondeados en abonos previos.
+    dPrecioConIva := AImportePendiente / ACantidad;
+    ADestino.FieldByName('PRECIO_VENTA_CIVA_ARTICULO_FACLIN').AsCurrency :=
+      dPrecioConIva;
+    ADestino.FieldByName('PRECIO_VENTA_SIVA_ARTICULO_FACLIN').AsCurrency :=
+      dPrecioConIva / (1 +
+        AOrigen.FieldByName('PORCENTAJE_IVA_FACLIN').AsCurrency / 100);
+    ADestino.FieldByName('TOTAL_FACLIN').AsCurrency := -AImportePendiente;
+  end;
   ADestino.Post;
 end;
 
@@ -279,10 +341,13 @@ procedure TServicioRectificacionCaja.CopiarLineas(
   ASigno: Double);
 var
   oDevuelto: TDictionary<string, Double>;
+  oImportes: TDictionary<string, Currency>;
+  dImporte: Currency;
   rCantidad: Double;
   bDescuenta: Boolean;
 begin
   oDevuelto := TDictionary<string, Double>.Create;
+  oImportes := TDictionary<string, Currency>.Create;
   ADestino.DisableControls;
   try
     while not AOrigen.Eof do
@@ -294,12 +359,21 @@ begin
         (AOrigen.FieldByName('CANTIDAD_FACLIN').AsFloat > 0);
       if bDescuenta then
         rCantidad := CantidadPendienteLinea(AOrigen, oDevuelto);
+      dImporte := 0;
+      if bDescuenta and
+        (AOrigen.FindField('IMPORTE_DEVUELTO_VENTA') <> nil) then
+      begin
+        dImporte := ImportePendienteLinea(AOrigen, oImportes);
+      end;
       if (not bDescuenta) or (rCantidad > 0) then
-        CopiarLinea(AOrigen, ADestino, ASigno, rCantidad);
+      begin
+        CopiarLinea(AOrigen, ADestino, ASigno, rCantidad, dImporte);
+      end;
       AOrigen.Next;
     end;
   finally
     ADestino.EnableControls;
+    FreeAndNil(oImportes);
     FreeAndNil(oDevuelto);
   end;
 end;

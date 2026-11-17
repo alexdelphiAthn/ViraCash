@@ -33,7 +33,9 @@ implementation
 
 uses
   System.SysUtils, System.StrUtils, System.Generics.Collections, Data.DB,
-  inLibPestanasEje;
+  inLibPestanasEje,
+  inLibStockConsultaPresentacionEstados,
+  inLibStockConsultaPresentacionPivote;
 
 type
   TResultadoConsultaStockUniDAC = class(
@@ -867,16 +869,7 @@ const
     esExistencias, esEntradas, esSalidas,
     esPdteServir, esPdteRecibir,
     esPdteTraspasar, esPdteRecTraspaso, esDisponible);
-  ESTADOS_TODO_FULL: array[0..15] of TEstadoStock = (
-    esExistencias,
-    esPdteServir, esPdteRecibir,
-    esPdteTraspasar, esPdteRecTraspaso, esDisponible,
-    esEntradaCompra,
-    esEntradaTraspaso, esSalidaTraspaso,
-    esEntradaDeposito, esSalidaDeposito,
-    esVentas, esRegularizadas,
-    esSalidaAlbVenta, esEntradaAlbEntrada,
-    esPrestadas);
+
 var
   est: TEstadoStock;
   i: Integer;
@@ -888,9 +881,9 @@ begin
     Result := '';
     if ASolicitud.ModoDesglosado then
     begin
-      for i := Low(ESTADOS_TODO_FULL) to High(ESTADOS_TODO_FULL) do
+      for i := Low(ESTADOS_CELDA_STOCK) to High(ESTADOS_CELDA_STOCK) do
       begin
-        est := ESTADOS_TODO_FULL[i];
+        est := ESTADOS_CELDA_STOCK[i];
         if Result <> '' then
           Result := Result + ' UNION ALL ';
         Result := Result +
@@ -915,7 +908,8 @@ function TRepositorioStockConsultaUniDAC.ConstruirSqlPivote(
   const ASolicitud: TSolicitudPivoteStock;
   const ATallas: TArray<TInfoColumna>): string;
 var
-  bEsTodo: Boolean;
+  bEsTodo, bDetalle: Boolean;
+  sCantidad, sTotal: string;
   i: Integer;
   sBase: string;
   sColumnas: string;
@@ -930,17 +924,41 @@ var
   sOrden: string;
   sOrigen: string;
   sWhere: string;
+  function ColumnasDetalle(const ACampo, AFiltro: string): string;
+  var
+    Estado: TEstadoStock;
+  begin
+    Result := '';
+    for Estado in ESTADOS_CELDA_STOCK do
+      Result := Result + Format(
+        ', COALESCE(SUM(CASE WHEN B.ESTADO_NUM = %d %s ' +
+        'THEN B.CANTIDAD ELSE 0 END), 0) AS %s',
+        [Ord(Estado), AFiltro, CampoEstadoPivoteStock(ACampo, Estado)]);
+  end;
 begin
   sBase := EstadoBaseSelect(ASolicitud);
-  bEsTodo := ASolicitud.Estado = esTodoAlaVez;
+  bDetalle := ASolicitud.ModoDesglosado and
+    (ASolicitud.Estado = esTodoAlaVez);
+  bEsTodo := (ASolicitud.Estado = esTodoAlaVez) and not bDetalle;
+  sCantidad := 'B.CANTIDAD';
+  if bDetalle then
+    sCantidad := Format('CASE WHEN B.ESTADO_NUM = %d ' +
+      'THEN B.CANTIDAD ELSE 0 END', [Ord(esExistencias)]);
+  sTotal := ', COALESCE(SUM(' + sCantidad + '), 0) AS TOTAL ';
   sColumnas := '';
   for i := 0 to High(ATallas) do
   begin
     sColumnas := sColumnas + Format(
       ', SUM(CASE WHEN B.TALLA_AV = %s ' +
-      'THEN B.CANTIDAD ELSE 0 END) AS T%d',
-      [QuotedStr(ATallas[i].Codigo), i]);
+      'THEN %s ELSE 0 END) AS T%d',
+      [QuotedStr(ATallas[i].Codigo), sCantidad, i]);
+    if bDetalle then
+      sColumnas := sColumnas + ColumnasDetalle(
+        CampoTallaPivoteStock(i), 'AND B.TALLA_AV = ' +
+        QuotedStr(ATallas[i].Codigo));
   end;
+  if bDetalle then
+    sColumnas := sColumnas + ColumnasDetalle('TOTAL', '');
   sFiltroColores := ListaSql(ASolicitud.Colores);
   sFiltroPestana := FiltroPestanaBase(ASolicitud);
   sHaving := '';
@@ -956,6 +974,8 @@ begin
         'THEN B.CANTIDAD ELSE 0 END), 0) <> 0',
         [QuotedStr(ATallas[i].Codigo)]);
     sHaving := sHaving + ') ';
+    if bDetalle then
+      sHaving := ' HAVING MAX(ABS(B.CANTIDAD)) <> 0 ';
   end;
   if bEsTodo then
   begin
@@ -1004,19 +1024,14 @@ begin
     Result :=
       'SELECT C.AV AS GRUPO, COALESCE(ATB.HEX_ATB, '''') AS HEX, ' +
       '       C.ORDEN_AV AS ORDEN' + sExtraSelect + sColumnas +
-      ', SUM(B.CANTIDAD) AS TOTAL ' +
+      sTotal +
       '  FROM ' + sOrigen + sJoin + sWhere + sGrupo + sHaving + sOrden;
   end
-  else if Length(ASolicitud.Almacenes) = 0 then
-    Result :=
-      'SELECT '''' AS GRUPO, '''' AS HEX, 0 AS ORDEN' +
-      IfThen(bEsTodo, ', 0 AS ESTADO_NUM', '') +
-      sColumnas + ', 0 AS TOTAL FROM dual WHERE 0'
   else
     Result :=
       'SELECT ALM.CODIGO_ALM_ALM AS GRUPO, '''' AS HEX, ' +
       '       ALM.ORDEN_ALM AS ORDEN' + sExtraSelect + sColumnas +
-      ', SUM(B.CANTIDAD) AS TOTAL ' +
+      sTotal +
       '  FROM fza_almacenes ALM ' +
       '  LEFT JOIN (' + sBase + ') B ' +
       '    ON B.ALM = ALM.CODIGO_ALM_ALM ' +

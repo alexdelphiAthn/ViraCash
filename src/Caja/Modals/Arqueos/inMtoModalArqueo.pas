@@ -304,8 +304,16 @@ type
     // cambiar la hora del rango, pero no el día.
     FSoloHoraRango: Boolean;
     FAjustandoRango: Boolean;
+    FUltimaFechaDesde: TDateTime;
+    FUltimaFechaHasta: TDateTime;
+    FAvisoFechaPendiente: Boolean;
     FDiaDesdeFijo: TDateTime;
     FDiaHastaFijo: TDateTime;
+    procedure ConfigurarEntradaFechaRango(AEdit: TcxDateEdit);
+    procedure ValidarFechaRango(Sender: TObject;
+      var DisplayValue: Variant; var ErrorText: TCaption;
+      var Error: Boolean);
+
     procedure ProponerDesdeTrasUltimoCierre;
     procedure IncluirOperacionesSinCerrar;
     procedure FechaRangoEditValueChanged(Sender: TObject);
@@ -571,6 +579,8 @@ procedure TfrmModalArqueo.FormCreate(Sender: TObject);
 begin
   inherited;
   Self.Position := poScreenCenter;
+  ConfigurarEntradaFechaRango(dteFechaDesde);
+  ConfigurarEntradaFechaRango(dteFechaHasta);
   ConfigurarAtajosPestanas;
   ConfigurarResumenes;
   AplicarEstiloCaja;
@@ -727,15 +737,95 @@ begin
   Action := caHide;
 end;
 
+// Entrada libre, sin máscara. No asignar EditFormat: el editor vuelve
+// a montar una máscara por expresión regular y, al teclear sobre el
+// texto seleccionado, altera el año sin avisar (FZ-ISSUE-994).
+procedure TfrmModalArqueo.ConfigurarEntradaFechaRango(AEdit: TcxDateEdit);
+begin
+  AEdit.Properties.InputKind := ikStandard;
+  AEdit.Properties.ImmediatePost := False;
+  AEdit.Properties.DateOnError := deNoChange;
+  AEdit.Properties.ValidationOptions := [evoShowErrorIcon];
+  AEdit.Properties.OnValidate := ValidarFechaRango;
+end;
+
+// Valida lo tecleado con el lector del arqueo, no con la entrada
+// «inteligente» del editor, que completa fechas a medias. Si no vale,
+// el editor conserva el último valor confirmado y recupera el foco.
+procedure TfrmModalArqueo.ValidarFechaRango(Sender: TObject;
+  var DisplayValue: Variant; var ErrorText: TCaption; var Error: Boolean);
+var
+  dFecha: TDateTime;
+  sTexto: string;
+  oAvisar: TThreadProcedure;
+begin
+  if VarIsType(DisplayValue, varDate) then
+  begin
+    dFecha := VarToDateTime(DisplayValue);
+    Error := not FechaArqueoEnRango(dFecha);
+  end
+  else
+  begin
+    sTexto := Trim(VarToStr(DisplayValue));
+    if (Sender is TcxDateEdit) and
+      (Trim(TcxDateEdit(Sender).Text) <> '') then
+    begin
+      sTexto := Trim(TcxDateEdit(Sender).Text);
+    end;
+    Error := not IntentarLeerFechaHoraArqueo(sTexto, dFecha);
+  end;
+  if Error then
+  begin
+    ErrorText := SFechaHoraArqueoNoValida;
+    // El aviso sale después: aquí el editor todavía está validando.
+    if not FAvisoFechaPendiente then
+    begin
+      FAvisoFechaPendiente := True;
+      oAvisar :=
+        procedure
+        begin
+          FAvisoFechaPendiente := False;
+          MessageDlg_fza(SFechaHoraArqueoNoValida, mtWarning, [mbOK], 0);
+        end;
+      TThread.ForceQueue(nil, oAvisar);
+    end;
+  end
+  else
+  begin
+    ErrorText := '';
+    // Texto que el editor sabe convertir, sea cual sea lo tecleado.
+    DisplayValue := DateTimeToTextEx(dFecha, False, True, True);
+  end;
+end;
+
 function TfrmModalArqueo.FechaEditada(AEdit: TcxDateEdit): TDateTime;
 var
   vFecha: Variant;
+  dFecha: TDateTime;
 begin
   vFecha := AEdit.EditValue;
-  if VarIsNull(vFecha) or VarIsEmpty(vFecha) then
-    Result := AEdit.Date
+  if AEdit = dteFechaDesde then
+  begin
+    Result := FUltimaFechaDesde;
+  end
   else
-    Result := VarToDateTime(vFecha);
+  begin
+    Result := FUltimaFechaHasta;
+  end;
+  if not VarIsNull(vFecha) and not VarIsEmpty(vFecha) then
+  begin
+    if VarIsStr(vFecha) then
+    begin
+      if IntentarLeerFechaHoraArqueo(VarToStr(vFecha), dFecha) then
+      begin
+        Result := dFecha;
+      end;
+    end
+    else
+    begin
+      Result := VarToDateTime(vFecha);
+    end;
+  end;
 end;
 
 procedure TfrmModalArqueo.ProponerDesdeTrasUltimoCierre;
@@ -797,9 +887,15 @@ end;
 procedure TfrmModalArqueo.FechaRangoEditValueChanged(Sender: TObject);
 begin
   if Sender = dteFechaDesde then
-    RestringirDiaRango(dteFechaDesde, FDiaDesdeFijo)
+  begin
+    FUltimaFechaDesde := FechaEditada(dteFechaDesde);
+    RestringirDiaRango(dteFechaDesde, FDiaDesdeFijo);
+  end
   else if Sender = dteFechaHasta then
+  begin
+    FUltimaFechaHasta := FechaEditada(dteFechaHasta);
     RestringirDiaRango(dteFechaHasta, FDiaHastaFijo);
+  end;
 end;
 
 // Devuelve el campo a su día conservando la hora tecleada y avisa. El
@@ -1007,6 +1103,7 @@ procedure TfrmModalArqueo.dteFechaDesdePropertiesEditValueChanged(
   Sender: TObject);
 begin
   inherited;
+  FUltimaFechaDesde := FechaEditada(dteFechaDesde);
   // Fuerza que "hasta" no quede antes que "desde". Al confirmar la fecha,
   // no con cada tecla: con OnChange se corregía la fecha a medio escribir.
   if FechaHastaSeleccionada < FechaDesdeSeleccionada then
@@ -1017,6 +1114,7 @@ procedure TfrmModalArqueo.dteFechaHastaPropertiesEditValueChanged(
   Sender: TObject);
 begin
   inherited;
+  FUltimaFechaHasta := FechaEditada(dteFechaHasta);
   if FechaHastaSeleccionada < FechaDesdeSeleccionada then
     dteFechaHasta.EditValue := FechaDesdeSeleccionada;
 end;
@@ -1221,7 +1319,8 @@ begin
          AArqueo.PagosPorForma[i].Descripcion,
          BoolToStr(AArqueo.PagosPorForma[i].EsEfectivo, True),
          Double(AArqueo.PagosPorForma[i].Importe)]));
-      if not AArqueo.PagosPorForma[i].EsEfectivo then
+      if not AArqueo.PagosPorForma[i].EsEfectivo and
+        not SameText(AArqueo.PagosPorForma[i].Codigo, 'VALE') then
       begin
         tvRecuento.DataController.RecordCount := iRow + 1;
         tvRecuento.DataController.Values[

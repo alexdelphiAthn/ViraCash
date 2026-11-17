@@ -491,6 +491,11 @@ begin
   AContexto.ActualizarReloj;
   EscribirFechaCabeceraVenta(AContexto.Cabecera, AContexto.LeerFecha());
   Result := AContexto.ConfirmarMotivoDevolucion;
+  if Result and HayLineasGratuitasCaja(AContexto.Lineas) then
+  begin
+    Result := MessageDlg_fza(SConfirmarLineasGratuitasCaja,
+      mtWarning, [mbYes, mbNo], 0, mbNo) = mrYes;
+  end;
   if Result then
   begin
     ATotales := TFacturaTotales.Create(

@@ -19,7 +19,8 @@ interface
 
 uses
   Winapi.Windows,
-  System.Classes, System.Generics.Collections, System.Variants,
+  System.Classes, System.Types, System.Generics.Collections,
+  System.Variants,
   Vcl.Controls, Vcl.Graphics, Vcl.StdCtrls,
   Data.DB, Uni,
   cxClasses, cxControls, cxContainer, cxEdit, cxTextEdit,
@@ -81,6 +82,18 @@ type
     FEsModoColor: Boolean;
     FEsModoTodo: Boolean;
     FEstadoActual: TEstadoStock;
+    FDetalle: Boolean;
+    FColumnasDetalle: TDictionary<string, TcxGridDBColumn>;
+    procedure CrearColumnasDetalle;
+    function ValorDetalle(ARegistro: TcxCustomGridRecord;
+      const ACampo: string; AEstado: TEstadoStock): Double;
+    procedure DibujarDetalle(ACanvas: TcxCanvas;
+      AInfo: TcxGridTableDataCellViewInfo);
+    procedure DetalleGetCellHint(Sender: TcxCustomGridTableItem;
+      ARecord: TcxCustomGridRecord;
+      ACellViewInfo: TcxGridTableDataCellViewInfo;
+      const MousePos: TPoint; var AHintText: TCaption;
+      var AIsHintMultiLine: Boolean; var AHintTextRect: TRect);
     function EscalarAncho(AAncho96Dpi: Integer): Integer;
     procedure CrearEstilos(AOwner: TComponent);
     procedure DibujarCelda(Sender: TcxCustomGridTableView;
@@ -106,7 +119,8 @@ type
     procedure Limpiar;
     procedure ReconstruirColumnas(
       const ATallas: TArray<TInfoColumna>;
-      APorColor: Boolean; AEstado: TEstadoStock);
+      APorColor: Boolean; AEstado: TEstadoStock;
+      ADesglosado: Boolean = False);
     procedure Consultar(const ASolicitud: TSolicitudPivoteStock;
       const ATallas: TArray<TInfoColumna>);
     function ListarTallas(const ACodigoArticulo: string;
@@ -315,7 +329,9 @@ end;
 // existencias, que es el estado por defecto de la pantalla.
 function TPresentadorEstadosStock.EstadoActual: TEstadoStock;
 begin
-  if (FCombo.ItemIndex >= 0) and
+  if FSeleccion.ModoDesglosado then
+    Result := esTodoAlaVez
+  else if (FCombo.ItemIndex >= 0) and
      (FCombo.ItemIndex < FSeleccion.Cuenta) then
     Result := FSeleccion.Estados[FCombo.ItemIndex]
   else
@@ -341,7 +357,11 @@ begin
   finally
     FCombo.Properties.Items.EndUpdate;
   end;
-  FCombo.ItemIndex := 0;
+  FCombo.Enabled := not FSeleccion.ModoDesglosado;
+  if FSeleccion.ModoDesglosado then
+    FCombo.ItemIndex := FSeleccion.IndiceDe(esTodoAlaVez)
+  else
+    FCombo.ItemIndex := 0;
 end;
 
 procedure TPresentadorEstadosStock.MarcarModoEnRadios;
@@ -373,26 +393,35 @@ procedure TPresentadorEstadosStock.CrearLeyenda;
 var
   i: Integer;
   Etiqueta: TLabel;
-  iIzquierda: Integer;
+  iIzquierda, iTop, iAlto: Integer;
 begin
   iIzquierda := MARGEN_LEYENDA;
-  for i := Low(ESTADOS_LEYENDA_STOCK) to High(ESTADOS_LEYENDA_STOCK) do
+  iTop := TOP_LEYENDA;
+  iAlto := MulDiv(22, FPanelLeyenda.CurrentPPI, 96);
+  for i := Low(ESTADOS_CELDA_STOCK) to High(ESTADOS_CELDA_STOCK) do
   begin
     Etiqueta := TLabel.Create(FPanelLeyenda);
     Etiqueta.Parent := FPanelLeyenda;
     Etiqueta.AutoSize := True;
-    Etiqueta.Font.Color := ColorEstadoLegible(ESTADOS_LEYENDA_STOCK[i],
+    Etiqueta.Font.Color := ColorEstadoLegible(ESTADOS_CELDA_STOCK[i],
       RootLookAndFeel.Painter.DefaultControlColor);
     Etiqueta.Font.Style := [fsBold];
     Etiqueta.Caption :=
-      NombreEstadoStockCorto(ESTADOS_LEYENDA_STOCK[i]);
-    Etiqueta.Tag := Ord(ESTADOS_LEYENDA_STOCK[i]);
+      NombreEstadoStockCorto(ESTADOS_CELDA_STOCK[i]);
+    Etiqueta.Tag := Ord(ESTADOS_CELDA_STOCK[i]);
     Etiqueta.Cursor := crHandPoint;
     Etiqueta.OnClick := LeyendaClick;
-    Etiqueta.Top := TOP_LEYENDA;
+    if (iIzquierda > MARGEN_LEYENDA) and
+       (iIzquierda + Etiqueta.Width > FPanelLeyenda.ClientWidth) then
+    begin
+      iIzquierda := MARGEN_LEYENDA;
+      Inc(iTop, iAlto);
+    end;
+    Etiqueta.Top := iTop;
     Etiqueta.Left := iIzquierda;
     iIzquierda := iIzquierda + Etiqueta.Width + SEPARACION_LEYENDA;
   end;
+  FPanelLeyenda.Height := iTop + iAlto + TOP_LEYENDA;
 end;
 
 procedure TPresentadorEstadosStock.LeyendaClick(Sender: TObject);
@@ -432,6 +461,9 @@ begin
   FRepositorio := ARepositorio;
   FConexion := AConexion;
   FColumnas := TList<TcxGridDBColumn>.Create;
+  FColumnasDetalle := TDictionary<string, TcxGridDBColumn>.Create;
+  FVista.OptionsBehavior.CellHints := True;
+  FVista.OptionsBehavior.AlwaysShowEditor := False;
   FOrigen := TDataSource.Create(AOwner);
   FOrigen.DataSet := nil;
   FVista.DataController.DataSource := FOrigen;
@@ -447,6 +479,7 @@ begin
   FResultado := nil;
   FRepositorio := nil;
   FConexion := nil;
+  FreeAndNil(FColumnasDetalle);
   FreeAndNil(FColumnas);
   FreeAndNil(FOrigen);
   inherited Destroy;
@@ -516,13 +549,15 @@ begin
   AColumna.Options.Editing := False;
   AColumna.Options.Sorting := False;
   AColumna.Styles.OnGetContentStyle := DatosGetContentStyle;
+  AColumna.OnGetCellHint := DetalleGetCellHint;
 end;
 
 // Las columnas del pivote son todas dinamicas: se liberan y se vuelven a
 // crear en cada recarga a partir del mapa que decide inLib.
 procedure TPresentadorPivoteStock.ReconstruirColumnas(
   const ATallas: TArray<TInfoColumna>;
-  APorColor: Boolean; AEstado: TEstadoStock);
+  APorColor: Boolean; AEstado: TEstadoStock;
+  ADesglosado: Boolean);
 var
   Definiciones: TDefinicionesColumnasPivote;
   Definicion: TDefinicionColumnaPivote;
@@ -533,17 +568,23 @@ begin
   for i := FColumnas.Count - 1 downto 0 do
     FColumnas[i].Free;
   FColumnas.Clear;
+  FColumnasDetalle.Clear;
   FColumnaGrupo := nil;
   FColumnaEstado := nil;
   FEsModoColor := APorColor;
   FEsModoTodo := AEstado = esTodoAlaVez;
   FEstadoActual := AEstado;
+  FDetalle := FEsModoTodo and ADesglosado;
+  if FDetalle then
+    FVista.OptionsView.DataRowHeight := EscalarAncho(112)
+  else
+    FVista.OptionsView.DataRowHeight := 0;
   if APorColor then
     sTituloGrupo := SCaptionColColor
   else
     sTituloGrupo := SCaptionColAlmacen;
   Definiciones := DefinirColumnasPivoteStock(
-    ATallas, APorColor, FEsModoTodo, sTituloGrupo,
+    ATallas, APorColor, FEsModoTodo and not FDetalle, sTituloGrupo,
     SCaptionColEstado, SCaptionColTotal);
   for Definicion in Definiciones do
   begin
@@ -582,6 +623,8 @@ begin
     FColumnas.Add(Columna);
   end;
   FTallas := Copy(ATallas);
+  if FDetalle then
+    CrearColumnasDetalle;
 end;
 
 // El fondo real de la fila puede diferir de DefaultContentColor del skin.
@@ -647,6 +690,11 @@ procedure TPresentadorPivoteStock.DibujarCelda(
   AViewInfo: TcxGridTableDataCellViewInfo; var ADone: Boolean);
 begin
   ADone := False;
+  if FDetalle and (AViewInfo.Item <> FColumnaGrupo) then
+  begin
+    DibujarDetalle(ACanvas, AViewInfo);
+    ADone := True;
+  end;
   if FEsModoColor and (FColumnaGrupo <> nil) and
      (AViewInfo.Item is TcxGridDBColumn) and
      (AViewInfo.Item = FColumnaGrupo) then
@@ -655,6 +703,114 @@ begin
     // todos los atributos y una talla podia heredar un color basico.
     if PintarCeldaSwatchColorDeSkuSiAplica(FConexion, ACanvas, AViewInfo) then
       ADone := True;
+  end;
+end;
+
+// Las cantidades conservan campos numericos; las columnas auxiliares
+// ocultas permiten pintar todos los estados en una unica celda por talla.
+procedure TPresentadorPivoteStock.CrearColumnasDetalle;
+var
+  i: Integer;
+  Estado: TEstadoStock;
+  Columna, Auxiliar: TcxGridDBColumn;
+  sCampo: string;
+begin
+  for i := 0 to FColumnas.Count - 1 do
+  begin
+    Columna := FColumnas[i];
+    if Columna <> FColumnaGrupo then
+    begin
+      for Estado in ESTADOS_CELDA_STOCK do
+      begin
+        sCampo := CampoEstadoPivoteStock(
+          Columna.DataBinding.FieldName, Estado);
+        Auxiliar := TColumnaPivoteStock.CrearEnVista(FVista);
+        Auxiliar.DataBinding.FieldName := sCampo;
+        Auxiliar.Visible := False;
+        Auxiliar.Options.Editing := False;
+        Auxiliar.Options.Filtering := False;
+        Auxiliar.Options.Sorting := False;
+        FColumnasDetalle.Add(sCampo, Auxiliar);
+      end;
+    end;
+  end;
+  for Auxiliar in FColumnasDetalle.Values do
+    FColumnas.Add(Auxiliar);
+end;
+
+function TPresentadorPivoteStock.ValorDetalle(
+  ARegistro: TcxCustomGridRecord; const ACampo: string;
+  AEstado: TEstadoStock): Double;
+var
+  Columna: TcxGridDBColumn;
+  Valor: Variant;
+begin
+  Result := 0;
+  if (ARegistro <> nil) and FColumnasDetalle.TryGetValue(
+    CampoEstadoPivoteStock(ACampo, AEstado), Columna) then
+  begin
+    Valor := ARegistro.Values[Columna.Index];
+    if not VarIsNull(Valor) and not VarIsEmpty(Valor) then
+      Result := Valor;
+  end;
+end;
+
+procedure TPresentadorPivoteStock.DibujarDetalle(ACanvas: TcxCanvas;
+  AInfo: TcxGridTableDataCellViewInfo);
+var
+  i, iAncho, iAlto: Integer;
+  rCelda, rTexto: TRect;
+  Estado: TEstadoStock;
+  dValor: Double;
+  sCampo, sTexto: string;
+begin
+  rCelda := AInfo.Bounds;
+  ACanvas.Brush.Color := AInfo.Params.Color;
+  ACanvas.FillRect(rCelda);
+  ACanvas.Font.Assign(AInfo.Params.Font);
+  iAncho := (rCelda.Right - rCelda.Left) div 3;
+  iAlto := (rCelda.Bottom - rCelda.Top) div 6;
+  sCampo := TcxGridDBColumn(AInfo.Item).DataBinding.FieldName;
+  for i := Low(ESTADOS_CELDA_STOCK) to High(ESTADOS_CELDA_STOCK) do
+  begin
+    Estado := ESTADOS_CELDA_STOCK[i];
+    dValor := ValorDetalle(AInfo.GridRecord, sCampo, Estado);
+    if (dValor <> 0) or (Estado = esExistencias) then
+    begin
+      rTexto := Rect(rCelda.Left + (i mod 3) * iAncho,
+        rCelda.Top + (i div 3) * iAlto,
+        rCelda.Left + (i mod 3 + 1) * iAncho,
+        rCelda.Top + (i div 3 + 1) * iAlto);
+      ACanvas.Font.Color := ColorEstadoLegible(Estado, AInfo.Params.Color);
+      if Estado = esExistencias then
+        ACanvas.Font.Style := [fsBold]
+      else
+        ACanvas.Font.Style := [];
+      sTexto := FormatFloat(FORMATO_CANTIDAD_STOCK, dValor);
+      ACanvas.DrawText(sTexto, rTexto,
+        DT_CENTER or DT_VCENTER or DT_SINGLELINE or DT_END_ELLIPSIS);
+    end;
+  end;
+end;
+
+procedure TPresentadorPivoteStock.DetalleGetCellHint(
+  Sender: TcxCustomGridTableItem; ARecord: TcxCustomGridRecord;
+  ACellViewInfo: TcxGridTableDataCellViewInfo;
+  const MousePos: TPoint; var AHintText: TCaption;
+  var AIsHintMultiLine: Boolean; var AHintTextRect: TRect);
+var
+  Estado: TEstadoStock;
+  sCampo: string;
+begin
+  if FDetalle then
+  begin
+    sCampo := TcxGridDBColumn(Sender).DataBinding.FieldName;
+    AHintText := '';
+    for Estado in ESTADOS_CELDA_STOCK do
+      AHintText := AHintText + NombreEstadoStockCorto(Estado) + ': ' +
+        FormatFloat(FORMATO_CANTIDAD_STOCK,
+          ValorDetalle(ARecord, sCampo, Estado)) + sLineBreak;
+    AIsHintMultiLine := True;
   end;
 end;
 
@@ -745,6 +901,8 @@ begin
     AEstado.HayColumnaDeDatos := True;
     AEstado.NombreCampo := Columna.DataBinding.FieldName;
   end;
+  if FDetalle then
+    AEstado.FilaEsExistencias := True;
   if AEstado.HayFila and (FColumnaEstado <> nil) then
     AEstado.FilaEsExistencias :=
       StrToIntDef(

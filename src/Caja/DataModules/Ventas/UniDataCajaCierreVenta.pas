@@ -549,7 +549,10 @@ begin
         Origenes.Next;
       end;
       if Disponible < AImporte then
-        RechazarDevolucionOrigen(AEmpresa, ASerie, ANumero);
+      begin
+        raise EValidacionBBDD.CreateFmt(
+          SErrorImporteMaximoDevolucionCaja, [Disponible, AImporte]);
+      end;
       Pendiente := AImporte;
       Origenes.First;
       while not Origenes.Eof and (Pendiente > 0) do

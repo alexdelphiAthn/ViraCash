@@ -617,6 +617,28 @@ begin
   P.PrecioFinal      := q.FieldByName('PRECIO_FINAL_ARTTAR').AsFloat;
   P.PrecioDto        := q.FieldByName('PRECIO_DTO_ARTTAR').AsFloat;
   P.PorcentajeDto    := q.FieldByName('PORCENTAJE_DTO_ARTTAR').AsFloat;
+  // Tarifas antiguas: el descuento puede existir solo en importe, o
+  // traer un 100 % espurio pese a conservar un precio final positivo.
+  if (P.PrecioSalida > 0) and
+    (q.FieldByName('PORCENTAJE_DTO_ARTTAR').IsNull or
+     (P.PorcentajeDto = 0) or
+     ((P.PorcentajeDto = 100) and (P.PrecioFinal > 0))) then
+  begin
+    if q.FieldByName('PRECIO_FINAL_ARTTAR').IsNull then
+    begin
+      P.PrecioFinal := P.PrecioSalida - P.PrecioDto;
+    end;
+    if (P.PrecioFinal >= 0) and (P.PrecioFinal <= P.PrecioSalida) then
+    begin
+      P.PrecioDto := P.PrecioSalida - P.PrecioFinal;
+      if P.PrecioDto < 0.005 then
+      begin
+        P.PrecioDto := 0;
+        P.PrecioFinal := P.PrecioSalida;
+      end;
+      P.PorcentajeDto := 100 * P.PrecioDto / P.PrecioSalida;
+    end;
+  end;
   P.PorcentajeMargen := q.FieldByName('PORCENTAJE_MARGEN_EFECTIVO').AsFloat;
   P.ValorMultiploAjuste :=
                        q.FieldByName('VALOR_MULTIPLO_AJUSTE_EFECTIVO').AsFloat;

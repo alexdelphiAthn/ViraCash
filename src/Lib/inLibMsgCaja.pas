@@ -16,6 +16,14 @@ unit inLibMsgCaja;
 interface
 
 resourcestring
+  SFechaHoraArqueoNoValida =
+    'Fecha no válida. Use dd/mm/aaaa hh:mm:ss.';
+  SErrorImporteMaximoDevolucionCaja =
+    'El importe maximo devolvible es %.2f; se han solicitado %.2f. ' +
+    'La operacion no se ha registrado.';
+  SConfirmarLineasGratuitasCaja =
+    'Hay artículos con cantidad positiva e importe cero. ' +
+    '¿Confirma que desea entregarlos gratuitamente?';
   SErrorArqueoRangoNoCalculado =
     'Las fechas han cambiado. Pulse Calc y revise el recuento ' +
     'antes de cerrar.';

@@ -1669,6 +1669,21 @@ resourcestring
     'Salida actual';
   SCaptionCambioFinalActual =
     'Final actual';
+  SCaptionCambioFinalAnterior = 'Final anterior';
+  SCaptionTarifaFinalAnterior = 'Tarifa final anterior';
+  SInfoCalculoSinFinalAnterior =
+    '%d líneas recalculadas. %d líneas omitidas porque no tienen ' +
+    'final anterior; se conservan sus precios preparados.';
+  SCaptionTarifasDelArticulo = 'Tarifas del artículo';
+  SCaptionStockDelArticulo = 'Stock del artículo';
+  SCaptionTarifaArticuloActivo = 'Activo';
+  SCaptionTarifaArticuloImpuestos = 'Imp. incl.';
+  SCaptionTarifaArticuloSalida = 'Salida';
+  SCaptionTarifaArticuloPorcentajeDto = '% dto.';
+  SCaptionTarifaArticuloDto = 'Descuento';
+  SCaptionTarifaArticuloFinal = 'Final';
+  SCaptionStockAlmacenes = 'Stock Almacenes';
+  SAvisoStockSeleccionarAlmacen = 'Selecciona uno o varios almacenes.';
   SCaptionCambioSalidaNueva =
     'Salida nueva';
   SCaptionCambioDtoNuevo =

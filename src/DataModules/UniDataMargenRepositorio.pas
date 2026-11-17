@@ -27,6 +27,46 @@ uses
   inLibPrestaShopColaSenal, inLibMargenTarifa;
 
 const
+  SQL_COBERTURA_SKU_COMPRA =
+    '(F.UNI = '''' OR F.UNI = S.CODIGO_UNIDAD_SKU ' +
+    'OR (LOCATE(''/*/'', F.UNI) = 0 ' +
+    'AND LEFT(S.CODIGO_UNIDAD_SKU, CHAR_LENGTH(F.UNI) + 1) ' +
+    '= CONCAT(F.UNI, ''/'')) ' +
+    'OR EXISTS (SELECT 1 FROM fza_atributos_sku ATS ' +
+    'JOIN fza_atributos_valores TAL ON TAL.ID_AV = ATS.ID_AV_SA ' +
+    'AND TAL.ID_VA_AV = (SELECT EJ452.ID_ATB_VA FROM ' +
+    'VI_VARIACIONES_EJES EJ452 WHERE EJ452.ID_VAR_VA = ' +
+    'S.CODIGO_VAR_SKU AND EJ452.EJE_VA = ''P'') ' +
+    'WHERE ATS.CODIGO_UNIDAD_SKU_SA = S.CODIGO_UNIDAD_SKU ' +
+    'AND F.UNI = CONCAT(F.ART, ''/*/'', TAL.AV))) ';
+  // Las importaciones antiguas conservan las compras, aunque aún no
+  // exista su resumen por SKU. El coste neto sigue el panel de proveedores.
+  SQL_COSTE_COMPRA_ALBARAN =
+    'SELECT CAST((L.PRECIO_COMPRA_SIVA_ARTICULO_ALBCLIN * ' +
+    '(1 - IFNULL(L.PORCENTAJE_DTO_ALBCLIN, 0) / 100)) * ' +
+    'CASE WHEN IFNULL(A.TOTAL_BRUTO_ALBC, 0) > 0 THEN ' +
+    'GREATEST(0, 1 - CASE ' +
+    'WHEN IFNULL(A.TOTAL_DTO_COMERCIAL_ALBC, 0) <> 0 THEN ' +
+    'IFNULL(A.TOTAL_DTO_COMERCIAL_ALBC, 0) / A.TOTAL_BRUTO_ALBC ' +
+    'ELSE IFNULL(A.PORCENTAJE_DTO_COMERCIAL_ALBC, 0) / 100 END) ' +
+    'ELSE GREATEST(0, 1 - ' +
+    'IFNULL(A.PORCENTAJE_DTO_COMERCIAL_ALBC, 0) / 100) END ' +
+    'AS DECIMAL(19,6)) AS COSTE, ' +
+    'A.FECHA_ALBC AS FECHA, A.CODIGO_PRV_ALBC AS PROVEEDOR ' +
+    'FROM (SELECT :ARTICULO AS ART, :UNIDAD AS UNI) F ' +
+    'JOIN fza_articulos_skus S ON S.CODIGO_ART_SKU = F.ART ' +
+    'JOIN fza_albaranes_compra_lineas L ' +
+    'ON L.CODIGO_ART_ALBCLIN = S.CODIGO_ART_SKU ' +
+    'AND L.CODIGO_UNIDAD_ALBCLIN = S.CODIGO_UNIDAD_SKU ' +
+    'JOIN fza_albaranes_compra A ' +
+    'ON A.SERIE_ALBC = L.SERIE_ALBC_ALBCLIN ' +
+    'AND A.NUMERO_ALBC = L.NUMERO_ALBC_ALBCLIN ' +
+    'WHERE IFNULL(L.CANTIDAD_ALBCLIN, 0) > 0 ' +
+    'AND IFNULL(L.PRECIO_COMPRA_SIVA_ARTICULO_ALBCLIN * ' +
+    '(1 - IFNULL(L.PORCENTAJE_DTO_ALBCLIN, 0) / 100), 0) > 0 ' +
+    'AND ' + SQL_COBERTURA_SKU_COMPRA +
+    'ORDER BY A.FECHA_ALBC DESC, A.INSTANTE_ALTA DESC, ' +
+    'A.SERIE_ALBC DESC, A.NUMERO_ALBC DESC, L.LINEA_ALBCLIN DESC LIMIT 1';
   // La ficha del artículo no depende de una empresa: se toma el IVA vigente
   // del grupo marcado por defecto.
   SQL_PORCENTAJES_IVA_DEFECTO =
@@ -61,17 +101,7 @@ const
     'JOIN fza_articulos_skus_costes C ' +
     'ON C.CODIGO_UNIDAD_SKU_SKUC = S.CODIGO_UNIDAD_SKU ' +
     'WHERE IFNULL(C.PRECIO_ULT_COMPRA_SKUC, 0) > 0 ' +
-    'AND (F.UNI = '''' OR F.UNI = S.CODIGO_UNIDAD_SKU ' +
-    'OR (LOCATE(''/*/'', F.UNI) = 0 ' +
-    'AND LEFT(S.CODIGO_UNIDAD_SKU, CHAR_LENGTH(F.UNI) + 1) ' +
-    '= CONCAT(F.UNI, ''/'')) ' +
-    'OR EXISTS (SELECT 1 FROM fza_atributos_sku ATS ' +
-    'JOIN fza_atributos_valores TAL ON TAL.ID_AV = ATS.ID_AV_SA ' +
-    'AND TAL.ID_VA_AV = (SELECT EJ452.ID_ATB_VA FROM ' +
-    'VI_VARIACIONES_EJES EJ452 WHERE EJ452.ID_VAR_VA = ' +
-    'S.CODIGO_VAR_SKU AND EJ452.EJE_VA = ''P'') ' +
-    'WHERE ATS.CODIGO_UNIDAD_SKU_SA = S.CODIGO_UNIDAD_SKU ' +
-    'AND F.UNI = CONCAT(F.ART, ''/*/'', TAL.AV))) ' +
+    'AND ' + SQL_COBERTURA_SKU_COMPRA +
     'ORDER BY C.FECHA_ULT_COMPRA_SKUC DESC, C.INSTANTE_MODIF DESC, ' +
     'S.CODIGO_UNIDAD_SKU LIMIT 1';
   SQL_GUARDAR_PRECIO_SALIDA =
@@ -90,6 +120,8 @@ type
     IRepositorioMargen)
   private
     FConexion: TUniConnection;
+    procedure AbrirCompra(AConsulta: TUniQuery; const ASql,
+      ACodigoArticulo, ACodigoUnidad: string);
     procedure GuardarPrecio(AConsulta: TUniQuery;
       const ASolicitud: TSolicitudPersistenciaMargen);
   public
@@ -194,6 +226,16 @@ begin
   end;
 end;
 
+procedure TRepositorioMargenUniDAC.AbrirCompra(AConsulta: TUniQuery;
+  const ASql, ACodigoArticulo, ACodigoUnidad: string);
+begin
+  AConsulta.Close;
+  AConsulta.SQL.Text := ASql;
+  AConsulta.ParamByName('ARTICULO').AsString := Trim(ACodigoArticulo);
+  AConsulta.ParamByName('UNIDAD').AsString := Trim(ACodigoUnidad);
+  AConsulta.Open;
+end;
+
 function TRepositorioMargenUniDAC.UltimaCompra(const ACodigoArticulo,
   ACodigoUnidadTarifa: string): TUltimaCompraTarifa;
 var
@@ -205,11 +247,11 @@ begin
     oConsulta := TUniQuery.Create(nil);
     try
       oConsulta.Connection := FConexion;
-      oConsulta.SQL.Text := SQL_COSTE_ULTIMA_COMPRA;
-      oConsulta.ParamByName('ARTICULO').AsString := Trim(ACodigoArticulo);
-      oConsulta.ParamByName('UNIDAD').AsString :=
-        Trim(ACodigoUnidadTarifa);
-      oConsulta.Open;
+      AbrirCompra(oConsulta, SQL_COSTE_ULTIMA_COMPRA,
+        ACodigoArticulo, ACodigoUnidadTarifa);
+      if oConsulta.IsEmpty then
+        AbrirCompra(oConsulta, SQL_COSTE_COMPRA_ALBARAN,
+          ACodigoArticulo, ACodigoUnidadTarifa);
       if not oConsulta.IsEmpty then
       begin
         Result.Coste := oConsulta.FieldByName('COSTE').AsFloat;

@@ -33,7 +33,8 @@ uses
   cxSplitter, cxListView, System.Generics.Collections,
   UniDataTarifasCambios, inLibTarifasCambiosExcel, inMtoGen,
   inLibCargaMasivaArticulosPersistenciaIntf, inLibPermisosIntf,
-  inLibSimulacionPrecioCaja;
+  inLibSimulacionPrecioCaja, inLibFotoMiniaturaMtoVcl, UniDataArticulos,
+  inMtoArticulosPresentacionStock, inLibPestanasEjeVcl;
 
 type
   TfrmMtoTarifasCambios = class(TfrmMtoGen, IBorradoContextualVentana)
@@ -127,12 +128,34 @@ type
     FPeriodosVistaIniciada: Boolean;
     FSesionVistaPeriodos  : Integer;
     FEstiloSinStock       : TcxStyle;
+    tsTarifasArticulo: TcxTabSheet;
+    cxgrdTarifasArticulo: TcxGrid;
+    tvTarifasArticulo: TcxGridDBTableView;
+    txtArticuloTarifas: TcxDBTextEdit;
+    btnStockAlmacenes: TcxButton;
+    FAlmacenesStock: string;
+    FMiniaturaFoto: TMiniaturaFotoMto;
+    cbbTarifaAnterior: TcxLookupComboBox;
+    FAsignandoTarifaAnterior: Boolean;
+    FTarifaAnteriorElegida: string;
+    tsStockArticulo: TcxTabSheet;
+    cxgrdStockArticulo: TcxGrid;
+    tvStockArticulo: TcxGridDBTableView;
+    txtStockArticulo: TcxDBTextEdit;
+    FDatosStockArticulo: TdmArticulos;
+    FPresentadorStockArticulo: TPresentadorStockArticulo;
+    FPestanasStockArticulo: TControlPestanasGridStock;
+    FArticuloStockCargado: string;
+    FCargandoStockArticulo: Boolean;
     procedure CrearControlesDinamicos;
     procedure CrearAtajos;
     procedure CrearCabecera;
     procedure CrearParametros;
     procedure CrearAcciones;
     procedure CrearGridLineas;
+    procedure CrearSelectorTarifaAnterior(var AX: Integer; AY: Integer);
+    procedure ActualizarTarifaAnterior;
+    procedure cbbTarifaAnteriorChange(Sender: TObject);
     procedure CrearColumnasCabecera;
     procedure CrearColumnasLineas;
     function  Esc(AValor: Integer): Integer;
@@ -186,6 +209,29 @@ type
       out ALineas: TLineasSesionTarifaExcel): Boolean;
     procedure actIrArticuloExecute(Sender: TObject);
     procedure CrearPestanaPrueba;
+    procedure CrearPestanaTarifasArticulo;
+    procedure CrearPestanaStockArticulo;
+    procedure InicializarStockArticulo;
+    procedure ActualizarStockArticulo;
+    procedure LiberarStockArticulo;
+    procedure dsLineasDataChange(Sender: TObject; Field: TField);
+    procedure tvStockArticuloCustomDrawCell(Sender: TcxCustomGridTableView;
+      ACanvas: TcxCanvas; AViewInfo: TcxGridTableDataCellViewInfo;
+      var ADone: Boolean);
+    procedure tvStockArticuloGetCellHint(Sender: TcxCustomGridTableItem;
+      ARecord: TcxCustomGridRecord;
+      ACellViewInfo: TcxGridTableDataCellViewInfo; const MousePos: TPoint;
+      var AHintText: TCaption; var AIsHintMultiLine: Boolean;
+      var AHintTextRect: TRect);
+    procedure btnExportarStockArticuloClick(Sender: TObject);
+    procedure CrearColumnasTarifasArticulo;
+    procedure MostrarCosteTarifaArticulo(Sender: TcxCustomGridTableItem;
+      ARecord: TcxCustomGridRecord; var AText: string);
+    function CosteCompraFilaTarifa(ARecord: TcxCustomGridRecord): Double;
+    procedure pcDetalleChange(Sender: TObject);
+    procedure btnStockAlmacenesClick(Sender: TObject);
+    procedure ElegirAlmacenesStock;
+    procedure RellenarAlmacenesStock(ALista: TcxListView);
     function  LeerEntradaPrueba(out AEntrada: TEntradaSimulacionPrecioCaja;
                                 out AError: string): Boolean;
     procedure MostrarResultadoPrueba(
@@ -234,7 +280,8 @@ uses
   inMtoModalCargarSesionTarifa, inLibMsgArticulos, inLibMsgFacturas,
   inLibTraducciones, UniDataConfiguracionPantalla,
   inLibArticulosResolverIntf, inLibArticulosValidadorIntf, Vcl.StdCtrls,
-  inMtoModalEtiqArt, UniDataArticulos, System.TypInfo;
+  inMtoModalEtiqArt, System.TypInfo,
+  inMtoModalArtTar, inLibDevExp;
 
 {$R *.dfm}
 
@@ -265,7 +312,9 @@ end;
 
 destructor TfrmMtoTarifasCambios.Destroy;
 begin
+  FreeAndNil(FMiniaturaFoto);
   DesvincularDatos;
+  LiberarStockArticulo;
   inherited;
   FreeAndNil(FOpcionesDinamicas);
   FreeAndNil(FTextosDinamicos);
@@ -338,6 +387,9 @@ begin
     CrearAcciones;
     CrearGridLineas;
     CrearPestanaPrueba;
+    CrearPestanaTarifasArticulo;
+    CrearPestanaStockArticulo;
+    pcDetalle.OnChange := pcDetalleChange;
     ConfigurarCombos;
     CrearAtajos;
     FControlesCreados := True;
@@ -643,6 +695,8 @@ begin
     @SCaptionEliminarLineasSesion, btnEliminarLineasClick);
   btnEliminarSinStock := CrearBoton(pnlSeleccion,
     @SCaptionEliminarLineasSinStockSesion, btnEliminarSinStockClick);
+  btnStockAlmacenes := CrearBoton(pnlSeleccion, @SCaptionStockAlmacenes,
+    btnStockAlmacenesClick);
   X := Esc(8);
   Y := Esc(5);
   ColocarBoton(btnMarcarTodo, Y, X);
@@ -650,6 +704,8 @@ begin
   ColocarBoton(btnActualizarCostes, Y, X, Esc(FICHA_SEP_GRUPO));
   ColocarBoton(btnEliminarLineas, Y, X);
   ColocarBoton(btnEliminarSinStock, Y, X);
+  ColocarBoton(btnStockAlmacenes, Y, X, Esc(FICHA_SEP_GRUPO));
+  CrearSelectorTarifaAnterior(X, Y);
   cxgrdLineas := TcxGrid.Create(Self);
   cxgrdLineas.Parent := tsLineas;
   cxgrdLineas.Align := alClient;
@@ -783,7 +839,8 @@ begin
       @SCaptionCambioValor, 80), '0.00');
     ColumnaOpciones(CrearColumna(tvPeriodos, 'CAMPO_ORIGEN_TARCP',
       @SCaptionCambioCampoOrigen, 140), 'CAMPO_ORIGEN_TARC',
-      ['PRECIO_ORIGEN', 'PRECIO_COSTE', 'PRECIO_DESTINO_ACTUAL']);
+      ['PRECIO_ORIGEN', 'PRECIO_COSTE', 'PRECIO_DESTINO_ACTUAL',
+       'PRECIO_FINAL_ANTERIOR']);
     ColumnaOpciones(CrearColumna(tvPeriodos, 'CAMPO_DESTINO_TARCP',
       @SCaptionCambioCampoDestino, 130), 'CAMPO_DESTINO_TARC',
       ['AMBOS', 'PRECIO_SALIDA', 'PRECIO_FINAL']);
@@ -986,6 +1043,364 @@ begin
   mPruebaResultado.Properties.ScrollBars := ssVertical;
 end;
 
+procedure TfrmMtoTarifasCambios.CrearSelectorTarifaAnterior(
+  var AX: Integer; AY: Integer);
+begin
+  CrearEtiqueta(pnlSeleccion, @SCaptionTarifaFinalAnterior, AX,
+    AY + Esc(3));
+  Inc(AX, AnchoTexto(SCaptionTarifaFinalAnterior) + Esc(FICHA_SEP_ETIQ));
+  cbbTarifaAnterior := TcxLookupComboBox.Create(Self);
+  cbbTarifaAnterior.Parent := pnlSeleccion;
+  cbbTarifaAnterior.SetBounds(AX, AY, Esc(200), Esc(FICHA_ALTO_BOTON));
+  cbbTarifaAnterior.Properties.KeyFieldNames := 'CODIGO_TAR_ARTTAR';
+  cbbTarifaAnterior.Properties.ListFieldNames := 'NOMBRE_TAR_TAR';
+  cbbTarifaAnterior.Properties.ListOptions.ShowHeader := False;
+  cbbTarifaAnterior.Properties.ImmediatePost := True;
+  cbbTarifaAnterior.Properties.OnEditValueChanged := cbbTarifaAnteriorChange;
+end;
+
+procedure TfrmMtoTarifasCambios.ActualizarTarifaAnterior;
+begin
+  FAsignandoTarifaAnterior := True;
+  try
+    if FTarifaAnteriorElegida <> '' then
+      cbbTarifaAnterior.EditValue := FTarifaAnteriorElegida
+    else if Assigned(dsTablaG.DataSet) and dsTablaG.DataSet.Active and
+      not dsTablaG.DataSet.IsEmpty then
+      cbbTarifaAnterior.EditValue := dsTablaG.DataSet.FieldByName(
+        'CODIGO_TAR_DESTINO_TARC').AsString
+    else
+      cbbTarifaAnterior.EditValue := Null;
+  finally
+    FAsignandoTarifaAnterior := False;
+  end;
+end;
+
+procedure TfrmMtoTarifasCambios.cbbTarifaAnteriorChange(Sender: TObject);
+begin
+  if not FAsignandoTarifaAnterior and Assigned(dmmTarifasCambios) and
+    not (csDestroying in ComponentState) then
+  begin
+    dmmTarifasCambios.SeleccionarTarifaAnterior(
+      VarToStr(cbbTarifaAnterior.EditValue));
+    FTarifaAnteriorElegida := VarToStr(cbbTarifaAnterior.EditValue);
+    ActualizarTarifaAnterior;
+  end;
+end;
+
+procedure TfrmMtoTarifasCambios.CrearPestanaTarifasArticulo;
+var
+  Nivel: TcxGridLevel;
+begin
+  tsTarifasArticulo := TcxTabSheet.Create(Self);
+  tsTarifasArticulo.PageControl := pcDetalle;
+  AsignarTexto(tsTarifasArticulo, 'Caption', @SCaptionTarifasDelArticulo);
+  txtArticuloTarifas := TcxDBTextEdit.Create(Self);
+  txtArticuloTarifas.Parent := tsTarifasArticulo;
+  txtArticuloTarifas.Align := alTop;
+  txtArticuloTarifas.Properties.ReadOnly := True;
+  txtArticuloTarifas.DataBinding.DataField := 'DESCRIPCION_ART';
+  cxgrdTarifasArticulo := TcxGrid.Create(Self);
+  cxgrdTarifasArticulo.Parent := tsTarifasArticulo;
+  cxgrdTarifasArticulo.Align := alClient;
+  tvTarifasArticulo := cxgrdTarifasArticulo.CreateView(
+    TcxGridDBTableView) as TcxGridDBTableView;
+  tvTarifasArticulo.OptionsData.Editing := False;
+  tvTarifasArticulo.OptionsData.Inserting := False;
+  tvTarifasArticulo.OptionsData.Deleting := False;
+  tvTarifasArticulo.OptionsView.GroupByBox := False;
+  tvTarifasArticulo.OptionsView.ColumnAutoWidth := False;
+  Nivel := cxgrdTarifasArticulo.Levels.Add;
+  Nivel.GridView := tvTarifasArticulo;
+  CrearColumnasTarifasArticulo;
+end;
+
+procedure TfrmMtoTarifasCambios.CrearPestanaStockArticulo;
+var
+  Nivel: TcxGridLevel;
+  Panel: TcxGroupBox;
+begin
+  tsStockArticulo := TcxTabSheet.Create(Self);
+  tsStockArticulo.PageControl := pcDetalle;
+  AsignarTexto(tsStockArticulo, 'Caption', @SCaptionStockDelArticulo);
+  txtStockArticulo := TcxDBTextEdit.Create(Self);
+  txtStockArticulo.Parent := tsStockArticulo;
+  txtStockArticulo.Align := alTop;
+  txtStockArticulo.Properties.ReadOnly := True;
+  txtStockArticulo.DataBinding.DataField := 'DESCRIPCION_ART';
+  Panel := TcxGroupBox.Create(Self);
+  Panel.Parent := tsStockArticulo;
+  Panel.Align := alBottom;
+  Panel.PanelStyle.Active := True;
+  Panel.Style.BorderStyle := ebsNone;
+  Panel.Transparent := True;
+  Panel.Height := Esc(FICHA_ALTO_BOTON) + Esc(10);
+  CrearBoton(Panel, @SCaptionExportarExcelSesionTarifa,
+    btnExportarStockArticuloClick).SetBounds(Esc(8), Esc(5),
+      Esc(160), Esc(FICHA_ALTO_BOTON));
+  cxgrdStockArticulo := TcxGrid.Create(Self);
+  cxgrdStockArticulo.Parent := tsStockArticulo;
+  cxgrdStockArticulo.Align := alClient;
+  cxgrdStockArticulo.Font.Size := Font.Size + 2;
+  tvStockArticulo := cxgrdStockArticulo.CreateView(
+    TcxGridDBTableView) as TcxGridDBTableView;
+  tvStockArticulo.OptionsData.Editing := False;
+  tvStockArticulo.OptionsData.Inserting := False;
+  tvStockArticulo.OptionsData.Deleting := False;
+  tvStockArticulo.OptionsView.GroupByBox := False;
+  tvStockArticulo.OptionsView.DataRowHeight := Esc(38);
+  tvStockArticulo.OptionsBehavior.AlwaysShowEditor := False;
+  tvStockArticulo.OptionsBehavior.CellHints := True;
+  tvStockArticulo.OnCustomDrawCell := tvStockArticuloCustomDrawCell;
+  Nivel := cxgrdStockArticulo.Levels.Add;
+  Nivel.GridView := tvStockArticulo;
+end;
+
+procedure TfrmMtoTarifasCambios.InicializarStockArticulo;
+begin
+  if not Assigned(FDatosStockArticulo) then
+  begin
+    FDatosStockArticulo := TdmArticulos.Create(Self);
+    try
+      FDatosStockArticulo.AsignarVistaStock(tvStockArticulo);
+      tvStockArticulo.DataController.DataSource :=
+        FDatosStockArticulo.dsStockArticulos;
+      FPresentadorStockArticulo := TPresentadorStockArticulo.Create(
+        tvStockArticulo, ConexionPrincipal);
+      FPestanasStockArticulo := TControlPestanasGridStock.Create(
+        tvStockArticulo);
+    except
+      LiberarStockArticulo;
+      raise;
+    end;
+  end;
+end;
+
+procedure TfrmMtoTarifasCambios.ActualizarStockArticulo;
+var
+  Articulo, TipoCantidad: string;
+  Lineas: TDataSet;
+  i: Integer;
+begin
+  if (pcDetalle.ActivePage = tsStockArticulo) and
+    Assigned(dmmTarifasCambios) and not FCargandoStockArticulo then
+  begin
+    FCargandoStockArticulo := True;
+    try
+      Articulo := '';
+      Lineas := dmmTarifasCambios.unqryLineas;
+      if Lineas.Active and not Lineas.IsEmpty then
+        Articulo := Lineas.FieldByName('CODIGO_ART_TARCLIN').AsString;
+      if Articulo <> '' then
+      begin
+        InicializarStockArticulo;
+        if (FArticuloStockCargado <> Articulo) or
+          not FDatosStockArticulo.unqryStockArticulos.Active then
+        begin
+          TipoCantidad := Lineas.FieldByName('TIPO_CANTIDAD_ART').AsString;
+          FPresentadorStockArticulo.CargarMapaArticulo(Articulo);
+          FDatosStockArticulo.ConsultarStockArticulo(Articulo, TipoCantidad);
+          for i := 0 to tvStockArticulo.ColumnCount - 1 do
+            tvStockArticulo.Columns[i].OnGetCellHint :=
+              tvStockArticuloGetCellHint;
+          FPestanasStockArticulo.Actualizar(Articulo);
+          FPresentadorStockArticulo.AjustarAnchoColor;
+          FArticuloStockCargado := Articulo;
+        end;
+      end
+      else if Assigned(FDatosStockArticulo) then
+      begin
+        FPestanasStockArticulo.Ocultar;
+        FDatosStockArticulo.unqryStockArticulos.Close;
+        FArticuloStockCargado := '';
+      end;
+    finally
+      FCargandoStockArticulo := False;
+    end;
+  end;
+end;
+
+procedure TfrmMtoTarifasCambios.dsLineasDataChange(Sender: TObject;
+  Field: TField);
+begin
+  if not (csDestroying in ComponentState) and (Field = nil) then
+    ActualizarStockArticulo;
+end;
+
+procedure TfrmMtoTarifasCambios.LiberarStockArticulo;
+begin
+  FreeAndNil(FPestanasStockArticulo);
+  FreeAndNil(FPresentadorStockArticulo);
+  if Assigned(tvStockArticulo) then
+    tvStockArticulo.DataController.DataSource := nil;
+  FreeAndNil(FDatosStockArticulo);
+end;
+
+procedure TfrmMtoTarifasCambios.tvStockArticuloCustomDrawCell(
+  Sender: TcxCustomGridTableView; ACanvas: TcxCanvas;
+  AViewInfo: TcxGridTableDataCellViewInfo; var ADone: Boolean);
+begin
+  if Assigned(FPresentadorStockArticulo) then
+    FPresentadorStockArticulo.PintarCelda(ACanvas, AViewInfo, ADone);
+end;
+
+procedure TfrmMtoTarifasCambios.tvStockArticuloGetCellHint(
+  Sender: TcxCustomGridTableItem; ARecord: TcxCustomGridRecord;
+  ACellViewInfo: TcxGridTableDataCellViewInfo;
+  const MousePos: TPoint; var AHintText: TCaption;
+  var AIsHintMultiLine: Boolean; var AHintTextRect: TRect);
+var
+  Texto: string;
+begin
+  if Assigned(FPresentadorStockArticulo) and
+    FPresentadorStockArticulo.ObtenerHint(ACellViewInfo, Texto) then
+    AHintText := Texto;
+end;
+
+procedure TfrmMtoTarifasCambios.btnExportarStockArticuloClick(
+  Sender: TObject);
+begin
+  if PuedeExportar and Assigned(FDatosStockArticulo) and
+    FDatosStockArticulo.unqryStockArticulos.Active then
+    ExportarExcel(ParametrosApp, cxgrdStockArticulo,
+      'Stock_' + FArticuloStockCargado);
+end;
+
+procedure TfrmMtoTarifasCambios.CrearColumnasTarifasArticulo;
+begin
+  ColumnaSiNo(CrearColumna(tvTarifasArticulo, 'ESACTIVO_ARTTAR',
+    @SCaptionTarifaArticuloActivo, 65));
+  CrearColumna(tvTarifasArticulo, 'NOMBRE_TAR_TAR',
+    @SCaptionPruebaPrecioTarifa, 180);
+  CrearColumna(tvTarifasArticulo, 'CODIGO_TAR_ARTTAR',
+    @SCaptionCambioCodigo, 100);
+  CrearColumna(tvTarifasArticulo, 'CODIGO_UNIDAD_ARTTAR',
+    @SCaptionColSku, 180);
+  ColumnaSiNo(CrearColumna(tvTarifasArticulo, 'ESIMP_INCL_TAR',
+    @SCaptionTarifaArticuloImpuestos, 85));
+  FormatoImporte(CrearColumna(tvTarifasArticulo, 'PRECIO_COSTE_ARTTAR',
+    @SCaptionCambioCoste, 90), FMT_EUROS);
+  tvTarifasArticulo.GetColumnByFieldName(
+    'PRECIO_COSTE_ARTTAR').OnGetDisplayText := MostrarCosteTarifaArticulo;
+  FormatoImporte(CrearColumna(tvTarifasArticulo, 'PRECIO_SALIDA_ARTTAR',
+    @SCaptionTarifaArticuloSalida, 100), FMT_EUROS);
+  FormatoImporte(CrearColumna(tvTarifasArticulo, 'PORCENTAJE_DTO_ARTTAR',
+    @SCaptionTarifaArticuloPorcentajeDto, 90), FMT_PORCENTAJE);
+  FormatoImporte(CrearColumna(tvTarifasArticulo, 'PRECIO_DTO_ARTTAR',
+    @SCaptionTarifaArticuloDto, 90), FMT_EUROS);
+  FormatoImporte(CrearColumna(tvTarifasArticulo, 'PRECIO_FINAL_ARTTAR',
+    @SCaptionTarifaArticuloFinal, 100), FMT_EUROS);
+  CrearColumna(tvTarifasArticulo, 'FECHA_DESDE_ARTTAR',
+    @SCaptionCambioTarifaDesde, 100);
+  CrearColumna(tvTarifasArticulo, 'FECHA_HASTA_ARTTAR',
+    @SCaptionCambioTarifaHasta, 100);
+end;
+
+function TfrmMtoTarifasCambios.CosteCompraFilaTarifa(
+  ARecord: TcxCustomGridRecord): Double;
+var
+  Columna: TcxGridDBColumn;
+  Articulo, Unidad: string;
+begin
+  Articulo := dmmTarifasCambios.unqryLineas.FieldByName(
+    'CODIGO_ART_TARCLIN').AsString;
+  Columna := tvTarifasArticulo.GetColumnByFieldName('CODIGO_UNIDAD_ARTTAR');
+  Unidad := VarToStr(ARecord.Values[Columna.Index]);
+  Result := dmmTarifasCambios.CosteReferenciaTarifa(Articulo, Unidad);
+end;
+
+procedure TfrmMtoTarifasCambios.MostrarCosteTarifaArticulo(
+  Sender: TcxCustomGridTableItem; ARecord: TcxCustomGridRecord;
+  var AText: string);
+var
+  Coste: Double;
+begin
+  if (ARecord <> nil) and Assigned(dmmTarifasCambios) and
+    VarIsNull(ARecord.Values[Sender.Index]) then
+  begin
+    Coste := CosteCompraFilaTarifa(ARecord);
+    if Coste > 0 then
+      AText := CurrToStrF(Coste, ffCurrency, 2);
+  end;
+end;
+
+procedure TfrmMtoTarifasCambios.pcDetalleChange(Sender: TObject);
+begin
+  if Assigned(dmmTarifasCambios) then
+  begin
+    if pcDetalle.ActivePage = tsTarifasArticulo then
+      dmmTarifasCambios.AbrirTarifasArticulo
+    else
+      dmmTarifasCambios.unqryTarifasArticulo.Close;
+  end;
+  ActualizarStockArticulo;
+end;
+
+procedure TfrmMtoTarifasCambios.btnStockAlmacenesClick(Sender: TObject);
+begin
+  if Assigned(dmmTarifasCambios) then
+    ElegirAlmacenesStock;
+end;
+
+procedure TfrmMtoTarifasCambios.RellenarAlmacenesStock(ALista: TcxListView);
+var
+  Datos: TDataSet;
+  Codigo: string;
+begin
+  dmmTarifasCambios.AbrirAlmacenesStock;
+  Datos := dmmTarifasCambios.unqryAlmacenesStock;
+  while not Datos.Eof do
+  begin
+    Codigo := Datos.FieldByName('CODIGO_ALM_ALM').AsString;
+    ALista.Items.Add.Caption := Codigo;
+    ALista.Items[ALista.Items.Count - 1].SubItems.Add(
+      Datos.FieldByName('NOMBRE_ALM_ALM').AsString);
+    ALista.Items[ALista.Items.Count - 1].Checked :=
+      (FAlmacenesStock = '') or
+      (Pos(',' + Codigo + ',', ',' + FAlmacenesStock + ',') > 0);
+    Datos.Next;
+  end;
+end;
+
+procedure TfrmMtoTarifasCambios.ElegirAlmacenesStock;
+var
+  Selector: TfrmMtoModalArtTar;
+  Codigos: string;
+  i: Integer;
+begin
+  Selector := TfrmMtoModalArtTar.Create(Self);
+  try
+    Selector.Caption := SCaptionStockAlmacenes;
+    Selector.ClientHeight := Esc(350);
+    Selector.lstTarifas.Columns[0].Caption := SCaptionCambioCodigo;
+    Selector.lstTarifas.Columns[1].Caption := SCaptionColAlmacen;
+    RellenarAlmacenesStock(Selector.lstTarifas);
+    Selector.ShowModal;
+    if Selector.sFicha = 'S' then
+    begin
+      Codigos := '';
+      for i := 0 to Selector.lstTarifas.Items.Count - 1 do
+        if Selector.lstTarifas.Items[i].Checked then
+        begin
+          if Codigos <> '' then
+            Codigos := Codigos + ',';
+          Codigos := Codigos + Selector.lstTarifas.Items[i].Caption;
+        end;
+      if Codigos = '' then
+        ShowMessage_fza(SAvisoStockSeleccionarAlmacen)
+      else
+      begin
+        dmmTarifasCambios.FiltrarStockAlmacenes(Codigos);
+        FAlmacenesStock := Codigos;
+        btnStockAlmacenes.Hint := Codigos;
+        btnStockAlmacenes.ShowHint := True;
+      end;
+    end;
+  finally
+    FreeAndNil(Selector);
+  end;
+end;
+
 // Convierte lo escrito (artículo, SKU o código de barras) en artículo y SKU
 // como lo haría la lectura de caja, y añade tarifa, fecha y parámetros.
 function TfrmMtoTarifasCambios.LeerEntradaPrueba(
@@ -1113,6 +1528,8 @@ begin
     'CAMPO_ORIGEN_TARC', 'PRECIO_COSTE');
   AgregarOpcion(cbbCampoOrigen,
     'CAMPO_ORIGEN_TARC', 'PRECIO_DESTINO_ACTUAL');
+  AgregarOpcion(cbbCampoOrigen,
+    'CAMPO_ORIGEN_TARC', 'PRECIO_FINAL_ANTERIOR');
   AgregarOpcion(cbbCampoDestino,
     'CAMPO_DESTINO_TARC', 'AMBOS');
   AgregarOpcion(cbbCampoDestino,
@@ -1193,6 +1610,11 @@ begin
   dmmTarifasCambios.unqryLineas.DetailFields := 'CODIGO_TARC_TARCLIN';
   dmmTarifasCambios.unqryLineas.MasterSource := dsTablaG;
   tvLineas.DataController.DataSource := dmmTarifasCambios.dsLineas;
+  tvTarifasArticulo.DataController.DataSource :=
+    dmmTarifasCambios.dsTarifasArticulo;
+  txtArticuloTarifas.DataBinding.DataSource := dmmTarifasCambios.dsLineas;
+  txtStockArticulo.DataBinding.DataSource := dmmTarifasCambios.dsLineas;
+  dmmTarifasCambios.dsLineas.OnDataChange := dsLineasDataChange;
   dmmTarifasCambios.unqryPeriodos.MasterFields := 'CODIGO_TARC';
   dmmTarifasCambios.unqryPeriodos.DetailFields := 'CODIGO_TARC_TARCP';
   dmmTarifasCambios.unqryPeriodos.MasterSource := dsTablaG;
@@ -1206,16 +1628,37 @@ begin
   cbbTarifaOrigen.Properties.ListSource := dmmTarifasCambios.dsTarifas;
   cbbTarifaDestino.Properties.ListSource := dmmTarifasCambios.dsTarifas;
   cbbPruebaTarifa.Properties.ListSource := dmmTarifasCambios.dsTarifas;
+  cbbTarifaAnterior.Properties.ListSource := dmmTarifasCambios.dsTarifas;
   pkFieldName := 'CODIGO_TARC';
   VincularDatos;
+  ActualizarTarifaAnterior;
   CrearColumnasCabecera;
   CrearColumnasLineas;
   CrearColumnasPeriodos;
   AplicarTraducciones(Self, Self);
+  if not Assigned(FMiniaturaFoto) and Assigned(FotosArticulos) then
+    FMiniaturaFoto := TMiniaturaFotoMto.Create(Self, pButtonRightBar,
+      pButtonBDStat, FotosArticulos, ResolverArtSkuActivo,
+      DataSourcesParaFoto, actFotoArticulo);
 end;
 
 procedure TfrmMtoTarifasCambios.DesvincularDatos;
 begin
+  if Assigned(txtStockArticulo) then
+    txtStockArticulo.DataBinding.DataSource := nil;
+  if Assigned(dmmTarifasCambios) then
+    dmmTarifasCambios.dsLineas.OnDataChange := nil;
+  if Assigned(cbbTarifaAnterior) then
+  begin
+    cbbTarifaAnterior.Properties.OnEditValueChanged := nil;
+    cbbTarifaAnterior.Properties.ListSource := nil;
+  end;
+  if Assigned(pcDetalle) then
+    pcDetalle.OnChange := nil;
+  if Assigned(txtArticuloTarifas) then
+    txtArticuloTarifas.DataBinding.DataSource := nil;
+  if Assigned(tvTarifasArticulo) then
+    tvTarifasArticulo.DataController.DataSource := nil;
   if Assigned(dsTablaG) then
     dsTablaG.OnDataChange := nil;
   if Assigned(cbbTipoAplicacion) then
@@ -1315,6 +1758,9 @@ begin
           'APLICADA');
     if (Field = nil) or SameText(Field.FieldName, 'TIPO_APLICACION_TARC') then
       ActualizarFormatoValor;
+    if (Field = nil) or
+      SameText(Field.FieldName, 'CODIGO_TAR_DESTINO_TARC') then
+      ActualizarTarifaAnterior;
     if Field = nil then
     begin
       SincronizarPeriodosSesion;
@@ -1361,6 +1807,10 @@ begin
                    @SCaptionCambioSalidaActual, 100), FMT_EUROS);
     FormatoImporte(CrearColumna(tvLineas, 'PRECIO_FINAL_ACTUAL_TARCLIN',
                    @SCaptionCambioFinalActual, 100), FMT_EUROS);
+    oStock := CrearColumna(tvLineas, 'PRECIO_FINAL_ANTERIOR_TARCLIN',
+      @SCaptionCambioFinalAnterior, 100);
+    FormatoImporte(oStock, FMT_EUROS);
+    oStock.Options.Editing := False;
     FormatoImporte(CrearColumna(tvLineas, 'PRECIO_NUEVO_TARCLIN',
                    @SCaptionCambioSalidaNueva, 100), FMT_EUROS);
     FormatoImporte(CrearColumna(tvLineas, 'PRECIO_DTO_NUEVO_TARCLIN',
@@ -1369,14 +1819,16 @@ begin
                    @SCaptionCambioPorcentajeDto, 90), FMT_PORCENTAJE);
     FormatoImporte(CrearColumna(tvLineas, 'PRECIO_FINAL_NUEVO_TARCLIN',
                    @SCaptionCambioFinalNuevo, 100), FMT_EUROS);
+    oStock := CrearColumna(tvLineas, 'STOCK_ACTUAL', @SCaptionColStock, 100);
+    FormatoImporte(oStock, '#,##0.######');
+    TcxCurrencyEditProperties(oStock.Properties).Alignment.Horz := taCenter;
+    oStock.HeaderAlignmentHorz := taCenter;
+    oStock.Options.Editing := False;
     // FZ-ISSUE-944: los precios (editables en cada periodo) antes que la
     // familia y el proveedor, que dejaban fuera de la vista Salida nueva.
     CrearColumna(tvLineas, 'NOMBRE_FAM_FAM', @SCaptionCambioFamilia, 160);
     CrearColumna(tvLineas, 'RAZON_SOCIAL_PRV', @SCaptionCambioProveedor, 180);
     CrearColumna(tvLineas, 'MENSAJE_TARCLIN', @SCaptionCambioMensaje, 180);
-    oStock := CrearColumna(tvLineas, 'STOCK_ACTUAL', @SCaptionColStock, 100);
-    FormatoImporte(oStock, '#,##0.######');
-    oStock.Options.Editing := False;
     // FZ-ISSUE-944: líneas sin stock (0 o negativo) sombreadas.
     FEstiloSinStock := TcxStyle.Create(Self);
     FEstiloSinStock.AssignedValues := [cxStyles.svColor];
@@ -1548,6 +2000,8 @@ begin
     dmmTarifasCambios.SincronizarPeriodos;
     dmmTarifasCambios.RellenarPreciosPartida;
     dmmTarifasCambios.unqryLineas.Refresh;
+    FArticuloStockCargado := '';
+    ActualizarStockArticulo;
   end;
 end;
 

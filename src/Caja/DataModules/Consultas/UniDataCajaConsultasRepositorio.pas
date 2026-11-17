@@ -292,6 +292,23 @@ const
     'SELECT * FROM fza_facturas ' +
     'WHERE SERIE_FAC = :SERIE ' +
     'AND NUMERO_FAC = :NUMERO';
+  // FZ-998: momento de la venta que se enseña al buscar un ticket. En un
+  // documento migrado INSTANTE_ALTA es el de la migración, no el de la
+  // venta; entonces vale la fecha de la factura.
+  SQL_FECHA_VENTA =
+    'CASE WHEN DATE(INSTANTE_ALTA) = DATE(FECHA_FAC) ' +
+    'THEN INSTANTE_ALTA ELSE FECHA_FAC END AS INSTANTE_ALTA ';
+  // FZ-998: una línea sin SKU ni artículo (texto libre, o el detalle no
+  // disponible de una venta migrada) se reconoce por su descripción; si
+  // no, tras devolverla se volvía a proponer.
+  SQL_MISMA_LINEA_DEVUELTA =
+    '   AND (dl.CODIGO_UNIDAD_FACLIN = L.CODIGO_UNIDAD_FACLIN ' +
+    '     OR (COALESCE(L.CODIGO_UNIDAD_FACLIN, '''') = '''' ' +
+    '       AND COALESCE(L.CODIGO_ART_FACLIN, '''') = '''' ' +
+    '       AND COALESCE(dl.CODIGO_UNIDAD_FACLIN, '''') = '''' ' +
+    '       AND COALESCE(dl.CODIGO_ART_FACLIN, '''') = '''' ' +
+    '       AND COALESCE(dl.DESCRIPCION_ARTICULO_FACLIN, '''') = ' +
+    '         COALESCE(L.DESCRIPCION_ARTICULO_FACLIN, ''''))) ';
   // CANTIDAD_DEVUELTA_VENTA (FZ-ISSUE-392): unidades del SKU de la línea
   // ya devueltas de esta venta; la devolución solo carga lo pendiente.
   // Es SQLCantidadDevueltaVenta de UniDataRectificativasSql para
@@ -309,11 +326,27 @@ const
     ' WHERE dv.SERIE_REF_ORIGEN_OPCAJA = L.SERIE_FAC_FACLIN ' +
     '   AND dv.NUMERO_REF_ORIGEN_OPCAJA = L.NUMERO_FAC_FACLIN ' +
     '   AND dv.TIPO_OPERACION_OPCAJA = ''DV'' ' +
-    '   AND dl.CODIGO_UNIDAD_FACLIN = L.CODIGO_UNIDAD_FACLIN ' +
+    SQL_MISMA_LINEA_DEVUELTA +
     '   AND dl.CANTIDAD_FACLIN < 0 ' +
     '   AND COALESCE(df.FASE_FAC, '''') NOT IN (''CANCELADA'', ' +
     '     ''SIN_VERIF_ANULADA'', ''VERIFACTU_ANULADA'', ' +
-    '     ''NOVERIFACTU_ANULADA'')) AS CANTIDAD_DEVUELTA_VENTA ' +
+    '     ''NOVERIFACTU_ANULADA'')) AS CANTIDAD_DEVUELTA_VENTA, ' +
+    '(SELECT COALESCE(-SUM(dl.TOTAL_FACLIN), 0) ' +
+    ' FROM fza_caja_operaciones dv ' +
+    ' JOIN fza_facturas df ' +
+    '   ON df.SERIE_FAC = dv.SERIE_FAC_OPCAJA ' +
+    '  AND df.NUMERO_FAC = dv.NUMERO_FAC_OPCAJA ' +
+    ' JOIN fza_facturas_lineas dl ' +
+    '   ON dl.SERIE_FAC_FACLIN = df.SERIE_FAC ' +
+    '  AND dl.NUMERO_FAC_FACLIN = df.NUMERO_FAC ' +
+    ' WHERE dv.SERIE_REF_ORIGEN_OPCAJA = L.SERIE_FAC_FACLIN ' +
+    '   AND dv.NUMERO_REF_ORIGEN_OPCAJA = L.NUMERO_FAC_FACLIN ' +
+    '   AND dv.TIPO_OPERACION_OPCAJA = ''DV'' ' +
+    SQL_MISMA_LINEA_DEVUELTA +
+    '   AND dl.CANTIDAD_FACLIN < 0 ' +
+    '   AND COALESCE(df.FASE_FAC, '''') NOT IN (''CANCELADA'', ' +
+    '     ''SIN_VERIF_ANULADA'', ''VERIFACTU_ANULADA'', ' +
+    '     ''NOVERIFACTU_ANULADA'')) AS IMPORTE_DEVUELTO_VENTA ' +
     'FROM fza_facturas_lineas L ' +
     'WHERE L.SERIE_FAC_FACLIN = :SERIE ' +
     'AND L.NUMERO_FAC_FACLIN = :NUMERO ' +
@@ -321,13 +354,13 @@ const
   SQL_CONSULTAR_FACTURA_COD_BARRAS =
     'SELECT SERIE_FAC, NUMERO_FAC, TIPO_FAC, FECHA_FAC, ' +
     'CODIGO_EMP_FAC, CODIGO_ALM_FAC, CODIGO_CAJA_FAC, ' +
-    'NUMERO_OPERACION_FAC, TOTAL_LIQUIDO_FAC, INSTANTE_ALTA ' +
+    'NUMERO_OPERACION_FAC, TOTAL_LIQUIDO_FAC, ' + SQL_FECHA_VENTA +
     'FROM fza_facturas ' +
     'WHERE CODIGO_BARRAS_FAC = :CODIGO';
   SQL_CONSULTAR_FACTURA_OPERACION =
     'SELECT SERIE_FAC, NUMERO_FAC, TIPO_FAC, FECHA_FAC, ' +
     'CODIGO_EMP_FAC, CODIGO_ALM_FAC, CODIGO_CAJA_FAC, ' +
-    'NUMERO_OPERACION_FAC, TOTAL_LIQUIDO_FAC, INSTANTE_ALTA ' +
+    'NUMERO_OPERACION_FAC, TOTAL_LIQUIDO_FAC, ' + SQL_FECHA_VENTA +
     'FROM fza_facturas ' +
     'WHERE CODIGO_EMP_FAC = :EMP ' +
     'AND CODIGO_ALM_FAC = :ALM ' +
@@ -337,7 +370,9 @@ const
     'TRIM(LEADING ''0'' FROM :OPERACION)';
   SQL_CONSULTAR_VENTAS_ORIGEN_SKU =
     'SELECT f.SERIE_FAC, f.NUMERO_FAC, f.TIPO_FAC, ' +
-    'f.INSTANTE_ALTA, f.CODIGO_EMP_FAC, f.CODIGO_ALM_FAC, ' +
+    'CASE WHEN DATE(f.INSTANTE_ALTA) = DATE(f.FECHA_FAC) ' +
+    'THEN f.INSTANTE_ALTA ELSE f.FECHA_FAC END AS INSTANTE_ALTA, ' +
+    'f.CODIGO_EMP_FAC, f.CODIGO_ALM_FAC, ' +
     'f.CODIGO_CAJA_FAC, f.NUMERO_OPERACION_FAC, ' +
     'f.TOTAL_LIQUIDO_FAC, l.CANTIDAD_FACLIN, l.TOTAL_FACLIN ' +
     'FROM fza_facturas_lineas l ' +

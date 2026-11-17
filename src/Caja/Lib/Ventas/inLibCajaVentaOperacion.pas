@@ -122,6 +122,7 @@ procedure RestaurarDepositosApartadosVenta(
 
 // Cantidad cero en las líneas confirmadas que pasan al cobro.
 function HayLineasConCantidadCero(ALineas: TDataSet): Boolean;
+function HayLineasGratuitasCaja(ALineas: TDataSet): Boolean;
 
 // La operacion esta vacia; una insercion o edicion pendiente se
 // cancela antes de mirar.
@@ -755,6 +756,37 @@ begin
     finally
       if ALineas.BookmarkValid(Marcador) then
         ALineas.GotoBookmark(Marcador);
+      ALineas.FreeBookmark(Marcador);
+      ALineas.EnableControls;
+    end;
+  end;
+end;
+
+function HayLineasGratuitasCaja(ALineas: TDataSet): Boolean;
+var
+  Marcador: TBookmark;
+begin
+  Result := False;
+  if Assigned(ALineas) and ALineas.Active and not ALineas.IsEmpty then
+  begin
+    Marcador := ALineas.GetBookmark;
+    ALineas.DisableControls;
+    try
+      ALineas.First;
+      while not ALineas.Eof and not Result do
+      begin
+        Result := (ALineas.FieldByName('CANTIDAD_FACLIN').AsCurrency > 0)
+          and (ALineas.FieldByName('TOTAL_FACLIN').AsCurrency = 0);
+        if not Result then
+        begin
+          ALineas.Next;
+        end;
+      end;
+    finally
+      if ALineas.BookmarkValid(Marcador) then
+      begin
+        ALineas.GotoBookmark(Marcador);
+      end;
       ALineas.FreeBookmark(Marcador);
       ALineas.EnableControls;
     end;

@@ -1271,7 +1271,9 @@ begin
     if AValor = 'PRECIO_ORIGEN' then Result := SValorTarifaPrecioOrigen
     else if AValor = 'PRECIO_COSTE' then Result := SValorTarifaPrecioCoste
     else if AValor = 'PRECIO_DESTINO_ACTUAL' then
-      Result := SValorTarifaPrecioDestinoActual;
+      Result := SValorTarifaPrecioDestinoActual
+    else if AValor = 'PRECIO_FINAL_ANTERIOR' then
+      Result := SCaptionCambioFinalAnterior;
   end
   else if SameText(ACampo, 'CAMPO_DESTINO_TARC') or
           SameText(ACampo, 'CAMPO_DESTINO_TARCP') then

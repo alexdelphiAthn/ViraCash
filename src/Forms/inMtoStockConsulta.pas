@@ -151,6 +151,7 @@ type
               const ACodigo: string);
     procedure MenuAgregarDocClick(Sender: TObject);
     procedure CrearPresentadores;
+    procedure AbrirArticuloConsultado;
     procedure GuardarModoUsuario;
     function  ModoDesglosadoDeUsuario: Boolean;
     procedure CargarPropsPorColor;
@@ -183,6 +184,7 @@ type
     procedure AgregarLineaADocumentoTrabajo(
       const ALinea: TDocTrabajoLineaOrigen); virtual;
     procedure AvisarCeldaDocumentoTrabajo(const AMensaje: string); virtual;
+    function IsShortCut(var Message: TWMKey): Boolean; override;
     procedure CreateParams(var Params: TCreateParams); override;
     procedure CreateWnd; override;
     procedure DestroyWnd; override;
@@ -562,6 +564,27 @@ end;
 procedure TfrmStockConsulta.FormResize(Sender: TObject);
 begin
   AjustarFotoCabecera;
+end;
+
+procedure TfrmStockConsulta.AbrirArticuloConsultado;
+begin
+  if FVista.HayArticulo then
+  begin
+    ShowMto(Application.MainForm, 'Articulos', FVista.CodigoArticulo);
+    Application.MainForm.BringToFront;
+  end;
+end;
+
+function TfrmStockConsulta.IsShortCut(var Message: TWMKey): Boolean;
+begin
+  // Consumir antes del menu general conserva el articulo de la consulta.
+  if ShortCutFromMessage(Message) = ShortCut(Ord('R'), [ssCtrl]) then
+  begin
+    AbrirArticuloConsultado;
+    Result := True;
+  end
+  else
+    Result := inherited IsShortCut(Message);
 end;
 
 // ESC oculta la ventana flotante. KeyPreview=True (FormCreate) garantiza que
@@ -1276,7 +1299,8 @@ begin
             FVista.CodigoArticulo,
             FFiltrosLista.ColoresSeleccionados);
         FPivote.ReconstruirColumnas(
-          Tallas, bPorColor, FEstados.EstadoActual);
+          Tallas, bPorColor, FEstados.EstadoActual,
+          FEstados.ModoDesglosado);
         Solicitud := ComponerSolicitudPivoteStock(
           FVista.CodigoArticulo,
           FEstados.EstadoActual,

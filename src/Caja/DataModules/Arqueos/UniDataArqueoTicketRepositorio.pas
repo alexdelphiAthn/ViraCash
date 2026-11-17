@@ -142,7 +142,9 @@ begin
     'AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
     SqlExcluirOperacionesArqueadasAntes +
-    'AND o.TIPO_OPERACION_OPCAJA = :pTIPO_DV ' +
+    'AND (o.TIPO_OPERACION_OPCAJA = :pTIPO_DV OR ' +
+    '(o.TIPO_OPERACION_OPCAJA=''VE'' ' +
+    'AND o.IMPORTE_TOTAL_OPCAJA<0)) ' +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
       'o.SERIE_FAC_OPCAJA',
