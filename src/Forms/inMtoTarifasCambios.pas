@@ -127,6 +127,7 @@ type
     FSincronizando    : Boolean;
     FPeriodosVistaIniciada: Boolean;
     FSesionVistaPeriodos  : Integer;
+    FEstiloStockSinExistencias: TcxStyle;
     FEstiloSinStock       : TcxStyle;
     tsTarifasArticulo: TcxTabSheet;
     cxgrdTarifasArticulo: TcxGrid;
@@ -281,7 +282,7 @@ uses
   inLibTraducciones, UniDataConfiguracionPantalla,
   inLibArticulosResolverIntf, inLibArticulosValidadorIntf, Vcl.StdCtrls,
   inMtoModalEtiqArt, System.TypInfo,
-  inMtoModalArtTar, inLibDevExp;
+  inMtoModalArtTar, inLibDevExp, inLibMsgComun;
 
 {$R *.dfm}
 
@@ -709,7 +710,9 @@ begin
   cxgrdLineas := TcxGrid.Create(Self);
   cxgrdLineas.Parent := tsLineas;
   cxgrdLineas.Align := alClient;
-  tvLineas := TcxGridDBTableView.Create(cxgrdLineas);
+  tvLineas := TcxGridDBTableView.Create(Self);
+  tvLineas.Name := 'tvLineas';
+  tvLineas.OptionsCustomize.ColumnsQuickCustomization := True;
   glLineas := cxgrdLineas.Levels.Add;
   glLineas.GridView := tvLineas;
   tvLineas.OptionsData.Deleting := False;
@@ -1797,6 +1800,17 @@ procedure TfrmMtoTarifasCambios.CrearColumnasLineas;
 var
   oStock: TcxGridDBColumn;
   i: Integer;
+
+  function ColumnaCantidad(const ACampo: string;
+    ATitulo: PResStringRec): TcxGridDBColumn;
+  begin
+    Result := CrearColumna(tvLineas, ACampo, ATitulo, 100);
+    FormatoImporte(Result, '#,##0.######');
+    TcxCurrencyEditProperties(Result.Properties).Alignment.Horz := taCenter;
+    Result.HeaderAlignmentHorz := taCenter;
+    Result.Options.Editing := False;
+  end;
+
 begin
   if tvLineas.ColumnCount = 0 then
   begin
@@ -1826,13 +1840,16 @@ begin
                    @SCaptionCambioPorcentajeDto, 90), FMT_PORCENTAJE);
     FormatoImporte(CrearColumna(tvLineas, 'PRECIO_FINAL_NUEVO_TARCLIN',
                    @SCaptionCambioFinalNuevo, 100), FMT_EUROS);
-    oStock := CrearColumna(tvLineas, 'STOCK_ACTUAL', @SCaptionColStock, 100);
-    FormatoImporte(oStock, '#,##0.######');
-    TcxCurrencyEditProperties(oStock.Properties).Alignment.Horz := taCenter;
-    oStock.HeaderAlignmentHorz := taCenter;
-    oStock.Options.Editing := False;
+    ColumnaCantidad('ENTRADAS', @SCaptionEntradaStockSesion);
+    ColumnaCantidad('SALIDAS', @SCaptionSalidaStockSesion);
+    oStock := ColumnaCantidad('STOCK_ACTUAL', @SCaptionColStock);
+    oStock.Styles.Content := TcxStyle.Create(Self);
+    oStock.Styles.Content.Font.Style := [fsBold];
+    oStock.Styles.Header := oStock.Styles.Content;
     // FZ-ISSUE-944: los precios (editables en cada periodo) antes que la
     // familia y el proveedor, que dejaban fuera de la vista Salida nueva.
+    CrearColumna(tvLineas, 'TEMPORADA_ART', @SCaptionTemporada, 130)
+      .Options.Editing := False;
     CrearColumna(tvLineas, 'NOMBRE_FAM_FAM', @SCaptionCambioFamilia, 160);
     CrearColumna(tvLineas, 'RAZON_SOCIAL_PRV', @SCaptionCambioProveedor, 180);
     CrearColumna(tvLineas, 'MENSAJE_TARCLIN', @SCaptionCambioMensaje, 180);
@@ -1840,6 +1857,9 @@ begin
     FEstiloSinStock := TcxStyle.Create(Self);
     FEstiloSinStock.AssignedValues := [cxStyles.svColor];
     FEstiloSinStock.Color := $00E0E0E0;
+    FEstiloStockSinExistencias := TcxStyle.Create(Self);
+    FEstiloStockSinExistencias.Color := FEstiloSinStock.Color;
+    FEstiloStockSinExistencias.Font.Style := [fsBold];
     for i := 0 to tvLineas.ColumnCount - 1 do
       tvLineas.Columns[i].Styles.OnGetContentStyle :=
         tvLineasGetContentStyle;
@@ -1860,7 +1880,12 @@ begin
     begin
       Valor := ARecord.Values[ColStock.Index];
       if VarIsNull(Valor) or VarIsEmpty(Valor) or (Valor <= 0) then
-        AStyle := FEstiloSinStock;
+      begin
+        if AItem = ColStock then
+          AStyle := FEstiloStockSinExistencias
+        else
+          AStyle := FEstiloSinStock;
+      end;
     end;
   end;
 end;

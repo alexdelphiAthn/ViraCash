@@ -141,6 +141,29 @@ resourcestring
 
 const
   fstockactual = 'STOCK_ACTUAL';
+  SQL_TOTAL_STOCK =
+    'COALESCE((SELECT SUM(STK.CANTIDAD_STK) ' +
+    '         FROM fza_articulos_stockactual STK ' +
+    '         JOIN fza_articulos_skus SKU ' +
+    '           ON SKU.CODIGO_UNIDAD_SKU = STK.CODIGO_UNIDAD_STK ' +
+    '        WHERE SKU.CODIGO_ART_SKU = L.CODIGO_ART_TARCLIN ' +
+    '          AND (:ALMACENES_STOCK = '''' OR ' +
+    '            FIND_IN_SET(STK.CODIGO_ALM_STK, :ALMACENES_STOCK) > 0) ' +
+    '          AND (COALESCE(L.CODIGO_UNIDAD_SKU_TARCLIN, '''') = '''' ' +
+    '            OR STK.CODIGO_UNIDAD_STK = ' +
+    '               L.CODIGO_UNIDAD_SKU_TARCLIN)), 0) AS STOCK_ACTUAL ';
+  // Una cantidad negativa invierte el sentido efectivo del movimiento.
+  SQL_TOTAL_MOVIMIENTOS =
+    'COALESCE((SELECT SUM(CASE WHEN M.TIPO_MOV = %s THEN ' +
+    ' GREATEST(M.CANTIDAD_MOV, 0) ELSE GREATEST(-M.CANTIDAD_MOV, 0) END) ' +
+    ' FROM fza_articulos_skus SKU JOIN fza_movimientos_almacen M ' +
+    ' ON M.CODIGO_UNIDAD_MOV = SKU.CODIGO_UNIDAD_SKU ' +
+    ' WHERE SKU.CODIGO_ART_SKU = L.CODIGO_ART_TARCLIN ' +
+    ' AND M.ESACTIVO_MOV = ''S'' AND M.TIPO_MOV IN (''E'', ''S'') ' +
+    ' AND (:ALMACENES_STOCK = '''' OR ' +
+    ' FIND_IN_SET(M.CODIGO_ALM_MOV, :ALMACENES_STOCK) > 0) ' +
+    ' AND (COALESCE(L.CODIGO_UNIDAD_SKU_TARCLIN, '''') = '''' ' +
+    ' OR M.CODIGO_UNIDAD_MOV = L.CODIGO_UNIDAD_SKU_TARCLIN)), 0) AS %s ';
 
   // Referencia de la tarifa destino, aunque haya vencido. Las filas
   // futuras no son un precio anterior. Sin coincidencia se conserva NULL.
@@ -356,18 +379,23 @@ begin
     'SELECT L.*, A.DESCRIPCION_ART, A.CODIGO_FAM_ART, ' +
     '       A.TIPO_CANTIDAD_ART, ' +
     '       F.NOMBRE_FAM_FAM, P.RAZON_SOCIAL_PRV, ' +
+    ' COALESCE((SELECT COALESCE(PV.PV, T.VALOR_LIBRE_ARTPROP) ' +
+    ' FROM fza_articulos_propiedades T ' +
+    ' LEFT JOIN fza_propiedades_valores PV ' +
+    ' ON PV.ID_PV_ARTPROP = T.ID_PV_ARTPROP ' +
+    ' WHERE T.CODIGO_ART_ART = L.CODIGO_ART_TARCLIN ' +
+    ' AND T.CODIGO_PROP_ARTPROP = ''TEMPORADA'' ' +
+    ' AND T.CODIGO_UNIDAD_ARTPROP IN (L.CODIGO_UNIDAD_SKU_TARCLIN, ' +
+    ' SUBSTRING_INDEX(L.CODIGO_UNIDAD_SKU_TARCLIN, ''/'', 2), '''') ' +
+    ' AND COALESCE(PV.PV, T.VALOR_LIBRE_ARTPROP, '''') <> '''' ' +
+    ' ORDER BY FIELD(T.CODIGO_UNIDAD_ARTPROP, L.CODIGO_UNIDAD_SKU_TARCLIN, ' +
+    ' SUBSTRING_INDEX(L.CODIGO_UNIDAD_SKU_TARCLIN, ''/'', 2), '''') ' +
+    ' LIMIT 1), '''') AS TEMPORADA_ART, ' +
     SQL_FINAL_ANTERIOR +
     // La tarifa general muestra todas las variantes; la de SKU solo ese SKU.
-    '       COALESCE((SELECT SUM(S.CANTIDAD_STK) ' +
-    '         FROM fza_articulos_stockactual S ' +
-    '         JOIN fza_articulos_skus SKU ' +
-    '           ON SKU.CODIGO_UNIDAD_SKU = S.CODIGO_UNIDAD_STK ' +
-    '        WHERE SKU.CODIGO_ART_SKU = L.CODIGO_ART_TARCLIN ' +
-    '          AND (:ALMACENES_STOCK = '''' OR ' +
-    '            FIND_IN_SET(S.CODIGO_ALM_STK, :ALMACENES_STOCK) > 0) ' +
-    '          AND (COALESCE(L.CODIGO_UNIDAD_SKU_TARCLIN, '''') = '''' ' +
-    '            OR S.CODIGO_UNIDAD_STK = ' +
-    '               L.CODIGO_UNIDAD_SKU_TARCLIN)), 0) AS STOCK_ACTUAL ' +
+    SQL_TOTAL_STOCK + ', ' +
+    Format(SQL_TOTAL_MOVIMIENTOS, ['''E''', 'ENTRADAS']) + ', ' +
+    Format(SQL_TOTAL_MOVIMIENTOS, ['''S''', 'SALIDAS']) +
     '  FROM fza_tarifas_cambios_lineas L ' +
     '  JOIN fza_tarifas_cambios C ' +
     '    ON C.CODIGO_TARC = L.CODIGO_TARC_TARCLIN ' +
@@ -740,6 +768,12 @@ end;
 // Los campos son dinamicos: se recrean en cada apertura del detalle.
 procedure TdmTarifasCambios.unqryLineasAfterOpen(DataSet: TDataSet);
 begin
+  DataSet.FieldByName('TEMPORADA_ART').ReadOnly := True;
+  DataSet.FieldByName('TEMPORADA_ART').ProviderFlags := [];
+  DataSet.FieldByName('ENTRADAS').ReadOnly := True;
+  DataSet.FieldByName('ENTRADAS').ProviderFlags := [];
+  DataSet.FieldByName('SALIDAS').ReadOnly := True;
+  DataSet.FieldByName('SALIDAS').ProviderFlags := [];
   DataSet.FieldByName(fstockactual).ReadOnly := True;
   DataSet.FieldByName(fstockactual).ProviderFlags := [];
   DataSet.FieldByName('PRECIO_NUEVO_TARCLIN').OnChange :=

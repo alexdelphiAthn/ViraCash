@@ -18,6 +18,19 @@ interface
 uses
   Uni, inLibStockConsultaPersistenciaIntf;
 
+const
+  SQL_ENTRADAS_STOCK =
+    'COALESCE(STK.CANTIDAD_ENT_COMPRA_STK, 0) + ' +
+    'COALESCE(STK.CANTIDAD_ENT_TRASPASO_STK, 0) + ' +
+    'COALESCE(STK.CANTIDAD_ENT_DEPOSITO_STK, 0) + ' +
+    'COALESCE(STK.CANTIDAD_ENT_REGULAR_STK, 0) + ' +
+    'COALESCE(STK.CANTIDAD_ENT_ALBENTRADA_STK, 0)';
+  SQL_SALIDAS_STOCK =
+    'COALESCE(STK.CANTIDAD_SAL_TRASPASO_STK, 0) + ' +
+    'COALESCE(STK.CANTIDAD_SAL_DEPOSITO_STK, 0) + ' +
+    'COALESCE(STK.CANTIDAD_SAL_VENTA_STK, 0) + ' +
+    'COALESCE(STK.CANTIDAD_SAL_ALBVENTA_STK, 0)';
+
 function ConstruirSqlListarTallasStock(
   const AColores: TArray<string>;
   AIdConjunto: Integer): string;
@@ -714,14 +727,9 @@ begin
     esExistencias:
       Result := 'STK.CANTIDAD_STK';
     esEntradas:
-      Result :=
-        'STK.CANTIDAD_ENT_COMPRA_STK + STK.CANTIDAD_ENT_TRASPASO_STK + ' +
-        'STK.CANTIDAD_ENT_DEPOSITO_STK + STK.CANTIDAD_ENT_REGULAR_STK + ' +
-        'STK.CANTIDAD_ENT_ALBENTRADA_STK';
+      Result := SQL_ENTRADAS_STOCK;
     esSalidas:
-      Result :=
-        'STK.CANTIDAD_SAL_TRASPASO_STK + STK.CANTIDAD_SAL_DEPOSITO_STK + ' +
-        'STK.CANTIDAD_SAL_VENTA_STK + STK.CANTIDAD_SAL_ALBVENTA_STK';
+      Result := SQL_SALIDAS_STOCK;
     esVentas:
       Result := 'STK.CANTIDAD_SAL_VENTA_STK';
     esRegularizadas:
