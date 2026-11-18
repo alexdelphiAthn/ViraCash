@@ -75,6 +75,8 @@ type
     constructor Create(AConexion: TUniConnection);
     function Cambiar(const AAnterior, ANuevo, AUsuario: string):
       TResultadoCambioCliente;
+    function Comprobar(const AAnterior, ANuevo, AUsuario: string):
+      TResultadoCambioCliente;
     function DetectarDuplicados(const ACodigo: string): TDuplicadosClientes;
   end;
 
@@ -293,6 +295,24 @@ begin
       raise;
     end;
   end;
+end;
+
+function TCambioCodigoClienteUniDAC.Comprobar(
+  const AAnterior, ANuevo, AUsuario: string): TResultadoCambioCliente;
+var
+  aReferencias: TReferenciasCliente;
+begin
+  // Lectura previa a la confirmación; Cambiar repite la comprobación
+  // con las referencias bloqueadas.
+  Result := Default(TResultadoCambioCliente);
+  if not DatosCambioClienteValidos(AAnterior, ANuevo, AUsuario) then
+    Result.Estado := eccDatosInvalidos
+  else if not ReferenciasCompatibles(aReferencias) then
+    Result.Estado := eccEsquemaNoCompatible
+  else if not ExisteCodigo(TABLA_CLIENTES, fCodigo, Trim(AAnterior)) then
+    Result.Estado := eccOrigenNoExiste
+  else if DestinoOcupado(aReferencias, Trim(ANuevo)) then
+    Result.Estado := eccDestinoOcupado;
 end;
 
 function TCambioCodigoClienteUniDAC.DetectarDuplicados(

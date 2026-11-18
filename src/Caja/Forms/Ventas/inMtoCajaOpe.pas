@@ -707,6 +707,7 @@ implementation
 {$R *.dfm}
 
 uses
+  UniDataReposicionAutomatica,
   inLibTpvMvcIntf, inLibControladorVentaTpv,
   inMtoFotoArticulo,
   inLibArqueoPersistencia,
@@ -918,7 +919,7 @@ begin
   if Assigned(AFormulario.ParametrosApp) then
     rConfig.Activacion :=
       TActivacionTrazabilidad.Leer(AFormulario.ParametrosApp);
-  if rConfig.Activacion.AlgunModoActivo then
+  if Assigned(AFormulario.ParametrosApp) then
   begin
     rConfig.Lectura := CrearLecturaTrazabilidadArticuloUniDAC(
       AFormulario.ConexionPrincipal);
@@ -1065,7 +1066,7 @@ begin
   if Assigned(FLotesCaja) then
   begin
     CrearColumnasLoteDocumento(tvLineasOpe, 'FACLIN',
-      TActivacionTrazabilidad.Leer(ParametrosApp),
+      ActivacionVisualReposicion(ConexionPrincipal, ParametrosApp),
       procedure
       begin
         ElegirLoteCaja;

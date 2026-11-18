@@ -141,6 +141,8 @@ const
   COLUMNA_ALMACEN = 6;
   COLUMNA_STOCK = 7;
   COLUMNA_ESTADO = 8;
+  COLUMNA_PROVEEDOR = 9;
+  COLUMNA_TEMPORADA = 10;
 
 function TextoFecha(AFecha: TDate): string;
 begin
@@ -381,6 +383,8 @@ begin
   Columna(SCaptionColumnaAlmacen, TcxStringValueType);
   Columna(SCaptionColumnaStockLote, TcxFloatValueType);
   Columna(SCaptionColumnaEstadoLote, TcxStringValueType);
+  Columna(SCaptionColLotesProveedor, TcxStringValueType);
+  Columna(SCaptionColLotesTemporadaRecepcion, TcxStringValueType);
   FVista.Columns[COLUMNA_STOCK].PropertiesClass := TcxCurrencyEditProperties;
   TcxCurrencyEditProperties(FVista.Columns[COLUMNA_STOCK].Properties)
     .DisplayFormat := FORMATO_CANTIDAD;
@@ -437,6 +441,8 @@ begin
       oDatos.Values[iFila, COLUMNA_ALMACEN] := rLote.CodigoAlmacen;
       oDatos.Values[iFila, COLUMNA_STOCK] := rLote.Stock;
       oDatos.Values[iFila, COLUMNA_ESTADO] := EstadoLoteArticulo(rLote);
+      oDatos.Values[iFila, COLUMNA_PROVEEDOR] := rLote.CodigoProveedor;
+      oDatos.Values[iFila, COLUMNA_TEMPORADA] := rLote.Temporada;
     end;
   finally
     oDatos.EndUpdate;

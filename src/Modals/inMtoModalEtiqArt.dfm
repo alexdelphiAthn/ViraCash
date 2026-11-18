@@ -501,7 +501,6 @@
           Top = 163.500000000000000000
           Width = 150.000000000000000000
           Height = 15.000000000000000000
-          DataField = 'COD_TEMPORADA'
           DataSet = dmArticulos.fxdsEtiquetasArt
           DataSetName = 'EtiquetasArt'
           Font.Charset = DEFAULT_CHARSET
@@ -511,7 +510,9 @@
           Font.Style = []
           Frame.Typ = []
           Memo.UTF8W = (
-            '[EtiquetasArt."COD_TEMPORADA"]')
+            '[IIF(Length(<EtiquetasArt."COD_TEMPORADA_LOTE">)>0,' +
+            '<EtiquetasArt."COD_TEMPORADA_LOTE">,' +
+            '<EtiquetasArt."COD_TEMPORADA">)]')
           ParentFont = False
         end
       end
@@ -918,7 +919,6 @@
           Top = 163.500000000000000000
           Width = 150.000000000000000000
           Height = 15.000000000000000000
-          DataField = 'COD_TEMPORADA'
           DataSet = dmArticulos.fxdsEtiquetasArt
           DataSetName = 'EtiquetasArt'
           Font.Charset = DEFAULT_CHARSET
@@ -928,7 +928,9 @@
           Font.Style = []
           Frame.Typ = []
           Memo.UTF8W = (
-            '[EtiquetasArt."COD_TEMPORADA"]')
+            '[IIF(Length(<EtiquetasArt."COD_TEMPORADA_LOTE">)>0,' +
+            '<EtiquetasArt."COD_TEMPORADA_LOTE">,' +
+            '<EtiquetasArt."COD_TEMPORADA">)]')
           ParentFont = False
         end
       end

@@ -305,7 +305,8 @@ procedure PrepararInsercionCabeceraAlbaranPedido(AQuery: TUniQuery);
 begin
   AQuery.SQL.Text :=
     'INSERT INTO fza_albaranes_compra ' +
-    '  (NUMERO_ALBC, SERIE_ALBC, FECHA_ALBC, INSTANTE_MOVIMIENTO_ALBC, ' +
+    '  (ESREPOSICION_AUTO_ALBC, ' +
+    '   NUMERO_ALBC, SERIE_ALBC, FECHA_ALBC, INSTANTE_MOVIMIENTO_ALBC, ' +
     '   ESTADO_ALBC, ' +
     '   NUMERO_PED_ALBC, SERIE_PED_ALBC, ' +
     '   CODIGO_EMP_ALBC, RAZON_SOCIAL_EMPRESA_ALBC, ' +
@@ -335,7 +336,9 @@ begin
     '   CONTADOR_LINEAS_ALBC, ' +
     '   INSTANTE_ALTA, USUARIO_ALTA, ' +
     '   INSTANTE_MODIF, USUARIO_MODIF) ' +
-    'SELECT :nalbc, :salbc, ' +
+    'SELECT COALESCE((SELECT E.ESLOTES_REPOSICION_EMP ' +
+    'FROM fza_empresas E WHERE E.CODIGO_EMP_EMP = P.CODIGO_EMP_PEDC), ' +
+    '''N''), :nalbc, :salbc, ' +
     '       CASE WHEN :usar_fecha = ''S'' THEN :freal ' +
     '            ELSE IFNULL(P.FECHA_PEDC, CURDATE()) END, ' +
     '       CASE WHEN :usar_fecha = ''S'' THEN :freal ELSE ' +

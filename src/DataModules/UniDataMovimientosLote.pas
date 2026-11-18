@@ -38,7 +38,7 @@ function FechaCaducidadMovimiento(AConsulta: TDataSet): TDate;
 implementation
 
 uses
-  System.SysUtils, System.Classes;
+  System.SysUtils, System.Classes, UniDataReposicionAutomatica;
 
 const
   PROC_INSERT_LOTE = 'PRC_FZA_MOVIMIENTOS_ALMACEN_INSERT_LOTE';
@@ -107,6 +107,9 @@ begin
       FreeAndNil(oConsulta);
     end;
   end;
+  Result := Result or EsPartidaReposicion(
+    AProcedimiento.Connection,
+    TextoParametro(AProcedimiento, 'p_CODIGO_UNIDAD_MOV'), ALote);
 end;
 
 procedure EjecutarMovimientoConLote(ASinLote, AConLote: TUniStoredProc;
@@ -121,8 +124,11 @@ procedure EjecutarMovimientoConLote(ASinLote, AConLote: TUniStoredProc;
   const AActivacion: TActivacionTrazabilidad);
 var
   iParametro: Integer;
+  sLote: string;
 begin
-  if not LoteAplicable(ASinLote, ALote, AActivacion) then
+  sLote := ALote;
+  PrepararReposicionMovimiento(ASinLote, sLote);
+  if not LoteAplicable(ASinLote, sLote, AActivacion) then
     ASinLote.ExecProc
   else
   begin
@@ -136,7 +142,7 @@ begin
         AConLote.Params[iParametro].Value :=
           ASinLote.Params[iParametro].Value;
     end;
-    AConLote.ParamByName('p_LOTE_MOV').AsString := Trim(ALote);
+    AConLote.ParamByName('p_LOTE_MOV').AsString := Trim(sLote);
     if AFechaCaducidad = 0 then
       AConLote.ParamByName('p_FECHA_CADUCIDAD_MOV').Clear
     else

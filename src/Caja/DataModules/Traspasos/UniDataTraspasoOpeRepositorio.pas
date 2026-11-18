@@ -60,11 +60,13 @@ const
     '       MAX(FECHA_OPERACION_OPCAJA) ' +
     '         AS FECHA_OPERACION_OPCAJA, ' +
     '       MAX(SERIE_FAC_OPCAJA) AS SERIE_FAC_OPCAJA, ' +
-    '       MAX(NUMERO_FAC_OPCAJA) AS NUMERO_FAC_OPCAJA ' +
+    '       MAX(NUMERO_FAC_OPCAJA) AS NUMERO_FAC_OPCAJA, ' +
+    '       MAX(TIPO_OPERACION_OPCAJA = ''VE'') AS ES_VENTA ' +
     '  FROM fza_caja_operaciones ' +
     ' WHERE CODIGO_EMP_OPCAJA = :EMPRESA ' +
     '   AND CODIGO_ALM_OPCAJA = :ALMACEN_DESTINO ' +
-    '   AND TIPO_OPERACION_OPCAJA = ''VE'' ' +
+    // FZ-ISSUE-1018: las devoluciones (DV) del periodo restan.
+    '   AND TIPO_OPERACION_OPCAJA IN (''VE'', ''DV'') ' +
     '   AND FECHA_OPERACION_OPCAJA >= :DESDE ' +
     '   AND FECHA_OPERACION_OPCAJA < :HASTA ' +
     ' GROUP BY CODIGO_EMP_OPCAJA, CODIGO_ALM_OPCAJA, ' +
@@ -97,7 +99,11 @@ const
     '    ON p.CODIGO_PRV_PRV = COALESCE( ' +
     '       NULLIF(TRIM(fl.CODIGO_PRV_FACLIN), ''''), ' +
     '       ap.CODIGO_PRV_AP) ' +
-    ' WHERE COALESCE(fl.CANTIDAD_FACLIN, 0) > 0 ' +
+    // Neto vendido - devuelto: la unidad devuelta ya ha vuelto al
+    // stock del destino. Lo positivo solo cuenta en ventas.
+    ' WHERE ((COALESCE(fl.CANTIDAD_FACLIN, 0) > 0 ' +
+    '     AND o.ES_VENTA = 1) ' +
+    '    OR COALESCE(fl.CANTIDAD_FACLIN, 0) < 0) ' +
     '   AND fl.TIPO_ARTICULO_FACLIN = ''ESTANDAR'' ' +
     '   AND NULLIF(TRIM(fl.CODIGO_UNIDAD_FACLIN), '''') IS NOT NULL ';
 
@@ -212,6 +218,7 @@ const
     ' GROUP BY v.CODIGO_ARTICULO, v.SKU, ' +
     '          v.CODIGO_PROVEEDOR, v.NOMBRE_PROVEEDOR, ' +
     '          sd.STOCK, so.STOCK ' +
+    ' HAVING SUM(v.CANTIDAD) > 0 ' +
     ' ORDER BY CASE WHEN v.CODIGO_PROVEEDOR = '''' ' +
     '               THEN 1 ELSE 0 END, ' +
     '          v.CODIGO_PROVEEDOR, v.CODIGO_ARTICULO, ' +

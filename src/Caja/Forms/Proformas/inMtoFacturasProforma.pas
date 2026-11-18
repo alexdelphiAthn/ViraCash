@@ -89,7 +89,8 @@ type
     function ValorarTraspasos(
       AModalidad: TModalidadFacturacionCaja;
       const ASolicitud: TSolicitudFacturacionCaja;
-      out AValoracion: TValoracionTraspasos): Boolean;
+      out AValoracion: TValoracionTraspasos;
+      out ASinPendientes: Boolean): Boolean;
     procedure EjecutarGeneracion(
       AModalidad: TModalidadFacturacionCaja;
       const ASolicitud: TSolicitudFacturacionCaja;
@@ -685,7 +686,8 @@ end;
 function TfrmMtoFacturasProforma.ValorarTraspasos(
   AModalidad: TModalidadFacturacionCaja;
   const ASolicitud: TSolicitudFacturacionCaja;
-  out AValoracion: TValoracionTraspasos): Boolean;
+  out AValoracion: TValoracionTraspasos;
+  out ASinPendientes: Boolean): Boolean;
 var
   oLineas   : TLineasTraspasoPendientes;
   oOpciones : TOpcionesRevalorizacionInventario;
@@ -709,6 +711,7 @@ begin
   // Sin líneas pendientes la generación sigue y avisa de que no hay nada
   // que facturar; el periodo vacío no se guarda (FZ-ISSUE-026).
   Result := Length(oLineas) = 0;
+  ASinPendientes := Result;
   if not Result then
   begin
     oOpciones := Default(TOpcionesRevalorizacionInventario);
@@ -869,6 +872,7 @@ var
   oRevision  : TRevisionPeriodoFacturacionCaja;
   oSolicitud : TSolicitudFacturacionCaja;
   oValoracion: TValoracionTraspasos;
+  bSinPendientes: Boolean;
 begin
   eModalidad := ObtenerModalidad;
   oSolicitud := PrepararSolicitud;
@@ -883,9 +887,14 @@ begin
         // Los traspasos se valoran (margen sobre PMP o última compra) en el
         // mismo modal que inventarios antes de facturarlos; en TV lo que se
         // valora son las unidades ya vendidas en la tienda destino.
+        // FZ-ISSUE-1026: sin líneas pendientes no sale ninguna factura
+        // TA/TV; no se piden serie, fecha ni forma de pago y la
+        // generación avisa directamente (y carga los vales si procede).
         if not (eModalidad in [mfcTraspaso, mfcTraspasoVendido]) or
-           (ValorarTraspasos(eModalidad, oSolicitud, oValoracion) and
-            SolicitarOpcionesFacturasTraspaso(oSolicitud)) then
+           (ValorarTraspasos(eModalidad, oSolicitud, oValoracion,
+              bSinPendientes) and
+            (bSinPendientes or
+             SolicitarOpcionesFacturasTraspaso(oSolicitud))) then
           EjecutarGeneracion(eModalidad, oSolicitud, oValoracion);
       end;
     except

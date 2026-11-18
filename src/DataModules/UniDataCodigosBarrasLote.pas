@@ -30,7 +30,7 @@ resourcestring
   SErrorIdentidadCodigoLote = 'El código requiere un SKU y un lote válido.';
 
 function BloquearSkuTrazable(AConsulta: TUniQuery;
-  const ASku: string; const AParametros: IParametros): Boolean;
+  const ASku, ALote: string; const AParametros: IParametros): Boolean;
 var
   Modo: TModoTrazabilidad;
   Activacion: TActivacionTrazabilidad;
@@ -38,10 +38,14 @@ begin
   // La fila del SKU existe antes del primer código. Serializa dos altas
   // simultáneas del mismo lote, sin añadir unicidad a los códigos externos.
   AConsulta.SQL.Text :=
-    'SELECT A.TIPO_TRAZABILIDAD_ART FROM fza_articulos_skus S ' +
+    'SELECT A.TIPO_TRAZABILIDAD_ART, EXISTS(SELECT 1 ' +
+    'FROM fza_articulos_lotes L WHERE L.CODIGO_UNIDAD_LOT = :SKU ' +
+    'AND L.LOTE_LOT = :LOTE AND L.ESREPOSICION_LOT = ''S'') ' +
+    'AS ESREPOSICION FROM fza_articulos_skus S ' +
     'JOIN fza_articulos A ON A.CODIGO_ART_ART = S.CODIGO_ART_SKU ' +
     'WHERE S.CODIGO_UNIDAD_SKU = :SKU FOR UPDATE';
   AConsulta.ParamByName('SKU').AsString := ASku;
+  AConsulta.ParamByName('LOTE').AsString := ALote;
   AConsulta.Open;
   Result := False;
   if not AConsulta.Eof then
@@ -54,6 +58,7 @@ begin
       Activacion := TActivacionTrazabilidad.Leer(AParametros);
       Result := Activacion.ModoActivo(Modo);
     end;
+    Result := Result or (AConsulta.FieldByName('ESREPOSICION').AsInteger <> 0);
   end;
   AConsulta.Close;
 end;
@@ -115,7 +120,7 @@ begin
     if bPropia then
       AConexion.StartTransaction;
     try
-      if BloquearSkuTrazable(oConsulta, ASku, AParametros) then
+      if BloquearSkuTrazable(oConsulta, ASku, sLote, AParametros) then
       begin
         Result := BuscarCodigoLote(oConsulta, ASku, sLote);
         if Result = '' then
@@ -160,13 +165,35 @@ procedure CompletarCodigosEtiquetasLotes(AConexion: TUniConnection;
   var ALotes: TLotesEtiquetas);
 var
   iLote: Integer;
+  oConsulta: TUniQuery;
 begin
-  if GeneracionCodigosLoteActiva(AParametros) then
+  oConsulta := TUniQuery.Create(nil);
+  try
+    oConsulta.Connection := AConexion;
+    oConsulta.SQL.Text :=
+      'SELECT C.CODIGO_BARRAS_CB FROM fza_codigos_barras C ' +
+      'JOIN fza_articulos_lotes L ON L.CODIGO_UNIDAD_LOT = ' +
+      'C.CODIGO_UNIDAD_CB AND L.LOTE_LOT = C.LOTE_CB ' +
+      'WHERE C.CODIGO_UNIDAD_CB = :SKU AND C.LOTE_CB = :LOTE ' +
+      'AND L.ESREPOSICION_LOT = ''S'' AND C.TIPO_CODIGO_CB = ''EAN13'' ' +
+      'ORDER BY C.CODIGO_BARRAS_CB LIMIT 1';
     for iLote := 0 to High(ALotes) do
-      if (ALotes[iLote].TipoLote = TIPO_CATALOGO_LOTE) or
-         (ALotes[iLote].TipoLote = TIPO_CATALOGO_SERIE) then
+    begin
+      if GeneracionCodigosLoteActiva(AParametros) then
         ALotes[iLote].CodigoBarras := AsegurarCodigoBarrasLote(AConexion,
-          ALotes[iLote].Sku, ALotes[iLote].Lote, AUsuario, AParametros);
+          ALotes[iLote].Sku, ALotes[iLote].Lote, AUsuario, AParametros)
+      else
+      begin
+        oConsulta.Close;
+        oConsulta.ParamByName('SKU').AsString := ALotes[iLote].Sku;
+        oConsulta.ParamByName('LOTE').AsString := ALotes[iLote].Lote;
+        oConsulta.Open;
+        ALotes[iLote].CodigoBarras := oConsulta.Fields[0].AsString;
+      end;
+    end;
+  finally
+    FreeAndNil(oConsulta);
+  end;
 end;
 
 end.

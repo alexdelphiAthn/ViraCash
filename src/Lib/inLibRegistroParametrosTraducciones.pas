@@ -596,7 +596,7 @@ begin
     'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerAmbitoCanjeVale.Descripcion',
-    'Canjear vales de: TODOS, ALMACEN o CAJA',
+    'Canjear vales de: TODOS, ALMACEN, CAJA o GRUPO',
     'src/Caja/Lib/Configuracion/inLibCajaParam.pas');
   ARegistrar(
     'inMtoCajaParam.Parametros.vgerCaducidadDefVale.Descripci' +

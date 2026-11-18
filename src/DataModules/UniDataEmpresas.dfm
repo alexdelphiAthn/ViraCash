@@ -6,7 +6,7 @@
     SQLInsert.Strings = (
       'INSERT INTO fza_empresas'
       
-        '  (CODIGO_EMP_EMP, ORDEN_EMP, ESACTIVO_EMP, RAZON_SOCIAL_EMP, NI' +
+        '  (ESLOTES_REPOSICION_EMP, CODIGO_EMP_EMP, ORDEN_EMP, ESACTIVO_EMP, RAZON_SOCIAL_EMP, NI' +
         'F_EMP, MOVIL_EMP, EMAIL_EMP, DIRECCION1_EMP, DIRECCION2_EMP, COD' +
         'IGO_POSTAL_EMP, POBLACION_EMP, PROVINCIA_EMP, CODIGO_PAI_EMP, NO' +
         'MBRE_PAI_EMP, IBAN_EMP, GRUPO_ZONA_IVA_EMP, ESRETENCIONES_EMP, E' +
@@ -18,7 +18,7 @@
         '_MODIF, INSTANTE_ALTA, USUARIO_ALTA, USUARIO_MODIF)'
       'VALUES'
       
-        '  (:CODIGO_EMP_EMP, :ORDEN_EMP, :ESACTIVO_EMP, :RAZON_SOCIAL_EMP' +
+        '  (:ESLOTES_REPOSICION_EMP, :CODIGO_EMP_EMP, :ORDEN_EMP, :ESACTIVO_EMP, :RAZON_SOCIAL_EMP' +
         ', :NIF_EMP, :MOVIL_EMP, :EMAIL_EMP, :DIRECCION1_EMP, :DIRECCION2' +
         '_EMP, :CODIGO_POSTAL_EMP, :POBLACION_EMP, :PROVINCIA_EMP, :CODIG' +
         'O_PAI_EMP, :NOMBRE_PAI_EMP, :IBAN_EMP, :GRUPO_ZONA_IVA_EMP, :ESR' +
@@ -34,7 +34,7 @@
       '  CODIGO_EMP_EMP = :Old_CODIGO_EMP_EMP')
     SQLUpdate.Strings = (
       'UPDATE fza_empresas'
-      'SET'
+      'SET ESLOTES_REPOSICION_EMP = :ESLOTES_REPOSICION_EMP,'
       
         '  CODIGO_EMP_EMP = :CODIGO_EMP_EMP, ORDEN_EMP = :ORDEN_EMP, ESAC' +
         'TIVO_EMP = :ESACTIVO_EMP, RAZON_SOCIAL_EMP = :RAZON_SOCIAL_EMP, ' +
@@ -59,7 +59,7 @@
       '  CODIGO_EMP_EMP = :Old_CODIGO_EMP_EMP')
     SQLLock.Strings = (
       
-        'SELECT CODIGO_EMP_EMP, ORDEN_EMP, ESACTIVO_EMP, RAZON_SOCIAL_EMP' +
+        'SELECT ESLOTES_REPOSICION_EMP, CODIGO_EMP_EMP, ORDEN_EMP, ESACTIVO_EMP, RAZON_SOCIAL_EMP' +
         ', NIF_EMP, MOVIL_EMP, EMAIL_EMP, DIRECCION1_EMP, DIRECCION2_EMP,' +
         ' CODIGO_POSTAL_EMP, POBLACION_EMP, PROVINCIA_EMP, CODIGO_PAI_EMP' +
         ', NOMBRE_PAI_EMP, IBAN_EMP, GRUPO_ZONA_IVA_EMP, ESRETENCIONES_EM' +
@@ -75,7 +75,7 @@
       'FOR UPDATE')
     SQLRefresh.Strings = (
       
-        'SELECT CODIGO_EMP_EMP, ORDEN_EMP, ESACTIVO_EMP, RAZON_SOCIAL_EMP' +
+        'SELECT ESLOTES_REPOSICION_EMP, CODIGO_EMP_EMP, ORDEN_EMP, ESACTIVO_EMP, RAZON_SOCIAL_EMP' +
         ', NIF_EMP, MOVIL_EMP, EMAIL_EMP, DIRECCION1_EMP, DIRECCION2_EMP,' +
         ' CODIGO_POSTAL_EMP, POBLACION_EMP, PROVINCIA_EMP, CODIGO_PAI_EMP' +
         ', NOMBRE_PAI_EMP, IBAN_EMP, GRUPO_ZONA_IVA_EMP, ESRETENCIONES_EM' +
@@ -92,9 +92,54 @@
       'SELECT COUNT(*) FROM fza_empresas')
     Connection = dmConn.conUni
     SQL.Strings = (
-      'SELECT *  '
-      '  FROM vi_empresas '
-      ' ORDER BY orden_emp')
+      'SELECT V.CODIGO_EMP_EMP,'
+      '       V.ORDEN_EMP,'
+      '       V.ESACTIVO_EMP,'
+      '       V.RAZON_SOCIAL_EMP,'
+      '       V.NIF_EMP,'
+      '       V.MOVIL_EMP,'
+      '       V.EMAIL_EMP,'
+      '       V.DIRECCION1_EMP,'
+      '       V.DIRECCION2_EMP,'
+      '       V.CODIGO_POSTAL_EMP,'
+      '       V.POBLACION_EMP,'
+      '       V.PROVINCIA_EMP,'
+      '       V.CODIGO_PAI_EMP,'
+      '       V.NOMBRE_PAI_EMP,'
+      '       V.SERIE_CON_EMP,'
+      '       V.IBAN_EMP,'
+      '       V.GRUPO_ZONA_IVA_EMP,'
+      '       V.ESRETENCIONES_EMP,'
+      '       V.ESIVA_RECARGO_COMPRAS_EMP,'
+      '       V.ESREGIMENESPECIALAGRICOLA_EMP,'
+      '       V.CODIGO_CERTIFICADO_EMP,'
+      '       V.TITULAR_CERTIFICADO_EMP,'
+      '       V.TIPO_CERTIFICADO_EMP,'
+      '       V.FECHA_DESDE_CERTIFICADO_EMP,'
+      '       V.FECHA_HASTA_CERTIFICADO_EMP,'
+      '       V.NUMERO_INSTALACION_EMP,'
+      '       V.VERSION_INSTALACION_EMP,'
+      '       V.CODIGO_SIF_INSTALACION_EMP,'
+      '       V.INSTANTE_INSTALACION_EMP,'
+      '       V.TEXTO_LEGAL_FACTURA_EMP,'
+      '       V.TEXTO_PIE_TICKET_CAJA_1_EMP,'
+      '       V.TEXTO_PIE_TICKET_CAJA_2_EMP,'
+      '       V.TEXTO_PIE_TICKET_CAJA_3_EMP,'
+      '       V.TEXTO_PIE_TICKET_CAJA_4_EMP,'
+      '       V.FORMATO_DOCUMENTO_EMP,'
+      '       V.INSTANTE_MODIF,'
+      '       V.INSTANTE_ALTA,'
+      '       V.USUARIO_ALTA,'
+      '       V.USUARIO_MODIF,'
+      '       V.ESTOKENS_CALENDARIO_NATURAL_EMP,'
+      '       V.CODIGO_CLI_TRASPASOS_EMP,'
+      '       V.TOTAL_MAXIMO_LINEA_EMP,'
+      '       V.DESCRIPCION_IVA_IVAGRP,'
+      '       (SELECT E.ESLOTES_REPOSICION_EMP FROM fza_empresas E'
+      '         WHERE E.CODIGO_EMP_EMP = V.CODIGO_EMP_EMP)'
+      '         AS ESLOTES_REPOSICION_EMP'
+      '  FROM vi_empresas V'
+      ' ORDER BY V.ORDEN_EMP')
     AfterInsert = unqryTablaGAfterInsert
     BeforeInsert = unqryTablaGBeforeInsert
     BeforeEdit = unqryTablaGBeforeEdit

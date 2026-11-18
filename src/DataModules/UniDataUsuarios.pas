@@ -35,12 +35,15 @@ type
   public
     // El form empuja su dsTablaG; el DM ya no usa GetOwnerForm.
     procedure AsignarMaestroCabecera(ADataSource: TDataSource); override;
+    // FZ-ISSUE-1023: la razón social viene del JOIN de vi_usuarios y no se
+    // graba (SQLUpdate solo toca fza_usuarios); se alinea con la empresa.
+    procedure ActualizarRazonSocialEmpresa;
   end;
 
 implementation
 
 uses
-  inLibCadenas, inLibMsgConfiguracion;
+  System.Variants, inLibCadenas, inLibMsgConfiguracion;
 
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 
@@ -74,6 +77,33 @@ procedure TdmUsuarios.AsignarMaestroCabecera(ADataSource: TDataSource);
 begin
   inherited;
   unqryEmpresas.MasterSource := ADataSource;
+end;
+
+procedure TdmUsuarios.ActualizarRazonSocialEmpresa;
+var
+  fldEmpresa: TField;
+  fldRazon: TField;
+  vRazon: Variant;
+  bSoloLectura: Boolean;
+begin
+  fldEmpresa := unqryTablaG.FindField('EMPRESA_DEFECTO_USU');
+  fldRazon := unqryTablaG.FindField('RAZON_SOCIAL_EMP');
+  if (fldEmpresa <> nil) and (fldRazon <> nil) and
+     (unqryTablaG.State in dsEditModes) and unqryEmpresas.Active then
+  begin
+    vRazon := unqryEmpresas.Lookup('CODIGO_EMP_EMP',
+      Trim(fldEmpresa.AsString), 'RAZON_SOCIAL_EMP');
+    bSoloLectura := fldRazon.ReadOnly;
+    fldRazon.ReadOnly := False;
+    try
+      if VarIsNull(vRazon) or VarIsEmpty(vRazon) then
+        fldRazon.Clear
+      else
+        fldRazon.AsString := VarToStr(vRazon);
+    finally
+      fldRazon.ReadOnly := bSoloLectura;
+    end;
+  end;
 end;
 
 procedure TdmUsuarios.unqryTablaGAfterInsert(DataSet: TDataSet);
@@ -144,6 +174,8 @@ begin
   end;
   if bError then
     Abort;
+  if DataSet = unqryTablaG then
+    ActualizarRazonSocialEmpresa;
 end;
 
 initialization

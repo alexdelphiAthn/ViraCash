@@ -340,6 +340,7 @@ function CrearAlbaranesCompraInyectada(
 implementation
 
 uses
+  UniDataReposicionAutomatica,
   inLibComboProveedorDocumentoVcl,
   UniDataEjesVariacion,
   inLibMensajesVcl, inLibCorreoTickets, inLibDatasets,
@@ -717,7 +718,7 @@ begin
   rDocumento := Default(TDocumentoTrazabilidad);
   if Assigned(ParametrosApp) then
     rDocumento.Activacion := TActivacionTrazabilidad.Leer(ParametrosApp);
-  if rDocumento.Activacion.AlgunModoActivo then
+  if Assigned(ParametrosApp) then
   begin
     // La conexión del módulo de datos: la de su transacción y bloqueos.
     oConexion := dmmAlbaranesCompra.unqryTablaG.Connection as TUniConnection;
@@ -1527,7 +1528,7 @@ begin
     UnidadesMedida);
   if Assigned(ParametrosApp) then
     CrearColumnasLoteDocumento(tvLineasAlbaran, 'ALBCLIN',
-      TActivacionTrazabilidad.Leer(ParametrosApp));
+      ActivacionVisualReposicion(ConexionPrincipal, ParametrosApp));
 end;
 
 // Lector de codigo de barras a nivel de formulario: al leer, activa la

@@ -59,7 +59,7 @@ function ColumnasExcelEtiquetas(ADataSet: TDataSet):
 implementation
 
 uses
-  inLibMsgComun,
+  inLibMsgComun, inLibMsgLotesConsultas,
   System.SysUtils, System.Variants, System.UITypes, Vcl.Dialogs,
   frxBarcode, inLibMensajesVcl, inLibMsgArticulos;
 
@@ -99,6 +99,8 @@ begin
     ColumnaInforme('ATR_PESTANA', STextoPestanaComun, 1),
     ColumnaInforme('PROP_MARCA', STextoMarcaComun, 1),
     ColumnaInforme('COD_TEMPORADA', STextoTemporadaComun, 1),
+    ColumnaInforme('COD_TEMPORADA_LOTE',
+      SCaptionColLotesTemporadaRecepcion, 1),
     ColumnaInforme('LOTE_ETI', STextoLoteSerieComun, 1),
     ColumnaInforme('CADUCIDAD_ETI', STextoCaducidadComun, 1),
     ColumnaInforme('TEXTO_LOTE_ETI', STextoDetalleLoteComun, 2),

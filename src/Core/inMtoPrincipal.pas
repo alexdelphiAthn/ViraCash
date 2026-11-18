@@ -469,6 +469,7 @@ function EjecutarAtajoApertura(AMenu: TMainMenu;
 implementation
 
 uses
+  UniDataReposicionAutomatica,
   inLibMensajesVcl,
   inLibTrazabilidad, inLibReparaciones, inLibMsgReparaciones,
   inLibListasRegalos,
@@ -1187,7 +1188,8 @@ begin
     mnuGarantiasReclamaciones.Visible := False;
     mnuGarantiasReclamaciones.Enabled := False;
   end;
-  if not Activacion.AlgunModoActivo then
+  if not Activacion.AlgunModoActivo and
+     not HayPartidasReposicion(ConexionPrincipal) then
   begin
     mnuLotesCaducidades.Visible := False;
     mnuLotesCaducidades.Enabled := False;
@@ -2702,8 +2704,8 @@ end;
 procedure TfrmMtoPrincipal.mnuInvocarLoginClick(Sender: TObject);
 begin
   // Cerrar sesion: relanza ViraCash con el conmutador /relogin (que ignora el
-  // auto-login y la contrasena recordada para forzar la reidentificacion)
-  // y cierra esta instancia. El nuevo proceso se inicia desde FormClose,
+  // auto-login para mostrar siempre el diálogo; la contraseña recordada se
+  // rellena, FZ-ISSUE-1024) y cierra esta instancia. El nuevo proceso se inicia desde FormClose,
   // después de que FormCloseQuery haya aprobado el cierre.
   FReiniciando := True;
   FRelanzarLoginPendiente := True;

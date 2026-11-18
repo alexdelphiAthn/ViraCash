@@ -64,7 +64,7 @@ begin
   Result := Default(TDocumentoTrazabilidad);
   if Assigned(AParametros) then
     Result.Activacion := TActivacionTrazabilidad.Leer(AParametros);
-  if Result.Activacion.AlgunModoActivo then
+  if Assigned(AParametros) then
   begin
     Result.Lectura := CrearLecturaTrazabilidadArticuloUniDAC(AConexion);
     Result.Repositorio := CrearRepositorioLotesUniDAC(AConexion);

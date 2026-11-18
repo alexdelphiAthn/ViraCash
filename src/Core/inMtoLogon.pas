@@ -482,9 +482,9 @@ begin
   Self.Position := poScreenCenter;
   edtUser.Text := '';
 
+  // FZ-ISSUE-1024: /relogin solo evita el auto-login (IsInitializeAuto).
+  // La contraseña recordada se rellena igual que al arrancar.
   GetIniValues;
-  if FindCmdLineSwitch('relogin', True) then
-    edtPass.Text := '';
   CargarPerfilConexion;
 end;
 
@@ -1666,7 +1666,11 @@ begin
   begin
     SolicitarCancelarOperacionEnCurso;
   end
-  else
+  // FZ-ISSUE-1024: tras 'Invocar login', Salir (o Esc) cierra ViraCash;
+  // se confirma antes para no salir por un Esc involuntario.
+  else if (not FindCmdLineSwitch('relogin', True)) or
+    (MessageDlg_fza(SPreguntaSalirAplicacion, mtConfirmation,
+      [mbYes, mbNo], 0) = mrYes) then
   begin
     ModalResult := mrCancel;
     Close;

@@ -360,8 +360,10 @@ begin
   try
     oConsulta.Connection := FConexion;
     oConsulta.SQL.Text :=
-      'SELECT TIPO_LOT FROM fza_articulos_lotes ' +
-      ' WHERE CODIGO_UNIDAD_LOT = :SKU AND LOTE_LOT = :LOTE';
+      'SELECT L.TIPO_LOT, P.PV AS TEMPORADA ' +
+      'FROM fza_articulos_lotes L LEFT JOIN fza_propiedades_valores P ' +
+      'ON P.ID_PV_ARTPROP = L.ID_PV_TEMPORADA_LOT ' +
+      'WHERE L.CODIGO_UNIDAD_LOT = :SKU AND L.LOTE_LOT = :LOTE';
     for iLote := 0 to High(ALotes) do
     begin
       oConsulta.Close;
@@ -369,6 +371,7 @@ begin
       oConsulta.ParamByName('LOTE').AsString := ALotes[iLote].Lote;
       oConsulta.Open;
       ALotes[iLote].TipoLote := oConsulta.FieldByName('TIPO_LOT').AsString;
+      ALotes[iLote].Temporada := oConsulta.FieldByName('TEMPORADA').AsString;
     end;
   finally
     FreeAndNil(oConsulta);

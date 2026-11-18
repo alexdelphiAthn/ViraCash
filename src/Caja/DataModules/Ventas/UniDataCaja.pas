@@ -4383,7 +4383,7 @@ var
 begin
   // F-LOTEC-015: el lote solo se graba con los interruptores; sin él, la
   // sentencia es la de siempre.
-  bConLote := (Trim(ALote) <> '') and ActivacionVigente.AlgunModoActivo;
+  bConLote := Trim(ALote) <> '';
   QryTrx.SQL.Text :=
     'INSERT INTO fza_facturas_lineas (' +
     IfThen(bConLote, '  LOTE_FACLIN, FECHA_CADUCIDAD_FACLIN,', '') +

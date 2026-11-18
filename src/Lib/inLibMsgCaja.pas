@@ -1116,6 +1116,17 @@ resourcestring
     'Líneas';
   STextoRectificaLaFacturaCaja =
     '  -  RECTIFICA la factura ';
+  // FZ-ISSUE-1020: %s = lista de SKU y unidades que vuelven al stock.
+  SPreguntaRectificativaDevuelveStockCaja =
+    'Esta rectificativa por diferencias devolverá al stock:' + sLineBreak +
+    '%s' + sLineBreak + sLineBreak +
+    'Las unidades en negativo de sus líneas siempre vuelven al stock: ' +
+    'la rectificación por diferencias no permite corregir solo el ' +
+    'precio. ¿Desea continuar?';
+  // FZ-ISSUE-1021: %0:s ticket, %1:s importe cobrado, %2:s formas de pago.
+  SAvisoSustitutivaTicketCobradoCaja =
+    'El ticket original %0:s ya se cobró (%1:s: %2:s).' + sLineBreak +
+    'Devuelva ese cobro y cobre el nuevo total.';
   STextoIrAArticuloCaja =
     'Ir a artículo';
   STextoIrADepositoCaja =

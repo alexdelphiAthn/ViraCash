@@ -163,7 +163,7 @@ implementation
 uses
   UniDataProveedoresTexto,
   UniDataReparacionesProteccion,
-  UniDataCodigosBarrasLote,
+  UniDataReposicionAutomatica, UniDataCodigosBarrasLote,
   inLibLineaSku,
   inLibValoresAutomaticos, UniDataValoresAutomaticosRepositorio,
   inLibContadorLineas, inLibDatasets,
@@ -337,8 +337,11 @@ begin
   for i := Low(CAMPOS_ALBC) to High(CAMPOS_ALBC) do
     AgregarCampoInsert(CAMPOS_ALBC[i]);
   unqryTablaG.SQLInsert.Text :=
-    'INSERT INTO fza_albaranes_compra (' + sCols + ') ' + sLineBreak +
-    'VALUES (' + sVals + ')';
+    'INSERT INTO fza_albaranes_compra (ESREPOSICION_AUTO_ALBC, ' +
+    sCols + ') ' + sLineBreak + 'VALUES (' +
+    'COALESCE((SELECT ESLOTES_REPOSICION_EMP FROM fza_empresas ' +
+    'WHERE CODIGO_EMP_EMP = :CODIGO_EMP_ALBC), ''N''), ' +
+    sVals + ')';
   // INSTANTE_MOVIMIENTO_ALBC llega en V.* (vi_albaranes_compra lo incluye
   // desde 20261005_compras_prendas_solo_unidades.sql); pedirlo además a la
   // tabla duplicaba la columna (MariaDB 1060).
@@ -916,6 +919,8 @@ begin
   // FZ-ISSUE-520: un SKU dado de baja no recibe existencias.
   ExigirSkuActivoEnDataSet(ConexionEscritura, unqryAlbaranesCompraLineas,
     'CODIGO_ART_ALBCLIN', 'CODIGO_UNIDAD_ALBCLIN', SErrorSkuCompraNoActivo);
+  PrepararReposicionLinea(ConexionEscritura, unqryAlbaranesCompraLineas,
+    'ALBCLIN', IdentidadSesion.Usuario, ParametrosApp);
     // F-LOTEC-013: antes de los totales (una serie deja la línea en 1).
     if Assigned(FLotesLineas) then
       FLotesLineas.AntesDePostLinea(unqryAlbaranesCompraLineas,
@@ -1031,7 +1036,7 @@ var
   rConfig: TConfiguracionLotesLineas;
 begin
   FreeAndNil(FLotesLineas);
-  if AConfig.Activacion.AlgunModoActivo then
+  if Assigned(AConfig.Lectura) then
   begin
     // Las series pertenecen a la misma compra: conservan su precio y dto.
     // El lector volvería a proponer el coste neto recién actualizado.

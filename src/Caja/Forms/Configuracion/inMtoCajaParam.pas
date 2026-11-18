@@ -695,6 +695,7 @@ begin
   Strings.Add('TODOS');
   Strings.Add('ALMACEN');
   Strings.Add('CAJA');
+  Strings.Add('GRUPO');
 end;
 
 procedure TfrmMtoCajaParam.GetFormatosTicketList(

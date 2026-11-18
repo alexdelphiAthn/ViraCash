@@ -198,6 +198,7 @@ procedure DesvincularPerfilesStockConsulta;
 implementation
 
 uses
+  UniDataReposicionAutomatica,
   inLibMensajesVcl,
   inLibGenBusq, inLibUser,
   inLibRegistroPantallas,
@@ -409,7 +410,8 @@ end;
 procedure TfrmStockConsulta.CrearBotonPorLote;
 begin
   if Assigned(ParametrosApp) and
-     TActivacionTrazabilidad.Leer(ParametrosApp).AlgunModoActivo then
+     ActivacionVisualReposicion(ConexionPrincipal,
+       ParametrosApp).AlgunModoActivo then
   begin
     btnPorLote := TcxButton.Create(Self);
     btnPorLote.Parent := btnMovimientos.Parent;

@@ -736,8 +736,13 @@ var
   oModo: TModoTrazabilidad;
   sLote: string;
   Validacion: TValidacionSalidaLote;
+  Catalogo: TLoteCatalogo;
 begin
   sLote := Trim(ALinea.FieldByName(CAMPO_LOTE_CAJA).AsString);
+  if (sLote = '') and TomarLecturaReposicion(
+      ALinea.FieldByName(CAMPO_SKU_CAJA).AsString,
+      FConfig.Repositorio, sLote) then
+    ALinea.FieldByName(CAMPO_LOTE_CAJA).AsString := sLote;
   // Venta sin lote de un artículo con lote (no las líneas de depósito ni
   // las devoluciones, que llevan el de su ticket).
   oCampo := ALinea.FindField('VIENE_DE_DEPOSITO');
@@ -757,6 +762,10 @@ begin
   if sLote <> '' then
   begin
     oModo := ModoArticulo(ALinea.FieldByName(CAMPO_ARTICULO_CAJA).AsString);
+    if (oModo = mtNinguna) and FConfig.Repositorio.BuscarLote(
+        ALinea.FieldByName(CAMPO_SKU_CAJA).AsString, sLote, Catalogo) and
+       Catalogo.EsReposicion then
+      oModo := mtLote;
     if not RequiereLote(oModo) then
     begin
       ALinea.FieldByName(CAMPO_LOTE_CAJA).Clear;

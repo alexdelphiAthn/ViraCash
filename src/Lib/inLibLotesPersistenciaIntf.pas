@@ -34,6 +34,8 @@ type
     NumeroDocumentoOrigen: string;
     EsActivo: Boolean;
     Observaciones: string;
+    EsReposicion: Boolean;
+    IdTemporada: Integer;
   end;
 
   TResultadoAsegurarLote = (
@@ -101,12 +103,15 @@ type
     FechaEntrada: TDate;
     EsActivo: Boolean;
     CodigoAlmacen: string;
+    CodigoProveedor: string;
+    Temporada: string;
     Stock: Double;
   end;
 
   // Modo de trazabilidad de un artículo (F-LOTEC-013).
   TTrazabilidadArticulo = record
     Modo: TModoTrazabilidad;
+    EsPartidaReposicion: Boolean;
     EsCaducidadObligatoria: Boolean;
     // DIAS_AVISO_SIN_VALOR si DIAS_AVISO_CADUCIDAD_ART es NULL.
     DiasAviso: Integer;

@@ -2147,7 +2147,7 @@ procedure TdmFacturas.ConfigurarLotesLineas(
   const AConfig: TConfiguracionLotesLineas);
 begin
   FreeAndNil(FLotesLineas);
-  if AConfig.Activacion.AlgunModoActivo then
+  if Assigned(AConfig.Lectura) then
     FLotesLineas := TLotesLineasDocumento.Create(AConfig);
 end;
 

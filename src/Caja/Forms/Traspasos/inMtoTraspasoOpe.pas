@@ -46,6 +46,11 @@ uses
 
 const
   WM_REVISAR_ENTER_AS_TAB_TRASPASO = WM_APP + 109;
+  // FZ-ISSUE-1006: reabre la lista de «Almacén destino» cerrada al abrirse.
+  WM_REABRIR_DESTINO_TRASPASO = WM_APP + 110;
+  // Una lista que se cierra antes de este tiempo no la ha cerrado el
+  // usuario: la ha cerrado el control que se ha quedado con el foco.
+  MS_CIERRE_PREMATURO_DESTINO = 400;
 
 type
   // Carga elegida en una lista de cargas en transito (FZ-ISSUE-256).
@@ -122,6 +127,9 @@ type
     FGridCtrl: TGridArticulosLineas;
     FProcesandoSolicitud: Boolean;
     FSeleccionSolicitudInicial: Boolean;
+    // FZ-ISSUE-1006: apertura de la lista de destino y reapertura hecha.
+    FInstanteAperturaDestino: Cardinal;
+    FDestinoReabierto: Boolean;
     FModoSku: TModoEntradaSku;
     FModoEntradaSel: TModoColumnasSku;
     FComboCodigos: TStringList;
@@ -232,6 +240,10 @@ type
     procedure SalirEdicionModoEntrada(Sender: TObject);
     procedure WMRevisarEnterAsTabTraspaso(var Msg: TMessage);
       message WM_REVISAR_ENTER_AS_TAB_TRASPASO;
+    procedure cboDestinoPropertiesPopup(Sender: TObject);
+    procedure cboDestinoPropertiesCloseUp(Sender: TObject);
+    procedure WMReabrirDestinoTraspaso(var Msg: TMessage);
+      message WM_REABRIR_DESTINO_TRASPASO;
     function ResolverEntradaModo(const AEntrada: string): Boolean;
     procedure MostrarEditorModo;
     procedure BuscarContextual;
@@ -638,6 +650,8 @@ begin
   ConstruirPanelStock;
   // Elegir una solicitud en el desplegable (modo Atender) la carga sola.
   cboDestino.Properties.OnChange := cboDestinoPropertiesChange;
+  cboDestino.Properties.OnPopup := cboDestinoPropertiesPopup;
+  cboDestino.Properties.OnCloseUp := cboDestinoPropertiesCloseUp;
   // Lector de codigo de barras a nivel de formulario: necesita la rejilla
   // ya construida.
   ConfigurarLectorDocumento;
@@ -985,6 +999,54 @@ begin
   RestaurarEnterAsTabTemporal(Sender);
   if not (csDestroying in ComponentState) and HandleAllocated then
     PostMessage(Handle, WM_REVISAR_ENTER_AS_TAB_TRASPASO, 0, 0);
+end;
+
+procedure TfrmMtoOpeTraspaso.cboDestinoPropertiesPopup(Sender: TObject);
+begin
+  FInstanteAperturaDestino := GetTickCount;
+end;
+
+// FZ-ISSUE-1006: con el foco en la rejilla de lineas, un clic en la flecha
+// de «Almacen destino» abria la lista y algo la cerraba en el acto (con
+// Alt+Abajo, con el foco ya en el combo, no pasa). Si la lista se cierra
+// casi a la vez que se abre y el foco ya no esta en el combo, se registra
+// quien lo tiene y se reabre una sola vez, ya con el foco en el combo.
+procedure TfrmMtoOpeTraspaso.cboDestinoPropertiesCloseUp(Sender: TObject);
+var
+  ControlActivo: TWinControl;
+  sControl: string;
+begin
+  ControlActivo := Screen.ActiveControl;
+  if (not FDestinoReabierto) and (FInstanteAperturaDestino <> 0) and
+     (GetTickCount - FInstanteAperturaDestino <
+      MS_CIERRE_PREMATURO_DESTINO) and
+     (ControlActivo <> cboDestino) and
+     not cboDestino.ContainsControl(ControlActivo) and
+     not cboDestino.Properties.ReadOnly and HandleAllocated then
+  begin
+    sControl := '(ninguno)';
+    if ControlActivo <> nil then
+      sControl := ControlActivo.ClassName + ' ' + ControlActivo.Name;
+    RegistroLog.RegistrarAviso(
+      'TraspasoOpe: lista de destino cerrada al abrirse; foco en ' +
+      sControl + '. Se reabre.');
+    FDestinoReabierto := True;
+    PostMessage(Handle, WM_REABRIR_DESTINO_TRASPASO, 0, 0);
+  end
+  else
+    FDestinoReabierto := False;
+  FInstanteAperturaDestino := 0;
+end;
+
+procedure TfrmMtoOpeTraspaso.WMReabrirDestinoTraspaso(var Msg: TMessage);
+begin
+  if cboDestino.CanFocus then
+  begin
+    cboDestino.SetFocus;
+    cboDestino.DroppedDown := True;
+  end
+  else
+    FDestinoReabierto := False;
 end;
 
 procedure TfrmMtoOpeTraspaso.WMRevisarEnterAsTabTraspaso(
@@ -2135,7 +2197,7 @@ begin
   rDocumento := DocumentoTrazabilidadUniDAC(Self, ConexionPrincipal,
     ParametrosApp, sllSalida, TablaLineasLote('', '', '', ''));
   FActivacionLotes := rDocumento.Activacion;
-  if FActivacionLotes.AlgunModoActivo then
+  if Assigned(rDocumento.Lectura) then
   begin
     rDocumento.Lectura :=
       FDatos.EnvolverLecturaTrazabilidad(rDocumento.Lectura);

@@ -12,6 +12,7 @@
       '  AND SERIE_FACC = :Old_SERIE_FACC')
     SQL.Strings = (
       'SELECT'
+      '  F.ESREPOSICION_AUTO_FACC,'
       '  F.ESREPRESENTACION_FISCAL_FACC,'
       '  F.SISTEMA_FISCAL_FACC,'
       '  F.ESTADO_FISCAL_FACC,'

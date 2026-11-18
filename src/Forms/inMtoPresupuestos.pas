@@ -317,6 +317,7 @@ type
 implementation
 
 uses
+  UniDataReposicionAutomatica,
   inLibMensajesVcl,
   inLibDevExp,
   inLibGridCantidad,
@@ -769,7 +770,7 @@ begin
     dmmPresupuestos.unqryTablaG.Connection as TUniConnection, ParametrosApp,
     sllSalida, TablaLineasLote('PRELIN', 'fza_presupuestos_lineas',
                                'SERIE_PRE_PRELIN', 'NUMERO_PRE_PRELIN'));
-  if rDocumento.Activacion.AlgunModoActivo then
+  if Assigned(rDocumento.Lectura) then
   begin
     rDocumento.Documento :=
       function: TDocumentoLineaLote
@@ -1067,7 +1068,7 @@ begin
   // F-LOTEC-016: con los interruptores, siempre visibles y con botón.
   if Assigned(ParametrosApp) then
     CrearColumnasLoteDocumento(tvLineasAlbaran, 'PRELIN',
-      TActivacionTrazabilidad.Leer(ParametrosApp),
+      ActivacionVisualReposicion(ConexionPrincipal, ParametrosApp),
       procedure
       begin
         dmmPresupuestos.ElegirLoteLinea;

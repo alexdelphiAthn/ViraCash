@@ -132,8 +132,14 @@ var
 begin
   sAnterior := Trim(txtOrigen.Text);
   sNuevo := Trim(txtDestino.Text);
-  if not DatosCambioClienteValidos(sAnterior, sNuevo, FUsuario) then
-    ShowMessage_fza(SCambioClienteDatosInvalidos)
+  rResultado := Default(TResultadoCambioCliente);
+  if DatosCambioClienteValidos(sAnterior, sNuevo, FUsuario) then
+    rResultado := FServicio.Comprobar(sAnterior, sNuevo, FUsuario)
+  else
+    rResultado.Estado := eccDatosInvalidos;
+  // Avisar de un código ocupado antes de pedir confirmación.
+  if rResultado.Estado <> eccCorrecto then
+    ShowMessage_fza(MensajeResultado(rResultado))
   else if MessageDlg_fza(Format(SCambioClientePregunta,
     [sAnterior, sNuevo]), mtConfirmation, [mbYes, mbNo], 0, mbNo) = mrYes then
   begin

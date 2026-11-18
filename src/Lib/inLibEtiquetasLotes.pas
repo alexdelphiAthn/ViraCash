@@ -14,7 +14,7 @@
 {    serie va en el código de barras (Code128, decisión 3); lote y caducidad   }
 {    en LOTE_ETI / CADUCIDAD_ETI y, compuestos, en TEXTO_LOTE_ETI: los       }
 {    imprime el diseño que los tenga (el original, desde FZ-ISSUE-603).      }
-{    COD_TEMPORADA conserva su valor. Sin lote sale como antes.              }
+{    COD_TEMPORADA_LOTE identifica la temporada de recepción de la partida.     }
 {******************************************************************************}
 unit inLibEtiquetasLotes;
 
@@ -39,6 +39,7 @@ type
     Caducidad: TDateTime;
     Copias: Integer;
     CodigoBarras: string;
+    Temporada: string;
   end;
   TLotesEtiquetas = TArray<TLoteEtiqueta>;
 
@@ -101,6 +102,7 @@ begin
   Result.Lote := ALote.Lote;
   Result.TipoLote := TipoCatalogoDeModo(ALote.Modo);
   Result.Caducidad := ALote.FechaCaducidad;
+  Result.Temporada := ALote.Temporada;
   Result.Copias := 1;
   if (ALote.Modo <> mtSerie) and (ALote.Stock >= 1) then
     Result.Copias := Trunc(ALote.Stock);
@@ -146,6 +148,8 @@ begin
           FormatDateTime('dd/mm/yyyy', ALote.Caducidad));
       AsignarCampo(ADataSet, CAMPO_TEXTO_LOTE_ETIQUETA,
         TextoLoteEtiqueta(ALote));
+      if ALote.Temporada <> '' then
+        AsignarCampo(ADataSet, 'COD_TEMPORADA_LOTE', ALote.Temporada);
       // El diseño decide si imprime lote y caducidad en sus campos propios.
       if ALote.CodigoBarras <> '' then
         AsignarCampo(ADataSet, CAMPO_CODIGO_BARRAS, ALote.CodigoBarras)

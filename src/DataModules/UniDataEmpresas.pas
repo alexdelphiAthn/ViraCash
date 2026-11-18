@@ -408,6 +408,8 @@ begin
   if unqryTablaG.FindField('ESIVA_RECARGO_COMPRAS_EMP') <> nil then
     unqryTablaG.FindField('ESIVA_RECARGO_COMPRAS_EMP').AsString := 'N';
   unqryTablaG.FieldByName(
+    'ESLOTES_REPOSICION_EMP').AsString := 'N';
+  unqryTablaG.FieldByName(
     'ESTOKENS_CALENDARIO_NATURAL_EMP').AsString := 'N';
 end;
 

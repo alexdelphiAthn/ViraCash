@@ -627,6 +627,7 @@ type
 implementation
 
 uses
+  UniDataReposicionAutomatica,
   inLibBotonesDetalle,
   inLibTraspasosPendientesTexto, UniDataTraspasosPendientesConsulta,
   inMtoModalMensajeTexto,
@@ -1712,6 +1713,8 @@ begin
   if not Assigned(FTrazabilidadFicha) then
     FTrazabilidadFicha := TFichaTrazabilidadArticuloVcl.CreateFicha(Self,
       chkESTRAZABLE_ART.Parent, chkESTRAZABLE_ART, dsTablaG, rActivacion);
+  if HayPartidasReposicion(ConexionPrincipal) then
+    rActivacion.Lotes := True;
   if rActivacion.AlgunModoActivo and not Assigned(FLotesFicha) then
   begin
     ConstruirLotesFicha(rActivacion);

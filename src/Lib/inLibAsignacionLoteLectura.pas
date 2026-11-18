@@ -358,6 +358,7 @@ function DecidirLoteLectura(
 var
   oModo: TModoTrazabilidad;
   sLote: string;
+  rCatalogo: TLoteCatalogo;
 begin
   if not Assigned(ARepositorio) then
     raise EArgumentNilException.Create('ARepositorio');
@@ -368,6 +369,10 @@ begin
   // lectura lo traiga.
   oModo := AContexto.Activacion.ModoEfectivo(AContexto.Modo);
   sLote := LoteLeido(AResolucion, oModo);
+  if (oModo = mtNinguna) and (sLote <> '') and
+     ARepositorio.BuscarLote(AResolucion.CodigoSku, sLote, rCatalogo) and
+     rCatalogo.EsReposicion then
+    oModo := mtLote;
   if not RequiereLote(oModo) then
     Result.Resultado := rllSinLote
   else if Length(sLote) > LONGITUD_MAXIMA_LOTE then

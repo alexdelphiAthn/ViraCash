@@ -152,7 +152,8 @@ uses
   inLibErroresBBDD, inLibMensajesVcl, inLibMsgCaja,
   inLibCajaVentaOperacion, inLibCajaDescuentos,
   inMtoModalMotivoDevolucion, inMtoModalDevolucionTicket,
-  inMtoModalSeleccionVentaOrigen, UniDataArqueoPersistencia;
+  inMtoModalSeleccionVentaOrigen, UniDataArqueoPersistencia,
+  UniDataFaseCobroRepositorio;
 
 type
   // Adaptador de la sesión visual: posee el diálogo y los totales.
@@ -196,10 +197,89 @@ begin
     FContexto.EnfocarAtributoPendiente(AOrden);
 end;
 
+// FZ-ISSUE-1020: SKU y unidades que una rectificativa devolverá al stock
+// (líneas de artículo en negativo), una por línea. Vacío si no hay.
+function UnidadesDevueltasRectificativaCaja(ALineas: TDataSet): string;
+var
+  oMarca: TBookmark;
+  sCodigo: string;
+  dCantidad: Double;
+begin
+  Result := '';
+  if Assigned(ALineas) and ALineas.Active and not ALineas.IsEmpty then
+  begin
+    ALineas.DisableControls;
+    oMarca := ALineas.GetBookmark;
+    try
+      ALineas.First;
+      while not ALineas.Eof do
+      begin
+        dCantidad := ALineas.FieldByName('CANTIDAD_FACLIN').AsFloat;
+        sCodigo := Trim(ALineas.FieldByName(
+          'CODIGO_UNIDAD_FACLIN').AsString);
+        if sCodigo = '' then
+          sCodigo := Trim(ALineas.FieldByName(
+            'CODIGO_ART_FACLIN').AsString);
+        if (dCantidad < 0) and (sCodigo <> '') and
+           (not SameText(Trim(ALineas.FieldByName(
+              'TIPO_ARTICULO_FACLIN').AsString), 'SERVICIO')) and
+           (not SameText(sCodigo, 'ACUENTA')) and
+           (not SameText(sCodigo, 'ANTICIPO')) then
+          Result := Result + '  - ' + sCodigo + ' x' +
+            FormatFloat('0.##', Abs(dCantidad)) + sLineBreak;
+        ALineas.Next;
+      end;
+      if ALineas.BookmarkValid(oMarca) then
+        ALineas.GotoBookmark(oMarca);
+    finally
+      ALineas.FreeBookmark(oMarca);
+      ALineas.EnableControls;
+    end;
+  end;
+  Result := TrimRight(Result);
+end;
+
+// Avisos previos al cobro de una rectificativa; sin cambiar lo que se graba.
+// FZ-ISSUE-1020: «F10 > Rectificar > Por diferencias» (sin ticket de
+// devolución) con unidades en negativo: confirma que vuelven al stock.
+// FZ-ISSUE-1021: sustitutiva: recuerda lo ya cobrado en el ticket original.
+function ConfirmarRectificativaCajaVcl(
+  const AContexto: TContextoCierreVentaCajaVcl): Boolean;
+var
+  sUnidades: string;
+  sCobros: string;
+  cTotal: Currency;
+begin
+  Result := True;
+  if Trim(AContexto.NumeroRectificado) <> '' then
+  begin
+    if (AContexto.TipoRectificativa = trcDiferencias) and
+       (Trim(AContexto.SerieOrigenDevolucion) = '') then
+    begin
+      sUnidades := UnidadesDevueltasRectificativaCaja(AContexto.Lineas);
+      if sUnidades <> '' then
+        Result := MessageDlg_fza(
+          Format(SPreguntaRectificativaDevuelveStockCaja, [sUnidades]),
+          mtWarning, [mbYes, mbNo], 0, mbNo) = mrYes;
+    end
+    else if AContexto.TipoRectificativa = trcSustitutiva then
+    begin
+      sCobros := ResumenCobrosTicketCaja(AContexto.Conexion,
+        AContexto.SerieRectificada, AContexto.NumeroRectificado, cTotal);
+      if sCobros <> '' then
+        ShowMessage_fza(Format(SAvisoSustitutivaTicketCobradoCaja,
+          [FormatearReferenciaFactura(AContexto.Conexion,
+             AContexto.SerieRectificada, AContexto.NumeroRectificado),
+           FormatCurr('#,##0.00', cTotal), sCobros]));
+    end;
+  end;
+end;
+
 function TSesionCierreVentaCajaVcl.PrepararCobro: Boolean;
 begin
-  Result := TCoordinadorCierreVentaCajaVcl.PrepararFaseCobro(
-    FContexto, FFormulario, FTotales);
+  Result := ConfirmarRectificativaCajaVcl(FContexto) and
+    TCoordinadorCierreVentaCajaVcl.PrepararFaseCobro(
+      FContexto, FFormulario, FTotales);
 end;
 
 procedure TSesionCierreVentaCajaVcl.AplicarCobro;

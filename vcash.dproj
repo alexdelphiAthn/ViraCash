@@ -1483,6 +1483,7 @@
         <DCCReference Include="src\Lib\inLibLotesLineaDocumento.pas"/>
         <DCCReference Include="src\Lib\inLibTrazabilidadDocumento.pas"/>
         <DCCReference Include="src\Lib\inLibTrazabilidadDocumentoUniDAC.pas"/>
+        <DCCReference Include="src\DataModules\UniDataReposicionAutomatica.pas"/>
         <DCCReference Include="src\DataModules\UniDataMovimientosLote.pas"/>
         <DCCReference Include="src\Lib\inLibMsgTrazabilidad.pas"/>
         <DCCReference Include="src\DataModules\UniDataLotesRepositorio.pas"/>

@@ -19,6 +19,9 @@ unit inLibLecturaGs1Pendiente;
 
 interface
 
+uses
+  inLibLotesPersistenciaIntf;
+
 const
   SEGUNDOS_VIGENCIA_GS1 = 30;
 
@@ -41,6 +44,8 @@ function TomarLecturaGs1(const ACodigoSku: string;
 function TomarLecturaGs1(const ACodigoSku: string; AAhora: TDateTime;
   out ALectura: TLecturaGs1Pendiente): Boolean; overload;
 procedure DescartarLecturaGs1;
+function TomarLecturaReposicion(const ASku: string;
+  const ARepositorio: IRepositorioLotes; out ALote: string): Boolean;
 
 implementation
 
@@ -84,6 +89,25 @@ function TomarLecturaGs1(const ACodigoSku: string;
   out ALectura: TLecturaGs1Pendiente): Boolean;
 begin
   Result := TomarLecturaGs1(ACodigoSku, Now, ALectura);
+end;
+
+function TomarLecturaReposicion(const ASku: string;
+  const ARepositorio: IRepositorioLotes; out ALote: string): Boolean;
+var
+  Lectura: TLecturaGs1Pendiente;
+  Catalogo: TLoteCatalogo;
+begin
+  Result := False;
+  ALote := '';
+  if Assigned(ARepositorio) and TomarLecturaGs1(ASku, Lectura) then
+  begin
+    Result := ARepositorio.BuscarLote(ASku, Lectura.Lote, Catalogo) and
+      Catalogo.EsReposicion;
+    if Result then
+      ALote := Lectura.Lote
+    else
+      GLectura := Lectura;
+  end;
 end;
 
 procedure DescartarLecturaGs1;

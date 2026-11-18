@@ -359,6 +359,7 @@ type
 implementation
 
 uses
+  UniDataReposicionAutomatica,
   inMtoModalImpDocumento,
   inLibMensajesVcl,
   inLibDevExp,
@@ -709,7 +710,7 @@ begin
     dmmAlbaranes.unqryTablaG.Connection as TUniConnection, ParametrosApp,
     sllSalida, TablaLineasLote('ALBLIN', 'fza_albaranes_lineas',
                                'SERIE_ALB_ALBLIN', 'NUMERO_ALB_ALBLIN'));
-  if rDocumento.Activacion.AlgunModoActivo then
+  if Assigned(ParametrosApp) then
   begin
     rDocumento.Documento :=
       function: TDocumentoLineaLote
@@ -1045,7 +1046,7 @@ begin
   // F-LOTEC-016: con los interruptores, siempre visibles y con botón.
   if Assigned(ParametrosApp) then
     CrearColumnasLoteDocumento(tvLineasAlbaran, 'ALBLIN',
-      TActivacionTrazabilidad.Leer(ParametrosApp),
+      ActivacionVisualReposicion(ConexionPrincipal, ParametrosApp),
       procedure
       begin
         dmmAlbaranes.ElegirLoteLinea;

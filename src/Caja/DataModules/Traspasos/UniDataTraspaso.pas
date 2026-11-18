@@ -247,6 +247,8 @@ type
                              ATipoDoc: string): string;
     function SiguienteNumeroDocumento(const ASerie, ATipoDoc, AEmpresa,
                              AUsuario: string): string;
+    function NumeroTraspasoOcupado(const ASerie, ATipoDoc,
+      ANumero: string): Boolean;
     // FZ-ISSUE-628: serie y número de una solicitud o reposición (TS). La
     // serie es la configurada para la caja o el almacén que la emite (o la
     // general de la empresa) y se numera con su contador, como el resto de
@@ -520,6 +522,10 @@ resourcestring
     'Enviada';
   SDireccionPeticionRecibida =
     'Recibida';
+  // FZ-ISSUE-1022
+  SErrorNumeroTraspasoOcupado =
+    'No hay número libre en la serie %s para el traspaso %s: ' +
+    'revise su contador.';
 
 constructor TdmTraspaso.Create(
   AOwner: TComponent;
@@ -741,7 +747,7 @@ var
   rConfig: TConfiguracionLotesLineas;
 begin
   FreeAndNil(FLotesLineas);
-  if AConfig.Activacion.AlgunModoActivo then
+  if Assigned(AConfig.Lectura) then
   begin
     rConfig := AConfig;
     rConfig.DesglosarLinea :=
@@ -1723,24 +1729,74 @@ begin
   end;
 end;
 
+// FZ-ISSUE-1022: el contador va por tipo de documento, así que TR, TA y TP
+// con la misma serie (p. ej. «Añadir serie a todos») numeraban cada uno
+// desde 1 y repetían serie y número. Se salta el número que ya use otro
+// traspaso de esa serie: cada contador puede dejar huecos, pero el
+// documento nunca se repite.
 function TdmTraspaso.SiguienteNumeroDocumento(const ASerie, ATipoDoc, AEmpresa,
                                               AUsuario: string): string;
+const
+  MAX_SALTOS = 10000;
 var
   SpTrx: TUniStoredProc;
+  iSaltos: Integer;
+  bOcupado: Boolean;
 begin
   SpTrx := TUniStoredProc.Create(nil);
   try
     SpTrx.Connection := FConexion;
     SpTrx.StoredProcName := 'PRC_GET_NEXT_CONT_FACT_SERIE';
     SpTrx.Prepare;
-    SpTrx.ParamByName('pserie').AsString := ASerie;
-    SpTrx.ParamByName('pTipoDoc').AsString := ATipoDoc;
-    SpTrx.ParamByName('pEMPRESA_CONTADOR').AsString := AEmpresa;
-    SpTrx.ParamByName('pUSUARIOMODIF').AsString := AUsuario;
-    SpTrx.Execute;
-    Result := SpTrx.ParamByName('pcont').AsString;
+    iSaltos := 0;
+    bOcupado := True;
+    while bOcupado and (iSaltos <= MAX_SALTOS) do
+    begin
+      SpTrx.ParamByName('pserie').AsString := ASerie;
+      SpTrx.ParamByName('pTipoDoc').AsString := ATipoDoc;
+      SpTrx.ParamByName('pEMPRESA_CONTADOR').AsString := AEmpresa;
+      SpTrx.ParamByName('pUSUARIOMODIF').AsString := AUsuario;
+      SpTrx.Execute;
+      Result := SpTrx.ParamByName('pcont').AsString;
+      bOcupado := NumeroTraspasoOcupado(ASerie, ATipoDoc, Result);
+      Inc(iSaltos);
+    end;
+    if bOcupado then
+      raise EValidacionBBDD.CreateFmt(SErrorNumeroTraspasoOcupado,
+        [ASerie, ATipoDoc]);
   finally
     FreeAndNil(SpTrx);
+  end;
+end;
+
+// Otro traspaso (TR, TA o TP, de otro tipo) ya lleva esa serie y número:
+// todo traspaso graba movimientos (índice por serie y número). Solo aplica
+// a esos tipos: las solicitudes (TS) viven en su propia tabla.
+function TdmTraspaso.NumeroTraspasoOcupado(const ASerie, ATipoDoc,
+  ANumero: string): Boolean;
+var
+  oConsulta: TUniQuery;
+begin
+  Result := False;
+  if MatchText(ATipoDoc, ['TR', 'TA', 'TP']) then
+  begin
+    oConsulta := TUniQuery.Create(nil);
+    try
+      oConsulta.Connection := FConexion;
+      oConsulta.SQL.Text :=
+        'SELECT 1 FROM fza_movimientos_almacen' +
+        ' WHERE SERIE_DOC_MOV = :SERIE AND NUMERO_DOC_MOV = :NUMERO' +
+        '   AND TIPO_DOC_MOV IN (''TR'', ''TA'', ''TP'')' +
+        '   AND TIPO_DOC_MOV <> :TIPO' +
+        ' LIMIT 1';
+      oConsulta.ParamByName('SERIE').AsString := ASerie;
+      oConsulta.ParamByName('NUMERO').AsString := ANumero;
+      oConsulta.ParamByName('TIPO').AsString := ATipoDoc;
+      oConsulta.Open;
+      Result := not oConsulta.IsEmpty;
+    finally
+      FreeAndNil(oConsulta);
+    end;
   end;
 end;
 
@@ -3962,11 +4018,11 @@ begin
     '         WHERE L.NUMERO_TRSOL_TRSOLLIN = S.NUMERO_TRSOL' +
     '           AND L.SERIE_TRSOL_TRSOLLIN = S.SERIE_TRSOL' +
     '           AND COALESCE(S.ESTADO_TRSOL, '''') <> ''CANCELADA''' +
-    '           AND ((S.TIPO_TRSOL = ''AUTO'' AND' +
-    '             L.CANTIDAD_PEDIDA_TRSOLLIN >' +
-    '               COALESCE(L.CANTIDAD_SERVIDA_TRSOLLIN, 0)) OR' +
-    '             (S.TIPO_TRSOL <> ''AUTO'' AND' +
-    '               COALESCE(L.ESATENDIDA_TRSOLLIN, ''N'') <> ''S''))' +
+    // FZ-ISSUE-1019: la reposición AUTO es informativa (FZ-ISSUE-411):
+    // el origen no la atiende ni se enlaza con el traspaso que la sirve,
+    // así que no tiene líneas pendientes (como ya muestra su detalle).
+    '           AND S.TIPO_TRSOL <> ''AUTO''' +
+    '           AND COALESCE(L.ESATENDIDA_TRSOLLIN, ''N'') <> ''S''' +
     '           AND NULLIF(TRIM(' +
     '               L.MOTIVO_RECHAZO_TRSOLLIN), '''') IS NULL)' +
     '         AS LINEAS_PEND_TRSOL' +

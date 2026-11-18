@@ -32,6 +32,11 @@ procedure AsegurarSerieFacturaCaja(AConexion: TUniConnection;
   const AEmpresa, AAlmacen, ACaja, ASerie, ASubtipo, AUsuario: string;
   AFecha: TDateTime);
 
+// FZ-ISSUE-1021: cobros netos (entregado - cambio) de la venta VE de un
+// ticket, como «Forma importe» separados por «; ». Vacío si no hay cobros.
+function ResumenCobrosTicketCaja(AConexion: TUniConnection;
+  const ASerie, ANumero: string; out ATotal: Currency): string;
+
 implementation
 
 uses
@@ -44,8 +49,11 @@ function FiltroAmbitoCanjeVale(
 begin
   if Trim(ARestriccion.Empresa) = '' then
     raise EValidacionBBDD.Create(SErrorUbicacionCanjeValeNoConfigurada);
-  Result := ' AND CODIGO_EMP_EMI_VL = :EMP_CANJE';
-  if ARestriccion.Ambito <> acvTodos then
+  // GRUPO: sin filtro de empresa emisora (FZ-ISSUE-1025).
+  Result := '';
+  if ARestriccion.Ambito <> acvGrupo then
+    Result := ' AND CODIGO_EMP_EMI_VL = :EMP_CANJE';
+  if ARestriccion.Ambito in [acvAlmacen, acvCaja] then
   begin
     Result := Result + ' AND CODIGO_ALM_EMI_VL = :ALM_CANJE';
     if ARestriccion.Ambito = acvCaja then
@@ -56,8 +64,10 @@ end;
 procedure AsignarAmbitoCanjeVale(AConsulta: TUniQuery;
   const ARestriccion: TRestriccionCanjeVale);
 begin
-  AConsulta.ParamByName('EMP_CANJE').AsString := Trim(ARestriccion.Empresa);
-  if ARestriccion.Ambito <> acvTodos then
+  if ARestriccion.Ambito <> acvGrupo then
+    AConsulta.ParamByName('EMP_CANJE').AsString :=
+      Trim(ARestriccion.Empresa);
+  if ARestriccion.Ambito in [acvAlmacen, acvCaja] then
   begin
     AConsulta.ParamByName('ALM_CANJE').AsString := ARestriccion.Almacen;
     if ARestriccion.Ambito = acvCaja then
@@ -507,6 +517,57 @@ begin
       oVale.Importe :=
         oConsulta.FieldByName('IMPORTE_NOMINAL_VL').AsCurrency;
       Result.ValesPendientes := Result.ValesPendientes + [oVale];
+      oConsulta.Next;
+    end;
+  finally
+    FreeAndNil(oConsulta);
+  end;
+end;
+
+function ResumenCobrosTicketCaja(AConexion: TUniConnection;
+  const ASerie, ANumero: string; out ATotal: Currency): string;
+const
+  SQL_COBROS_TICKET =
+    'SELECT COALESCE(NULLIF(TRIM(f.DESCRIPCION_FORMA_PAGO_CFP), ''''), ' +
+    'p.CODIGO_FP_CFP) AS FORMA, ' +
+    'SUM(p.IMPORTE_ENTREGADO_PAGO - ' +
+    'COALESCE(p.IMPORTE_CAMBIO_PAGO, 0)) AS IMPORTE ' +
+    'FROM fza_caja_operaciones o ' +
+    'JOIN fza_caja_pagos p ON p.CODIGO_EMP_PAGO = o.CODIGO_EMP_OPCAJA ' +
+    'AND p.CODIGO_ALM_PAGO = o.CODIGO_ALM_OPCAJA ' +
+    'AND p.CODIGO_CAJA_PAGO = o.CODIGO_CAJA_OPCAJA ' +
+    'AND p.NUMERO_OPERACION_PAGO = o.NUMERO_OPERACION_OPCAJA ' +
+    'LEFT JOIN fza_caja_formas_pago f ' +
+    'ON f.CODIGO_FP_CFP = p.CODIGO_FP_CFP ' +
+    'WHERE o.SERIE_FAC_OPCAJA = :SERIE ' +
+    'AND o.NUMERO_FAC_OPCAJA = :NUMERO ' +
+    'AND o.TIPO_OPERACION_OPCAJA = ''VE'' ' +
+    'GROUP BY p.CODIGO_FP_CFP, FORMA ' +
+    'ORDER BY p.CODIGO_FP_CFP';
+var
+  oConsulta: TUniQuery;
+  cImporte: Currency;
+begin
+  Result := '';
+  ATotal := 0;
+  oConsulta := TUniQuery.Create(nil);
+  try
+    oConsulta.Connection := AConexion;
+    oConsulta.SQL.Text := SQL_COBROS_TICKET;
+    oConsulta.ParamByName('SERIE').AsString := Trim(ASerie);
+    oConsulta.ParamByName('NUMERO').AsString := Trim(ANumero);
+    oConsulta.Open;
+    while not oConsulta.Eof do
+    begin
+      cImporte := oConsulta.FieldByName('IMPORTE').AsCurrency;
+      if cImporte <> 0 then
+      begin
+        if Result <> '' then
+          Result := Result + '; ';
+        Result := Result + oConsulta.FieldByName('FORMA').AsString + ' ' +
+          FormatCurr('#,##0.00', cImporte);
+        ATotal := ATotal + cImporte;
+      end;
       oConsulta.Next;
     end;
   finally

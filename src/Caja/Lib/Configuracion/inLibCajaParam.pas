@@ -299,7 +299,7 @@ begin
                      'False');
   RegistrarParametro('Devoluciones y Vales',
                      'vgerAmbitoCanjeVale',
-                     'Canjear vales de: TODOS, ALMACEN o CAJA',
+                     'Canjear vales de: TODOS, ALMACEN, CAJA o GRUPO',
                      tpString,
                      'TODOS');
   RegistrarParametro('Devoluciones y Vales',

@@ -18,7 +18,9 @@ uses
 
 type
   // TODOS comprende los almacenes de la empresa de la caja.
-  TAmbitoCanjeVale = (acvTodos, acvAlmacen, acvCaja);
+  // GRUPO admite vales de cualquier empresa; el canje entre empresas se
+  // liquida después con la facturación VR (FZ-ISSUE-1025).
+  TAmbitoCanjeVale = (acvTodos, acvAlmacen, acvCaja, acvGrupo);
 
   TRestriccionCanjeVale = record
     Ambito: TAmbitoCanjeVale;
@@ -120,13 +122,16 @@ begin
     Result.Ambito := acvAlmacen
   else if sValor = 'CAJA' then
     Result.Ambito := acvCaja
+  else if sValor = 'GRUPO' then
+    Result.Ambito := acvGrupo
   else
     raise EValidacionBBDD.Create(SErrorAmbitoCanjeValeNoValido);
   Result.Empresa := Trim(AEmpresa);
   Result.Almacen := Trim(AAlmacen);
   Result.Caja := Trim(ACaja);
   if (Result.Empresa = '') or
-     ((Result.Ambito <> acvTodos) and (Result.Almacen = '')) or
+     ((Result.Ambito in [acvAlmacen, acvCaja]) and
+      (Result.Almacen = '')) or
      ((Result.Ambito = acvCaja) and (Result.Caja = '')) then
     raise EValidacionBBDD.Create(SErrorUbicacionCanjeValeNoConfigurada);
 end;
@@ -135,8 +140,8 @@ function TRestriccionCanjeVale.Permite(const AEmpresa, AAlmacen,
   ACaja: string): Boolean;
 begin
   Result := (Trim(Empresa) <> '') and
-    SameText(Trim(AEmpresa), Trim(Empresa)) and
-    ((Ambito = acvTodos) or
+    ((Ambito = acvGrupo) or SameText(Trim(AEmpresa), Trim(Empresa))) and
+    ((Ambito in [acvTodos, acvGrupo]) or
      (SameText(Trim(AAlmacen), Almacen) and
       ((Ambito = acvAlmacen) or SameText(Trim(ACaja), Caja))));
 end;

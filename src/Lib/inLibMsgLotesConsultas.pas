@@ -51,6 +51,7 @@ resourcestring
   SCaptionColLotesEntrada = 'Entrada';
   SCaptionColLotesAntiguedad = 'Días desde entrada';
   SCaptionColLotesProveedor = 'Proveedor';
+  SCaptionColLotesTemporadaRecepcion = 'Temporada de recepción';
   SCaptionColLotesCantidad = 'Cantidad';
   SCaptionColLotesValor = 'Valor';
   SNombreArchivoLotes = 'lotes_caducidades_%s';

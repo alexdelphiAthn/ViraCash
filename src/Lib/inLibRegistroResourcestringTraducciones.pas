@@ -32296,6 +32296,14 @@ begin
     'src/Lib/inLibMsgCaja.pas',
     @inLibMsgCaja.SAvisoVentaAppLineasOmitidas);
   ARegistrar(
+    'inLibMsgCaja.SPreguntaRectificativaDevuelveStockCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.SPreguntaRectificativaDevuelveStockCaja);
+  ARegistrar(
+    'inLibMsgCaja.SAvisoSustitutivaTicketCobradoCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.SAvisoSustitutivaTicketCobradoCaja);
+  ARegistrar(
     'inLibMsgCaja.' +
     'SDetalleVentaAppLineaOmitida',
     'src/Lib/inLibMsgCaja.pas',

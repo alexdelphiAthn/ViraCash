@@ -353,6 +353,7 @@ function CrearDevolucionesCompraInyectada(
 implementation
 
 uses
+  UniDataReposicionAutomatica,
   inLibComboProveedorDocumentoVcl,
   inLibMensajesVcl, inLibCorreoTickets,
   System.StrUtils,
@@ -1859,7 +1860,7 @@ begin
     UnidadesMedida);
   if Assigned(ParametrosApp) then
     CrearColumnasLoteDocumento(tvLineasDevolucion, 'DEVCLIN',
-      TActivacionTrazabilidad.Leer(ParametrosApp));
+      ActivacionVisualReposicion(ConexionPrincipal, ParametrosApp));
 end;
 
 procedure TfrmMtoDevolucionesCompra.ConfigurarTrazabilidadCompra;
@@ -1870,7 +1871,7 @@ begin
   rDocumento := Default(TDocumentoTrazabilidad);
   if Assigned(ParametrosApp) then
     rDocumento.Activacion := TActivacionTrazabilidad.Leer(ParametrosApp);
-  if rDocumento.Activacion.AlgunModoActivo then
+  if Assigned(ParametrosApp) then
   begin
     // La conexión del módulo de datos: la de su transacción.
     oConexion := dmmDevolucionesCompra.unqryTablaG.Connection as TUniConnection;

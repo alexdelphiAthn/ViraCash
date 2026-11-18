@@ -39,7 +39,8 @@ function ResumenCantidadesPorTipo(ALineas: TDataSet;
   const ACampoCantidad, ACampoTipo: string): string; overload;
 // FZ-ISSUE-1013: igual, sin contar las lineas cuyo ACampoArticulo esta en
 // AArticulosExcluidos (abonos y anticipos de la cuenta del cliente, que no
-// son prendas que se entreguen).
+// son prendas que se entreguen). FZ-ISSUE-1017: tampoco cuenta las
+// prendas de depósito devueltas (ACCION_DEPOSITO = 'CANCELAR').
 function ResumenCantidadesPorTipo(ALineas: TDataSet;
   const ACampoCantidad, ACampoTipo, ACampoArticulo: string;
   const AArticulosExcluidos: array of string): string; overload;
@@ -48,6 +49,10 @@ implementation
 
 uses
   System.SysUtils, System.StrUtils, System.Generics.Collections;
+
+const
+  CAMPO_ACCION_DEPOSITO = 'ACCION_DEPOSITO';
+  ACCION_DEPOSITO_CANCELAR = 'CANCELAR';
 
 function ResumenCantidadesPorTipo(ALineas: TDataSet;
   const ACampoCantidad, ACampoTipo: string): string;
@@ -78,6 +83,12 @@ begin
         (ALineas.FindField(ACampoArticulo) <> nil) and
         (IndexText(Trim(ALineas.FieldByName(ACampoArticulo).AsString),
            AArticulosExcluidos) >= 0);
+      // FZ-ISSUE-1017: la prenda de un préstamo que se devuelve
+      // (CANCELAR, cantidad negativa) no se entrega ni resta.
+      bExcluida := bExcluida or
+        ((ALineas.FindField(CAMPO_ACCION_DEPOSITO) <> nil) and
+         SameText(Trim(ALineas.FieldByName(
+           CAMPO_ACCION_DEPOSITO).AsString), ACCION_DEPOSITO_CANCELAR));
       if not bExcluida then
       begin
         Tipo := '';

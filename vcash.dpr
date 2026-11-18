@@ -1014,6 +1014,8 @@ uses
   inLibLotesLineaDocumento in 'src\Lib\inLibLotesLineaDocumento.pas',
   inLibTrazabilidadDocumento in 'src\Lib\inLibTrazabilidadDocumento.pas',
   inLibTrazabilidadDocumentoUniDAC in 'src\Lib\inLibTrazabilidadDocumentoUniDAC.pas',
+  UniDataReposicionAutomatica in
+    'src\DataModules\UniDataReposicionAutomatica.pas',
   UniDataMovimientosLote in 'src\DataModules\UniDataMovimientosLote.pas',
   inLibMsgTrazabilidad in 'src\Lib\inLibMsgTrazabilidad.pas',
   UniDataLotesRepositorio in 'src\DataModules\UniDataLotesRepositorio.pas',

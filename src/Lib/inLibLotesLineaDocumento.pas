@@ -324,9 +324,12 @@ var
   sLote: string;
 begin
   Result := vllCorrecta;
-  if AActivacion.AlgunModoActivo then
+  if AActivacion.AlgunModoActivo or
+     ATrazabilidad.EsPartidaReposicion then
   begin
     oModo := AActivacion.ModoEfectivo(ATrazabilidad.Modo);
+    if ATrazabilidad.EsPartidaReposicion then
+      oModo := mtLote;
     if not RequiereLote(oModo) then
     begin
       LimpiarCampo(ALinea, ACampos.Lote);
@@ -590,17 +593,29 @@ var
   oValidacion: TValidacionLineaLote;
   rGs1: TLecturaGs1Pendiente;
   rTrazabilidad: TTrazabilidadArticulo;
+  rCatalogo: TLoteCatalogo;
   sArticulo: string;
   sLote: string;
 begin
   FPendientes := [];
   FUltimaLinea := ALinea;
   sArticulo := TextoCampo(ALinea, FConfig.Campos.Articulo);
-  if FConfig.Activacion.AlgunModoActivo and Assigned(FConfig.Lectura) and
+  if Assigned(FConfig.Lectura) and
      (sArticulo <> '') then
   begin
     rTrazabilidad := FConfig.Lectura.Leer(sArticulo);
+    sLote := NormalizarLote(TextoCampo(ALinea, FConfig.Campos.Lote));
+    if (sLote = '') and TomarLecturaReposicion(
+        TextoCampo(ALinea, FConfig.Campos.Sku), FConfig.Repositorio,
+        sLote) then
+      ALinea.FieldByName(FConfig.Campos.Lote).AsString := sLote;
+    rTrazabilidad.EsPartidaReposicion := (sLote <> '') and
+      Assigned(FConfig.Repositorio) and FConfig.Repositorio.BuscarLote(
+        TextoCampo(ALinea, FConfig.Campos.Sku), sLote, rCatalogo) and
+      rCatalogo.EsReposicion;
     oModo := FConfig.Activacion.ModoEfectivo(rTrazabilidad.Modo);
+    if rTrazabilidad.EsPartidaReposicion then
+      oModo := mtLote;
     bConRegla := RequiereLote(oModo) and
       (TextoCampo(ALinea, FConfig.Campos.Sku) <> '') and
       Assigned(FConfig.Repositorio) and Assigned(FConfig.Selector);
@@ -754,7 +769,7 @@ var
   vCaducidadAnterior: Variant;
 begin
   sArticulo := TextoCampo(ALinea, FConfig.Campos.Articulo);
-  if FConfig.Activacion.AlgunModoActivo and Assigned(FConfig.Lectura) and
+  if Assigned(FConfig.Lectura) and
      Assigned(FConfig.Repositorio) and Assigned(FConfig.Selector) and
      (sArticulo <> '') and (TextoCampo(ALinea, FConfig.Campos.Sku) <> '')
   then

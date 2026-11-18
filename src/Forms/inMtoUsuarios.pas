@@ -172,6 +172,7 @@ begin
       sAlmacen;
     dmmUsuarios.unqryTablaG.FieldByName('CAJA_DEFECTO_USU').AsString :=
       sCaja;
+    dmmUsuarios.ActualizarRazonSocialEmpresa;
     // El usuario nuevo se graba al ponerle la contraseña: hasta entonces
     // la elección queda en la fila, sin el aviso de que falta.
     if dsTablaG.DataSet.State <> dsInsert then

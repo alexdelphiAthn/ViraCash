@@ -330,6 +330,7 @@ function CrearFacturasCompraInyectada(
 implementation
 
 uses
+  UniDataReposicionAutomatica,
   inLibComboProveedorDocumentoVcl,
   UniDataEjesVariacion,
   inLibMensajesVcl, inLibCorreoTickets,
@@ -1366,7 +1367,7 @@ begin
     '#,##0.00 €';
   if Assigned(ParametrosApp) then
     CrearColumnasLoteDocumento(tvLineasFactura, 'FACCLIN',
-      TActivacionTrazabilidad.Leer(ParametrosApp));
+      ActivacionVisualReposicion(ConexionPrincipal, ParametrosApp));
 end;
 
 procedure TfrmMtoFacturasCompra.ConfigurarTrazabilidadCompra;
@@ -1378,7 +1379,7 @@ begin
   rDocumento := Default(TDocumentoTrazabilidad);
   if Assigned(ParametrosApp) then
     rDocumento.Activacion := TActivacionTrazabilidad.Leer(ParametrosApp);
-  if rDocumento.Activacion.AlgunModoActivo then
+  if Assigned(ParametrosApp) then
   begin
     // La conexión del módulo de datos: la de su transacción.
     oConexion := dmmFacturasCompra.unqryTablaG.Connection as TUniConnection;

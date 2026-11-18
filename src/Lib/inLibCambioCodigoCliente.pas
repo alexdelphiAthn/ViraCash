@@ -39,6 +39,9 @@ type
     ['{91B8206B-A99C-4E36-AF87-782B03D0DDDA}']
     function Cambiar(const AAnterior, ANuevo, AUsuario: string):
       TResultadoCambioCliente;
+    // Valida sin bloquear ni modificar. Cambiar vuelve a comprobarlo.
+    function Comprobar(const AAnterior, ANuevo, AUsuario: string):
+      TResultadoCambioCliente;
     // Código vacío: todos. La consulta no modifica ni fusiona fichas.
     function DetectarDuplicados(const ACodigo: string): TDuplicadosClientes;
   end;

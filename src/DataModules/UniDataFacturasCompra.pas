@@ -215,7 +215,7 @@ implementation
 
 uses
   UniDataProveedoresTexto,
-  UniDataCodigosBarrasLote,
+  UniDataReposicionAutomatica, UniDataCodigosBarrasLote,
   inLibLineaSku,
   inLibValoresAutomaticos, UniDataValoresAutomaticosRepositorio,
   inLibContadorLineas, inLibDatasets,
@@ -673,6 +673,7 @@ var
   end;
 begin
   inherited;
+  DataSet.FieldByName('ESREPOSICION_AUTO_FACC').AsString := 'N';
   FieldByName('ESREPRESENTACION_FISCAL_FACC').AsString := 'N';
   // FZ-ISSUE-745: la fecha de registro contable solo la pide el SII.
   if SiiActivo(ParametrosApp) then
@@ -790,6 +791,13 @@ begin
     oContador.ProviderFlags := [];
   end;
   inherited;
+  if DataSet.State = dsInsert then
+  begin
+    DataSet.FieldByName('ESREPOSICION_AUTO_FACC').AsString := 'N';
+    if EmpresaReposicionActiva(ConexionEscritura,
+        DataSet.FieldByName('CODIGO_EMP_FACC').AsString) then
+      DataSet.FieldByName('ESREPOSICION_AUTO_FACC').AsString := 'S';
+  end;
   ExigirCompraSinRegistroFiscal(ConexionEscritura,
     DataSet.FieldByName('SERIE_FACC').AsString,
     DataSet.FieldByName('NUMERO_FACC').AsString);
@@ -1331,6 +1339,8 @@ begin
   // FZ-ISSUE-520: un SKU dado de baja no recibe existencias.
   ExigirSkuActivoEnDataSet(ConexionEscritura, unqryFacturasCompraLineas,
     'CODIGO_ART_FACCLIN', 'CODIGO_UNIDAD_FACCLIN', SErrorSkuCompraNoActivo);
+  PrepararReposicionLinea(ConexionEscritura, unqryFacturasCompraLineas,
+    'FACCLIN', IdentidadSesion.Usuario, ParametrosApp);
   // F-LOTEC-013: antes de los totales (una serie deja la línea
   // en 1).
   if Assigned(FLotesLineas) then
@@ -1435,7 +1445,7 @@ procedure TdmFacturasCompra.ConfigurarLotesLineas(
   const AConfig: TConfiguracionLotesLineas);
 begin
   FreeAndNil(FLotesLineas);
-  if AConfig.Activacion.AlgunModoActivo then
+  if Assigned(AConfig.Lectura) then
     FLotesLineas := TLotesLineasDocumento.Create(AConfig);
 end;
 

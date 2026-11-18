@@ -1607,6 +1607,17 @@
                 DesignSize = (
                   937
                   427)
+                object chkESLOTES_REPOSICION_EMP: TcxDBCheckBox
+                  Left = 16
+                  Top = 316
+                  Caption = 'Lote, proveedor y temporada automáticos en reposiciones'
+                  DataBinding.DataField = 'ESLOTES_REPOSICION_EMP'
+                  DataBinding.DataSource = dsTablaG
+                  Properties.ValueChecked = 'S'
+                  Properties.ValueUnchecked = 'N'
+                  TabOrder = 18
+                  Width = 680
+                end
                 object pnlUserInstantBottom: TcxGroupBox
                   Left = 0
                   Top = 342

@@ -315,6 +315,7 @@ type
     btnGenerarInstalacionSif: TcxButton;
     chkRecargoEquivalenciaCompras: TcxDBCheckBox;
     chkESTOKENS_CALENDARIO_NATURAL_EMP: TcxDBCheckBox;
+    chkESLOTES_REPOSICION_EMP: TcxDBCheckBox;
     procedure tsFichaEnter(Sender: TObject);
     procedure chkAplicaRetencionesPropertiesChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);

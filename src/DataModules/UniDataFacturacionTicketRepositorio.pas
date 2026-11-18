@@ -947,7 +947,7 @@ var
   sSql: string;
 begin
   sSql := StringReplace(
-    SqlInsertarLineasTicket(ActivacionVigente.AlgunModoActivo),
+    SqlInsertarLineasTicket(True),
     'SELECT :NUMERO, :SERIE, LINEA_FACLIN,',
     'SELECT :NUMERO, :SERIE, LPAD(CAST(LINEA_FACLIN AS UNSIGNED) ' +
     '+ :DESPLAZAMIENTO, 4, ''0''),', []);
@@ -1196,7 +1196,7 @@ begin
       end;
       EjecutarSqlFactura(
         oConsulta,
-        SqlInsertarLineasTicket(ActivacionVigente.AlgunModoActivo),
+        SqlInsertarLineasTicket(True),
         ASolicitud,
         Result);
       EjecutarSqlFactura(

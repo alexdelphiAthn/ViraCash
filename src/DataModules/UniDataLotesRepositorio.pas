@@ -46,8 +46,11 @@ const
   SQL_LOTES_ARTICULO =
     'SELECT l.CODIGO_UNIDAD_LOT, l.LOTE_LOT, l.TIPO_LOT, ' +
     'l.FECHA_CADUCIDAD_LOT, l.FECHA_ENTRADA_LOT, l.ESACTIVO_LOT, ' +
-    's.CODIGO_ALM_STK, s.CANTIDAD_STK ' +
+    's.CODIGO_ALM_STK, s.CANTIDAD_STK, l.CODIGO_PRV_LOT, ' +
+    'p.PV AS TEMPORADA ' +
     'FROM fza_articulos_lotes l ' +
+    'LEFT JOIN fza_propiedades_valores p ' +
+    'ON p.ID_PV_ARTPROP = l.ID_PV_TEMPORADA_LOT ' +
     'JOIN fza_articulos_skus k ON k.CODIGO_UNIDAD_SKU = l.CODIGO_UNIDAD_LOT ' +
     'LEFT JOIN fza_articulos_stockactual s ' +
     'ON s.CODIGO_UNIDAD_STK = l.CODIGO_UNIDAD_LOT ' +
@@ -396,6 +399,13 @@ begin
   Result.FechaEntrada := FechaCampo(
     AConsulta.FieldByName('FECHA_ENTRADA_LOT'));
   Result.CodigoProveedor := AConsulta.FieldByName('CODIGO_PRV_LOT').AsString;
+  if Assigned(AConsulta.FindField('ESREPOSICION_LOT')) then
+  begin
+    Result.EsReposicion :=
+      AConsulta.FieldByName('ESREPOSICION_LOT').AsString = VALOR_SI;
+    Result.IdTemporada :=
+      AConsulta.FieldByName('ID_PV_TEMPORADA_LOT').AsInteger;
+  end;
   Result.TipoDocumentoOrigen :=
     AConsulta.FieldByName('TIPO_DOC_ORIGEN_LOT').AsString;
   Result.SerieDocumentoOrigen :=
@@ -413,7 +423,8 @@ var
 begin
   ACatalogo := Default(TLoteCatalogo);
   oConsulta := AbrirConsulta(
-    'SELECT CODIGO_UNIDAD_LOT, TIPO_LOT, FECHA_CADUCIDAD_LOT, ' +
+    'SELECT ESREPOSICION_LOT, ID_PV_TEMPORADA_LOT, ' +
+    'CODIGO_UNIDAD_LOT, TIPO_LOT, FECHA_CADUCIDAD_LOT, ' +
     'FECHA_ENTRADA_LOT, CODIGO_PRV_LOT, TIPO_DOC_ORIGEN_LOT, ' +
     'SERIE_DOC_ORIGEN_LOT, NUMERO_DOC_ORIGEN_LOT, ESACTIVO_LOT ' +
     'FROM fza_articulos_lotes ' +
@@ -582,6 +593,9 @@ begin
       rLote.EsActivo :=
         oConsulta.FieldByName('ESACTIVO_LOT').AsString <> 'N';
       rLote.CodigoAlmacen := oConsulta.FieldByName('CODIGO_ALM_STK').AsString;
+      rLote.CodigoProveedor :=
+        oConsulta.FieldByName('CODIGO_PRV_LOT').AsString;
+      rLote.Temporada := oConsulta.FieldByName('TEMPORADA').AsString;
       rLote.Stock := oConsulta.FieldByName('CANTIDAD_STK').AsFloat;
       Result := Result + [rLote];
       oConsulta.Next;

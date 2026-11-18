@@ -667,6 +667,7 @@ type
 implementation
 
 uses
+  UniDataReposicionAutomatica,
   inLibFormatoDocumento, UniDataFormatoDocumentoRepositorio,
   inLibMensajesVcl,
   inLibComboPais,
@@ -2992,7 +2993,7 @@ begin
     dmmFacturas.unqryTablaG.Connection as TUniConnection, ParametrosApp,
     sllSalida, TablaLineasLote('FACLIN', 'fza_facturas_lineas',
                                'SERIE_FAC_FACLIN', 'NUMERO_FAC_FACLIN'));
-  if rDocumento.Activacion.AlgunModoActivo then
+  if Assigned(rDocumento.Lectura) then
   begin
     rDocumento.Documento :=
       function: TDocumentoLineaLote
@@ -3092,7 +3093,7 @@ begin
   // F-LOTEC-016: Lote / Serie y F. caducidad, con botón al modal.
   if Assigned(ParametrosApp) then
     CrearColumnasLoteDocumento(tvLineasFactura, 'FACLIN',
-      TActivacionTrazabilidad.Leer(ParametrosApp),
+      ActivacionVisualReposicion(ConexionPrincipal, ParametrosApp),
       procedure
       begin
         dmmFacturas.ElegirLoteLinea;

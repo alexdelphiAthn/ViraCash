@@ -458,6 +458,7 @@ const
     '       :FECHA_APLICACION      AS FECHA_APLICACION,'                      +
     '       COALESCE(stk.STOCK_FILTRADO, 0) AS STOCK_FILTRADO,'               +
     // F-LOTEC-022: lote y caducidad de la etiqueta (por lote o unidad).
+    '       CAST('''' AS CHAR(100)) AS COD_TEMPORADA_LOTE,' +
     '       CAST('''' AS CHAR(50)) AS LOTE_ETI,'                              +
     '       CAST('''' AS CHAR(10)) AS CADUCIDAD_ETI,'                         +
     // FZ-ISSUE-603: «Lote L1 cad. 24/10/26», «S/N …» o la temporada.
