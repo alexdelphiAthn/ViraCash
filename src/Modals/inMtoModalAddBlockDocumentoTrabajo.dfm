@@ -17,8 +17,9 @@
       Left = 12
       Top = 38
       Caption = 
-        'Se cargar'#225'n los SKU vendidos que cumplan los filtros de stock. La ' +
-        'reserva de origen y la cantidad m'#225'xima a servir son configurables.'
+        'Se cargar'#225'n los SKU que cumplan los filtros (las ventas solo cu' +
+        'entan con 6_Ventas). La reserva de origen y la cantidad m'#225'xima a' +
+        ' servir son configurables.'
       Style.TextColor = clNavy
       TabOrder = 1
       Transparent = True

@@ -152,8 +152,6 @@ type
     procedure MenuAgregarDocClick(Sender: TObject);
     procedure CrearPresentadores;
     procedure AbrirArticuloConsultado;
-    procedure GuardarModoUsuario;
-    function  ModoDesglosadoDeUsuario: Boolean;
     procedure CargarPropsPorColor;
     procedure ActualizarLetreroColor;
     procedure AjustarFotoCabecera;
@@ -201,7 +199,6 @@ implementation
 
 uses
   inLibMensajesVcl,
-  System.StrUtils,
   inLibGenBusq, inLibUser,
   inLibRegistroPantallas,
   inLibPerfilesUsuarioIntf,
@@ -238,8 +235,6 @@ const
   // tareas, con el icono de la consulta, aunque la barra combine botones.
   GRUPO_BARRA_TAREAS_STOCK = 'ViraCash.Stock';
   ICONO_CONSULTA_STOCK = 'MNUCONSULTASTOCKS';
-  PERFIL_STOCK_CONSULTA = NOMBRE_PANTALLA_STOCK_CONSULTA;
-  PERFIL_MODO_DESGLOSADO = 'ModoDesglosado';
   LAYOUT_BUSQUEDA_ARTICULOS = 'frmMtoArtStockSearch';
 
 // Traduce el motivo de bloqueo de la celda a su mensaje. Las reglas viven
@@ -298,6 +293,9 @@ begin
     Formulario := CrearPantallaInyectada(
       TfrmStockConsulta,
       Application) as TfrmStockConsulta;
+  // Cada apertura empieza en existencias; el detalle se elige en pantalla.
+  Formulario.FEstados.AplicarModo(False);
+  Formulario.FEstados.MarcarModoEnRadios;
   Formulario.SetArticuloSku(ACodArt, ACodSku);
   if Formulario.WindowState = wsMinimized then
     Formulario.WindowState := wsMaximized;
@@ -527,12 +525,8 @@ begin
     procedure
     begin
       RecargarConsulta;
-    end,
-    procedure
-    begin
-      GuardarModoUsuario;
-    end);
-  FEstados.AplicarModo(ModoDesglosadoDeUsuario);
+    end, nil);
+  FEstados.AplicarModo(False);
   FEstados.MarcarModoEnRadios;
   FEstados.AplicarColorEstadoActual;
   pcVistas.ActivePage := tsPorAlmacen;
@@ -1018,37 +1012,6 @@ procedure TfrmStockConsulta.MostrarError(const AMsg: string);
 begin
   MessageBox_fza(PChar(AMsg), PChar(STituloConsultaStock),
     MB_OK or MB_ICONERROR);
-end;
-
-// ---------------------------------------------------------------------------
-//  Perfil de usuario: modo simplificado / desglosado
-// ---------------------------------------------------------------------------
-function TfrmStockConsulta.ModoDesglosadoDeUsuario: Boolean;
-var
-  Perfil: TProfileDicc;
-begin
-  Perfil := nil;
-  try
-    GetFormUserProfile(Perfil, PERFIL_STOCK_CONSULTA,
-                       IdentidadSesion.Usuario,
-                       IdentidadSesion.Grupo,
-                       PerfilesLectura);
-    Result := SameText(
-      GetPerfilValueDef(Perfil, PERFIL_MODO_DESGLOSADO, 'N'), 'S');
-  finally
-    if Perfil <> nil then
-      FreeAndNil(Perfil);
-  end;
-end;
-
-procedure TfrmStockConsulta.GuardarModoUsuario;
-begin
-  if Assigned(PerfilesEscritura) then
-    PerfilesEscritura.GrabarPerfil(
-      IdentidadSesion.Usuario,
-      PERFIL_STOCK_CONSULTA,
-      PERFIL_MODO_DESGLOSADO,
-      IfThen(FEstados.ModoDesglosado, 'S', 'N'));
 end;
 
 // ---------------------------------------------------------------------------

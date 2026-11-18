@@ -169,6 +169,8 @@ type
       const AColumnaAlmacen, AAlmacen: string): Integer;
     function BloquearCargaTransito(QryTrx: TUniQuery; AId: Int64;
       ADesdeOrigen: Boolean): TCargaTransito;
+    procedure FijarHoraSalidaTransito(QryTrx: TUniQuery;
+      const ACarga: TCargaTransito);
     function LeerLineasCargaTransito(
       const ACarga: TCargaTransito): TLineasRecepcionTransito;
     function RepartirCargaTransito(
@@ -455,7 +457,10 @@ type
     // estados, para saber si se han servido/denegado, mas las que me pidieron
     // y denegue entera o en parte. El llamante lo libera.
     function QueryMisPeticiones(const APropio: string): TDataSet;
-    function CancelarSolicitud(const ANumero, ASerie: string): Boolean;
+    // FZ-ISSUE-1008: AAlmacenSolicitante es el almacen de la caja del TPV
+    // (el destino de la peticion), no el de la sesion de la aplicacion.
+    function CancelarSolicitud(
+      const ANumero, ASerie, AAlmacenSolicitante: string): Boolean;
     // Detalle maestro/detalle de los articulos de una solicitud. El llamante
     // libera el dataset devuelto.
     function QueryLineasSolicitud(
@@ -2638,6 +2643,47 @@ begin
   QryTrx.Close;
 end;
 
+// FZ-ISSUE-1009: recibir, devolver o dar por perdida una carga tomaba la
+// hora de la cabecera (la de abrir la pantalla o la de la operacion
+// anterior), que podia ser anterior a la carga. El recalculo del PMP
+// valoraba entonces la salida del transito a coste 0. Como al grabar un
+// traspaso, la salida toma la hora actual en el dia de caja y, como
+// minimo, un segundo despues de la entrada de la carga en el transito.
+procedure TdmTraspaso.FijarHoraSalidaTransito(QryTrx: TUniQuery;
+  const ACarga: TCargaTransito);
+var
+  dtCarga: TDateTime;
+begin
+  ActualizarHoraOperacion;
+  QryTrx.SQL.Text :=
+    'SELECT MAX(FECHA_MOV) AS FECHA_CARGA ' +
+    '  FROM fza_movimientos_almacen ' +
+    ' WHERE TIPO_DOC_MOV = :TIPO ' +
+    '   AND SERIE_DOC_MOV = :SERIE ' +
+    '   AND NUMERO_DOC_MOV = :NUMERO ' +
+    '   AND CODIGO_ALM_MOV = :TRANSITO ' +
+    '   AND CODIGO_ALM_CONTRA_MOV = :ORIGEN ' +
+    '   AND TIPO_MOV = ''E''';
+  QryTrx.ParamByName('TIPO').AsString := ACarga.TipoDocumento;
+  QryTrx.ParamByName('SERIE').AsString := ACarga.Serie;
+  QryTrx.ParamByName('NUMERO').AsString := ACarga.Numero;
+  QryTrx.ParamByName('TRANSITO').AsString := ACarga.AlmacenTransito;
+  QryTrx.ParamByName('ORIGEN').AsString := ACarga.AlmacenOrigen;
+  QryTrx.Open;
+  dtCarga := 0;
+  if not QryTrx.FieldByName('FECHA_CARGA').IsNull then
+    dtCarga := QryTrx.FieldByName('FECHA_CARGA').AsDateTime;
+  QryTrx.Close;
+  if (dtCarga > 0) and
+     (cdsCabecera.FieldByName('FECHA').AsDateTime <= dtCarga) then
+  begin
+    cdsCabecera.Edit;
+    cdsCabecera.FieldByName('FECHA').AsDateTime :=
+      dtCarga + 1 / SecsPerDay;
+    cdsCabecera.Post;
+  end;
+end;
+
 // Lineas de la carga: sus entradas en el transito, por SKU, con todo
 // recibido mientras no se reparta otra cosa. El coste unitario es el de la
 // carga (total / unidades de esas entradas), no el PMP del transito.
@@ -3163,6 +3209,7 @@ begin
     FConexion.StartTransaction;
     try
       oCarga := BloquearCargaTransito(oConsulta, AId, False);
+      FijarHoraSalidaTransito(oConsulta, oCarga);
       aLineas := RepartirCargaTransito(LeerLineasCargaTransito(oCarga),
         AReparto);
       ValidarAlmacenTarasTransito(aLineas, AAlmacenTaras);
@@ -3254,6 +3301,7 @@ begin
     FConexion.StartTransaction;
     try
       oCarga := BloquearCargaTransito(oConsulta, AId, True);
+      FijarHoraSalidaTransito(oConsulta, oCarga);
       aLineas := LeerLineasCargaTransito(oCarga);
       sDocumento := oCarga.Serie + '/' + oCarga.Numero;
       if ATipoDesbloqueo = DESBLOQUEO_PERDIDA then
@@ -3487,13 +3535,13 @@ begin
 end;
 
 function TdmTraspaso.CancelarSolicitud(
-  const ANumero, ASerie: string): Boolean;
+  const ANumero, ASerie, AAlmacenSolicitante: string): Boolean;
 var
   sUsuario: string;
 begin
   sUsuario := IdentidadSesion.Usuario;
   Result := CancelarSolicitudTraspasoPendiente(FConexion, ANumero, ASerie,
-    FContextoSesion.Ubicacion.Almacen, sUsuario);
+    AAlmacenSolicitante, sUsuario);
 end;
 
 procedure TdmTraspaso.MarcarSolicitudAtendida(QryTrx: TUniQuery;

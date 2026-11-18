@@ -111,13 +111,20 @@ const
     '  LEFT JOIN fza_tipos_documentos TD ' +
     '    ON TD.CODIGO_TIPO_DOCUMENTO_TD = DOC.TIPO_DOC ' +
     ' ORDER BY DOC.TIPO_DOC';
+  // FZ-ISSUE-999: la serie nueva nace por defecto y sin fechas, así que
+  // también la ocupa cualquier serie por defecto aún vigente en la misma
+  // ubicación (empresa, tipo, almacén, caja y subtipo), aunque su texto
+  // sea otro. Así no quedan dos series por defecto solapadas.
   SQL_EXISTE_SERIE_SOLAPADA =
     'SELECT 1 FROM fza_empresas_series ' +
     'WHERE CODIGO_EMP_EMPSER = :EMP AND TIPO_DOC_EMPSER = :TIPO ' +
     'AND IFNULL(CODIGO_ALM_EMPSER, '''') = :ALMACEN ' +
     'AND IFNULL(CODIGO_CAJA_EMPSER, '''') = :CAJA ' +
-    'AND IFNULL(SERIE_TOKENIZADA_EMPSER, '''') = :SERIE_TOKENIZADA ' +
     'AND IFNULL(SUBTIPO_EMPSER, '''') = :SUBTIPO ' +
+    'AND (IFNULL(SERIE_TOKENIZADA_EMPSER, '''') = :SERIE_TOKENIZADA ' +
+    '     OR (ESDEFECTO_EMPSER = ''S'' ' +
+    '         AND (FECHA_HASTA_EMPSER IS NULL ' +
+    '              OR FECHA_HASTA_EMPSER >= CURDATE()))) ' +
     'LIMIT 1';
   TIPO_SERIE_OPERACIONES_CAJA = 'OV';
   SQL_EMPRESA_QUE_USA_SERIE =

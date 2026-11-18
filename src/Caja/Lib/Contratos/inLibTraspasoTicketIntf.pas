@@ -54,6 +54,10 @@ type
     Sku: string;
     Descripcion: string;
     Cantidad: Double;
+    // FZ-ISSUE-1007: lote o serie del movimiento ('' sin trazabilidad) y
+    // su caducidad (0 si no tiene).
+    Lote: string;
+    Caducidad: TDateTime;
   end;
 
   // Carga a un almacén de tránsito (FZ-ISSUE-717): adónde va y de qué

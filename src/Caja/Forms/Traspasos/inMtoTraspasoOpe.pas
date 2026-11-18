@@ -4591,7 +4591,8 @@ begin
     if MessageDlg_fza(Format(SPreguntaCancelarPeticion, [sSerie, sNumero]),
       mtConfirmation, [mbYes, mbNo], 0, mbNo) = mrYes then
     begin
-      if FDatos.CancelarSolicitud(sNumero, sSerie) then
+      // FZ-ISSUE-1008: el almacen de la caja, el mismo que lista la modal.
+      if FDatos.CancelarSolicitud(sNumero, sSerie, FAlmacen) then
         ShowMessage_fza(SInfoPeticionCancelada)
       else
         ShowMessage_fza(SErrorCancelarPeticion);

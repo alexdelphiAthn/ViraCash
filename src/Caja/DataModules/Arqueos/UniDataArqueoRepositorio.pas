@@ -132,11 +132,12 @@ begin
     'THEN 1 + COALESCE(l.PORCENTAJE_IVA_FACLIN, 0) / 100 ' +
     'ELSE 1 END, 2)), 0) ' +
     'AS BRUTO, COALESCE(SUM(l.TOTAL_FACLIN), 0) AS NETO_LIN ' +
-    'FROM fza_caja_operaciones o JOIN fza_facturas_lineas l ' +
-    'ON l.CODIGO_EMP_FACLIN = o.CODIGO_EMP_OPCAJA ' +
-    'AND l.CODIGO_ALM_FACLIN = o.CODIGO_ALM_OPCAJA ' +
-    'AND l.CODIGO_CAJA_FACLIN = o.CODIGO_CAJA_OPCAJA ' +
-    'AND l.NUMERO_OPERACION_FACLIN = o.NUMERO_OPERACION_OPCAJA ' +
+    // FZ-ISSUE-1014: una operación puede tener varias filas VE (una por
+    // depósito liquidado al recoger un apartado); se toma cada operación
+    // una sola vez para no multiplicar sus líneas.
+    'FROM (SELECT DISTINCT o.CODIGO_EMP_OPCAJA, o.CODIGO_ALM_OPCAJA, ' +
+    'o.CODIGO_CAJA_OPCAJA, o.NUMERO_OPERACION_OPCAJA ' +
+    'FROM fza_caja_operaciones o ' +
     'WHERE o.TIPO_OPERACION_OPCAJA = :pTIPO_VE ' +
     'AND o.CODIGO_EMP_OPCAJA = :pEMPRESA ' +
     'AND o.CODIGO_ALM_OPCAJA = :pALMACEN ' +
@@ -147,7 +148,12 @@ begin
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
       'o.SERIE_FAC_OPCAJA',
-      'o.NUMERO_FAC_OPCAJA');
+      'o.NUMERO_FAC_OPCAJA') +
+    ') ov JOIN fza_facturas_lineas l ' +
+    'ON l.CODIGO_EMP_FACLIN = ov.CODIGO_EMP_OPCAJA ' +
+    'AND l.CODIGO_ALM_FACLIN = ov.CODIGO_ALM_OPCAJA ' +
+    'AND l.CODIGO_CAJA_FACLIN = ov.CODIGO_CAJA_OPCAJA ' +
+    'AND l.NUMERO_OPERACION_FACLIN = ov.NUMERO_OPERACION_OPCAJA ';
 end;
 
 function SqlOperaciones: string;

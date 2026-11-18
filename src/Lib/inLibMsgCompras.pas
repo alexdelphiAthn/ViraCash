@@ -678,6 +678,11 @@ resourcestring
     'Selecciona un proveedor antes de buscar artículos.';
   SErrorPedidoCompraNoAbierto =
     'No está abierto el pedido de compra.';
+  SErrorProveedorObligatorioLineasPedidoCompra =
+    'Selecciona un proveedor antes de añadir líneas al pedido.';
+  SErrorProveedorTecleadoNoExiste =
+    'No existe el proveedor «%s». Elígelo de la lista o búscalo ' +
+    'con la lupa.';
   SErrorArticuloNoSeleccionadoBuscarSkusPedidoCompra =
     'Selecciona un artículo antes de buscar sus SKUs.';
   SErrorPedidoCompraNoInicializado =

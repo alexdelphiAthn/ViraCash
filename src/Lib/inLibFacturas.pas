@@ -546,15 +546,18 @@ function TLinFac.ValidarDatos: Boolean;
 begin
   Result := True;
   _sMensajeError := '';
+  // FZ-ISSUE-1015: son datos tecleados, no fallos técnicos. Como
+  // EValidacionBBDD, ProcesarFacturaCompleta los deja pasar como aviso de
+  // negocio y no como «Error al recalcular totales de la factura».
   if (_dPorIva < 0) or (_dPorIva > 100) then
   begin
     _sMensajeError := SErrorPorcentajeIvaFueraRango;
-    raise Exception.Create(_sMensajeError);
+    raise EValidacionBBDD.Create(_sMensajeError);
   end;
   if (_dPreSiva < 0) or (_dPreCiva < 0) then
   begin
     _sMensajeError := SErrorPrecioFacturaNegativo;
-    raise Exception.Create(_sMensajeError);
+    raise EValidacionBBDD.Create(_sMensajeError);
   end;
 end;
 

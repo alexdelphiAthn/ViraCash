@@ -50,6 +50,10 @@ procedure AsegurarBotonBarraTareas(AForm: TCustomForm);
 function RectanguloVentanaEnArea(const AVentana, AArea: TRect): TRect;
 procedure AjustarFormularioAreaTrabajo(AForm: TCustomForm;
   AOwner: TComponent);
+// FZ-ISSUE-1001: solo si la ventana no cabe en el área útil de su monitor
+// (más alta o ancha, o una posición grabada que la saca de la pantalla), la
+// reduce y la centra. Llamar en OnShow, tras restaurar la geometría.
+procedure EncajarFormularioAreaTrabajo(AForm: TForm);
 
 implementation
 
@@ -86,6 +90,25 @@ begin
     FijarPosicionFormulario(AForm, poDesigned);
     AForm.SetBounds(Limites.Left, Limites.Top,
       Limites.Width, Limites.Height);
+  end;
+end;
+
+procedure EncajarFormularioAreaTrabajo(AForm: TForm);
+var
+  Area: TRect;
+  bNoCabe: Boolean;
+begin
+  if (AForm <> nil) and (AForm.Parent = nil) and
+     (AForm.WindowState = wsNormal) then
+  begin
+    Area := AForm.Monitor.WorkareaRect;
+    // Con poDesigned la VCL no recoloca: también cuenta la posición.
+    bNoCabe := (AForm.Width > Area.Width) or
+      (AForm.Height > Area.Height) or
+      ((AForm.Position = poDesigned) and
+       (not Area.Contains(AForm.BoundsRect)));
+    if bNoCabe then
+      AjustarFormularioAreaTrabajo(AForm, nil);
   end;
 end;
 

@@ -854,17 +854,16 @@ function TfrmModalAddBlockBase.
   RecogerCodigosProveedoresSeleccionados: TArray<string>;
 var
   lst: TList<string>;
-  i, n, recIdx: Integer;
-  dc: TcxGridDBDataController;
+  i: Integer;
+  Registro: TcxCustomGridRecord;
 begin
   lst := TList<string>.Create;
   try
-    dc := tvProveedores.DataController;
-    n  := dc.GetSelectedCount;
-    for i := 0 to n - 1 do
+    for i := 0 to tvProveedores.Controller.SelectedRecordCount - 1 do
     begin
-      recIdx := dc.GetSelectedRowIndex(i);
-      lst.Add(VarToStr(dc.Values[recIdx, colProvCodigo.Index]));
+      Registro := tvProveedores.Controller.SelectedRecords[i];
+      if Registro.IsData then
+        lst.Add(VarToStr(Registro.Values[colProvCodigo.Index]));
     end;
     Result := lst.ToArray;
   finally
@@ -876,20 +875,21 @@ function TfrmModalAddBlockBase.
   RecogerIdsValorPropiedadSeleccionados: TArray<Integer>;
 var
   lst: TList<Integer>;
-  i, n, recIdx: Integer;
-  dc: TcxGridDBDataController;
+  i: Integer;
+  Registro: TcxCustomGridRecord;
   v: Variant;
 begin
   lst := TList<Integer>.Create;
   try
-    dc := tvPropValores.DataController;
-    n  := dc.GetSelectedCount;
-    for i := 0 to n - 1 do
+    for i := 0 to tvPropValores.Controller.SelectedRecordCount - 1 do
     begin
-      recIdx := dc.GetSelectedRowIndex(i);
-      v := dc.Values[recIdx, colPropIdValor.Index];
-      if not VarIsNull(v) then
-        lst.Add(StrToIntDef(VarToStr(v), 0));
+      Registro := tvPropValores.Controller.SelectedRecords[i];
+      if Registro.IsData then
+      begin
+        v := Registro.Values[colPropIdValor.Index];
+        if not VarIsNull(v) then
+          lst.Add(v);
+      end;
     end;
     Result := lst.ToArray;
   finally

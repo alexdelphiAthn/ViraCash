@@ -36,16 +36,31 @@ function CantidadConTipo(const ACantidad, ATipo: string): string;
 
 // Agrupa cantidades compatibles sin sumar unidades con masa o volumen.
 function ResumenCantidadesPorTipo(ALineas: TDataSet;
-  const ACampoCantidad, ACampoTipo: string): string;
+  const ACampoCantidad, ACampoTipo: string): string; overload;
+// FZ-ISSUE-1013: igual, sin contar las lineas cuyo ACampoArticulo esta en
+// AArticulosExcluidos (abonos y anticipos de la cuenta del cliente, que no
+// son prendas que se entreguen).
+function ResumenCantidadesPorTipo(ALineas: TDataSet;
+  const ACampoCantidad, ACampoTipo, ACampoArticulo: string;
+  const AArticulosExcluidos: array of string): string; overload;
 
 implementation
 
 uses
-  System.SysUtils, System.Generics.Collections;
+  System.SysUtils, System.StrUtils, System.Generics.Collections;
 
 function ResumenCantidadesPorTipo(ALineas: TDataSet;
   const ACampoCantidad, ACampoTipo: string): string;
+begin
+  Result := ResumenCantidadesPorTipo(ALineas, ACampoCantidad, ACampoTipo,
+    '', []);
+end;
+
+function ResumenCantidadesPorTipo(ALineas: TDataSet;
+  const ACampoCantidad, ACampoTipo, ACampoArticulo: string;
+  const AArticulosExcluidos: array of string): string;
 var
+  bExcluida: Boolean;
   Cantidades: TDictionary<string, Double>;
   Marca: TBookmark;
   Tipo: string;
@@ -59,16 +74,23 @@ begin
     ALineas.First;
     while not ALineas.Eof do
     begin
-      Tipo := '';
-      if ALineas.FindField(ACampoTipo) <> nil then
-        Tipo := LowerCase(NormalizarTipoCantidad(
-          ALineas.FieldByName(ACampoTipo).AsString));
-      if EsTipoCantidadPredeterminado(Tipo) then
-        Tipo := 'uds';
-      if not Cantidades.TryGetValue(Tipo, Cantidad) then
-        Cantidad := 0;
-      Cantidades.AddOrSetValue(Tipo, Cantidad +
-        ALineas.FieldByName(ACampoCantidad).AsFloat);
+      bExcluida := (ACampoArticulo <> '') and
+        (ALineas.FindField(ACampoArticulo) <> nil) and
+        (IndexText(Trim(ALineas.FieldByName(ACampoArticulo).AsString),
+           AArticulosExcluidos) >= 0);
+      if not bExcluida then
+      begin
+        Tipo := '';
+        if ALineas.FindField(ACampoTipo) <> nil then
+          Tipo := LowerCase(NormalizarTipoCantidad(
+            ALineas.FieldByName(ACampoTipo).AsString));
+        if EsTipoCantidadPredeterminado(Tipo) then
+          Tipo := 'uds';
+        if not Cantidades.TryGetValue(Tipo, Cantidad) then
+          Cantidad := 0;
+        Cantidades.AddOrSetValue(Tipo, Cantidad +
+          ALineas.FieldByName(ACampoCantidad).AsFloat);
+      end;
       ALineas.Next;
     end;
     for Tipo in Cantidades.Keys do

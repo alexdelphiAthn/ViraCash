@@ -317,11 +317,15 @@ begin
   inherited;
   FieldByName('NUMERO_DEVC').AsString := '0';
     // Serie por defecto: buscar en fza_empresas_series para TIPO_DOC='DC'
+    // FZ-ISSUE-1003: con el almacen de la sesion (el de salida que se
+    // propone abajo), como el albaran de compra; sin el se proponia la
+    // primera serie DC de la empresa, aunque fuera de otra tienda.
     sSerie := ObtenerSerieDefecto(
       ConexionEscritura,
       UbicacionSesion.Empresa,
       CrearConfiguracionDocumento(
-        tdDevolucion, sdCompra).TipoContador);
+        tdDevolucion, sdCompra).TipoContador,
+      UbicacionSesion.Almacen);
     if FindField('SERIE_DEVC') <> nil then
     begin
       if sSerie <> '' then

@@ -141,6 +141,12 @@ resourcestring
 
 const
   fstockactual = 'STOCK_ACTUAL';
+  // Una línea ART/COLOR reúne los SKU de todas las tallas de ese color.
+  SQL_FILTRO_SKU_LINEA =
+    ' AND (COALESCE(L.CODIGO_UNIDAD_SKU_TARCLIN, '''') = '''' ' +
+    ' OR L.CODIGO_UNIDAD_SKU_TARCLIN = SKU.CODIGO_UNIDAD_SKU ' +
+    ' OR L.CODIGO_UNIDAD_SKU_TARCLIN = ' +
+    ' SUBSTRING_INDEX(SKU.CODIGO_UNIDAD_SKU, ''/'', 2)) ';
   SQL_TOTAL_STOCK =
     'COALESCE((SELECT SUM(STK.CANTIDAD_STK) ' +
     '         FROM fza_articulos_stockactual STK ' +
@@ -149,9 +155,7 @@ const
     '        WHERE SKU.CODIGO_ART_SKU = L.CODIGO_ART_TARCLIN ' +
     '          AND (:ALMACENES_STOCK = '''' OR ' +
     '            FIND_IN_SET(STK.CODIGO_ALM_STK, :ALMACENES_STOCK) > 0) ' +
-    '          AND (COALESCE(L.CODIGO_UNIDAD_SKU_TARCLIN, '''') = '''' ' +
-    '            OR STK.CODIGO_UNIDAD_STK = ' +
-    '               L.CODIGO_UNIDAD_SKU_TARCLIN)), 0) AS STOCK_ACTUAL ';
+    SQL_FILTRO_SKU_LINEA + '), 0) AS STOCK_ACTUAL ';
   // Una cantidad negativa invierte el sentido efectivo del movimiento.
   SQL_TOTAL_MOVIMIENTOS =
     'COALESCE((SELECT SUM(CASE WHEN M.TIPO_MOV = %s THEN ' +
@@ -162,8 +166,7 @@ const
     ' AND M.ESACTIVO_MOV = ''S'' AND M.TIPO_MOV IN (''E'', ''S'') ' +
     ' AND (:ALMACENES_STOCK = '''' OR ' +
     ' FIND_IN_SET(M.CODIGO_ALM_MOV, :ALMACENES_STOCK) > 0) ' +
-    ' AND (COALESCE(L.CODIGO_UNIDAD_SKU_TARCLIN, '''') = '''' ' +
-    ' OR M.CODIGO_UNIDAD_MOV = L.CODIGO_UNIDAD_SKU_TARCLIN)), 0) AS %s ';
+    SQL_FILTRO_SKU_LINEA + '), 0) AS %s ';
 
   // Referencia de la tarifa destino, aunque haya vencido. Las filas
   // futuras no son un precio anterior. Sin coincidencia se conserva NULL.
@@ -392,7 +395,6 @@ begin
     ' SUBSTRING_INDEX(L.CODIGO_UNIDAD_SKU_TARCLIN, ''/'', 2), '''') ' +
     ' LIMIT 1), '''') AS TEMPORADA_ART, ' +
     SQL_FINAL_ANTERIOR +
-    // La tarifa general muestra todas las variantes; la de SKU solo ese SKU.
     SQL_TOTAL_STOCK + ', ' +
     Format(SQL_TOTAL_MOVIMIENTOS, ['''E''', 'ENTRADAS']) + ', ' +
     Format(SQL_TOTAL_MOVIMIENTOS, ['''S''', 'SALIDAS']) +

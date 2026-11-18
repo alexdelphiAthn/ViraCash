@@ -1613,9 +1613,12 @@ begin
   if TotalesFactura <> nil then
   begin
     FDatosCobro.CargarDatosFactura(TotalesFactura);
+    // FZ-ISSUE-1013: el abono del anticipo de un apartado (ACUENTA, -1)
+    // no es una prenda: no resta en la suma de unidades del cobro.
     txtCantidadLineas.Text := ResumenCantidadesPorTipo(
       TotalesFactura.Lineas, 'CANTIDAD_FACLIN',
-      'TIPO_CANTIDAD_ARTICULO_FACLIN');
+      'TIPO_CANTIDAD_ARTICULO_FACLIN', 'CODIGO_ART_FACLIN',
+      ['ACUENTA', 'ANTICIPO']);
     txtCantidadLineas.Hint := txtCantidadLineas.Text;
     txtCantidadLineas.ShowHint := True;
     // El resumen mixto no cabe en la celda de 64 píxeles. Mostrar el

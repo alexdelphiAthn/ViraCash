@@ -29,7 +29,8 @@ implementation
 uses
   System.SysUtils,
   System.Classes,
-  Data.DB;
+  Data.DB,
+  inLibErroresBBDD;
 
 resourcestring
   SErrorIdentidadArticuloOrigenDestinoCoincidente =
@@ -3547,9 +3548,23 @@ begin
         end;
         FinalizarTransaccion(Result);
       except
-        if FConexion.InTransaction then
-          FConexion.Rollback;
-        raise;
+        // FZ-ISSUE-1004: un rechazo de la BBDD (SIGNAL 45000, p. ej. de
+        // PRC_FZA_FUSION_RECALCULAR_PMP) deshace todo: se informa como
+        // operación cancelada, con el motivo, y no como estado dudoso.
+        on E: EValidacionBBDD do
+        begin
+          if FConexion.InTransaction then
+            FConexion.Rollback;
+          Result := TResultadoCambioArticuloColor.Error(
+            mcacDatosInconsistentes,
+            E.Message);
+        end;
+        else
+        begin
+          if FConexion.InTransaction then
+            FConexion.Rollback;
+          raise;
+        end;
       end;
     finally
       oHistorico.Free;
@@ -3656,9 +3671,21 @@ begin
         end;
         FinalizarTransaccion(Result);
       except
-        if FConexion.InTransaction then
-          FConexion.Rollback;
-        raise;
+        // FZ-ISSUE-1004: rechazo de la BBDD = operación cancelada entera.
+        on E: EValidacionBBDD do
+        begin
+          if FConexion.InTransaction then
+            FConexion.Rollback;
+          Result := TResultadoCambioArticuloColor.Error(
+            mcacDatosInconsistentes,
+            E.Message);
+        end;
+        else
+        begin
+          if FConexion.InTransaction then
+            FConexion.Rollback;
+          raise;
+        end;
       end;
     finally
       oHistorico.Free;

@@ -384,7 +384,8 @@ procedure TPresentadorEstadosStock.RadioClick(Sender: TObject);
 begin
   FSeleccion.FijarModo(FRadioDesglosado.Checked);
   PoblarCombo;
-  FAlGuardarModo();
+  if Assigned(FAlGuardarModo) then
+    FAlGuardarModo();
   FAlRecargar();
 end;
 
@@ -454,7 +455,8 @@ begin
     begin
       MarcarModoEnRadios;
       PoblarCombo;
-      FAlGuardarModo();
+      if Assigned(FAlGuardarModo) then
+        FAlGuardarModo();
     end;
     if (Resultado.Indice >= 0) and
        not FSeleccion.ModoDesglosado then

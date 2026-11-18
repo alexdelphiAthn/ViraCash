@@ -190,7 +190,10 @@ begin
   Result :=
     'SELECT l.*, ' +
     '       COALESCE(a.CODIGO_FAM_ART, '''') AS CODIGO_FAM_ART, ' +
-    '       COALESCE(f.DESCRIPCION_FAM, '''') AS DESCRIPCION_FAM, ' +
+    // FZ-ISSUE-1005: nombre de la familia, con la descripcion de respaldo;
+    // muchas familias solo tienen nombre y la columna salia vacia.
+    '       COALESCE(NULLIF(TRIM(f.NOMBRE_FAM_FAM), ''''), ' +
+    '                f.DESCRIPCION_FAM, '''') AS DESCRIPCION_FAM, ' +
     '       COALESCE(ap.CODIGO_PRV_AP, '''') AS CODIGO_PRV_AP, ' +
     '       COALESCE(' + SqlNombreMostradoProveedor('p') +
     ', '''') AS NOMBRE_PRV, ' +

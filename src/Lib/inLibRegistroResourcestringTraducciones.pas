@@ -15362,6 +15362,18 @@ begin
       SErrorPedidoCompraNoAbierto);
   ARegistrar(
     'inLibMsgCompras.' +
+    'SErrorProveedorObligatorioLineasPedidoCompra',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SErrorProveedorObligatorioLineasPedidoCompra);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SErrorProveedorTecleadoNoExiste',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SErrorProveedorTecleadoNoExiste);
+  ARegistrar(
+    'inLibMsgCompras.' +
     'SErrorArticuloNoSeleccionadoBuscarSkusPedidoCompra',
     'src/Lib/inLibMsgCompras.pas',
     @inLibMsgCompras.
@@ -32313,6 +32325,14 @@ begin
     'STicketCantidad',
     'src/Lib/inLibMsgTickets.pas',
     @inLibMsgTickets.STicketCantidad);
+  ARegistrar(
+    'inLibMsgTickets.STicketLoteSerie',
+    'src/Lib/inLibMsgTickets.pas',
+    @inLibMsgTickets.STicketLoteSerie);
+  ARegistrar(
+    'inLibMsgTickets.STicketCaducidad',
+    'src/Lib/inLibMsgTickets.pas',
+    @inLibMsgTickets.STicketCaducidad);
   ARegistrar(
     'inLibMsgCompras.SCaptionPaginaPedidoOriginal',
     'src/Lib/inLibMsgCompras.pas',

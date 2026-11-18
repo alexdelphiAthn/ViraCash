@@ -179,7 +179,9 @@ const
   SQL_LINEAS_TRASPASO =
     'SELECT m.CODIGO_UNIDAD_MOV, m.CANTIDAD_MOV, ' +
     'COALESCE(NULLIF(TRIM(m.DESCRIPCION_ARTICULO_MOV), ''''), ' +
-    'a.DESCRIPCION_ART, '''') AS DESCRIPCION ' +
+    'a.DESCRIPCION_ART, '''') AS DESCRIPCION, ' +
+    // FZ-ISSUE-1007: lote o serie que viaja y su caducidad.
+    'm.LOTE_MOV, m.FECHA_CADUCIDAD_MOV ' +
     'FROM fza_movimientos_almacen m ' +
     'LEFT JOIN fza_articulos a ON a.CODIGO_ART_ART = m.CODIGO_ART_MOV ' +
     'WHERE m.CODIGO_ALM_DOC_MOV = :ALM ' +
@@ -531,6 +533,13 @@ begin
         oQuery.FieldByName('CANTIDAD_MOV').AsFloat;
       oLinea.Descripcion :=
         oQuery.FieldByName('DESCRIPCION').AsString;
+      // FZ-ISSUE-1007: opcionales, por si el catalogo SQL no los trae.
+      if oQuery.FindField('LOTE_MOV') <> nil then
+        oLinea.Lote := Trim(oQuery.FieldByName('LOTE_MOV').AsString);
+      if (oQuery.FindField('FECHA_CADUCIDAD_MOV') <> nil) and
+         (not oQuery.FieldByName('FECHA_CADUCIDAD_MOV').IsNull) then
+        oLinea.Caducidad :=
+          oQuery.FieldByName('FECHA_CADUCIDAD_MOV').AsDateTime;
       oLineas.Add(oLinea);
       oQuery.Next;
     end;

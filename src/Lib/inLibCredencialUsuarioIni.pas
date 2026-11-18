@@ -119,8 +119,9 @@ function DescifrarContrasenaLegada(
   const ADatoCifrado: string): string;
 begin
   Result := DescifrarAES(ADatoCifrado);
-  if (ADatoCifrado = '') or
-    (CifrarAES(Result) <> ADatoCifrado) then
+  // DescifrarAES valida cada formato con su propia clave. Recifrar con
+  // CifrarAES usa el formato actual y no coincide con el legado valido.
+  if Result = '' then
   begin
     raise EConvertError.Create(
       STextoPasswordenNoContieneUnaContrasenaAesValidaComun);

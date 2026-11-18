@@ -76,6 +76,11 @@ type
                                      ADestino: Double;
                                      const AUnidad:
                                        TUnidadLineaTicketTraspaso);
+    // FZ-ISSUE-1007: bajo la linea, el lote o numero de serie que viaja
+    // y su caducidad. No imprime nada sin trazabilidad (ALote vacio);
+    // ACaducidad = 0 es sin caducidad.
+    class procedure ImprimirLoteSerie(ATicket: TTicketTermico;
+      const ALote: string; ACaducidad: TDateTime);
     // Los tres pasos de la solicitud: encabezado, cuerpo de lineas y
     // cierre con la salida a impresora o vista previa.
     // FZ-ISSUE-717: en una carga a un almacen de transito, el destino final
@@ -404,6 +409,18 @@ begin
     TextoCantidadTicketTraspaso(ADestino, AUnidad));
 end;
 
+class procedure TTraspasoTicket.ImprimirLoteSerie(ATicket: TTicketTermico;
+  const ALote: string; ACaducidad: TDateTime);
+begin
+  if Trim(ALote) <> '' then
+  begin
+    ATicket.TextoColumnas(STicketLoteSerie, Trim(ALote));
+    if ACaducidad > 0 then
+      ATicket.TextoColumnas(STicketCaducidad,
+        FormatDateTime('dd/mm/yyyy', ACaducidad));
+  end;
+end;
+
 function TextoCodigoNombre(const ACodigo, ANombre: string): string;
 begin
   if Trim(ANombre) = '' then
@@ -680,6 +697,7 @@ var
   Cabecera: TTraspasoTicketHistorico;
   ComandosESC, RutaPDF, sImpresora, sRefArch, sSku: string;
   dPed, dOrg, dDes: Double;
+  dCad: TDateTime;
   bm: TBookmark;
 begin
   if Assigned(ARepositorio) and Assigned(ALineas) then
@@ -740,6 +758,14 @@ begin
               STicketStockOrigenTrasTraspaso, dOrg,
               STicketStockDestinoTrasTraspaso, dDes,
               UnidadLineaDataSet(ALineas));
+            // FZ-ISSUE-1007: lote / serie de la linea (columna de pantalla).
+            dCad := 0;
+            if (ALineas.FindField('FECHA_CADUCIDAD') <> nil) and
+               (not ALineas.FieldByName('FECHA_CADUCIDAD').IsNull) then
+              dCad := ALineas.FieldByName('FECHA_CADUCIDAD').AsDateTime;
+            if ALineas.FindField('LOTE') <> nil then
+              ImprimirLoteSerie(Ticket,
+                ALineas.FieldByName('LOTE').AsString, dCad);
           end;
           ALineas.Next;
         end;
@@ -854,6 +880,8 @@ begin
                 1, N_CHAR_LIN));
             Ticket.TextoColumnas(STicketUnidades,
               FormatFloat('0.###', dPed));
+            ImprimirLoteSerie(Ticket, Lineas[iLinea].Lote,
+              Lineas[iLinea].Caducidad);
           end
           else
           begin
@@ -872,6 +900,8 @@ begin
               STicketStockOrigenActual, dOrg,
               STicketStockDestinoActual, dDes,
               UnidadLineaTicketDesconocida);
+            ImprimirLoteSerie(Ticket, Lineas[iLinea].Lote,
+              Lineas[iLinea].Caducidad);
           end;
           Inc(iLinea);
         end;

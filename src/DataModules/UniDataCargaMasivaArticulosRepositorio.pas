@@ -69,7 +69,11 @@ const
     'SELECT CODIGO_PRV_PRV, RAZON_SOCIAL_PRV, ' +
     SQL_COLUMNA_NOMBRE_MOSTRADO_PRV + ', NIF_PRV ' +
     'FROM fza_proveedores WHERE ESACTIVO_PRV = ''S'' ' +
-    'ORDER BY ' + CAMPO_NOMBRE_MOSTRADO_PRV + ', CODIGO_PRV_PRV';
+    'ORDER BY CASE WHEN NOT EXISTS (SELECT 1 FROM fza_proveedores P ' +
+    'WHERE P.ESACTIVO_PRV = ''S'' AND ' +
+    'P.CODIGO_PRV_PRV NOT REGEXP ''^[0-9]+$'') ' +
+    'THEN CAST(CODIGO_PRV_PRV AS DECIMAL(65,0)) END, ' +
+    CAMPO_NOMBRE_MOSTRADO_PRV + ', CODIGO_PRV_PRV';
   SQL_PROPIEDADES =
     'SELECT CODIGO_PROP_ARTPROP, NOMBRE_PROP_PROP FROM fza_propiedades ' +
     'WHERE ESACTIVO_PROP = ''S'' AND TIPO_VALOR_PROP = ''LISTA'' ' +
@@ -1174,22 +1178,18 @@ begin
   end;
 end;
 
-// Sesion de tarifa: una fila general y las claves propias de origen y
-// destino. Una tarifa destino vacia debe conservar las tallas y SKU del
-// origen. UNION elimina repeticiones de un SKU con varios periodos.
+// Claves con tarifa propia en origen o destino, una vez por artículo y SKU.
 function UnionesPreviewSesionTarifa(
   const AContexto: TContextoCargaMasivaArticulos): string;
 begin
   Result := '';
   if AContexto.Modo = mcSesionTarifa then
     Result :=
-      'JOIN (SELECT CODIGO_ART_ART AS ARTICULO, ' +
-      ''''' AS SKU FROM fza_articulos UNION ' +
-      'SELECT CODIGO_ART_ARTTAR, CODIGO_UNIDAD_ARTTAR ' +
+      'JOIN (SELECT DISTINCT CODIGO_ART_ARTTAR AS ARTICULO, ' +
+      'COALESCE(CODIGO_UNIDAD_ARTTAR, '''') AS SKU ' +
       'FROM fza_articulos_tarifas ' +
       'WHERE CODIGO_TAR_ARTTAR IN (:P_TAR_DEST_SKU, :P_TAR_ORIG_SKU) ' +
-      'AND ESACTIVO_ARTTAR = ''S'' ' +
-      'AND COALESCE(CODIGO_UNIDAD_ARTTAR, '''') <> '''') U ' +
+      'AND ESACTIVO_ARTTAR = ''S'') U ' +
       'ON U.ARTICULO = a.CODIGO_ART_ART';
 end;
 
@@ -1234,7 +1234,11 @@ begin
       IntArrToCsvSql(AFiltros.IdsValorPropiedad));
     AnadirFiltroVentasPreviewArticulos(oSql, AFiltros);
     if AContexto.Modo = mcSesionTarifa then
+    begin
+      oSql.Add('HAVING PRECIO_ORIGEN <> 0 OR PRECIO_SALIDA_ACT <> 0');
+      oSql.Add('OR PRECIO_FINAL_ACT <> 0');
       oSql.Add('ORDER BY a.CODIGO_FAM_ART, a.CODIGO_ART_ART, U.SKU')
+    end
     else
       oSql.Add('ORDER BY a.CODIGO_FAM_ART, a.CODIGO_ART_ART');
     Result := oSql.Text;

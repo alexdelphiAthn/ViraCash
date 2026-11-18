@@ -696,7 +696,7 @@ begin
       oConsultaHorizontal := ConsultarMovimientosArticuloHorizontal(
         ConexionPrincipal, sArticulo, aTallas);
       TfrmModalMovimientosArticuloColor.Ejecutar(Self, oConsulta,
-        oConsultaHorizontal, aTallas, sArticulo + ' - ' +
+        oConsultaHorizontal, aTallas, sArticulo,
         dsTablaG.DataSet.FieldByName('DESCRIPCION_ART').AsString, sSku);
     finally
       FreeAndNil(oConsultaHorizontal);

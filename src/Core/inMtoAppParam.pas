@@ -238,6 +238,7 @@ uses
    dxSkinsDefaultPainters, dxSkinsForm,
   FileCtrl, inLibPathTokens,               // SelectDirectory
    inLibLayoutForm, inLibVerifactu, inLibViraCashApi,
+  inLibPosicionFormulario,
    inLibMsgConfiguracion, inLibMsgComun,
    inLibTraducciones, inLibTraduccionesIntf,
    inLibTraduccionesDescargaPersistenciaIntf,
@@ -1667,6 +1668,7 @@ begin
     IdentidadSesion.Usuario,
     IdentidadSesion.Grupo);
   RestaurarLayout;
+  EncajarFormularioAreaTrabajo(Self);
   if edtBusqueda.CanFocus then
     edtBusqueda.SetFocus;
 end;
@@ -1883,6 +1885,9 @@ var
 var
   i: Integer;
 begin
+  // FZ-ISSUE-1001: cerrar antes el editor en línea (aplica su valor); si
+  // su fila queda oculta, el control seguiría pintado suelto en la rejilla.
+  Grid.SelectedIndex := -1;
   Grid.BeginUpdate;
   try
     TextoBusquedaLimpio := QuitarTildes(Texto);

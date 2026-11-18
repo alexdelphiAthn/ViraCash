@@ -88,7 +88,7 @@ function CalcularCombinacionesAltaTarifas(
   const AVigenciaNueva: TVigenciaTarifa): TCombinacionesAltaTarifa;
 
 // Compone la fila nueva. La fila del propio articulo nace a precio
-// cero e inactiva; la de SKU hereda el precio del padre y solo queda
+// cero y activa; la de SKU hereda el precio del padre y solo queda
 // activa si ese precio es mayor que cero.
 function ComponerFilaNuevaTarifa(
   const ACombinacion: TCombinacionAltaTarifa;
@@ -220,7 +220,11 @@ begin
     fPrecio := APrecioPadre;
   Result.PrecioSalida := fPrecio;
   Result.PrecioFinal := fPrecio;
-  Result.EsActiva := fPrecio > 0;
+  // FZ-ISSUE-1000: la fila del articulo no tiene padre que la sustituya;
+  // nace activa para que el precio tecleado tenga efecto sin marcar
+  // «Activo» a mano. La de SKU a cero seguiria tapando el precio del
+  // padre, por eso solo se activa con precio heredado.
+  Result.EsActiva := ACombinacion.EsFilaArticulo or (fPrecio > 0);
   Result.Vigencia := AVigenciaNueva;
 end;
 

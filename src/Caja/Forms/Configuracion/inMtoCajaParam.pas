@@ -127,7 +127,7 @@ implementation
 uses
   inLibMensajesVcl, inLibInspectorSkin,
   StrUtils, inLibLayoutForm, inLibMsgCaja, inLibCajaParam,
-  inLibTrazabilidad;
+  inLibTrazabilidad, inLibPosicionFormulario;
 
 const
   cItemEditarFormatosTicket = 'EditarFormatosTicket';
@@ -662,6 +662,7 @@ begin
   cmbGrupoUsuario.ItemIndex := 0;
   btnChangeId.Visible := False;
   RestaurarLayout;
+  EncajarFormularioAreaTrabajo(Self);
   if edtBusqueda.CanFocus then
     edtBusqueda.SetFocus;
 end;
@@ -933,6 +934,9 @@ var
   end;
 var i: Integer;
 begin
+  // FZ-ISSUE-1001: cerrar antes el editor en línea (aplica su valor); si
+  // su fila queda oculta, el control seguiría pintado suelto en la rejilla.
+  Grid.SelectedIndex := -1;
   Grid.BeginUpdate;
   try
     TextoBusquedaLimpio := QuitarTildes(Texto);

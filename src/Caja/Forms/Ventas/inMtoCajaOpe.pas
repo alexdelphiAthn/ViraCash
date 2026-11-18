@@ -198,6 +198,10 @@ type
     function CampoLineaEnfocado: string;
     procedure ConfirmarTotalLineaCaja(Sender: TObject;
       const ACopia: TCopiaLineaCaja);
+    procedure RevertirLineaCaja(Sender: TObject;
+      const ACopia: TCopiaLineaCaja);
+    function RecalcularLineaCaja(Sender: TObject;
+      const ACopia: TCopiaLineaCaja): Boolean;
     function RejillaEnfocable: Boolean;
     function EditandoTextoLinea: Boolean;
     function GetRejilla: TcxGrid;
@@ -614,6 +618,8 @@ type
       var DisplayValue: Variant; var ErrorText: TCaption; var Error: Boolean);
     procedure tvImportePropertiesValidate(Sender: TObject;
       var DisplayValue: Variant; var ErrorText: TCaption; var Error: Boolean);
+    procedure tvPrecioUniPropertiesValidate(Sender: TObject;
+      var DisplayValue: Variant; var ErrorText: TCaption; var Error: Boolean);
     procedure LectorCodigoLeido(Sender: TObject; const ACodigo: string);
     function  LectorRejillaEditando: Boolean;
     function  LectorEsControlRejilla(AControl: TControl): Boolean;
@@ -707,6 +713,7 @@ uses
   inLibFormatoDocumento, UniDataFormatoDocumentoRepositorio,
   Vcl.Graphics,
   inLibMensajesVcl, inLibErroresBBDD, inLibMsgReparaciones,
+  inLibMsgFacturas,
   inLibCajaRectificacion,
   inLibGridCantidad,
   inLibFormatoMonetario,
@@ -2562,6 +2569,20 @@ begin
   RedirigirLecturaCeldaNumerica(Sender, DisplayValue, Error);
 end;
 
+// FZ-ISSUE-1015: un precio negativo se rechaza en la propia celda, que
+// conserva el valor anterior, en vez de llegar al recálculo de la factura.
+procedure TfrmMtoOpeCaja.tvPrecioUniPropertiesValidate(Sender: TObject;
+  var DisplayValue: Variant; var ErrorText: TCaption; var Error: Boolean);
+begin
+  if (not RedirigirLecturaCeldaNumerica(Sender, DisplayValue, Error)) and
+     (not Error) and
+     (StrToFloatDef(VarToStr(DisplayValue), 0) < 0) then
+  begin
+    Error := True;
+    ErrorText := SErrorPrecioFacturaNegativo;
+  end;
+end;
+
 // True cuando el editor en linea tiene texto sin confirmar, es decir, el
 // cajero esta tecleando un codigo en la fila en blanco.
 function TEditorLineasCajaVcl.EditandoTextoLinea: Boolean;
@@ -2798,18 +2819,51 @@ begin
   if (not FRevirtiendoTotalLinea) and
      (not DatosCaja.ConfirmarSubidaTotalLinea(ACopia.Total,
         DatosCaja.cdsLineas.FieldByName('TOTAL_FACLIN').AsCurrency)) then
+    RevertirLineaCaja(Sender, ACopia);
+end;
+
+// La línea vuelve a como estaba, se recalcula la factura con el valor
+// anterior y el editor lo recupera (si no, lo volvería a mandar al salir).
+procedure TEditorLineasCajaVcl.RevertirLineaCaja(Sender: TObject;
+  const ACopia: TCopiaLineaCaja);
+begin
+  FRevirtiendoTotalLinea := True;
+  try
+    DatosCaja.RestaurarLineaActual(ACopia);
+    ActualizarLineaFactura(ConexionPrincipal, FRepositorioFacturas,
+      DatosCaja.cdsLineas, DatosCaja.cdsCabecera, ACopia.Campo,
+      ACopia.Valor, ActualizarLabelTotal);
+    if Sender is TcxCustomEdit then
+      TcxCustomEdit(Sender).EditValue := ACopia.Valor;
+  finally
+    FRevirtiendoTotalLinea := False;
+  end;
+end;
+
+// FZ-ISSUE-1015: si el recálculo rechaza lo tecleado (p. ej. un total que
+// deja el precio negativo), la línea vuelve a como estaba y se avisa, en
+// vez de dejar la excepción al manejador global con la línea incoherente.
+function TEditorLineasCajaVcl.RecalcularLineaCaja(Sender: TObject;
+  const ACopia: TCopiaLineaCaja): Boolean;
+var
+  sMensaje: string;
+begin
+  sMensaje := '';
+  try
+    GridRecalc(ConexionPrincipal, FRepositorioFacturas, Sender,
+               tvLineasOpe,
+               DatosCaja.cdsLineas,
+               DatosCaja.cdsCabecera,
+               ActualizarLabelTotal);
+  except
+    on E: EValidacionBBDD do
+      sMensaje := E.Message;
+  end;
+  Result := sMensaje = '';
+  if not Result then
   begin
-    FRevirtiendoTotalLinea := True;
-    try
-      DatosCaja.RestaurarLineaActual(ACopia);
-      ActualizarLineaFactura(ConexionPrincipal, FRepositorioFacturas,
-        DatosCaja.cdsLineas, DatosCaja.cdsCabecera, ACopia.Campo,
-        ACopia.Valor, ActualizarLabelTotal);
-      if Sender is TcxCustomEdit then
-        TcxCustomEdit(Sender).EditValue := ACopia.Valor;
-    finally
-      FRevirtiendoTotalLinea := False;
-    end;
+    RevertirLineaCaja(Sender, ACopia);
+    ShowMessage_fza(sMensaje);
   end;
 end;
 
@@ -2828,12 +2882,8 @@ begin
     DatosCaja.cdsLineas.FieldByName(
       'PRECIO_VENTA_SIVA_ARTICULO_FACLIN').AsCurrency := 0;
   end;
-  GridRecalc(ConexionPrincipal, FRepositorioFacturas, Sender,
-             tvLineasOpe,
-             DatosCaja.cdsLineas,
-             DatosCaja.cdsCabecera,
-             ActualizarLabelTotal);
-  ConfirmarTotalLineaCaja(Sender, Copia);
+  if RecalcularLineaCaja(Sender, Copia) then
+    ConfirmarTotalLineaCaja(Sender, Copia);
 end;
 
 procedure TEditorLineasCajaVcl.CambiarDescuento(Sender: TObject);
@@ -2850,12 +2900,8 @@ begin
     DatosCaja.cdsLineas.FieldByName(
       'PRECIO_VENTA_SIVA_ARTICULO_FACLIN').AsCurrency := 0;
   end;
-  GridRecalc(ConexionPrincipal, FRepositorioFacturas, Sender,
-             tvLineasOpe,
-             DatosCaja.cdsLineas,
-             DatosCaja.cdsCabecera,
-             ActualizarLabelTotal);
-  ConfirmarTotalLineaCaja(Sender, Copia);
+  if RecalcularLineaCaja(Sender, Copia) then
+    ConfirmarTotalLineaCaja(Sender, Copia);
 end;
 
 procedure TEditorLineasCajaVcl.CambiarPrecioUnitario(Sender: TObject);
@@ -2870,12 +2916,8 @@ begin
     DatosCaja.cdsLineas.FieldByName(
                      'PRECIO_VENTA_SIVA_ARTICULO_FACLIN').AsCurrency := 0;
   end;
-  GridRecalc(ConexionPrincipal, FRepositorioFacturas, Sender,
-             tvLineasOpe,
-             DatosCaja.cdsLineas,
-             DatosCaja.cdsCabecera,
-             ActualizarLabelTotal);
-  ConfirmarTotalLineaCaja(Sender, Copia);
+  if RecalcularLineaCaja(Sender, Copia) then
+    ConfirmarTotalLineaCaja(Sender, Copia);
 end;
 
 procedure TEditorLineasCajaVcl.CambiarTotal(Sender: TObject);
@@ -2883,12 +2925,8 @@ var
   Copia: TCopiaLineaCaja;
 begin
   Copia := DatosCaja.CopiarLineaActual(CampoLineaEnfocado);
-  GridRecalc(ConexionPrincipal, FRepositorioFacturas, Sender,
-             tvLineasOpe,
-             DatosCaja.cdsLineas,
-             DatosCaja.cdsCabecera,
-             ActualizarLabelTotal);
-  ConfirmarTotalLineaCaja(Sender, Copia);
+  if RecalcularLineaCaja(Sender, Copia) then
+    ConfirmarTotalLineaCaja(Sender, Copia);
 end;
 
 procedure TEditorLineasCajaVcl.CambiarUnidades(Sender: TObject);
@@ -2896,12 +2934,8 @@ var
   Copia: TCopiaLineaCaja;
 begin
   Copia := DatosCaja.CopiarLineaActual(CampoLineaEnfocado);
-  GridRecalc(ConexionPrincipal, FRepositorioFacturas, Sender,
-             tvLineasOpe,
-             DatosCaja.cdsLineas,
-             DatosCaja.cdsCabecera,
-             ActualizarLabelTotal);
-  ConfirmarTotalLineaCaja(Sender, Copia);
+  if RecalcularLineaCaja(Sender, Copia) then
+    ConfirmarTotalLineaCaja(Sender, Copia);
 end;
 
 procedure TfrmMtoOpeCaja.tvUdsPropertiesValidate(Sender: TObject;
@@ -3714,7 +3748,12 @@ begin
           [Apartado.Almacen, Apartado.Caja]))
       else
       begin
-        Respuesta := MessageDlg_fza(Format(SPreguntaCompletarApartadoCaja,
+        // FZ-ISSUE-1011: el ticket con el formato de documento de la
+        // empresa, como el título (no «serie\número» literal).
+        Respuesta := MessageDlg_fza(FormatearMensajeDocumentos(
+          CrearFormatoDocumentoLecturas(ConexionPrincipal)
+          .LeerFormatoEmpresa(Seleccion.Empresa),
+          SPreguntaCompletarApartadoCaja,
           [Seleccion.Serie, Seleccion.Numero, Apartado.Prendas,
            Apartado.NombreContacto]), mtConfirmation,
           [mbYes, mbNo, mbCancel], 0);
@@ -4461,12 +4500,11 @@ begin
     if FCaptionPrevio <> '' then
       Caption := FCaptionPrevio;
   end;
-  // Devolución con origen sin rectificativa (otra empresa): restaurar
-  // el título y limpiar SIEMPRE el estado de devolución (motivo y
-  // ticket de origen) tras grabar.
-  if (FNumeroRectifica = '') and
-     (Trim(FSerieOrigenDev) <> '') and
-     (FCaptionPrevio <> '') then
+  // Tras grabar, el título vuelve SIEMPRE al de la caja: devolución con
+  // origen de otra empresa y también apartado completado, cuyo sufijo
+  // «APARTADO de …» seguía en la venta siguiente (FZ-ISSUE-1012). Después
+  // se limpia el estado de devolución (motivo y ticket de origen).
+  if FCaptionPrevio <> '' then
     Caption := FCaptionPrevio;
   // Limpiar el estado de devolucion (motivo y ticket de origen).
   AsignarPresupuesto('', '', '');
@@ -5427,7 +5465,7 @@ begin
   TcxCurrencyEditProperties(tvDescuentoMenos.Properties).OnValidate :=
     tvImportePropertiesValidate;
   TcxCurrencyEditProperties(tvPrecioUni.Properties).OnValidate :=
-    tvImportePropertiesValidate;
+    tvPrecioUniPropertiesValidate;
   TcxCurrencyEditProperties(tvTotal.Properties).OnValidate :=
     tvImportePropertiesValidate;
 end;

@@ -12,7 +12,7 @@
     Style.BorderStyle = ebsNone
     TabOrder = 0
     Transparent = True
-    Height = 112
+    Height = 198
     Width = 1200
     object lblArticulo: TcxLabel
       Left = 12
@@ -21,16 +21,17 @@
       Anchors = [akLeft, akTop, akRight]
       Transparent = True
       Height = 24
-      Width = 1170
+      Width = 796
     end
     object lblPrecios: TcxLabel
       Left = 12
-      Top = 78
+      Top = 80
       AutoSize = False
       Anchors = [akLeft, akTop, akRight]
       Transparent = True
-      Height = 24
-      Width = 1170
+      Properties.WordWrap = True
+      Height = 104
+      Width = 796
     end
     object lblColor: TcxLabel
       Left = 12
@@ -55,6 +56,39 @@
       Center = True
       ShowHint = True
       Visible = False
+    end
+    object calendario: TMonthCalendar
+      Left = 824
+      Top = 4
+      Width = 219
+      Height = 162
+      Anchors = [akTop, akRight]
+      AutoSize = False
+      ShowToday = False
+      ShowTodayCircle = False
+      OnChange = calendarioChange
+      TabOrder = 4
+    end
+    object lblFecha: TcxLabel
+      Left = 816
+      Top = 168
+      Width = 234
+      Height = 24
+      Anchors = [akTop, akRight]
+      AutoSize = False
+      Properties.Alignment.Horz = taCenter
+      Transparent = True
+    end
+    object imgFoto: TImage
+      Left = 1054
+      Top = 8
+      Width = 134
+      Height = 176
+      Anchors = [akTop, akRight]
+      Center = True
+      Proportional = True
+      Stretch = True
+      ShowHint = True
     end
   end
   object pnlBotones: TcxGroupBox [1]
@@ -96,21 +130,7 @@
   object cxgrdMovimientos: TcxGrid [2]
     Align = alClient
     TabOrder = 1
-    object tvMovimientos: TcxGridDBTableView
-      DataController.DataSource = dsMovimientos
-      FilterRow.Visible = True
-      OptionsBehavior.AlwaysShowEditor = False
-      OptionsData.CancelOnExit = False
-      OptionsData.Deleting = False
-      OptionsData.Editing = False
-      OptionsData.Inserting = False
-      OptionsView.ColumnAutoWidth = False
-      OptionsView.HeaderAutoHeight = True
-      OptionsView.GroupByBox = True
-      OptionsView.NoDataToDisplayInfoText = 'Sin movimientos'
-    end
     object lvlMovimientos: TcxGridLevel
-      GridView = tvMovimientos
     end
   end
   object dsMovimientos: TDataSource

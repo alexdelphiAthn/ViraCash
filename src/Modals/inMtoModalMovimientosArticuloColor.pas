@@ -15,7 +15,7 @@ interface
 uses
   System.Classes, System.Types, System.Generics.Collections,
   System.Actions, Vcl.ActnList,
-  Data.DB, Vcl.Controls, Vcl.Forms, Vcl.StdCtrls, Vcl.ExtCtrls,
+  Data.DB, Vcl.Controls, Vcl.Forms, Vcl.StdCtrls, Vcl.ExtCtrls, Vcl.ComCtrls,
   cxButtons, cxClasses, cxControls, cxCustomData, cxData, cxDataStorage,
   cxDBData, cxDropDownEdit, cxEdit, cxFilter, cxGraphics,
   cxGrid, cxGridCustomTableView,
@@ -33,8 +33,10 @@ type
     lblColor: TcxLabel;
     cbbColor: TcxComboBox;
     imgColor: TImage;
+    imgFoto: TImage;
+    calendario: TMonthCalendar;
+    lblFecha: TcxLabel;
     cxgrdMovimientos: TcxGrid;
-    tvMovimientos: TcxGridDBTableView;
     lvlMovimientos: TcxGridLevel;
     pnlBotones: TcxGroupBox;
     btnCerrar: TcxButton;
@@ -44,6 +46,7 @@ type
     actIrDocumento: TAction;
     actIrMovimiento: TAction;
     dsMovimientos: TDataSource;
+    procedure calendarioChange(Sender: TObject);
     procedure actIrDocumentoExecute(Sender: TObject);
     procedure actIrMovimientoExecute(Sender: TObject);
     procedure dsMovimientosDataChange(Sender: TObject; Field: TField);
@@ -55,13 +58,34 @@ type
       ACanvas: TcxCanvas; AViewInfo: TcxGridTableDataCellViewInfo;
       var ADone: Boolean);
   private
+    FCodigoArticulo: string;
+    FClaveFoto: string;
+    tvMovimientos: TcxGridDBTableView;
     FColores: TStringList;
     FPaleta: TDictionary<string, TInfoBasico>;
     FDestino: TDestinoMovimientoArticulo;
+    FEstiloVenta: TcxStyle;
+    FEstiloVentaSeleccionada: TcxStyle;
     // Vista horizontal (tallas en columnas, como Ctrl+U): la de entrada.
     // F1 alterna con la vertical, como en los documentos de compra.
     FVistaHorizontal: TcxGridDBTableView;
     FOrigenHorizontal: TDataSource;
+    procedure ActualizarFoto(const AColor: string);
+    function CrearVistaMovimientos(const ANombre: string;
+      AOrigen: TDataSource): TcxGridDBTableView;
+    procedure ConfigurarEstilosVenta(AVista: TcxGridDBTableView);
+    procedure ConfigurarTotales(AVista: TcxGridDBTableView;
+      ANumeroTallas: Integer);
+    procedure CalcularSaldoFila(ASumas: TcxDataSummaryItems;
+      AEntrada: TcxSummaryEventArguments;
+      var ASalida: TcxSummaryEventOutArguments);
+    function EsFilaVenta(AVista: TcxCustomGridTableView;
+      ARegistro: TcxCustomGridRecord): Boolean;
+    procedure EstiloVenta(AVista: TcxCustomGridTableView;
+      ARegistro: TcxCustomGridRecord; AItem: TcxCustomGridTableItem;
+      var AEstilo: TcxStyle);
+    procedure EstiloVentaSeleccionada(AVista: TcxCustomGridTableView;
+      ARegistro: TcxCustomGridRecord; AItem: TObject; var AEstilo: TcxStyle);
     function EsVistaHorizontal: Boolean;
     function DatosActivos: TDataSet;
     function ReferenciaSeleccionada: TReferenciaDocumentoMovimiento;
@@ -90,14 +114,15 @@ type
     // ADatosHorizontal, en el orden de la consulta de stock (Ctrl+U).
     class procedure Ejecutar(AOwner: TComponent;
       ADatos, ADatosHorizontal: TDataSet; const ATallas: TArray<string>;
-      const AArticulo: string; const ASkuInicial: string = '');
+      const AArticulo, ADescripcion: string; const ASkuInicial: string = '');
   end;
 
 implementation
 
 uses
   Winapi.Windows, System.SysUtils, System.Variants, System.UITypes,
-  Vcl.Graphics, cxCurrencyEdit, dxCore,
+  Vcl.Graphics, Vcl.Imaging.pngimage, cxCurrencyEdit, cxGeometry, dxCore,
+  inLibFotos,
   inLibAtributosPaleta, inLibStockConsultaPresentacionPivote,
   inLibShowMto, inLibMensajesVcl,
   UniDataDestinoFacturaRepositorio,
@@ -108,9 +133,85 @@ uses
 const
   FORMATO_CANTIDAD_MOVIMIENTOS = '#,##0.######;-#,##0.######;0';
 
+type
+  TFranjaTotalesMovimientos = class(TcxGridFooterViewInfo)
+  protected
+    function GetAlignment: TcxGridPartAlignment; override;
+  end;
+
+  TDisposicionMovimientos = class(TcxGridTableViewInfo)
+  protected
+    function GetFooterViewInfoClass: TcxGridFooterViewInfoClass; override;
+  end;
+
+  TVistaMovimientos = class(TcxGridDBTableView)
+  protected
+    function GetViewInfoClass: TcxCustomGridViewInfoClass; override;
+  public
+    procedure DibujarCeldaTotal(Sender: TcxGridTableView; ACanvas: TcxCanvas;
+      AViewInfo: TcxGridColumnHeaderViewInfo; var ADone: Boolean);
+  end;
+
+function TFranjaTotalesMovimientos.GetAlignment: TcxGridPartAlignment;
+begin
+  Result := gpaTop;
+end;
+
+function TDisposicionMovimientos.GetFooterViewInfoClass:
+  TcxGridFooterViewInfoClass;
+begin
+  Result := TFranjaTotalesMovimientos;
+end;
+
+function TVistaMovimientos.GetViewInfoClass: TcxCustomGridViewInfoClass;
+begin
+  Result := TDisposicionMovimientos;
+end;
+
+procedure TVistaMovimientos.DibujarCeldaTotal(Sender: TcxGridTableView;
+  ACanvas: TcxCanvas; AViewInfo: TcxGridColumnHeaderViewInfo;
+  var ADone: Boolean);
+var
+  Area: TRect;
+begin
+  Area := AViewInfo.Bounds;
+  ACanvas.Brush.Color := AViewInfo.Params.Color;
+  ACanvas.FillRect(Area);
+  ACanvas.Font.Assign(AViewInfo.Params.Font);
+  ACanvas.Font.Color := AViewInfo.Params.TextColor;
+  InflateRect(Area, -ScaleFactor.Apply(4), 0);
+  ACanvas.DrawText(AViewInfo.Text, Area,
+    DT_RIGHT or DT_VCENTER or DT_SINGLELINE or DT_NOPREFIX);
+  ADone := True;
+end;
+
+function TfrmModalMovimientosArticuloColor.CrearVistaMovimientos(
+  const ANombre: string; AOrigen: TDataSource): TcxGridDBTableView;
+var
+  Estilo: TcxStyle;
+begin
+  Result := cxgrdMovimientos.CreateView(TVistaMovimientos) as TVistaMovimientos;
+  Result.Name := ANombre;
+  Result.DataController.DataSource := AOrigen;
+  Result.OptionsBehavior.AlwaysShowEditor := False;
+  Result.OptionsData.CancelOnExit := False;
+  Result.OptionsData.Deleting := False;
+  Result.OptionsData.Editing := False;
+  Result.OptionsData.Inserting := False;
+  Result.FilterRow.Visible := False;
+  Result.OptionsView.ColumnAutoWidth := False;
+  Result.OptionsView.HeaderAutoHeight := True;
+  Result.OptionsView.NoDataToDisplayInfoText := SSinMovimientosArticulo;
+  Estilo := TcxStyle.Create(Self);
+  Estilo.Color := RGB(80, 80, 80);
+  Estilo.TextColor := clWhite;
+  Result.Styles.Footer := Estilo;
+  Result.OnCustomDrawFooterCell := TVistaMovimientos(Result).DibujarCeldaTotal;
+end;
+
 class procedure TfrmModalMovimientosArticuloColor.Ejecutar(
   AOwner: TComponent; ADatos, ADatosHorizontal: TDataSet;
-  const ATallas: TArray<string>; const AArticulo: string;
+  const ATallas: TArray<string>; const AArticulo, ADescripcion: string;
   const ASkuInicial: string);
 var
   oFormulario: TfrmModalMovimientosArticuloColor;
@@ -122,22 +223,39 @@ begin
   oFormulario := TfrmModalMovimientosArticuloColor.Create(AOwner);
   try
     oFormulario.Caption := STituloMovimientosArticuloColor;
-    oFormulario.lblArticulo.Caption := AArticulo;
+    oFormulario.lblArticulo.Caption := AArticulo + ' - ' + ADescripcion;
     oFormulario.lblPrecios.Caption := SAyudaPreciosMovimientosArticulo +
       ' ' + SAyudaVistaMovimientosArticulo;
     oFormulario.lblColor.Caption := SColorSelectorMovimientosArticulo;
     oFormulario.btnCerrar.Caption := SCerrarMovimientosArticulo;
     oFormulario.actIrDocumento.Caption := SIrDocumentoMovimientosArticulo;
     oFormulario.actIrMovimiento.Caption := SIrMovimientoMovimientosArticulo;
-    oFormulario.tvMovimientos.OptionsView.NoDataToDisplayInfoText :=
-      SSinMovimientosArticulo;
+    oFormulario.tvMovimientos := oFormulario.CrearVistaMovimientos(
+      'tvMovimientos', oFormulario.dsMovimientos);
+    oFormulario.lvlMovimientos.GridView := oFormulario.tvMovimientos;
     oFormulario.PrepararColumnas;
     oFormulario.dsMovimientos.DataSet := ADatos;
     oFormulario.PrepararVistaHorizontal(ADatosHorizontal, ATallas);
+    oFormulario.FEstiloVenta := TcxStyle.Create(oFormulario);
+    oFormulario.FEstiloVenta.TextColor := clMaroon;
+    oFormulario.FEstiloVenta.Font.Assign(oFormulario.Font);
+    oFormulario.FEstiloVenta.Font.Style := [fsBold];
+    oFormulario.FEstiloVentaSeleccionada := TcxStyle.Create(oFormulario);
+    oFormulario.FEstiloVentaSeleccionada.Color := clMaroon;
+    oFormulario.FEstiloVentaSeleccionada.TextColor := clWhite;
+    oFormulario.FEstiloVentaSeleccionada.Font.Assign(oFormulario.Font);
+    oFormulario.FEstiloVentaSeleccionada.Font.Style := [fsBold];
+    oFormulario.ConfigurarEstilosVenta(oFormulario.tvMovimientos);
+    oFormulario.ConfigurarEstilosVenta(oFormulario.FVistaHorizontal);
+    oFormulario.ConfigurarTotales(oFormulario.tvMovimientos, 0);
+    oFormulario.ConfigurarTotales(oFormulario.FVistaHorizontal,
+      Length(ATallas));
     oFormulario.CargarColores(ASkuInicial);
     oFormulario.OrdenarMovimientosPorFecha(oFormulario.tvMovimientos);
     oFormulario.OrdenarMovimientosPorFecha(oFormulario.FVistaHorizontal);
     oFormulario.lvlMovimientos.GridView := oFormulario.FVistaHorizontal;
+    oFormulario.FCodigoArticulo := AArticulo;
+    oFormulario.dsMovimientosDataChange(nil, nil);
     oFormulario.ShowModal;
     if oFormulario.ModalResult = mrOk then
       ShowMto(AOwner.Owner, oFormulario.FDestino.Pantalla,
@@ -145,6 +263,95 @@ begin
   finally
     FreeAndNil(oFormulario);
   end;
+end;
+
+procedure TfrmModalMovimientosArticuloColor.ConfigurarEstilosVenta(
+  AVista: TcxGridDBTableView);
+begin
+  AVista.Styles.OnGetContentStyle := EstiloVenta;
+  AVista.Styles.OnGetSelectionStyle := EstiloVentaSeleccionada;
+  AVista.Styles.OnGetInactiveStyle := EstiloVentaSeleccionada;
+end;
+
+procedure TfrmModalMovimientosArticuloColor.ConfigurarTotales(
+  AVista: TcxGridDBTableView; ANumeroTallas: Integer);
+var
+  Resumen: TcxDataSummary;
+  i: Integer;
+
+  procedure AnadirSuma(const ACampo: string);
+  begin
+    Resumen.FooterSummaryItems.Add(AVista.GetColumnByFieldName(ACampo),
+      spFooter, skSum, FORMATO_CANTIDAD_MOVIMIENTOS);
+  end;
+
+begin
+  Resumen := AVista.DataController.Summary;
+  Resumen.BeginUpdate;
+  try
+    Resumen.FooterSummaryItems.OnSummary := CalcularSaldoFila;
+    AnadirSuma('CANTIDAD_MOV');
+    for i := 0 to ANumeroTallas - 1 do
+      AnadirSuma(CampoTallaPivoteStock(i));
+    AVista.OptionsView.Footer := True;
+  finally
+    Resumen.EndUpdate;
+  end;
+end;
+
+procedure TfrmModalMovimientosArticuloColor.CalcularSaldoFila(
+  ASumas: TcxDataSummaryItems; AEntrada: TcxSummaryEventArguments;
+  var ASalida: TcxSummaryEventOutArguments);
+var
+  Vista: TcxGridDBTableView;
+  Tipo: string;
+
+  function ValorFila(const ACampo: string): string;
+  begin
+    Result := VarToStr(ASumas.DataController.Values[AEntrada.RecordIndex,
+      Vista.GetColumnByFieldName(ACampo).Index]);
+  end;
+
+begin
+  Vista := TcxGridDBColumn(AEntrada.SummaryItem.ItemLink).GridView
+    as TcxGridDBTableView;
+  Tipo := ValorFila('TIPO_MOV');
+  if (ValorFila('ESACTIVO_MOV') <> 'S') or
+    ((Tipo <> 'E') and (Tipo <> 'S')) then
+    ASalida.Value := 0
+  else if (Tipo = 'S') and not VarIsNull(ASalida.Value) then
+    ASalida.Value := -ASalida.Value;
+end;
+
+function TfrmModalMovimientosArticuloColor.EsFilaVenta(
+  AVista: TcxCustomGridTableView; ARegistro: TcxCustomGridRecord): Boolean;
+var
+  Columna: TcxGridDBColumn;
+  Tipo: string;
+begin
+  Result := Assigned(ARegistro) and ARegistro.IsData;
+  if Result then
+  begin
+    Columna := TcxGridDBTableView(AVista).GetColumnByFieldName('TIPO_DOC_MOV');
+    Tipo := VarToStr(ARegistro.Values[Columna.Index]);
+    Result := (Tipo = 'VE') or (Tipo = 'FC') or (Tipo = 'AV');
+  end;
+end;
+
+procedure TfrmModalMovimientosArticuloColor.EstiloVenta(
+  AVista: TcxCustomGridTableView; ARegistro: TcxCustomGridRecord;
+  AItem: TcxCustomGridTableItem; var AEstilo: TcxStyle);
+begin
+  if EsFilaVenta(AVista, ARegistro) then
+    AEstilo := FEstiloVenta;
+end;
+
+procedure TfrmModalMovimientosArticuloColor.EstiloVentaSeleccionada(
+  AVista: TcxCustomGridTableView; ARegistro: TcxCustomGridRecord;
+  AItem: TObject; var AEstilo: TcxStyle);
+begin
+  if EsFilaVenta(AVista, ARegistro) then
+    AEstilo := FEstiloVentaSeleccionada;
 end;
 
 procedure TfrmModalMovimientosArticuloColor.actIrDocumentoExecute(
@@ -164,11 +371,69 @@ procedure TfrmModalMovimientosArticuloColor.dsMovimientosDataChange(
 var
   oDatos: TDataSet;
   bHayFila: Boolean;
+  Fecha: TField;
+  Color: string;
 begin
   oDatos := DatosActivos;
   bHayFila := Assigned(oDatos) and oDatos.Active and not oDatos.IsEmpty;
   actIrMovimiento.Enabled := bHayFila;
   actIrDocumento.Enabled := bHayFila;
+  if (FCodigoArticulo <> '') and not (csDestroying in ComponentState) then
+  begin
+    Fecha := nil;
+    Color := '';
+    if bHayFila then
+    begin
+      Fecha := oDatos.FieldByName('FECHA_MOV');
+      Color := oDatos.FieldByName('COLOR_AV').AsString;
+    end
+    else if cbbColor.ItemIndex > 0 then
+      Color := FColores[cbbColor.ItemIndex - 1];
+    calendario.Visible := Assigned(Fecha) and not Fecha.IsNull;
+    if calendario.Visible then
+    begin
+      calendario.Date := Trunc(Fecha.AsDateTime);
+      calendarioChange(calendario);
+    end
+    else
+      lblFecha.Caption := '';
+    ActualizarFoto(Color);
+  end;
+end;
+
+procedure TfrmModalMovimientosArticuloColor.calendarioChange(Sender: TObject);
+begin
+  lblFecha.Caption := FormatDateTime('dddd, d mmmm yyyy', calendario.Date);
+end;
+
+procedure TfrmModalMovimientosArticuloColor.ActualizarFoto(const AColor: string);
+var
+  Clave, Ruta: string;
+  Info: TFotoInfo;
+begin
+  Clave := FCodigoArticulo;
+  if AColor <> '' then
+    Clave := Clave + '/' + AColor;
+  if Clave <> FClaveFoto then
+  begin
+    FClaveFoto := Clave;
+    imgFoto.Picture.Assign(nil);
+    imgFoto.Hint := '';
+    if Assigned(FotosArticulos) then
+    try
+      Info := FotosArticulos.Resolver(FCodigoArticulo, Clave);
+      Ruta := FotosArticulos.RutaFoto(Info, frPx300);
+      if Ruta = '' then
+        Ruta := FotosArticulos.RutaFoto(Info, frReal);
+      if Ruta = '' then
+        Ruta := FotosArticulos.RutaFoto(Info, frPx600);
+      if Ruta <> '' then
+        imgFoto.Picture.LoadFromFile(Ruta);
+    except
+      on E: Exception do
+        imgFoto.Hint := E.Message;
+    end;
+  end;
 end;
 
 function TfrmModalMovimientosArticuloColor.EsVistaHorizontal: Boolean;
@@ -521,22 +786,10 @@ var
 begin
   FOrigenHorizontal := TDataSource.Create(Self);
   FOrigenHorizontal.OnDataChange := dsMovimientosDataChange;
-  oVista := cxgrdMovimientos.CreateView(TcxGridDBTableView) as
-    TcxGridDBTableView;
-  oVista.Name := 'tvMovimientosHorizontal';
-  oVista.DataController.DataSource := FOrigenHorizontal;
-  oVista.FilterRow.Visible := True;
-  oVista.OptionsBehavior.AlwaysShowEditor := False;
-  oVista.OptionsData.CancelOnExit := False;
-  oVista.OptionsData.Deleting := False;
-  oVista.OptionsData.Editing := False;
-  oVista.OptionsData.Inserting := False;
-  oVista.OptionsView.ColumnAutoWidth := False;
-  oVista.OptionsView.HeaderAutoHeight := True;
+  oVista := CrearVistaMovimientos('tvMovimientosHorizontal', FOrigenHorizontal);
   // Agrupar solo en la vertical: aquí cada fila ya resume un documento.
   oVista.OptionsView.GroupByBox := False;
   oVista.OptionsCustomize.ColumnGrouping := False;
-  oVista.OptionsView.NoDataToDisplayInfoText := SSinMovimientosArticulo;
   FVistaHorizontal := oVista;
   AnadirColumna(oVista, 'COLOR_AV', SColorMovimientosArticulo, 140);
   oVista.Columns[0].Options.Filtering := False;

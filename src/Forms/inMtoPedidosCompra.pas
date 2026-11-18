@@ -327,6 +327,7 @@ type
     procedure EnfocarSkuPedidoCompra(AAbrirBusqueda: Boolean);
     procedure PresentarArticuloPedidoCompra(
       const AResultado: TResultadoAplicacionArticuloCompra);
+    procedure ValidarProveedorParaLineas;
     procedure AsegurarCabeceraPersistidaParaLineas;
     procedure AsegurarPrimeraLineaPedidoCompra;
     procedure DesactivarEnterAsTabEnCombo(AComp: TcxDBLookupComboBox);
@@ -411,6 +412,7 @@ implementation
 
 uses
   inLibComboProveedorDocumentoVcl,
+  inLibErroresBBDD,
   UniDataEjesVariacion,
   inMtoModalImpDocumento,
   inLibMensajesVcl,
@@ -565,6 +567,24 @@ begin
       'frmMtoPedcSkuSearch', Self);
 end;
 
+// FZ-ISSUE-1002: sin proveedor no se graba la cabecera para añadir líneas;
+// si no, «Añadir línea» dejaba un pedido huérfano que consumía número.
+procedure TfrmMtoPedidosCompra.ValidarProveedorParaLineas;
+var
+  sPrv: string;
+begin
+  sPrv := Trim(dmmPedidosCompra.unqryTablaG.FieldByName(
+    'CODIGO_PRV_PEDC').AsString);
+  if (sPrv = '') or (sPrv = '0') then
+  begin
+    pcCab.ActivePage := tsCabecera;
+    if cbbCODIGO_PRV_PEDC.CanFocus then
+      cbbCODIGO_PRV_PEDC.SetFocus;
+    raise EValidacionBBDD.Create(
+      SErrorProveedorObligatorioLineasPedidoCompra);
+  end;
+end;
+
 procedure TfrmMtoPedidosCompra.AsegurarCabeceraPersistidaParaLineas;
 begin
   if not Assigned(dmmPedidosCompra) then
@@ -574,7 +594,7 @@ begin
       dmmPedidosCompra.unqryTablaG,
       dmmPedidosCompra.unqryPedidosCompraLineas,
       ConfiguracionTallasDocumento,
-      nil);
+      ValidarProveedorParaLineas);
 end;
 
 function TfrmMtoPedidosCompra.PuedeActivarTallasHorizontal(

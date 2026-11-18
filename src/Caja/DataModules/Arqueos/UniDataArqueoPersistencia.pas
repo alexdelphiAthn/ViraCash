@@ -41,7 +41,67 @@ implementation
 uses
   System.SysUtils, System.Classes, System.Generics.Collections,
   System.DateUtils, Data.DB, DBAccess,
-  inLibArqueo, inLibMsgCaja;
+  inLibArqueo, inLibMsgCaja, inLibRedondeo;
+
+// FZ-ISSUE-1010: los importes del sistema llegan con los decimales de los
+// pagos (p. ej. -449,8497) y se grababan tal cual: con un recuento exacto
+// al centimo quedaba DIFERENCIA_TOTAL_ARQ = 0,0002. El arqueo se graba a
+// centimos, como se muestra en pantalla y en el justificante.
+function ImporteArqueo(AImporte: Currency): Currency;
+begin
+  Result := RedondearACentimos(AImporte);
+end;
+
+function ArqueoACentimos(const AArqueo: TArqueoCaja): TArqueoCaja;
+var
+  i: Integer;
+begin
+  Result := AArqueo;
+  Result.BrutoLineas := ImporteArqueo(AArqueo.BrutoLineas);
+  Result.DescuentosLineas := ImporteArqueo(AArqueo.DescuentosLineas);
+  Result.NetoLineas := ImporteArqueo(AArqueo.NetoLineas);
+  Result.BrutoOperaciones := ImporteArqueo(AArqueo.BrutoOperaciones);
+  Result.DescuentosOperaciones :=
+    ImporteArqueo(AArqueo.DescuentosOperaciones);
+  Result.Neto := ImporteArqueo(AArqueo.Neto);
+  Result.Prestamos := ImporteArqueo(AArqueo.Prestamos);
+  Result.Devoluciones := ImporteArqueo(AArqueo.Devoluciones);
+  Result.VentasNormales := ImporteArqueo(AArqueo.VentasNormales);
+  Result.VentasPrestamos := ImporteArqueo(AArqueo.VentasPrestamos);
+  Result.TotalVentas := ImporteArqueo(AArqueo.TotalVentas);
+  Result.ValesRecogidos := ImporteArqueo(AArqueo.ValesRecogidos);
+  Result.ValesEmitidos := ImporteArqueo(AArqueo.ValesEmitidos);
+  Result.CobrosClientes := ImporteArqueo(AArqueo.CobrosClientes);
+  Result.PendienteCobro := ImporteArqueo(AArqueo.PendienteCobro);
+  Result.IngresosCaja := ImporteArqueo(AArqueo.IngresosCaja);
+  Result.EfectivoIngresos := ImporteArqueo(AArqueo.EfectivoIngresos);
+  Result.EfectivoEntradas := ImporteArqueo(AArqueo.EfectivoEntradas);
+  Result.EfectivoSalidas := ImporteArqueo(AArqueo.EfectivoSalidas);
+  Result.EfectivoAnterior := ImporteArqueo(AArqueo.EfectivoAnterior);
+  Result.EfectivoCaja := ImporteArqueo(AArqueo.EfectivoCaja);
+  Result.OtrosIngresos := ImporteArqueo(AArqueo.OtrosIngresos);
+  Result.SaldoRecontar := ImporteArqueo(AArqueo.SaldoRecontar);
+  Result.PagosPorForma := Copy(AArqueo.PagosPorForma);
+  for i := 0 to High(Result.PagosPorForma) do
+    Result.PagosPorForma[i].Importe :=
+      ImporteArqueo(Result.PagosPorForma[i].Importe);
+end;
+
+// Cada linea a centimos y su diferencia recalculada con esos importes.
+function LineasRecuentoACentimos(
+  const ALineas: TArray<TArqueoRecuentoLinea>):
+    TArray<TArqueoRecuentoLinea>;
+var
+  i: Integer;
+begin
+  Result := Copy(ALineas);
+  for i := 0 to High(Result) do
+  begin
+    Result[i].Sistema := ImporteArqueo(Result[i].Sistema);
+    Result[i].Recuento := ImporteArqueo(Result[i].Recuento);
+    Result[i].Diferencia := Result[i].Recuento - Result[i].Sistema;
+  end;
+end;
 
 function ConsultarArqueosCambioVenta(AConexion: TUniConnection;
   const ASerie, ANumero: string; ANuevoTotal: Currency;
@@ -401,17 +461,32 @@ constructor TGrabacionArqueo.Create(
   AImporteRetirada: Currency;
   const AConceptoRetirada, ADesgloseBilletes, AObservaciones,
   ACodigoEmpleado, AUsuario: string);
+var
+  iLinea: Integer;
 begin
   inherited Create;
   FConexion := AConexion;
   FRepositorioVentasWs := ARepositorioVentasWs;
   FEnviarVentasWs := AEnviarVentasWs;
-  FArqueo := AArqueo;
-  FLineasRecuento := ALineasRecuento;
-  FTotalRecuento := ATotalRecuento;
-  FDiferenciaTotal := ADiferenciaTotal;
-  FEfectivoDejado := AEfectivoDejado;
-  FImporteRetirada := AImporteRetirada;
+  // FZ-ISSUE-1010: todo a centimos. Los totales del recuento se rehacen
+  // con las lineas ya redondeadas para que cuadren con su detalle.
+  FArqueo := ArqueoACentimos(AArqueo);
+  FLineasRecuento := LineasRecuentoACentimos(ALineasRecuento);
+  FTotalRecuento := ImporteArqueo(ATotalRecuento);
+  FDiferenciaTotal := ImporteArqueo(ADiferenciaTotal);
+  if Length(FLineasRecuento) > 0 then
+  begin
+    FTotalRecuento := 0;
+    FDiferenciaTotal := 0;
+    for iLinea := 0 to High(FLineasRecuento) do
+    begin
+      FTotalRecuento := FTotalRecuento + FLineasRecuento[iLinea].Recuento;
+      FDiferenciaTotal := FDiferenciaTotal +
+        FLineasRecuento[iLinea].Diferencia;
+    end;
+  end;
+  FEfectivoDejado := ImporteArqueo(AEfectivoDejado);
+  FImporteRetirada := ImporteArqueo(AImporteRetirada);
   FConceptoRetirada := AConceptoRetirada;
   FDesgloseBilletes := ADesgloseBilletes;
   FObservaciones := AObservaciones;

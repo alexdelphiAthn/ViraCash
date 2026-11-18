@@ -2478,6 +2478,7 @@ var
   PrecioNuevo: Double;
   EstaActiva: string;
   ValorAnterior: Variant;
+  bFilaArticulo: Boolean;
 begin
   PrecioNuevo := unqryTarifasArticulos.FieldByName(
     'PRECIO_SALIDA_ARTTAR').AsFloat;
@@ -2485,7 +2486,15 @@ begin
     'ESACTIVO_ARTTAR').AsString;
   if unqryTarifasArticulos.State = dsInsert then
   begin
-    if PrecioNuevo = 0 then
+    // FZ-ISSUE-1000: la fila del propio articulo (sin SKU) que el alta
+    // ya marca activa («Añadir precio», «Añadir tarifa») se respeta: no
+    // tiene padre que la sustituya y, inactiva, el precio que se teclee
+    // despues no tendria efecto. Una fila de SKU a cero si se desactiva:
+    // activa taparia el precio del padre.
+    bFilaArticulo := Trim(unqryTarifasArticulos.FieldByName(
+      'CODIGO_UNIDAD_ARTTAR').AsString) = '';
+    if (PrecioNuevo = 0) and
+       not (bFilaArticulo and (EstaActiva = 'S')) then
       unqryTarifasArticulos.FieldByName(
         'ESACTIVO_ARTTAR').AsString := 'N';
   end

@@ -139,6 +139,9 @@ resourcestring
   STicketAPedir = '  A pedir:';
   STicketUnidadesPedidas = '  Unidades pedidas:';
   STicketUnidades = '  Unidades:';
+  // FZ-ISSUE-1007: lote o número de serie (IMEI) que viaja en la línea.
+  STicketLoteSerie = '  Lote / Serie:';
+  STicketCaducidad = '  Caducidad:';
   // FZ-ISSUE-324: líneas cuya unidad no es «unidades» (kg, l, m...)
   STicketCantidad = '  Cantidad:';
   STicketStockOrigen = '  Stock origen:';
