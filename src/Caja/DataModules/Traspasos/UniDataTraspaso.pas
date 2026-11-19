@@ -119,6 +119,7 @@ type
     procedure DataModuleCreate(Sender: TObject);
   private
     FConexion: TUniConnection;
+    FConsultaCosteLote: TUniQuery;
     FModo: TModoTraspaso;
     FContextoSesion: IContextoSesionAplicacion;
     // Propuesta de traspaso (Distribuir entre tiendas) que este traspaso
@@ -147,6 +148,7 @@ type
     procedure DesglosarLineaLotes(ALinea: TDataSet;
       const AAsignaciones: TArray<TAsignacionLote>);
     procedure cdsLineasBeforePost(DataSet: TDataSet);
+    procedure AjustarCostePartidaReposicion;
     procedure ValidarCantidadLineaActual;
     procedure cdsLineasAfterPost(DataSet: TDataSet);
     procedure ValidarLotesLineas;
@@ -672,6 +674,7 @@ destructor TdmTraspaso.Destroy;
 begin
   FreeAndNil(FLotesLineas);
   FreeAndNil(FConsultaUnidad);
+  FreeAndNil(FConsultaCosteLote);
   FreeAndNil(FUnidadesArticulo);
   inherited;
 end;
@@ -847,6 +850,52 @@ begin
      ((FModo <> mtAtender) or
       (cdsLineas.FieldByName('CANTIDAD').AsFloat > 0)) then
     FLotesLineas.AntesDePostLinea(cdsLineas, DocumentoLotes);
+  AjustarCostePartidaReposicion;
+end;
+
+// FZ-ISSUE-1058: en Modo Yeti no hay precio medio; una línea con una partida
+// de reposición muestra y totaliza el coste de la partida en el almacén de
+// origen (el mismo con que se graba el movimiento, FZ-ISSUE-1046). Va al
+// final del BeforePost para cubrir también las líneas del reparto entre
+// lotes (DesglosarLineaLotes), que se graban con FCargandoLineas.
+procedure TdmTraspaso.AjustarCostePartidaReposicion;
+var
+  sLote, sSku, sAlmacen: string;
+  oCoste: TField;
+begin
+  sLote := Trim(cdsLineas.FieldByName('LOTE').AsString);
+  sSku := Trim(cdsLineas.FieldByName('CODIGO_UNIDAD').AsString);
+  sAlmacen := Trim(cdsCabecera.FieldByName('CODIGO_ALM_ORIGEN').AsString);
+  if (sLote = '') or (sSku = '') or (sAlmacen = '') or
+     not Assigned(FConexion) then
+    Exit;
+  if FConsultaCosteLote = nil then
+  begin
+    FConsultaCosteLote := TUniQuery.Create(nil);
+    FConsultaCosteLote.Connection := FConexion;
+    FConsultaCosteLote.SQL.Text :=
+      'SELECT FNC_FZA_REPOSICION_COSTE_LOTE(:ALMACEN, :SKU, :LOTE) AS COSTE ' +
+      '  FROM fza_articulos_lotes L ' +
+      ' WHERE L.CODIGO_UNIDAD_LOT = :SKU AND L.LOTE_LOT = :LOTE ' +
+      '   AND L.ESREPOSICION_LOT = ''S''';
+  end;
+  FConsultaCosteLote.Close;
+  FConsultaCosteLote.ParamByName('ALMACEN').AsString := sAlmacen;
+  FConsultaCosteLote.ParamByName('SKU').AsString := sSku;
+  FConsultaCosteLote.ParamByName('LOTE').AsString := sLote;
+  FConsultaCosteLote.Open;
+  try
+    oCoste := FConsultaCosteLote.FieldByName('COSTE');
+    if (not FConsultaCosteLote.IsEmpty) and (not oCoste.IsNull) and
+       (oCoste.AsFloat > 0) then
+    begin
+      cdsLineas.FieldByName('PRECIO_COSTE').AsCurrency := oCoste.AsCurrency;
+      cdsLineas.FieldByName('TOTAL').AsCurrency :=
+        cdsLineas.FieldByName('CANTIDAD').AsFloat * oCoste.AsCurrency;
+    end;
+  finally
+    FConsultaCosteLote.Close;
+  end;
 end;
 
 procedure TdmTraspaso.ValidarCantidadLineaActual;

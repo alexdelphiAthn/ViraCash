@@ -44,6 +44,9 @@ function TomarLecturaGs1(const ACodigoSku: string;
 function TomarLecturaGs1(const ACodigoSku: string; AAhora: TDateTime;
   out ALectura: TLecturaGs1Pendiente): Boolean; overload;
 procedure DescartarLecturaGs1;
+// FZ-ISSUE-1055: lote (o serie) de la lectura vigente de ACodigoSku, sin
+// consumirla, para enseñarlo en la línea antes de grabar. '' si no hay.
+function LoteLecturaPendiente(const ACodigoSku: string): string;
 function TomarLecturaReposicion(const ASku: string;
   const ARepositorio: IRepositorioLotes; out ALote: string): Boolean;
 
@@ -107,6 +110,20 @@ begin
       ALote := Lectura.Lote
     else
       GLectura := Lectura;
+  end;
+end;
+
+function LoteLecturaPendiente(const ACodigoSku: string): string;
+begin
+  Result := '';
+  if (GLectura.CodigoSku <> '') and (Trim(ACodigoSku) <> '') and
+     SameText(GLectura.CodigoSku, Trim(ACodigoSku)) and
+     (Now >= GLectura.Instante) and
+     (SecondsBetween(Now, GLectura.Instante) <= SEGUNDOS_VIGENCIA_GS1) then
+  begin
+    Result := GLectura.Lote;
+    if Result = '' then
+      Result := GLectura.Serie;
   end;
 end;
 

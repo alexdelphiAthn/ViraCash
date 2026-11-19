@@ -21,7 +21,34 @@ type
     Sku: string;
     Temporada: string;
     Usuario: string;
+    // FZ-ISSUE-1042: lote confirmado por el usuario ('' = generarlo).
+    LoteSolicitado: string;
   end;
+
+  // Propuesta de lote para una línea de compra (FZ-ISSUE-1042).
+  TPropuestaReposicion = record
+    Aplica: Boolean;
+    LoteActual: string;
+    Propuesta: string;
+    FechaEntrada: TDate;
+  end;
+
+  // Devuelve '' si el lote vale o el texto del aviso (FZ-ISSUE-1051).
+  TValidacionLoteReposicion = reference to function(
+    const ALote: string): string;
+
+  // Muestra la propuesta y devuelve el lote confirmado. False = cancelar.
+  // AValidar se consulta antes de cerrar; con aviso, se vuelve a pedir.
+  TConfirmacionLoteReposicion = reference to function(const ASku: string;
+    AFechaEntrada: TDate; var ALote: string;
+    const AValidar: TValidacionLoteReposicion): Boolean;
+
+var
+  // La asigna la interfaz; sin ella se acepta la propuesta.
+  ConfirmacionLoteReposicion: TConfirmacionLoteReposicion;
+
+const
+  LONGITUD_MAXIMA_LOTE_REPOSICION = 50;
 
 function EsPartidaReposicion(AConexion: TUniConnection;
   const ASku, ALote: string): Boolean;
@@ -32,6 +59,8 @@ function ActivacionVisualReposicion(AConexion: TUniConnection;
   const AParametros: IParametros): TActivacionTrazabilidad;
 function PrepararPartidaReposicion(AConexion: TUniConnection;
   const ARecepcion: TRecepcionReposicion): string;
+function ProponerPartidaReposicion(AConexion: TUniConnection;
+  const ATipo, ASerie, ANumero, ASku: string): TPropuestaReposicion;
 procedure PrepararReposicionLinea(AConexion: TUniConnection;
   ALinea: TDataSet; const ASufijo, AUsuario: string;
   const AParametros: IParametros);
@@ -41,8 +70,9 @@ procedure PrepararReposicionMovimiento(AProcedimiento: TUniStoredProc;
 implementation
 
 uses
-  System.SysUtils, UniDataCodigosBarrasLote,
-  UniDataAppParamRepositorio, inLibAppParamPersistenciaIntf;
+  System.SysUtils, System.Variants, UniDataCodigosBarrasLote,
+  UniDataAppParamRepositorio, inLibAppParamPersistenciaIntf,
+  inLibMsgTrazabilidad;
 
 function EsPartidaReposicion(AConexion: TUniConnection;
   const ASku, ALote: string): Boolean;
@@ -109,7 +139,9 @@ function ActivacionVisualReposicion(AConexion: TUniConnection;
   const AParametros: IParametros): TActivacionTrazabilidad;
 begin
   Result := TActivacionTrazabilidad.Leer(AParametros);
-  if HayPartidasReposicion(AConexion) then
+  // FZ-ISSUE-1043: las salidas piden lote de las partidas de reposición.
+  PublicarHayReposicion(HayPartidasReposicion(AConexion));
+  if HayReposicionPublicada then
     Result.Lotes := True;
 end;
 
@@ -123,12 +155,13 @@ begin
   EsTransaccionPropia := not AConexion.InTransaction;
   try
     oReserva.Connection := AConexion;
-    oReserva.StoredProcName := 'PRC_FZA_REPOSICION_PREPARAR';
+    oReserva.StoredProcName := 'PRC_FZA_REPOSICION_PREPARAR_LOTE';
     oReserva.Params.CreateParam(ftString, 'p_TIPO', ptInput);
     oReserva.Params.CreateParam(ftString, 'p_SERIE', ptInput);
     oReserva.Params.CreateParam(ftString, 'p_NUMERO', ptInput);
     oReserva.Params.CreateParam(ftString, 'p_SKU', ptInput);
     oReserva.Params.CreateParam(ftString, 'p_TEMPORADA', ptInput);
+    oReserva.Params.CreateParam(ftString, 'p_LOTE_SOLICITADO', ptInput);
     oReserva.Params.CreateParam(ftString, 'p_USUARIO', ptInput);
     oReserva.Params.CreateParam(ftString, 'p_LOTE', ptOutput);
     oReserva.ParamByName('p_TIPO').AsString := ARecepcion.TipoDocumento;
@@ -136,6 +169,11 @@ begin
     oReserva.ParamByName('p_NUMERO').AsString := ARecepcion.Numero;
     oReserva.ParamByName('p_SKU').AsString := ARecepcion.Sku;
     oReserva.ParamByName('p_TEMPORADA').AsString := ARecepcion.Temporada;
+    if Trim(ARecepcion.LoteSolicitado) = '' then
+      oReserva.ParamByName('p_LOTE_SOLICITADO').Value := Null
+    else
+      oReserva.ParamByName('p_LOTE_SOLICITADO').AsString :=
+        Trim(ARecepcion.LoteSolicitado);
     oReserva.ParamByName('p_USUARIO').AsString := ARecepcion.Usuario;
     if EsTransaccionPropia then
       AConexion.StartTransaction;
@@ -157,12 +195,68 @@ begin
   end;
 end;
 
+function ProponerPartidaReposicion(AConexion: TUniConnection;
+  const ATipo, ASerie, ANumero, ASku: string): TPropuestaReposicion;
+var
+  oPropuesta: TUniStoredProc;
+begin
+  Result := Default(TPropuestaReposicion);
+  oPropuesta := TUniStoredProc.Create(nil);
+  try
+    oPropuesta.Connection := AConexion;
+    oPropuesta.StoredProcName := 'PRC_FZA_REPOSICION_PROPONER';
+    oPropuesta.Params.CreateParam(ftString, 'p_TIPO', ptInput);
+    oPropuesta.Params.CreateParam(ftString, 'p_SERIE', ptInput);
+    oPropuesta.Params.CreateParam(ftString, 'p_NUMERO', ptInput);
+    oPropuesta.Params.CreateParam(ftString, 'p_SKU', ptInput);
+    oPropuesta.Params.CreateParam(ftString, 'p_APLICA', ptOutput);
+    oPropuesta.Params.CreateParam(ftString, 'p_LOTE_ACTUAL', ptOutput);
+    oPropuesta.Params.CreateParam(ftString, 'p_PROPUESTA', ptOutput);
+    oPropuesta.Params.CreateParam(ftDate, 'p_FECHA', ptOutput);
+    oPropuesta.ParamByName('p_TIPO').AsString := ATipo;
+    oPropuesta.ParamByName('p_SERIE').AsString := ASerie;
+    oPropuesta.ParamByName('p_NUMERO').AsString := ANumero;
+    oPropuesta.ParamByName('p_SKU').AsString := ASku;
+    oPropuesta.ExecProc;
+    Result.Aplica := oPropuesta.ParamByName('p_APLICA').AsString = 'S';
+    Result.LoteActual := oPropuesta.ParamByName('p_LOTE_ACTUAL').AsString;
+    Result.Propuesta := oPropuesta.ParamByName('p_PROPUESTA').AsString;
+    if not oPropuesta.ParamByName('p_FECHA').IsNull then
+      Result.FechaEntrada := oPropuesta.ParamByName('p_FECHA').AsDate;
+  finally
+    FreeAndNil(oPropuesta);
+  end;
+end;
+
+// FZ-ISSUE-1051: el lote ya identifica otra recepción (cabecera o partida).
+function LoteReposicionOcupado(AConexion: TUniConnection;
+  const ATipo, ASerie, ANumero, ALote: string): Boolean;
+var
+  oConsulta: TUniQuery;
+begin
+  oConsulta := TUniQuery.Create(nil);
+  try
+    oConsulta.Connection := AConexion;
+    oConsulta.SQL.Text := 'SELECT FNC_FZA_REPOSICION_LOTE_OCUPADO(' +
+      ':LOTE, :TIPO, :SERIE, :NUMERO) AS OCUPADO';
+    oConsulta.ParamByName('LOTE').AsString := Trim(ALote);
+    oConsulta.ParamByName('TIPO').AsString := ATipo;
+    oConsulta.ParamByName('SERIE').AsString := ASerie;
+    oConsulta.ParamByName('NUMERO').AsString := ANumero;
+    oConsulta.Open;
+    Result := oConsulta.FieldByName('OCUPADO').AsString = 'S';
+  finally
+    FreeAndNil(oConsulta);
+  end;
+end;
+
 procedure PrepararReposicionLinea(AConexion: TUniConnection;
   ALinea: TDataSet; const ASufijo, AUsuario: string;
   const AParametros: IParametros);
 var
   sCabecera, sTipo, sLote: string;
   Recepcion: TRecepcionReposicion;
+  Propuesta: TPropuestaReposicion;
 begin
   sCabecera := '';
   sTipo := '';
@@ -190,6 +284,28 @@ begin
       ALinea.FieldByName('CODIGO_UNIDAD_' + ASufijo).AsString;
     Recepcion.Temporada := AParametros.GetString('appTemporadaDefecto');
     Recepcion.Usuario := AUsuario;
+    // FZ-ISSUE-1042: la primera línea de la recepción pide el lote con la
+    // propuesta PROVEEDOR-AAAAMMDD-n; las siguientes usan el ya fijado.
+    Propuesta := ProponerPartidaReposicion(AConexion, sTipo,
+      Recepcion.Serie, Recepcion.Numero, Recepcion.Sku);
+    if Propuesta.Aplica and (Propuesta.LoteActual = '') then
+    begin
+      sLote := Trim(ALinea.FieldByName('LOTE_' + ASufijo).AsString);
+      if sLote = '' then
+        sLote := Propuesta.Propuesta;
+      if Assigned(ConfirmacionLoteReposicion) and
+         not ConfirmacionLoteReposicion(Recepcion.Sku,
+           Propuesta.FechaEntrada, sLote,
+           function(const ALote: string): string
+           begin
+             Result := '';
+             if LoteReposicionOcupado(AConexion, sTipo, Recepcion.Serie,
+                  Recepcion.Numero, ALote) then
+               Result := Format(SErrorLoteReposicionOcupado, [ALote]);
+           end) then
+        Abort;
+      Recepcion.LoteSolicitado := Trim(sLote);
+    end;
     sLote := PrepararPartidaReposicion(AConexion, Recepcion);
     if sLote <> '' then
       ALinea.FieldByName('LOTE_' + ASufijo).AsString := sLote;

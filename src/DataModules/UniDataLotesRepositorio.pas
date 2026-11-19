@@ -292,6 +292,14 @@ begin
       rLote.FechaEntrada := FechaCampo(
         oConsulta.FieldByName('FECHA_ENTRADA_LOT'));
       rLote.Cantidad := oConsulta.FieldByName('CANTIDAD').AsFloat;
+      // FZ-ISSUE-1043/1044 (columnas nuevas; una base sin ellas, sin dato).
+      rLote.EsReposicion := (oConsulta.FindField('ESREPOSICION_LOT') <> nil)
+        and (oConsulta.FieldByName('ESREPOSICION_LOT').AsString = VALOR_SI);
+      rLote.OrdenRecepcion := 0;
+      if (oConsulta.FindField('INSTANTE_ALTA_LOT') <> nil) and
+         not oConsulta.FieldByName('INSTANTE_ALTA_LOT').IsNull then
+        rLote.OrdenRecepcion :=
+          oConsulta.FieldByName('INSTANTE_ALTA_LOT').AsDateTime;
       Result := Result + [rLote];
       oConsulta.Next;
     end;

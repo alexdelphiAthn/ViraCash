@@ -19,6 +19,20 @@ interface
 resourcestring
   SErrorLoteProveedorDistinto =
     'El lote %s ya pertenece al proveedor %s. Indique otro lote.';
+  // FZ-ISSUE-1042: lote de la recepción en Modo Yeti.
+  SCaptionLoteReposicion = 'Lote de la recepción';
+  SPreguntaLoteReposicion =
+    '%s · entrada %s. Confirme o cambie el lote:';
+  SErrorLoteReposicionVacio = 'Indique el lote de la recepción.';
+  SErrorLoteReposicionLargo =
+    'El lote de la recepción admite como máximo %d caracteres.';
+  // FZ-ISSUE-1051: %s = lote.
+  SErrorLoteReposicionOcupado =
+    'El lote %s ya pertenece a otra recepción. Indique otro lote.';
+  // FZ-ISSUE-1054: %0:s = lote, %1:s = su proveedor, %2:s = el del documento.
+  SErrorLoteDevolucionProveedorDistinto =
+    'El lote %0:s es del proveedor %1:s; no se puede devolver al ' +
+    'proveedor %2:s.';
   SErrorRepartoLotesCaja =
     'Seleccione «Elegir lote» para repartir las unidades ' +
     'entre los lotes disponibles.';

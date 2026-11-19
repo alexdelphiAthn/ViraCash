@@ -49,8 +49,11 @@ NOMBRE_RECURSO = 'HUELLA_ESQUEMA'
 APARTADOS_GLOBAL = ['ESTRUCTURA', 'VISTAS', 'RUTINAS', 'DEFINIDORES']
 
 PATRON_FECHA = re.compile(r'^\d{8}_.*\.sql$', re.IGNORECASE)
+# FZ-ISSUE-1048: también vistas con ALGORITHM=... y SQL SECURITY ... (p. ej.
+# las que se crean con PREPARE desde una cadena).
 PATRON_DDL = re.compile(
-    r'\b(?:CREATE\s+(?:OR\s+REPLACE\s+)?(?:DEFINER\s*=\s*\S+\s+)?'
+    r'\b(?:CREATE\s+(?:OR\s+REPLACE\s+)?(?:ALGORITHM\s*=\s*\w+\s+)?'
+    r'(?:DEFINER\s*=\s*\S+\s+)?(?:SQL\s+SECURITY\s+\w+\s+)?'
     r'(?:TABLE|PROCEDURE|FUNCTION|VIEW|TRIGGER)'
     r'(?:\s+IF\s+NOT\s+EXISTS)?|ALTER\s+TABLE|DROP\s+(?:TABLE|PROCEDURE|'
     r'FUNCTION|VIEW|TRIGGER)(?:\s+IF\s+EXISTS)?)\s+[`\'"]?'
