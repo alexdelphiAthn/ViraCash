@@ -89,6 +89,19 @@ function DecidirLoteLectura(
   const ARepositorio: IRepositorioLotes;
   const ASelector: ISelectorLotesVisual): TDecisionLoteLectura;
 
+// FZ-ISSUE-1043: hay alguna partida de reposición (Modo Yeti) con
+// existencias entre los lotes disponibles.
+function HayReposicionDisponible(const ALotes: TLotesDisponibles): Boolean;
+// FZ-ISSUE-1043: una salida sin lote de un artículo sin trazabilidad que
+// tiene partidas de reposición con existencias en el almacén se trata como
+// LOTE (pedir el lote, proponiendo la más antigua). Solo con los lotes
+// activados o si la base tiene partidas de reposición
+// (HayReposicionPublicada), para no consultar de más.
+function SalidaPideLoteReposicion(
+  const AActivacion: TActivacionTrazabilidad;
+  const ARepositorio: IRepositorioLotes;
+  const ACodigoSku, ACodigoAlmacen: string): Boolean;
+
 // Cierre para el lector de documentos: decide con DecidirLoteLectura,
 // muestra el aviso o el error con AAvisar y devuelve False si la línea no
 // se debe dar de alta (cancelada o rechazada).
@@ -350,6 +363,28 @@ begin
   end;
 end;
 
+function HayReposicionDisponible(const ALotes: TLotesDisponibles): Boolean;
+var
+  rLote: TLoteDisponible;
+begin
+  Result := False;
+  for rLote in ALotes do
+    if rLote.EsReposicion and (rLote.Cantidad > 0.000001) then
+      Exit(True);
+end;
+
+function SalidaPideLoteReposicion(
+  const AActivacion: TActivacionTrazabilidad;
+  const ARepositorio: IRepositorioLotes;
+  const ACodigoSku, ACodigoAlmacen: string): Boolean;
+begin
+  Result := (AActivacion.Lotes or HayReposicionPublicada) and
+    Assigned(ARepositorio) and
+    (Trim(ACodigoSku) <> '') and (Trim(ACodigoAlmacen) <> '') and
+    HayReposicionDisponible(ARepositorio.Disponibles(ACodigoSku,
+      ACodigoAlmacen));
+end;
+
 function DecidirLoteLectura(
   const AResolucion: TArtResolucionEntrada;
   const AContexto: TContextoLoteLectura;
@@ -359,12 +394,14 @@ var
   oModo: TModoTrazabilidad;
   sLote: string;
   rCatalogo: TLoteCatalogo;
+  rContexto: TContextoLoteLectura;
 begin
   if not Assigned(ARepositorio) then
     raise EArgumentNilException.Create('ARepositorio');
   if not Assigned(ASelector) then
     raise EArgumentNilException.Create('ASelector');
   Result := Default(TDecisionLoteLectura);
+  rContexto := AContexto;
   // Invariante: NINGUNA (o su interruptor apagado) va sin lote aunque la
   // lectura lo traiga.
   oModo := AContexto.Activacion.ModoEfectivo(AContexto.Modo);
@@ -373,22 +410,41 @@ begin
      ARepositorio.BuscarLote(AResolucion.CodigoSku, sLote, rCatalogo) and
      rCatalogo.EsReposicion then
     oModo := mtLote;
+  // FZ-ISSUE-1043: venta o traspaso por artículo/color/talla o código
+  // genérico de un artículo con partidas de reposición en el almacén: se
+  // pide el lote (selector con la más antigua propuesta, FZ-ISSUE-1044).
+  if (oModo = mtNinguna) and (sLote = '') and
+     (AContexto.Sentido = sllSalida) and
+     (AContexto.Activacion.Lotes or HayReposicionPublicada) and
+     (AContexto.Cantidad > 0) then
+  begin
+    if AContexto.UsarDisponibles then
+    begin
+      if HayReposicionDisponible(AContexto.Disponibles) then
+        oModo := mtLote;
+    end
+    else if SalidaPideLoteReposicion(AContexto.Activacion, ARepositorio,
+              AResolucion.CodigoSku, AContexto.CodigoAlmacen) then
+      oModo := mtLote;
+    if oModo = mtLote then
+      rContexto.AsignarFefo := False;
+  end;
   if not RequiereLote(oModo) then
     Result.Resultado := rllSinLote
   else if Length(sLote) > LONGITUD_MAXIMA_LOTE then
     Result := Rechazo(Format(SErrorLoteLeidoDemasiadoLargo,
                              [sLote, LONGITUD_MAXIMA_LOTE]))
-  else if (sLote <> '') and (AContexto.Sentido = sllSalida) then
-    Result := SalidaConLoteLeido(AResolucion, AContexto, oModo, sLote,
+  else if (sLote <> '') and (rContexto.Sentido = sllSalida) then
+    Result := SalidaConLoteLeido(AResolucion, rContexto, oModo, sLote,
                                  ARepositorio)
   else if sLote <> '' then
-    Result := EntradaConLoteLeido(AResolucion, AContexto, oModo, sLote,
+    Result := EntradaConLoteLeido(AResolucion, rContexto, oModo, sLote,
                                   ARepositorio)
-  else if AContexto.Sentido = sllSalida then
-    Result := SalidaSinLoteLeido(AResolucion, AContexto, oModo,
+  else if rContexto.Sentido = sllSalida then
+    Result := SalidaSinLoteLeido(AResolucion, rContexto, oModo,
                                  ARepositorio, ASelector)
   else
-    Result := EntradaSinLoteLeido(AResolucion, AContexto, oModo,
+    Result := EntradaSinLoteLeido(AResolucion, rContexto, oModo,
                                   ARepositorio, ASelector);
 end;
 

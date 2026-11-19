@@ -626,6 +626,18 @@ begin
     oModo := FConfig.Activacion.ModoEfectivo(rTrazabilidad.Modo);
     if rTrazabilidad.EsPartidaReposicion then
       oModo := mtLote;
+    // FZ-ISSUE-1043: salida sin lote (venta, traspaso, devolución a
+    // proveedor) de un artículo con partidas de reposición en el almacén:
+    // se pide el lote como si fuera LOTE, proponiendo la más antigua.
+    if (oModo = mtNinguna) and (sLote = '') and
+       (SentidoLinea(ALinea) = sllSalida) and
+       SalidaPideLoteReposicion(FConfig.Activacion, FConfig.Repositorio,
+         TextoCampo(ALinea, FConfig.Campos.Sku),
+         Contexto(ALinea, ADocumento, rTrazabilidad).CodigoAlmacen) then
+    begin
+      oModo := mtLote;
+      rTrazabilidad.EsPartidaReposicion := True;
+    end;
     bConRegla := RequiereLote(oModo) and
       (TextoCampo(ALinea, FConfig.Campos.Sku) <> '') and
       Assigned(FConfig.Repositorio) and Assigned(FConfig.Selector);

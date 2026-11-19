@@ -139,7 +139,9 @@ function ActivacionVisualReposicion(AConexion: TUniConnection;
   const AParametros: IParametros): TActivacionTrazabilidad;
 begin
   Result := TActivacionTrazabilidad.Leer(AParametros);
-  if HayPartidasReposicion(AConexion) then
+  // FZ-ISSUE-1043: las salidas piden lote de las partidas de reposición.
+  PublicarHayReposicion(HayPartidasReposicion(AConexion));
+  if HayReposicionPublicada then
     Result.Lotes := True;
 end;
 

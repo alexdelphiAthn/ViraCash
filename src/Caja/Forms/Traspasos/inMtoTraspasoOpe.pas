@@ -486,6 +486,7 @@ implementation
 {$R *.dfm}
 
 uses
+  UniDataReposicionAutomatica,
   inLibMensajesVcl, inMtoModalImpHojaRutaTransito,
   inLibMsgCaja, inLibMsgComun, inLibMsgFacturas, inLibTraspasoSolicitudAtencion,
   inLibMsgConfiguracion,
@@ -2196,6 +2197,11 @@ begin
   // La serie o el lote salen del almacén de origen (traspaso y atender).
   rDocumento := DocumentoTrazabilidadUniDAC(Self, ConexionPrincipal,
     ParametrosApp, sllSalida, TablaLineasLote('', '', '', ''));
+  // FZ-ISSUE-1043: con partidas de reposición (Modo Yeti) los lotes se ven
+  // y se piden también en los artículos sin trazabilidad.
+  if Assigned(ParametrosApp) then
+    rDocumento.Activacion :=
+      ActivacionVisualReposicion(ConexionPrincipal, ParametrosApp);
   FActivacionLotes := rDocumento.Activacion;
   if Assigned(rDocumento.Lectura) then
   begin

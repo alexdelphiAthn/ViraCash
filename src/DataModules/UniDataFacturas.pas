@@ -2145,10 +2145,18 @@ end;
 
 procedure TdmFacturas.ConfigurarLotesLineas(
   const AConfig: TConfiguracionLotesLineas);
+var
+  rConfig: TConfiguracionLotesLineas;
 begin
   FreeAndNil(FLotesLineas);
   if Assigned(AConfig.Lectura) then
-    FLotesLineas := TLotesLineasDocumento.Create(AConfig);
+  begin
+    // FZ-ISSUE-1056: el resto de un reparto entre lotes se copia de la
+    // línea ya grabada con su lote; por el lector volvía a pedir el lote.
+    rConfig := AConfig;
+    rConfig.CopiarLineasPendientes := True;
+    FLotesLineas := TLotesLineasDocumento.Create(rConfig);
+  end;
 end;
 
 function TdmFacturas.DocumentoLotes: TDocumentoLineaLote;

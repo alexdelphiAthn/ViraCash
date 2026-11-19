@@ -72,8 +72,9 @@ procedure CrearColumnasLoteDocumento(AVista: TcxGridDBTableView;
 implementation
 
 uses
-  System.Classes, cxCalendar, cxEdit, cxButtonEdit,
-  inLibArticulosValidadorIntf, inLibMsgTrazabilidad;
+  System.Classes, cxCalendar, cxEdit, cxButtonEdit, cxGridTableView,
+  cxCustomData, cxGridCustomTableView,
+  inLibArticulosValidadorIntf, inLibMsgTrazabilidad, inLibLecturaGs1Pendiente;
 
 const
   // Medidas a 96 ppp.
@@ -94,6 +95,59 @@ begin
   // Lo tecleado en la celda se descarta: el lote se vuelve a decidir.
   FVista.Controller.EditingController.HideEdit(False);
   FElegir();
+end;
+
+type
+  // FZ-ISSUE-1055: en la línea en edición, con el lote vacío, enseña el
+  // lote leído (etiqueta de una partida, GS1) que se tomará al grabar.
+  TLoteLeidoVisible = class(TComponent)
+  private
+    FVista: TcxGridDBTableView;
+    FCampoSku: string;
+    FAnterior: TcxGridGetDisplayTextEvent;
+    procedure ObtenerTexto(Sender: TcxCustomGridTableItem;
+      ARecord: TcxCustomGridRecord; var AText: string);
+  end;
+
+procedure TLoteLeidoVisible.ObtenerTexto(Sender: TcxCustomGridTableItem;
+  ARecord: TcxCustomGridRecord; var AText: string);
+var
+  oDatos: TDataSet;
+  oCampo: TField;
+  sLote: string;
+begin
+  if Assigned(FAnterior) then
+    FAnterior(Sender, ARecord, AText);
+  if (Trim(AText) = '') and Assigned(ARecord) and ARecord.Focused and
+     Assigned(FVista.DataController.DataSource) then
+  begin
+    oDatos := FVista.DataController.DataSource.DataSet;
+    if Assigned(oDatos) and (oDatos.State in dsEditModes) then
+    begin
+      oCampo := oDatos.FindField(FCampoSku);
+      if Assigned(oCampo) then
+      begin
+        sLote := LoteLecturaPendiente(oCampo.AsString);
+        if sLote <> '' then
+          AText := sLote;
+      end;
+    end;
+  end;
+end;
+
+procedure MostrarLoteLeido(AVista: TcxGridDBTableView;
+  AColumna: TcxGridDBColumn; const ACampoSku: string);
+var
+  oVisible: TLoteLeidoVisible;
+begin
+  if AColumna.FindComponent('LoteLeidoVisible') <> nil then
+    Exit;
+  oVisible := TLoteLeidoVisible.Create(AColumna);
+  oVisible.Name := 'LoteLeidoVisible';
+  oVisible.FVista := AVista;
+  oVisible.FCampoSku := ACampoSku;
+  oVisible.FAnterior := AColumna.OnGetDisplayText;
+  AColumna.OnGetDisplayText := oVisible.ObtenerTexto;
 end;
 
 procedure PonerBotonElegir(AVista: TcxGridDBTableView;
@@ -133,6 +187,8 @@ begin
     end;
     oColumna.Caption := SCaptionColumnaLoteSerie;
     oColumna.Visible := True;
+    MostrarLoteLeido(AVista, oColumna,
+      CampoConSufijo('CODIGO_UNIDAD', ASufijo));
     if Assigned(AElegir) then
       PonerBotonElegir(AVista, oColumna, AElegir);
     if AActivacion.Lotes then

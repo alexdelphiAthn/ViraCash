@@ -86,6 +86,11 @@ function ModoDesdeCadena(const ACadena: string): TModoTrazabilidad;
 procedure PublicarActivacionVigente(
   const AActivacion: TActivacionTrazabilidad);
 function ActivacionVigente: TActivacionTrazabilidad;
+// FZ-ISSUE-1043: la base tiene partidas de reposición (Modo Yeti). Lo
+// publica UniDataReposicionAutomatica.ActivacionVisualReposicion; las
+// salidas solo buscan partidas de reposición si está activo.
+procedure PublicarHayReposicion(AValor: Boolean);
+function HayReposicionPublicada: Boolean;
 
 // --- Reglas de lote, caducidad y FEFO (F-LOTEC-009) -------------------------
 
@@ -125,6 +130,10 @@ type
     FechaCaducidad: TDate;
     FechaEntrada: TDate;
     Cantidad: Double;
+    // FZ-ISSUE-1043/1044: partida de reposición (Modo Yeti) y su orden de
+    // recepción (alta de la partida). Salen por antigüedad, no por FEFO.
+    EsReposicion: Boolean;
+    OrdenRecepcion: TDateTime;
   end;
   TLotesDisponibles = TArray<TLoteDisponible>;
 
@@ -203,6 +212,17 @@ uses
 
 var
   GActivacionVigente: TActivacionTrazabilidad;
+  GHayReposicion: Boolean;
+
+procedure PublicarHayReposicion(AValor: Boolean);
+begin
+  GHayReposicion := AValor;
+end;
+
+function HayReposicionPublicada: Boolean;
+begin
+  Result := GHayReposicion;
+end;
 
 procedure PublicarActivacionVigente(
   const AActivacion: TActivacionTrazabilidad);
@@ -539,6 +559,27 @@ end;
 
 function CompararParaFefo(const AIzq, ADer: TLoteDisponible): Integer;
 begin
+  // FZ-ISSUE-1044: las partidas de reposición van primero, de la más
+  // antigua por fecha de entrada (desempate: orden de recepción), sin mirar
+  // la caducidad. El stock sin partida u otros lotes, después y en FEFO.
+  if AIzq.EsReposicion <> ADer.EsReposicion then
+  begin
+    if AIzq.EsReposicion then
+      Result := -1
+    else
+      Result := 1;
+    Exit;
+  end;
+  if AIzq.EsReposicion then
+  begin
+    Result := CompareValue(Trunc(AIzq.FechaEntrada),
+      Trunc(ADer.FechaEntrada));
+    if Result = 0 then
+      Result := CompareValue(AIzq.OrdenRecepcion, ADer.OrdenRecepcion);
+    if Result = 0 then
+      Result := CompareText(AIzq.Lote, ADer.Lote);
+    Exit;
+  end;
   Result := CompararCaducidad(AIzq.FechaCaducidad, ADer.FechaCaducidad);
   if Result = 0 then
     Result := CompareValue(Trunc(AIzq.FechaEntrada), Trunc(ADer.FechaEntrada));

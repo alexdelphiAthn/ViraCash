@@ -279,7 +279,13 @@ begin
   Datos := Contexto(AResolucion.CodigoArticulo,
     AResolucion.DescripcionArticulo, ACantidad, AFefo);
   Resolucion := AResolucion;
-  if FConfig.Activacion.ModoEfectivo(Datos.Modo) = mtLote then
+  // FZ-ISSUE-1043: un artículo sin trazabilidad con partidas de reposición
+  // en el almacén se vende con lote (neto de lo que ya lleva el ticket).
+  if (FConfig.Activacion.ModoEfectivo(Datos.Modo) = mtLote) or
+     ((FConfig.Activacion.ModoEfectivo(Datos.Modo) = mtNinguna) and
+      (Trim(AResolucion.Lote) = '') and
+      SalidaPideLoteReposicion(FConfig.Activacion, FConfig.Repositorio,
+        AResolucion.CodigoSku, Datos.CodigoAlmacen)) then
   begin
     Lotes := FConfig.Repositorio.Disponibles(AResolucion.CodigoSku,
       Datos.CodigoAlmacen);
@@ -750,8 +756,12 @@ begin
      (ALinea.FieldByName(CAMPO_CANTIDAD_CAJA).AsFloat > 0) and
      (Trim(ALinea.FieldByName(CAMPO_SKU_CAJA).AsString) <> '') and
      ((oCampo = nil) or (Trim(oCampo.AsString) = '')) and
-     RequiereLote(ModoArticulo(
-       ALinea.FieldByName(CAMPO_ARTICULO_CAJA).AsString)) then
+     (RequiereLote(ModoArticulo(
+        ALinea.FieldByName(CAMPO_ARTICULO_CAJA).AsString)) or
+      // FZ-ISSUE-1043: partidas de reposición en el almacén.
+      SalidaPideLoteReposicion(FConfig.Activacion, FConfig.Repositorio,
+        ALinea.FieldByName(CAMPO_SKU_CAJA).AsString,
+        FConfig.Almacen())) then
   begin
     if not TomarLecturaGs1(ALinea.FieldByName(CAMPO_SKU_CAJA).AsString,
                            rGs1) then
