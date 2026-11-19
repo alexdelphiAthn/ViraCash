@@ -1883,11 +1883,14 @@ begin
   // la ficha del articulo. NO se recalcula con VALOR_TOTAL_STK (que puede
   // estar a 0 aunque el PMP exista). Con varios lotes: media ponderada por
   // cantidad; si no hay stock pero hay PMP guardado, se toma ese (MAX).
+  // FZ-ISSUE-1059: con partidas de reposición (Modo Yeti), el coste de la
+  // que se propondría (la más antigua con existencias), no la media.
   qryAux.SQL.Text :=
-    'SELECT CASE WHEN SUM(CANTIDAD_STK) > 0' +
+    'SELECT COALESCE(FNC_FZA_COSTE_SALIDA(:ALM, :SKU, ''''),' +
+    '       CASE WHEN SUM(CANTIDAD_STK) > 0' +
     '            THEN SUM(PRECIO_MEDIO_STK * CANTIDAD_STK)' +
     '                 / SUM(CANTIDAD_STK)' +
-    '            ELSE MAX(PRECIO_MEDIO_STK) END AS PMP ' +
+    '            ELSE MAX(PRECIO_MEDIO_STK) END) AS PMP ' +
     '  FROM fza_articulos_stockactual ' +
     ' WHERE CODIGO_ALM_STK = :ALM AND CODIGO_UNIDAD_STK = :SKU';
   qryAux.ParamByName('ALM').AsString := AAlmacen;

@@ -799,7 +799,14 @@ const
   // Se guarda sin impuestos (FZ-ISSUE-381): a la empresa emisora en recargo
   // se le suman el IVA y el recargo, que no deduce, como en su PMP.
   SQL_PRECIOS_REFERENCIA_TRASPASO =
-    'COALESCE((SELECT CASE WHEN SUM(S.CANTIDAD_STK) > 0 ' +
+    // FZ-ISSUE-1059: una partida de reposición (Modo Yeti) toma el coste con
+    // que salió (el de la partida), no el PMP de la empresa.
+    'COALESCE((SELECT M.PRECIO_COSTE_UNITARIO_MOV ' +
+    ' FROM fza_articulos_lotes LR ' +
+    ' WHERE LR.CODIGO_UNIDAD_LOT = M.CODIGO_UNIDAD_MOV ' +
+    ' AND LR.LOTE_LOT = M.LOTE_MOV AND LR.ESREPOSICION_LOT = ''S'' ' +
+    ' AND M.PRECIO_COSTE_UNITARIO_MOV > 0 LIMIT 1), ' +
+    '(SELECT CASE WHEN SUM(S.CANTIDAD_STK) > 0 ' +
     ' THEN SUM(S.PRECIO_MEDIO_STK * S.CANTIDAD_STK) / SUM(S.CANTIDAD_STK) ' +
     ' ELSE MAX(S.PRECIO_MEDIO_STK) END ' +
     ' FROM fza_articulos_stockactual S ' +

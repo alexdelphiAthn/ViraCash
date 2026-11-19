@@ -564,7 +564,7 @@ type
     function ObtenerSerieDocumentoTraspaso(
       const AEmpresa, AAlmacen, ATipoDoc: string): string;
     function ObtenerCosteMedioSkuAlmacen(
-      const ASku, AAlmacen: string): Currency;
+      const ASku, AAlmacen: string; const ALote: string = ''): Currency;
     function RegistrarLineasTraspasoDevolucion(
       const AEmpresaOrigen, ATipoDocumento, ASerieDocumento,
         ANumeroDocumento, ANumeroOperacion: string): Currency;
@@ -2470,7 +2470,7 @@ var
 begin
   Result := ObtenerCosteMedioSkuAlmacen(
     ALinea.Sku,
-    AAlmacenOrigen);
+    AAlmacenOrigen, ALinea.Lote);
   Solicitud := Default(TSolicitudMovimientoAlmacenCaja);
   Solicitud.Movimiento.Numero := ANumeroMovimiento;
   Solicitud.Movimiento.TipoDocumento := 'VE';
@@ -2501,7 +2501,8 @@ function TGrabacionFacturaCaja.RegistrarRetornoDeposito(
 var
   Solicitud: TSolicitudMovimientoAlmacenCaja;
 begin
-  Result := ObtenerCosteMedioSkuAlmacen(ALinea.Sku, AlmacenDeposito);
+  Result := ObtenerCosteMedioSkuAlmacen(ALinea.Sku, AlmacenDeposito,
+    ALinea.Lote);
   Solicitud := Default(TSolicitudMovimientoAlmacenCaja);
   Solicitud.Movimiento.TipoDocumento := 'TR';
   Solicitud.Movimiento.Linea := ALinea.Linea;
@@ -3366,7 +3367,7 @@ begin
 end;
 
 function TGrabacionFacturaCaja.ObtenerCosteMedioSkuAlmacen(
-  const ASku, AAlmacen: string): Currency;
+  const ASku, AAlmacen: string; const ALote: string): Currency;
 var
   Qry: TUniQuery;
 begin
@@ -3376,8 +3377,11 @@ begin
   Qry := TUniQuery.Create(nil);
   try
     Qry.Connection := FDataModule.FConexion;
+    // FZ-ISSUE-1059: una partida de reposición (Modo Yeti) sale a su coste;
+    // sin lote, al de la que se propondría. Si no hay partidas, el PMP.
     Qry.SQL.Text :=
-      'SELECT CASE WHEN SUM(CANTIDAD_STK) > 0' +
+      'SELECT COALESCE(FNC_FZA_COSTE_SALIDA(:ALM, :SKU, :LOTE),' +
+      '       CASE WHEN SUM(CANTIDAD_STK) > 0' +
       '            THEN SUM(PRECIO_MEDIO_STK * CANTIDAD_STK)' +
       '                 / SUM(CANTIDAD_STK)' +
       '            ELSE COALESCE((' +
@@ -3388,11 +3392,12 @@ begin
       '                 AND ESACTIVO_MOV = ''S''' +
       '               ORDER BY FECHA_MOV DESC, INSTANTE_ALTA DESC,' +
       '                        NUMERO_MOV DESC LIMIT 1),' +
-      '              MAX(PRECIO_MEDIO_STK), 0) END AS PMP ' +
+      '              MAX(PRECIO_MEDIO_STK), 0) END) AS PMP ' +
       '  FROM fza_articulos_stockactual ' +
       ' WHERE CODIGO_ALM_STK = :ALM AND CODIGO_UNIDAD_STK = :SKU';
     Qry.ParamByName('ALM').AsString := AAlmacen;
     Qry.ParamByName('SKU').AsString := ASku;
+    Qry.ParamByName('LOTE').AsString := Trim(ALote);
     Qry.Open;
     Result := Qry.FieldByName('PMP').AsCurrency;
   finally
@@ -3417,7 +3422,8 @@ begin
     LineaDocumento := LineaDocumento + 10;
     NumeroLinea := Format('%.4d', [LineaDocumento]);
     Coste := ObtenerCosteMedioSkuAlmacen(
-      FLineasTraspasoDev[Indice].Sku, FAlmacenOrigenDevolucion);
+      FLineasTraspasoDev[Indice].Sku, FAlmacenOrigenDevolucion,
+      FLineasTraspasoDev[Indice].Lote);
     // Salida del almacén de origen del ticket hacia el actual
     SolicitudMovimiento := Default(TSolicitudMovimientoAlmacenCaja);
     SolicitudMovimiento.Movimiento.TipoDocumento := ATipoDocumento;
