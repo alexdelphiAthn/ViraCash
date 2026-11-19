@@ -558,21 +558,31 @@ var
   rCatalogo: TLoteCatalogo;
   oCaducidad: TField;
   sProveedor: string;
+  bEntrada: Boolean;
 begin
+  // Solo los documentos de compra (albarán, factura y devolución a
+  // proveedor) traen proveedor: entradas y devoluciones a proveedor.
   if (ALote <> '') and Assigned(FConfig.Repositorio) and
-     (SentidoLinea(ALinea) = sllEntrada) and
      FConfig.Repositorio.BuscarLote(
        TextoCampo(ALinea, FConfig.Campos.Sku), ALote, rCatalogo) then
   begin
+    bEntrada := SentidoLinea(ALinea) = sllEntrada;
     sProveedor := Trim(rCatalogo.CodigoProveedor);
     if (sProveedor <> '') and (sProveedor <> '0') and
        (Trim(ADocumento.CodigoProveedor) <> '') and
        (Trim(ADocumento.CodigoProveedor) <> '0') and
        not SameText(sProveedor, Trim(ADocumento.CodigoProveedor)) then
-      Rechazar(Format(SErrorLoteProveedorDistinto,
-        [ALote, sProveedor]));
+    begin
+      if bEntrada then
+        Rechazar(Format(SErrorLoteProveedorDistinto,
+          [ALote, sProveedor]))
+      else
+        // FZ-ISSUE-1054: no devolver a un proveedor el lote de otro.
+        Rechazar(Format(SErrorLoteDevolucionProveedorDistinto,
+          [ALote, sProveedor, Trim(ADocumento.CodigoProveedor)]));
+    end;
     oCaducidad := ALinea.FindField(FConfig.Campos.Caducidad);
-    if Assigned(oCaducidad) and
+    if bEntrada and Assigned(oCaducidad) and
        (rCatalogo.FechaCaducidad <> SIN_FECHA) then
     begin
       if oCaducidad.IsNull then

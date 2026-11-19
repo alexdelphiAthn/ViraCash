@@ -4402,6 +4402,30 @@ begin
     'src/Lib/inLibMsgTrazabilidad.pas',
     @inLibMsgTrazabilidad.SErrorLoteProveedorDistinto);
   ARegistrar(
+    'inLibMsgTrazabilidad.SCaptionLoteReposicion',
+    'src/Lib/inLibMsgTrazabilidad.pas',
+    @inLibMsgTrazabilidad.SCaptionLoteReposicion);
+  ARegistrar(
+    'inLibMsgTrazabilidad.SPreguntaLoteReposicion',
+    'src/Lib/inLibMsgTrazabilidad.pas',
+    @inLibMsgTrazabilidad.SPreguntaLoteReposicion);
+  ARegistrar(
+    'inLibMsgTrazabilidad.SErrorLoteReposicionVacio',
+    'src/Lib/inLibMsgTrazabilidad.pas',
+    @inLibMsgTrazabilidad.SErrorLoteReposicionVacio);
+  ARegistrar(
+    'inLibMsgTrazabilidad.SErrorLoteReposicionLargo',
+    'src/Lib/inLibMsgTrazabilidad.pas',
+    @inLibMsgTrazabilidad.SErrorLoteReposicionLargo);
+  ARegistrar(
+    'inLibMsgTrazabilidad.SErrorLoteReposicionOcupado',
+    'src/Lib/inLibMsgTrazabilidad.pas',
+    @inLibMsgTrazabilidad.SErrorLoteReposicionOcupado);
+  ARegistrar(
+    'inLibMsgTrazabilidad.SErrorLoteDevolucionProveedorDistinto',
+    'src/Lib/inLibMsgTrazabilidad.pas',
+    @inLibMsgTrazabilidad.SErrorLoteDevolucionProveedorDistinto);
+  ARegistrar(
     'inLibMsgTrazabilidad.' +
     'SErrorLoteCaducidadContradictoria',
     'src/Lib/inLibMsgTrazabilidad.pas',

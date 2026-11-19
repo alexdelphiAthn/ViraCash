@@ -471,6 +471,7 @@ implementation
 uses
   UniDataReposicionAutomatica,
   inLibMensajesVcl,
+  inLibMsgTrazabilidad,
   inLibTrazabilidad, inLibReparaciones, inLibMsgReparaciones,
   inLibListasRegalos,
   inLibCajaParam,
@@ -688,9 +689,54 @@ begin
     [0, 1, 2], True);
 end;
 
+// FZ-ISSUE-1042: la primera línea de una recepción Yeti pide el lote con la
+// propuesta PROVEEDOR-AAAAMMDD-n y la fecha de entrada del documento.
+function ConfirmarLoteReposicionVcl(const ASku: string;
+  AFechaEntrada: TDate; var ALote: string;
+  const AValidar: TValidacionLoteReposicion): Boolean;
+var
+  Valores: array of string;
+  sFecha: string;
+begin
+  if AFechaEntrada > 0 then
+    sFecha := FormatDateTime('dd/mm/yyyy', AFechaEntrada)
+  else
+    sFecha := FormatDateTime('dd/mm/yyyy', Date);
+  SetLength(Valores, 1);
+  Valores[0] := ALote;
+  Result := InputQuery_fza(SCaptionLoteReposicion,
+    [Format(SPreguntaLoteReposicion, [ASku, sFecha])], Valores,
+    function(const AValores: array of string): Boolean
+    var
+      sValor, sAviso: string;
+    begin
+      sValor := Trim(AValores[0]);
+      Result := False;
+      if sValor = '' then
+        ShowMessage_fza(SErrorLoteReposicionVacio)
+      else if Length(sValor) > LONGITUD_MAXIMA_LOTE_REPOSICION then
+        ShowMessage_fza(Format(SErrorLoteReposicionLargo,
+          [LONGITUD_MAXIMA_LOTE_REPOSICION]))
+      else
+      begin
+        // FZ-ISSUE-1051: lote de otra recepción, sin cerrar la ventana.
+        sAviso := '';
+        if Assigned(AValidar) then
+          sAviso := AValidar(sValor);
+        if sAviso <> '' then
+          ShowMessage_fza(sAviso)
+        else
+          Result := True;
+      end;
+    end);
+  if Result then
+    ALote := Trim(Valores[0]);
+end;
+
 procedure TfrmMtoPrincipal.FormCreate(Sender: TObject);
 begin
   inherited;
+  ConfirmacionLoteReposicion := ConfirmarLoteReposicionVcl;
   // Painter propio: JVCL no dibuja iconos en los items de la barra.
   // Asignar ItemPainter ya pone Style := msItemPainter.
   FPainterMenu := TJvMenuBarIconPainter.Create(Self);
