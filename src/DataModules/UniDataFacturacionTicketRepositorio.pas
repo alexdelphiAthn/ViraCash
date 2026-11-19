@@ -188,8 +188,10 @@ const
     ' WHERE SERIE_FAC = :SERIE AND NUMERO_FAC = :NUMERO';
   // Copia también el SKU, la variación y los atributos de la línea del
   // ticket: sin ellos la factura sustitutiva no dice qué color o talla se
-  // vendió (FZ-ISSUE-124). No se copian almacén, caja, operación ni
-  // movimiento: la factura sustitutiva no mueve stock.
+  // vendió (FZ-ISSUE-124). No se copian caja, operación ni movimiento: la
+  // factura sustitutiva no mueve stock. Sí el almacén y el vendedor de la
+  // línea, que usan los listados de ventas (FZ-ISSUE-1039); el ticket
+  // sustituido queda fuera de esos listados (SQLExcluirTicketSustituido).
   SQL_INSERTAR_LINEAS =
     'INSERT INTO fza_facturas_lineas ' +
     '(NUMERO_FAC_FACLIN, SERIE_FAC_FACLIN, LINEA_FACLIN, ' +
@@ -210,7 +212,7 @@ const
     'NUM_ATRIBUTOS_FACLIN, ' +
     // FZ-ISSUE-1038: la línea lleva la empresa de la cabecera; sin ella
     // se pierde en las uniones por la clave completa de la factura.
-    'CODIGO_EMP_FACLIN, ' +
+    'CODIGO_EMP_FACLIN, CODIGO_ALM_FACLIN, CODIGO_VENDEDOR_FACLIN, ' +
     'INSTANTE_MODIF, INSTANTE_ALTA, USUARIO_ALTA, USUARIO_MODIF) ' +
     'SELECT :NUMERO, :SERIE, LINEA_FACLIN, CODIGO_ART_FACLIN, ' +
     'CODIGO_UNIDAD_FACLIN, ' +
@@ -230,6 +232,7 @@ const
     'NUM_ATRIBUTOS_FACLIN, ' +
     '(SELECT FE.CODIGO_EMP_FAC FROM fza_facturas FE ' +
     '  WHERE FE.SERIE_FAC = :SERIE AND FE.NUMERO_FAC = :NUMERO), ' +
+    'CODIGO_ALM_FACLIN, CODIGO_VENDEDOR_FACLIN, ' +
     'NOW(), NOW(), :USUARIO, :USUARIO ' +
     'FROM fza_facturas_lineas WHERE SERIE_FAC_FACLIN = :STICKET ' +
     'AND NUMERO_FAC_FACLIN = :NTICKET';

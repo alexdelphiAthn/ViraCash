@@ -3058,6 +3058,7 @@ begin
       CrearColumnasHostFactura;
       FPresentadorLineas.EnvolverEdicionModo(tvLineasFactura);
       AplicarTituloModoEntradaFacturaVcl(Self, Cfg);
+      ActualizarVisibilidadPropiedadesArticulo;
     finally
       FConstruyendoModo := False;
       dmmFacturas.dsLinFac.OnDataChange := FPresentadorLineas.CambioEnLineas;

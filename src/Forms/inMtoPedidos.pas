@@ -1299,6 +1299,7 @@ begin
     FColsModoConstruido := True;
     MontarColumnasModoEntrada(oPlan);
     AplicarPresentacionModoEntrada(oConfiguracion);
+    ActualizarVisibilidadPropiedadesArticulo;
   end;
 end;
 
@@ -1551,7 +1552,7 @@ begin
   ColLinea := Col(SCaptionColumnaPedidoLinea, 'LINEA_PEDLIN', 60, False);
   Col(SCaptionColumnaPedidoDescripcion, 'DESCRIPCION_ARTICULO_PEDLIN', 220, False);
   Col(SCaptionPropiedadesArticuloDocumento,
-    'PROPIEDADES_ARTICULO', 300, False);
+    'PROPIEDADES_ARTICULO', 300, False).Visible := False;
   if FModoEntradaSel <> mcsTallasHorPed then
   begin
     ColCant := Col(SCaptionColumnaPedidoPedida, 'CANTIDAD_PEDLIN', 80, True);

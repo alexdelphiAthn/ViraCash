@@ -958,6 +958,7 @@ begin
     DesactivarEnterAsTabTemporal, SalirEdicionModoEntrada,
     FModoEntradaSel, [], '');
   CrearColumnasHostAlbaran;
+  ActualizarVisibilidadPropiedadesArticulo;
   tvLineasAlbaran.OptionsBehavior.GoToNextCellOnEnter := True;
   tvLineasAlbaran.OptionsBehavior.FocusCellOnTab := True;
   tvLineasAlbaran.OptionsBehavior.FocusCellOnCycle := True;
@@ -1002,7 +1003,7 @@ begin
   Col(SCaptionDescripcionPresupuesto, 'DESCRIPCION_ARTICULO_PRELIN', 220,
     True);
   Col(SCaptionPropiedadesArticuloDocumento,
-    'PROPIEDADES_ARTICULO', 300, False);
+    'PROPIEDADES_ARTICULO', 300, False).Visible := False;
   ColCant := Col(SCaptionCantidadPresupuesto, 'CANTIDAD_PRELIN', 80,
                  FModoEntradaSel <> mcsTallasInline);
   ColTipo := Col('', 'TIPO_CANTIDAD_ARTICULO_PRELIN', 20, False);

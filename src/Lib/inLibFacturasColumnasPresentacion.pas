@@ -227,7 +227,7 @@ begin
     True);
   NuevaColumna(AConfiguracion.Vista,
     SCaptionPropiedadesArticuloDocumento, 'PROPIEDADES_ARTICULO',
-    300, False);
+    300, False).Visible := False;
   if AConfiguracion.DescripcionAmpliada then
   begin
     AColumnas.DescripcionArticulo.PropertiesClass := TcxMemoProperties;

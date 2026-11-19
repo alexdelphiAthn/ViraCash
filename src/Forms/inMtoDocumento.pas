@@ -91,6 +91,7 @@ type
       TConfiguracionDocumento;
     procedure AsignarVistaLineasDocumento(
       AVista: TcxGridDBTableView);
+    procedure ActualizarVisibilidadPropiedadesArticulo(Sender: TObject = nil);
     procedure RestaurarListaNormalCompras(
       ARol: TRolAperturaMantenimiento); virtual;
     property ConfiguracionDocumento: TConfiguracionDocumento
@@ -117,7 +118,7 @@ implementation
 uses
   inLibMensajesVcl,
   System.SysUtils, System.Classes, Winapi.Windows, Vcl.Controls, Vcl.Dialogs,
-  Vcl.Forms, System.UITypes, inLibErroresBBDD,
+  Vcl.Forms, System.UITypes, System.Variants, inLibErroresBBDD,
   cxEdit, cxGridCustomTableView, cxGridDBDataDefinitions,
   inLibColumnasDocumento, inLibDocumento, inLibDatasets,
   inLibFiltroUsuario, inLibMsgCompras, inLibMsgComun,
@@ -135,7 +136,7 @@ begin
   FreeAndNil(FPrecargaCompras);
   FRepositorioPrecarga := nil;
   FEstrategiaDocumento := nil;
-  FVistaLineasDocumento := nil;
+  AsignarVistaLineasDocumento(nil);
   inherited;
 end;
 
@@ -151,7 +152,37 @@ end;
 procedure TfrmMtoDocumento.AsignarVistaLineasDocumento(
   AVista: TcxGridDBTableView);
 begin
+  if Assigned(FVistaLineasDocumento) then
+    FVistaLineasDocumento.DataController.RemoveDataChangedListener(Self,
+      ActualizarVisibilidadPropiedadesArticulo);
   FVistaLineasDocumento := AVista;
+  if Assigned(AVista) and (FConfiguracionDocumento.Sentido = sdVenta) then
+    AVista.DataController.AddDataChangedListener(Self,
+      ActualizarVisibilidadPropiedadesArticulo);
+end;
+
+procedure TfrmMtoDocumento.ActualizarVisibilidadPropiedadesArticulo(
+  Sender: TObject);
+var
+  Datos: TcxGridDBDataController;
+  Columna: TcxGridDBColumn;
+  Registro: Integer;
+  HayPropiedades: Boolean;
+begin
+  Columna := FVistaLineasDocumento.GetColumnByFieldName('PROPIEDADES_ARTICULO');
+  if Assigned(Columna) then
+  begin
+    Datos := FVistaLineasDocumento.DataController;
+    HayPropiedades := False;
+    // Leer todas las líneas sin mover el cursor ni confirmar una edición.
+    for Registro := 0 to Datos.RecordCount - 1 do
+      if Trim(VarToStr(Datos.Values[Registro, Columna.Index])) <> '' then
+      begin
+        HayPropiedades := True;
+        Break;
+      end;
+    Columna.Visible := HayPropiedades;
+  end;
 end;
 
 function TfrmMtoDocumento.ConfiguracionPersistenciaDocumento(

@@ -978,7 +978,7 @@ begin
   Col(SCaptionColumnaPedidoDescripcion,
     'DESCRIPCION_ARTICULO_ALBLIN', 220, False);
   Col(SCaptionPropiedadesArticuloDocumento,
-    'PROPIEDADES_ARTICULO', 300, False);
+    'PROPIEDADES_ARTICULO', 300, False).Visible := False;
   ColCant := Col(SCaptionColCantidad, 'CANTIDAD_ALBLIN', 80,
                  FModoEntradaSel <> mcsTallasInline);
   ColTipo := Col('', 'TIPO_CANTIDAD_ARTICULO_ALBLIN', 20, False);
@@ -1054,6 +1054,7 @@ begin
   // Orden normal del documento: la LINEA delante del bloque de
   // articulo que creo el modo (las columnas del host nacen detras).
   ColLinea.Index := 0;
+  ActualizarVisibilidadPropiedadesArticulo;
 end;
 
 procedure TfrmMtoAlbaranes.MostrarColumnasAtributoGlobalesAlb;
