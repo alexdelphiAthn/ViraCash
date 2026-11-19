@@ -35,7 +35,7 @@ uses
   cxRadioGroup, System.Actions, Vcl.ActnList, Vcl.PlatformDefaultStyleActnCtrls,
   cxSplitter, cxSpinEdit, Vcl.AppEvnts, JvComponentBase, JvEnterTab,
   dxShellDialogs, cxGroupBox, cxLookupEdit, cxDBLookupEdit,
-  cxDBLookupComboBox;
+  cxDBLookupComboBox, inLibFotoMiniaturaMtoVcl;
 
 type
   TfrmMtoProveedores = class(TfrmMtoGen)
@@ -212,6 +212,10 @@ type
     dbcKitDetCantidad: TcxGridDBColumn;
     dbcKitDetOrden: TcxGridDBColumn;
     glKitsDet: TcxGridLevel;
+    tsPedidosCompra: TcxTabSheet;
+    tsAlbaranesCompra: TcxTabSheet;
+    tsFacturasCompra: TcxTabSheet;
+    tsEfectosCompra: TcxTabSheet;
     procedure btnGrabarClick(Sender: TObject);
     procedure btnIraArticuloClick(Sender: TObject);
     procedure actArticulosExecute(Sender: TObject);
@@ -235,9 +239,20 @@ type
   private
     FSincronizandoPrecio: Boolean;
     FDmmProveedores: TDMProveedores;
-    { Private declarations }
-    // Carga perezosa de sub-pestañas detail (Articulos, Ventas).
+    FMiniaturaFoto: TMiniaturaFotoMto;
+    FPestanasDocumentos: array[TDocumentoCompraProveedor] of TcxTabSheet;
+    FBotonesDocumentos: array[TDocumentoCompraProveedor] of TcxButton;
+    FFacturasOrdinarias: Boolean;
+    FComprasDirectas: Boolean;
+    function PuedeConsultarDocumento(const APantalla: string): Boolean;
+    function CrearVistaDocumentos(AContenedor: TWinControl; AAlineacion: TAlign;
+      AFuente: TDataSource): TcxGridDBTableView;
+    procedure CrearPestanasDocumentos;
+    procedure CrearContenidoDocumentos(ATipo: TDocumentoCompraProveedor);
+    procedure ActualizarBotonDocumento(Sender: TObject; Field: TField);
+    procedure AbrirDocumentoSeleccionado(Sender: TObject);
     procedure PcPestanasChange(Sender: TObject);
+    procedure ActualizarFotoProveedor(Sender: TObject);
     // Evita que el Enter del formulario (tvEnterAsTab) se coma la
     // seleccion con Enter dentro de un combo desplegado.
     procedure DesactivarEnterAsTabEnCombo(AComp: TcxDBLookupComboBox);
@@ -259,9 +274,21 @@ uses
   inLibShowMto,
   inLibFotos,
   inLibMsgCompras,
-  UniDataDestinoFacturaRepositorio;
+  UniDataDestinoFacturaRepositorio, inLibUnitForm, inLibComprasDirectas,
+  inLibFormatoMonetario;
 
 {$R *.dfm}
+
+const
+  PantallasCompra: array[TDocumentoCompraProveedor] of string =
+    ('PedidosCompra', 'AlbaranesCompra', 'FacturasCompra', 'EfectosCompra');
+  PantallaCompraDirecta = 'ComprasDirectasTerceros';
+
+resourcestring
+  SAbrirDocumentoCompra = 'Abrir para editar';
+  SAbrirEfectoCompra = 'Abrir efecto';
+  SLineasDocumentoCompra = 'Líneas del documento';
+  SPagosDelEfecto = 'Pagos del efecto';
 
 procedure TfrmMtoProveedores.CambiarModoPrecio(Sender: TObject);
 begin
@@ -311,41 +338,39 @@ end;
 
 procedure ForceReferenceToClass(C: TClass); begin end;
 
-// El Mto de proveedores tiene articulo en dos pestanas: los articulos
-// del proveedor (tsArticulos / tvArticulos) y las lineas de venta
-// (tsVentas / tvLinFac). El articulo activo es el de la rejilla de la
-// pestana visible; ambas rejillas exponen CODIGO_ART_ART.
-procedure TfrmMtoProveedores.ResolverArtSkuActivo(out ACodArt,
-                                                  ACodSku: string);
+procedure TfrmMtoProveedores.ResolverArtSkuActivo(
+  out ACodArt, ACodSku: string);
 var
-  ds: TDataSet;
+  Fuente: TDataSource;
+  Tipo: TDocumentoCompraProveedor;
 begin
   ACodArt := '';
   ACodSku := '';
-  ds := nil;
-  if pcPestanas.ActivePage = tsArticulos then
+  Fuente := nil;
+  if Assigned(FDmmProveedores) and (pcPantalla.ActivePage = tsFicha) then
   begin
-    if Assigned(tvArticulos.DataController.DataSource) then
-      ds := tvArticulos.DataController.DataSource.DataSet;
-  end
-  else if pcPestanas.ActivePage = tsVentas then
-  begin
-    if Assigned(tvLinFac.DataController.DataSource) then
-      ds := tvLinFac.DataController.DataSource.DataSet;
+    if pcPestanas.ActivePage = tsArticulos then
+      Fuente := FDmmProveedores.dsArticulos
+    else if pcPestanas.ActivePage = tsVentas then
+      Fuente := FDmmProveedores.dsLinFacturasArticulos
+    else
+      for Tipo := dcpPedido to dcpFactura do
+        if pcPestanas.ActivePage = FPestanasDocumentos[Tipo] then
+          Fuente := FDmmProveedores.LineasDocumento[Tipo];
   end;
-  if ds <> nil then
-    inLibFotos.LeerArtSkuDeDataSet(ds, ACodArt, ACodSku);
+  if Assigned(Fuente) then
+    inLibFotos.LeerArtSkuDeDataSet(Fuente.DataSet, ACodArt, ACodSku);
 end;
 
-// Enganchamos los dos datasets de articulo para que la foto flotante
-// siga al cursor en cualquiera de las dos pestanas.
 function TfrmMtoProveedores.DataSourcesParaFoto: TArray<TDataSource>;
 begin
+  Result := [dsTablaG];
   if Assigned(FDmmProveedores) then
-    Result := [dsTablaG, FDmmProveedores.dsArticulos,
-               FDmmProveedores.dsLinFacturasArticulos]
-  else
-    Result := [dsTablaG];
+    Result := Result + [
+      FDmmProveedores.dsArticulos, FDmmProveedores.dsLinFacturasArticulos,
+      FDmmProveedores.LineasDocumento[dcpPedido],
+      FDmmProveedores.LineasDocumento[dcpAlbaran],
+      FDmmProveedores.LineasDocumento[dcpFactura]];
 end;
 
 procedure TfrmMtoProveedores.btnIraArticuloClick(Sender: TObject);
@@ -453,10 +478,228 @@ begin
 end;
 
 procedure TfrmMtoProveedores.AplicarEtiquetas;
+
+  procedure RestaurarPrefijo(APestana: TcxTabSheet; const APrefijo: string);
+  var
+    Titulo: string;
+    Separador, Numero: Integer;
+  begin
+    Titulo := APestana.Caption;
+    Separador := Pos('_', Titulo);
+    if (Separador > 0) and TryStrToInt(
+      StringReplace(Copy(Titulo, 1, Separador - 1), '&', '', []), Numero) then
+      Delete(Titulo, 1, Separador);
+    if Titulo.StartsWith('&') then
+      Delete(Titulo, 1, 1);
+    APestana.Caption := APrefijo + Titulo;
+  end;
+
 begin
   inherited;
-  // La traducción repone el título del DFM (&5_Otros).
-  NumerarPestanasAtajo(pcPestanas);
+  // Los textos de traducciones existentes pueden traer la numeración anterior.
+  RestaurarPrefijo(tsCompras, '&5_');
+  RestaurarPrefijo(tsPagos, '10_&');
+  RestaurarPrefijo(tsOtros, '11_&');
+end;
+
+function TfrmMtoProveedores.PuedeConsultarDocumento(
+  const APantalla: string): Boolean;
+var
+  Anfitrion: IAnfitrionPantallas;
+  Pantalla: TfzaForm;
+begin
+  Result := False;
+  if Supports(Owner, IAnfitrionPantallas, Anfitrion) then
+  begin
+    Pantalla := Anfitrion.RegistroPantallas.GetElement(APantalla);
+    Result := Assigned(Pantalla) and
+      (not Assigned(Pantalla.mnMenuItem) or
+       (Pantalla.mnMenuItem.Visible and Pantalla.mnMenuItem.Enabled));
+  end;
+end;
+
+procedure TfrmMtoProveedores.CrearPestanasDocumentos;
+var
+  Tipo: TDocumentoCompraProveedor;
+begin
+  FPestanasDocumentos[dcpPedido] := tsPedidosCompra;
+  FPestanasDocumentos[dcpAlbaran] := tsAlbaranesCompra;
+  FPestanasDocumentos[dcpFactura] := tsFacturasCompra;
+  FPestanasDocumentos[dcpEfecto] := tsEfectosCompra;
+  FFacturasOrdinarias := PuedeConsultarDocumento(PantallasCompra[dcpFactura]);
+  FComprasDirectas := PuedeConsultarDocumento(PantallaCompraDirecta);
+  for Tipo := Low(Tipo) to High(Tipo) do
+    if Tipo = dcpFactura then
+      FPestanasDocumentos[Tipo].TabVisible :=
+        FFacturasOrdinarias or FComprasDirectas
+    else
+      FPestanasDocumentos[Tipo].TabVisible :=
+        PuedeConsultarDocumento(PantallasCompra[Tipo]);
+end;
+
+function TfrmMtoProveedores.CrearVistaDocumentos(AContenedor: TWinControl;
+  AAlineacion: TAlign; AFuente: TDataSource): TcxGridDBTableView;
+var
+  Rejilla: TcxGrid;
+begin
+  Rejilla := TcxGrid.Create(AContenedor);
+  Rejilla.Parent := AContenedor;
+  Rejilla.Top := 1;
+  Rejilla.Height := ScaleValue(145);
+  Rejilla.Align := AAlineacion;
+  Result := Rejilla.CreateView(TcxGridDBTableView) as TcxGridDBTableView;
+  Rejilla.Levels.Add.GridView := Result;
+  Result.DataController.DataSource := AFuente;
+  Result.OptionsData.Editing := False;
+  Result.OptionsData.Inserting := False;
+  Result.OptionsData.Deleting := False;
+  Result.OptionsSelection.CellSelect := False;
+  Result.OptionsView.GroupByBox := False;
+end;
+
+procedure TfrmMtoProveedores.CrearContenidoDocumentos(
+  ATipo: TDocumentoCompraProveedor);
+var
+  Pestana: TcxTabSheet;
+  Barra: TPanel;
+  Boton: TcxButton;
+  Separador: TcxSplitter;
+  Detalle: TcxGroupBox;
+  Cabecera, Lineas: TcxGridDBTableView;
+
+  procedure Columna(AVista: TcxGridDBTableView;
+    const ACampo, ATitulo: string; AAncho: Integer;
+    AMonetaria: Boolean = False);
+  var
+    Nueva: TcxGridDBColumn;
+  begin
+    Nueva := AVista.CreateColumn;
+    Nueva.Caption := ATitulo;
+    Nueva.DataBinding.FieldName := ACampo;
+    Nueva.Width := ScaleValue(AAncho);
+    if AMonetaria then
+      FormatearColumnaMonetaria(Nueva);
+  end;
+
+begin
+  Pestana := FPestanasDocumentos[ATipo];
+  Pestana.DisableAlign;
+  try
+    Barra := TPanel.Create(Pestana);
+    Barra.Parent := Pestana;
+    Barra.Align := alTop;
+    Barra.BevelOuter := bvNone;
+    Barra.Height := ScaleValue(32);
+    Boton := TcxButton.Create(Barra);
+    Boton.Parent := Barra;
+    Boton.SetBounds(ScaleValue(4), ScaleValue(2), ScaleValue(155),
+      ScaleValue(28));
+    Boton.Caption := SAbrirDocumentoCompra;
+    if ATipo = dcpEfecto then
+      Boton.Caption := SAbrirEfectoCompra;
+    Boton.Tag := Ord(ATipo);
+    Boton.Enabled := False;
+    Boton.OnClick := AbrirDocumentoSeleccionado;
+    FBotonesDocumentos[ATipo] := Boton;
+
+    Cabecera := CrearVistaDocumentos(Pestana, alTop,
+      FDmmProveedores.Documentos[ATipo]);
+    Columna(Cabecera, 'SERIE', 'Serie', 55);
+    Columna(Cabecera, 'NUMERO', 'Número', 85);
+    if ATipo = dcpEfecto then
+    begin
+      Columna(Cabecera, 'EFECTO', 'Efecto', 55);
+      Columna(Cabecera, 'FECHA', 'Vencimiento', 100);
+    end
+    else
+      Columna(Cabecera, 'FECHA', 'Fecha', 91);
+    Columna(Cabecera, 'ESTADO', 'Estado', 100);
+    if ATipo <> dcpEfecto then
+      Columna(Cabecera, 'REFERENCIA', 'Referencia proveedor', 135);
+    Columna(Cabecera, 'IMPORTE', 'Importe', 105, True);
+    if ATipo = dcpFactura then
+      Columna(Cabecera, 'MODALIDAD', 'Modalidad', 95)
+    else if ATipo = dcpEfecto then
+    begin
+      Columna(Cabecera, 'PAGADO', 'Pagado', 105, True);
+      Columna(Cabecera, 'PENDIENTE', 'Pendiente', 105, True);
+    end;
+
+    Separador := TcxSplitter.Create(Pestana);
+    Separador.Parent := Pestana;
+    Separador.Top := 2;
+    Separador.Height := ScaleValue(6);
+    Separador.AlignSplitter := salTop;
+    Separador.Control := Cabecera.Control;
+
+    Detalle := TcxGroupBox.Create(Pestana);
+    Detalle.Parent := Pestana;
+    Detalle.Align := alClient;
+    Detalle.Caption := SLineasDocumentoCompra;
+    if ATipo = dcpEfecto then
+      Detalle.Caption := SPagosDelEfecto;
+    Lineas := CrearVistaDocumentos(Detalle, alClient,
+      FDmmProveedores.LineasDocumento[ATipo]);
+    if ATipo = dcpEfecto then
+    begin
+      Columna(Lineas, 'LINEA', 'Pago', 52);
+      Columna(Lineas, 'FECHA', 'Fecha', 96);
+      Columna(Lineas, 'TIPO_PAGO', 'Tipo de pago', 140);
+      Columna(Lineas, 'REFERENCIA', 'Referencia', 175);
+    end
+    else
+    begin
+      Columna(Lineas, 'LINEA', 'Línea', 52);
+      Columna(Lineas, 'CODIGO_UNIDAD_SKU', 'SKU', 95);
+      Columna(Lineas, 'DESCRIPCION', 'Descripción', 195);
+      Columna(Lineas, 'CANTIDAD', 'Cantidad', 68);
+      Columna(Lineas, 'PRECIO', 'Precio sin IVA', 105, True);
+      Columna(Lineas, 'IVA', '% IVA', 54);
+    end;
+    Columna(Lineas, 'IMPORTE', 'Importe', 105, True);
+    FDmmProveedores.Documentos[ATipo].OnDataChange := ActualizarBotonDocumento;
+  finally
+    Pestana.EnableAlign;
+  end;
+end;
+
+procedure TfrmMtoProveedores.ActualizarBotonDocumento(Sender: TObject;
+  Field: TField);
+var
+  Tipo: TDocumentoCompraProveedor;
+  Datos: TDataSet;
+begin
+  if not (csDestroying in ComponentState) then
+    for Tipo := Low(Tipo) to High(Tipo) do
+      if Assigned(FBotonesDocumentos[Tipo]) and
+         (Sender = FDmmProveedores.Documentos[Tipo]) then
+      begin
+        Datos := FDmmProveedores.Documentos[Tipo].DataSet;
+        FBotonesDocumentos[Tipo].Enabled :=
+          Assigned(Datos) and Datos.Active and not Datos.IsEmpty;
+      end;
+end;
+
+procedure TfrmMtoProveedores.AbrirDocumentoSeleccionado(Sender: TObject);
+var
+  Tipo: TDocumentoCompraProveedor;
+  Datos: TDataSet;
+  Pantalla, Clave: string;
+begin
+  Tipo := TDocumentoCompraProveedor(TcxButton(Sender).Tag);
+  Datos := FDmmProveedores.Documentos[Tipo].DataSet;
+  Clave := ClaveMtoDataSet(Datos, 'SERIE', 'NUMERO');
+  if Clave <> '' then
+  begin
+    Pantalla := PantallasCompra[Tipo];
+    if Tipo = dcpEfecto then
+      Clave := Clave + ',' + Datos.FieldByName('EFECTO').AsString
+    else if (Tipo = dcpFactura) and
+      (ModalidadCompra(Datos.FieldByName('MODALIDAD').AsString) <>
+        mcdOrdinaria) then
+      Pantalla := PantallaCompraDirecta;
+    ShowMto(Owner, Pantalla, Clave);
+  end;
 end;
 
 procedure TfrmMtoProveedores.CrearTablaPrincipal;
@@ -496,17 +739,30 @@ begin
   DesactivarEnterAsTabEnCombo(cbbFormaPagoPrv);
   DesactivarEnterAsTabEnCombo(cbbEmpBanPrv);
   DesactivarEnterAsTabEnCombo(cbbPaisPrv);
+  CrearPestanasDocumentos;
   // Otros, la menos usada, va la última.
   tsOtros.PageIndex := pcPestanas.PageCount - 1;
   pcPestanas.ActivePage := tsDomicilioFiscal;
   pkFieldName := 'CODIGO_PRV_PRV';
-  // Carga perezosa de sub-pestañas detail (default = tsDomicilioFiscal,
-  // que no usa query detail). Articulos/Ventas se abren solo cuando
-  // el usuario activa su pestaña.
+  // Las consultas de detalle se abren al entrar en su pestaña.
   pcPestanas.OnChange := PcPestanasChange;
+  pcPantalla.OnChange := ActualizarFotoProveedor;
+  if not Assigned(FMiniaturaFoto) and Assigned(FotosArticulos) then
+    FMiniaturaFoto := TMiniaturaFotoMto.Create(Self, pButtonRightBar,
+      pButtonBDStat, FotosArticulos, ResolverArtSkuActivo,
+      DataSourcesParaFoto, actFotoArticulo);
+end;
+
+procedure TfrmMtoProveedores.ActualizarFotoProveedor(Sender: TObject);
+begin
+  if Assigned(FMiniaturaFoto) then
+    FMiniaturaFoto.Actualizar;
+  RefrescarFotoArticulo;
 end;
 
 procedure TfrmMtoProveedores.PcPestanasChange(Sender: TObject);
+var
+  Tipo: TDocumentoCompraProveedor;
 begin
   if Assigned(FDmmProveedores) then
   begin
@@ -517,7 +773,18 @@ begin
     else if pcPestanas.ActivePage = tsCompras then
       FDmmProveedores.AsegurarComprasAbierta
     else if pcPestanas.ActivePage = tsPagos then
-      FDmmProveedores.AsegurarPagosAbierta;
+      FDmmProveedores.AsegurarPagosAbierta
+    else
+      for Tipo := Low(Tipo) to High(Tipo) do
+        if (pcPestanas.ActivePage = FPestanasDocumentos[Tipo]) and
+           FPestanasDocumentos[Tipo].TabVisible then
+        begin
+          if not Assigned(FBotonesDocumentos[Tipo]) then
+            CrearContenidoDocumentos(Tipo);
+          FDmmProveedores.AbrirDocumentos(Tipo,
+            FFacturasOrdinarias, FComprasDirectas);
+        end;
+    ActualizarFotoProveedor(Sender);
   end;
 end;
 

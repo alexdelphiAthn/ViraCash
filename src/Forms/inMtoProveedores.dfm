@@ -368,6 +368,7 @@
             TabOrder = 0
             Properties.ActivePage = tsDomicilioFiscal
             Properties.CustomButtons.Buttons = <>
+            Properties.MultiLine = True
             ClientRectBottom = 302
             ClientRectLeft = 4
             ClientRectRight = 702
@@ -1094,7 +1095,7 @@
               end
             end
             object tsOtros: TcxTabSheet
-              Caption = '&5_Otros'
+              Caption = '11_&Otros'
               ImageIndex = 4
               object pnl3: TPanel
                 Left = 0
@@ -1222,7 +1223,7 @@
               end
             end
             object tsCompras: TcxTabSheet
-              Caption = '&6_Compras'
+              Caption = '&5_Compras'
               ImageIndex = 5
               object gbDefectosCompras: TcxGroupBox
                 Left = 0
@@ -1521,8 +1522,20 @@
                 end
               end
             end
+            object tsPedidosCompra: TcxTabSheet
+              Caption = '&6_Pedidos'
+            end
+            object tsAlbaranesCompra: TcxTabSheet
+              Caption = '&7_Albaranes'
+            end
+            object tsFacturasCompra: TcxTabSheet
+              Caption = '&8_Facturas'
+            end
+            object tsEfectosCompra: TcxTabSheet
+              Caption = '&9_Efectos'
+            end
             object tsPagos: TcxTabSheet
-              Caption = '&7_Pagos'
+              Caption = '10_&Pagos'
               object lblFormaPagoPrv: TcxLabel
                 Left = 34
                 Top = 25

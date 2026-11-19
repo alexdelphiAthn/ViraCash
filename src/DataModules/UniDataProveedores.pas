@@ -23,6 +23,8 @@ uses
   Uni, inLibUser, UniDataConn;
 
 type
+  TDocumentoCompraProveedor = (dcpPedido, dcpAlbaran, dcpFactura, dcpEfecto);
+
   TdmProveedores = class(TdmBase)
     unqryArticulos: TUniQuery;
     dsArticulos: TDataSource;
@@ -59,7 +61,15 @@ type
     procedure unqryKitsDetAfterInsert(DataSet: TDataSet);
     procedure unqryKitsDetBeforePost(DataSet: TDataSet);
   private
+    FDocumentos: array[TDocumentoCompraProveedor] of TDataSource;
+    FLineasDocumento: array[TDocumentoCompraProveedor] of TDataSource;
+    function ObtenerDocumentos(ATipo: TDocumentoCompraProveedor): TDataSource;
+    function ObtenerLineasDocumento(
+      ATipo: TDocumentoCompraProveedor): TDataSource;
     procedure ValidarDatosObligatorios;
+    function CrearConsultaDocumento: TDataSource;
+    procedure PrepararConsultasDocumento(ATipo: TDocumentoCompraProveedor;
+      AFacturasOrdinarias, AComprasDirectas: Boolean);
   public
     // Enlaza los detalles con el dsTablaG de SU ventana. Antes el DFM los
     // colgaba de "frmMtoProveedores.dsTablaG": con dos ventanas de
@@ -77,6 +87,12 @@ type
     procedure AsegurarComprasAbierta;
     // Abre los lookups de la pestaña Pagos (forma de pago y bancos de empresa).
     procedure AsegurarPagosAbierta;
+    procedure AbrirDocumentos(ATipo: TDocumentoCompraProveedor;
+      AFacturasOrdinarias, AComprasDirectas: Boolean);
+    property Documentos[ATipo: TDocumentoCompraProveedor]: TDataSource
+      read ObtenerDocumentos;
+    property LineasDocumento[ATipo: TDocumentoCompraProveedor]: TDataSource
+      read ObtenerLineasDocumento;
     // Genera una fila de detalle (cantidad 0) por cada talla del sistema
     // del kit seleccionado. INSERT IGNORE: no pisa cantidades ya tecleadas.
     procedure GenerarTallasKitActual;
@@ -90,7 +106,7 @@ implementation
 uses
   inLibDocumentoFiscal, inLibErroresBBDD, inLibIBAN,
   UniDataValoresAutomaticosRepositorio, System.Diagnostics,
-  UniDataAperturaConsultas,
+  UniDataAperturaConsultas, inLibFiltroUsuario, UniDataComprasDirectas,
   inLibMsgCompras;
 
 {%CLASSGROUP 'Vcl.Controls.TControl'}
@@ -103,6 +119,8 @@ const
 procedure ForceReferenceToClass(C: TClass); begin end;
 
 procedure TdmProveedores.DataModuleCreate(Sender: TObject);
+var
+  Tipo: TDocumentoCompraProveedor;
 begin
   inherited;
   // Solo Connection. Los .Open se han movido a AbrirDetalles.
@@ -116,15 +134,143 @@ begin
   unqryFormaPago.Connection := ConexionPrincipal;
   unqryEmpresasBancos.Connection := ConexionPrincipal;
   unqryPaises.Connection := ConexionPrincipal;
+  for Tipo := Low(Tipo) to High(Tipo) do
+  begin
+    FDocumentos[Tipo] := CrearConsultaDocumento;
+    FLineasDocumento[Tipo] := CrearConsultaDocumento;
+  end;
 end;
 
 procedure TdmProveedores.AsignarMaestroCabecera(
   ADataSource: TDataSource);
+var
+  Tipo: TDocumentoCompraProveedor;
 begin
   inherited;
   unqryArticulos.MasterSource := ADataSource;
   unqryLinFacturasArticulos.MasterSource := ADataSource;
   unqryKits.MasterSource := ADataSource;
+  for Tipo := Low(Tipo) to High(Tipo) do
+  begin
+    TUniQuery(FDocumentos[Tipo].DataSet).MasterSource := ADataSource;
+    TUniQuery(FLineasDocumento[Tipo].DataSet).MasterSource := FDocumentos[Tipo];
+  end;
+end;
+
+function TdmProveedores.CrearConsultaDocumento: TDataSource;
+var
+  Consulta: TUniQuery;
+begin
+  Consulta := TUniQuery.Create(Self);
+  Consulta.Connection := ConexionPrincipal;
+  Consulta.ReadOnly := True;
+  Result := TDataSource.Create(Self);
+  Result.AutoEdit := False;
+  Result.DataSet := Consulta;
+end;
+
+function TdmProveedores.ObtenerDocumentos(
+  ATipo: TDocumentoCompraProveedor): TDataSource;
+begin
+  Result := FDocumentos[ATipo];
+end;
+
+function TdmProveedores.ObtenerLineasDocumento(
+  ATipo: TDocumentoCompraProveedor): TDataSource;
+begin
+  Result := FLineasDocumento[ATipo];
+end;
+
+procedure TdmProveedores.PrepararConsultasDocumento(
+  ATipo: TDocumentoCompraProveedor;
+  AFacturasOrdinarias, AComprasDirectas: Boolean);
+const
+  Tabla: array[dcpPedido..dcpFactura] of string =
+    ('fza_pedidos_compra', 'fza_albaranes_compra', 'fza_facturas_compra');
+  Sufijo: array[dcpPedido..dcpFactura] of string = ('PEDC', 'ALBC', 'FACC');
+var
+  Cabecera, Lineas: TUniQuery;
+  S, L, Modalidad, Filtro: string;
+begin
+  Cabecera := TUniQuery(FDocumentos[ATipo].DataSet);
+  Lineas := TUniQuery(FLineasDocumento[ATipo].DataSet);
+  Cabecera.MasterFields := 'CODIGO_PRV_PRV';
+  Lineas.MasterFields := 'SERIE;NUMERO';
+  if ATipo = dcpEfecto then
+  begin
+    Cabecera.DetailFields := 'CODIGO_PRV_EFEC';
+    Cabecera.SQL.Text :=
+      'SELECT SERIE_FACC_EFEC AS SERIE, NUMERO_FACC_EFEC AS NUMERO, ' +
+      'NUMERO_EFEC AS EFECTO, FECHA_VENCIMIENTO_EFEC AS FECHA, ' +
+      'ESTADO_EFEC AS ESTADO, IMPORTE_EFEC AS IMPORTE, ' +
+      'IMPORTE_PAGADO_EFEC AS PAGADO, IMPORTE_PENDIENTE_EFEC AS PENDIENTE, ' +
+      'CODIGO_PRV_EFEC FROM fza_efectos_compra ' +
+      'WHERE CODIGO_PRV_EFEC = :CODIGO_PRV_PRV' +
+      SqlFiltroEmpAlmCaja(ContextoSesion, ParametrosApp,
+        'CODIGO_EMP_EFEC', '', '') +
+      ' ORDER BY FECHA DESC, SERIE, NUMERO, EFECTO';
+    Lineas.MasterFields := 'SERIE;NUMERO;EFECTO';
+    Lineas.DetailFields :=
+      'SERIE_FACC_EFECPAG;NUMERO_FACC_EFECPAG;NUMERO_EFEC_EFECPAG';
+    Lineas.SQL.Text :=
+      'SELECT NUMERO_PAGO_EFECPAG AS LINEA, FECHA_EFECPAG AS FECHA, ' +
+      'IMPORTE_EFECPAG AS IMPORTE, TIPO_EFECPAG AS TIPO_PAGO, ' +
+      'REFERENCIA_EFECPAG AS REFERENCIA, ' +
+      'SERIE_FACC_EFECPAG, NUMERO_FACC_EFECPAG, NUMERO_EFEC_EFECPAG ' +
+      'FROM fza_efectos_compra_pagos WHERE SERIE_FACC_EFECPAG = :SERIE ' +
+      'AND NUMERO_FACC_EFECPAG = :NUMERO AND NUMERO_EFEC_EFECPAG = :EFECTO ' +
+      'ORDER BY LINEA';
+  end
+  else
+  begin
+    S := Sufijo[ATipo];
+    L := S + 'LIN';
+    Modalidad := '';
+    Filtro := SqlFiltroDocumento(ContextoSesion, ParametrosApp, S);
+    if ATipo = dcpFactura then
+    begin
+      Modalidad := 'MODALIDAD_FACC AS MODALIDAD, ';
+      if not (AFacturasOrdinarias and AComprasDirectas) then
+        Filtro := Filtro + FiltroModalidadListaCompras(AComprasDirectas);
+    end;
+    Cabecera.DetailFields := 'CODIGO_PRV_' + S;
+    Cabecera.SQL.Text :=
+      'SELECT SERIE_' + S + ' AS SERIE, NUMERO_' + S + ' AS NUMERO, ' +
+      'FECHA_' + S + ' AS FECHA, ESTADO_' + S + ' AS ESTADO, ' +
+      'REF_PROVEEDOR_' + S + ' AS REFERENCIA, ' +
+      'TOTAL_LIQUIDO_' + S + ' AS IMPORTE, ' + Modalidad +
+      'CODIGO_PRV_' + S + ' FROM ' + Tabla[ATipo] +
+      ' WHERE CODIGO_PRV_' + S + ' = :CODIGO_PRV_PRV' + Filtro +
+      ' ORDER BY FECHA DESC, SERIE, NUMERO DESC';
+    Lineas.DetailFields := 'SERIE_' + S + '_' + L + ';NUMERO_' + S + '_' + L;
+    Lineas.SQL.Text :=
+      'SELECT LINEA_' + L + ' AS LINEA, ' +
+      'CODIGO_ART_' + L + ' AS CODIGO_ART_ART, ' +
+      'CODIGO_UNIDAD_' + L + ' AS CODIGO_UNIDAD_SKU, ' +
+      'DESCRIPCION_ARTICULO_' + L + ' AS DESCRIPCION, ' +
+      'CANTIDAD_' + L + ' AS CANTIDAD, PORCENTAJE_IVA_' + L + ' AS IVA, ' +
+      'PRECIO_COMPRA_SIVA_ARTICULO_' + L + ' AS PRECIO, ' +
+      'TOTAL_' + L + ' AS IMPORTE, ' +
+      'SERIE_' + S + '_' + L + ', NUMERO_' + S + '_' + L +
+      ' FROM ' + Tabla[ATipo] + '_lineas' +
+      ' WHERE SERIE_' + S + '_' + L + ' = :SERIE' +
+      ' AND NUMERO_' + S + '_' + L + ' = :NUMERO ORDER BY LINEA';
+  end;
+end;
+
+procedure TdmProveedores.AbrirDocumentos(ATipo: TDocumentoCompraProveedor;
+  AFacturasOrdinarias, AComprasDirectas: Boolean);
+var
+  Cabecera, Lineas: TUniQuery;
+begin
+  Cabecera := TUniQuery(FDocumentos[ATipo].DataSet);
+  Lineas := TUniQuery(FLineasDocumento[ATipo].DataSet);
+  if Cabecera.SQL.Count = 0 then
+    PrepararConsultasDocumento(ATipo, AFacturasOrdinarias, AComprasDirectas);
+  if not Cabecera.Active then
+    Cabecera.Open;
+  if not Lineas.Active then
+    Lineas.Open;
 end;
 
 procedure TdmProveedores.AbrirDetalles;
