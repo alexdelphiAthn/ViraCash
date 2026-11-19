@@ -4426,6 +4426,10 @@ begin
     'src/Lib/inLibMsgTrazabilidad.pas',
     @inLibMsgTrazabilidad.SErrorLoteDevolucionProveedorDistinto);
   ARegistrar(
+    'inLibMsgTrazabilidad.SErrorPartidasAgotadasDocumento',
+    'src/Lib/inLibMsgTrazabilidad.pas',
+    @inLibMsgTrazabilidad.SErrorPartidasAgotadasDocumento);
+  ARegistrar(
     'inLibMsgTrazabilidad.' +
     'SErrorLoteCaducidadContradictoria',
     'src/Lib/inLibMsgTrazabilidad.pas',

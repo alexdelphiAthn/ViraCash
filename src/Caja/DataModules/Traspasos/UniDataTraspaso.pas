@@ -324,6 +324,8 @@ type
     procedure ElegirLoteLinea;
     // Las líneas del traspaso están en memoria: las series de las demás
     // líneas se buscan en cdsLineas, no en una tabla.
+    // FZ-ISSUE-1061: unidades de ese SKU y lote en las demás líneas.
+    function UnidadesOtrasLineas(const ASku, ALote: string): Double;
     function EnvolverLecturaTrazabilidad(
       const ALectura: ILecturaTrazabilidadArticulo):
       ILecturaTrazabilidadArticulo;
@@ -759,6 +761,12 @@ begin
       begin
         DesglosarLineaLotes(ALinea, AAsignaciones);
       end;
+    // FZ-ISSUE-1061: las líneas viven en memoria hasta grabar.
+    rConfig.UnidadesOtrasLineas :=
+      function(ALinea: TDataSet; const ASku, ALote: string): Double
+      begin
+        Result := UnidadesOtrasLineas(ASku, ALote);
+      end;
     FLotesLineas := TLotesLineasDocumento.Create(rConfig);
   end;
 end;
@@ -771,6 +779,7 @@ var
   oCampo: TField;
   oPosicion: TBookmark;
   bCargando: Boolean;
+  bBlanca: Boolean;
   dAdicional: Double;
 begin
   if Length(AAsignaciones) > 0 then
@@ -795,6 +804,12 @@ begin
         ALinea.FieldByName('CANTIDAD').AsFloat *
         ALinea.FieldByName('PRECIO_COSTE').AsCurrency;
       ALinea.Post;
+      // FZ-ISSUE-1061: la línea en blanco del final (la del siguiente
+      // artículo) sigue al final, detrás del reparto.
+      ALinea.Last;
+      bBlanca := (Trim(ALinea.FieldByName('CODIGO_UNIDAD').AsString) = '');
+      if bBlanca then
+        ALinea.Delete;
       for rAsignacion in AAsignaciones do
       begin
         ALinea.Append;
@@ -814,12 +829,44 @@ begin
           ALinea.FieldByName('PRECIO_COSTE').AsCurrency;
         ALinea.Post;
       end;
+      if bBlanca then
+      begin
+        ALinea.Append;
+        ALinea.Post;
+      end;
     finally
       if ALinea.BookmarkValid(oPosicion) then
         ALinea.Bookmark := oPosicion;
       FCargandoLineas := bCargando;
       ALinea.EnableControls;
     end;
+  end;
+end;
+
+function TdmTraspaso.UnidadesOtrasLineas(const ASku, ALote: string): Double;
+var
+  oClon: TClientDataSet;
+begin
+  // FZ-ISSUE-1061: lo que ya sale de ese SKU y lote en las demás líneas
+  // (la actual se salta por su posición; en inserción aún no está).
+  Result := 0;
+  oClon := TClientDataSet.Create(nil);
+  try
+    oClon.CloneCursor(cdsLineas, True);
+    oClon.First;
+    while not oClon.Eof do
+    begin
+      if ((cdsLineas.State = dsInsert) or
+          (oClon.RecNo <> cdsLineas.RecNo)) and
+         SameText(Trim(oClon.FieldByName('CODIGO_UNIDAD').AsString),
+                  Trim(ASku)) and
+         SameText(Trim(oClon.FieldByName('LOTE').AsString), Trim(ALote)) and
+         (oClon.FieldByName('CANTIDAD').AsFloat > 0) then
+        Result := Result + oClon.FieldByName('CANTIDAD').AsFloat;
+      oClon.Next;
+    end;
+  finally
+    FreeAndNil(oClon);
   end;
 end;
 
