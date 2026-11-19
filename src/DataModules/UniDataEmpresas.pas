@@ -39,7 +39,6 @@ type
     dsBancos: TDataSource;
     dsPaises: TDataSource;
     unqryPaises: TUniQuery;
-    procedure unqryTablaGAfterOpen(DataSet: TDataSet);
     procedure unqryTablaGAfterInsert(DataSet: TDataSet);
     procedure unqryTablaGAfterPost(DataSet: TDataSet);
     procedure unqryTablaGBeforeInsert(DataSet: TDataSet);
@@ -390,19 +389,6 @@ begin
   finally
     FEncolarPrecioPrestaShop := False;
   end;
-end;
-
-// vi_empresas no expone ESLOTES_REPOSICION_EMP y la consulta lo lee con una
-// subconsulta; UniDAC marca esa expresión como de solo lectura, lo que
-// bloqueaba la casilla Modo Yeti y el valor por defecto del alta. SQLInsert
-// y SQLUpdate ya graban la columna en fza_empresas.
-procedure TdmEmpresas.unqryTablaGAfterOpen(DataSet: TDataSet);
-var
-  oCampo: TField;
-begin
-  oCampo := DataSet.FindField('ESLOTES_REPOSICION_EMP');
-  if Assigned(oCampo) then
-    oCampo.ReadOnly := False;
 end;
 
 procedure TdmEmpresas.unqryTablaGAfterInsert(DataSet: TDataSet);
