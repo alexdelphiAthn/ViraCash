@@ -112,6 +112,7 @@ procedure ProponerFormaPagoPresupuesto(ACliente, APresupuesto: TDataSet);
 implementation
 
 uses
+  UniDataReposicionAutomatica,
   UniDataPropiedadesLineasDocumento,
   UniDataSeriesEmpresaRepositorio, inLibLineaSku,
   inLibValoresAutomaticos, UniDataValoresAutomaticosRepositorio,
@@ -436,7 +437,14 @@ begin
       FreeAndNil(q);
     end;
   end;
-  if not bTrazable then
+  // FZ-ISSUE-1056: una partida de reposición (Modo Yeti) conserva su lote
+  // aunque el artículo no sea trazable (p. ej. el resto de un reparto).
+  if (not bTrazable) and
+     ((DataSet.FindField('LOTE_PRELIN') = nil) or
+      (Trim(DataSet.FieldByName('LOTE_PRELIN').AsString) = '') or
+      not EsPartidaReposicion(ConexionEscritura,
+        DataSet.FieldByName('CODIGO_UNIDAD_PRELIN').AsString,
+        DataSet.FieldByName('LOTE_PRELIN').AsString)) then
   begin
     if DataSet.FindField('LOTE_PRELIN') <> nil then
       DataSet.FieldByName('LOTE_PRELIN').Clear;
