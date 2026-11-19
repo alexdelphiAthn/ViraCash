@@ -33,6 +33,10 @@ resourcestring
   SErrorLoteDevolucionProveedorDistinto =
     'El lote %0:s es del proveedor %1:s; no se puede devolver al ' +
     'proveedor %2:s.';
+  // FZ-ISSUE-1061: %0:s = SKU, %1:s = almacén.
+  SErrorPartidasAgotadasDocumento =
+    'No quedan partidas de %0:s con existencias en el almacén %1:s: ' +
+    'las demás ya van en este documento.';
   SErrorRepartoLotesCaja =
     'Seleccione «Elegir lote» para repartir las unidades ' +
     'entre los lotes disponibles.';

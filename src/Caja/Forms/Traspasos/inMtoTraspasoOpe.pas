@@ -2273,7 +2273,10 @@ begin
       begin
         // Saltamos la linea actual (la que se acaba de resolver) por RecNo:
         // solo sumamos sobre OTRA linea con la misma SKU ya grabada.
+        // FZ-ISSUE-1061: tampoco sobre una línea con lote (partida de
+        // reposición en Modo Yeti): la nueva lectura decide su partida.
         if (Clon.FieldByName('CODIGO_UNIDAD').AsString = ASku) and
+           (Trim(Clon.FieldByName('LOTE').AsString) = '') and
            (Clon.RecNo <> FDatos.cdsLineas.RecNo) then
         begin
           Clon.Edit;

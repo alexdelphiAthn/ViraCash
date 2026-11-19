@@ -52,6 +52,10 @@ type
   // FZ-ISSUE-327: True si el usuario acepta la pregunta
   TConfirmarLineaLoteEvent = reference to function(
     const AMensaje: string): Boolean;
+  // FZ-ISSUE-1061: unidades de ese SKU y lote en las demás líneas del
+  // documento (sin ALinea), aún sin grabar en el stock.
+  TUnidadesOtrasLineasEvent = reference to function(ALinea: TDataSet;
+    const ASku, ALote: string): Double;
 
   TConfiguracionLotesLineas = record
     Activacion: TActivacionTrazabilidad;
@@ -80,6 +84,12 @@ type
     // línea recién grabada, en su AfterPost, en vez de por el lector
     // (documentos cuya rejilla descarta las líneas en blanco en diferido).
     CopiarLineasPendientes: Boolean;
+    // FZ-ISSUE-1061: documentos cuyas líneas no mueven stock hasta grabar
+    // el documento (traspasos). Si está asignado, en las salidas el selector
+    // descuenta lo que ya llevan las demás líneas y una partida de
+    // reposición no admite más unidades de las que le quedan: el resto se
+    // pide a las siguientes partidas.
+    UnidadesOtrasLineas: TUnidadesOtrasLineasEvent;
   end;
 
   TLotesLineasDocumento = class
@@ -112,6 +122,11 @@ type
       const ADocumento: TDocumentoLineaLote; const ALote: string);
     function SentidoLinea(ALinea: TDataSet): TSentidoLoteLectura;
     procedure Rechazar(const AMensaje: string);
+    function DisponiblesNetos(ALinea: TDataSet;
+      const ACodigoAlmacen: string): TLotesDisponibles;
+    procedure LimitarPartidaReposicion(ALinea: TDataSet;
+      const ADocumento: TDocumentoLineaLote;
+      const ATrazabilidad: TTrazabilidadArticulo; const ALote: string);
   public
     constructor Create(const AConfig: TConfiguracionLotesLineas);
     // BeforePost de la línea. Si la línea no vale, avisa y lanza EAbort.
@@ -437,6 +452,76 @@ begin
     TextoCampo(ALinea, FConfig.Campos.Linea));
 end;
 
+function TLotesLineasDocumento.DisponiblesNetos(ALinea: TDataSet;
+  const ACodigoAlmacen: string): TLotesDisponibles;
+var
+  rLote: TLoteDisponible;
+  sSku: string;
+begin
+  // FZ-ISSUE-1061: existencias de cada lote menos lo que ya llevan las
+  // demás líneas del documento (como el TPV con el ticket).
+  Result := [];
+  sSku := TextoCampo(ALinea, FConfig.Campos.Sku);
+  for rLote in FConfig.Repositorio.Disponibles(sSku, ACodigoAlmacen) do
+  begin
+    Result := Result + [rLote];
+    Result[High(Result)].Cantidad := Max(0, rLote.Cantidad -
+      FConfig.UnidadesOtrasLineas(ALinea, sSku, rLote.Lote));
+  end;
+end;
+
+procedure TLotesLineasDocumento.LimitarPartidaReposicion(ALinea: TDataSet;
+  const ADocumento: TDocumentoLineaLote;
+  const ATrazabilidad: TTrazabilidadArticulo; const ALote: string);
+var
+  aDisponibles: TLotesDisponibles;
+  dCantidad, dQueda, dResto: Double;
+  i: Integer;
+  rContexto: TContextoLoteLectura;
+  rDecision: TDecisionLoteLectura;
+  rResolucion: TArtResolucionEntrada;
+begin
+  // FZ-ISSUE-1061: una partida de reposición no sale con más unidades de
+  // las que le quedan (descontadas las demás líneas). Con algo disponible,
+  // la línea se queda en lo que queda y el resto se elige en las
+  // siguientes partidas (líneas nuevas); si no queda nada, se rechaza.
+  dCantidad := ALinea.FieldByName(FConfig.Campos.Cantidad).AsFloat;
+  rContexto := Contexto(ALinea, ADocumento, ATrazabilidad);
+  aDisponibles := DisponiblesNetos(ALinea, rContexto.CodigoAlmacen);
+  dQueda := 0;
+  for i := 0 to High(aDisponibles) do
+    if SameText(aDisponibles[i].Lote, ALote) then
+    begin
+      dQueda := aDisponibles[i].Cantidad;
+      aDisponibles[i].Cantidad := 0;
+    end;
+  if dCantidad <= dQueda + 0.000001 then
+    Exit;
+  if dQueda <= 0.000001 then
+    Rechazar(Format(SAvisoLoteSinStockSuficiente,
+      [ALote, FormatFloat('0.###', Max(0, dQueda))]));
+  dResto := dCantidad - dQueda;
+  rResolucion.Clear;
+  rResolucion.Encontrado := True;
+  rResolucion.CodigoArticulo := TextoCampo(ALinea, FConfig.Campos.Articulo);
+  rResolucion.CodigoSku := TextoCampo(ALinea, FConfig.Campos.Sku);
+  rContexto.Modo := mtLote;
+  rContexto.Cantidad := dResto;
+  rContexto.AsignarFefo := False;
+  rContexto.UsarDisponibles := True;
+  rContexto.Disponibles := aDisponibles;
+  rDecision := DecidirLoteLectura(rResolucion, rContexto,
+    FConfig.Repositorio, FConfig.Selector);
+  if (rDecision.Resultado <> rllAsignado) or
+     (Length(rDecision.Asignaciones) = 0) then
+    Rechazar(Format(SAvisoLoteSinStockSuficiente,
+      [ALote, FormatFloat('0.###', dQueda)]));
+  ALinea.FieldByName(FConfig.Campos.Cantidad).AsFloat :=
+    Sign(dCantidad) * dQueda;
+  FPendienteCodigo := rResolucion.CodigoSku;
+  FPendientes := rDecision.Asignaciones;
+end;
+
 function TLotesLineasDocumento.DecidirSinLote(ALinea: TDataSet;
   const ADocumento: TDocumentoLineaLote;
   const ATrazabilidad: TTrazabilidadArticulo;
@@ -454,6 +539,18 @@ begin
   rResolucion.CodigoArticulo := TextoCampo(ALinea, FConfig.Campos.Articulo);
   rResolucion.CodigoSku := TextoCampo(ALinea, FConfig.Campos.Sku);
   rContexto := Contexto(ALinea, ADocumento, ATrazabilidad);
+  if Assigned(FConfig.UnidadesOtrasLineas) and
+     (rContexto.Sentido = sllSalida) then
+  begin
+    rContexto.UsarDisponibles := True;
+    rContexto.Disponibles := DisponiblesNetos(ALinea,
+      rContexto.CodigoAlmacen);
+    // Las partidas que quedan ya van enteras en las demás líneas.
+    if ATrazabilidad.EsPartidaReposicion and
+       not HayReposicionDisponible(rContexto.Disponibles) then
+      Rechazar(Format(SErrorPartidasAgotadasDocumento,
+        [rResolucion.CodigoSku, rContexto.CodigoAlmacen]));
+  end;
   if AForzarSelector then
   begin
     rContexto.AsignarFefo := False;
@@ -541,7 +638,12 @@ begin
     FConfig.Repositorio, FConfig.Selector);
   if rDecision.Resultado = rllRechazado then
     Rechazar(rDecision.Error);
-  if rDecision.Aviso <> '' then
+  // FZ-ISSUE-1061: con el reparto entre partidas (LimitarPartidaReposicion)
+  // no se avisa de la falta: el resto se elige en las siguientes.
+  if (rDecision.Aviso <> '') and
+     not (Assigned(FConfig.UnidadesOtrasLineas) and
+          ATrazabilidad.EsPartidaReposicion and
+          (rContexto.Sentido = sllSalida)) then
     FConfig.Avisar(rDecision.Aviso);
   // La caducidad del lote que sale la pone el catálogo.
   oCaducidad := ALinea.FindField(FConfig.Campos.Caducidad);
@@ -679,6 +781,11 @@ begin
     sLote := NormalizarLote(TextoCampo(ALinea, FConfig.Campos.Lote));
     if oValidacion <> vllCorrecta then
       Rechazar(TextoValidacionLineaLote(oValidacion, sArticulo, sLote));
+    if Assigned(FConfig.UnidadesOtrasLineas) and (sLote <> '') and
+       rTrazabilidad.EsPartidaReposicion and
+       (SentidoLinea(ALinea) = sllSalida) and
+       (Length(FPendientes) = 0) then
+      LimitarPartidaReposicion(ALinea, ADocumento, rTrazabilidad, sLote);
     if (oModo = mtSerie) and (sLote <> '') and
        ContieneLote(FConfig.Lectura.LotesOtrasLineas(FConfig.Tabla,
          FConfig.CampoSerie, FConfig.CampoNumero, FConfig.Campos.Linea,
