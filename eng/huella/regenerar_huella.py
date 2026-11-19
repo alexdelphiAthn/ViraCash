@@ -49,8 +49,11 @@ NOMBRE_RECURSO = 'HUELLA_ESQUEMA'
 APARTADOS_GLOBAL = ['ESTRUCTURA', 'VISTAS', 'RUTINAS', 'DEFINIDORES']
 
 PATRON_FECHA = re.compile(r'^\d{8}_.*\.sql$', re.IGNORECASE)
+# FZ-ISSUE-1048: también vistas con ALGORITHM=... y SQL SECURITY ... (p. ej.
+# las que se crean con PREPARE desde una cadena).
 PATRON_DDL = re.compile(
-    r'\b(?:CREATE\s+(?:OR\s+REPLACE\s+)?(?:DEFINER\s*=\s*\S+\s+)?'
+    r'\b(?:CREATE\s+(?:OR\s+REPLACE\s+)?(?:ALGORITHM\s*=\s*\w+\s+)?'
+    r'(?:DEFINER\s*=\s*\S+\s+)?(?:SQL\s+SECURITY\s+\w+\s+)?'
     r'(?:TABLE|PROCEDURE|FUNCTION|VIEW|TRIGGER)'
     r'(?:\s+IF\s+NOT\s+EXISTS)?|ALTER\s+TABLE|DROP\s+(?:TABLE|PROCEDURE|'
     r'FUNCTION|VIEW|TRIGGER)(?:\s+IF\s+EXISTS)?)\s+[`\'"]?'
@@ -209,13 +212,19 @@ def main():
     en_modelo = set(l.strip() for l in open(SCRIPTS_EN_MODELO,
                                             encoding='utf-8') if l.strip())
     lista = candidatos(opciones.carpeta)
+    # Un script ya incluido que ha cambiado después (y no está en el modelo)
+    # se vuelve a integrar: «control» va sin él y «nuevo» con su versión
+    # actual, así que sus objetos toman la firma nueva.
+    cambiados = [s for s in lista
+                 if s in incluidos and s not in en_modelo and
+                 incluidos[s] != sha256_fichero(
+                     os.path.join(opciones.carpeta, s))]
+    for nombre in cambiados:
+        print('Huella del esquema: %s ha cambiado desde que se incluyó; se '
+              'vuelve a integrar.' % nombre)
     pendientes = [s for s in lista
-                  if s not in incluidos and s not in en_modelo]
-    for nombre in lista:
-        if nombre in incluidos and incluidos[nombre] != sha256_fichero(
-                os.path.join(opciones.carpeta, nombre)):
-            print('Huella del esquema: AVISO, %s ha cambiado desde que se '
-                  'incluyó en la huella; revísela a mano.' % nombre)
+                  if (s not in incluidos and s not in en_modelo) or
+                  s in cambiados]
 
     datos_json = open(opciones.json, 'rb').read()
     res_al_dia = (os.path.isfile(opciones.res) and
@@ -235,7 +244,8 @@ def main():
         if not os.path.exists(ruta):
             error('falta ' + ruta)
 
-    previos = [s for s in base['scripts'] if s not in en_modelo]
+    previos = [s for s in base['scripts']
+               if s not in en_modelo and s not in cambiados]
     for nombre in previos:
         if not os.path.isfile(os.path.join(opciones.carpeta, nombre)):
             error('no se encuentra %s, ya incluido en la huella y posterior '
@@ -249,9 +259,14 @@ def main():
         shutil.rmtree(temporal, ignore_errors=True)
     cambios = aplicar_diferencia(base, control, nuevo)
     for nombre in pendientes:
-        base['scripts'].append(nombre)
-        base['sha256_scripts'].append(
-            sha256_fichero(os.path.join(opciones.carpeta, nombre)))
+        huella_script = sha256_fichero(os.path.join(opciones.carpeta,
+                                                    nombre))
+        if nombre in base['scripts']:
+            indice = base['scripts'].index(nombre)
+            base['sha256_scripts'][indice] = huella_script
+        else:
+            base['scripts'].append(nombre)
+            base['sha256_scripts'].append(huella_script)
     base['generado'] = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
     recalcular(base)
     escribir(base, opciones.json, opciones.res)
