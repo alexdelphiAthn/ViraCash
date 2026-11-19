@@ -194,6 +194,7 @@ type
     function CrearCopiaPreviaAlArrancar(out ARutaCopia: string): Boolean;
   protected
     procedure CreateParams(var Params: TCreateParams); override;
+    procedure KeyDown(var Key: Word; Shift: TShiftState); override;
   public
     constructor Create(
       AOwner: TComponent;
@@ -1806,6 +1807,18 @@ procedure TfrmLogon.InvalidarResultadoInicioSesion;
 begin
   FResultadoInicioSesion :=
     TResultadoInicioSesion.CrearNoAutenticado;
+end;
+
+// FZ-ISSUE-1024: TfrmBase.KeyDown cierra los modales con Esc (mrCancel)
+// antes de llegar a OnKeyDown, así que la tecla Esc cerraba ViraCash tras
+// 'Invocar login' sin la confirmación de Salir. Aquí Esc va a FormKeyDown:
+// confirma la salida o cancela la operación larga en curso.
+procedure TfrmLogon.KeyDown(var Key: Word; Shift: TShiftState);
+begin
+  if Key = VK_ESCAPE then
+    FormKeyDown(Self, Key, Shift)
+  else
+    inherited KeyDown(Key, Shift);
 end;
 
 procedure TfrmLogon.FormKeyDown(Sender: TObject; var Key: Word;

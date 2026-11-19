@@ -1610,7 +1610,7 @@
                 object chkESLOTES_REPOSICION_EMP: TcxDBCheckBox
                   Left = 16
                   Top = 316
-                  Caption = 'Lote, proveedor y temporada automáticos en reposiciones'
+                  Caption = 'Modo Yeti (lotes por reposición)'
                   DataBinding.DataField = 'ESLOTES_REPOSICION_EMP'
                   DataBinding.DataSource = dsTablaG
                   Properties.ValueChecked = 'S'

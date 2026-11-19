@@ -311,8 +311,14 @@ function TRepositorioInformesCajaUniDAC.ConsultarDepositos(
   const ASolicitud: TSolicitudInformeCaja
 ): IResultadoInformeCaja;
 begin
+  // FZ-ISSUE-1035: cantidad e importe (precio x cantidad pendiente), con el
+  // mismo criterio que los prestamos del arqueo; el informe mostraba el
+  // precio unitario como si fuera el importe del deposito.
   Result := EjecutarInforme(
     'SELECT d.*, ' +
+    '       COALESCE(d.CANTIDAD_PENDIENTE_DEP, 1) AS CANTIDAD_INF, ' +
+    '       ROUND(COALESCE(d.PRECIO_VENTA_DEP, 0) * ' +
+    '             COALESCE(d.CANTIDAD_PENDIENTE_DEP, 1), 2) AS IMPORTE_INF, ' +
     SQL_PERIODO_INFORME +
     '  FROM fza_depositos_cliente d ' +
     ' WHERE d.CODIGO_EMP_DEP = :EMPRESA ' +
@@ -351,9 +357,22 @@ function TRepositorioInformesCajaUniDAC.ConsultarTotalesOperaciones(
 begin
   // Mismo filtro que ConsultarOperaciones. Los importes se suman con el
   // signo guardado en cada operacion.
+  // FZ-ISSUE-1033: se cuentan operaciones, no filas: recoger una reserva o
+  // un apartado graba una fila DE y otra VE por prenda. Una operacion puede
+  // tener filas de varios tipos, asi que el total general (el mismo en
+  // todas las filas) se cuenta aparte y no como suma de los tipos.
   Result := EjecutarInforme(
     'SELECT o.TIPO_OPERACION_OPCAJA, ' +
-    '       COUNT(*) AS NUMERO_OPERACIONES_INF, ' +
+    '       COUNT(DISTINCT o.NUMERO_OPERACION_OPCAJA) ' +
+    '         AS NUMERO_OPERACIONES_INF, ' +
+    '       (SELECT COUNT(DISTINCT t.NUMERO_OPERACION_OPCAJA) ' +
+    '          FROM fza_caja_operaciones t ' +
+    '         WHERE t.CODIGO_EMP_OPCAJA = :EMPRESA ' +
+    '           AND t.CODIGO_ALM_OPCAJA = :ALMACEN ' +
+    '           AND t.CODIGO_CAJA_OPCAJA = :CAJA ' +
+    '           AND DATE(t.FECHA_OPERACION_OPCAJA) ' +
+    '               BETWEEN :DESDE AND :HASTA) ' +
+    '         AS TOTAL_OPERACIONES_INF, ' +
     '       SUM(COALESCE(o.IMPORTE_TOTAL_OPCAJA, 0)) ' +
     '         AS IMPORTE_TOTAL_INF ' +
     '  FROM fza_caja_operaciones o ' +
@@ -845,10 +864,16 @@ begin
   ALineas.Add('        AND ou.NUMERO_FAC_OPCAJA = o.NUMERO_FAC_OPCAJA');
   ALineas.Add('        AND ou.TIPO_OPERACION_OPCAJA IN ' +
     '(''VE'', ''DV'', ''DE'')');
-  ALineas.Add('        AND FIELD(ou.TIPO_OPERACION_OPCAJA, ' +
+  // FZ-ISSUE-1031: la venta que cierra varios depósitos (préstamo, reserva
+  // o apartado) graba una VE por depósito; de las filas del mismo tipo
+  // cuenta solo la primera, si no sus líneas e ingresos se multiplican.
+  ALineas.Add('        AND (FIELD(ou.TIPO_OPERACION_OPCAJA, ' +
     '''VE'', ''DV'', ''DE'') <');
-  ALineas.Add('            FIELD(o.TIPO_OPERACION_OPCAJA, ' +
-    '''VE'', ''DV'', ''DE''))');
+  ALineas.Add('             FIELD(o.TIPO_OPERACION_OPCAJA, ' +
+    '''VE'', ''DV'', ''DE'')');
+  ALineas.Add('             OR (ou.TIPO_OPERACION_OPCAJA = ' +
+    'o.TIPO_OPERACION_OPCAJA');
+  ALineas.Add('                 AND ou.ID_OPCAJA < o.ID_OPCAJA)))');
   ALineas.Add(AFiltroUbicaciones);
   ALineas.Add('   AND o.FECHA_OPERACION_OPCAJA >= :pDESDE');
   ALineas.Add('   AND o.FECHA_OPERACION_OPCAJA <');
@@ -1074,8 +1099,18 @@ begin
     slSQL.Add('       CASE WHEN s.TIPO_TRSOL = ''AUTO'' THEN 0');
     slSQL.Add('            ELSE l.CANTIDAD_SERVIDA_TRSOLLIN END');
     slSQL.Add('         AS CANTIDAD_SERVIDA_TRSOLLIN,');
+    // FZ-ISSUE-1034: mismo criterio que «Mis peticiones» (QueryMisPeticiones):
+    // no queda nada pendiente en la AUTO, la cancelada, la línea atendida
+    // ni la rechazada (denegada o parcial con motivo).
     slSQL.Add('       CASE WHEN l.LINEA_TRSOLLIN IS NULL THEN NULL');
     slSQL.Add('            WHEN s.TIPO_TRSOL = ''AUTO'' THEN 0');
+    slSQL.Add('            WHEN COALESCE(s.ESTADO_TRSOL, '''') =');
+    slSQL.Add('                 ''CANCELADA'' THEN 0');
+    slSQL.Add('            WHEN COALESCE(l.ESATENDIDA_TRSOLLIN, ''N'') =');
+    slSQL.Add('                 ''S'' THEN 0');
+    slSQL.Add('            WHEN NULLIF(TRIM(');
+    slSQL.Add('                 l.MOTIVO_RECHAZO_TRSOLLIN), '''') IS NOT NULL');
+    slSQL.Add('            THEN 0');
     slSQL.Add('            ELSE GREATEST(');
     slSQL.Add('              COALESCE(l.CANTIDAD_PEDIDA_TRSOLLIN, 0) -');
     slSQL.Add('              COALESCE(l.CANTIDAD_SERVIDA_TRSOLLIN, 0), 0)');

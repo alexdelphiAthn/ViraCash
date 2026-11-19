@@ -4,7 +4,8 @@ param(
   [ValidateSet('Win32', 'Win64', 'Ambas')]
   [string]$Plataforma = 'Ambas',
   [string]$CarpetaSalida = '',
-  [switch]$SoloValidar
+  [switch]$SoloValidar,
+  [switch]$SinHuella
 )
 
 Set-StrictMode -Version Latest
@@ -184,6 +185,26 @@ Write-Output (
   ($plataformas -join ', ') + '.')
 if ($SoloValidar) {
   exit 0
+}
+
+# La huella del esquema embebida (HuellaEsquema.json/.res) debe incluir todo
+# script de esquema de DESARROLLOS EN CURSO; si no, el ejecutable rechaza las
+# bases que ya lo tienen aplicado. eng\huella\regenerar_huella.py la pone al
+# día (solo regenera si hay scripts nuevos). -SinHuella se lo salta.
+if (-not $SinHuella) {
+  $python = Get-Command 'python' -ErrorAction SilentlyContinue
+  if ($null -eq $python) {
+    Write-Output ('AVISO: sin Python no se comprueba la huella del ' +
+      'esquema (eng\huella\regenerar_huella.py).')
+  }
+  else {
+    & $python.Source -I (Join-Path $raiz 'eng\huella\regenerar_huella.py')
+    if ($LASTEXITCODE -ne 0) {
+      Write-Output ('Compilación cancelada: no se ha podido poner al día ' +
+        'la huella del esquema.')
+      exit $LASTEXITCODE
+    }
+  }
 }
 
 foreach ($destino in $plataformas) {

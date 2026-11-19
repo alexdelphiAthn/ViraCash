@@ -175,7 +175,7 @@
         object MemoHId: TfrxMemoView
           Left = 0.000000000000000000
           Top = 2.000000000000000000
-          Width = 175.000000000000000000
+          Width = 150.000000000000000000
           Height = 18.000000000000000000
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -188,9 +188,9 @@
           ParentFont = False
         end
         object MemoHFecha: TfrxMemoView
-          Left = 175.000000000000000000
+          Left = 150.000000000000000000
           Top = 2.000000000000000000
-          Width = 125.000000000000000000
+          Width = 115.000000000000000000
           Height = 18.000000000000000000
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -203,7 +203,7 @@
           ParentFont = False
         end
         object MemoHCliente: TfrxMemoView
-          Left = 300.000000000000000000
+          Left = 265.000000000000000000
           Top = 2.000000000000000000
           Width = 80.000000000000000000
           Height = 18.000000000000000000
@@ -218,9 +218,9 @@
           ParentFont = False
         end
         object MemoHArticulo: TfrxMemoView
-          Left = 380.000000000000000000
+          Left = 345.000000000000000000
           Top = 2.000000000000000000
-          Width = 240.000000000000000000
+          Width = 185.000000000000000000
           Height = 18.000000000000000000
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -233,9 +233,9 @@
           ParentFont = False
         end
         object MemoHPrecio: TfrxMemoView
-          Left = 620.000000000000000000
+          Left = 530.000000000000000000
           Top = 2.000000000000000000
-          Width = 110.000000000000000000
+          Width = 85.000000000000000000
           Height = 18.000000000000000000
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -248,10 +248,42 @@
             'Precio venta')
           ParentFont = False
         end
-        object MemoHAnticipo: TfrxMemoView
-          Left = 730.000000000000000000
+        object MemoHCantidad: TfrxMemoView
+          Left = 615.000000000000000000
           Top = 2.000000000000000000
-          Width = 110.000000000000000000
+          Width = 55.000000000000000000
+          Height = 18.000000000000000000
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -11
+          Font.Name = 'Arial'
+          Font.Style = [fsBold]
+          Frame.Typ = [ftBottom]
+          HAlign = haRight
+          Memo.UTF8W = (
+            'Cantidad')
+          ParentFont = False
+        end
+        object MemoHImporte: TfrxMemoView
+          Left = 670.000000000000000000
+          Top = 2.000000000000000000
+          Width = 90.000000000000000000
+          Height = 18.000000000000000000
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -11
+          Font.Name = 'Arial'
+          Font.Style = [fsBold]
+          Frame.Typ = [ftBottom]
+          HAlign = haRight
+          Memo.UTF8W = (
+            'Importe')
+          ParentFont = False
+        end
+        object MemoHAnticipo: TfrxMemoView
+          Left = 760.000000000000000000
+          Top = 2.000000000000000000
+          Width = 85.000000000000000000
           Height = 18.000000000000000000
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -265,9 +297,9 @@
           ParentFont = False
         end
         object MemoHEstado: TfrxMemoView
-          Left = 840.000000000000000000
+          Left = 845.000000000000000000
           Top = 2.000000000000000000
-          Width = 100.000000000000000000
+          Width = 95.000000000000000000
           Height = 18.000000000000000000
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -307,7 +339,7 @@
         object MemoId: TfrxMemoView
           Left = 0.000000000000000000
           Top = 1.000000000000000000
-          Width = 175.000000000000000000
+          Width = 150.000000000000000000
           Height = 18.000000000000000000
           DataSet = fxdsDepositos
           DataSetName = 'Depositos'
@@ -322,9 +354,9 @@
           ParentFont = False
         end
         object MemoFecha: TfrxMemoView
-          Left = 175.000000000000000000
+          Left = 150.000000000000000000
           Top = 1.000000000000000000
-          Width = 125.000000000000000000
+          Width = 115.000000000000000000
           Height = 18.000000000000000000
           DataSet = fxdsDepositos
           DataSetName = 'Depositos'
@@ -341,7 +373,7 @@
           ParentFont = False
         end
         object MemoCliente: TfrxMemoView
-          Left = 300.000000000000000000
+          Left = 265.000000000000000000
           Top = 1.000000000000000000
           Width = 80.000000000000000000
           Height = 18.000000000000000000
@@ -358,9 +390,9 @@
           ParentFont = False
         end
         object MemoArticulo: TfrxMemoView
-          Left = 380.000000000000000000
+          Left = 345.000000000000000000
           Top = 1.000000000000000000
-          Width = 240.000000000000000000
+          Width = 185.000000000000000000
           Height = 18.000000000000000000
           DataSet = fxdsDepositos
           DataSetName = 'Depositos'
@@ -375,9 +407,9 @@
           ParentFont = False
         end
         object MemoPrecio: TfrxMemoView
-          Left = 620.000000000000000000
+          Left = 530.000000000000000000
           Top = 1.000000000000000000
-          Width = 110.000000000000000000
+          Width = 85.000000000000000000
           Height = 18.000000000000000000
           DataSet = fxdsDepositos
           DataSetName = 'Depositos'
@@ -395,10 +427,52 @@
             '[Depositos."PRECIO_VENTA_DEP"]')
           ParentFont = False
         end
-        object MemoAnticipo: TfrxMemoView
-          Left = 730.000000000000000000
+        object MemoCantidad: TfrxMemoView
+          Left = 615.000000000000000000
           Top = 1.000000000000000000
-          Width = 110.000000000000000000
+          Width = 55.000000000000000000
+          Height = 18.000000000000000000
+          DataSet = fxdsDepositos
+          DataSetName = 'Depositos'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -11
+          Font.Name = 'Arial'
+          Font.Style = []
+          Frame.Typ = []
+          DisplayFormat.DecimalSeparator = ','
+          DisplayFormat.FormatStr = '%g'
+          DisplayFormat.Kind = fkNumeric
+          HAlign = haRight
+          Memo.UTF8W = (
+            '[Depositos."CANTIDAD_INF"]')
+          ParentFont = False
+        end
+        object MemoImporte: TfrxMemoView
+          Left = 670.000000000000000000
+          Top = 1.000000000000000000
+          Width = 90.000000000000000000
+          Height = 18.000000000000000000
+          DataSet = fxdsDepositos
+          DataSetName = 'Depositos'
+          DisplayFormat.DecimalSeparator = ','
+          DisplayFormat.FormatStr = '%2.2m'
+          DisplayFormat.Kind = fkNumeric
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -11
+          Font.Name = 'Arial'
+          Font.Style = []
+          Frame.Typ = []
+          HAlign = haRight
+          Memo.UTF8W = (
+            '[Depositos."IMPORTE_INF"]')
+          ParentFont = False
+        end
+        object MemoAnticipo: TfrxMemoView
+          Left = 760.000000000000000000
+          Top = 1.000000000000000000
+          Width = 85.000000000000000000
           Height = 18.000000000000000000
           DataSet = fxdsDepositos
           DataSetName = 'Depositos'
@@ -417,9 +491,9 @@
           ParentFont = False
         end
         object MemoEstado: TfrxMemoView
-          Left = 840.000000000000000000
+          Left = 845.000000000000000000
           Top = 1.000000000000000000
-          Width = 100.000000000000000000
+          Width = 95.000000000000000000
           Height = 18.000000000000000000
           DataSet = fxdsDepositos
           DataSetName = 'Depositos'
@@ -451,9 +525,118 @@
           ParentFont = False
         end
       end
+      object FooterDepositos: TfrxFooter
+        FillType = ftBrush
+        Height = 44.000000000000000000
+        Top = 128.000000000000000000
+        Width = 1047.000000000000000000
+        Frame.Typ = []
+        object MemoTotTitulo: TfrxMemoView
+          Left = 0.000000000000000000
+          Top = 2.000000000000000000
+          Width = 615.000000000000000000
+          Height = 18.000000000000000000
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -11
+          Font.Name = 'Arial'
+          Font.Style = [fsBold]
+          Frame.Typ = [ftTop]
+          HAlign = haLeft
+          Memo.UTF8W = (
+            'Total')
+          ParentFont = False
+        end
+        object MemoTotCantidad: TfrxMemoView
+          Left = 615.000000000000000000
+          Top = 2.000000000000000000
+          Width = 55.000000000000000000
+          Height = 18.000000000000000000
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -11
+          Font.Name = 'Arial'
+          Font.Style = [fsBold]
+          Frame.Typ = [ftTop]
+          HAlign = haRight
+          Memo.UTF8W = (
+            '[SUM(<Depositos."CANTIDAD_INF">,MasterData1)]')
+          ParentFont = False
+        end
+        object MemoTotImporte: TfrxMemoView
+          Left = 670.000000000000000000
+          Top = 2.000000000000000000
+          Width = 90.000000000000000000
+          Height = 18.000000000000000000
+          DisplayFormat.DecimalSeparator = ','
+          DisplayFormat.FormatStr = '%2.2m'
+          DisplayFormat.Kind = fkNumeric
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -11
+          Font.Name = 'Arial'
+          Font.Style = [fsBold]
+          Frame.Typ = [ftTop]
+          HAlign = haRight
+          Memo.UTF8W = (
+            '[SUM(<Depositos."IMPORTE_INF">,MasterData1)]')
+          ParentFont = False
+        end
+        object MemoTotAnticipo: TfrxMemoView
+          Left = 760.000000000000000000
+          Top = 2.000000000000000000
+          Width = 85.000000000000000000
+          Height = 18.000000000000000000
+          DisplayFormat.DecimalSeparator = ','
+          DisplayFormat.FormatStr = '%2.2m'
+          DisplayFormat.Kind = fkNumeric
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -11
+          Font.Name = 'Arial'
+          Font.Style = [fsBold]
+          Frame.Typ = [ftTop]
+          HAlign = haRight
+          Memo.UTF8W = (
+            '[SUM(<Depositos."IMPORTE_ANTICIPO_DEP">,MasterData1)]')
+          ParentFont = False
+        end
+        object MemoTotHueco: TfrxMemoView
+          Left = 845.000000000000000000
+          Top = 2.000000000000000000
+          Width = 202.000000000000000000
+          Height = 18.000000000000000000
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -11
+          Font.Name = 'Arial'
+          Font.Style = [fsBold]
+          Frame.Typ = [ftTop]
+          HAlign = haRight
+          Memo.UTF8W = (
+            '')
+          ParentFont = False
+        end
+        object MemoTotPendiente: TfrxMemoView
+          Left = 0.000000000000000000
+          Top = 24.000000000000000000
+          Width = 1047.000000000000000000
+          Height = 18.000000000000000000
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -11
+          Font.Name = 'Arial'
+          Font.Style = []
+          Frame.Typ = []
+          HAlign = haRight
+          Memo.UTF8W = (
+            'Pendiente de cobro de los dep'#243'sitos en estado PENDIENTE (importe - anticipo): [SUM(IIF(<Depositos."ESTADO_DEP"> = ''PENDIENTE'', <Depositos."IMPORTE_INF"> - <Depositos."IMPORTE_ANTICIPO_DEP">, 0),MasterData1) #n%2,2m]')
+          ParentFont = False
+        end
+      end
       object PageFooter1: TfrxPageFooter
         Height = 18.000000000000000000
-        Top = 110.000000000000000000
+        Top = 190.000000000000000000
         Width = 1047.000000000000000000
         Frame.Typ = []
         object MemoFooter: TfrxMemoView

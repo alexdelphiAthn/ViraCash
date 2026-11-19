@@ -95,37 +95,31 @@
               Caption = 'Empresa Red.'
               DataBinding.FieldName = 'CODIGO_EMP_RED_VL'
               Width = 110
-              Visible = False
             end
             object cxGrdDBTabPrinCODIGO_ALMACEN_RED_VL: TcxGridDBColumn
               Caption = 'Almac'#233'n Red.'
               DataBinding.FieldName = 'CODIGO_ALM_RED_VL'
               Width = 110
-              Visible = False
             end
             object cxGrdDBTabPrinCODIGO_CAJA_RED_VL: TcxGridDBColumn
               Caption = 'Caja Red.'
               DataBinding.FieldName = 'CODIGO_CAJA_RED_VL'
               Width = 100
-              Visible = False
             end
             object cxGrdDBTabPrinNUMERO_OPERACION_RED_VL: TcxGridDBColumn
               Caption = 'N'#250'm. Op. Red.'
               DataBinding.FieldName = 'NUMERO_OPERACION_RED_VL'
               Width = 160
-              Visible = False
             end
             object cxGrdDBTabPrinSERIE_FACTURA_RED_VL: TcxGridDBColumn
               Caption = 'Serie Fac. Red.'
               DataBinding.FieldName = 'SERIE_FAC_RED_VL'
               Width = 110
-              Visible = False
             end
             object cxGrdDBTabPrinNRO_FACTURA_RED_VL: TcxGridDBColumn
               Caption = 'Nro. Fac. Red.'
               DataBinding.FieldName = 'NUMERO_FAC_RED_VL'
               Width = 110
-              Visible = False
             end
             object cxGrdDBTabPrinCODIGO_CLIENTE_VL: TcxGridDBColumn
               Caption = 'Cliente'

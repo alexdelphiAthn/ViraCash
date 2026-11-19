@@ -208,6 +208,9 @@ const
     'ATTR4_VALOR_FACLIN, ATTR4_NOMBRE_FACLIN, ' +
     'ATTR5_VALOR_FACLIN, ATTR5_NOMBRE_FACLIN, ' +
     'NUM_ATRIBUTOS_FACLIN, ' +
+    // FZ-ISSUE-1038: la línea lleva la empresa de la cabecera; sin ella
+    // se pierde en las uniones por la clave completa de la factura.
+    'CODIGO_EMP_FACLIN, ' +
     'INSTANTE_MODIF, INSTANTE_ALTA, USUARIO_ALTA, USUARIO_MODIF) ' +
     'SELECT :NUMERO, :SERIE, LINEA_FACLIN, CODIGO_ART_FACLIN, ' +
     'CODIGO_UNIDAD_FACLIN, ' +
@@ -225,6 +228,8 @@ const
     'ATTR4_VALOR_FACLIN, ATTR4_NOMBRE_FACLIN, ' +
     'ATTR5_VALOR_FACLIN, ATTR5_NOMBRE_FACLIN, ' +
     'NUM_ATRIBUTOS_FACLIN, ' +
+    '(SELECT FE.CODIGO_EMP_FAC FROM fza_facturas FE ' +
+    '  WHERE FE.SERIE_FAC = :SERIE AND FE.NUMERO_FAC = :NUMERO), ' +
     'NOW(), NOW(), :USUARIO, :USUARIO ' +
     'FROM fza_facturas_lineas WHERE SERIE_FAC_FACLIN = :STICKET ' +
     'AND NUMERO_FAC_FACLIN = :NTICKET';
@@ -928,10 +933,14 @@ begin
     'INSERT INTO fza_facturas_lineas (SERIE_FAC_FACLIN, ' +
     'NUMERO_FAC_FACLIN, LINEA_FACLIN, DESCRIPCION_ARTICULO_FACLIN, ' +
     'CANTIDAD_FACLIN, TOTAL_FACLIN, TOTAL_FAC_SIVA_FACLIN, ' +
+    'CODIGO_EMP_FACLIN, ' +
     'INSTANTE_ALTA, INSTANTE_MODIF, USUARIO_ALTA, USUARIO_MODIF) ' +
-    'VALUES (:SERIE, :NUMERO, LPAD(:LINEA, 4, ''0''), ' +
+    'SELECT :SERIE, :NUMERO, LPAD(:LINEA, 4, ''0''), ' +
     ':TEXTO, 0, 0, 0, ' +
-    'NOW(), NOW(), :USUARIO, :USUARIO)';
+    // FZ-ISSUE-1038: la empresa de la cabecera, como las demás líneas.
+    '(SELECT FE.CODIGO_EMP_FAC FROM fza_facturas FE ' +
+    '  WHERE FE.SERIE_FAC = :SERIE AND FE.NUMERO_FAC = :NUMERO), ' +
+    'NOW(), NOW(), :USUARIO, :USUARIO';
   AConsulta.ParamByName('LINEA').AsInteger := ALinea;
   AConsulta.ParamByName('TEXTO').AsString :=
     Format(SFacturacionSimplificadosTicket,

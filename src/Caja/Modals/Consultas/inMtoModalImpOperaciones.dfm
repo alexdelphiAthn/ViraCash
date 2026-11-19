@@ -311,6 +311,7 @@
       object MasterData1: TfrxMasterData
         FillType = ftBrush
         Height = 20.000000000000000000
+        Stretched = True
         Top = 84.000000000000000000
         Width = 1047.000000000000000000
         DataSet = fxdsOperaciones
@@ -426,6 +427,7 @@
           Top = 1.000000000000000000
           Width = 330.000000000000000000
           Height = 18.000000000000000000
+          StretchMode = smActualHeight
           DataSet = fxdsOperaciones
           DataSetName = 'Operaciones'
           Font.Charset = DEFAULT_CHARSET
@@ -645,8 +647,7 @@
           Frame.Typ = [ftTop]
           HAlign = haRight
           Memo.UTF8W = (
-            '[SUM(<TotalesOperaciones."NUMERO_OPERACIONES_INF">,MasterDat' +
-            'aTotalesOperaciones)]')
+            '[TotalesOperaciones."TOTAL_OPERACIONES_INF"]')
           ParentFont = False
         end
         object MemoTotHueco: TfrxMemoView

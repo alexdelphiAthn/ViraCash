@@ -282,6 +282,9 @@ begin
        ColumnaInforme('CODIGO_CLI_DEP', STextoClienteCaja, 1),
        ColumnaInforme('CODIGO_UNIDAD_DEP', STextoSkuCaja, 1),
        ColumnaInforme('PRECIO_VENTA_DEP', STextoPrecioVentaCaja, 1, '%n'),
+       // FZ-ISSUE-1035: cantidad pendiente e importe (precio x cantidad).
+       ColumnaInforme('CANTIDAD_INF', STextoCantidadPdteCaja, 1, '%g'),
+       ColumnaInforme('IMPORTE_INF', STextoImporteCaja, 1, '%n'),
        ColumnaInforme('IMPORTE_ANTICIPO_DEP', STextoAnticipoCaja, 1, '%n'),
        ColumnaInforme('ESTADO_DEP', STextoEstadoCaja, 1),
        ColumnaInforme('NUMERO_OPERACION_DEP', STextoOperacionCaja, 1)],
