@@ -140,6 +140,7 @@
       '         AS ESLOTES_REPOSICION_EMP'
       '  FROM vi_empresas V'
       ' ORDER BY V.ORDEN_EMP')
+    AfterOpen = unqryTablaGAfterOpen
     AfterInsert = unqryTablaGAfterInsert
     BeforeInsert = unqryTablaGBeforeInsert
     BeforeEdit = unqryTablaGBeforeEdit
