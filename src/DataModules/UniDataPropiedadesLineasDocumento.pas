@@ -10,11 +10,12 @@ interface
 uses
   Uni;
 
-function SqlPropiedadesLinea(const AArticulo, AUnidad: string): string;
+function SqlPropiedadesLinea(const AArticulo, AUnidad: string;
+  AIncluirTemporada: Boolean = False): string;
 function SqlAmbitoPropiedadLinea(const AAlias, AArticulo,
   AUnidad: string): string;
 procedure ConfigurarPropiedadesLineas(AConsulta: TUniQuery;
-  const ASufijo: string);
+  const ASufijo: string; AIncluirTemporada: Boolean = False);
 
 implementation
 
@@ -41,8 +42,14 @@ begin
     ''''')';
 end;
 
-function SqlPropiedadesLinea(const AArticulo, AUnidad: string): string;
+function SqlPropiedadesLinea(const AArticulo, AUnidad: string;
+  AIncluirTemporada: Boolean): string;
+var
+  sFiltroTemporada: string;
 begin
+  sFiltroTemporada := '';
+  if not AIncluirTemporada then
+    sFiltroTemporada := 'AND P.CODIGO_PROP_ARTPROP <> ''TEMPORADA'' ';
   Result :=
     '(SELECT GROUP_CONCAT(CONCAT(P.NOMBRE_PROP_PROP, '': '', ' +
     'COALESCE(V.PV, A.VALOR_LIBRE_ARTPROP)) ' +
@@ -53,12 +60,13 @@ begin
     'LEFT JOIN fza_propiedades_valores V ' +
     'ON V.ID_PV_ARTPROP = A.ID_PV_ARTPROP ' +
     'WHERE A.CODIGO_ART_ART = ' + AArticulo +
-    ' AND P.ESACTIVO_PROP = ''S'' ' +
+    ' AND P.ESACTIVO_PROP = ''S'' ' + sFiltroTemporada +
     'AND TRIM(COALESCE(V.PV, A.VALOR_LIBRE_ARTPROP, '''')) <> '''' ' +
     'AND ' + SqlAmbitoPropiedadLinea('A', AArticulo, AUnidad) + ')';
 end;
 
-function AgregarPropiedades(const ASql, ASufijo: string): string;
+function AgregarPropiedades(const ASql, ASufijo: string;
+  AIncluirTemporada: Boolean): string;
 var
   iDesde: Integer;
 begin
@@ -68,12 +76,12 @@ begin
     raise EArgumentException.Create(STextoSelectDeLineasSinFromFacturas);
   Result := Copy(ASql, 1, iDesde - 1) + ', ' +
     SqlPropiedadesLinea('CODIGO_ART_' + ASufijo,
-      'CODIGO_UNIDAD_' + ASufijo) +
+      'CODIGO_UNIDAD_' + ASufijo, AIncluirTemporada) +
     ' AS PROPIEDADES_ARTICULO ' + Copy(ASql, iDesde, MaxInt);
 end;
 
 procedure ConfigurarPropiedadesLineas(AConsulta: TUniQuery;
-  const ASufijo: string);
+  const ASufijo: string; AIncluirTemporada: Boolean);
 var
   sCabecera: string;
 begin
@@ -85,9 +93,11 @@ begin
       ' AND SERIE_' + sCabecera + '_' + ASufijo + ' = :SERIE_' +
       sCabecera + '_' + ASufijo +
       ' AND LINEA_' + ASufijo + ' = :LINEA_' + ASufijo;
-  AConsulta.SQL.Text := AgregarPropiedades(AConsulta.SQL.Text, ASufijo);
+  AConsulta.SQL.Text :=
+    AgregarPropiedades(AConsulta.SQL.Text, ASufijo, AIncluirTemporada);
   AConsulta.SQLRefresh.Text :=
-    AgregarPropiedades(AConsulta.SQLRefresh.Text, ASufijo);
+    AgregarPropiedades(AConsulta.SQLRefresh.Text, ASufijo,
+      AIncluirTemporada);
   AConsulta.RefreshOptions := AConsulta.RefreshOptions +
     [roAfterInsert, roAfterUpdate];
 end;

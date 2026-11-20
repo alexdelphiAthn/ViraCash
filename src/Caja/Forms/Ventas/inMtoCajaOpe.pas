@@ -1151,7 +1151,8 @@ begin
   begin
     Lineas := DatosCaja.cdsLineas;
     bLineaEnBlanco := (Lineas.State = dsInsert) and
-      (Trim(Lineas.FieldByName('CODIGO_ART_FACLIN').AsString) = '');
+      (FDescartarEdicionLinea or
+       (Trim(Lineas.FieldByName('CODIGO_ART_FACLIN').AsString) = ''));
     if (Lineas.State = dsBrowse) or bLineaEnBlanco or
        ((Lineas.State = dsEdit) and
         (FDescartarEdicionLinea or not Lineas.Modified)) then
@@ -4552,7 +4553,7 @@ begin
         AResultado.NumeroGenerado,
         AEmailEnvio,
         sMensajeCorreo, ParametrosCaja.GetBool(
-          'vgerImprimirLoteCaducidadTicket', True)) then
+          'vgerImprimirLoteCaducidadTicket', False)) then
       begin
         ShowMessage_fza(sMensajeCorreo);
       end
@@ -4810,7 +4811,7 @@ begin
     FOperacionSubsanacion.Clave.Caja,
     FOperacionSubsanacion.Clave.NumeroOperacion,
     ParametrosCaja.ImpresoraCaja, nil, False, False,
-    ParametrosCaja.GetBool('vgerImprimirLoteCaducidadTicket', True));
+    ParametrosCaja.GetBool('vgerImprimirLoteCaducidadTicket', False));
 end;
 
 procedure TfrmMtoOpeCaja.CargarRectificacion(

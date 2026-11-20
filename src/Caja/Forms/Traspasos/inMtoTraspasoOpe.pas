@@ -250,6 +250,7 @@ type
     procedure GridResuelto(const ACodArt, ASku, ADescripcion: string;
                            ACompleto: Boolean);
     procedure AsegurarLineaNueva;
+    procedure AsegurarLineaNuevaTrasLectura;
     procedure EnfocarSegunModo;
     procedure AbrirModalSolicitudes;
     procedure ConfigurarModalSolicitudes(ADialogo: TForm);
@@ -1529,7 +1530,8 @@ begin
       RefrescarFotoStock(ACodArt, ASku);
       // Otra linea en blanco para seguir metiendo (solo traspaso/solicitar).
       if ModoPermiteCargaManual then
-        AsegurarLineaNueva;
+        AsegurarLineaNuevaTrasLectura;
+      ActualizarTotal;
     end;
     if FModo = mtReposicion then
     begin
@@ -2109,6 +2111,31 @@ begin
     finally
       AplicarModo(mtReposicion);
     end;
+  end;
+end;
+
+// FZ-ISSUE-1067: grabar la lectura puede abrir «Elegir lote». Si se cancela
+// o no quedan partidas (el aviso sale igual), la fila leída vuelve a ser la
+// línea en blanco: no queda a medias en el documento ni suma en el pie.
+procedure TfrmMtoOpeTraspaso.AsegurarLineaNuevaTrasLectura;
+var
+  bLecturaNueva: Boolean;
+begin
+  bLecturaNueva := (FDatos.cdsLineas.State = dsInsert) or
+    ((FDatos.cdsLineas.State = dsEdit) and
+     (Trim(VarToStr(FDatos.cdsLineas.FieldByName(
+       'CODIGO_UNIDAD').OldValue)) = ''));
+  try
+    AsegurarLineaNueva;
+  except
+    if bLecturaNueva and (FDatos.cdsLineas.State in dsEditModes) then
+    begin
+      if FView.Controller.EditingController.IsEditing then
+        FView.Controller.EditingController.HideEdit(False);
+      FDatos.cdsLineas.Cancel;
+      ActualizarTotal;
+    end;
+    raise;
   end;
 end;
 
@@ -4007,7 +4034,10 @@ end;
 
 function TfrmMtoOpeTraspaso.ImporteLineas: Currency;
 begin
-  Result := ImporteCantidadesGrid(FView, 'CANTIDAD', 'PRECIO_COSTE');
+  // FZ-ISSUE-1067: una lectura de Modo Yeti sin partida aún no suma: su
+  // coste es el de la partida más antigua y puede no ser la que se elija.
+  Result := ImporteCantidadesGrid(FView, 'CANTIDAD', 'PRECIO_COSTE',
+    not FDatos.LineaActualPendientePartida);
 end;
 
 procedure TfrmMtoOpeTraspaso.ActualizarTotal;

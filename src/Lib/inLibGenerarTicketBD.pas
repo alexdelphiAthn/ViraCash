@@ -42,7 +42,7 @@ procedure ImprimirTicketDesdeBD(
   ARutasPDF: TStrings = nil;
   ASoloPDF: Boolean = False;
   AImprimirCodigoBarras: Boolean = False;
-  AImprimirLotes: Boolean = True);
+  AImprimirLotes: Boolean = False);
 procedure ImprimirRecordatorio(
   const APreview: IPreviewTicket;
   const ARepositorio: IRepositorioRecordatoriosCaja;
@@ -722,8 +722,8 @@ begin
           sTotal),
         sTotal);
       FTicket.EscribirLinea(Copy(oLineas[i].Descripcion, 1, 42));
-      // F-LOTEC-015: lote o serie bajo la línea (solo con interruptores).
-      if ActivacionVigente.AlgunModoActivo and (oLineas[i].Lote <> '') then
+      if (oLineas[i].Lote <> '') and ImprimirIdentificacionTicket(
+        FConfiguracion.ImprimirLotes, oLineas[i].EsSerie) then
         FTicket.EscribirLinea(Copy(TextoLoteTicket(oLineas[i].Lote,
           oLineas[i].FechaCaducidad, oLineas[i].EsSerie), 1, 42));
     end;

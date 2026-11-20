@@ -44,8 +44,10 @@ procedure VincularCantidadesGrid(
 
 // Suma el contenido publicado por la rejilla y sustituye la fila en edición
 // por su buffer actual, sin crear cursores ni mover el dataset.
+// AIncluirEditado = False: la fila en edición no suma (FZ-ISSUE-1067).
 function ImporteCantidadesGrid(AVista: TcxGridDBTableView;
-  const ACampoCantidad, ACampoPrecio: string): Currency;
+  const ACampoCantidad, ACampoPrecio: string;
+  AIncluirEditado: Boolean = True): Currency;
 
 implementation
 
@@ -477,7 +479,8 @@ begin
 end;
 
 function ImporteCantidadesGrid(AVista: TcxGridDBTableView;
-  const ACampoCantidad, ACampoPrecio: string): Currency;
+  const ACampoCantidad, ACampoPrecio: string;
+  AIncluirEditado: Boolean): Currency;
 var
   oDatos: TDataSet;
   oCantidad, oPrecio: TcxGridDBColumn;
@@ -505,7 +508,7 @@ begin
           Result := Result + Double(vCantidad) * Currency(vPrecio);
       end;
     end;
-    if oDatos.State in dsEditModes then
+    if AIncluirEditado and (oDatos.State in dsEditModes) then
       Result := Result + oDatos.FieldByName(ACampoCantidad).AsFloat *
         oDatos.FieldByName(ACampoPrecio).AsCurrency;
   end;

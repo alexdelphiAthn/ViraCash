@@ -39,13 +39,29 @@ function CrearMovimientosAlbaranCompraUniDAC(
 function CrearMovimientosAlbaranCompraUniDAC(AConexion: TUniConnection;
   const AActivacion: TActivacionTrazabilidad):
   IMovimientosAlbaranCompra; overload;
+function AlbaranCompraTienePartidas(AConexion: TUniConnection;
+  const ASerie, ANumero: string): Boolean;
+procedure ExigirPartidasAlbaranCompraSinUso(AConexion: TUniConnection;
+  const ASerie, ANumero, AUsuario: string);
+procedure RevertirRecepcionAlbaranCompra(AConexion: TUniConnection;
+  const ASerie, ANumero, AUsuario: string);
 implementation
 uses
   System.SysUtils, Data.DB, inLibDocumento, inLibDocumentoIntf,
   UniDataValoresAutomaticosRepositorio, inLibMsgCompras,
   UniDataAlbaranesCompraMovimientosSql,
   UniDataMovimientosAlmacenRecalculo, inLibRedondeo,
-  UniDataMovimientosLote;
+  UniDataMovimientosLote, inLibErroresBBDD;
+const
+  SQL_PARTIDA_ORIGEN_ALBARAN =
+    'L.ESREPOSICION_LOT = ''S'' AND L.TIPO_DOC_ORIGEN_LOT = ''AC'' ' +
+    'AND L.SERIE_DOC_ORIGEN_LOT = :SERIE ' +
+    'AND L.NUMERO_DOC_ORIGEN_LOT = :NUMERO ';
+  SQL_MOVIMIENTO_PARTIDA =
+    'M.CODIGO_UNIDAD_MOV = L.CODIGO_UNIDAD_LOT AND M.LOTE_MOV = L.LOTE_LOT ';
+  SQL_MOVIMIENTO_ALBARAN =
+    '(M.TIPO_DOC_MOV <=> ''AC'' AND M.SERIE_DOC_MOV <=> :SERIE ' +
+    'AND M.NUMERO_DOC_MOV <=> :NUMERO) ';
 type
   TMovimientosAlbaranCompraUniDAC = class(
     TInterfacedObject,
@@ -61,6 +77,116 @@ type
     procedure RevertirDesdeAlbaran(
       const ASerieAlbc, ANumAlbc, AUsuario: string);
   end;
+
+function AlbaranCompraTienePartidas(AConexion: TUniConnection;
+  const ASerie, ANumero: string): Boolean;
+var
+  Consulta: TUniQuery;
+begin
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := AConexion;
+    Consulta.SQL.Text :=
+      'SELECT 1 FROM fza_articulos_lotes L WHERE ' +
+      SQL_PARTIDA_ORIGEN_ALBARAN + 'LIMIT 1';
+    Consulta.ParamByName('SERIE').AsString := ASerie;
+    Consulta.ParamByName('NUMERO').AsString := ANumero;
+    Consulta.Open;
+    Result := not Consulta.IsEmpty;
+  finally
+    Consulta.Free;
+  end;
+end;
+
+procedure ExigirPartidasAlbaranCompraSinUso(AConexion: TUniConnection;
+  const ASerie, ANumero, AUsuario: string);
+var
+  Consulta, Bloqueo: TUniQuery;
+begin
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := AConexion;
+    if AConexion.InTransaction then
+    begin
+      // El alta de una salida toma este mismo bloqueo de almacén y SKU.
+      Consulta.SQL.Text :=
+        'SELECT DISTINCT M.CODIGO_ALM_MOV, M.CODIGO_UNIDAD_MOV ' +
+        'FROM fza_articulos_lotes L JOIN fza_movimientos_almacen M ON ' +
+        SQL_MOVIMIENTO_PARTIDA + 'WHERE ' + SQL_PARTIDA_ORIGEN_ALBARAN +
+        'AND ' + SQL_MOVIMIENTO_ALBARAN +
+        'AND M.TIPO_MOV = ''E'' AND M.ESACTIVO_MOV = ''S'' ' +
+        'ORDER BY M.CODIGO_ALM_MOV, M.CODIGO_UNIDAD_MOV';
+      Consulta.ParamByName('SERIE').AsString := ASerie;
+      Consulta.ParamByName('NUMERO').AsString := ANumero;
+      Consulta.Open;
+      Bloqueo := TUniQuery.Create(nil);
+      try
+        Bloqueo.Connection := AConexion;
+        Bloqueo.SQL.Text :=
+          'CALL PRC_FZA_STOCK_BLOQUEAR_CLAVE(:ALMACEN, :SKU, :USUARIO)';
+        Bloqueo.ParamByName('USUARIO').AsString := AUsuario;
+        while not Consulta.Eof do
+        begin
+          Bloqueo.ParamByName('ALMACEN').AsString :=
+            Consulta.FieldByName('CODIGO_ALM_MOV').AsString;
+          Bloqueo.ParamByName('SKU').AsString :=
+            Consulta.FieldByName('CODIGO_UNIDAD_MOV').AsString;
+          Bloqueo.ExecSQL;
+          Consulta.Next;
+        end;
+      finally
+        Bloqueo.Free;
+      end;
+      Consulta.Close;
+    end;
+    Consulta.SQL.Text :=
+      'SELECT L.LOTE_LOT FROM fza_articulos_lotes L ' +
+      'JOIN fza_movimientos_almacen M ON ' + SQL_MOVIMIENTO_PARTIDA +
+      'WHERE ' + SQL_PARTIDA_ORIGEN_ALBARAN +
+      'AND M.ESACTIVO_MOV = ''S'' AND M.CANTIDAD_MOV <> 0 ' +
+      'AND NOT ' + SQL_MOVIMIENTO_ALBARAN + 'LIMIT 1';
+    // Lectura actual después de esperar el bloqueo, incluso en REPEATABLE READ.
+    if AConexion.InTransaction then
+      Consulta.SQL.Add('FOR UPDATE');
+    Consulta.ParamByName('SERIE').AsString := ASerie;
+    Consulta.ParamByName('NUMERO').AsString := ANumero;
+    Consulta.Open;
+    if not Consulta.IsEmpty then
+      raise EValidacionBBDD.CreateFmt(SErrorAlbaranCompraPartidaUtilizada,
+        [ASerie, ANumero, Consulta.Fields[0].AsString]);
+  finally
+    Consulta.Free;
+  end;
+end;
+
+procedure RetirarPartidasAlbaranCompra(AConexion: TUniConnection;
+  const ASerie, ANumero, AUsuario: string);
+var
+  Consulta: TUniQuery;
+begin
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := AConexion;
+    Consulta.SQL.Text :=
+      'DELETE C FROM fza_codigos_barras C JOIN fza_articulos_lotes L ' +
+      'ON C.CODIGO_UNIDAD_CB = L.CODIGO_UNIDAD_LOT ' +
+      'AND C.LOTE_CB = L.LOTE_LOT WHERE ' + SQL_PARTIDA_ORIGEN_ALBARAN;
+    Consulta.ParamByName('SERIE').AsString := ASerie;
+    Consulta.ParamByName('NUMERO').AsString := ANumero;
+    Consulta.ExecSQL;
+    Consulta.SQL.Text :=
+      'UPDATE fza_articulos_lotes L SET L.ESACTIVO_LOT = ''N'', ' +
+      'L.INSTANTE_MODIF = NOW(), L.USUARIO_MODIF = :USUARIO ' +
+      'WHERE ' + SQL_PARTIDA_ORIGEN_ALBARAN;
+    Consulta.ParamByName('SERIE').AsString := ASerie;
+    Consulta.ParamByName('NUMERO').AsString := ANumero;
+    Consulta.ParamByName('USUARIO').AsString := AUsuario;
+    Consulta.ExecSQL;
+  finally
+    Consulta.Free;
+  end;
+end;
+
 function EstrategiaAlbaranCompra: IEstrategiaDocumento;
 begin
   Result := CrearEstrategiaDocumento(
@@ -476,6 +602,8 @@ procedure RevertirMovimientosDesdeAlbaranCompra(AConn: TUniConnection;
 var
   qExec: TUniQuery;
 begin
+  if AlbaranCompraTienePartidas(AConn, ASerieAlbc, ANumAlbc) then
+    ExigirPartidasAlbaranCompraSinUso(AConn, ASerieAlbc, ANumAlbc, AUsuario);
   qExec  := TUniQuery.Create(nil);
   try
     qExec.Connection  := AConn;
@@ -490,6 +618,15 @@ begin
     FreeAndNil(qExec);
   end;
 end;
+
+procedure RevertirRecepcionAlbaranCompra(AConexion: TUniConnection;
+  const ASerie, ANumero, AUsuario: string);
+begin
+  RevertirMovimientosDesdeAlbaranCompra(AConexion, ASerie, ANumero, AUsuario);
+  if AlbaranCompraTienePartidas(AConexion, ASerie, ANumero) then
+    RetirarPartidasAlbaranCompra(AConexion, ASerie, ANumero, AUsuario);
+end;
+
 constructor TMovimientosAlbaranCompraUniDAC.Create(
   AConexion: TUniConnection;
   const AActivacion: TActivacionTrazabilidad);

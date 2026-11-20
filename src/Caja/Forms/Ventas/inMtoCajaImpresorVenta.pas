@@ -259,7 +259,7 @@ begin
           ARutasPdf,
           FParametrosCaja.GetBool(
             'vgerImprimirCodBarrasTicket', False),
-          FParametrosCaja.GetBool(PARAMETRO_IMPRIMIR_LOTES_TICKET, True));
+          FParametrosCaja.GetBool(PARAMETRO_IMPRIMIR_LOTES_TICKET, False));
       end;
     tiFactura:
       begin
@@ -286,7 +286,7 @@ begin
           nil,
           FParametrosCaja.GetBool(
             'vgerImprimirCodBarrasTicket', False),
-          FParametrosCaja.GetBool(PARAMETRO_IMPRIMIR_LOTES_TICKET, True));
+          FParametrosCaja.GetBool(PARAMETRO_IMPRIMIR_LOTES_TICKET, False));
         ImprimirT(
           FParametrosApp,
           FPreviewTicket,
@@ -304,7 +304,7 @@ begin
           ARutasPdf,
           FParametrosCaja.GetBool(
             'vgerImprimirCodBarrasTicket', False),
-          FParametrosCaja.GetBool(PARAMETRO_IMPRIMIR_LOTES_TICKET, True));
+          FParametrosCaja.GetBool(PARAMETRO_IMPRIMIR_LOTES_TICKET, False));
       end;
     tiSinTicket:
       // FZ-ISSUE-395: la apertura acompaña al cobro, así que no depende
@@ -345,7 +345,7 @@ begin
     True,
     FParametrosCaja.GetBool(
       'vgerImprimirCodBarrasTicket', False),
-    FParametrosCaja.GetBool(PARAMETRO_IMPRIMIR_LOTES_TICKET, True));
+    FParametrosCaja.GetBool(PARAMETRO_IMPRIMIR_LOTES_TICKET, False));
 end;
 
 end.

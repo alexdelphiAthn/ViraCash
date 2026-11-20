@@ -85,7 +85,8 @@ type
       const ACodigoCliente: string): TClienteFacturacionTicket;
     function CrearFactura(
       const ASolicitud: TSolicitudFacturacionTicket): string;
-    function FormaPagoTicket(const ASerie, ANumero: string): string;
+    procedure LeerClienteTicket(const ASerie, ANumero: string;
+      out ACliente, ARazonSocial: string);
     // Fecha del ticket (0 si no existe).
     function FechaTicket(const ASerie, ANumero: string): TDateTime;
     function ConsultarTicketsPeriodo(const AEmpresa, ACliente: string;

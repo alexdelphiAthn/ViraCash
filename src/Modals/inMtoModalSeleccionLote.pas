@@ -337,6 +337,8 @@ begin
 end;
 
 procedure TfrmModalSeleccionLote.ConstruirRejilla;
+var
+  bMostrarCaducidad: Boolean;
 begin
   grdLotes := TcxGrid.Create(Self);
   grdLotes.Parent := pnlBody;
@@ -386,13 +388,13 @@ begin
     FORMATO_CANTIDAD;
   colCantidad.Options.Editing := True;
   colCantidad.Options.Focusing := True;
-  // Cada modo enseña lo suyo: la caducidad solo tiene sentido en LOTE y
-  // en SERIE se elige marcando, no con cantidades.
+  bMostrarCaducidad := (FParametros.Modo = mtLote) and
+    ActivacionVigente.Lotes;
   colElegir.Visible := EsSerie;
   colCantidad.Visible := not EsSerie;
-  colCaducidad.Visible := FParametros.Modo = mtLote;
-  colDias.Visible := FParametros.Modo = mtLote;
-  colEntrada.Visible := FParametros.Modo <> mtLote;
+  colCaducidad.Visible := bMostrarCaducidad;
+  colDias.Visible := bMostrarCaducidad;
+  colEntrada.Visible := not bMostrarCaducidad;
   tvLotes.DataController.OnDataChanged := ActualizarPie;
 end;
 
@@ -520,8 +522,18 @@ end;
 procedure TfrmModalSeleccionLote.ActualizarPie(Sender: TObject);
 begin
   if Assigned(lblPie) then
-    lblPie.Caption := Format(SPieSeleccionLote,
-      [TextoCantidad(CantidadElegida), TextoCantidad(FParametros.Cantidad)]);
+  begin
+    // FZ-ISSUE-1064: «Elegido: 12 de 1» confundía; se dice qué pasará.
+    if (FParametros.Cantidad > 0) and
+       (CantidadElegida > FParametros.Cantidad) then
+      lblPie.Caption := Format(SPieSeleccionLoteMas,
+        [TextoCantidad(CantidadElegida),
+         TextoCantidad(FParametros.Cantidad)])
+    else
+      lblPie.Caption := Format(SPieSeleccionLote,
+        [TextoCantidad(CantidadElegida),
+         TextoCantidad(FParametros.Cantidad)]);
+  end;
 end;
 
 function TfrmModalSeleccionLote.ValidarSeleccion: Boolean;

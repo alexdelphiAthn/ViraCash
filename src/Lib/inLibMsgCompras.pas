@@ -124,6 +124,9 @@ resourcestring
     'existencias recibidas se conservan.' + sLineBreak +
     '¿Desea borrar el albarán y revertir sus movimientos de stock?' +
     sLineBreak + 'Sí: borrar. No: conservar. Cancelar: seguir editando.';
+  SErrorAlbaranCompraPartidaUtilizada =
+    'No se puede modificar ni borrar el albarán de compra %s / %s. ' +
+    'La partida %s ya tiene movimientos de stock en otros documentos.';
   SPreguntaBorrarAlbaranCompra =
     '¿Borrar el albarán de compra %s / %s?' + sLineBreak +
     'Se eliminarán sus líneas y se revertirán los movimientos de stock.';
@@ -498,6 +501,9 @@ resourcestring
     'Empresas ahora?';
   SErrorAlbaranCompraSinImpresionActivo =
     'No hay albarán de compra activo que imprimir.';
+  SErrorAlbaranCompraRevisionCambiada =
+    'El albarán de compra %s / %s ha cambiado desde que lo abrió. ' +
+    'Cancele los cambios pendientes y recargue el albarán.';
   SErrorAlbaranCompraNoActivo =
     'No hay albarán de compra activo.';
   SPreguntaGrabarAlbaranCompraSinSku =

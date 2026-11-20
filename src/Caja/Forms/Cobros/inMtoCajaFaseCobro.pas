@@ -251,6 +251,9 @@ type
     function PedirContactoApartado: Boolean;
     function ValidaryConfirmar:boolean;
     function ValidarDepositoCredito: Boolean;
+    function ConfirmarAplicacionDevolucion(AImporte,
+      AFinanciado: Currency): Boolean;
+    function ConfirmarEditoresCobro: Boolean;
     function PuedeEmitir(const ASerie: string; AFecha: TDateTime): Boolean;
     function SerieAdmiteFecha(var ASerie: string;
       AFecha: TDateTime; const ASubtipo: string): Boolean;
@@ -263,6 +266,7 @@ type
     procedure CargarComboSeries;
     procedure AjustarFormatoEditorActivo;
     procedure ActualizarInterfaz;
+    procedure ActualizarBotonesCreditoYBorrador;
     procedure ActualizarImportesDescuento;
     function PuedeAplicarDescuentoGlobal: Boolean;
     function ConfirmarEditoresDescuento: Boolean;
@@ -661,6 +665,7 @@ var
 begin
   oEstado.EsSubsanacion := FModoSubsanacion;
   oEstado.RectificaA := FRectificaA;
+  oEstado.ImporteTotal := FDatosCobro.ImporteTotalPagar;
   oEstado.CodigoCliente := FCodigoCliente;
   oEstado.NifCliente := FNifCliente;
   oEstado.CodigoPais := FCodigoPaisCliente;
@@ -679,6 +684,8 @@ begin
   case ARechazo of
     rfRectificativa:
       ShowMessage_fza(SErrorRectificacionCajaNoAdmiteBorrador);
+    rfTotalNoPositivo:
+      ShowMessage_fza(SErrorTotalCajaNoAdmiteBorrador);
     rfSinCliente:
       ShowMessage_fza(SErrorClienteBorradorCajaNoAsignado);
     rfSinNif:
@@ -797,9 +804,7 @@ begin
     ShowMessage_fza(Mensaje);
 end;
 
-function TfrmMtoCajaFaseCobro.ValidarYConfirmar: Boolean;
-var
-  Res: TResultadoValidacion;
+function TfrmMtoCajaFaseCobro.ConfirmarEditoresCobro: Boolean;
 begin
   Result := ConfirmarEditoresDescuento;
   if Result then
@@ -808,7 +813,16 @@ begin
       dbtvFormasPago.Controller.EditingController.HideEdit(True);
     if FMemTablePagos.State in [dsEdit, dsInsert] then
       FMemTablePagos.Post;
-    FDatosCobro.Recalcular;
+  end;
+end;
+
+function TfrmMtoCajaFaseCobro.ValidarYConfirmar: Boolean;
+var
+  Res: TResultadoValidacion;
+begin
+  Result := ConfirmarEditoresCobro;
+  if Result then
+  begin
     Res := FDatosCobro.ValidarParaCobro;
     Result := Res.Valido;
     if not Result then
@@ -1695,6 +1709,7 @@ begin
   btnF12.Enabled := btnConTicket.Enabled;
   btnF11.Enabled := btnSinTicket.Enabled;
   btnF10.Enabled := btnSinPrecios.Enabled;
+  ActualizarBotonesCreditoYBorrador;
   AjustarVisibilidadVales;
 end;
 
@@ -1728,12 +1743,22 @@ begin
     ConfigurarModoDevolucion
   else
     ConfigurarModoCobroNormal;
-  var PermiteCredito :=
+  ActualizarBotonesCreditoYBorrador;
+end;
+
+procedure TfrmMtoCajaFaseCobro.ActualizarBotonesCreditoYBorrador;
+var
+  PermiteCredito, TotalPositivo: Boolean;
+begin
+  TotalPositivo := not FModoSubsanacion and
+    (FDatosCobro.ImporteTotalPagar > 0);
+  PermiteCredito := TotalPositivo and
     ParametrosCaja.GetBool('vgerVentasCredito', True) and
-                     FDatosCobro.PuedeDejarEnCuenta;
-  if Assigned(btnDeposito) then
-    btnDeposito.Enabled := PermiteCredito;
+    FDatosCobro.PuedeDejarEnCuenta;
+  btnDeposito.Enabled := PermiteCredito;
   btnF7.Enabled := PermiteCredito;
+  btnFactura.Enabled := TotalPositivo and (FRectificaA = '');
+  btnF8.Enabled := btnFactura.Enabled;
 end;
 
 function TfrmMtoCajaFaseCobro.PuedeAplicarDescuentoGlobal: Boolean;
@@ -1822,9 +1847,18 @@ begin
 end;
 
 procedure TfrmMtoCajaFaseCobro.btnF7Click(Sender: TObject);
+var
+  Validacion: TResultadoValidacion;
 begin
   inherited;
-  DejarEnCuentaTpv(Sender);
+  if not FModoSubsanacion and ConfirmarEditoresCobro then
+  begin
+    Validacion := FDatosCobro.ValidarSignoPagos;
+    if Validacion.Valido then
+      DejarEnCuentaTpv(Sender)
+    else
+      MessageDlg_fza(Validacion.Mensaje, mtWarning, [mbOK], 0);
+  end;
 end;
 
 procedure TfrmMtoCajaFaseCobro.DejarEnCuentaTpv(Sender: TObject);
@@ -1836,14 +1870,18 @@ begin
   oEstado.EsSubsanacion := FModoSubsanacion;
   if not FModoSubsanacion then
   begin
-    oEstado.PuedeDejarEnCuenta := FDatosCobro.PuedeDejarEnCuenta;
-    oEstado.EsDevolucion := FDatosCobro.EsDevolucionEconomica;
+    oEstado.PuedeDejarEnCuenta :=
+      ParametrosCaja.GetBool('vgerVentasCredito', True) and
+      FDatosCobro.PuedeDejarEnCuenta;
     oEstado.EsClienteVarios := FDatosCobro.EsClienteVarios;
     oEstado.ImportePendiente := FDatosCobro.ImportePendiente;
     oEstado.ImporteTotal := FDatosCobro.ImporteTotalPagar;
     oEstado.ImporteEntregado := FDatosCobro.ImporteEntregado;
+    oEstado.ImporteDevolucion := FDatosCobro.ImporteDevolucionParaCredito;
+    oEstado.ImporteExcesoSinCambio := FDatosCobro.ImporteExcesoSinCambio;
   end;
   oInteraccion.Avisar := AvisarRechazoCreditoTpv;
+  oInteraccion.ConfirmarAplicacionDevolucion := ConfirmarAplicacionDevolucion;
   oInteraccion.ValidarDeposito := ValidarDepositoCredito;
   oInteraccion.PedirContacto := PedirContactoApartado;
   oInteraccion.EstablecerCredito := EstablecerCreditoTpv;
@@ -1857,14 +1895,41 @@ begin
   TControladorVentaTpv.DejarEnCuenta(oEstado, oInteraccion);
 end;
 
+function TfrmMtoCajaFaseCobro.ConfirmarAplicacionDevolucion(AImporte,
+  AFinanciado: Currency): Boolean;
+var
+  Mensaje: string;
+begin
+  // El reparto del descuento global ajusta las líneas al aceptar el cobro.
+  if FDatosCobro.ImporteDescuentoGlobal > 0 then
+    Mensaje := Format(SPreguntaDevolucionFinanciadaConDescuento,
+      [AFinanciado])
+  else
+    Mensaje := Format(SPreguntaDevolucionFinanciada, [AImporte, AFinanciado]);
+  Result := MessageDlg_fza(Mensaje, mtWarning, [mbYes, mbNo], 0,
+    mbNo) = mrYes;
+end;
+
 procedure TfrmMtoCajaFaseCobro.AvisarRechazoCreditoTpv(
   ARechazo: TRechazoCreditoTpv);
 begin
   case ARechazo of
     rcNoPermitido:
       ShowMessage_fza(SErrorCreditoClienteCajaNoPermitido);
+    rcTotalNoPositivo:
+      ShowMessage_fza(SErrorTotalCajaNoAdmiteCredito);
     rcSinPendiente:
       ShowMessage_fza(SErrorImporteCreditoCajaNoPendiente);
+    rcExcesoSinCambio:
+      ShowMessage_fza(Format(SErrorExcesoPagoSinCambio,
+        [FDatosCobro.ImporteExcesoSinCambio]));
+    rcExcesoEntregado:
+      if FHayLineasDeposito and FDatosCobro.EsCobroSoloDepositos then
+        ShowMessage_fza(Format(SErrorAbonoSuperaPendienteDepositoCaja,
+          [FDatosCobro.ImporteEntregado, FDatosCobro.ImporteTotalPagar]))
+      else
+        ShowMessage_fza(Format(SErrorEntregaSuperaTotalCreditoCaja,
+          [FDatosCobro.ImporteEntregado, FDatosCobro.ImporteTotalPagar]));
     rcSinEntrega:
       ShowMessage_fza(SErrorApartadoCajaSinEntrega);
   end;

@@ -421,6 +421,7 @@
                   OnEditing = tvLineasFacturaEditing
                   OnFocusedRecordChanged = tvLineasFacturaFocusedRecordChanged
                   OptionsBehavior.FocusCellOnTab = True
+                  OptionsBehavior.ShowLockedStateImageOptions.Posting = lsimPending
                   OptionsBehavior.FocusFirstCellOnNewRecord = True
                   OptionsData.Appending = True
                   OptionsView.GroupByBox = False

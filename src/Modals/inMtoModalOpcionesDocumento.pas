@@ -360,11 +360,19 @@ begin
 end;
 
 procedure TfrmModalOpcionesDocumento.CargarFormasPago;
+var
+  sPropuesta: string;
 begin
+  sPropuesta := FConfiguracion.Propuesta.FormaPago;
   FFormasPago := LlenarCombo(cbbFormaPago, FLector.ListarFormasPago,
     not FConfiguracion.FormaPagoObligatoria);
-  ElegirCodigo(FFormasPago, cbbFormaPago,
-    FConfiguracion.Propuesta.FormaPago);
+  ElegirCodigo(FFormasPago, cbbFormaPago, sPropuesta);
+  if (codFormaPago in FConfiguracion.Fijos) and (sPropuesta <> '') and
+     (cbbFormaPago.ItemIndex < 0) then
+  begin
+    FFormasPago := FFormasPago + [sPropuesta];
+    cbbFormaPago.ItemIndex := cbbFormaPago.Properties.Items.Add(sPropuesta);
+  end;
 end;
 
 function TfrmModalOpcionesDocumento.TipoElegido(

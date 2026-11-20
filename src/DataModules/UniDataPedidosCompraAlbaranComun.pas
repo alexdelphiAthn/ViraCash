@@ -14,13 +14,19 @@
 unit UniDataPedidosCompraAlbaranComun;
 interface
 uses
-  Uni;
+  Uni, inLibErroresBBDD;
+
+type
+  ERevisionAlbaranCompraObsoleta = class(EValidacionBBDD);
+
 function BloquearPedidoCompra(
   AConexion: TUniConnection;
   const ASeriePedido, ANumeroPedido: string): Boolean;
 function BloquearAlbaranCompra(
   AConexion: TUniConnection;
   const ASerieAlbaran, ANumeroAlbaran: string): Boolean;
+procedure ReservarRevisionAlbaranCompra(AConexion: TUniConnection;
+  const ASerie, ANumero: string; ARevisionLeida: Int64);
 procedure RecalcularTotalesAlbaranCompra(AConn: TUniConnection;
   const ASerieAlbc, ANumAlbc, AUsuario: string);
 procedure CerrarAlbaranCompra(AConexion: TUniConnection;
@@ -43,7 +49,7 @@ uses
   inLibAlbaranesCompraMovimientos,
   UniDataAlbaranesCompraMovimientos,
   UniDataPedidosCompraPendientes,
-  UniDataPrestaShopEncolado;
+  UniDataPrestaShopEncolado, inLibMsgCompras;
 function BloquearPedidoCompra(
   AConexion: TUniConnection;
   const ASeriePedido, ANumeroPedido: string): Boolean;
@@ -90,6 +96,30 @@ begin
     FreeAndNil(Consulta);
   end;
 end;
+procedure ReservarRevisionAlbaranCompra(AConexion: TUniConnection;
+  const ASerie, ANumero: string; ARevisionLeida: Int64);
+var
+  Consulta: TUniQuery;
+begin
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := AConexion;
+    Consulta.SQL.Text :=
+      'UPDATE fza_albaranes_compra SET REVISION_ALBC = REVISION_ALBC + 1 ' +
+      'WHERE SERIE_ALBC = :SERIE AND NUMERO_ALBC = :NUMERO ' +
+      'AND REVISION_ALBC = :REVISION';
+    Consulta.ParamByName('SERIE').AsString := ASerie;
+    Consulta.ParamByName('NUMERO').AsString := ANumero;
+    Consulta.ParamByName('REVISION').AsLargeInt := ARevisionLeida;
+    Consulta.ExecSQL;
+    if Consulta.RowsAffected <> 1 then
+      raise ERevisionAlbaranCompraObsoleta.CreateFmt(
+        SErrorAlbaranCompraRevisionCambiada, [ASerie, ANumero]);
+  finally
+    FreeAndNil(Consulta);
+  end;
+end;
+
 // FZ-ISSUE-207: mismos redondeos que el motor fiscal de la pantalla
 // (CalcularTotalesDocumentoCompra): la base de cada linea, tras el
 // descuento comercial, a centimos y sumada por tipo; la cuota de IVA y el
@@ -208,6 +238,7 @@ begin
     Query.SQL.Text :=
       'UPDATE fza_albaranes_compra ' +
       '   SET ESTADO_ALBC = ''CERRADO'', ' +
+      '       REVISION_ALBC = REVISION_ALBC + 1, ' +
       '       USUARIO_MODIF = :u, INSTANTE_MODIF = NOW() ' +
       ' WHERE SERIE_ALBC = :s AND NUMERO_ALBC = :n';
     Query.ParamByName('s').AsString := ASerieAlbaran;

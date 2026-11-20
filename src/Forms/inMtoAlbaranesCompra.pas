@@ -1,4 +1,4 @@
-﻿{******************************************************************************}
+{******************************************************************************}
 {                                                                              }
 {  Módulo:       inMtoAlbaranesCompra                                          }
 {    Tipo:       Formulario (Mto)                                              }
@@ -58,10 +58,12 @@ const
   CANT_ATRIB_MAX  = 5;
   NOMBRE_PANTALLA_ALBARANES_COMPRA = 'frmMtoAlbaranesCompra';
   WM_REVISAR_ENTER_AS_TAB_ALBARAN_COMPRA = WM_APP + 252;
+  WM_CANCELAR_RECEPCION_CON_RATON = WM_APP + 253;
 
 type
   TfrmMtoAlbaranesCompra = class(TfrmMtoDocumento)
     pnlTopFicha:         TPanel;
+    lblRecepcionBloqueada: TcxLabel;
     splSplitterFicha:    TcxSplitter;
     pcCab:               TcxPageControl;
     tsCabecera:          TcxTabSheet;
@@ -174,6 +176,7 @@ type
     procedure btnNuevoClick(Sender: TObject);
     procedure btnGrabarClick(Sender: TObject);
     procedure btnCancelarRecepcionClick(Sender: TObject);
+    procedure tsFichaAlbaranShow(Sender: TObject);
     procedure btnSalirRecepcionClick(Sender: TObject);
     procedure btnImprimirHClick(Sender: TObject);
     procedure btnImprimirVClick(Sender: TObject);
@@ -254,7 +257,11 @@ type
     FModoEntradaSel: TModoColumnasSku;
     FColsModoConstruido: Boolean;
     FConstruyendoModo: Boolean;
+    FEdicionModo: TcxGridEditingEvent;
     FAlbaranModoActual: string;
+    FClaveBloqueoRecepcion: string;
+    FCancelarRecepcionPulsado: Boolean;
+    FCancelarRecepcionPendiente: Boolean;
     // El alta en curso ya reconstruyo la vista de tallas (FZ-ISSUE-035).
     FAltaModoReconstruida: Boolean;
     FLectorDocumento: TLectorDocumento;
@@ -311,6 +318,15 @@ type
     procedure PivoteVentaBandaCambiada(ABanda: TBandaPivoteVenta);
     // Rotulo de modo en la pestania de lineas, como en ventas.
     procedure ActualizarCaptionModoLineas;
+    procedure ActualizarBloqueoRecepcion;
+    procedure AplicarBloqueoLineasRecepcion;
+    procedure DesempaquetarLineasEditables;
+    procedure CancelarRecepcionMouseDown(Sender: TObject;
+      Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure CancelarRecepcionMouseUp(Sender: TObject;
+      Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure WMCancelarRecepcionConRaton(var Msg: TMessage);
+      message WM_CANCELAR_RECEPCION_CON_RATON;
     // Color/Talla visibles con nombres globales en desglose,
     // mismo paso que pedidos de compra.
     procedure MostrarColumnasAtributoGlobalesAlbc;
@@ -323,8 +339,12 @@ type
     function BorrarRecepcionPendiente: Boolean; virtual;
     procedure ConfirmarRecepcion; virtual;
     function ResolverRecepcionPendiente: Boolean;
+    function ResolverConflictoRecepcion: Boolean;
+    procedure DescartarEditorRecepcion;
+    procedure ActualizarPivoteTrasCancelar;
   public
     dmmAlbaranesCompra: TdmAlbaranesCompra;
+    function ContarHijosActivos: Integer; override;
     procedure AplicarEtiquetas; override;
     procedure CrearTablaPrincipal; override;
     function InterceptarCierre: Boolean; override;
@@ -343,7 +363,7 @@ uses
   UniDataReposicionAutomatica,
   inLibComboProveedorDocumentoVcl,
   UniDataEjesVariacion,
-  inLibMensajesVcl, inLibCorreoTickets, inLibDatasets,
+  inLibMensajesVcl, inLibCorreoTickets, inLibDatasets, inLibErroresBBDD,
   System.StrUtils,
   inLibTrazabilidad, inLibLotesPersistenciaIntf, inLibAsignacionLoteLectura,
   inLibLotesLineaDocumento, inLibTrazabilidadDocumento,
@@ -354,7 +374,7 @@ uses
   UniDataAplicacionArticuloCompra,
   inLibGridCantidad,
   inLibColumnasDocumento, UniDataColumnasDocumentoRepositorio,
-  UniDataGen,
+  UniDataGen, inLibGestorGuardianBorradoMto,
   inLibBusquedasCompra,
   inLibValidacionDocumento, UniDataValidacionDocumentoRepositorio,
   inLibPresentacionDocumento,
@@ -466,10 +486,14 @@ begin
      dmmAlbaranesCompra.unqryTablaG.Active then
     sPrv := Trim(dmmAlbaranesCompra.unqryTablaG.
       FieldByName('CODIGO_PRV_ALBC').AsString);
-  Result := (sPrv <> '') and (sPrv <> '0');
-  if not Result then
-    MessageDlg_fza(SErrorProveedorNoSeleccionadoBuscarArticulos,
-      mtInformation, [mbOk], 0);
+  Result := not lblRecepcionBloqueada.Visible;
+  if Result then
+  begin
+    Result := (sPrv <> '') and (sPrv <> '0');
+    if not Result then
+      MessageDlg_fza(SErrorProveedorNoSeleccionadoBuscarArticulos,
+        mtInformation, [mbOk], 0);
+  end;
 end;
 
 function TfrmMtoAlbaranesCompra.ArticuloLineaActivaAlbaranCompra: string;
@@ -625,6 +649,8 @@ begin
     colLineaAlbcCODIGO_UNIDADPropertiesButtonClick,
     colLineaAlbcCODIGO_UNIDADPropertiesValidate);
   btnCancelar.OnClick := btnCancelarRecepcionClick;
+  btnCancelar.OnMouseDown := CancelarRecepcionMouseDown;
+  btnCancelar.OnMouseUp := CancelarRecepcionMouseUp;
   btnSalir.OnClick := btnSalirRecepcionClick;
   InicializarGestorYPivote;
   if Assigned(FPivote) then
@@ -663,6 +689,50 @@ begin
     ConstruirModoEntrada;
   // El dfm guarda Totales como pagina activa: al abrir, la primera.
   pcAlbaran.ActivePage := tsLineasAlbaran;
+end;
+
+procedure TfrmMtoAlbaranesCompra.tsFichaAlbaranShow(Sender: TObject);
+begin
+  ActualizarBloqueoRecepcion;
+  inherited tsFichaShow(Sender);
+end;
+
+procedure TfrmMtoAlbaranesCompra.ActualizarBloqueoRecepcion;
+var
+  Aviso: string;
+begin
+  Aviso := '';
+  if Assigned(dmmAlbaranesCompra) then
+    try
+      dmmAlbaranesCompra.ExigirRecepcionEditable;
+    except
+      on E: EValidacionBBDD do
+        Aviso := E.Message;
+    end;
+  FClaveBloqueoRecepcion := AlbaranClaveActual;
+  lblRecepcionBloqueada.Caption := Aviso;
+  lblRecepcionBloqueada.Hint := Aviso;
+  lblRecepcionBloqueada.Visible := Aviso <> '';
+  AplicarBloqueoLineasRecepcion;
+end;
+
+procedure TfrmMtoAlbaranesCompra.AplicarBloqueoLineasRecepcion;
+var
+  Editable: Boolean;
+begin
+  Editable := not lblRecepcionBloqueada.Visible;
+  tvLineasAlbaran.OptionsData.Editing := Editable;
+  tvLineasAlbaran.OptionsData.Inserting := Editable;
+  tvLineasAlbaran.OptionsData.Appending := Editable;
+  tvLineasAlbaran.OptionsData.Deleting := Editable;
+  btnAnadirLinea.Enabled := Editable;
+  btnBorrarLinea.Enabled := Editable;
+end;
+
+procedure TfrmMtoAlbaranesCompra.DesempaquetarLineasEditables;
+begin
+  if not lblRecepcionBloqueada.Visible then
+    dmmAlbaranesCompra.DesempaquetarAtributosLineas;
 end;
 
 procedure TfrmMtoAlbaranesCompra.pcAlbaranChange(Sender: TObject);
@@ -1083,6 +1153,11 @@ begin
   end;
 end;
 
+function TfrmMtoAlbaranesCompra.ContarHijosActivos: Integer;
+begin
+  Result := cBorradoConConfirmacionPropia;
+end;
+
 function TfrmMtoAlbaranesCompra.RecepcionPendiente: Boolean;
 begin
   Result := Assigned(dmmAlbaranesCompra) and
@@ -1126,10 +1201,91 @@ begin
     end;
 end;
 
-procedure TfrmMtoAlbaranesCompra.btnCancelarRecepcionClick(Sender: TObject);
+procedure TfrmMtoAlbaranesCompra.DescartarEditorRecepcion;
+var
+  DatosVista: TDataSet;
 begin
-  if ResolverRecepcionPendiente then
+  tvLineasAlbaran.Controller.EditingController.HideEdit(False);
+  DatosVista := tvLineasAlbaran.DataController.DataSet;
+  if Assigned(DatosVista) and (DatosVista.State in dsEditModes) then
+    tvLineasAlbaran.DataController.Cancel;
+end;
+
+procedure TfrmMtoAlbaranesCompra.ActualizarPivoteTrasCancelar;
+var
+  Pivote: IPivoteVentaAnadirLinea;
+begin
+  if Supports(FModoEntrada, IPivoteVentaAnadirLinea, Pivote) then
+    Pivote.CancelarEdicionPendiente;
+end;
+
+function TfrmMtoAlbaranesCompra.ResolverConflictoRecepcion: Boolean;
+begin
+  Result := Assigned(dmmAlbaranesCompra) and
+    dmmAlbaranesCompra.RecepcionObsoleta;
+  if Result then
+  begin
+    // Los avisos de DataChange durante el refresco no deben reorganizar
+    // las líneas mientras se está descartando la edición.
+    FConstruyendoModo := True;
+    try
+      DescartarEditorRecepcion;
+      dmmAlbaranesCompra.DescartarYRecargarRecepcion;
+    finally
+      FConstruyendoModo := False;
+    end;
+    ActualizarBloqueoRecepcion;
+    ActualizarPivoteTrasCancelar;
+  end;
+end;
+
+procedure TfrmMtoAlbaranesCompra.CancelarRecepcionMouseDown(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+begin
+  if Button = mbLeft then
+    FCancelarRecepcionPulsado := True;
+end;
+
+procedure TfrmMtoAlbaranesCompra.CancelarRecepcionMouseUp(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+begin
+  if (Button = mbLeft) and FCancelarRecepcionPulsado then
+  begin
+    FCancelarRecepcionPulsado := False;
+    if btnCancelar.Enabled and PtInRect(btnCancelar.ClientRect, Point(X, Y)) then
+    begin
+      // Si el botón pierde el estado de pulsación durante un repintado,
+      // completar el clic después de que DevExpress suelte la captura.
+      FCancelarRecepcionPendiente := True;
+      PostMessage(Handle, WM_CANCELAR_RECEPCION_CON_RATON, 0, 0);
+    end;
+  end;
+end;
+
+procedure TfrmMtoAlbaranesCompra.WMCancelarRecepcionConRaton(var Msg: TMessage);
+begin
+  if FCancelarRecepcionPendiente then
+  begin
+    FCancelarRecepcionPendiente := False;
+    if btnCancelar.Enabled then
+      btnCancelar.Click;
+  end;
+end;
+
+procedure TfrmMtoAlbaranesCompra.btnCancelarRecepcionClick(Sender: TObject);
+var
+  Lineas: TDataSet;
+begin
+  FCancelarRecepcionPendiente := False;
+  if not ResolverConflictoRecepcion and ResolverRecepcionPendiente then
+  begin
+    DescartarEditorRecepcion;
+    Lineas := dmmAlbaranesCompra.unqryAlbaranesCompraLineas;
+    if Lineas.State in dsEditModes then
+      Lineas.Cancel;
     inherited btnCancelarClick(Sender);
+    ActualizarPivoteTrasCancelar;
+  end;
 end;
 
 procedure TfrmMtoAlbaranesCompra.btnSalirRecepcionClick(Sender: TObject);
@@ -1154,9 +1310,13 @@ end;
 
 function TfrmMtoAlbaranesCompra.CancelarEdicionConEscape: Boolean;
 begin
-  Result := True;
-  if ResolverRecepcionPendiente then
-    Result := inherited CancelarEdicionConEscape;
+  Result := ResolverConflictoRecepcion;
+  if not Result then
+  begin
+    Result := True;
+    if ResolverRecepcionPendiente then
+      Result := inherited CancelarEdicionConEscape;
+  end;
 end;
 
 procedure TfrmMtoAlbaranesCompra.btnNuevoClick(Sender: TObject);
@@ -1217,6 +1377,9 @@ begin
       pcAlbaran.ActivePage = tsProveedor);
   if Assigned(dmmAlbaranesCompra) and not FConstruyendoModo then
   begin
+    if (Field = nil) and (pcPantalla.ActivePage = tsFicha) and
+       (FClaveBloqueoRecepcion <> AlbaranClaveActual) then
+      ActualizarBloqueoRecepcion;
     ReconstruirModoEntradaEnAltaDocumento(
       Field, dmmAlbaranesCompra.unqryAlbaranesCompraLineas,
       dsTablaG, FColsModoConstruido, FModoEntradaSel,
@@ -1226,7 +1389,7 @@ begin
       dsTablaG, FColsModoConstruido, FModoEntradaSel,
       AlbaranClaveActual <> FAlbaranModoActual,
       ConstruirModoEntrada,
-      dmmAlbaranesCompra.DesempaquetarAtributosLineas);
+      DesempaquetarLineasEditables);
   end;
 end;
 
@@ -1311,8 +1474,11 @@ procedure TfrmMtoAlbaranesCompra.tvLineasAlbaranEditing(
   var AAllow: Boolean);
 begin
   inherited;
-  if Assigned(FPivote) then
+  if Assigned(FEdicionModo) then
+    FEdicionModo(Sender, AItem, AAllow)
+  else if Assigned(FPivote) then
     FPivote.EditingCeldaTalla(Sender, AItem, AAllow);
+  AAllow := AAllow and not lblRecepcionBloqueada.Visible;
 end;
 
 // Apaga TJvEnterAsTab al entrar al grid para que Enter navegue de
@@ -1418,11 +1584,12 @@ begin
   try
   PrepararReconstruccionModoDocumento(tvLineasAlbaran, ds,
     FModoEntrada, FTallaColumns, FAtribColumns, FColColorPivot);
+  FEdicionModo := nil;
   // Solo el DESGLOSE liga columnas a ATTRn: desempaquetar SKU->ATTR
   // (columnas reales _ALBCLIN; idempotente por linea). SKU y tallas
   // horizontal derivan del propio SKU: sin posts al navegar.
   if FModoEntradaSel = mcsAuto then
-    dmmAlbaranesCompra.DesempaquetarAtributosLineas;
+    DesempaquetarLineasEditables;
   Cfg := CrearConfigColumnasSkuDocumento(
     CrearServiciosColumnasSkuUniDAC(
       dmmAlbaranesCompra.unqryTablaG.Connection,
@@ -1481,6 +1648,9 @@ begin
   if not bDegradarASku then
   begin
     CrearColumnasHostAlbaranCompra;
+    FEdicionModo := tvLineasAlbaran.OnEditing;
+    tvLineasAlbaran.OnEditing := tvLineasAlbaranEditing;
+    AplicarBloqueoLineasRecepcion;
     // Rotulo por modo EFECTIVO (Auto puede degradar a SKU si faltan
     // las columnas ATTR en la BBDD) y, en desglose, mostrar Color y
     // Talla con nombres globales desde el principio (patron pedidos

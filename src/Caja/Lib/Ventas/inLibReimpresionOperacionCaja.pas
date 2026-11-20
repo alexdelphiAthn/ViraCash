@@ -140,10 +140,10 @@ var
   bOperacionCaja, ImprimirLotes: Boolean;
 begin
   Result := True;
-  ImprimirLotes := True;
+  ImprimirLotes := False;
   if Assigned(AEntorno.ParametrosCaja) then
     ImprimirLotes := AEntorno.ParametrosCaja.GetBool(
-      PARAMETRO_IMPRIMIR_LOTES_TICKET, True);
+      PARAMETRO_IMPRIMIR_LOTES_TICKET, False);
   // Los traspasos usan su ticket específico con stock origen/destino.
   if EsTiposTraspasoCaja(AOperacion.Tipos) then
     TTraspasoTicket.ImprimirTraspasoDesdeBD(

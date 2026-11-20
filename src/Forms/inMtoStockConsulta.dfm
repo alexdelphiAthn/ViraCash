@@ -60,6 +60,16 @@
       TabOrder = 1
       OnClick = btnMovimientosClick
     end
+    object btnPorLote: TcxButton
+      Left = 280
+      Top = 12
+      Width = 120
+      Height = 28
+      Caption = 'Por lote'
+      TabOrder = 7
+      Visible = False
+      OnClick = btnPorLoteClick
+    end
     object lblArt: TcxLabel
       Left = 16
       Top = 54
@@ -287,12 +297,31 @@
         ExplicitHeight = 246
         object tvStock: TcxGridDBTableView
           OnCellDblClick = tvStockCellDblClick
+          OptionsBehavior.ExpandMasterRowOnDblClick = False
+          OptionsView.ExpandButtonsForEmptyDetails = False
           OptionsCustomize.ColumnMoving = False
           OptionsData.Editing = False
           OptionsView.GroupByBox = False
         end
+        object tvPartidas: TcxGridDBTableView
+          OptionsCustomize.ColumnFiltering = False
+          OptionsCustomize.ColumnGrouping = False
+          OptionsCustomize.ColumnMoving = False
+          OptionsCustomize.ColumnSorting = False
+          OptionsData.Deleting = False
+          OptionsData.Editing = False
+          OptionsData.Inserting = False
+          OptionsView.ColumnAutoWidth = False
+          OptionsView.GridLines = glBoth
+          OptionsView.GroupByBox = False
+        end
         object glStock: TcxGridLevel
           GridView = tvStock
+          Options.DetailTabsPosition = dtpTop
+          object glPartidas: TcxGridLevel
+            GridView = tvPartidas
+            Visible = False
+          end
         end
       end
     end

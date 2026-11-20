@@ -138,6 +138,7 @@ type
     // (modal en LOTE y SERIE) y la graba. Cancelado, la línea no cambia.
     procedure ElegirLote(ALinea: TDataSet;
       const ADocumento: TDocumentoLineaLote);
+    function RequierePartidaReposicion(const ASku, AAlmacen: string): Boolean;
     property Configuracion: TConfiguracionLotesLineas read FConfig;
   end;
 
@@ -470,6 +471,14 @@ begin
   end;
 end;
 
+function TLotesLineasDocumento.RequierePartidaReposicion(
+  const ASku, AAlmacen: string): Boolean;
+begin
+  Result := (ASku <> '') and Assigned(FConfig.Repositorio) and
+    SalidaPideLoteReposicion(FConfig.Activacion,
+      FConfig.Repositorio, ASku, AAlmacen);
+end;
+
 procedure TLotesLineasDocumento.LimitarPartidaReposicion(ALinea: TDataSet;
   const ADocumento: TDocumentoLineaLote;
   const ATrazabilidad: TTrazabilidadArticulo; const ALote: string);
@@ -733,7 +742,7 @@ begin
     // se pide el lote como si fuera LOTE, proponiendo la más antigua.
     if (oModo = mtNinguna) and (sLote = '') and
        (SentidoLinea(ALinea) = sllSalida) and
-       SalidaPideLoteReposicion(FConfig.Activacion, FConfig.Repositorio,
+       RequierePartidaReposicion(
          TextoCampo(ALinea, FConfig.Campos.Sku),
          Contexto(ALinea, ADocumento, rTrazabilidad).CodigoAlmacen) then
     begin
@@ -892,10 +901,10 @@ var
   aPendientes: TArray<TAsignacionLote>;
   oModo: TModoTrazabilidad;
   rTrazabilidad: TTrazabilidadArticulo;
+  bEditada: Boolean;
+  bElegido: Boolean;
   sArticulo: string;
   sCodigo: string;
-  sLoteAnterior: string;
-  vCaducidadAnterior: Variant;
 begin
   sArticulo := TextoCampo(ALinea, FConfig.Campos.Articulo);
   if Assigned(FConfig.Lectura) and
@@ -905,19 +914,29 @@ begin
   begin
     rTrazabilidad := FConfig.Lectura.Leer(sArticulo);
     oModo := FConfig.Activacion.ModoEfectivo(rTrazabilidad.Modo);
+    if (oModo = mtNinguna) and (SentidoLinea(ALinea) = sllSalida) and
+       RequierePartidaReposicion(TextoCampo(ALinea, FConfig.Campos.Sku),
+         ADocumento.CodigoAlmacen) then
+    begin
+      oModo := mtLote;
+      rTrazabilidad.EsPartidaReposicion := True;
+    end;
+    FPendientes := [];
     if RequiereLote(oModo) then
     begin
-      if not (ALinea.State in dsEditModes) then
+      // FZ-ISSUE-1064: el botón «…» se pulsa con la línea ya grabada; se
+      // edita aquí y, si se cancela el selector, la línea no cambia.
+      bEditada := not (ALinea.State in dsEditModes);
+      if bEditada then
         ALinea.Edit;
-      sLoteAnterior := ALinea.FieldByName(FConfig.Campos.Lote).AsString;
-      vCaducidadAnterior := Null;
-      if ALinea.FindField(FConfig.Campos.Caducidad) <> nil then
-        vCaducidadAnterior :=
-          ALinea.FieldByName(FConfig.Campos.Caducidad).Value;
-      LimpiarCampo(ALinea, FConfig.Campos.Lote);
-      LimpiarCampo(ALinea, FConfig.Campos.Caducidad);
-      FPendientes := [];
-      if DecidirSinLote(ALinea, ADocumento, rTrazabilidad, True) then
+      try
+        bElegido := DecidirSinLote(ALinea, ADocumento, rTrazabilidad, True);
+      except
+        if bEditada and (ALinea.State = dsEdit) then
+          ALinea.Cancel;
+        raise;
+      end;
+      if bElegido then
       begin
         aPendientes := FPendientes;
         sCodigo := FPendienteCodigo;
@@ -932,13 +951,8 @@ begin
         // rejilla descarta las líneas en blanco que daría el lector).
         DarDeAltaPendientes(ALinea, sCodigo, aPendientes);
       end
-      else
-      begin
-        ALinea.FieldByName(FConfig.Campos.Lote).AsString := sLoteAnterior;
-        if ALinea.FindField(FConfig.Campos.Caducidad) <> nil then
-          ALinea.FieldByName(FConfig.Campos.Caducidad).Value :=
-            vCaducidadAnterior;
-      end;
+      else if bEditada and (ALinea.State = dsEdit) then
+        ALinea.Cancel;
     end;
   end;
 end;

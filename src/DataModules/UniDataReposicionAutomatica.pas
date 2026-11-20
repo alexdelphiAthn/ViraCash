@@ -141,8 +141,8 @@ begin
   Result := TActivacionTrazabilidad.Leer(AParametros);
   // FZ-ISSUE-1043: las salidas piden lote de las partidas de reposición.
   PublicarHayReposicion(HayPartidasReposicion(AConexion));
-  if HayReposicionPublicada then
-    Result.Lotes := True;
+  Result.LotesSoloReposicion := HayReposicionPublicada and not Result.Lotes;
+  Result.Lotes := Result.Lotes or Result.LotesSoloReposicion;
 end;
 
 function PrepararPartidaReposicion(AConexion: TUniConnection;
@@ -293,6 +293,12 @@ begin
       sLote := Trim(ALinea.FieldByName('LOTE_' + ASufijo).AsString);
       if sLote = '' then
         sLote := Propuesta.Propuesta;
+      // FZ-ISSUE-1065: el diálogo se abre dentro del Post de la línea, con
+      // la rejilla bloqueada; si la ventana se repinta (p. ej. al cambiar
+      // su tamaño) no puede dibujarse y queda en negro. Las vistas de
+      // líneas de albarán y factura de compra muestran la imagen de la
+      // rejilla mientras dura el Post (ShowLockedStateImageOptions.Posting
+      // = lsimPending en sus DFM).
       if Assigned(ConfirmacionLoteReposicion) and
          not ConfirmacionLoteReposicion(Recepcion.Sku,
            Propuesta.FechaEntrada, sLote,

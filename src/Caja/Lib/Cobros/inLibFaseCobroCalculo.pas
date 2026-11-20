@@ -111,6 +111,8 @@ type
       const ALineas: TArray<TLineaCobroParcial>;
       ADineroEntregado: Currency): Currency; static;
   public
+    class function ImporteDevolucionAplicable(ATotal: Currency;
+      const AOrigenDeposito: string): Currency; static;
     class procedure Transformar(
       var ALineas: TArray<TLineaCobroParcial>;
       ADineroEntregado: Currency); static;
@@ -432,6 +434,15 @@ begin
   end;
 end;
 
+class function TCalculadorCobroParcial.ImporteDevolucionAplicable(
+  ATotal: Currency; const AOrigenDeposito: string): Currency;
+begin
+  Result := 0;
+  // Los abonos que ya forman parte de un depósito no son devoluciones nuevas.
+  if (ATotal < 0) and (AOrigenDeposito <> 'A') then
+    Result := -ATotal;
+end;
+
 class function TCalculadorCobroParcial.CalcularDineroDisponible(
   const ALineas: TArray<TLineaCobroParcial>;
   ADineroEntregado: Currency): Currency;
@@ -441,9 +452,8 @@ begin
   Result := ADineroEntregado;
   for i := 0 to High(ALineas) do
   begin
-    if (ALineas[i].Total < 0) and
-       (ALineas[i].VieneDeDeposito <> 'A') then
-      Result := Result - ALineas[i].Total;
+    Result := Result + ImporteDevolucionAplicable(ALineas[i].Total,
+      ALineas[i].VieneDeDeposito);
     if (ALineas[i].VieneDeDeposito = 'S') and
        (ALineas[i].AccionDeposito = 'CANCELAR') and
        (ALineas[i].AnticipoPrevio > 0) then

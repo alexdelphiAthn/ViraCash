@@ -17,9 +17,17 @@ Funcionamiento:
   aplica a la huella actual. Así no influyen las pequeñas diferencias del
   modelo con el que se generó la huella original.
 
-Uso: python regenerar_huella.py [--comprobar] [--carpeta <dir>]
-       [--json <HuellaEsquema.json>] [--res <HuellaEsquema.res>]
+Uso: python regenerar_huella.py [--comprobar | --solo-recurso]
+       [--carpeta <dir>] [--json <HuellaEsquema.json>]
+       [--res <HuellaEsquema.res>]
 --comprobar: no escribe nada; sale con 3 si faltan scripts en la huella.
+--solo-recurso: rehace HuellaEsquema.res desde el JSON si no coinciden y,
+  si faltan scripts, solo avisa (no los integra ni detiene la compilación:
+  quien desarrolla un script puede compilar con -SinHuella). Lo ejecuta el
+  evento previo a la compilación de vcash.dproj (IDE, MSBuild o
+  eng\\compilar.ps1): HuellaEsquema.res no se versiona (.gitignore) y un
+  .res viejo junto a un JSON nuevo dejaba el ejecutable con la huella
+  anterior (FZ-ISSUE-1066).
 Salida 0 correcta, 1 error, 3 huella desfasada (solo con --comprobar).
 """
 import argparse
@@ -190,7 +198,9 @@ def escribir(huella, ruta_json, ruta_res):
 
 def main():
     argumentos = argparse.ArgumentParser()
-    argumentos.add_argument('--comprobar', action='store_true')
+    modos = argumentos.add_mutually_exclusive_group()
+    modos.add_argument('--comprobar', action='store_true')
+    modos.add_argument('--solo-recurso', action='store_true')
     argumentos.add_argument('--carpeta', default=CARPETA_OFICIAL)
     argumentos.add_argument('--json',
                             default=os.path.join(RAIZ, 'HuellaEsquema.json'))
@@ -229,6 +239,11 @@ def main():
     datos_json = open(opciones.json, 'rb').read()
     res_al_dia = (os.path.isfile(opciones.res) and
                   open(opciones.res, 'rb').read() == recurso(datos_json))
+    if not res_al_dia and opciones.solo_recurso:
+        open(opciones.res, 'wb').write(recurso(datos_json))
+        print('Huella del esquema: HuellaEsquema.res no correspondía a '
+              'HuellaEsquema.json; rehecho.')
+        res_al_dia = True
     if not pendientes:
         if not res_al_dia and not opciones.comprobar:
             open(opciones.res, 'wb').write(recurso(datos_json))
@@ -238,6 +253,10 @@ def main():
                   len(base['scripts']))
         sys.exit(0)
     print('Huella del esquema: scripts sin incluir: ' + ', '.join(pendientes))
+    if opciones.solo_recurso:
+        print('AVISO: el ejecutable no aceptará las bases que ya tengan esos '
+              'scripts; compila con eng\\compilar.ps1 para integrarlos.')
+        sys.exit(0)
     if opciones.comprobar:
         sys.exit(3)
     for ruta in (GENERADOR, MODELO, SCRIPTS_EN_MODELO, MYSQL8, MARIADB10_MSI):

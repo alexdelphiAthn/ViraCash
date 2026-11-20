@@ -104,6 +104,7 @@ type
     EsActivo: Boolean;
     CodigoAlmacen: string;
     CodigoProveedor: string;
+    NombreProveedor: string;
     Temporada: string;
     Stock: Double;
   end;

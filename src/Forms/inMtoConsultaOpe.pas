@@ -1452,7 +1452,7 @@ begin
             sAlm,
             sCaja, sNumOp,
             sEmail, sMensaje, ParametrosCaja.GetBool(
-              'vgerImprimirLoteCaducidadTicket', True)) then
+              'vgerImprimirLoteCaducidadTicket', False)) then
             ShowMessage_fza(sMensaje)
           else
             ShowMessage_fza(Format(SErrorEnviarCorreoOperacion, [sMensaje]));

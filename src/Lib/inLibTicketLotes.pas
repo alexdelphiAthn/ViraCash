@@ -18,6 +18,8 @@ uses
 const
   PARAMETRO_IMPRIMIR_LOTES_TICKET = 'vgerImprimirLoteCaducidadTicket';
 
+function ImprimirIdentificacionTicket(AImprimirLotes, AEsSerie: Boolean):
+  Boolean;
 function ClaveAgrupacionTicket(ALinea: TDataSet): string;
 function PrepararLineasTicket(ALineas: TDataSet;
   AImprimirLotes: Boolean): TClientDataSet;
@@ -28,7 +30,16 @@ implementation
 
 uses
   System.SysUtils, System.Variants, System.Generics.Collections,
-  inLibCajaDatosFactura;
+  inLibCajaDatosFactura, inLibTrazabilidad;
+
+function ImprimirIdentificacionTicket(AImprimirLotes, AEsSerie: Boolean):
+  Boolean;
+begin
+  if AEsSerie then
+    Result := ActivacionVigente.AlgunModoActivo
+  else
+    Result := AImprimirLotes;
+end;
 
 function ClaveAgrupacionTicket(ALinea: TDataSet): string;
 const
@@ -71,7 +82,7 @@ var
   Marca: TBookmark;
   Clave: string;
   Grupos: TDictionary<string, Integer>;
-  Agrupar: Boolean;
+  Agrupar, OcultarLote: Boolean;
 begin
   Result := TClientDataSet.Create(nil);
   Grupos := TDictionary<string, Integer>.Create;
@@ -87,8 +98,9 @@ begin
       while not ALineas.Eof do
       begin
         Campo := ALineas.FindField('LOTE_FACLIN');
-        Agrupar := not AImprimirLotes and Assigned(Campo) and
-          (Trim(Campo.AsString) <> '') and not EsSerieTicket(ALineas);
+        OcultarLote := not AImprimirLotes and not EsSerieTicket(ALineas);
+        Agrupar := OcultarLote and Assigned(Campo) and
+          (Trim(Campo.AsString) <> '');
         Clave := ClaveAgrupacionTicket(ALineas);
         if Agrupar and Grupos.ContainsKey(Clave) then
         begin
@@ -119,9 +131,10 @@ begin
               Result.FieldByName('DESCRIPCION_ARTICULO_FACLIN').AsString +
               sLineBreak +
               Result.FieldByName('CODIGO_UNIDAD_FACLIN').AsString;
-          if Result.FindField('FECHA_CADUCIDAD_FACLIN') <> nil then
-            Result.FieldByName('FECHA_CADUCIDAD_FACLIN').Clear;
         end;
+        if OcultarLote and
+           (Result.FindField('FECHA_CADUCIDAD_FACLIN') <> nil) then
+          Result.FieldByName('FECHA_CADUCIDAD_FACLIN').Clear;
         Result.Post;
         if Agrupar then
           Grupos.AddOrSetValue(Clave, Result.RecNo);
@@ -146,7 +159,7 @@ var
   Linea: TLineaTicketCaja;
   Grupos: TDictionary<string, Integer>;
   Indice, Numero: Integer;
-  Agrupar: Boolean;
+  Agrupar, OcultarLote: Boolean;
 begin
   Result := [];
   Grupos := TDictionary<string, Integer>.Create;
@@ -154,8 +167,9 @@ begin
     for Numero := 0 to High(ALineas) do
     begin
       Linea := ALineas[Numero];
-      Agrupar := not AImprimirLotes and not Linea.EsSerie and
-        (Linea.Lote <> '') and (Linea.ClaveAgrupacion <> '');
+      OcultarLote := not AImprimirLotes and not Linea.EsSerie;
+      Agrupar := OcultarLote and (Trim(Linea.Lote) <> '') and
+        (Linea.ClaveAgrupacion <> '');
       if Agrupar and Grupos.TryGetValue(Linea.ClaveAgrupacion, Indice) then
       begin
         Result[Indice].Cantidad := Result[Indice].Cantidad + Linea.Cantidad;
@@ -165,12 +179,13 @@ begin
       end
       else
       begin
-        if Agrupar then
+        if OcultarLote then
         begin
           Linea.Lote := '';
           Linea.FechaCaducidad := 0;
-          Grupos.Add(Linea.ClaveAgrupacion, Length(Result));
         end;
+        if Agrupar then
+          Grupos.Add(Linea.ClaveAgrupacion, Length(Result));
         Result := Result + [Linea];
       end;
     end;

@@ -55,7 +55,6 @@ type
   TBandaTotal = class
   public
     Etiqueta: string;
-    Precio: Double;
     Filas: TList<Integer>;
     constructor Create;
     destructor Destroy; override;
@@ -402,17 +401,30 @@ procedure TExportadorBalanceExcel.AcumularBanda;
 var
   sCodigo: string;
   oBanda: TBandaTotal;
+  bConDatos: Boolean;
+  iTalla: Integer;
 begin
-  sCodigo := FDatos.FieldByName(fbanda).AsString;
-  if not FBandas.TryGetValue(sCodigo, oBanda) then
+  bConDatos := (FDatos.FieldByName(fcantidad).AsFloat <> 0) or
+    (FDatos.FieldByName(fimporte).AsFloat <> 0) or
+    (FDatos.FieldByName(fventas).AsFloat <> 0);
+  iTalla := 1;
+  while FEsConTallas and (iTalla <= N_TALLAS) and not bConDatos do
   begin
-    oBanda := TBandaTotal.Create;
-    oBanda.Etiqueta := FDatos.FieldByName(fetibanda).AsString;
-    oBanda.Precio := FDatos.FieldByName(fprecio).AsFloat;
-    FBandas.Add(sCodigo, oBanda);
-    FOrdenBandas.Add(sCodigo);
+    bConDatos := FDatos.FieldByName(Format(ftalla, [iTalla])).AsFloat <> 0;
+    Inc(iTalla);
   end;
-  oBanda.Filas.Add(FFila);
+  if bConDatos then
+  begin
+    sCodigo := FDatos.FieldByName(fbanda).AsString;
+    if not FBandas.TryGetValue(sCodigo, oBanda) then
+    begin
+      oBanda := TBandaTotal.Create;
+      oBanda.Etiqueta := FDatos.FieldByName(fetibanda).AsString;
+      FBandas.Add(sCodigo, oBanda);
+      FOrdenBandas.Add(sCodigo);
+    end;
+    oBanda.Filas.Add(FFila);
+  end;
 end;
 
 procedure TExportadorBalanceExcel.EmitirTotalesArticulo;
@@ -437,8 +449,6 @@ begin
     end;
     WFormula(FHoja, FFila, FColCantidad,
       FormulaSuma(oBanda.Filas, FColCantidad), FormatoCantidadTotal);
-    W(FHoja, FFila, FColPrecio, oBanda.Precio, False, ssahRight);
-    FHoja.Cells[FFila, FColPrecio].Style.DataFormat.FormatCode := FMT_EUR;
     WFormula(FHoja, FFila, FColImporte,
       FormulaSuma(oBanda.Filas, FColImporte), FMT_EUR_HZ);
     WFormula(FHoja, FFila, FColVentas,
@@ -447,7 +457,8 @@ begin
     ResaltarAviso(FOrdenBandas[iIndice]);
     Inc(FFila);
   end;
-  Inc(FFila);
+  if FOrdenBandas.Count > 0 then
+    Inc(FFila);
   FBandas.Clear;
   FOrdenBandas.Clear;
 end;
@@ -542,6 +553,7 @@ begin
   end;
   if iNivelCambio <= N_NIVELES then
   begin
+    EmitirTotalesArticulo;
     if FGrupoCodigos[1] <> #1 then
     begin
       for iNivel := N_NIVELES downto iNivelCambio do
@@ -672,10 +684,10 @@ begin
       begin
         sFamilia := FDatos.FieldByName(fcodfam).AsString;
         sArticulo := FDatos.FieldByName(fcodart).AsString;
-        if (sArticulo <> FArticuloActual) and
-           (FArticuloActual <> #1) then
-          EmitirTotalesArticulo;
         GestionarAgrupaciones;
+        if (sArticulo <> FArticuloActual) or
+           (FEsConTallas and (CampoTexto('BLOQUE_TALLAS') <> FBloqueActual)) then
+          EmitirTotalesArticulo;
         GestionarCabeceras(sFamilia, sArticulo);
         EscribirDetalle;
         Inc(FFila);

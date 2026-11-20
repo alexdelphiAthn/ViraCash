@@ -163,12 +163,30 @@
       'end;'
       ''
       'procedure MasterData1OnBeforePrint(Sender: TfrxComponent);'
+      'var'
+      '  TieneTemporadaRecepcion: Boolean;'
       'begin'
-      '  // FZ-ISSUE-603: con lote, serie o temporada del lote, ese texto'
-      '  // ocupa el sitio de la temporada del art'#237'culo.'
       '  EtiqLote.Visible :='
       '    VarToStr(<EtiquetasArt."TEXTO_LOTE_ETI">) <> '#39#39';'
-      '  EtiqTemporada.Visible := not EtiqLote.Visible;'
+      '  TieneTemporadaRecepcion :='
+      '    VarToStr(<EtiquetasArt."COD_TEMPORADA_LOTE">) <> '#39#39';'
+      '  EtiqTemporadaRecepcion.Visible := TieneTemporadaRecepcion;'
+      '  EtiqTemporada.Visible := not EtiqLote.Visible'
+      '    or TieneTemporadaRecepcion;'
+      '  if TieneTemporadaRecepcion then'
+      '  begin'
+      '    EtiqTemporada.Left := 252;'
+      '    EtiqTemporada.Top := 155;'
+      '    EtiqTemporada.Width := 138;'
+      '  end'
+      '  else'
+      '  begin'
+      '    EtiqTemporada.Left := 8;'
+      '    EtiqTemporada.Top := 168;'
+      '    EtiqTemporada.Width := 150;'
+      '  end;'
+      '  EtiqProveedor.Visible :='
+      '    VarToStr(<EtiquetasArt."NOMBRE_PRV">) <> '#39#39';'
       'end;'
       ''
       'begin'
@@ -400,9 +418,9 @@
         object EtiqDescArt: TfrxMemoView
           AllowVectorExport = True
           Left = 8.000000000000000000
-          Top = 144.000000000000000000
+          Top = 139.0
           Width = 382.000000000000000000
-          Height = 18.000000000000000000
+          Height = 16.0
           ContentScaleOptions.Constraints.MaxIterationValue = 0
           ContentScaleOptions.Constraints.MinIterationValue = 0
           DataField = 'DESCRIPCION_ART'
@@ -421,7 +439,7 @@
         object EtiqLote: TfrxMemoView
           AllowVectorExport = True
           Left = 8.000000000000000000
-          Top = 163.500000000000000000
+          Top = 168.0
           Width = 150.000000000000000000
           Height = 15.000000000000000000
           DataField = 'TEXTO_LOTE_ETI'
@@ -441,7 +459,7 @@
         object EtiqTemporada: TfrxMemoView
           AllowVectorExport = True
           Left = 8.000000000000000000
-          Top = 163.500000000000000000
+          Top = 168.0
           Width = 150.000000000000000000
           Height = 15.000000000000000000
           DataSet = dmArticulos.fxdsEtiquetasArt
@@ -454,9 +472,27 @@
           Frame.Typ = []
           Memo.UTF8W = (
             '[IIF(Length(<EtiquetasArt."COD_TEMPORADA_LOTE">)>0,' +
-            '<EtiquetasArt."COD_TEMPORADA_LOTE">,' +
-            '<EtiquetasArt."COD_TEMPORADA">)]')
+            #39'Temp. art.: '#39','#39#39')][EtiquetasArt."COD_TEMPORADA"]')
           ParentFont = False
+        end
+        object EtiqTemporadaRecepcion: TfrxMemoView
+          AllowVectorExport = True
+          Left = 8.000000000000000000
+          Top = 155.000000000000000000
+          Width = 240.000000000000000000
+          Height = 13.000000000000000000
+          DataSet = dmArticulos.fxdsEtiquetasArt
+          DataSetName = 'EtiquetasArt'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -11
+          Font.Name = 'Arial'
+          Font.Style = []
+          Frame.Typ = []
+          Memo.UTF8W = (
+            'Temp. recep.: [EtiquetasArt."COD_TEMPORADA_LOTE"]')
+          ParentFont = False
+          WordWrap = False
         end
         object foto300: TfrxPictureView
           AllowVectorExport = True
@@ -469,20 +505,23 @@
           Transparent = False
           TransparentColor = clWhite
         end
-        object Memo1: TfrxMemoView
+        object EtiqProveedor: TfrxMemoView
           AllowVectorExport = True
-          Left = 2.015749359130859000
-          Top = 1.259843082682292000
-          Width = 201.574940745035800000
-          Height = 20.157493082682290000
-          ContentScaleOptions.Constraints.MaxIterationValue = 0
-          ContentScaleOptions.Constraints.MinIterationValue = 0
+          Left = 160.000000000000000000
+          Top = 168.0
+          Width = 230.000000000000000000
+          Height = 15.000000000000000000
+          DataSet = dmArticulos.fxdsEtiquetasArt
+          DataSetName = 'EtiquetasArt'
           Font.Charset = DEFAULT_CHARSET
-          Font.Color = clWindowText
-          Font.Height = -14
+          Font.Color = clBlack
+          Font.Height = -11
           Font.Name = 'Arial'
           Font.Style = []
           Frame.Typ = []
+          HAlign = haRight
+          Memo.UTF8W = (
+            'Prov.: [EtiquetasArt."NOMBRE_PRV"]')
           ParentFont = False
         end
       end

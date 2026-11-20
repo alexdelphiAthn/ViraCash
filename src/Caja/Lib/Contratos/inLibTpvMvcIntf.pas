@@ -54,6 +54,7 @@ type
   TEstadoFacturaTpv = record
     EsSubsanacion: Boolean;
     RectificaA: string;
+    ImporteTotal: Currency;
     CodigoCliente: string;
     NifCliente: string;
     CodigoPais: string;
@@ -61,7 +62,7 @@ type
   end;
 
   TRechazoFacturaTpv = (rfNinguno, rfSubsanacion, rfRectificativa,
-    rfSinCliente, rfSinNif, rfDocumentoInvalido);
+    rfSinCliente, rfSinNif, rfDocumentoInvalido, rfTotalNoPositivo);
 
   TInteraccionFacturaTpv = record
     Avisar: TProc<TRechazoFacturaTpv>;
@@ -74,18 +75,21 @@ type
   TEstadoCreditoTpv = record
     EsSubsanacion: Boolean;
     PuedeDejarEnCuenta: Boolean;
-    EsDevolucion: Boolean;
     EsClienteVarios: Boolean;
     ImportePendiente: Currency;
     ImporteTotal: Currency;
     ImporteEntregado: Currency;
+    ImporteDevolucion: Currency;
+    ImporteExcesoSinCambio: Currency;
   end;
 
   TRechazoCreditoTpv = (rcNinguno, rcSubsanacion, rcNoPermitido,
-    rcSinPendiente, rcSinEntrega);
+    rcSinPendiente, rcSinEntrega, rcTotalNoPositivo,
+    rcExcesoSinCambio, rcExcesoEntregado);
 
   TInteraccionCreditoTpv = record
     Avisar: TProc<TRechazoCreditoTpv>;
+    ConfirmarAplicacionDevolucion: TFunc<Currency, Currency, Boolean>;
     ValidarDeposito: TFunc<Boolean>;
     PedirContacto: TFunc<Boolean>;
     EstablecerCredito: TFunc<Boolean>;

@@ -138,6 +138,10 @@ type
     // F-LOTEC-017: lote y serie de las líneas (solo con interruptores).
     FLotesLineas: TLotesLineasDocumento;
     FCargandoLineas: Boolean;
+    // FZ-ISSUE-1067: último SKU y almacén consultados por
+    // LineaActualPendientePartida (el pie se repinta a menudo).
+    FSkuPartidaConsultado: string;
+    FPidePartidaConsultado: Boolean;
     // FZ-ISSUE-324: unidad de medida por artículo (cache de la sesión)
     FUnidadesArticulo: TDictionary<string, TUnidadLineaTicketTraspaso>;
     FConsultaUnidad: TUniQuery;
@@ -322,6 +326,9 @@ type
     function DocumentoLotes: TDocumentoLineaLote;
     // Botón de la columna Lote: vuelve a elegir el de la línea actual.
     procedure ElegirLoteLinea;
+    // FZ-ISSUE-1067: la línea en edición es una salida de Modo Yeti que aún
+    // no tiene partida (su coste es provisional y no cuenta en el pie).
+    function LineaActualPendientePartida: Boolean;
     // Las líneas del traspaso están en memoria: las series de las demás
     // líneas se buscan en cdsLineas, no en una tabla.
     // FZ-ISSUE-1061: unidades de ese SKU y lote en las demás líneas.
@@ -970,6 +977,33 @@ procedure TdmTraspaso.cdsLineasAfterPost(DataSet: TDataSet);
 begin
   if LotesLineasActivos and not FCargandoLineas then
     FLotesLineas.DespuesDePostLinea;
+end;
+
+function TdmTraspaso.LineaActualPendientePartida: Boolean;
+var
+  sAlmacen: string;
+  sClave: string;
+  sSku: string;
+begin
+  Result := False;
+  if LotesLineasActivos and cdsLineas.Active and
+     (cdsLineas.State in dsEditModes) and
+     (Trim(cdsLineas.FieldByName('LOTE').AsString) = '') then
+  begin
+    sSku := Trim(cdsLineas.FieldByName('CODIGO_UNIDAD').AsString);
+    sAlmacen := Trim(cdsCabecera.FieldByName('CODIGO_ALM_ORIGEN').AsString);
+    if (sSku <> '') and (sAlmacen <> '') then
+    begin
+      sClave := sAlmacen + '|' + sSku;
+      if sClave <> FSkuPartidaConsultado then
+      begin
+        FPidePartidaConsultado :=
+          FLotesLineas.RequierePartidaReposicion(sSku, sAlmacen);
+        FSkuPartidaConsultado := sClave;
+      end;
+      Result := FPidePartidaConsultado;
+    end;
+  end;
 end;
 
 procedure TdmTraspaso.ElegirLoteLinea;

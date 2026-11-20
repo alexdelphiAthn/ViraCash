@@ -40,6 +40,7 @@ type
     Copias: Integer;
     CodigoBarras: string;
     Temporada: string;
+    NombreProveedor: string;
   end;
   TLotesEtiquetas = TArray<TLoteEtiqueta>;
 
@@ -103,6 +104,7 @@ begin
   Result.TipoLote := TipoCatalogoDeModo(ALote.Modo);
   Result.Caducidad := ALote.FechaCaducidad;
   Result.Temporada := ALote.Temporada;
+  Result.NombreProveedor := ALote.NombreProveedor;
   Result.Copias := 1;
   if (ALote.Modo <> mtSerie) and (ALote.Stock >= 1) then
     Result.Copias := Trunc(ALote.Stock);
@@ -150,6 +152,8 @@ begin
         TextoLoteEtiqueta(ALote));
       if ALote.Temporada <> '' then
         AsignarCampo(ADataSet, 'COD_TEMPORADA_LOTE', ALote.Temporada);
+      if ALote.NombreProveedor <> '' then
+        AsignarCampo(ADataSet, 'NOMBRE_PRV', ALote.NombreProveedor);
       // El diseño decide si imprime lote y caducidad en sus campos propios.
       if ALote.CodigoBarras <> '' then
         AsignarCampo(ADataSet, CAMPO_CODIGO_BARRAS, ALote.CodigoBarras)

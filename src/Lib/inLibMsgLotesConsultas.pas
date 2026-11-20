@@ -116,6 +116,10 @@ resourcestring
 
   // Consulta de stock.
   SCaptionStockPorLote = 'Por lote';
+  SCaptionStockLotesReposicion = 'Lotes de reposición';
+  SCaptionStockLotesAgrupados = 'Agrupados';
+  SCaptionStockLotesPorPartida = 'Por partida';
+  SCaptionStockExistenciasPorPartida = 'Existencias por partida';
 
 implementation
 

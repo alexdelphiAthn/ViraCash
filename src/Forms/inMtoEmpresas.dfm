@@ -1615,7 +1615,9 @@
                   DataBinding.DataSource = dsTablaG
                   Properties.ValueChecked = 'S'
                   Properties.ValueUnchecked = 'N'
+                  Style.TransparentBorder = False
                   TabOrder = 18
+                  Transparent = True
                   Width = 680
                 end
                 object pnlUserInstantBottom: TcxGroupBox

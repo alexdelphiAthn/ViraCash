@@ -286,6 +286,8 @@ resourcestring
   SErrorRectificacionCajaNoAdmiteBorrador =
     'Una rectificación se cierra como ticket rectificativo, no como ' +
     'borrador normal.';
+  SErrorTotalCajaNoAdmiteBorrador =
+    'No se puede emitir un borrador en una devolución o con total cero.';
   SErrorClienteBorradorCajaNoAsignado =
     'Asigne un cliente a la operación para emitir borrador.';
   SErrorNifClienteBorradorCajaNoIndicado =
@@ -324,6 +326,27 @@ resourcestring
     'Operación denegada: Este cliente no tiene crédito permitido.';
   SErrorImporteCreditoCajaNoPendiente =
     'No hay importe pendiente para pasar a crédito.';
+  SErrorExcesoPagoSinCambio =
+    'Las formas de pago que no devuelven cambio superan el total en %m.' +
+    sLineBreak + 'Reduzca su importe: el exceso no se devuelve ni se ' +
+    'convierte en vale.';
+  SErrorEntregaSuperaTotalCreditoCaja =
+    'El importe entregado (%m) supera el total (%m). ' +
+    'Corrija el importe o cierre con un cobro normal.';
+  SErrorAbonoSuperaPendienteDepositoCaja =
+    'El abono (%m) supera el pendiente del depósito (%m). ' +
+    'Corrija el importe antes de dejarlo a cuenta.';
+  SErrorTotalCajaNoAdmiteCredito =
+    'No se puede dejar importe a cuenta en una devolución o con total cero.';
+  SErrorImporteNegativoEnVenta =
+    'Los importes negativos solo se admiten en devoluciones. ' +
+    'Corrija el importe de la forma de pago.';
+  SPreguntaDevolucionFinanciada =
+    'Se aplican %m de la devolución a la compra y quedan %m financiados. ' +
+    '¿Continuar?';
+  SPreguntaDevolucionFinanciadaConDescuento =
+    'La devolución se aplica a la compra con el descuento de la operación ' +
+    'y quedan %m financiados. ¿Continuar?';
   SAvisoLimiteOperacionesCaja =
     'La selección cargaría %s registros, demasiados para mostrarlos de una ' +
     'vez.' + sLineBreak +

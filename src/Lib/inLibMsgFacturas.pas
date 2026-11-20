@@ -828,6 +828,8 @@ resourcestring
     'se ha emitido ninguna factura.';
   SErrorLineasFacturacionSimplificados =
     'El desglose supera las 9999 líneas. Selecciona un período menor.';
+  SDesgloseCobrosTicketFactura = 'Desglose de cobros del ticket (%s)';
+  SSinCobrosRegistradosTicketFactura = 'Sin cobros registrados';
   SComentarioFacturacionSimplificados =
     'Factura en sustitución de %d tickets. Período: %s - %s.';
   SEventoFacturacionSimplificados =

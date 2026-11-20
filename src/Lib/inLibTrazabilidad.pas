@@ -59,6 +59,8 @@ type
     Lotes: Boolean;
     Series: Boolean;
     Garantias: Boolean;
+    // El selector de reposición usa lotes aunque la caducidad esté apagada.
+    LotesSoloReposicion: Boolean;
     class function Apagada: TActivacionTrazabilidad; static;
     class function Leer(
       const AParametros: IParametros): TActivacionTrazabilidad; static;
@@ -310,6 +312,7 @@ class function TActivacionTrazabilidad.Leer(
 begin
   if not Assigned(AParametros) then
     raise EArgumentNilException.Create('AParametros');
+  Result := Apagada;
   Result.Lotes := AParametros.GetBool(PARAMETRO_TRAZABILIDAD_LOTES, False);
   Result.Series := AParametros.GetBool(PARAMETRO_TRAZABILIDAD_SERIES, False);
   Result.Garantias := AParametros.GetBool(PARAMETRO_GARANTIAS, False);
@@ -561,7 +564,7 @@ function CompararParaFefo(const AIzq, ADer: TLoteDisponible): Integer;
 begin
   // FZ-ISSUE-1044: las partidas de reposición van primero, de la más
   // antigua por fecha de entrada (desempate: orden de recepción), sin mirar
-  // la caducidad. El stock sin partida u otros lotes, después y en FEFO.
+  // la caducidad. El resto de lotes conserva el criterio FEFO.
   if AIzq.EsReposicion <> ADer.EsReposicion then
   begin
     if AIzq.EsReposicion then
@@ -596,7 +599,9 @@ var
   aVigentes: TList<TLoteDisponible>;
   oComparador: IComparer<TLoteDisponible>;
   rLote: TLoteDisponible;
+  bHayReposicion: Boolean;
 begin
+  bHayReposicion := False;
   oComparador := TComparer<TLoteDisponible>.Construct(CompararParaFefo);
   aVigentes := TList<TLoteDisponible>.Create(oComparador);
   aCaducados := TList<TLoteDisponible>.Create(oComparador);
@@ -608,11 +613,24 @@ begin
         if EstaCaducado(rLote.FechaCaducidad, AHoy) then
           aCaducados.Add(rLote)
         else
+        begin
           aVigentes.Add(rLote);
+          bHayReposicion := bHayReposicion or rLote.EsReposicion;
+        end;
       end;
     end;
+    // Con reposición, se agota primero el stock histórico sin lote.
+    if bHayReposicion then
+      aVigentes.Sort(TComparer<TLoteDisponible>.Construct(
+        function(const AIzq, ADer: TLoteDisponible): Integer
+        begin
+          Result := CompareValue(Ord(ADer.Lote = ''), Ord(AIzq.Lote = ''));
+          if Result = 0 then
+            Result := CompararParaFefo(AIzq, ADer);
+        end))
+    else
+      aVigentes.Sort;
     // Caducados: avisar, no bloquear. Solo se tocan si lo vigente no llega.
-    aVigentes.Sort;
     aCaducados.Sort;
     aVigentes.AddRange(aCaducados);
     Result := aVigentes.ToArray;
@@ -647,8 +665,7 @@ begin
   end
   else
   begin
-    // La fila '' (stock de antes de pasar el artículo a otro modo) también
-    // se ofrece: sin caducidad al final en FEFO.
+    // Se aplica al reparto la misma prioridad que en el selector.
     aOrdenados := OrdenarParaSalida(AModo, ALotes, AHoy);
     iIndice := 0;
     while (iIndice <= High(aOrdenados)) and not Result.EsCompleta do

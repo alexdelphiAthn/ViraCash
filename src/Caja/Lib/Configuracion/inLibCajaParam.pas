@@ -354,7 +354,7 @@ procedure TParametrosCaja.RegistrarImpresion;
 begin
   RegistrarParametro('Impresión', 'vgerImprimirLoteCaducidadTicket',
     'Imprimir lote y caducidad en el ticket (sin marcar, agrupar lotes)',
-    tpBoolean, 'True');
+    tpBoolean, 'False');
   RegistrarParametro('Impresión', PARAMETRO_FORMATO_RETIRADA_LOTES,
     SParametroFormatoRetirada, tpString, 'TEXTO42');
   RegistrarParametro('Impresión',

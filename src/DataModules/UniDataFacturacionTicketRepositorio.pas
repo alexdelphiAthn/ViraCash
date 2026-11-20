@@ -34,7 +34,8 @@ uses
   inLibFacturasServiciosIntf, inLibFacturasMovimientos,
   UniDataFacturasOperaciones, UniDataFacturasRecalculoTotales,
   UniDataAlmacenesEmpresaRepositorio, inLibAlmacenesEmpresaPersistenciaIntf,
-  UniDataValoresAutomaticosRepositorio;
+  UniDataValoresAutomaticosRepositorio, UniDataFaseCobroRepositorio,
+  inLibFacturasProformaIntf;
 
 resourcestring
   SErrorNumeroFacturaTicketExistente =
@@ -164,7 +165,8 @@ const
     't.PORCENTAJE_RETENCION_FAC, t.TOTAL_RETENCION_FAC, ' +
     't.TOTAL_LIQUIDO_FAC, t.TEXTO_LEGAL_CLIENTE_FAC, ' +
     't.TEXTO_LEGAL_EMPRESA_FAC, ' +
-    'TRIM(CONCAT(IFNULL(t.COMENTARIOS_FAC, ''''), :COMENTARIO)), ' +
+    'TRIM(CONCAT(LEFT(COALESCE(t.COMENTARIOS_FAC, ''''), ' +
+    'GREATEST(0, 1000 - CHAR_LENGTH(:COMENTARIO))), :COMENTARIO)), ' +
     't.CONTADOR_LINEAS_FAC, t.ESCREARARTICULOS_FAC, ' +
     't.PORCENTAJE_DTO_COMERCIAL_FAC, t.TOTAL_DTO_COMERCIAL_FAC, ' +
     't.PORCENTAJE_DTO_FINANCIERO_FAC, t.TOTAL_DTO_FINANCIERO_FAC, ' +
@@ -172,9 +174,13 @@ const
     'NOW(), NOW(), :USUARIO, :USUARIO FROM fza_facturas t ' +
     'JOIN fza_clientes c ON c.CODIGO_CLI_CLI = :CLIENTE ' +
     'WHERE t.SERIE_FAC = :STICKET AND t.NUMERO_FAC = :NTICKET';
-  SQL_FORMA_PAGO_TICKET =
-    'SELECT FORMA_PAGO_FAC FROM fza_facturas ' +
-    ' WHERE SERIE_FAC = :SERIE AND NUMERO_FAC = :NUMERO';
+  SQL_CLIENTE_TICKET =
+    'SELECT c.CODIGO_CLI_CLI, c.RAZON_SOCIAL_CLI ' +
+    'FROM fza_facturas t LEFT JOIN fza_clientes c ' +
+    'ON c.CODIGO_CLI_CLI = t.CODIGO_CLI_FAC ' +
+    'AND COALESCE(c.ESVARIOS_CLI, ''N'') <> ''S'' ' +
+    'AND TRIM(t.CODIGO_CLI_FAC) <> '''' ' +
+    'WHERE t.SERIE_FAC = :SERIE AND t.NUMERO_FAC = :NUMERO';
   SQL_FECHA_TICKET =
     'SELECT FECHA_FAC FROM fza_facturas ' +
     ' WHERE SERIE_FAC = :SERIE AND NUMERO_FAC = :NUMERO';
@@ -462,7 +468,7 @@ type
       AConsulta: TUniQuery;
       const ASql: string;
       const ASolicitud: TSolicitudFacturacionTicket;
-      const ANumero: string);
+      const ANumero: string; const ADesglosePagos: string = '');
     procedure CargarTicketPeriodo(AConsulta: TUniQuery;
       const ASolicitud: TSolicitudFacturacionTicket;
       const ATicket: TTicketFacturacion);
@@ -517,7 +523,8 @@ type
       const ACodigoCliente: string): TClienteFacturacionTicket;
     function CrearFactura(
       const ASolicitud: TSolicitudFacturacionTicket): string;
-    function FormaPagoTicket(const ASerie, ANumero: string): string;
+    procedure LeerClienteTicket(const ASerie, ANumero: string;
+      out ACliente, ARazonSocial: string);
     function FechaTicket(const ASerie, ANumero: string): TDateTime;
     function ConsultarTicketsPeriodo(const AEmpresa, ACliente: string;
       ADesde, AHasta: TDateTime): TTicketsFacturacion;
@@ -613,21 +620,25 @@ begin
   end;
 end;
 
-function TServicioFacturacionTicketUniDAC.FormaPagoTicket(const ASerie,
-  ANumero: string): string;
+procedure TServicioFacturacionTicketUniDAC.LeerClienteTicket(
+  const ASerie, ANumero: string; out ACliente, ARazonSocial: string);
 var
   oConsulta: TUniQuery;
 begin
-  Result := '';
+  ACliente := '';
+  ARazonSocial := '';
   oConsulta := TUniQuery.Create(nil);
   try
     oConsulta.Connection := FConexion;
-    oConsulta.SQL.Text := SQL_FORMA_PAGO_TICKET;
+    oConsulta.SQL.Text := SQL_CLIENTE_TICKET;
     oConsulta.ParamByName('SERIE').AsString := ASerie;
     oConsulta.ParamByName('NUMERO').AsString := ANumero;
     oConsulta.Open;
     if not oConsulta.IsEmpty then
-      Result := oConsulta.FieldByName('FORMA_PAGO_FAC').AsString;
+    begin
+      ACliente := oConsulta.FieldByName('CODIGO_CLI_CLI').AsString;
+      ARazonSocial := oConsulta.FieldByName('RAZON_SOCIAL_CLI').AsString;
+    end;
   finally
     FreeAndNil(oConsulta);
   end;
@@ -1116,7 +1127,9 @@ procedure TServicioFacturacionTicketUniDAC.EjecutarSqlFactura(
   AConsulta: TUniQuery;
   const ASql: string;
   const ASolicitud: TSolicitudFacturacionTicket;
-  const ANumero: string);
+  const ANumero: string; const ADesglosePagos: string);
+var
+  sComentario: string;
 begin
   if Trim(AConsulta.SQL.Text) <> Trim(ASql) then
     AConsulta.SQL.Text := ASql;
@@ -1155,12 +1168,16 @@ begin
   end;
   if AConsulta.Params.FindParam('COMENTARIO') <> nil then
   begin
-    AConsulta.ParamByName('COMENTARIO').AsString :=
+    sComentario :=
       ' ESTA FACTURA SE EMITE EN SUSTITUCIÓN DE LA FACTURA SIMPLIFICADA ' +
       FormatearDocumento(
         CrearFormatoDocumentoLecturas(FConexion).LeerFormatoEmpresa(
           ASolicitud.Empresa),
         ASolicitud.SerieTicket, ASolicitud.NumeroTicket);
+    if ADesglosePagos <> '' then
+      sComentario := sComentario + sLineBreak +
+        Format(SDesgloseCobrosTicketFactura, [ADesglosePagos]);
+    AConsulta.ParamByName('COMENTARIO').AsString := Copy(sComentario, 1, 1000);
   end;
   AConsulta.Execute;
 end;
@@ -1171,6 +1188,9 @@ var
   oConsulta: TUniQuery;
   oSolicitudEmision: TSolicitudEmisionFiscal;
   sErrorFecha: string;
+  oSolicitud: TSolicitudFacturacionTicket;
+  sDesglosePagos: string;
+  cTotal: Currency;
 begin
   sErrorFecha := '';
   if Length(ASolicitud.Tickets) = 0 then
@@ -1197,11 +1217,14 @@ begin
         CopiarTickets(ASolicitud, Result)
       else
       begin
-        EjecutarSqlFactura(
-          oConsulta,
-          SQL_INSERTAR_CABECERA,
-          ASolicitud,
-          Result);
+        oSolicitud := ASolicitud;
+        oSolicitud.FormaPago := FORMA_PAGO_FACTURA_CAJA;
+        sDesglosePagos := ResumenCobrosTicketCaja(FConexion,
+          ASolicitud.SerieTicket, ASolicitud.NumeroTicket, cTotal);
+        if sDesglosePagos = '' then
+          sDesglosePagos := SSinCobrosRegistradosTicketFactura;
+        EjecutarSqlFactura(oConsulta, SQL_INSERTAR_CABECERA, oSolicitud,
+          Result, sDesglosePagos);
         if oConsulta.RowsAffected = 0 then
         begin
           raise Exception.Create(SErrorCrearBorradorFacturarTicket);

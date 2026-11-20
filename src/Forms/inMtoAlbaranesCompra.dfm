@@ -1,4 +1,4 @@
-﻿inherited frmMtoAlbaranesCompra: TfrmMtoAlbaranesCompra
+inherited frmMtoAlbaranesCompra: TfrmMtoAlbaranesCompra
   Caption = 'Mantenimiento de Albaranes de Compra'
   ClientHeight = 765
   ClientWidth = 1085
@@ -130,6 +130,7 @@
         end
       end
       inherited tsFicha: TcxTabSheet
+        OnShow = tsFichaAlbaranShow
         ExplicitLeft = 4
         ExplicitTop = 28
         ExplicitWidth = 937
@@ -512,6 +513,18 @@
             ClientRectTop = 28
             object tsLineasAlbaran: TcxTabSheet
               Caption = '&1_L'#237'neas '
+              object lblRecepcionBloqueada: TcxLabel
+                Left = 0
+                Top = 0
+                Align = alTop
+                AutoSize = False
+                Properties.WordWrap = True
+                ParentShowHint = False
+                ShowHint = True
+                TabOrder = 1
+                Visible = False
+                Height = 42
+              end
               object cxgrdLineasAlbaran: TcxGrid
                 Left = 0
                 Top = 0
@@ -539,6 +552,7 @@
                   OnEditing = tvLineasAlbaranEditing
                   OnFocusedRecordChanged = tvLineasAlbaranFocusedRecordChanged
                   OptionsBehavior.FocusCellOnTab = True
+                  OptionsBehavior.ShowLockedStateImageOptions.Posting = lsimPending
                   OptionsBehavior.FocusFirstCellOnNewRecord = True
                   OptionsData.Appending = True
                   OptionsView.GroupByBox = False

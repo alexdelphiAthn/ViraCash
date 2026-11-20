@@ -94,7 +94,7 @@ function EnviarDocumentacionOperacion(
   const ADatos: TDatosCorreoOperacion;
   const AEmpresa, AAlmacen, ACaja, ANumeroOperacion, AEmail: string;
   out AMensaje: string;
-  AImprimirLotes: Boolean = True): Boolean;
+  AImprimirLotes: Boolean = False): Boolean;
 
 implementation
 

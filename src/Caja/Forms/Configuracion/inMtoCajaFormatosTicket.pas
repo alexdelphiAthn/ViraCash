@@ -145,7 +145,7 @@ begin
           raise Exception.CreateFmt(SFormatoTicketNoEncontrado, [sFormato]);
         LineasTicket := PrepararLineasTicket(
           DatosFactura.unqryLinFacPrint,
-          FParametrosCaja.GetBool(PARAMETRO_IMPRIMIR_LOTES_TICKET, True));
+          FParametrosCaja.GetBool(PARAMETRO_IMPRIMIR_LOTES_TICKET, False));
         DatosFactura.fxdstPrintLinFac.DataSet := LineasTicket;
         DatosFactura.fxdstPrintLinFac.ResetFieldDefs;
         // AfterReportLoaded rellena 'qrverifactu' solo con Verifactu activo.

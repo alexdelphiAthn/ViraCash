@@ -28,13 +28,10 @@ resourcestring
   SResumenSeleccionesTodas = 'Todas';
   SResumenSeleccionesNinguna = 'Ninguna';
   SResumenSeleccionesTarifa = 'Tarifa';
-  // Criterio de los PRC_GET_BALANCE_ALMACEN_*: va en el resumen de los
-  // balances para que nadie lea «Ent. compra» como el coste de esas
-  // compras (FZ-ISSUE-440).
   SResumenBalanceValoracion = 'Valoración';
-  SResumenBalanceValoracionCriterio =
-    'existencias, entradas y demás movimientos al precio medio actual ' +
-    '(no al coste de cada compra); ventas a lo facturado sin IVA';
+  SResumenBalanceValoracionPartidas =
+    'existencias y movimientos a coste de partida en reposición o a ' +
+    'precio medio actual; ventas a lo facturado sin IVA';
   SResumenSeleccionesSi = 'Sí';
   SResumenSeleccionesNo = 'No';
   SResumenSeleccionesListaRecortada = '%s y %d más (%d en total)';

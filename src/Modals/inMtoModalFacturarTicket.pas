@@ -100,7 +100,8 @@ uses
   UniDataVentasPantallaComposicion,
   inLibClientesAltaRapida, inMtoModalAltaRapidaCliente,
   UniDataClientesAltaRapida,
-  inMtoModalOpcionesDocumento, UniDataOpcionesDocumentoRepositorio;
+  inMtoModalOpcionesDocumento, UniDataOpcionesDocumentoRepositorio,
+  inLibFacturasProformaIntf;
 
 {$R *.dfm}
 
@@ -607,7 +608,7 @@ begin
 end;
 
 // Serie de la factura normal: la del almacén del ticket o la primera de la
-// empresa; fecha, la de hoy; forma de pago, la del ticket.
+// empresa; fecha, la de hoy; cliente, el del ticket; forma de pago, contado.
 function TfrmModalFacturarTicket.Configurar(
   const AAlmacen: string): TConfiguracionOpcionesDocumento;
 var
@@ -640,13 +641,17 @@ begin
   Result.Propuesta.Almacen := AAlmacen;
   Result.Propuesta.Tipo := 'FC';
   Result.Propuesta.Fecha := Date;
+  Result.Fijos := [codEmpresa];
   if not FPorPeriodo then
-    Result.Propuesta.FormaPago := FServicioFacturacion.FormaPagoTicket(
-      FSerieTicket, FNumeroTicket);
+  begin
+    FServicioFacturacion.LeerClienteTicket(FSerieTicket, FNumeroTicket,
+      oCliente.Valor, oCliente.Descripcion);
+    Result.Propuesta.FormaPago := FORMA_PAGO_FACTURA_CAJA;
+    Include(Result.Fijos, codFormaPago);
+  end;
   Result.Propuesta.Adicionales := [oCliente];
   Result.Visibles := [codEmpresa, codSerie, codNumero, codFecha,
     codFormaPago];
-  Result.Fijos := [codEmpresa];
   Result.PermiteNumeroManual := True;
   Result.Validar := ComprobarFacturaNormal;
 end;

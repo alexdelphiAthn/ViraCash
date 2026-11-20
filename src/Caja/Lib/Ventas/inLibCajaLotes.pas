@@ -690,11 +690,9 @@ begin
   if not (rDecision.Resultado in [rllSinLote, rllAsignado]) then
   begin
     if ALinea.State = dsEdit then
-    begin
       RestaurarLineaEditada(ALinea);
-      if Assigned(FConfig.LineaDevuelta) then
-        FConfig.LineaDevuelta();
-    end;
+    if Assigned(FConfig.LineaDevuelta) then
+      FConfig.LineaDevuelta();
     Abort;
   end;
   if (Length(rDecision.Asignaciones) > 0) and

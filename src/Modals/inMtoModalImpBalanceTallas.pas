@@ -248,7 +248,7 @@ begin
     ParametrosCaja.TarifaDefecto);
   AResumen.Anadir(
     SResumenBalanceValoracion,
-    SResumenBalanceValoracionCriterio);
+    SResumenBalanceValoracionPartidas);
 end;
 
 procedure TfrmPrintBalanceTallas.preparar_consulta;

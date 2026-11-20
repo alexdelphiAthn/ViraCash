@@ -37,7 +37,7 @@ uses
                             AFechaOperacion: TDateTime = 0;
                             ARutasPDF: TStrings = nil;
                             AImprimirCodigoBarras: Boolean = False;
-                            AImprimirLotes: Boolean = True);
+                            AImprimirLotes: Boolean = False);
 
   // Diminutivo de ticket del empleado (fza_empleados) a partir de su
   // codigo. Si no se resuelve, devuelve el propio codigo recibido.
@@ -342,14 +342,16 @@ begin
        LPad(FCodigoCaja, 2)]));
 end;
 
-// F-LOTEC-015: el lote o la serie bajo la línea, solo con interruptores.
 procedure TImpresorTicketVenta.EscribirLoteArticulo;
 var
   dtCaducidad: TDate;
   sTexto: string;
+  bEsSerie: Boolean;
 begin
-  if ActivacionVigente.AlgunModoActivo and
-     (FLineas.FindField('LOTE_FACLIN') <> nil) then
+  bEsSerie := (FLineas.FindField('ESSERIE_LOTE') <> nil) and
+    (FLineas.FieldByName('ESSERIE_LOTE').AsString = 'S');
+  if (FLineas.FindField('LOTE_FACLIN') <> nil) and
+     ImprimirIdentificacionTicket(FImprimirLotes, bEsSerie) then
   begin
     dtCaducidad := SIN_FECHA;
     if (FLineas.FindField('FECHA_CADUCIDAD_FACLIN') <> nil) and
@@ -357,8 +359,7 @@ begin
       dtCaducidad :=
         Trunc(FLineas.FieldByName('FECHA_CADUCIDAD_FACLIN').AsDateTime);
     sTexto := TextoLoteTicket(FLineas.FieldByName('LOTE_FACLIN').AsString,
-      dtCaducidad, (FLineas.FindField('ESSERIE_LOTE') <> nil) and
-      (FLineas.FieldByName('ESSERIE_LOTE').AsString = 'S'));
+      dtCaducidad, bEsSerie);
     if sTexto <> '' then
       FTicket.EscribirLinea(Copy(sTexto, 1, 42));
   end;

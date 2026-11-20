@@ -57,6 +57,8 @@ begin
     Result := rfSubsanacion
   else if AEstado.RectificaA <> '' then
     Result := rfRectificativa
+  else if AEstado.ImporteTotal <= 0 then
+    Result := rfTotalNoPositivo
   else if (Trim(AEstado.CodigoCliente) = '') or
           (Trim(AEstado.CodigoCliente) = '0') then
     Result := rfSinCliente
@@ -97,11 +99,19 @@ begin
   Result := rcNinguno;
   if AEstado.EsSubsanacion then
     Result := rcSubsanacion
+  else if AEstado.ImporteTotal <= 0 then
+    Result := rcTotalNoPositivo
   else if not AEstado.PuedeDejarEnCuenta then
     Result := rcNoPermitido
-  else if (AEstado.ImportePendiente <= 0) and
-          not AEstado.EsDevolucion and (AEstado.ImporteTotal > 0) then
-    Result := rcSinPendiente
+  else if AEstado.ImportePendiente <= 0 then
+  begin
+    if AEstado.ImporteExcesoSinCambio > 0.001 then
+      Result := rcExcesoSinCambio
+    else if AEstado.ImporteEntregado > AEstado.ImporteTotal then
+      Result := rcExcesoEntregado
+    else
+      Result := rcSinPendiente;
+  end
   else if AEstado.EsClienteVarios and (AEstado.ImporteEntregado <= 0) then
     Result := rcSinEntrega;
 end;
@@ -126,6 +136,8 @@ begin
   if not Assigned(AInteraccion.Avisar) or
      not Assigned(AInteraccion.ValidarDeposito) or
      not Assigned(AInteraccion.PedirContacto) or
+     ((AEstado.ImporteDevolucion > 0) and
+      not Assigned(AInteraccion.ConfirmarAplicacionDevolucion)) or
      not Assigned(AInteraccion.EstablecerCredito) or
      not Assigned(AInteraccion.ActualizarVista) or
      not Assigned(AInteraccion.ConfirmarConTicket) then
@@ -133,7 +145,10 @@ begin
   oRechazo := RechazoCredito(AEstado);
   if oRechazo = rcNinguno then
   begin
-    if PrepararCredito(AEstado.EsClienteVarios, AInteraccion) and
+    if ((AEstado.ImporteDevolucion <= 0) or
+        AInteraccion.ConfirmarAplicacionDevolucion(AEstado.ImporteDevolucion,
+          AEstado.ImportePendiente)) and
+       PrepararCredito(AEstado.EsClienteVarios, AInteraccion) and
        AInteraccion.EstablecerCredito() then
     begin
       AInteraccion.ActualizarVista();

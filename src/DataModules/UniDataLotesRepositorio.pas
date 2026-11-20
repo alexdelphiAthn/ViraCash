@@ -35,7 +35,7 @@ function CrearLecturaTrazabilidadArticuloUniDAC(
 implementation
 
 uses
-  Data.DB, inLibTrazabilidad, inLibMsgTrazabilidad;
+  Data.DB, inLibTrazabilidad, inLibMsgTrazabilidad, UniDataProveedoresTexto;
 
 const
   PROC_ASEGURAR = 'PRC_FZA_LOTES_ASEGURAR';
@@ -47,8 +47,11 @@ const
     'SELECT l.CODIGO_UNIDAD_LOT, l.LOTE_LOT, l.TIPO_LOT, ' +
     'l.FECHA_CADUCIDAD_LOT, l.FECHA_ENTRADA_LOT, l.ESACTIVO_LOT, ' +
     's.CODIGO_ALM_STK, s.CANTIDAD_STK, l.CODIGO_PRV_LOT, ' +
+    'COALESCE(NULLIF(TRIM(' + SQL_NOMBRE_MOSTRADO_PRV + '), ''''), ' +
+    'l.CODIGO_PRV_LOT) AS NOMBRE_PROVEEDOR_LOTE, ' +
     'p.PV AS TEMPORADA ' +
     'FROM fza_articulos_lotes l ' +
+    'LEFT JOIN fza_proveedores pr ON pr.CODIGO_PRV_PRV = l.CODIGO_PRV_LOT ' +
     'LEFT JOIN fza_propiedades_valores p ' +
     'ON p.ID_PV_ARTPROP = l.ID_PV_TEMPORADA_LOT ' +
     'JOIN fza_articulos_skus k ON k.CODIGO_UNIDAD_SKU = l.CODIGO_UNIDAD_LOT ' +
@@ -603,6 +606,8 @@ begin
       rLote.CodigoAlmacen := oConsulta.FieldByName('CODIGO_ALM_STK').AsString;
       rLote.CodigoProveedor :=
         oConsulta.FieldByName('CODIGO_PRV_LOT').AsString;
+      rLote.NombreProveedor :=
+        oConsulta.FieldByName('NOMBRE_PROVEEDOR_LOTE').AsString;
       rLote.Temporada := oConsulta.FieldByName('TEMPORADA').AsString;
       rLote.Stock := oConsulta.FieldByName('CANTIDAD_STK').AsFloat;
       Result := Result + [rLote];

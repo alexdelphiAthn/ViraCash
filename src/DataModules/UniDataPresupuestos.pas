@@ -149,7 +149,7 @@ begin
   unqryAlbaranesLineas.OnDeleteError := ErrorEscritura;
   // El formulario encadena este manejador (FOldLineasDataChange).
   dsAlbaranesLineas.OnDataChange := LineasPresupuestoDataChange;
-  ConfigurarPropiedadesLineas(unqryAlbaranesLineas, 'PRELIN');
+  ConfigurarPropiedadesLineas(unqryAlbaranesLineas, 'PRELIN', True);
   VigilarTotalMaximoLinea(unqryAlbaranesLineas, 'TOTAL_PRELIN');
 end;
 

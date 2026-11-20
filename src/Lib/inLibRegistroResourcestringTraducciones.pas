@@ -612,9 +612,9 @@ begin
     'src/Lib/inLibResumenSeleccionesInforme.pas',
     @inLibResumenSeleccionesInforme.SResumenBalanceValoracion);
   ARegistrar(
-    'inLibResumenSeleccionesInforme.SResumenBalanceValoracionCriterio',
+    'inLibResumenSeleccionesInforme.SResumenBalanceValoracionPartidas',
     'src/Lib/inLibResumenSeleccionesInforme.pas',
-    @inLibResumenSeleccionesInforme.SResumenBalanceValoracionCriterio);
+    @inLibResumenSeleccionesInforme.SResumenBalanceValoracionPartidas);
   ARegistrar(
     'inLibResumenSeleccionesInforme.SResumenSeleccionesSi',
     'src/Lib/inLibResumenSeleccionesInforme.pas',
@@ -917,6 +917,11 @@ begin
     'SPieSeleccionLote',
     'src/Lib/inLibMsgTrazabilidad.pas',
     @inLibMsgTrazabilidad.SPieSeleccionLote);
+  ARegistrar(
+    'inLibMsgTrazabilidad.' +
+    'SPieSeleccionLoteMas',
+    'src/Lib/inLibMsgTrazabilidad.pas',
+    @inLibMsgTrazabilidad.SPieSeleccionLoteMas);
   ARegistrar(
     'inLibMsgTrazabilidad.' +
     'SCaptionLeerSerieSeleccion',
@@ -4074,6 +4079,22 @@ begin
     'SCaptionStockPorLote',
     'src/Lib/inLibMsgLotesConsultas.pas',
     @inLibMsgLotesConsultas.SCaptionStockPorLote);
+  ARegistrar(
+    'inLibMsgLotesConsultas.SCaptionStockLotesReposicion',
+    'src/Lib/inLibMsgLotesConsultas.pas',
+    @inLibMsgLotesConsultas.SCaptionStockLotesReposicion);
+  ARegistrar(
+    'inLibMsgLotesConsultas.SCaptionStockLotesAgrupados',
+    'src/Lib/inLibMsgLotesConsultas.pas',
+    @inLibMsgLotesConsultas.SCaptionStockLotesAgrupados);
+  ARegistrar(
+    'inLibMsgLotesConsultas.SCaptionStockLotesPorPartida',
+    'src/Lib/inLibMsgLotesConsultas.pas',
+    @inLibMsgLotesConsultas.SCaptionStockLotesPorPartida);
+  ARegistrar(
+    'inLibMsgLotesConsultas.SCaptionStockExistenciasPorPartida',
+    'src/Lib/inLibMsgLotesConsultas.pas',
+    @inLibMsgLotesConsultas.SCaptionStockExistenciasPorPartida);
 end;
 
 procedure EnumerarResourcestringsPendientesOctubre13(
@@ -12631,6 +12652,8 @@ begin
     'src/Lib/inLibMsgCaja.pas',
     @inLibMsgCaja.
       SErrorRectificacionCajaNoAdmiteBorrador);
+  ARegistrar('inLibMsgCaja.SErrorTotalCajaNoAdmiteBorrador',
+    'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.SErrorTotalCajaNoAdmiteBorrador);
   ARegistrar(
     'inLibMsgCaja.' +
     'SErrorClienteBorradorCajaNoAsignado',
@@ -12703,6 +12726,22 @@ begin
     'src/Lib/inLibMsgCaja.pas',
     @inLibMsgCaja.
       SErrorImporteCreditoCajaNoPendiente);
+  ARegistrar('inLibMsgCaja.SErrorExcesoPagoSinCambio',
+    'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.SErrorExcesoPagoSinCambio);
+  ARegistrar('inLibMsgCaja.SErrorEntregaSuperaTotalCreditoCaja',
+    'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.SErrorEntregaSuperaTotalCreditoCaja);
+  ARegistrar('inLibMsgCaja.SErrorAbonoSuperaPendienteDepositoCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.SErrorAbonoSuperaPendienteDepositoCaja);
+  ARegistrar('inLibMsgCaja.SErrorTotalCajaNoAdmiteCredito',
+    'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.SErrorTotalCajaNoAdmiteCredito);
+  ARegistrar('inLibMsgCaja.SErrorImporteNegativoEnVenta',
+    'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.SErrorImporteNegativoEnVenta);
+  ARegistrar('inLibMsgCaja.SPreguntaDevolucionFinanciada',
+    'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.SPreguntaDevolucionFinanciada);
+  ARegistrar('inLibMsgCaja.SPreguntaDevolucionFinanciadaConDescuento',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.SPreguntaDevolucionFinanciadaConDescuento);
   ARegistrar(
     'inLibMsgCaja.' +
     'SAvisoLimiteOperacionesCaja',
@@ -14244,6 +14283,9 @@ begin
     'src/Lib/inLibMsgCompras.pas',
     @inLibMsgCompras.
       SAvisoAlbaranCompraFacturado);
+  ARegistrar('inLibMsgCompras.SErrorAlbaranCompraPartidaUtilizada',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SErrorAlbaranCompraPartidaUtilizada);
   ARegistrar(
     'inLibMsgCompras.' +
     'SPreguntaBorrarAlbaranCompra',
@@ -14974,6 +15016,9 @@ begin
     'src/Lib/inLibMsgCompras.pas',
     @inLibMsgCompras.
       SErrorAlbaranCompraNoActivo);
+  ARegistrar('inLibMsgCompras.SErrorAlbaranCompraRevisionCambiada',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SErrorAlbaranCompraRevisionCambiada);
   ARegistrar(
     'inLibMsgCompras.' +
     'SPreguntaGrabarAlbaranCompraSinSku',
@@ -35518,6 +35563,12 @@ begin
   ARegistrar('inLibMsgFacturas.SErrorLineasFacturacionSimplificados',
     'src/Lib/inLibMsgFacturas.pas',
     @inLibMsgFacturas.SErrorLineasFacturacionSimplificados);
+  ARegistrar('inLibMsgFacturas.SDesgloseCobrosTicketFactura',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SDesgloseCobrosTicketFactura);
+  ARegistrar('inLibMsgFacturas.SSinCobrosRegistradosTicketFactura',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SSinCobrosRegistradosTicketFactura);
   ARegistrar('inLibMsgFacturas.SComentarioFacturacionSimplificados',
     'src/Lib/inLibMsgFacturas.pas',
     @inLibMsgFacturas.SComentarioFacturacionSimplificados);

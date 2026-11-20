@@ -72,6 +72,10 @@ type
       AConsulta: TUniQuery): IResultadoConsultaStock;
     function ListaSql(const AValores: TArray<string>): string;
     function FiltroDimension(ADimension: TDimensionFotos): string;
+    function AtributosSql(const ACodigoArticulo, AAlias: string): string;
+    function ConstruirSqlPartidas(
+      const ASolicitud: TSolicitudPivoteStock;
+      const ATallas: TArray<TInfoColumna>): string;
     function CampoCantidadStock(AEstado: TEstadoStock): string;
     function EstadoBaseSelectFor(
       const ASolicitud: TSolicitudPivoteStock;
@@ -109,6 +113,10 @@ type
       const ACodigoArticulo: string;
       const AColores: TArray<string>): TArray<TInfoColumna>;
     function Consultar(
+      const ASolicitud: TSolicitudPivoteStock;
+      const ATallas: TArray<TInfoColumna>): IResultadoConsultaStock;
+    function HayPartidasArticulo(const ACodigoArticulo: string): Boolean;
+    function ConsultarPartidas(
       const ASolicitud: TSolicitudPivoteStock;
       const ATallas: TArray<TInfoColumna>): IResultadoConsultaStock;
     function ConsultarPestanas(
@@ -755,24 +763,10 @@ begin
   end;
 end;
 
-function TRepositorioStockConsultaUniDAC.EstadoBaseSelectFor(
-  const ASolicitud: TSolicitudPivoteStock;
-  AEstado: TEstadoStock): string;
-const
-  CSelSku =
-    'SELECT SKU.CODIGO_UNIDAD_SKU, ' +
-    '       MAX(ATR.COLOR_AV) AS COLOR_AV, ' +
-    '       MAX(ATR.TALLA_AV) AS TALLA_AV, ' +
-    '       MAX(ATR.PESTANA_AV) AS PESTANA_AV, ';
-var
-  sAlmacenes: string;
-  sAtributos: string;
-  sCampo: string;
-  sEstado: string;
+function TRepositorioStockConsultaUniDAC.AtributosSql(
+  const ACodigoArticulo, AAlias: string): string;
 begin
-  sAlmacenes := ListaSql(ASolicitud.Almacenes);
-  sEstado := IntToStr(Ord(AEstado));
-  sAtributos :=
+  Result :=
     '  LEFT JOIN (SELECT SKU2.CODIGO_UNIDAD_SKU, ' +
     '          MAX(CASE WHEN AV2.ID_VA_AV = (SELECT ' +
     'EJ452.ID_ATB_VA FROM VI_VARIACIONES_EJES EJ452 WHERE ' +
@@ -792,9 +786,29 @@ begin
     '     LEFT JOIN fza_atributos_valores AV2 ' +
     '       ON AV2.ID_AV = SA2.ID_AV_SA ' +
     '    WHERE SKU2.CODIGO_ART_SKU = ' +
-    QuotedStr(ASolicitud.CodigoArticulo) +
-    '    GROUP BY SKU2.CODIGO_UNIDAD_SKU) ATR ' +
-    '    ON ATR.CODIGO_UNIDAD_SKU = SKU.CODIGO_UNIDAD_SKU ';
+    QuotedStr(ACodigoArticulo) +
+    '    GROUP BY SKU2.CODIGO_UNIDAD_SKU) ' + AAlias +
+    ' ON ' + AAlias + '.CODIGO_UNIDAD_SKU = SKU.CODIGO_UNIDAD_SKU ';
+end;
+
+function TRepositorioStockConsultaUniDAC.EstadoBaseSelectFor(
+  const ASolicitud: TSolicitudPivoteStock;
+  AEstado: TEstadoStock): string;
+const
+  CSelSku =
+    'SELECT SKU.CODIGO_UNIDAD_SKU, ' +
+    '       MAX(ATR.COLOR_AV) AS COLOR_AV, ' +
+    '       MAX(ATR.TALLA_AV) AS TALLA_AV, ' +
+    '       MAX(ATR.PESTANA_AV) AS PESTANA_AV, ';
+var
+  sAlmacenes: string;
+  sAtributos: string;
+  sCampo: string;
+  sEstado: string;
+begin
+  sAlmacenes := ListaSql(ASolicitud.Almacenes);
+  sEstado := IntToStr(Ord(AEstado));
+  sAtributos := AtributosSql(ASolicitud.CodigoArticulo, 'ATR');
   if AEstado = esPdteRecibir then
     Result := CSelSku +
       '       PDR.CODIGO_ALM_PDR AS ALM, ' +
@@ -829,10 +843,11 @@ begin
       ' GROUP BY SKU.CODIGO_UNIDAD_SKU, V.CODIGO_ALM_ALM';
   end
   else if AEstado = esDisponible then
+    // La vista da un pendiente por SKU y almacén, no por lote.
     Result := CSelSku +
       '       STK.CODIGO_ALM_STK AS ALM, ' +
-      '       SUM(STK.CANTIDAD_STK - ' +
-      '           COALESCE(V.CANTIDAD_PTE_TRASPASAR, 0)) AS CANTIDAD, ' +
+      '       SUM(STK.CANTIDAD_STK) - ' +
+      '         MAX(COALESCE(V.CANTIDAD_PTE_TRASPASAR, 0)) AS CANTIDAD, ' +
       '       ' + sEstado + ' AS ESTADO_NUM ' +
       '  FROM fza_articulos_skus SKU ' +
       '  JOIN fza_articulos_stockactual STK ' +
@@ -1071,6 +1086,94 @@ begin
     oConsulta := nil;
   finally
     FreeAndNil(oConsulta);
+  end;
+end;
+
+function TRepositorioStockConsultaUniDAC.HayPartidasArticulo(
+  const ACodigoArticulo: string): Boolean;
+var
+  Consulta: TUniQuery;
+begin
+  Consulta := NuevaConsulta;
+  try
+    Consulta.SQL.Text :=
+      'SELECT 1 FROM fza_articulos_skus SKU ' +
+      '  JOIN fza_articulos_lotes LOT ' +
+      '    ON LOT.CODIGO_UNIDAD_LOT = SKU.CODIGO_UNIDAD_SKU ' +
+      ' WHERE SKU.CODIGO_ART_SKU = :ARTICULO ' +
+      '   AND LOT.LOTE_LOT <> '''' LIMIT 1';
+    Consulta.ParamByName('ARTICULO').AsString := ACodigoArticulo;
+    Consulta.Open;
+    Result := not Consulta.IsEmpty;
+  finally
+    Consulta.Free;
+  end;
+end;
+
+function TRepositorioStockConsultaUniDAC.ConstruirSqlPartidas(
+  const ASolicitud: TSolicitudPivoteStock;
+  const ATallas: TArray<TInfoColumna>): string;
+var
+  iTalla: Integer;
+  sColumnas, sExpresion, sGrupo, sColores, sHaving: string;
+begin
+  sColores := 'B.COLOR_AV IN (' + ListaSql(ASolicitud.Colores) + ')';
+  if ASolicitud.PorColor then
+    sGrupo := 'B.COLOR_AV'
+  else
+  begin
+    sGrupo := 'STK.CODIGO_ALM_STK';
+    sColores := '(' + sColores + ' OR B.COLOR_AV IS NULL)';
+  end;
+  sColumnas := '';
+  sHaving := 'COALESCE(SUM(STK.CANTIDAD_STK), 0) <> 0';
+  for iTalla := 0 to High(ATallas) do
+  begin
+    sExpresion := Format(
+      'SUM(CASE WHEN B.TALLA_AV = %s THEN STK.CANTIDAD_STK ELSE 0 END)',
+      [QuotedStr(ATallas[iTalla].Codigo)]);
+    sColumnas := sColumnas + ', ' + sExpresion + ' AS ' +
+      CampoTallaPivoteStock(iTalla);
+    sHaving := sHaving + ' OR COALESCE(' + sExpresion + ', 0) <> 0';
+  end;
+  // Conserva los lotes existentes y la partida sin lote para cuadrar
+  // con el total del grupo, incluso si hay existencias históricas.
+  Result := 'SELECT ' + sGrupo + ' AS GRUPO, ' +
+    '       COALESCE(STK.LOTE_STK, '''') AS LOTE, ' +
+    '       MIN(LOT.FECHA_ENTRADA_LOT) AS FECHA_ENTRADA, ' +
+    '       ' + IntToStr(Ord(esExistencias)) + ' AS ESTADO_NUM, ' +
+    '       COALESCE(SUM(STK.CANTIDAD_STK), 0) AS TOTAL' + sColumnas +
+    '  FROM fza_articulos_skus SKU ' +
+    '  JOIN fza_articulos_stockactual STK ' +
+    '    ON STK.CODIGO_UNIDAD_STK = SKU.CODIGO_UNIDAD_SKU ' +
+    '  LEFT JOIN fza_articulos_lotes LOT ' +
+    '    ON LOT.CODIGO_UNIDAD_LOT = STK.CODIGO_UNIDAD_STK ' +
+    '   AND LOT.LOTE_LOT = STK.LOTE_STK ' +
+    AtributosSql(ASolicitud.CodigoArticulo, 'B') +
+    ' WHERE SKU.CODIGO_ART_SKU = :ARTICULO ' +
+    '   AND STK.CODIGO_ALM_STK IN (' + ListaSql(ASolicitud.Almacenes) + ') ' +
+    '   AND ' + sColores + FiltroPestanaBase(ASolicitud) +
+    ' GROUP BY ' + sGrupo + ', COALESCE(STK.LOTE_STK, '''') ' +
+    IfThen(ASolicitud.OcultarCeros, ' HAVING ' + sHaving, '') +
+    ' ORDER BY GRUPO, (MIN(LOT.FECHA_ENTRADA_LOT) IS NULL), ' +
+    'FECHA_ENTRADA, LOTE';
+end;
+
+function TRepositorioStockConsultaUniDAC.ConsultarPartidas(
+  const ASolicitud: TSolicitudPivoteStock;
+  const ATallas: TArray<TInfoColumna>): IResultadoConsultaStock;
+var
+  Consulta: TUniQuery;
+begin
+  Consulta := NuevaConsulta;
+  try
+    Consulta.SQL.Text := ConstruirSqlPartidas(ASolicitud, ATallas);
+    Consulta.ParamByName('ARTICULO').AsString := ASolicitud.CodigoArticulo;
+    Consulta.Open;
+    Result := ResultadoConsulta(Consulta);
+    Consulta := nil;
+  finally
+    Consulta.Free;
   end;
 end;
 

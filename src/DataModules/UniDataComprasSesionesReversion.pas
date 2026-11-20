@@ -34,7 +34,7 @@ implementation
 uses
   System.SysUtils,
   Data.DB, DBAccess,
-  inLibMsgCompras;
+  inLibMsgCompras, UniDataAlbaranesCompraMovimientos;
 // Aviso de paso omitido o degradado: rastro en el log tecnico y en la
 // pestania Log de la pantalla de sesiones cuando esta activa.
 procedure AvisoPaso(ADM: TdmComprasSesiones; const ATexto: string);
@@ -291,6 +291,7 @@ begin
 end;
 
 function ConsultarDependenciasReversion(
+  AConexion: TUniConnection;
   const ALecturas: ILecturasReversionMaterializacion;
   const ADocumentos: TDocumentosReversionMaterializacion): string;
 var
@@ -306,6 +307,11 @@ begin
     sDocumento := TextoDocumento(ADocumentos[iDocumento]);
     if SameText(ADocumentos[iDocumento].Tipo, 'ALBC') then
     begin
+      if AlbaranCompraTienePartidas(AConexion, ADocumentos[iDocumento].Serie,
+        ADocumentos[iDocumento].Numero) then
+        ExigirPartidasAlbaranCompraSinUso(AConexion,
+          ADocumentos[iDocumento].Serie, ADocumentos[iDocumento].Numero,
+          'REVERSION_SESION');
       aReferencias := ALecturas.ConsultarFacturasCompraAlbaran(
         ADocumentos[iDocumento].Serie,
         ADocumentos[iDocumento].Numero);
@@ -653,6 +659,7 @@ begin
         begin
           BloquearDocumentosReversion(AConexion, oDocumentos, Tablas);
           sDependencias := ConsultarDependenciasReversion(
+            AConexion,
             ALecturas,
             oDocumentos);
         end;
@@ -722,21 +729,6 @@ begin
   else
     AvisoPaso(ADM,
       '0j-bis omitido: fza_compras_sesiones_documentos no existe');
-end;
-
-procedure BorrarMovimientosAlbaran(AQuery: TUniQuery;
-                                   const ASerieAlbaran,
-                                   ANumeroAlbaran: string);
-begin
-  if (ANumeroAlbaran <> '') and (ASerieAlbaran <> '') then
-  begin
-    AQuery.SQL.Text :=
-      'CALL PRC_FZA_MOVIMIENTOS_ALMACEN_DELETE_DOC(:t, :salb, :nalb)';
-    AQuery.ParamByName('t').AsString := 'AC';
-    AQuery.ParamByName('salb').AsString := ASerieAlbaran;
-    AQuery.ParamByName('nalb').AsString := ANumeroAlbaran;
-    AQuery.ExecSQL;
-  end;
 end;
 
 procedure BorrarPedidosSesion(ADM: TdmComprasSesiones;
@@ -892,6 +884,7 @@ begin
   begin
     BloquearDocumentosReversion(AConexion, oDocumentos, Tablas);
     sIncidencias := ConsultarDependenciasReversion(
+      AConexion,
       ALecturas,
       oDocumentos);
   end;
@@ -907,10 +900,11 @@ begin
     begin
       if SameText(oDocumentos[iDocumento].Tipo, 'ALBC') then
       begin
-        BorrarMovimientosAlbaran(
-          q,
+        RevertirRecepcionAlbaranCompra(
+          conn,
           oDocumentos[iDocumento].Serie,
-          oDocumentos[iDocumento].Numero);
+          oDocumentos[iDocumento].Numero,
+          AUsuario);
         BorrarAlbaranSesion(
           ADM,
           q,

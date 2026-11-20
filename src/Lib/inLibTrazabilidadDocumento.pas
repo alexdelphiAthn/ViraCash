@@ -61,9 +61,9 @@ function ConfiguracionLotesLineasDocumento(
 function TrazabilidadLectorDocumento(
   const ADocumento: TDocumentoTrazabilidad): TTrazabilidadLectorDocumento;
 // Columnas Lote / F. caducidad de la rejilla de líneas (LOTE_<sufijo>,
-// FECHA_CADUCIDAD_<sufijo>; sin sufijo, LOTE y FECHA_CADUCIDAD). Solo con
-// algún modo activo; no las duplica si el modo de entrada se reconstruye
-// (si ya existen, las muestra). Con AElegir, la columna Lote lleva un
+// FECHA_CADUCIDAD_<sufijo>; sin sufijo, LOTE y FECHA_CADUCIDAD). Lote
+// se muestra con trazabilidad o reposición. F. caducidad requiere que
+// estén activos los lotes y caducidades. Con AElegir, Lote lleva un
 // botón «…» que lo llama (tras cerrar el editor de la celda).
 procedure CrearColumnasLoteDocumento(AVista: TcxGridDBTableView;
   const ASufijo: string; const AActivacion: TActivacionTrazabilidad;
@@ -175,8 +175,9 @@ procedure CrearColumnasLoteDocumento(AVista: TcxGridDBTableView;
   const AElegir: TProc);
 var
   oColumna: TcxGridDBColumn;
+  bMostrarCaducidad: Boolean;
 begin
-  if AActivacion.AlgunModoActivo and Assigned(AVista) then
+  if Assigned(AVista) and AActivacion.AlgunModoActivo then
   begin
     oColumna := AVista.GetColumnByFieldName(CampoConSufijo('LOTE', ASufijo));
     if oColumna = nil then
@@ -191,21 +192,28 @@ begin
       CampoConSufijo('CODIGO_UNIDAD', ASufijo));
     if Assigned(AElegir) then
       PonerBotonElegir(AVista, oColumna, AElegir);
-    if AActivacion.Lotes then
+  end;
+  if Assigned(AVista) then
+  begin
+    bMostrarCaducidad := AActivacion.Lotes and
+      not AActivacion.LotesSoloReposicion;
+    oColumna := AVista.GetColumnByFieldName(
+      CampoConSufijo('FECHA_CADUCIDAD', ASufijo));
+    if bMostrarCaducidad and (oColumna = nil) then
     begin
-      oColumna := AVista.GetColumnByFieldName(
-        CampoConSufijo('FECHA_CADUCIDAD', ASufijo));
-      if oColumna = nil then
-      begin
-        oColumna := AVista.CreateColumn;
-        oColumna.DataBinding.FieldName :=
-          CampoConSufijo('FECHA_CADUCIDAD', ASufijo);
-        oColumna.PropertiesClass := TcxDateEditProperties;
-        oColumna.Width :=
-          AVista.Control.ScaleValue(ANCHO_COLUMNA_CADUCIDAD);
-      end;
-      oColumna.Caption := SCaptionColumnaCaducidad;
-      oColumna.Visible := True;
+      oColumna := AVista.CreateColumn;
+      oColumna.DataBinding.FieldName :=
+        CampoConSufijo('FECHA_CADUCIDAD', ASufijo);
+      oColumna.PropertiesClass := TcxDateEditProperties;
+      oColumna.Width :=
+        AVista.Control.ScaleValue(ANCHO_COLUMNA_CADUCIDAD);
+    end;
+    if Assigned(oColumna) then
+    begin
+      if bMostrarCaducidad then
+        oColumna.Caption := SCaptionColumnaCaducidad;
+      oColumna.Visible := bMostrarCaducidad;
+      oColumna.VisibleForCustomization := bMostrarCaducidad;
     end;
   end;
 end;

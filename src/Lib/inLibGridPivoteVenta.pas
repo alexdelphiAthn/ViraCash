@@ -78,6 +78,7 @@ type
     ['{4A7E19C2-6D35-4B8F-A1E0-93C5D7F2B648}']
     // Abre la fila en blanco de alta con el editor de artículo.
     procedure AnadirLineaNueva;
+    procedure CancelarEdicionPendiente;
   end;
 
   TGridPivoteVentaConfig = record
@@ -264,6 +265,7 @@ type
     procedure LimpiarAAlbaranar;
     function BorrarGrupoActual: Integer;
     procedure AnadirLineaNueva;
+    procedure CancelarEdicionPendiente;
     function ResolverEntrada(const AEntrada: string): Boolean;
   end;
 constructor TRegistroPivoteVenta.Create(
@@ -938,18 +940,19 @@ begin
         try
           oDs.Filtered := False;
           try
-            GrabarCantidadEnLineaReal(oDs, sLineaReal, AValor, ABanda);
-          except
-            // FZ-ISSUE-255: total de la línea no confirmado. Se cancela
-            // ANTES de volver a filtrar (el filtro grabaría la línea).
-            on EAbort do
-            begin
+            try
+              GrabarCantidadEnLineaReal(oDs, sLineaReal, AValor, ABanda);
+            except
+              // Volver a filtrar intentaría grabar la línea rechazada.
               if oDs.State in dsEditModes then
                 oDs.Cancel;
+              if not (ExceptObject is EAbort) then
+                raise;
               Result := False;
             end;
+          finally
+            oDs.Filtered := bFiltrado;
           end;
-          oDs.Filtered := bFiltrado;
           LocalizarLineaRealPivote(oDs, FCfg.FieldLinea, iLineaFoco);
         finally
           oDs.EnableControls;
@@ -1014,6 +1017,12 @@ begin
   Result := BorrarLineasGrupo(FPresentacion.LineaBaseFocada);
   if Result > 0 then
     RecargarYPublicar;
+end;
+
+procedure TGridPivoteVenta.CancelarEdicionPendiente;
+begin
+  FPresentacion.FinalizarAlta;
+  RecargarYPublicar;
 end;
 
 procedure TGridPivoteVenta.AnadirLineaNueva;

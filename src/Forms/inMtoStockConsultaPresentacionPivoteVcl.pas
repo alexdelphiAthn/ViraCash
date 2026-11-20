@@ -27,7 +27,7 @@ uses
   cxCurrencyEdit, cxDropDownEdit, cxGraphics, dxCoreGraphics, cxCustomData,
   cxData, cxDataStorage, cxDBData,
   cxGridCustomTableView, cxGridCustomView, cxGridDBTableView,
-  cxGridTableView, cxRadioGroup, cxStyles,
+  cxGridTableView, cxGridLevel, cxRadioGroup, cxStyles,
   inLibStockCeldaDocumento,
   inLibStockConsultaPersistenciaIntf,
   inLibStockConsultaPresentacionEstados,
@@ -74,6 +74,9 @@ type
     FRepositorio: IRepositorioPivoteStock;
     FConexion: TUniConnection;
     FResultado: IResultadoConsultaStock;
+    FNivelPartidas: TcxGridLevel;
+    FOrigenPartidas: TDataSource;
+    FResultadoPartidas: IResultadoConsultaStock;
     FColumnas: TList<TcxGridDBColumn>;
     FColumnaGrupo: TcxGridDBColumn;
     FColumnaEstado: TcxGridDBColumn;
@@ -86,6 +89,10 @@ type
     FDetalle: Boolean;
     FColumnasDetalle: TDictionary<string, TcxGridDBColumn>;
     procedure CrearColumnasDetalle;
+    procedure MostrarPartidas(const ASolicitud: TSolicitudPivoteStock;
+      const ATallas: TArray<TInfoColumna>);
+    procedure LoteGetDisplayText(Sender: TcxCustomGridTableItem;
+      ARecord: TcxCustomGridRecord; var AText: string);
     function ValorDetalle(ARegistro: TcxCustomGridRecord;
       const ACampo: string; AEstado: TEstadoStock): Double;
     procedure DibujarDetalle(ACanvas: TcxCanvas;
@@ -117,13 +124,15 @@ type
       const ARepositorio: IRepositorioPivoteStock;
       AConexion: TUniConnection);
     destructor Destroy; override;
+    procedure VincularNivelPartidas(ANivel: TcxGridLevel);
     procedure Limpiar;
     procedure ReconstruirColumnas(
       const ATallas: TArray<TInfoColumna>;
       APorColor: Boolean; AEstado: TEstadoStock;
       ADesglosado: Boolean = False);
     procedure Consultar(const ASolicitud: TSolicitudPivoteStock;
-      const ATallas: TArray<TInfoColumna>);
+      const ATallas: TArray<TInfoColumna>;
+      AMostrarPartidas: Boolean = False);
     function ListarTallas(const ACodigoArticulo: string;
       const AColores: TArray<string>): TArray<TInfoColumna>;
     procedure LeerCeldaEnfocada(var AEstado: TEstadoCeldaStock);
@@ -143,7 +152,7 @@ uses
   System.SysUtils, System.Math,
   cxLookAndFeels, cxLookAndFeelPainters,
   inLibAtributosPaleta,
-  inLibMsgArticulos;
+  inLibMsgArticulos, inLibMsgLotesConsultas, inLibMsgTrazabilidad;
 
 const
   // Conservar los tonos legacy cuando ya ofrecen contraste suficiente;
@@ -496,9 +505,8 @@ end;
 
 destructor TPresentadorPivoteStock.Destroy;
 begin
-  if FOrigen <> nil then
-    FOrigen.DataSet := nil;
-  FResultado := nil;
+  Limpiar;
+  FreeAndNil(FOrigenPartidas);
   FRepositorio := nil;
   FConexion := nil;
   FreeAndNil(FColumnasDetalle);
@@ -527,9 +535,32 @@ begin
   end;
 end;
 
+procedure TPresentadorPivoteStock.VincularNivelPartidas(
+  ANivel: TcxGridLevel);
+var
+  VistaPartidas: TcxGridDBTableView;
+begin
+  FNivelPartidas := ANivel;
+  VistaPartidas := FNivelPartidas.GridView as TcxGridDBTableView;
+  FNivelPartidas.Caption := SCaptionStockExistenciasPorPartida;
+  FOrigenPartidas := TDataSource.Create(nil);
+  VistaPartidas.DataController.DataSource := FOrigenPartidas;
+end;
+
 procedure TPresentadorPivoteStock.Limpiar;
 begin
-  FOrigen.DataSet := nil;
+  if Assigned(FNivelPartidas) then
+  begin
+    FNivelPartidas.Visible := False;
+    if Assigned(FOrigenPartidas) then
+      FOrigenPartidas.DataSet := nil;
+    FResultadoPartidas := nil;
+  end;
+  if Assigned(FOrigen) then
+  begin
+    FOrigen.DataSet := nil;
+    FVista.DataController.KeyFieldNames := '';
+  end;
   FResultado := nil;
 end;
 
@@ -553,10 +584,86 @@ end;
 
 procedure TPresentadorPivoteStock.Consultar(
   const ASolicitud: TSolicitudPivoteStock;
-  const ATallas: TArray<TInfoColumna>);
+  const ATallas: TArray<TInfoColumna>; AMostrarPartidas: Boolean);
+var
+  Resumen: TSolicitudPivoteStock;
 begin
-  FResultado := FRepositorio.Consultar(ASolicitud, ATallas);
+  Resumen := ASolicitud;
+  // Un estado a cero puede tener existencias por partida que mostrar.
+  if AMostrarPartidas and Assigned(FNivelPartidas) then
+    Resumen.OcultarCeros := False;
+  FResultado := FRepositorio.Consultar(Resumen, ATallas);
   FOrigen.DataSet := FResultado.DataSet;
+  if AMostrarPartidas and Assigned(FNivelPartidas) then
+    MostrarPartidas(ASolicitud, ATallas);
+end;
+
+procedure TPresentadorPivoteStock.MostrarPartidas(
+  const ASolicitud: TSolicitudPivoteStock;
+  const ATallas: TArray<TInfoColumna>);
+var
+  Vista: TcxGridDBTableView;
+  Fila: TcxGridMasterDataRow;
+  i: Integer;
+  sClaves: string;
+
+  function AgregarColumna(const ACampo, ATitulo: string;
+    AAncho: Integer): TcxGridDBColumn;
+  begin
+    Result := Vista.CreateColumn;
+    Result.DataBinding.FieldName := ACampo;
+    Result.Caption := ATitulo;
+    Result.Width := EscalarAncho(AAncho);
+  end;
+
+  procedure AgregarCantidad(const ACampo, ATitulo: string);
+  var
+    Columna: TcxGridDBColumn;
+  begin
+    Columna := AgregarColumna(ACampo, ATitulo, 72);
+    Columna.PropertiesClassName := 'TcxCurrencyEditProperties';
+    TcxCurrencyEditProperties(Columna.Properties).DisplayFormat :=
+      FORMATO_CANTIDAD_STOCK;
+    Columna.HeaderAlignmentHorz := taCenter;
+  end;
+begin
+  FResultadoPartidas := FRepositorio.ConsultarPartidas(ASolicitud, ATallas);
+  Vista := FNivelPartidas.GridView as TcxGridDBTableView;
+  Vista.ClearItems;
+  AgregarColumna('LOTE', SCaptionColLotesLote, 180).OnGetDisplayText :=
+    LoteGetDisplayText;
+  AgregarColumna('FECHA_ENTRADA', SCaptionColLotesEntrada, 96);
+  for i := 0 to High(ATallas) do
+    AgregarCantidad(CampoTallaPivoteStock(i), ATallas[i].Texto);
+  AgregarCantidad('TOTAL', SCaptionColTotal);
+  sClaves := 'GRUPO';
+  AgregarColumna('GRUPO', '', 64).Visible := False;
+  // En el resumen por estados, vincular las partidas solo a Existencias.
+  if FEsModoTodo and not FDetalle then
+  begin
+    sClaves := sClaves + ';ESTADO_NUM';
+    AgregarColumna('ESTADO_NUM', '', 64).Visible := False;
+  end;
+  FVista.DataController.KeyFieldNames := sClaves;
+  Vista.DataController.MasterKeyFieldNames := sClaves;
+  Vista.DataController.DetailKeyFieldNames := sClaves;
+  Vista.DataController.KeyFieldNames := 'GRUPO;LOTE';
+  FOrigenPartidas.DataSet := FResultadoPartidas.DataSet;
+  FNivelPartidas.Visible := True;
+  for i := 0 to FVista.ViewData.RecordCount - 1 do
+  begin
+    Fila := FVista.ViewData.Records[i] as TcxGridMasterDataRow;
+    if Fila.DetailGridViewHasData[0] then
+      Fila.Expand(False);
+  end;
+end;
+
+procedure TPresentadorPivoteStock.LoteGetDisplayText(
+  Sender: TcxCustomGridTableItem; ARecord: TcxCustomGridRecord;
+  var AText: string);
+begin
+  if AText = '' then
+    AText := SCaptionSinLote;
 end;
 
 procedure TPresentadorPivoteStock.ConfigurarColumnaDatos(

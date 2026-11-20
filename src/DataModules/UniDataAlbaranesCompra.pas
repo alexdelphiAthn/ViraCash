@@ -90,6 +90,13 @@ type
     // FinalizarReorganizacionLineas para no regenerarlos por linea.
     FReorganizandoLineas: Integer;
     FReorganizacionPendiente: Boolean;
+    FEscrituraRecepcion: TDataSet;
+    FNivelEscrituraRecepcion: Integer;
+    FTransaccionEscrituraPropia: Boolean;
+    FRevisionesConfirmadas: TDictionary<string, Int64>;
+    FClaveRevisionEnCurso: string;
+    FRevisionEnCurso: Int64;
+    FClaveRecepcionObsoleta: string;
     // F-LOTEC-013: lote o serie de las líneas (nil = sin
     // trazabilidad, como siempre).
     FLotesLineas: TLotesLineasDocumento;
@@ -102,6 +109,15 @@ type
     procedure RefrescarMovimientosProveedor;
     procedure CopiarEmpresaaAlbaranCompra(DataSet: TDataSet);
     procedure ValidarAlmacenCabecera;
+    procedure ValidarEdicionRecepcion(DataSet: TDataSet);
+    function RevisionCargada(const ASerie, ANumero: string): Int64;
+    procedure ClaveRecepcionCargada(out ASerie, ANumero: string);
+    function ReservarRevisionRecepcion(const ASerie, ANumero: string): Int64;
+    procedure IniciarEscrituraRecepcion(DataSet: TDataSet);
+    procedure ConfirmarEscrituraRecepcion(DataSet: TDataSet);
+    procedure CancelarEscrituraRecepcion(DataSet: TDataSet);
+    procedure ErrorEscrituraRecepcion(DataSet: TDataSet; E: EDatabaseError;
+      var Action: TDataAction);
   public
     procedure LineaCircuitoBeforeDelete(DataSet: TDataSet);
     destructor Destroy; override;
@@ -115,6 +131,9 @@ type
     function HayRecepcionSinConfirmar: Boolean;
     function TieneEntradasStock: Boolean;
     procedure ConfirmarRecepcion;
+    procedure ExigirRecepcionEditable;
+    function RecepcionObsoleta: Boolean;
+    procedure DescartarYRecargarRecepcion;
     // Bracket de reorganizacion masiva de lineas (construccion del modo
     // de entrada): entre Iniciar y Finalizar los posts de linea no
     // recalculan totales ni revierten/regeneran movimientos; se hace
@@ -180,7 +199,7 @@ uses
   UniDataArticulosValidadorRepositorio,
   inLibMsgArticulos, inLibMsgCompras, inLibMsgVentas,
   inLibDocumento, inLibDocumentoIntf,
-  UniDataDatosProveedorDocumento;
+  UniDataDatosProveedorDocumento, inLibErroresBBDD;
 
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 
@@ -203,6 +222,10 @@ end;
 
 procedure TdmAlbaranesCompra.ConfigurarSqlCabecera;
 const
+  SQL_CABECERA =
+    'SELECT V.*, (SELECT A.REVISION_ALBC FROM fza_albaranes_compra A ' +
+    'WHERE A.SERIE_ALBC = V.SERIE_ALBC AND A.NUMERO_ALBC = V.NUMERO_ALBC) ' +
+    'AS REVISION_EDICION FROM vi_albaranes_compra V ';
   CAMPOS_ALBC: array[0..80] of string = (
     'NUMERO_ALBC',
     'SERIE_ALBC',
@@ -315,6 +338,8 @@ var
   end;
 
 begin
+  unqryTablaG.SQL.Text := SQL_CABECERA +
+    'ORDER BY V.INSTANTE_MOVIMIENTO_ALBC DESC, V.NUMERO_ALBC DESC';
   unqryTablaG.SQLDelete.Text :=
     'DELETE FROM fza_albaranes_compra ' + sLineBreak +
     'WHERE NUMERO_ALBC = :Old_NUMERO_ALBC ' + sLineBreak +
@@ -346,8 +371,7 @@ begin
   // desde 20261005_compras_prendas_solo_unidades.sql); pedirlo además a la
   // tabla duplicaba la columna (MariaDB 1060).
   unqryTablaG.SQLRefresh.Text :=
-    'SELECT V.* ' + sLineBreak +
-    '  FROM vi_albaranes_compra V ' + sLineBreak +
+    SQL_CABECERA +
     ' WHERE V.NUMERO_ALBC = :NUMERO_ALBC ' + sLineBreak +
     '   AND V.SERIE_ALBC = :SERIE_ALBC';
 end;
@@ -355,7 +379,14 @@ end;
 procedure TdmAlbaranesCompra.DataModuleCreate(Sender: TObject);
 begin
   inherited;
+  FRevisionesConfirmadas := TDictionary<string, Int64>.Create;
+  unqryTablaG.BeforeEdit := ValidarEdicionRecepcion;
+  unqryAlbaranesCompraLineas.BeforeEdit := ValidarEdicionRecepcion;
+  unqryAlbaranesCompraLineas.BeforeInsert := ValidarEdicionRecepcion;
   unqryAlbaranesCompraLineas.BeforeDelete := LineaCircuitoBeforeDelete;
+  unqryAlbaranesCompraLineas.OnDeleteError := ErrorEscrituraRecepcion;
+  unqryAlbaranesCompraLineas.OnPostError := ErrorEscrituraRecepcion;
+  unqryTablaG.OnPostError := ErrorEscrituraRecepcion;
   // FZ-ISSUE-154: el borrado de la cabecera, todo o nada.
   unqryTablaG.AfterDelete := ConfirmarBorradoTransaccional;
   unqryTablaG.OnDeleteError := ErrorBorradoTransaccional;
@@ -511,6 +542,8 @@ procedure TdmAlbaranesCompra.unqryTablaGAfterOpen(DataSet: TDataSet);
 var
   oCampoInstante: TField;
 begin
+  FRevisionesConfirmadas.Clear;
+  DataSet.FieldByName('REVISION_EDICION').Visible := False;
   // El instante llega en vi_albaranes_compra (garantizado por
   // 20261006_vi_albaranes_compra_instante.sql) y la vista lo marca como
   // solo lectura. Los DML explicitos si lo guardan en la tabla base.
@@ -688,15 +721,23 @@ begin
     CrearLecturasImpuestos(ConexionEscritura), unqryTablaG,
     'ALBC');
   CalcularTotalesAlbaranCompra;
+  if DataSet.State = dsEdit then
+    IniciarEscrituraRecepcion(DataSet);
 end;
 
-// Tras persistir la cabecera, reconstruimos los movimientos AC desde el
-// documento actual. Cualquier excepcion se propaga al usuario (el Post
-// original ya quedo aplicado, por lo que debe revisar y reintentar).
 procedure TdmAlbaranesCompra.unqryTablaGAfterPost(DataSet: TDataSet);
 begin
-  inherited;
-  SincronizarMovimientos;
+  try
+    inherited;
+    if FEscrituraRecepcion <> nil then
+      FClaveRevisionEnCurso := DataSet.FieldByName('SERIE_ALBC').AsString +
+        #0 + DataSet.FieldByName('NUMERO_ALBC').AsString;
+    SincronizarMovimientos;
+    ConfirmarEscrituraRecepcion(DataSet);
+  except
+    CancelarEscrituraRecepcion(DataSet);
+    raise;
+  end;
 end;
 
 procedure TdmAlbaranesCompra.unqryTablaGBeforeDelete(DataSet: TDataSet);
@@ -769,6 +810,7 @@ begin
       NotificarAdvertencia(SAvisoAlbaranCompraFacturado);
       Abort;
     end;
+    ExigirRecepcionEditable;
     if not SolicitarConfirmacion(
       Format(SPreguntaBorrarAlbaranCompra,
         [sSerie, sNumero])) then
@@ -777,9 +819,9 @@ begin
     end;
     IniciarBorradoTransaccional;
     try
-      inLibAlbaranesCompraMovimientos.RevertirMovimientosDesdeAlbaranCompra(
-        CrearMovimientosAlbaranCompraUniDAC(unqryTablaG.Connection),
-        sSerie, sNumero, IdentidadSesion.Usuario);
+      ReservarRevisionRecepcion(sSerie, sNumero);
+      RevertirRecepcionAlbaranCompra(q.Connection, sSerie, sNumero,
+        IdentidadSesion.Usuario);
       q.SQL.Text :=
         'DELETE FROM fza_albaranes_compra_celdas ' +
         ' WHERE SERIE_ALBC_ALBCCEL  = :s ' +
@@ -911,16 +953,18 @@ begin
       SErrorProveedorNoSeleccionadoBuscarArticulos);
     Abort;
   end;
-  AsignarNumeroLineaAlbaranCompra(DataSet);
-  // Acepta articulo, SKU, codigo de barras o referencia de proveedor.
-  NormalizarArticuloSkuEnDataSet(ConexionEscritura,
+  IniciarEscrituraRecepcion(DataSet);
+  try
+    AsignarNumeroLineaAlbaranCompra(DataSet);
+    // Acepta articulo, SKU, codigo de barras o referencia de proveedor.
+    NormalizarArticuloSkuEnDataSet(ConexionEscritura,
       unqryAlbaranesCompraLineas, 'CODIGO_ART_ALBCLIN',
       'CODIGO_UNIDAD_ALBCLIN');
-  // FZ-ISSUE-520: un SKU dado de baja no recibe existencias.
-  ExigirSkuActivoEnDataSet(ConexionEscritura, unqryAlbaranesCompraLineas,
-    'CODIGO_ART_ALBCLIN', 'CODIGO_UNIDAD_ALBCLIN', SErrorSkuCompraNoActivo);
-  PrepararReposicionLinea(ConexionEscritura, unqryAlbaranesCompraLineas,
-    'ALBCLIN', IdentidadSesion.Usuario, ParametrosApp);
+    // FZ-ISSUE-520: un SKU dado de baja no recibe existencias.
+    ExigirSkuActivoEnDataSet(ConexionEscritura, unqryAlbaranesCompraLineas,
+      'CODIGO_ART_ALBCLIN', 'CODIGO_UNIDAD_ALBCLIN', SErrorSkuCompraNoActivo);
+    PrepararReposicionLinea(ConexionEscritura, unqryAlbaranesCompraLineas,
+      'ALBCLIN', IdentidadSesion.Usuario, ParametrosApp);
     // F-LOTEC-013: antes de los totales (una serie deja la línea en 1).
     if Assigned(FLotesLineas) then
       FLotesLineas.AntesDePostLinea(unqryAlbaranesCompraLineas,
@@ -975,9 +1019,13 @@ begin
         unqrySkusAlbc.Close;
       end;
     end;
-  PrepararLineaFiscalCompra(CrearLecturasImpuestos(ConexionEscritura),
-    unqryTablaG,
-    unqryAlbaranesCompraLineas, 'ALBC', 'ALBCLIN', 'TOTAL_ALBCLIN');
+    PrepararLineaFiscalCompra(CrearLecturasImpuestos(ConexionEscritura),
+      unqryTablaG,
+      unqryAlbaranesCompraLineas, 'ALBC', 'ALBCLIN', 'TOTAL_ALBCLIN');
+  except
+    CancelarEscrituraRecepcion(DataSet);
+    raise;
+  end;
   end;
 end;
 
@@ -1026,6 +1074,7 @@ end;
 
 destructor TdmAlbaranesCompra.Destroy;
 begin
+  FreeAndNil(FRevisionesConfirmadas);
   FreeAndNil(FLotesLineas);
   inherited;
 end;
@@ -1061,32 +1110,44 @@ end;
 procedure TdmAlbaranesCompra.unqryAlbaranesCompraLineasAfterPost(
                                                        DataSet: TDataSet);
 begin
-  inherited;
-  // Antes de copiar lotes pendientes: el cursor cambiará de línea.
-  GenerarCodigoLoteLinea(TUniQuery(DataSet).Connection, DataSet,
-    'ALBCLIN', IdentidadSesion.Usuario, ParametrosApp);
-  if Assigned(FLotesLineas) then
-    FLotesLineas.DespuesDePostLinea;
-  CalcularTotalesAlbaranCompra;
-  // Si los totales han dejado la cabecera en edicion, su Post ejecutara
-  // unqryTablaGAfterPost y reconstruira los movimientos una sola vez. Si
-  // los importes no han cambiado (p. ej. cambia un SKU manteniendo cantidad
-  // y precio), la cabecera sigue en Browse y hay que sincronizar aqui.
-  if unqryTablaG.State in dsEditModes then
-    unqryTablaG.Post
-  else
-    SincronizarMovimientos;
+  try
+    inherited;
+    // Antes de copiar lotes pendientes: el cursor cambiará de línea.
+    GenerarCodigoLoteLinea(TUniQuery(DataSet).Connection, DataSet,
+      'ALBCLIN', IdentidadSesion.Usuario, ParametrosApp);
+    if Assigned(FLotesLineas) then
+      FLotesLineas.DespuesDePostLinea;
+    CalcularTotalesAlbaranCompra;
+    // Si los totales han dejado la cabecera en edicion, su Post ejecutara
+    // unqryTablaGAfterPost y reconstruira los movimientos una sola vez. Si
+    // los importes no han cambiado (p. ej. cambia un SKU manteniendo cantidad
+    // y precio), la cabecera sigue en Browse y hay que sincronizar aqui.
+    if unqryTablaG.State in dsEditModes then
+      unqryTablaG.Post
+    else
+      SincronizarMovimientos;
+    ConfirmarEscrituraRecepcion(DataSet);
+  except
+    CancelarEscrituraRecepcion(DataSet);
+    raise;
+  end;
 end;
 
 procedure TdmAlbaranesCompra.unqryAlbaranesCompraLineasAfterDelete(
                                                        DataSet: TDataSet);
 begin
-  inherited;
-  CalcularTotalesAlbaranCompra;
-  if unqryTablaG.State in dsEditModes then
-    unqryTablaG.Post
-  else
-    SincronizarMovimientos;
+  try
+    inherited;
+    CalcularTotalesAlbaranCompra;
+    if unqryTablaG.State in dsEditModes then
+      unqryTablaG.Post
+    else
+      SincronizarMovimientos;
+    ConfirmarEscrituraRecepcion(DataSet);
+  except
+    CancelarEscrituraRecepcion(DataSet);
+    raise;
+  end;
 end;
 
 procedure TdmAlbaranesCompra.GetCodigoAutoAlbaranCompra;
@@ -1488,6 +1549,171 @@ begin
   ExigirDocumentoOrdenEditable(ConexionEscritura,
     DataSet.FieldByName('SERIE_ALBC_ALBCLIN').AsString,
     DataSet.FieldByName('NUMERO_ALBC_ALBCLIN').AsString, True);
+  IniciarEscrituraRecepcion(DataSet);
+end;
+
+procedure TdmAlbaranesCompra.ValidarEdicionRecepcion(DataSet: TDataSet);
+begin
+  ExigirRecepcionEditable;
+end;
+
+procedure TdmAlbaranesCompra.ExigirRecepcionEditable;
+var
+  Conexion: TUniConnection;
+  Serie, Numero: string;
+begin
+  // La lectura de la ficha puede completar atributos descriptivos del SKU.
+  if not FDesempaquetandoAtributos and unqryTablaG.Active and
+     not unqryTablaG.IsEmpty and (unqryTablaG.State <> dsInsert) then
+  begin
+    Conexion := ConexionEscritura;
+    Serie := unqryTablaG.FieldByName('SERIE_ALBC').AsString;
+    Numero := unqryTablaG.FieldByName('NUMERO_ALBC').AsString;
+    if AlbaranCompraTienePartidas(Conexion, Serie, Numero) then
+      ExigirPartidasAlbaranCompraSinUso(Conexion, Serie, Numero,
+        IdentidadSesion.Usuario);
+  end;
+end;
+
+function TdmAlbaranesCompra.RevisionCargada(
+  const ASerie, ANumero: string): Int64;
+var
+  Confirmada: Int64;
+begin
+  Result := unqryTablaG.FieldByName('REVISION_EDICION').AsLargeInt;
+  // El Post de una línea puede confirmar una revisión sin volver a
+  // cargar la cabecera del navegador. Las lecturas más recientes mandan.
+  if FRevisionesConfirmadas.TryGetValue(ASerie + #0 + ANumero, Confirmada)
+     and (Confirmada > Result) then
+    Result := Confirmada;
+end;
+
+procedure TdmAlbaranesCompra.ClaveRecepcionCargada(out ASerie, ANumero: string);
+begin
+  if unqryTablaG.State = dsEdit then
+  begin
+    ASerie := VarToStr(unqryTablaG.FieldByName('SERIE_ALBC').OldValue);
+    ANumero := VarToStr(unqryTablaG.FieldByName('NUMERO_ALBC').OldValue);
+  end
+  else
+  begin
+    ASerie := unqryTablaG.FieldByName('SERIE_ALBC').AsString;
+    ANumero := unqryTablaG.FieldByName('NUMERO_ALBC').AsString;
+  end;
+end;
+
+function TdmAlbaranesCompra.ReservarRevisionRecepcion(
+  const ASerie, ANumero: string): Int64;
+var
+  Revision: Int64;
+begin
+  Revision := RevisionCargada(ASerie, ANumero);
+  try
+    ReservarRevisionAlbaranCompra(ConexionEscritura, ASerie, ANumero,
+      Revision);
+    Result := Revision + 1;
+  except
+    on E: ERevisionAlbaranCompraObsoleta do
+    begin
+      FClaveRecepcionObsoleta := ASerie + #0 + ANumero;
+      raise;
+    end;
+  end;
+end;
+
+function TdmAlbaranesCompra.RecepcionObsoleta: Boolean;
+var
+  Serie, Numero: string;
+begin
+  Result := False;
+  if (FClaveRecepcionObsoleta <> '') and unqryTablaG.Active and
+     not unqryTablaG.IsEmpty and (unqryTablaG.State <> dsInsert) then
+  begin
+    ClaveRecepcionCargada(Serie, Numero);
+    Result := FClaveRecepcionObsoleta = (Serie + #0 + Numero);
+  end;
+end;
+
+procedure TdmAlbaranesCompra.DescartarYRecargarRecepcion;
+begin
+  // Cancelar primero los detalles: refrescar la cabecera puede hacer
+  // que UniDAC intente grabarlos al sincronizar el maestro y el detalle.
+  CancelarDatasets(Self, unqryTablaG);
+  FRevisionesConfirmadas.Remove(FClaveRecepcionObsoleta);
+  unqryTablaG.Refresh;
+  if unqryAlbaranesCompraLineas.Active then
+    unqryAlbaranesCompraLineas.Refresh;
+  FClaveRecepcionObsoleta := '';
+end;
+
+procedure TdmAlbaranesCompra.IniciarEscrituraRecepcion(DataSet: TDataSet);
+var
+  Conexion: TUniConnection;
+  Serie, Numero: string;
+begin
+  if FEscrituraRecepcion = DataSet then
+    Inc(FNivelEscrituraRecepcion)
+  else if (FEscrituraRecepcion = nil) and
+          (unqryTablaG.State <> dsInsert) then
+  begin
+    Conexion := ConexionEscritura;
+    ClaveRecepcionCargada(Serie, Numero);
+    FTransaccionEscrituraPropia := not Conexion.InTransaction;
+    if FTransaccionEscrituraPropia then
+      Conexion.StartTransaction;
+    FEscrituraRecepcion := DataSet;
+    FNivelEscrituraRecepcion := 1;
+    try
+      FRevisionEnCurso := ReservarRevisionRecepcion(Serie, Numero);
+      FClaveRevisionEnCurso := Serie + #0 + Numero;
+      if not BloquearAlbaranCompra(Conexion, Serie, Numero) then
+        raise EValidacionBBDD.Create(SErrorAlbaranCompraNoActivo);
+      if AlbaranCompraTienePartidas(Conexion, Serie, Numero) then
+        ExigirPartidasAlbaranCompraSinUso(Conexion, Serie, Numero,
+          IdentidadSesion.Usuario);
+    except
+      CancelarEscrituraRecepcion(DataSet);
+      raise;
+    end;
+  end;
+end;
+
+procedure TdmAlbaranesCompra.ConfirmarEscrituraRecepcion(DataSet: TDataSet);
+begin
+  if FEscrituraRecepcion = DataSet then
+  begin
+    Dec(FNivelEscrituraRecepcion);
+    if FNivelEscrituraRecepcion = 0 then
+    begin
+      if FTransaccionEscrituraPropia then
+      begin
+        ConexionEscritura.Commit;
+        FRevisionesConfirmadas.AddOrSetValue(
+          FClaveRevisionEnCurso, FRevisionEnCurso);
+      end;
+      FEscrituraRecepcion := nil;
+      if FTransaccionEscrituraPropia then
+        SolicitarProcesadoPrestaShop;
+    end;
+  end;
+end;
+
+procedure TdmAlbaranesCompra.CancelarEscrituraRecepcion(DataSet: TDataSet);
+begin
+  if FEscrituraRecepcion = DataSet then
+  begin
+    FEscrituraRecepcion := nil;
+    FNivelEscrituraRecepcion := 0;
+    if FTransaccionEscrituraPropia and ConexionEscritura.InTransaction then
+      ConexionEscritura.Rollback;
+  end;
+end;
+
+procedure TdmAlbaranesCompra.ErrorEscrituraRecepcion(DataSet: TDataSet;
+  E: EDatabaseError; var Action: TDataAction);
+begin
+  CancelarEscrituraRecepcion(DataSet);
+  Action := daFail;
 end;
 
 initialization

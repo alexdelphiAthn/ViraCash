@@ -80,6 +80,7 @@ type
     pnlCabecera   : TPanel;
       btnOperacionesCaja: TcxButton;
       btnMovimientos: TcxButton;
+      btnPorLote: TcxButton;
       lblArt        : TcxLabel;
       btnArt        : TcxButtonEdit;
       lblDescr      : TcxLabel;
@@ -106,6 +107,8 @@ type
     grdStock      : TcxGrid;
     tvStock       : TcxGridDBTableView;
     glStock       : TcxGridLevel;
+    glPartidas    : TcxGridLevel;
+    tvPartidas    : TcxGridDBTableView;
     pnlLeyenda    : TPanel;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -119,7 +122,6 @@ type
     procedure btnOperacionesCajaClick(Sender: TObject);
     procedure btnMovimientosClick(Sender: TObject);
     procedure btnPorLoteClick(Sender: TObject);
-    procedure CrearBotonPorLote;
     procedure cbbEstadoPropertiesEditValueChanged(Sender: TObject);
     procedure lstAlmacenesClick(Sender: TObject);
     procedure lstColoresClick(Sender: TObject);
@@ -143,7 +145,8 @@ type
     FPopMenuStock: TPopupMenu;
     FMenuAgregarDoc: TMenuItem;
     FEventosLector: TApplicationEvents;
-    btnPorLote: TcxButton;
+    FArticuloConPartidas: Boolean;
+    FMostrarPorLote: Boolean;
     procedure MensajeLector(var Msg: TMsg; var Handled: Boolean);
     procedure FormKeyPress(Sender: TObject; var Key: Char);
     procedure FormShortCut(var Msg: TWMKey; var Handled: Boolean);
@@ -198,7 +201,6 @@ procedure DesvincularPerfilesStockConsulta;
 implementation
 
 uses
-  UniDataReposicionAutomatica,
   inLibMensajesVcl,
   inLibGenBusq, inLibUser,
   inLibRegistroPantallas,
@@ -216,8 +218,7 @@ uses
   inLibStockConsultaPresentacionEstados,
   inLibTraspasosPendientesTexto, UniDataTraspasosPendientesConsulta,
   inMtoModalMensajeTexto,
-  inLibShowMto, inLibTrazabilidad, inLibMsgLotesConsultas,
-  inMtoLotesCaducidades;
+  inLibShowMto, inLibMsgLotesConsultas;
 
 {$R *.dfm}
 
@@ -295,6 +296,7 @@ begin
       TfrmStockConsulta,
       Application) as TfrmStockConsulta;
   // Cada apertura empieza en existencias; el detalle se elige en pantalla.
+  Formulario.FMostrarPorLote := False;
   Formulario.FEstados.AplicarModo(False);
   Formulario.FEstados.MarcarModoEnRadios;
   Formulario.SetArticuloSku(ACodArt, ACodSku);
@@ -399,30 +401,10 @@ begin
   FDependencias.Lector.OnCodigoLeido := LectorCodigoLeido;
   FEventosLector := TApplicationEvents.Create(Self);
   FEventosLector.OnMessage := MensajeLector;
+  btnPorLote.Caption := SCaptionStockPorLote;
   CrearPresentadores;
   FFiltrosLista.CargarAlmacenes;
   AjustarFotoCabecera;
-  CrearBotonPorLote;
-end;
-
-// F-LOTEC-018: con trazabilidad, el stock del artículo por lote, serie
-// o temporada se ve en «Lotes y caducidades» (junto a Movimientos).
-procedure TfrmStockConsulta.CrearBotonPorLote;
-begin
-  if Assigned(ParametrosApp) and
-     ActivacionVisualReposicion(ConexionPrincipal,
-       ParametrosApp).AlgunModoActivo then
-  begin
-    btnPorLote := TcxButton.Create(Self);
-    btnPorLote.Parent := btnMovimientos.Parent;
-    btnPorLote.SetBounds(
-      btnMovimientos.Left + btnMovimientos.Width +
-        (btnMovimientos.Left - btnOperacionesCaja.Left -
-         btnOperacionesCaja.Width),
-      btnMovimientos.Top, btnMovimientos.Width, btnMovimientos.Height);
-    btnPorLote.Caption := SCaptionStockPorLote;
-    btnPorLote.OnClick := btnPorLoteClick;
-  end;
 end;
 
 // Compone los colaboradores de la pantalla en el orden que exige la vista:
@@ -438,6 +420,7 @@ begin
     FDependencias.Catalogos);
   FPivote := TPresentadorPivoteStock.Create(
     Self, tvStock, FDependencias.Pivote, ConexionPrincipal);
+  FPivote.VincularNivelPartidas(glPartidas);
   FPestanas := TControlPestanasEje.Create(Self, pnlDer,
     procedure(const ACodigo: string)
     begin
@@ -707,7 +690,9 @@ var
   Linea: TDocTrabajoLineaOrigen;
   sMensaje: string;
 begin
-  if ResolverCeldaDocumentoTrabajo(Linea, sMensaje) then
+  if Assigned(grdStock.FocusedView) and grdStock.FocusedView.IsDetail then
+    AvisarCeldaDocumentoTrabajo(SErrorCeldaTallaStockNoSeleccionada)
+  else if ResolverCeldaDocumentoTrabajo(Linea, sMensaje) then
   begin
     try
       AgregarLineaADocumentoTrabajo(Linea);
@@ -840,7 +825,8 @@ begin
   sGrupo := '';
   if not FVista.HayArticulo then
     AMensaje := SErrorArticuloStockNoSeleccionadoOperaciones
-  else if not FPivote.HayFilaEnfocada then
+  else if (Assigned(grdStock.FocusedView) and
+           grdStock.FocusedView.IsDetail) or not FPivote.HayFilaEnfocada then
     AMensaje := SErrorCeldaTallaStockNoSeleccionada
   else if not FPivote.HayColumnaEnfocada then
     AMensaje := SErrorCeldaTallaStockNoSeleccionada
@@ -896,18 +882,9 @@ begin
 end;
 
 procedure TfrmStockConsulta.btnPorLoteClick(Sender: TObject);
-var
-  sArticulo: string;
 begin
-  sArticulo := FVista.CodigoArticulo;
-  // FZ-ISSUE-601: la consulta flotante no es anfitriona de pantallas;
-  // la abre el principal, como en las demás ventanas flotantes.
-  ShowMto(Application.MainForm, 'LotesCaducidades', '',
-    procedure(AFormulario: TForm)
-    begin
-      if AFormulario is TfrmMtoLotesCaducidades then
-        TfrmMtoLotesCaducidades(AFormulario).FiltrarArticulo(sArticulo);
-    end);
+  FMostrarPorLote := not FMostrarPorLote;
+  RecargarConsulta;
 end;
 
 procedure TfrmStockConsulta.btnMovimientosClick(Sender: TObject);
@@ -1105,6 +1082,7 @@ begin
   FCoincidencias.Ocultar;
   FFotos.FijarArticulo(ACodArt);
   bArticuloEncontrado := False;
+  FArticuloConPartidas := False;
   // Cambiar de articulo con una pestana de fotos activa devuelve la vista
   // al pivote, que es lo que el usuario espera ver del articulo nuevo.
   if FFotos.DimensionActiva(Dimension) then
@@ -1133,6 +1111,9 @@ begin
       FVista.CodigoArticulo,
       FVista.CodigoSku);
     CargarPropsPorColor;
+    if bArticuloEncontrado then
+      FArticuloConPartidas :=
+        FDependencias.Pivote.HayPartidasArticulo(ACodArt);
   except
     on E: Exception do
       MostrarError(E.Message);
@@ -1144,6 +1125,8 @@ begin
   if bArticuloEncontrado then
     FHistorial.Registrar(ACodArt);
   FHistorial.ActualizarBotones;
+  if not FArticuloConPartidas then
+    FMostrarPorLote := False;
   RecargarConsulta;
 end;
 
@@ -1235,13 +1218,19 @@ end;
 // ---------------------------------------------------------------------------
 procedure TfrmStockConsulta.RecargarConsulta;
 var
-  bPorColor: Boolean;
+  bPorColor, bVistaFotos: Boolean;
   Dimension: TDimensionFotos;
   Solicitud: TSolicitudPivoteStock;
   Tallas: TArray<TInfoColumna>;
 begin
   FPivote.Limpiar;
-  if FFotos.DimensionActiva(Dimension) then
+  bVistaFotos := FFotos.DimensionActiva(Dimension);
+  btnPorLote.Visible := FArticuloConPartidas and not bVistaFotos;
+  if FMostrarPorLote then
+    btnPorLote.Caption := SCaptionStockLotesAgrupados
+  else
+    btnPorLote.Caption := SCaptionStockPorLote;
+  if bVistaFotos then
   begin
     FFotos.MostrarVista(True);
     try
@@ -1283,7 +1272,7 @@ begin
         else
           FPestanas.Ocultar;
         Solicitud.Pestana := FPestanas.CodigoSeleccionado;
-        FPivote.Consultar(Solicitud, Tallas);
+        FPivote.Consultar(Solicitud, Tallas, FMostrarPorLote);
       except
         on E: Exception do
         begin

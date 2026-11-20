@@ -290,7 +290,7 @@ begin
     ParametrosCaja.TarifaDefecto);
   AResumen.Anadir(
     SResumenBalanceValoracion,
-    SResumenBalanceValoracionCriterio);
+    SResumenBalanceValoracionPartidas);
   if (FchkResumen <> nil) and FchkResumen.Checked then
   begin
     AResumen.Anadir(SInformePresentacion, SInformeResumenColumnas);

@@ -311,7 +311,7 @@ begin
   sPropiedades := 'NULL';
   if AConfig.Sentido = sdVenta then
     sPropiedades := SqlPropiedadesLinea('L.CODIGO_ART' + sSufijo,
-      'L.CODIGO_UNIDAD' + sSufijo);
+      'L.CODIGO_UNIDAD' + sSufijo, AConfig.TipoDocumento = tdPresupuesto);
   // Desglose por talla solo si la linea lleva varias; con una, la talla
   // es la del SKU y el desglose repetiria (o contradiria) la variante.
   sTallas := '(CASE WHEN ' + VariasTallas(AConfig) +

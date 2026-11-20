@@ -90,6 +90,11 @@ resourcestring
   SCaptionSinLote = '(sin lote)';
   SCabeceraSeleccionLote = '%s  %s · Almacén %s · Pide %s';
   SPieSeleccionLote = 'Elegido: %s de %s';
+  // FZ-ISSUE-1064: se ha elegido más de lo que pedía la línea; al aceptar
+  // la línea (y sus copias por lote) suma lo elegido. %0:s = elegido,
+  // %1:s = lo que pedía.
+  SPieSeleccionLoteMas =
+    'Elegido: %0:s (la línea pedía %1:s y pasará a %0:s)';
   SCaptionLeerSerieSeleccion = 'Leer serie:';
   SAvisoSinExistenciasLote =
     'No hay existencias de este artículo en el almacén %s.';

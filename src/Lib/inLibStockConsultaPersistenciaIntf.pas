@@ -103,6 +103,10 @@ type
     function Consultar(
       const ASolicitud: TSolicitudPivoteStock;
       const ATallas: TArray<TInfoColumna>): IResultadoConsultaStock;
+    function HayPartidasArticulo(const ACodigoArticulo: string): Boolean;
+    function ConsultarPartidas(
+      const ASolicitud: TSolicitudPivoteStock;
+      const ATallas: TArray<TInfoColumna>): IResultadoConsultaStock;
     // Valores de pestañas del artículo con su total para el estado,
     // almacenes y colores de la solicitud (se ignora su Pestana). Sin
     // eje de pestañas, el modelo va vacío.

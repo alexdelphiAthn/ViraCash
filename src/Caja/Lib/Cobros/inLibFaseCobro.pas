@@ -140,12 +140,14 @@ type
     FEsClienteVarios: Boolean;
     FContactoApartado: TContactoApartado;
     FCalculandoTotales: Boolean;
+    FHayPagoNegativo: Boolean;
     FOnRecalculado: TNotifyEvent;
     FOnRequiereReferencia: TFunc<TFormaPagoInfo, TDatosReferencia, Boolean>;
     procedure CalcularTotales;
     procedure AplicarResultadoTotales(
       const AResultado: TResultadoTotalesCobro);
-    function LeerEntradaTotales: TEntradaTotalesCobro;
+    function LeerEntradaTotales(
+      out AHayPagoNegativo: Boolean): TEntradaTotalesCobro;
     procedure LimpiarPagosCubiertosPorVales(
       var AEntrada: TEntradaTotalesCobro);
     procedure InicializarTotalesPorDefecto;
@@ -209,7 +211,10 @@ type
     // abre el cajón (el efectivo); con solo tarjeta no hay que abrirlo.
     function AlgunPagoAbreCajon: Boolean;
     function TieneArticulosDevueltos: Boolean;
+    function ImporteDevolucionParaCredito: Currency;
+    function EsCobroSoloDepositos: Boolean;
     function ValidarParaCobro: TResultadoValidacion;
+    function ValidarSignoPagos: TResultadoValidacion;
     function ObtenerDatosPagosParaGrabar: TArray<TFormaPagoItem>;
     procedure Recalcular;
     property ImporteBruto: Currency read FImporteBruto;
@@ -222,6 +227,7 @@ type
     property ImporteEntregado: Currency read FImporteEntregado;
     property ImportePendiente: Currency read FImportePendiente;
     property ImporteCambio: Currency read FImporteCambio;
+    property ImporteExcesoSinCambio: Currency read FImporteExcesoSinCambio;
     property ImporteDejarCuenta: Currency read FImporteDejarCuenta;
     property ImporteValeRecogido: Currency read FImporteValeRecogido;
     property ImporteValeEmitido: Currency read FImporteValeEmitido;
@@ -284,10 +290,6 @@ resourcestring
     'Se devuelve más de lo debido. Sobran: %m' + sLineBreak +
     'Lo pagado con vale en el ticket de origen (%m) se devuelve en vale.';
   SErrorPagoNoIndicado = 'No se ha indicado ningún pago.';
-  SErrorExcesoPagoSinCambio =
-    'Las formas de pago que no devuelven cambio superan el total en %m.' +
-    sLineBreak + 'Reduzca su importe: el exceso no se devuelve ni se ' +
-    'convierte en vale.';
   SErrorApartadoSinEntregaCuenta =
     'Para apartar prendas el cliente tiene que dejar algo a cuenta.';
   SErrorApartadoSinContacto =
@@ -697,6 +699,76 @@ begin
     Result := False;
 end;
 
+function TDatosFaseCobro.ImporteDevolucionParaCredito: Currency;
+var
+  Lineas: TDataSet;
+  Marcador: TBookmark;
+  Total, OrigenDeposito: TField;
+begin
+  Result := 0;
+  if TieneArticulosDevueltos and (FImporteTotalPagar > 0) then
+  begin
+    Lineas := FTotalesFactura.Lineas;
+    Total := Lineas.FieldByName('TOTAL_FACLIN');
+    OrigenDeposito := Lineas.FieldByName('VIENE_DE_DEPOSITO');
+    Lineas.DisableControls;
+    Marcador := Lineas.GetBookmark;
+    try
+      Lineas.First;
+      while not Lineas.Eof do
+      begin
+        Result := Result + TCalculadorCobroParcial.ImporteDevolucionAplicable(
+          Total.AsCurrency, OrigenDeposito.AsString);
+        Lineas.Next;
+      end;
+    finally
+      if Lineas.BookmarkValid(Marcador) then
+        Lineas.GotoBookmark(Marcador);
+      Lineas.FreeBookmark(Marcador);
+      Lineas.EnableControls;
+    end;
+  end;
+end;
+
+function TDatosFaseCobro.EsCobroSoloDepositos: Boolean;
+var
+  Lineas: TDataSet;
+  Marcador: TBookmark;
+  OrigenDeposito, AccionDeposito, Total: TField;
+  HayDeposito, HayOtroImporte: Boolean;
+begin
+  Result := False;
+  if Assigned(FTotalesFactura) then
+  begin
+    Lineas := FTotalesFactura.Lineas;
+    OrigenDeposito := Lineas.FieldByName('VIENE_DE_DEPOSITO');
+    AccionDeposito := Lineas.FieldByName('ACCION_DEPOSITO');
+    Total := Lineas.FieldByName('TOTAL_FACLIN');
+    HayDeposito := False;
+    HayOtroImporte := False;
+    Lineas.DisableControls;
+    Marcador := Lineas.GetBookmark;
+    try
+      Lineas.First;
+      while not Lineas.Eof and not HayOtroImporte do
+      begin
+        if (OrigenDeposito.AsString = 'S') and
+           (AccionDeposito.AsString = 'COBRAR') and (Total.AsCurrency > 0) then
+          HayDeposito := True
+        else if (OrigenDeposito.AsString <> 'A') and (Total.AsCurrency <> 0) then
+          HayOtroImporte := True;
+        Lineas.Next;
+      end;
+      Result := HayDeposito and not HayOtroImporte;
+    finally
+      if Lineas.BookmarkValid(Marcador) then
+        Lineas.GotoBookmark(Marcador);
+      Lineas.FreeBookmark(Marcador);
+      Lineas.EnableControls;
+    end;
+  end;
+end;
+
 function TDatosFaseCobro.ObtenerCurrencySafe(const ANombreCampo: string;
   const ADefault: Currency = 0): Currency;
 var
@@ -739,12 +811,14 @@ begin
   FImporteExcesoSinCambio := AResultado.ImporteExcesoSinCambio;
 end;
 
-function TDatosFaseCobro.LeerEntradaTotales: TEntradaTotalesCobro;
+function TDatosFaseCobro.LeerEntradaTotales(
+  out AHayPagoNegativo: Boolean): TEntradaTotalesCobro;
 var
   oMarcador: TBookmark;
   sCodigoForma: string;
   dImporte: Currency;
 begin
+  AHayPagoNegativo := False;
   Result := Default(TEntradaTotalesCobro);
   Result.ImporteBruto := FImporteBruto;
   Result.DescuentoLineal := FImporteDescuentoLineal;
@@ -765,6 +839,8 @@ begin
     begin
       sCodigoForma := ObtenerStringSafe('CODIGO_FP_CFP', '');
       dImporte := ObtenerCurrencySafe('IMPORTE_ENTREGADO', 0);
+      if dImporte < 0 then
+        AHayPagoNegativo := True;
       if sCodigoForma = 'VALE' then
         Result.TotalValesRecogidos :=
           Result.TotalValesRecogidos + dImporte
@@ -844,15 +920,20 @@ begin
          FMemTablePagos.Active and
          (FMemTablePagos.FieldCount > 0) then
       begin
-        oEntrada := LeerEntradaTotales;
-        LimpiarPagosCubiertosPorVales(oEntrada);
+        oEntrada := LeerEntradaTotales(FHayPagoNegativo);
+        // Un vale no debe ocultar un pago de signo incorrecto.
+        if not FHayPagoNegativo then
+          LimpiarPagosCubiertosPorVales(oEntrada);
         oResultado := TCalculadorFaseCobro.CalcularTotales(oEntrada);
         AplicarResultadoTotales(oResultado);
         if Assigned(FOnRecalculado) then
           FOnRecalculado(Self);
       end
       else
+      begin
+        FHayPagoNegativo := False;
         InicializarTotalesPorDefecto;
+      end;
     finally
       FCalculandoTotales := False;
     end;
@@ -1035,12 +1116,21 @@ begin
               dEfectivo - LIMITE_PAGO_EFECTIVO_EUROS + 0.01]));
 end;
 
+function TDatosFaseCobro.ValidarSignoPagos: TResultadoValidacion;
+begin
+  CalcularTotales;
+  if FHayPagoNegativo and not EsDevolucionEconomica then
+    Result := TResultadoValidacion.Error(SErrorImporteNegativoEnVenta)
+  else
+    Result := TResultadoValidacion.OK;
+end;
+
 function TDatosFaseCobro.ValidarParaCobro: TResultadoValidacion;
 var
   TotalCobrado: Currency;
 begin
-  CalcularTotales;
-  if EsDevolucionEconomica then
+  Result := ValidarSignoPagos;
+  if Result.Valido and EsDevolucionEconomica then
   begin
     if FImportePendiente > 0.01 then
       Result := TResultadoValidacion.Error(
@@ -1058,7 +1148,7 @@ begin
     else
       Result := TResultadoValidacion.OK;
   end
-  else
+  else if Result.Valido then
   begin
     Result := ValidarDeuda;
     if Result.Valido then

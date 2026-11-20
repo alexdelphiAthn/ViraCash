@@ -1198,6 +1198,7 @@ begin
         q.SQL.Text :=
           'UPDATE fza_albaranes_compra ' +
           '   SET ESTADO_ALBC     = ''CERRADO'', ' +
+          '       REVISION_ALBC   = REVISION_ALBC + 1, ' +
           '       NUMERO_FAC_ALBC = NULL, ' +
           '       SERIE_FAC_ALBC  = NULL, ' +
           '       USUARIO_MODIF   = :u ' +
