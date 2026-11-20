@@ -286,15 +286,69 @@
           ExplicitWidth = 0
         end
       end
+      object pnlDatosArticulo: TPanel
+        Left = 0
+        Top = 207
+        Width = 615
+        Height = 77
+        Align = alBottom
+        BevelOuter = bvNone
+        TabOrder = 2
+        OnResize = pnlDatosArticuloResize
+        object lblProveedorArticulo: TcxLabel
+          Left = 8
+          Top = 8
+          Caption = 'Proveedor'
+          Transparent = True
+        end
+        object edtProveedorArticulo: TcxTextEdit
+          Left = 83
+          Top = 6
+          Properties.ReadOnly = True
+          TabStop = False
+          Width = 120
+        end
+        object lblTemporadaArticulo: TcxLabel
+          Left = 210
+          Top = 8
+          Caption = 'Temporada'
+          Transparent = True
+        end
+        object edtTemporadaArticulo: TcxTextEdit
+          Left = 284
+          Top = 6
+          Properties.ReadOnly = True
+          TabStop = False
+          Width = 120
+        end
+        object lblFamiliaArticulo: TcxLabel
+          Left = 8
+          Top = 42
+          Caption = 'Familia'
+          Transparent = True
+        end
+        object memFamiliaArticulo: TcxMemo
+          Left = 67
+          Top = 36
+          ParentShowHint = False
+          ShowHint = True
+          Properties.ReadOnly = True
+          Properties.ScrollBars = ssVertical
+          Properties.WordWrap = True
+          TabStop = False
+          Height = 35
+          Width = 540
+        end
+      end
       object grdStock: TcxGrid
         Left = 0
         Top = 30
         Width = 615
-        Height = 254
+        Height = 177
         Align = alClient
         TabOrder = 1
         ExplicitWidth = 613
-        ExplicitHeight = 246
+        ExplicitHeight = 169
         object tvStock: TcxGridDBTableView
           OnCellDblClick = tvStockCellDblClick
           OptionsBehavior.ExpandMasterRowOnDblClick = False

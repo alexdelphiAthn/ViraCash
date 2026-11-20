@@ -37,6 +37,8 @@ type
     EsPrincipal: Boolean;
   end;
   TInfoCabeceraStock = record
+    RutaFamilia: string;
+    Temporada: string;
     Propiedades: TArray<TPropiedadInfoStock>;
     Tarifas: TArray<TTarifaInfoStock>;
     Proveedores: TArray<TProveedorInfoStock>;

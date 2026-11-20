@@ -99,6 +99,7 @@ type
     procedure EliminarPeriodoActual;
     function  SincronizarPeriodos: Boolean;
     function  TotalLineasSesion: Integer;
+    function RutaFamiliaLineaActual: string;
     procedure RellenarPreciosPartida;
     function ActualizarCostesLineas(const AIds: TArray<Integer>): Integer;
     function EliminarLineasSesion(const AIds: TArray<Integer>): Integer;
@@ -127,7 +128,8 @@ uses
   System.Variants, inLibUser, inLibMsgArticulos, UniDataPrestaShopEncolado,
   inLibErroresBBDD,
   inLibPrestaShopColaSenal, inLibRedondeo, UniDataTarifasCambiosPeriodos,
-  UniDataTarifasTramos, UniDataMargenRepositorio, inLibMargenPersistenciaIntf;
+  UniDataTarifasTramos, UniDataMargenRepositorio, inLibMargenPersistenciaIntf,
+  UniDataSeleccionFamiliaRepositorio;
 
 {$R *.dfm}
 
@@ -381,7 +383,7 @@ begin
   unqryLineas.SQL.Text :=
     'SELECT L.*, A.DESCRIPCION_ART, A.CODIGO_FAM_ART, ' +
     '       A.TIPO_CANTIDAD_ART, ' +
-    '       F.NOMBRE_FAM_FAM, P.RAZON_SOCIAL_PRV, ' +
+    '       F.NOMBRE_FAM_FAM, P.CODIGO_PRV_PRV, P.RAZON_SOCIAL_PRV, ' +
     ' COALESCE((SELECT COALESCE(PV.PV, T.VALOR_LIBRE_ARTPROP) ' +
     ' FROM fza_articulos_propiedades T ' +
     ' LEFT JOIN fza_propiedades_valores PV ' +
@@ -767,9 +769,19 @@ begin
   end;
 end;
 
+function TdmTarifasCambios.RutaFamiliaLineaActual: string;
+begin
+  Result := '';
+  if unqryLineas.Active and not unqryLineas.IsEmpty then
+    Result := LeerRutaFamiliaUniDAC(unqryLineas.Connection,
+      unqryLineas.FieldByName('CODIGO_FAM_ART').AsString);
+end;
+
 // Los campos son dinamicos: se recrean en cada apertura del detalle.
 procedure TdmTarifasCambios.unqryLineasAfterOpen(DataSet: TDataSet);
 begin
+  DataSet.FieldByName('CODIGO_PRV_PRV').ReadOnly := True;
+  DataSet.FieldByName('CODIGO_PRV_PRV').ProviderFlags := [];
   DataSet.FieldByName('TEMPORADA_ART').ReadOnly := True;
   DataSet.FieldByName('TEMPORADA_ART').ProviderFlags := [];
   DataSet.FieldByName('ENTRADAS').ReadOnly := True;

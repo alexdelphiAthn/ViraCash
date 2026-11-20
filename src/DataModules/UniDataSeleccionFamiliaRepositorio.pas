@@ -19,6 +19,9 @@ uses
 function CrearRepositorioSeleccionFamiliaUniDAC(
   AConexion: TUniConnection): IRepositorioSeleccionFamilia;
 
+function LeerRutaFamiliaUniDAC(AConexion: TUniConnection;
+  const ACodigoFamilia: string): string;
+
 implementation
 
 uses
@@ -112,6 +115,43 @@ function CrearRepositorioSeleccionFamiliaUniDAC(
   AConexion: TUniConnection): IRepositorioSeleccionFamilia;
 begin
   Result := TRepositorioSeleccionFamiliaUniDAC.Create(AConexion);
+end;
+
+function LeerRutaFamiliaUniDAC(AConexion: TUniConnection;
+  const ACodigoFamilia: string): string;
+var
+  Consulta: TUniQuery;
+begin
+  Result := '';
+  if Trim(ACodigoFamilia) <> '' then
+  begin
+    Consulta := TUniQuery.Create(nil);
+    try
+      Consulta.Connection := AConexion;
+      Consulta.SQL.Text :=
+        'WITH RECURSIVE RAMA AS ( ' +
+        ' SELECT F.CODIGO_PADRE_FAM, 0 AS NIVEL, ' +
+        '        CAST(COALESCE(NULLIF(F.NOMBRE_FAM_FAM, ''''), ' +
+        '             F.CODIGO_FAM_FAM) AS CHAR(16000)) AS RUTA, ' +
+        '        CAST(HEX(F.CODIGO_FAM_FAM) AS CHAR(16000)) AS VISITADAS ' +
+        ' FROM fza_articulos_familias F WHERE F.CODIGO_FAM_FAM = :FAM ' +
+        ' UNION ALL ' +
+        ' SELECT P.CODIGO_PADRE_FAM, R.NIVEL + 1, ' +
+        '        CONCAT(COALESCE(NULLIF(P.NOMBRE_FAM_FAM, ''''), ' +
+        '               P.CODIGO_FAM_FAM), '' -> '', R.RUTA), ' +
+        '        CONCAT(R.VISITADAS, '','', HEX(P.CODIGO_FAM_FAM)) ' +
+        ' FROM RAMA R JOIN fza_articulos_familias P ' +
+        '   ON P.CODIGO_FAM_FAM = R.CODIGO_PADRE_FAM ' +
+        ' WHERE FIND_IN_SET(HEX(P.CODIGO_FAM_FAM), R.VISITADAS) = 0 ' +
+        ') SELECT RUTA FROM RAMA ORDER BY NIVEL DESC LIMIT 1';
+      Consulta.ParamByName('FAM').AsString := ACodigoFamilia;
+      Consulta.Open;
+      if not Consulta.IsEmpty then
+        Result := Consulta.FieldByName('RUTA').AsString;
+    finally
+      Consulta.Free;
+    end;
+  end;
 end;
 
 end.

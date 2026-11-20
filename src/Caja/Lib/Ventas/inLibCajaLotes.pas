@@ -100,6 +100,7 @@ type
       TDecisionLoteLectura;
     procedure AplicarReparto(ALinea: TDataSet;
       const AAsignaciones: TArray<TAsignacionLote>);
+    function ConservaAsignacionSinLote(ALinea: TDataSet): Boolean;
     procedure RestaurarLineaEditada(ALinea: TDataSet);
   public
     constructor Create(const AConfig: TConfiguracionLotesCaja);
@@ -341,6 +342,34 @@ begin
       FConfig.Repositorio, FConfig.Selector);
 end;
 
+// FZ-ISSUE-1085: el recálculo de precios y totales vuelve a grabar la misma
+// línea (cuatro veces tras aceptar «Elegir lote»). La asignación «(sin lote)»
+// sigue siendo válida mientras no cambien el SKU, las unidades ni el lote.
+// El cursor clonado lee la última versión grabada.
+function TTrazabilidadEntradaCaja.ConservaAsignacionSinLote(
+  ALinea: TDataSet): Boolean;
+var
+  Clon: TClientDataSet;
+begin
+  Result := False;
+  if ALinea.State = dsEdit then
+  begin
+    Clon := TClientDataSet.Create(nil);
+    try
+      Clon.CloneCursor(FConfig.Lineas, True);
+      Result := Clon.Locate('LINEA_FACLIN',
+        ALinea.FieldByName('LINEA_FACLIN').AsString, []) and
+        (Trim(Clon.FieldByName(CAMPO_LOTE_CAJA).AsString) = '') and
+        SameText(Trim(Clon.FieldByName(CAMPO_SKU_CAJA).AsString),
+          Trim(ALinea.FieldByName(CAMPO_SKU_CAJA).AsString)) and
+        SameValue(Clon.FieldByName(CAMPO_CANTIDAD_CAJA).AsFloat,
+          ALinea.FieldByName(CAMPO_CANTIDAD_CAJA).AsFloat, 0.000001);
+    finally
+      Clon.Free;
+    end;
+  end;
+end;
+
 // FZ-ISSUE-525: lo que el cajero cambió en la línea ya grabada (p. ej.
 // las unidades) vuelve a lo grabado cuando se cancela el reparto. La línea
 // sigue en edición, pero lo que se ve cuadra con el total. Lo grabado se
@@ -525,13 +554,19 @@ begin
   // Cada lectura es una unidad: la cantidad de la línea no cambia aquí.
   rAsignacion := AAsignacion;
   rAsignacion.Cantidad := 0;
-  FDecisionEnCurso := False;
-  EscribirLoteLineaCaja(FConfig.Lineas, rAsignacion,
-                        FModoUltimo = mtSerie);
-  if FConfig.Lineas.State in dsEditModes then
-    FConfig.Lineas.Post;
-  if Assigned(FConfig.Recalcular) then
-    FConfig.Recalcular();
+  // Una asignación confirmada puede tener el lote vacío («sin lote»).
+  // Mantener la decisión durante el Post evita que se vuelva a solicitar.
+  FDecisionEnCurso := True;
+  try
+    EscribirLoteLineaCaja(FConfig.Lineas, rAsignacion,
+      FModoUltimo = mtSerie);
+    if FConfig.Lineas.State in dsEditModes then
+      FConfig.Lineas.Post;
+    if Assigned(FConfig.Recalcular) then
+      FConfig.Recalcular();
+  finally
+    FDecisionEnCurso := False;
+  end;
 end;
 
 function TTrazabilidadEntradaCaja.ElegirLoteLineaActual(
@@ -565,8 +600,13 @@ begin
     if (Decision.Resultado = rllAsignado) and
        (Length(Decision.Asignaciones) > 0) then
     begin
-      AplicarReparto(Lineas, Decision.Asignaciones);
-      Lineas.Post;
+      FDecisionEnCurso := True;
+      try
+        AplicarReparto(Lineas, Decision.Asignaciones);
+        Lineas.Post;
+      finally
+        FDecisionEnCurso := False;
+      end;
       if Assigned(FConfig.Recalcular) then
         FConfig.Recalcular();
       if (Length(Decision.Asignaciones) > 1) and
@@ -759,7 +799,8 @@ begin
       // FZ-ISSUE-1043: partidas de reposición en el almacén.
       SalidaPideLoteReposicion(FConfig.Activacion, FConfig.Repositorio,
         ALinea.FieldByName(CAMPO_SKU_CAJA).AsString,
-        FConfig.Almacen())) then
+        FConfig.Almacen())) and
+     not ConservaAsignacionSinLote(ALinea) then
   begin
     if not TomarLecturaGs1(ALinea.FieldByName(CAMPO_SKU_CAJA).AsString,
                            rGs1) then

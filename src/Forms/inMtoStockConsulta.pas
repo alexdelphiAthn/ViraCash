@@ -110,6 +110,14 @@ type
     glPartidas    : TcxGridLevel;
     tvPartidas    : TcxGridDBTableView;
     pnlLeyenda    : TPanel;
+    pnlDatosArticulo: TPanel;
+    lblProveedorArticulo: TcxLabel;
+    edtProveedorArticulo: TcxTextEdit;
+    lblTemporadaArticulo: TcxLabel;
+    edtTemporadaArticulo: TcxTextEdit;
+    lblFamiliaArticulo: TcxLabel;
+    memFamiliaArticulo: TcxMemo;
+    procedure pnlDatosArticuloResize(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
@@ -189,6 +197,7 @@ type
     procedure CreateWnd; override;
     procedure DestroyWnd; override;
   public
+    procedure AplicarTraduccionActual; override;
     function IsShortCut(var Message: TWMKey): Boolean; override;
     procedure SetArticuloSku(const ACodArt, ACodSku: string);
   end;
@@ -386,6 +395,8 @@ begin
   Self.OnKeyPress := FormKeyPress;
   Self.OnShortCut := FormShortCut;
   Self.OnResize := FormResize;
+  memFamiliaArticulo.Style.Font.Size := Font.Size - 1;
+  pnlDatosArticuloResize(pnlDatosArticulo);
   // Coste (ultimo precio de compra del proveedor) solo para quien tenga
   // permiso: TienePermiso devuelve True siempre a admin; al resto, oculto
   // por defecto salvo permiso explicito 'caja.verCoste'.
@@ -545,6 +556,55 @@ begin
   AjustarFotoCabecera;
   if Assigned(FEstados) then
     FEstados.AjustarLeyenda;
+end;
+
+procedure TfrmStockConsulta.AplicarTraduccionActual;
+begin
+  inherited;
+  lblProveedorArticulo.Caption := SCaptionProveedorBusquedaStock;
+  lblTemporadaArticulo.Caption := SCaptionTemporadaBusquedaStock;
+  lblFamiliaArticulo.Caption := SCaptionFamiliaBusquedaStock;
+  pnlDatosArticuloResize(pnlDatosArticulo);
+end;
+
+procedure TfrmStockConsulta.pnlDatosArticuloResize(Sender: TObject);
+var
+  Margen, Separacion, Ancho, AltoPrimeraFila: Integer;
+
+  procedure Colocar(AEtiqueta: TcxLabel; ACampo: TcxTextEdit; AColumna: Integer);
+  var
+    Inicio, Fin: Integer;
+  begin
+    Inicio := Margen + Ancho * AColumna div 2;
+    Fin := Margen + Ancho * (AColumna + 1) div 2 - Separacion;
+    AEtiqueta.Left := Inicio;
+    AEtiqueta.Top := (AltoPrimeraFila - AEtiqueta.Height) div 2;
+    ACampo.Left := Inicio + AEtiqueta.Width + Separacion;
+    ACampo.Top := (AltoPrimeraFila - ACampo.Height) div 2;
+    if Fin > ACampo.Left then
+      ACampo.Width := Fin - ACampo.Left
+    else
+      ACampo.Width := 0;
+  end;
+
+begin
+  if Assigned(memFamiliaArticulo) then
+  begin
+    Margen := MulDiv(8, CurrentPPI, USER_DEFAULT_SCREEN_DPI);
+    Separacion := MulDiv(6, CurrentPPI, USER_DEFAULT_SCREEN_DPI);
+    Ancho := pnlDatosArticulo.ClientWidth - Margen;
+    AltoPrimeraFila := MulDiv(36, CurrentPPI, USER_DEFAULT_SCREEN_DPI);
+    Colocar(lblProveedorArticulo, edtProveedorArticulo, 0);
+    Colocar(lblTemporadaArticulo, edtTemporadaArticulo, 1);
+    lblFamiliaArticulo.SetBounds(Margen, AltoPrimeraFila + Separacion,
+      lblFamiliaArticulo.Width, lblFamiliaArticulo.Height);
+    memFamiliaArticulo.Left := Margen + lblFamiliaArticulo.Width + Separacion;
+    memFamiliaArticulo.Top := AltoPrimeraFila;
+    memFamiliaArticulo.Width := pnlDatosArticulo.ClientWidth -
+      memFamiliaArticulo.Left - Margen;
+    memFamiliaArticulo.Height := pnlDatosArticulo.ClientHeight -
+      AltoPrimeraFila - Separacion;
+  end;
 end;
 
 procedure TfrmStockConsulta.AbrirArticuloConsultado;
@@ -1105,8 +1165,8 @@ begin
   end;
   // Errores de carga (foto / cabecera / colores) por encima de la ventana.
   try
-    CargarFoto(FVista.CodigoSku);
     CargarInfoCabecera;
+    CargarFoto(FVista.CodigoSku);
     FFiltrosLista.CargarColores(
       FVista.CodigoArticulo,
       FVista.CodigoSku);
@@ -1202,14 +1262,31 @@ end;
 // Bloque de info de la cabecera (propiedades + tarifas vigentes +
 // proveedores). El formato lo decide inLibStockConsultaInfo.
 procedure TfrmStockConsulta.CargarInfoCabecera;
+var
+  Info: TInfoCabeceraStock;
+  Proveedor: TProveedorInfoStock;
 begin
   mInfoCabecera.Lines.Clear;
+  edtProveedorArticulo.Clear;
+  edtTemporadaArticulo.Clear;
+  memFamiliaArticulo.Clear;
+  memFamiliaArticulo.Hint := '';
   if FVista.HayArticulo then
-    mInfoCabecera.Lines.Text := FormatearInfoCabeceraStock(
-      FDependencias.InfoCabecera.Cargar(FVista.CodigoArticulo,
-        ParametrosCaja.TarifaDefecto),
-      ParametrosCaja.TarifaDefecto,
-      FVista.VerCoste);
+  begin
+    Info := FDependencias.InfoCabecera.Cargar(FVista.CodigoArticulo,
+      ParametrosCaja.TarifaDefecto, FVista.CodigoSku);
+    mInfoCabecera.Lines.Text := FormatearInfoCabeceraStock(Info,
+      ParametrosCaja.TarifaDefecto, FVista.VerCoste);
+    for Proveedor in Info.Proveedores do
+      if Proveedor.EsPrincipal then
+      begin
+        edtProveedorArticulo.Text := Proveedor.RazonSocial;
+        Break;
+      end;
+    edtTemporadaArticulo.Text := Info.Temporada;
+    memFamiliaArticulo.Text := Info.RutaFamilia;
+    memFamiliaArticulo.Hint := Info.RutaFamilia;
+  end;
   mInfoCabecera.SelStart := 0;
 end;
 
@@ -1225,6 +1302,7 @@ var
 begin
   FPivote.Limpiar;
   bVistaFotos := FFotos.DimensionActiva(Dimension);
+  pnlDatosArticulo.Visible := not bVistaFotos;
   btnPorLote.Visible := FArticuloConPartidas and not bVistaFotos;
   if FMostrarPorLote then
     btnPorLote.Caption := SCaptionStockLotesAgrupados

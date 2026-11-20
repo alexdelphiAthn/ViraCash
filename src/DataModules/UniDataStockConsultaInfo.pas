@@ -22,13 +22,52 @@ uses
 function CargarInfoCabeceraStock(
   AConexion: TUniConnection;
   const ACodigoArticulo: string;
-  const ATarifa: string = 'PVP'): TInfoCabeceraStock;
+  const ATarifa: string = 'PVP';
+  const ACodigoSku: string = ''): TInfoCabeceraStock;
 
 implementation
 
 uses
   System.SysUtils, System.Generics.Collections, Data.DB,
-  UniDataPrecioUnidad;
+  UniDataPrecioUnidad, UniDataSeleccionFamiliaRepositorio;
+
+procedure CargarDatosArticulo(AConsulta: TUniQuery;
+  const ACodigoArticulo, ACodigoSku: string; var AInfo: TInfoCabeceraStock);
+var
+  CodigoFamilia: string;
+begin
+  CodigoFamilia := '';
+  AConsulta.SQL.Text :=
+    'SELECT A.CODIGO_FAM_ART, ' +
+    '       (SELECT COALESCE(PV.PV, T.VALOR_LIBRE_ARTPROP) ' +
+    '          FROM fza_articulos_propiedades T ' +
+    '          LEFT JOIN fza_propiedades_valores PV ' +
+    '            ON PV.ID_PV_ARTPROP = T.ID_PV_ARTPROP ' +
+    '         WHERE T.CODIGO_ART_ART = A.CODIGO_ART_ART ' +
+    '           AND T.CODIGO_PROP_ARTPROP = ''TEMPORADA'' ' +
+    '           AND T.CODIGO_UNIDAD_ARTPROP IN (:sku, ' +
+    '               SUBSTRING_INDEX(:sku, ''/'', 2), '''') ' +
+    '           AND COALESCE(PV.PV, T.VALOR_LIBRE_ARTPROP, '''') <> '''' ' +
+    '         ORDER BY FIELD(T.CODIGO_UNIDAD_ARTPROP, :sku, ' +
+    '                  SUBSTRING_INDEX(:sku, ''/'', 2), '''') ' +
+    '         LIMIT 1) AS TEMPORADA ' +
+    '  FROM fza_articulos A ' +
+    ' WHERE A.CODIGO_ART_ART = :art';
+  AConsulta.ParamByName('art').AsString := ACodigoArticulo;
+  AConsulta.ParamByName('sku').AsString := ACodigoSku;
+  AConsulta.Open;
+  try
+    if not AConsulta.IsEmpty then
+    begin
+      CodigoFamilia := AConsulta.FieldByName('CODIGO_FAM_ART').AsString;
+      AInfo.Temporada := AConsulta.FieldByName('TEMPORADA').AsString;
+    end;
+  finally
+    AConsulta.Close;
+  end;
+  AInfo.RutaFamilia := LeerRutaFamiliaUniDAC(AConsulta.Connection,
+    CodigoFamilia);
+end;
 
 procedure CargarPropiedades(
   AConsulta: TUniQuery;
@@ -169,7 +208,7 @@ end;
 
 function CargarInfoCabeceraStock(
   AConexion: TUniConnection;
-  const ACodigoArticulo: string; const ATarifa: string): TInfoCabeceraStock;
+  const ACodigoArticulo, ATarifa, ACodigoSku: string): TInfoCabeceraStock;
 var
   Consulta: TUniQuery;
   Precio: TPrecioSkuUnidad;
@@ -181,6 +220,7 @@ begin
     Consulta := TUniQuery.Create(nil);
     try
       Consulta.Connection := AConexion;
+      CargarDatosArticulo(Consulta, ACodigoArticulo, ACodigoSku, Result);
       CargarPropiedades(Consulta, ACodigoArticulo, Result);
       CargarTarifas(Consulta, ACodigoArticulo, Result);
       CargarProveedores(Consulta, ACodigoArticulo, Result);
