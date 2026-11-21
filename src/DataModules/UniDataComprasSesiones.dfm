@@ -1009,24 +1009,9 @@
   end
   object unqryLinSesionPrint: TUniQuery
     Connection = dmConn.conUni
-    SQL.Strings = (
-      'SELECT * FROM vi_compras_sesiones_lin_print'
-      'WHERE SERIE_SES = :SERIE_SES'
-      '  AND NUMERO_SES = :NUMERO_SES'
-      'ORDER BY LINEA_SES')
+    ReadOnly = True
     Left = 216
     Top = 544
-    ParamData = <
-      item
-        DataType = ftUnknown
-        Name = 'SERIE_SES'
-        Value = nil
-      end
-      item
-        DataType = ftUnknown
-        Name = 'NUMERO_SES'
-        Value = nil
-      end>
   end
   object dsLinSesionPrint: TDataSource
     DataSet = unqryLinSesionPrint
@@ -1035,37 +1020,9 @@
   end
   object unqryGuiasSesionPrint: TUniQuery
     Connection = dmConn.conUni
-    SQL.Strings = (
-      'SELECT'
-      '  g.ID_AC,'
-      '  g.NOMBRE_CORTO_AC,'
-      '  g.NOMBRE_AC,'
-      '  g.T01, g.T02, g.T03, g.T04, g.T05,'
-      '  g.T06, g.T07, g.T08, g.T09, g.T10,'
-      '  g.T11, g.T12, g.T13, g.T14, g.T15,'
-      '  g.T16, g.T17, g.T18, g.T19, g.T20, g.T21'
-      'FROM vi_compras_sesiones_guias_print g'
-      'INNER JOIN ('
-      '  SELECT DISTINCT lin.ID_AC_PIVOT_SESLIN AS ID_AC'
-      '    FROM fza_compras_sesiones_lineas lin'
-      '   WHERE lin.SERIE_SES_SESLIN = :SERIE_SES'
-      '     AND lin.NUMERO_SES_SESLIN = :NUMERO_SES'
-      '     AND lin.ID_AC_PIVOT_SESLIN IS NOT NULL'
-      ') P ON P.ID_AC = g.ID_AC'
-      'ORDER BY g.NOMBRE_CORTO_AC, g.ID_AC')
+    ReadOnly = True
     Left = 360
     Top = 512
-    ParamData = <
-      item
-        DataType = ftUnknown
-        Name = 'SERIE_SES'
-        Value = nil
-      end
-      item
-        DataType = ftUnknown
-        Name = 'NUMERO_SES'
-        Value = nil
-      end>
   end
   object dsGuiasSesionPrint: TDataSource
     DataSet = unqryGuiasSesionPrint

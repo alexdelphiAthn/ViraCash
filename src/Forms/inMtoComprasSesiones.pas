@@ -546,7 +546,9 @@ type
     procedure unqrySesionLinBeforeInsertHook(DataSet: TDataSet);
     procedure unqrySesionLinAfterInsertHook(DataSet: TDataSet);
     procedure EditarModeloLineaNuevaDiferido;
+    procedure unqrySesionLinBeforeCancelHook(DataSet: TDataSet);
     procedure unqrySesionLinAfterCancelHook(DataSet: TDataSet);
+    procedure BorrarRastroLineaSesion(ALinea: Integer);
     procedure unqrySesionLinBeforeDeleteHook(DataSet: TDataSet);
     procedure unqrySesionLinAfterDeleteHook(DataSet: TDataSet);
     procedure unqrySesionLinRecargarTallasHook(DataSet: TDataSet);
@@ -1646,6 +1648,7 @@ begin
   Dmm.unqrySesionLin.AfterPost    := unqrySesionLinAfterPostHook;
   Dmm.unqrySesionLin.BeforeInsert := unqrySesionLinBeforeInsertHook;
   Dmm.unqrySesionLin.AfterInsert  := unqrySesionLinAfterInsertHook;
+  Dmm.unqrySesionLin.BeforeCancel := unqrySesionLinBeforeCancelHook;
   Dmm.unqrySesionLin.AfterCancel  := unqrySesionLinAfterCancelHook;
   Dmm.unqrySesionLin.BeforeDelete := unqrySesionLinBeforeDeleteHook;
   Dmm.unqrySesionLin.AfterDelete  := unqrySesionLinAfterDeleteHook;
@@ -2059,11 +2062,46 @@ begin
     tvLineas.Controller.EditingController.ShowEdit;
 end;
 
+procedure TfrmMtoComprasSesiones.unqrySesionLinBeforeCancelHook(
+  DataSet: TDataSet);
+var
+  iLinea: Integer;
+begin
+  // FZ-ISSUE-1087: las tallas se graban en SESCEL al teclearlas, antes de
+  // que exista la linea. Una insercion cancelada no llega a la BBDD (su
+  // LINEA sale del contador atomico y no se reutiliza), asi que todo lo
+  // que dejo con ese numero es huerfano y se borra como en un Delete.
+  if (DataSet.State = dsInsert) and
+     Assigned(FServicioComprasSesiones) and
+     not (csDestroying in ComponentState) then
+  begin
+    iLinea := DataSet.FieldByName('LINEA_SESLIN').AsInteger;
+    if iLinea > 0 then
+    begin
+      LogSes(Format('BeforeCancel: limpiando SESCEL linea nueva=%d',
+        [iLinea]));
+      BorrarRastroLineaSesion(iLinea);
+    end;
+  end;
+end;
+
+procedure TfrmMtoComprasSesiones.BorrarRastroLineaSesion(ALinea: Integer);
+begin
+  BorrarPropiedadesLineaSesion(ConexionTrabajo,
+    Dmm.unqryTablaG.FieldByName('SERIE_SES').AsString,
+    Dmm.unqryTablaG.FieldByName('NUMERO_SES').AsString, ALinea);
+  FServicioComprasSesiones.BorrarCeldasLinea(
+    Dmm.unqryTablaG.FieldByName('SERIE_SES').AsString,
+    Dmm.unqryTablaG.FieldByName('NUMERO_SES').AsString,
+    ALinea);
+end;
+
 procedure TfrmMtoComprasSesiones.unqrySesionLinAfterCancelHook(
   DataSet: TDataSet);
 begin
   // Cancel elimina el registro de insercion y cxGrid vuelve a construir su
-  // buffer. Las cantidades persisten en SESCEL, pero hay que republicarlas.
+  // buffer. Las cantidades de las lineas grabadas persisten en SESCEL,
+  // pero hay que republicarlas.
   RecargarTallasDiferido;
 end;
 
@@ -2077,14 +2115,8 @@ begin
   iLinea := DataSet.FieldByName('LINEA_SESLIN').AsInteger;
   if iLinea > 0 then
   begin
-    BorrarPropiedadesLineaSesion(ConexionTrabajo,
-      Dmm.unqryTablaG.FieldByName('SERIE_SES').AsString,
-      Dmm.unqryTablaG.FieldByName('NUMERO_SES').AsString, iLinea);
     LogSes(Format('BeforeDelete: limpiando SESCEL linea=%d', [iLinea]));
-    FServicioComprasSesiones.BorrarCeldasLinea(
-      Dmm.unqryTablaG.FieldByName('SERIE_SES').AsString,
-      Dmm.unqryTablaG.FieldByName('NUMERO_SES').AsString,
-      iLinea);
+    BorrarRastroLineaSesion(iLinea);
   end;
 end;
 

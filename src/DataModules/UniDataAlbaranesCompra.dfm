@@ -184,6 +184,7 @@
     Connection = dmConn.conUni
     SQL.Strings = (
       'SELECT V.*,'
+      '       COALESCE(TRIM(A.LOTE_REPOSICION_ALBC), '#39#39') AS LOTE_REPOSICION_ALBC,'
       '       A.TOTAL_BRUTO_ALBC AS TOTAL_BRUTO_ALBC_PRINT,'
       '       A.PORCENTAJE_DTO_COMERCIAL_ALBC AS PORCENTAJE_DTO_COMERCIAL_ALBC_PRINT,'
       '       A.TOTAL_DTO_COMERCIAL_ALBC AS TOTAL_DTO_COMERCIAL_ALBC_PRINT,'
@@ -225,24 +226,9 @@
   end
   object unqryLinAlbcPrint: TUniQuery
     Connection = dmConn.conUni
-    SQL.Strings = (
-      'SELECT * FROM vi_albaranes_compra_lin_print'
-      'WHERE SERIE_ALBC = :SERIE_ALBC'
-      '  AND NUMERO_ALBC = :NUMERO_ALBC'
-      'ORDER BY CODIGO_ART, COLOR_TEXTO, LINEA_ALBC')
+    ReadOnly = True
     Left = 456
     Top = 24
-    ParamData = <
-      item
-        DataType = ftUnknown
-        Name = 'SERIE_ALBC'
-        Value = nil
-      end
-      item
-        DataType = ftUnknown
-        Name = 'NUMERO_ALBC'
-        Value = nil
-      end>
   end
   object dsLinAlbcPrint: TDataSource
     DataSet = unqryLinAlbcPrint
@@ -260,35 +246,9 @@
   end
   object unqryGuiasAlbcPrint: TUniQuery
     Connection = dmConn.conUni
-    SQL.Strings = (
-      'SELECT'
-      '  g.ID_AC, g.NOMBRE_CORTO_AC, g.NOMBRE_AC,'
-      '  g.T01, g.T02, g.T03, g.T04, g.T05,'
-      '  g.T06, g.T07, g.T08, g.T09, g.T10,'
-      '  g.T11, g.T12, g.T13, g.T14, g.T15,'
-      '  g.T16, g.T17, g.T18, g.T19, g.T20, g.T21'
-      'FROM vi_albaranes_compra_guias_print g'
-      'INNER JOIN ('
-      '  SELECT DISTINCT L.ID_AC_PIVOT_ALBCLIN AS ID_AC'
-      '    FROM fza_albaranes_compra_lineas L'
-      '   WHERE L.SERIE_ALBC_ALBCLIN  = :SERIE_ALBC'
-      '     AND L.NUMERO_ALBC_ALBCLIN = :NUMERO_ALBC'
-      '     AND L.ID_AC_PIVOT_ALBCLIN IS NOT NULL'
-      ') P ON P.ID_AC = g.ID_AC'
-      'ORDER BY g.NOMBRE_CORTO_AC, g.ID_AC')
+    ReadOnly = True
     Left = 552
     Top = 24
-    ParamData = <
-      item
-        DataType = ftUnknown
-        Name = 'SERIE_ALBC'
-        Value = nil
-      end
-      item
-        DataType = ftUnknown
-        Name = 'NUMERO_ALBC'
-        Value = nil
-      end>
   end
   object dsGuiasAlbcPrint: TDataSource
     DataSet = unqryGuiasAlbcPrint

@@ -199,7 +199,7 @@ uses
   UniDataArticulosValidadorRepositorio,
   inLibMsgArticulos, inLibMsgCompras, inLibMsgVentas,
   inLibDocumento, inLibDocumentoIntf,
-  UniDataDatosProveedorDocumento, inLibErroresBBDD;
+  UniDataDatosProveedorDocumento, UniDataInformeDocumento, inLibErroresBBDD;
 
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 
@@ -1390,18 +1390,23 @@ begin
 end;
 
 procedure TdmAlbaranesCompra.PrepararPrint(const ASerie, ANumero: string);
+var
+  Config: TConfiguracionDocumento;
 begin
   unqryCabAlbcPrint.Close;
   unqryCabAlbcPrint.ParamByName('SERIE_ALBC').AsString  := ASerie;
   unqryCabAlbcPrint.ParamByName('NUMERO_ALBC').AsString := ANumero;
   unqryCabAlbcPrint.Open;
+  Config := CrearConfiguracionDocumento(tdAlbaran, sdCompra);
   unqryLinAlbcPrint.Close;
-  unqryLinAlbcPrint.ParamByName('SERIE_ALBC').AsString  := ASerie;
-  unqryLinAlbcPrint.ParamByName('NUMERO_ALBC').AsString := ANumero;
+  unqryLinAlbcPrint.SQL.Text := SqlImpresionHorizontalCompra(Config, False);
+  unqryLinAlbcPrint.ParamByName('SERIE').AsString := ASerie;
+  unqryLinAlbcPrint.ParamByName('NUMERO').AsString := ANumero;
   unqryLinAlbcPrint.Open;
   unqryGuiasAlbcPrint.Close;
-  unqryGuiasAlbcPrint.ParamByName('SERIE_ALBC').AsString  := ASerie;
-  unqryGuiasAlbcPrint.ParamByName('NUMERO_ALBC').AsString := ANumero;
+  unqryGuiasAlbcPrint.SQL.Text := SqlImpresionHorizontalCompra(Config, True);
+  unqryGuiasAlbcPrint.ParamByName('SERIE').AsString := ASerie;
+  unqryGuiasAlbcPrint.ParamByName('NUMERO').AsString := ANumero;
   unqryGuiasAlbcPrint.Open;
 end;
 

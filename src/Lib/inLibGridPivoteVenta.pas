@@ -101,6 +101,7 @@ type
     FieldAlmacen          : string;
     FieldAlmacenMaster    : string;
     MaxColumnas           : Integer;
+    OmitirAvisoTallasRecortadas: Boolean;
     // Documento con UNA sola cantidad por linea (facturas de venta):
     // cada grupo articulo+color+precio pinta UNA fila (banda pedida,
     // rotulada 'Cantidad') en vez de las tres bandas Pedido /
@@ -321,7 +322,8 @@ begin
   FModelo := TModeloPivoteVenta.Create(FCfg.Repositorios.Modelo,
     FCfg.BandaUnica, FCfg.TextoBandaAAlbaranar);
   FModelo.AgruparSinPrecio := FCfg.AgruparSinPrecio;
-  FAvisoTallas := CrearAvisoTallasHorizontal;
+  if not FCfg.OmitirAvisoTallasRecortadas then
+    FAvisoTallas := CrearAvisoTallasHorizontal;
   oCfgPres := Default(TConfigPresentacionPivoteVenta);
   oCfgPres.Conexion := FCfg.Conexion;
   oCfgPres.View := FConfig.View;
@@ -591,10 +593,13 @@ begin
     end;
     FModelo.CompletarCarga;
     // FZ-ISSUE-405: artículos con más tallas de las que caben.
-    aRecortadas := FModelo.TallasRecortadas;
-    for i := 0 to High(aRecortadas) do
-      FAvisoTallas.Anotar(aRecortadas[i].Key, aRecortadas[i].Value,
-        MAX_TALLAS_HORIZONTAL);
+    if Assigned(FAvisoTallas) then
+    begin
+      aRecortadas := FModelo.TallasRecortadas;
+      for i := 0 to High(aRecortadas) do
+        FAvisoTallas.Anotar(aRecortadas[i].Key, aRecortadas[i].Value,
+          MAX_TALLAS_HORIZONTAL);
+    end;
     aSinConjunto := FModelo.GruposSinConjunto;
     for i := 0 to High(aSinConjunto) do
       if Assigned(FConfig.RegistroLog) and

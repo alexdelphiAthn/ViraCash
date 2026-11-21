@@ -310,7 +310,7 @@ uses
   inLibData, UniDataAlmacenesEmpresaRepositorio,
   inLibMsgCompras, inLibErroresBBDD,
   UniDataComprasSesionesPresentacionRepositorio,
-  UniDataComprasSesionesUnidadTrabajo, UniDataFamilias;
+  UniDataComprasSesionesUnidadTrabajo, UniDataFamilias, UniDataInformeDocumento;
 
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 
@@ -1157,7 +1157,9 @@ procedure TdmComprasSesiones.AntesBorrarSesionBarras(DataSet: TDataSet);
 begin
   IniciarBorradoTransaccional;
   try
-    BorrarBarrasSesion(unqryTablaG.Connection,
+    // FZ-ISSUE-1094: sin FK en cascada, la sesión se lleva todo su detalle
+    // (líneas, celdas, códigos de barras...) en la misma transacción.
+    BorrarDetalleSesion(unqryTablaG.Connection,
       DataSet.FieldByName('SERIE_SES').AsString,
       DataSet.FieldByName('NUMERO_SES').AsString);
   except
@@ -2208,13 +2210,15 @@ begin
   unqryCabSesionPrint.Open;
 
   unqryLinSesionPrint.Close;
-  unqryLinSesionPrint.ParamByName('SERIE_SES').AsString  := ASerie;
-  unqryLinSesionPrint.ParamByName('NUMERO_SES').AsString := ANumero;
+  unqryLinSesionPrint.SQL.Text := SqlImpresionHorizontalSesion(False);
+  unqryLinSesionPrint.ParamByName('SERIE').AsString := ASerie;
+  unqryLinSesionPrint.ParamByName('NUMERO').AsString := ANumero;
   unqryLinSesionPrint.Open;
 
   unqryGuiasSesionPrint.Close;
-  unqryGuiasSesionPrint.ParamByName('SERIE_SES').AsString  := ASerie;
-  unqryGuiasSesionPrint.ParamByName('NUMERO_SES').AsString := ANumero;
+  unqryGuiasSesionPrint.SQL.Text := SqlImpresionHorizontalSesion(True);
+  unqryGuiasSesionPrint.ParamByName('SERIE').AsString := ASerie;
+  unqryGuiasSesionPrint.ParamByName('NUMERO').AsString := ANumero;
   unqryGuiasSesionPrint.Open;
 end;
 

@@ -40,6 +40,9 @@ procedure ShowMessage_fza(AOwner: TComponent;
   const AMensaje: string); overload;
 procedure ShowMessageFmt_fza(const AFormato: string;
   const AArgumentos: array of const);
+// Como ShowMessage_fza, pero cuando termina el evento en curso: desde el
+// OnEditValueChanged de un editor en rejilla un modal lo reentraría.
+procedure ShowMessageDiferido_fza(const AMensaje: string);
 // Sustitutos de MessageDlg: mismos parámetros y resultados (mrYes, mrNo...).
 function MessageDlg_fza(const AMensaje: string; ATipo: TMsgDlgType;
   ABotones: TMsgDlgButtons; AContextoAyuda: Longint): Integer; overload;
@@ -375,6 +378,18 @@ end;
 procedure ShowMessage_fza(const AMensaje: string);
 begin
   MostrarDialogo(CrearDialogo(AMensaje, mtCustom, [mbOK], mbOK, 0));
+end;
+
+procedure ShowMessageDiferido_fza(const AMensaje: string);
+var
+  sMensaje: string;
+begin
+  sMensaje := AMensaje;
+  TThread.ForceQueue(nil,
+    procedure
+    begin
+      ShowMessage_fza(sMensaje);
+    end);
 end;
 
 procedure ShowMessage_fza(AOwner: TComponent; const AMensaje: string);

@@ -78,7 +78,19 @@ uses
   System.SysUtils,
   System.Variants,
   System.Generics.Collections,
-  inLibGridPivoteCompraTipos;
+  inLibGridPivoteCompraTipos,
+  inLibMsgCompras,
+  inLibMensajesVcl;
+
+// FZ-ISSUE-1089: el recorte al pendiente se explica, no solo suena.
+procedure AvisarARecibirLimitado(ATecleado, APendiente: Double);
+var
+  sPendiente: string;
+begin
+  sPendiente := FormatFloat('0.###', APendiente);
+  ShowMessageDiferido_fza(Format(SAvisoARecibirSuperaPendiente,
+    [FormatFloat('0.###', ATecleado), sPendiente, sPendiente]));
+end;
 
 function NumeroVariante(const AValor: Variant): Double;
 begin
@@ -562,8 +574,8 @@ begin
     Pendiente := PendienteActual;
     if Cantidad > Pendiente then
     begin
-      MessageBeep(MB_ICONWARNING);
       Editor.EditValue := Pendiente;
+      AvisarARecibirLimitado(Cantidad, Pendiente);
     end;
   end;
 end;
@@ -583,11 +595,11 @@ begin
     Pendiente := PendienteActual;
     if Cantidad > Pendiente then
     begin
-      MessageBeep(MB_ICONWARNING);
       if Pendiente > 0 then
         Editor.EditValue := Pendiente
       else
         Editor.EditValue := Null;
+      AvisarARecibirLimitado(Cantidad, Pendiente);
     end;
   end;
 end;

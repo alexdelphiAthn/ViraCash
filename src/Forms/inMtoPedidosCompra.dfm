@@ -1605,8 +1605,17 @@
       Top = 354
       Width = 121
       Height = 26
-      Caption = 'Imprimir pedido'
+      Caption = 'Imprimir Vertical'
       TabOrder = 4
+      OnClick = btnImprimirClick
+    end
+    object btnImprimirHorizontal: TcxButton
+      Left = 7
+      Top = 386
+      Width = 121
+      Height = 26
+      Caption = 'Imprimir Horizontal'
+      TabOrder = 5
       OnClick = btnImprimirClick
     end
     object btnPegatinas: TcxButton

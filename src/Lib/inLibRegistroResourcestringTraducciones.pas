@@ -14765,6 +14765,10 @@ begin
     'src/Lib/inLibMsgCompras.pas',
     @inLibMsgCompras.SErrorColorRepetidoSesion);
   ARegistrar(
+    'inLibMsgCompras.SAvisoARecibirSuperaPendiente',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SAvisoARecibirSuperaPendiente);
+  ARegistrar(
     'inLibMsgCompras.' +
     'SErrorCodigoDuplicadoInternoSesion',
     'src/Lib/inLibMsgCompras.pas',

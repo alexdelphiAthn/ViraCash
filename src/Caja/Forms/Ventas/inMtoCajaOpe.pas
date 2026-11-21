@@ -5306,8 +5306,13 @@ begin
       // FZ-ISSUE-455: el lector con sufijo Intro también puede entrar
       // como teclado. Un código de barras reconocido prepara otra línea,
       // aunque el perfil conserve False para la entrada manual.
-      Result := FUltimaEntradaCodigoBarras or ParametrosCaja.GetBool(
-        'vgerMoverLineaIdentif', True);
+      // FZ-ISSUE-1091: la línea que ya lleva su partida («Elegir lote»
+      // aceptado) está cerrada; la lectura siguiente no puede caer en la
+      // descripción.
+      Result := FUltimaEntradaCodigoBarras or
+        (Trim(DatosCaja.cdsLineas.FieldByName(
+          'LOTE_FACLIN').AsString) <> '') or
+        ParametrosCaja.GetBool('vgerMoverLineaIdentif', True);
     end;
   Operaciones.Avisar :=
     procedure(const AMensaje: string)
@@ -5357,6 +5362,10 @@ begin
   Estilo.EstilarBoton(btnF12, 'F12', lblCobro);
   Estilo.EstilarBoton(btnF3, 'F3', lblBuscar);
   Estilo.EstilarBoton(btnF8, 'F8', lblEliminar);
+  // FZ-ISSUE-1088: Eliminar no toma el foco, igual que la tecla F8. Si lo
+  // tomara, el editor del codigo saldria de la celda y volveria a validar
+  // el SKU rechazado (aviso de stock) antes de poder quitar la linea.
+  btnF8.SpeedButtonOptions.CanBeFocused := False;
   Estilo.EstilarBoton(btnF6, 'F6', lblTextoTarifa);
   Estilo.EstilarBoton(btnF61, 'F4', lblBusqTick);
   Estilo.EstilarBoton(btnF7, 'F7', lblIndIVA);

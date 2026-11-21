@@ -80,7 +80,7 @@ type
 implementation
 uses
   Winapi.Windows,
-  inLibMsgCompras, inLibPivoteCompraCalculo;
+  inLibMsgCompras, inLibPivoteCompraCalculo, inLibMensajesVcl;
 
 constructor TEdicionPivoteCompra.Create(
   const ACfg: TGridPivoteCompraConfig;
@@ -1062,7 +1062,13 @@ begin
         dPedida, dRecibida, dValor);
       if Abs(dLimitada - dValor) > 0.000001 then
       begin
-        MessageBeep(MB_ICONWARNING);
+        // FZ-ISSUE-1089: el recorte al pendiente se explica.
+        if dValor > dLimitada then
+          ShowMessageDiferido_fza(Format(SAvisoARecibirSuperaPendiente,
+            [FormatFloat('0.###', dValor), FormatFloat('0.###', dLimitada),
+             FormatFloat('0.###', dLimitada)]))
+        else
+          MessageBeep(MB_ICONWARNING);
         FActualizando := True;
         try
           if dLimitada > 0 then

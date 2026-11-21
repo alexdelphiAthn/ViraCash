@@ -91,6 +91,9 @@ begin
   inherited;
   dmmEmpleados := tdmDataModule as TdmEmpleados;
   pkFieldName := 'CODIGO_EMPL';
+  // FZ-ISSUE-1086: el empleado se da de alta en la rejilla. Con Tab se pasa
+  // a la celda siguiente (nombre) en vez de salir al buscador.
+  cxGrdDBTabPrin.OptionsBehavior.FocusCellOnTab := True;
 end;
 
 procedure TfrmMtoEmpleados.ResetForm;

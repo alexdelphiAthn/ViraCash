@@ -20,9 +20,11 @@ type
   private
     FCabecera: TUniQuery;
     FLineas: TUniQuery;
+    FLineasHorizontales: TUniQuery;
     FImpuestos: TUniQuery;
     FDatosCabecera: TfrxDBDataset;
     FDatosLineas: TfrxDBDataset;
+    FDatosLineasHorizontales: TfrxDBDataset;
     FDatosImpuestos: TfrxDBDataset;
     procedure ConfigurarCabecera(const AConfig: TConfiguracionDocumento);
     procedure ConfigurarLineas(const AConfig: TConfiguracionDocumento);
@@ -31,17 +33,23 @@ type
     constructor Create(AOwner: TComponent); override;
     procedure Abrir(AConexion: TUniConnection;
       const AConfig: TConfiguracionDocumento;
-      const ASerie, ANumero: string);
+      const ASerie, ANumero: string; AHorizontal: Boolean = False);
     property Cabecera: TfrxDBDataset read FDatosCabecera;
     property Lineas: TfrxDBDataset read FDatosLineas;
+    property LineasHorizontales: TfrxDBDataset read FDatosLineasHorizontales;
     // Desglose por tipo de IVA: solo los tipos con base o cuota.
     property Impuestos: TfrxDBDataset read FDatosImpuestos;
   end;
 
+function SqlImpresionHorizontalCompra(const AConfig: TConfiguracionDocumento;
+  AGuias: Boolean): string;
+function SqlImpresionHorizontalSesion(AGuias: Boolean): string;
+
 implementation
 
 uses
-  System.SysUtils, Data.DB, UniDataPropiedadesLineasDocumento;
+  System.SysUtils, Data.DB, UniDataPropiedadesLineasDocumento,
+  inLibPivoteVentaCalculo;
 
 const
   SALTO_SQL = 'CHAR(13,10)';
@@ -53,6 +61,8 @@ begin
   FCabecera.ReadOnly := True;
   FLineas := TUniQuery.Create(Self);
   FLineas.ReadOnly := True;
+  FLineasHorizontales := TUniQuery.Create(Self);
+  FLineasHorizontales.ReadOnly := True;
   FImpuestos := TUniQuery.Create(Self);
   FImpuestos.ReadOnly := True;
   FDatosCabecera := TfrxDBDataset.Create(Self);
@@ -61,6 +71,9 @@ begin
   FDatosLineas := TfrxDBDataset.Create(Self);
   FDatosLineas.UserName := 'Lineas';
   FDatosLineas.DataSet := FLineas;
+  FDatosLineasHorizontales := TfrxDBDataset.Create(Self);
+  FDatosLineasHorizontales.UserName := 'LineasHorizontales';
+  FDatosLineasHorizontales.DataSet := FLineasHorizontales;
   FDatosImpuestos := TfrxDBDataset.Create(Self);
   FDatosImpuestos.UserName := 'Impuestos';
   FDatosImpuestos.DataSet := FImpuestos;
@@ -189,6 +202,305 @@ begin
   if AConfig.Sentido = sdCompra then
     Result := 'PRECIO_COMPRA_SIVA_ARTICULO';
   Result := Result + '_' + AConfig.PrefijoLineas;
+end;
+
+function SqlLineasImpresionCompra(
+  const AConfig: TConfiguracionDocumento): string;
+var
+  Sufijo, Sku, Cantidad, Precio, Total, RefProveedor, Color, Lote,
+    Caducidad, NumeroTalla: string;
+begin
+  Sufijo := '_' + AConfig.PrefijoLineas;
+  Sku := 'L.CODIGO_UNIDAD' + Sufijo;
+  Cantidad := 'COALESCE(L.CANTIDAD' + Sufijo + ', 0)';
+  Precio := 'COALESCE(L.' + PrecioLinea(AConfig) + ', 0)';
+  Total := 'COALESCE(L.TOTAL' + Sufijo + ', 0)';
+  RefProveedor := 'COALESCE(NULLIF(TRIM(L.REF_PRV' + Sufijo +
+    '), ''''), '''')';
+  Color := 'COALESCE(VC.NOMBRE_ATB, NULLIF(VC.VALOR_AV, ''''), '''')';
+  Lote := 'L.LOTE' + Sufijo;
+  Caducidad := 'L.FECHA_CADUCIDAD' + Sufijo;
+  if AConfig.TipoDocumento = tdPedido then
+  begin
+    Total := 'ROUND(' + Cantidad + ' * ' + Precio + ', 2)';
+    RefProveedor := 'COALESCE(NULLIF(TRIM(L.REF_PRV_PEDCLIN), ''''), ' +
+      '(SELECT NULLIF(TRIM(AP.REF_PROVEEDOR_AP), '''') ' +
+      'FROM fza_articulos_proveedores AP JOIN fza_pedidos_compra PC ' +
+      'ON PC.CODIGO_PRV_PEDC = AP.CODIGO_PRV_AP ' +
+      'WHERE AP.CODIGO_ART_AP = L.CODIGO_ART_PEDCLIN ' +
+      'AND PC.SERIE_PEDC = :SERIE AND PC.NUMERO_PEDC = :NUMERO ' +
+      'LIMIT 1), '''')';
+    Color := 'COALESCE(NULLIF(TRIM(L.COLOR_TEXTO_PEDCLIN), ''''), ' +
+      'NULLIF(VC.NOMBRE_ATB, ''''), VC.VALOR_AV, '''')';
+    Caducidad := 'L.CADUCIDAD_PEDCLIN';
+  end;
+  NumeroTalla := 'SUBSTRING_INDEX(' + Sku + ', ''/'', -1)';
+  Result :=
+    'SELECT L.' + AConfig.CampoSerieLinea + ' AS SERIE_DOC, ' +
+    'L.' + AConfig.CampoNumeroLinea + ' AS NUMERO_DOC, ' +
+    'L.LINEA' + Sufijo + ' AS LINEA, COALESCE(L.CODIGO_ART' + Sufijo +
+    ', '''') AS CODIGO_ART, ' + Sku + ' AS SKU, ' +
+    NumeroTalla + ' AS SUFIJO, ' +
+    RefProveedor + ' AS REF_PRV, COALESCE(L.DESCRIPCION_ARTICULO' + Sufijo +
+    ', L.CODIGO_ART' + Sufijo + ', '''') AS DESCRIPCION_BASE, ' +
+    'L.DESCRIPCION_VARIACION' + Sufijo + ' AS VARIACION_TEXTO, ' +
+    Color + ' AS COLOR_TEXTO, ' +
+    'COALESCE(VC.CODIGO_ATB, '''') AS CODIGO_ATB_COLOR, ' +
+    'COALESCE(L.TIPO_CANTIDAD_ARTICULO' + Sufijo +
+    ', '''') AS TIPO_CANTIDAD, ' + Cantidad + ' AS CANTIDAD, ' +
+    Precio + ' AS PRECIO_COMPRA, ' + Total + ' AS IMPORTE, ' +
+    'L.PORCENTAJE_DTO' + Sufijo + ' AS DESCUENTO, ' +
+    'L.PORCENTAJE_IVA' + Sufijo + ' AS IVA, ' +
+    'L.CODIGO_ALMACEN' + Sufijo + ' AS CODIGO_ALM_ALBCLIN, ' +
+    'COALESCE(' + Lote + ', '''') AS LOTE, ' + Caducidad +
+    ' AS FECHA_CADUCIDAD, NULLIF(L.' + AConfig.CampoPivoteLinea +
+    ', 0) AS ID_AC_PIVOT, ' +
+    'COALESCE(V.AV, CASE WHEN EP.ID_ATB_VA IS NULL ' +
+    'AND SK.CODIGO_UNIDAD_SKU IS NULL AND ' + Sku +
+    ' REGEXP ''/[0-9]+([.,][0-9]+)?$'' THEN ' + NumeroTalla +
+    ' END) AS TALLA_SKU, V.ORDEN_AV AS ORDEN_SKU ' +
+    'FROM ' + AConfig.TablaLineas + ' L ' +
+    'LEFT JOIN fza_articulos_skus SK ON SK.CODIGO_UNIDAD_SKU = ' + Sku +
+    ' LEFT JOIN vi_variaciones_ejes EP ' +
+    'ON EP.ID_VAR_VA = SK.CODIGO_VAR_SKU AND EP.EJE_VA = ''P'' ' +
+    'LEFT JOIN fza_atributos_valores V ON V.ID_AV = (' +
+    'SELECT SA.ID_AV_SA FROM fza_atributos_sku SA ' +
+    'JOIN fza_atributos_valores AV ON AV.ID_AV = SA.ID_AV_SA ' +
+    'WHERE SA.CODIGO_UNIDAD_SKU_SA = SK.CODIGO_UNIDAD_SKU ' +
+    'AND AV.ID_VA_AV = EP.ID_ATB_VA ORDER BY SA.ID_AV_SA LIMIT 1) ' +
+    'LEFT JOIN vi_variaciones_ejes EF ' +
+    'ON EF.ID_VAR_VA = SK.CODIGO_VAR_SKU AND EF.EJE_VA = ''F'' ' +
+    'LEFT JOIN vi_atributos_sku_basico VC ' +
+    'ON VC.CODIGO_UNIDAD_SKU = ' + Sku + ' AND VC.ID_VA_AV = EF.ID_ATB_VA ' +
+    'WHERE L.' + AConfig.CampoSerieLinea + ' = :SERIE AND L.' +
+    AConfig.CampoNumeroLinea + ' = :NUMERO';
+end;
+
+function CteTramosImpresion(out ACamposGuia, ARotulosLinea,
+  ACantidades: string): string;
+var
+  Ancho, Campo, RotulosGuia: string;
+  I: Integer;
+begin
+  Ancho := IntToStr(MAX_TALLAS_HORIZONTAL);
+  ACamposGuia := '';
+  ARotulosLinea := '';
+  ACantidades := '';
+  RotulosGuia := '';
+  Result := ', SISTEMAS AS (' +
+    'SELECT L.SISTEMA, MAX(L.ID_AC_PIVOT) AS ID_AC, ' +
+    'MIN(L.CODIGO_ART) AS CODIGO_ART FROM LINEAS L GROUP BY L.SISTEMA' +
+    '), TALLAS AS (' +
+    'SELECT S.SISTEMA, V.AV AS TALLA, 0 AS BLOQUE, ACD.ORDEN_ACD AS ORDEN, ' +
+    'ACD.ID_AV_ACD AS ID_AV FROM SISTEMAS S ' +
+    'JOIN fza_atributos_conjuntos_det ACD ON ACD.ID_AC_ACD = S.ID_AC ' +
+    'JOIN fza_atributos_valores V ON V.ID_AV = ACD.ID_AV_ACD UNION ALL ' +
+    'SELECT D.SISTEMA, D.TALLA, 1, COALESCE(D.ORDEN, 2147483647), 0 ' +
+    'FROM DETALLE D WHERE NULLIF(TRIM(D.TALLA), '''') IS NOT NULL' +
+    '), POSICIONES AS (' +
+    'SELECT SISTEMA, TALLA, ROW_NUMBER() OVER (PARTITION BY SISTEMA ' +
+    'ORDER BY MIN(BLOQUE), COALESCE(MIN(CASE WHEN BLOQUE = 0 THEN ORDEN ' +
+    'END), MIN(ORDEN)), MAX(ID_AV), CASE WHEN TALLA REGEXP ' +
+    '''^[0-9]+([.,][0-9]+)?$'' THEN ' +
+    'CAST(REPLACE(TALLA, '','', ''.'') AS DECIMAL(19,6)) END, TALLA) - 1 ' +
+    'AS POSICION FROM TALLAS GROUP BY SISTEMA, TALLA' +
+    '), TRAMOS AS (' +
+    'SELECT SISTEMA, TALLA, POSICION DIV ' + Ancho + ' AS TRAMO, ' +
+    'MOD(POSICION, ' + Ancho + ') + 1 AS COLUMNA ' +
+    'FROM POSICIONES' +
+    '), ROTULOS AS (' +
+    'SELECT S.SISTEMA, S.ID_AC, ' +
+    'COALESCE(AC.NOMBRE_AC, S.CODIGO_ART, '''') AS NOMBRE_AC, ' +
+    'COALESCE(NULLIF(AC.NOMBRE_CORTO_AC, ''''), ' +
+    'UPPER(LEFT(AC.NOMBRE_AC, 8)), ' +
+    'CONCAT(''T'', ROW_NUMBER() OVER (ORDER BY S.SISTEMA))) AS CORTO ' +
+    'FROM SISTEMAS S LEFT JOIN fza_atributos_conjuntos AC ' +
+    'ON AC.ID_AC = S.ID_AC' +
+    '), GUIAS_BASE AS (' +
+    'SELECT R.ID_AC, T.SISTEMA, T.TRAMO, R.NOMBRE_AC, ' +
+    'CASE WHEN COUNT(*) OVER (PARTITION BY T.SISTEMA) > 1 THEN ' +
+    'CONCAT(LEFT(R.CORTO, 5), ''-'', T.TRAMO + 1) ' +
+    'ELSE R.CORTO END AS CODIGO_GUIA';
+  for I := 1 to MAX_TALLAS_HORIZONTAL do
+  begin
+    Campo := Format('T%.2d', [I]);
+    RotulosGuia := RotulosGuia + ', MAX(CASE WHEN T.COLUMNA = ' +
+      IntToStr(I) + ' THEN T.TALLA END) AS ' + Campo;
+    ACamposGuia := ACamposGuia + ', G.' + Campo;
+    ARotulosLinea := ARotulosLinea + ', MAX(G.' + Campo +
+      ') AS ' + Format('R%.2d', [I]);
+    ACantidades := ACantidades + ', SUM(CASE WHEN T.COLUMNA = ' +
+      IntToStr(I) + ' THEN D.CANTIDAD ELSE 0 END) AS ' + Campo;
+  end;
+  Result := Result + RotulosGuia +
+    ' FROM TRAMOS T JOIN ROTULOS R ON R.SISTEMA = T.SISTEMA ' +
+    'GROUP BY R.ID_AC, T.SISTEMA, T.TRAMO, R.NOMBRE_AC, R.CORTO' +
+    '), GUIAS AS (' +
+    'SELECT G.ID_AC, G.SISTEMA, G.TRAMO, G.NOMBRE_AC, ' +
+    'CASE WHEN COUNT(*) OVER (PARTITION BY G.CODIGO_GUIA) > 1 ' +
+    'OR LEFT(G.CODIGO_GUIA, 1) = ''#'' THEN ' +
+    'CONCAT(''#'', ROW_NUMBER() OVER (ORDER BY G.SISTEMA, G.TRAMO)) ' +
+    'ELSE G.CODIGO_GUIA END AS NOMBRE_CORTO_AC' + ACamposGuia +
+    ' FROM GUIAS_BASE G) ';
+end;
+
+function SelectGuiasImpresion(const ACamposGuia: string): string;
+begin
+  Result := 'SELECT G.ID_AC, G.NOMBRE_AC, G.NOMBRE_CORTO_AC, G.TRAMO' +
+    ACamposGuia + ' FROM GUIAS G ORDER BY G.NOMBRE_AC, G.SISTEMA, G.TRAMO';
+end;
+
+function SqlImpresionHorizontalCompra(const AConfig: TConfiguracionDocumento;
+  AGuias: Boolean): string;
+var
+  Cel, Cab, CamposGuia, RotulosLinea, Cantidades: string;
+begin
+  Cab := AConfig.PrefijoCabecera;
+  Cel := Cab + 'CEL';
+  // Se priorizan las celdas cuando explican toda la cantidad de la línea.
+  // El importe acumulado reparte los céntimos incluso al cambiar de tramo.
+  Result := 'WITH ORIGEN AS (' + SqlLineasImpresionCompra(AConfig) +
+    '), LINEAS AS (' +
+    'SELECT O.SERIE_DOC, O.NUMERO_DOC, O.LINEA, O.CODIGO_ART, O.SKU, ' +
+    'O.REF_PRV, O.DESCRIPCION_BASE, O.VARIACION_TEXTO, O.COLOR_TEXTO, ' +
+    'O.CODIGO_ATB_COLOR, O.TIPO_CANTIDAD, O.CANTIDAD, O.PRECIO_COMPRA, ' +
+    'O.IMPORTE, O.DESCUENTO, O.IVA, O.CODIGO_ALM_ALBCLIN, O.LOTE, ' +
+    'O.FECHA_CADUCIDAD, O.ID_AC_PIVOT, O.TALLA_SKU, O.ORDEN_SKU, ' +
+    'COALESCE(CONCAT(''C'', ID_AC_PIVOT), ' +
+    'CONCAT(''A'', COALESCE(CODIGO_ART, ''''))) AS SISTEMA, ' +
+    'CASE WHEN SUFIJO = TALLA_SKU AND LOCATE(''/'', SKU) > 0 THEN ' +
+    'LEFT(SKU, CHAR_LENGTH(SKU) - CHAR_LENGTH(SUFIJO) - 1) ' +
+    'ELSE COALESCE(SKU, '''') END AS VARIANTE FROM ORIGEN O' +
+    '), CELDAS AS (' +
+    'SELECT L.LINEA, V.AV AS TALLA, MIN(V.ORDEN_AV) AS ORDEN, ' +
+    'SUM(C.CANTIDAD_' + Cel + ') AS CANTIDAD ' +
+    'FROM LINEAS L JOIN ' + AConfig.TablaCabecera + '_celdas C ' +
+    'ON C.SERIE_' + Cab + '_' + Cel + ' = L.SERIE_DOC ' +
+    'AND C.NUMERO_' + Cab + '_' + Cel + ' = L.NUMERO_DOC ' +
+    'AND C.LINEA_' + Cab + '_' + Cel + ' = L.LINEA ' +
+    'LEFT JOIN fza_atributos_valores V ON V.ID_AV = C.ID_AV_PIVOT_' + Cel +
+    ' WHERE C.CANTIDAD_' + Cel + ' <> 0 GROUP BY L.LINEA, V.AV' +
+    '), CELDAS_VALIDAS AS (' +
+    'SELECT C.LINEA, C.TALLA, C.ORDEN, C.CANTIDAD, ' +
+    'SUM(C.CANTIDAD) OVER (PARTITION BY C.LINEA ' +
+    'ORDER BY C.ORDEN, C.TALLA ROWS UNBOUNDED PRECEDING) AS ACUMULADA ' +
+    'FROM CELDAS C JOIN LINEAS L ON L.LINEA = C.LINEA ' +
+    'JOIN (SELECT LINEA, SUM(CANTIDAD) AS CANTIDAD FROM CELDAS ' +
+    'GROUP BY LINEA HAVING COUNT(*) = COUNT(NULLIF(TRIM(TALLA), ''''))) X ' +
+    'ON X.LINEA = L.LINEA AND X.CANTIDAD = L.CANTIDAD ' +
+    'WHERE L.CANTIDAD <> 0' +
+    '), DETALLE AS (' +
+    'SELECT L.LINEA, L.SISTEMA, C.TALLA, C.ORDEN, C.CANTIDAD, ' +
+    '(CASE WHEN C.ACUMULADA = L.CANTIDAD THEN L.IMPORTE ' +
+    'ELSE ROUND(L.IMPORTE * C.ACUMULADA / L.CANTIDAD, 2) END) - ' +
+    '(CASE WHEN C.ACUMULADA - C.CANTIDAD = L.CANTIDAD THEN L.IMPORTE ' +
+    'ELSE ROUND(L.IMPORTE * (C.ACUMULADA - C.CANTIDAD) / L.CANTIDAD, 2) ' +
+    'END) AS IMPORTE FROM LINEAS L JOIN CELDAS_VALIDAS C ' +
+    'ON C.LINEA = L.LINEA UNION ALL ' +
+    'SELECT L.LINEA, L.SISTEMA, L.TALLA_SKU, L.ORDEN_SKU, ' +
+    'L.CANTIDAD, L.IMPORTE FROM LINEAS L WHERE NOT EXISTS (' +
+    'SELECT 1 FROM CELDAS_VALIDAS C WHERE C.LINEA = L.LINEA)' + ')';
+  Result := Result + CteTramosImpresion(CamposGuia, RotulosLinea, Cantidades);
+  if AGuias then
+    Result := Result + SelectGuiasImpresion(CamposGuia)
+  else
+    Result := Result +
+      'SELECT L.SERIE_DOC AS SERIE_ALBC, L.NUMERO_DOC AS NUMERO_ALBC, ' +
+      'MIN(L.LINEA) AS LINEA_ALBC, L.CODIGO_ART, L.REF_PRV, ' +
+      'COALESCE(NULLIF(L.REF_PRV, ''''), L.CODIGO_ART, '''') AS MODELO, ' +
+      'CONCAT_WS(CHAR(1), L.REF_PRV, L.CODIGO_ART, L.DESCRIPCION_BASE) ' +
+      'AS GRUPO_MODELO, ' +
+      'L.DESCRIPCION_BASE, CONCAT(L.DESCRIPCION_BASE, ' +
+      'CASE WHEN L.LOTE <> '''' THEN CONCAT(CHAR(10), ''Lote: '', L.LOTE) ' +
+      'ELSE '''' END, COALESCE(CONCAT('' Cad.: '', ' +
+      'DATE_FORMAT(L.FECHA_CADUCIDAD, ''%d/%m/%Y'')), '''')) AS DESCRIPCION, ' +
+      'CASE WHEN T.TRAMO IS NULL THEN MAX(L.VARIACION_TEXTO) ELSE '''' ' +
+      'END AS DETALLE, L.VARIANTE, MIN(L.SKU) AS CODIGO_UNIDAD, ' +
+      'L.LOTE, L.FECHA_CADUCIDAD, L.COLOR_TEXTO, L.CODIGO_ATB_COLOR, ' +
+      'L.ID_AC_PIVOT, MAX(G.NOMBRE_CORTO_AC) AS NOMBRE_CORTO_AC, ' +
+      'MAX(G.NOMBRE_AC) AS NOMBRE_AC, L.TIPO_CANTIDAD, L.PRECIO_COMPRA, ' +
+      '0 AS PRECIO_VENTA, SUM(D.CANTIDAD) AS TOTAL_UNIDADES, ' +
+      'SUM(D.IMPORTE) AS TOTAL_LINEA, L.CODIGO_ALM_ALBCLIN, ' +
+      'MAX(AL.CODIGO_EMP_ALM) AS CODIGO_EMP_ALM_ALBCLIN, ' +
+      'MAX(AL.NOMBRE_ALM_ALM) AS NOMBRE_ALM_ALBCLIN, ' +
+      'MAX(AL.DIRECCION_ALM) AS DIRECCION_ALM_ALBCLIN, ' +
+      'MAX(AL.CODIGO_POSTAL_ALM) AS CODIGO_POSTAL_ALM_ALBCLIN, ' +
+      'MAX(AL.POBLACION_ALM) AS POBLACION_ALM_ALBCLIN, ' +
+      'MAX(AL.PROVINCIA_ALM) AS PROVINCIA_ALM_ALBCLIN, ' +
+      'MAX(AL.TELEFONO_ALM) AS TELEFONO_ALM_ALBCLIN, ' +
+      'MAX(AL.EMAIL_ALM) AS EMAIL_ALM_ALBCLIN' + RotulosLinea + Cantidades +
+      ' FROM LINEAS L JOIN DETALLE D ON D.LINEA = L.LINEA ' +
+      'LEFT JOIN TRAMOS T ON T.SISTEMA = D.SISTEMA AND T.TALLA = D.TALLA ' +
+      'LEFT JOIN GUIAS G ON G.SISTEMA = T.SISTEMA AND G.TRAMO = T.TRAMO ' +
+      'LEFT JOIN fza_almacenes AL ON AL.CODIGO_ALM_ALM = L.CODIGO_ALM_ALBCLIN ' +
+      'GROUP BY L.SERIE_DOC, L.NUMERO_DOC, L.CODIGO_ART, L.REF_PRV, ' +
+      'L.DESCRIPCION_BASE, L.VARIANTE, L.LOTE, L.FECHA_CADUCIDAD, ' +
+      'L.COLOR_TEXTO, L.CODIGO_ATB_COLOR, L.ID_AC_PIVOT, ' +
+      'L.TIPO_CANTIDAD, L.PRECIO_COMPRA, L.CODIGO_ALM_ALBCLIN, ' +
+      'L.DESCUENTO, L.IVA, T.TRAMO, ' +
+      'CASE WHEN T.TRAMO IS NULL THEN L.LINEA END ' +
+      'ORDER BY MODELO, L.CODIGO_ART, L.DESCRIPCION_BASE, L.COLOR_TEXTO, ' +
+      'L.VARIANTE, L.PRECIO_COMPRA, L.DESCUENTO, L.IVA, T.TRAMO, LINEA_ALBC';
+end;
+
+function SqlImpresionHorizontalSesion(AGuias: Boolean): string;
+var
+  CamposGuia, RotulosLinea, Cantidades: string;
+begin
+  Result :=
+    'WITH LINEAS AS (' +
+    'SELECT L.SERIE_SES_SESLIN AS SERIE_SES, ' +
+    'L.NUMERO_SES_SESLIN AS NUMERO_SES, L.LINEA_SESLIN AS LINEA, ' +
+    'L.CODIGO_ART_TENTATIVO_SESLIN AS CODIGO_ART, L.REF_PRV_SESLIN AS REF_PRV, ' +
+    'L.DESCRIPCION_SESLIN AS DESCRIPCION, L.COLOR_TEXTO_SESLIN AS COLOR_TEXTO, ' +
+    'L.CODIGO_ATB_COLOR_SESLIN AS CODIGO_ATB_COLOR, ' +
+    'L.TIPO_CANTIDAD_SESLIN AS TIPO_CANTIDAD, S.CODIGO_ALM_SES AS ALMACEN, ' +
+    'L.CANTIDAD_ESCALAR_SESLIN AS CANTIDAD_ESCALAR, ' +
+    'L.PRECIO_COMPRA_SESLIN AS PRECIO_COMPRA, ' +
+    'L.PRECIO_VENTA_SESLIN AS PRECIO_VENTA, NULLIF(L.ID_AC_PIVOT_SESLIN, 0) ' +
+    'AS ID_AC_PIVOT, COALESCE(CONCAT(''C'', NULLIF(L.ID_AC_PIVOT_SESLIN, 0)), ' +
+    'CONCAT(''A'', NULLIF(L.CODIGO_ART_TENTATIVO_SESLIN, '''')), ' +
+    'CONCAT(''L'', L.LINEA_SESLIN)) AS SISTEMA ' +
+    'FROM fza_compras_sesiones_lineas L JOIN fza_compras_sesiones S ' +
+    'ON S.SERIE_SES = L.SERIE_SES_SESLIN AND S.NUMERO_SES = L.NUMERO_SES_SESLIN ' +
+    'WHERE L.SERIE_SES_SESLIN = :SERIE AND L.NUMERO_SES_SESLIN = :NUMERO' +
+    '), DETALLE AS (' +
+    'SELECT L.LINEA, L.SISTEMA, V.AV AS TALLA, V.ORDEN_AV AS ORDEN, ' +
+    'COALESCE(NULLIF(C.CODIGO_ALM_SESCEL, ''''), L.ALMACEN) AS CODIGO_ALM, ' +
+    'COALESCE(C.CANTIDAD_SESCEL, L.CANTIDAD_ESCALAR, 0) AS CANTIDAD, ' +
+    'COALESCE(P.PRECIO_COMPRA_SESLINSKU, L.PRECIO_COMPRA) AS PRECIO_COMPRA, ' +
+    'COALESCE(P.PRECIO_VENTA_SESLINSKU, L.PRECIO_VENTA) AS PRECIO_VENTA ' +
+    'FROM LINEAS L LEFT JOIN fza_compras_sesiones_celdas C ' +
+    'ON C.SERIE_SES_SESCEL = L.SERIE_SES AND C.NUMERO_SES_SESCEL = L.NUMERO_SES ' +
+    'AND C.LINEA_SES_SESCEL = L.LINEA AND C.CANTIDAD_SESCEL <> 0 ' +
+    'LEFT JOIN fza_atributos_valores V ON V.ID_AV = C.ID_AV_PIVOT_SESCEL ' +
+    'LEFT JOIN fza_compras_sesiones_lineas_skus_precios P ' +
+    'ON P.SERIE_SES_SESLINSKU = C.SERIE_SES_SESCEL ' +
+    'AND P.NUMERO_SES_SESLINSKU = C.NUMERO_SES_SESCEL ' +
+    'AND P.LINEA_SES_SESLINSKU = C.LINEA_SES_SESCEL ' +
+    'AND P.ID_FILA_SES_SESLINSKU = C.ID_FILA_SES_SESCEL ' +
+    'AND P.ID_AV_PIVOT_SESLINSKU = C.ID_AV_PIVOT_SESCEL)';
+  Result := Result + CteTramosImpresion(CamposGuia, RotulosLinea, Cantidades);
+  if AGuias then
+    Result := Result + SelectGuiasImpresion(CamposGuia)
+  else
+    Result := Result +
+      'SELECT L.SERIE_SES, L.NUMERO_SES, L.LINEA AS LINEA_SES, ' +
+      'L.CODIGO_ART, L.REF_PRV, L.DESCRIPCION, L.COLOR_TEXTO, ' +
+      'L.CODIGO_ATB_COLOR, L.TIPO_CANTIDAD, L.ID_AC_PIVOT, ' +
+      'MAX(G.NOMBRE_AC) AS NOMBRE_AC, MAX(G.NOMBRE_CORTO_AC) AS NOMBRE_CORTO_AC, ' +
+      'D.CODIGO_ALM, COALESCE(MAX(A.NOMBRE_ALM_ALM), D.CODIGO_ALM) AS NOMBRE_ALM, ' +
+      'D.PRECIO_COMPRA, D.PRECIO_VENTA, SUM(D.CANTIDAD) AS TOTAL_UNIDADES, ' +
+      'SUM(D.CANTIDAD * D.PRECIO_COMPRA) AS TOTAL_LINEA' + Cantidades +
+      ' FROM LINEAS L JOIN DETALLE D ON D.LINEA = L.LINEA ' +
+      'LEFT JOIN TRAMOS T ON T.SISTEMA = D.SISTEMA AND T.TALLA = D.TALLA ' +
+      'LEFT JOIN GUIAS G ON G.SISTEMA = T.SISTEMA AND G.TRAMO = T.TRAMO ' +
+      'LEFT JOIN fza_almacenes A ON A.CODIGO_ALM_ALM = D.CODIGO_ALM ' +
+      'GROUP BY L.SERIE_SES, L.NUMERO_SES, L.LINEA, L.CODIGO_ART, L.REF_PRV, ' +
+      'L.DESCRIPCION, L.COLOR_TEXTO, L.CODIGO_ATB_COLOR, L.TIPO_CANTIDAD, ' +
+      'L.ID_AC_PIVOT, D.CODIGO_ALM, D.PRECIO_COMPRA, D.PRECIO_VENTA, ' +
+      'T.TRAMO ORDER BY L.LINEA, D.CODIGO_ALM, D.PRECIO_COMPRA, ' +
+      'D.PRECIO_VENTA, T.TRAMO';
 end;
 
 // FROM ... WHERE de las celdas de talla (pivote) con cantidad de la
@@ -393,18 +705,25 @@ end;
 
 procedure TDatosInformeDocumento.Abrir(AConexion: TUniConnection;
   const AConfig: TConfiguracionDocumento;
-  const ASerie, ANumero: string);
+  const ASerie, ANumero: string; AHorizontal: Boolean);
 var
   Consultas: TArray<TUniQuery>;
   oConsulta: TUniQuery;
 begin
   FCabecera.Close;
   FLineas.Close;
+  FLineasHorizontales.Close;
   FImpuestos.Close;
   ConfigurarCabecera(AConfig);
   ConfigurarLineas(AConfig);
   ConfigurarImpuestos(AConfig);
   Consultas := TArray<TUniQuery>.Create(FCabecera, FLineas, FImpuestos);
+  if AHorizontal then
+  begin
+    FLineasHorizontales.SQL.Text := SqlImpresionHorizontalCompra(AConfig,
+      False);
+    Consultas := Consultas + [FLineasHorizontales];
+  end;
   for oConsulta in Consultas do
   begin
     oConsulta.Connection := AConexion;
@@ -416,6 +735,8 @@ begin
     raise Exception.Create(SErrorDocumentoImpresionNoExiste);
   FLineas.Open;
   FImpuestos.Open;
+  if AHorizontal then
+    FLineasHorizontales.Open;
 end;
 
 end.

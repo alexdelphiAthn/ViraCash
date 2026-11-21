@@ -21,6 +21,11 @@ resourcestring
   SCaptionRecibirFilaPedidoCompra = 'Recibir fila';
   SInfoFilaPedidoCompraSinPendientes =
     'La fila seleccionada no tiene cantidades pendientes de recibir.';
+  // FZ-ISSUE-1089: «A recibir» no puede superar lo pendiente del pedido.
+  SAvisoARecibirSuperaPendiente =
+    'Se ha tecleado %s, pero solo quedan %s pendientes de recibir en ' +
+    'esta línea del pedido. «A recibir» se deja en %s. Si ha llegado ' +
+    'mercancía de más, regístrela aparte en el albarán.';
   SErrorDescuentoLineaCompra =
     'El descuento de la línea debe estar entre 0 y 100 %.';
   SErrorColorRepetidoSesion =

@@ -97,6 +97,9 @@ procedure AplicarDuplicadoEnLinea(ADM: TdmComprasSesiones;
 
 procedure BorrarCeldasLineaSesion(AConn: TUniConnection;
   const ASerie, ANumero: string; ALinea: Integer);
+// FZ-ISSUE-1094: detalle de una sesión que se elimina (sin FK en cascada).
+procedure BorrarDetalleSesion(AConn: TUniConnection;
+  const ASerie, ANumero: string);
 procedure CopiarCeldasDistribuidasSesion(AConn: TUniConnection;
   const ASerie, ANumero, AAlmacenCabecera, AUsuario: string;
   ALineaOrigen, ALineaDestino: Integer);
@@ -293,6 +296,63 @@ begin
     Consulta.ParamByName('l').AsInteger := ALinea;
     Consulta.ExecSQL;
     BorrarBarrasSesion(AConn, ASerie, ANumero, ALinea);
+  finally
+    FreeAndNil(Consulta);
+  end;
+end;
+
+procedure BorrarDetalleSesion(AConn: TUniConnection;
+  const ASerie, ANumero: string);
+type
+  TTablaDetalleSesion = record
+    Tabla: string;
+    Serie: string;
+    Numero: string;
+  end;
+const
+  // Las hijas antes que las líneas y los kits; los códigos de barras los
+  // borra BorrarBarrasSesion.
+  TABLAS: array[0..10] of TTablaDetalleSesion = (
+    (Tabla: 'fza_compras_sesiones_celdas';
+     Serie: 'SERIE_SES_SESCEL'; Numero: 'NUMERO_SES_SESCEL'),
+    (Tabla: 'fza_compras_sesiones_fotos';
+     Serie: 'SERIE_SES_CSF'; Numero: 'NUMERO_SES_CSF'),
+    (Tabla: 'fza_compras_sesiones_lineas_filas_atr';
+     Serie: 'SERIE_SES_SESFILAT'; Numero: 'NUMERO_SES_SESFILAT'),
+    (Tabla: 'fza_compras_sesiones_lineas_filas';
+     Serie: 'SERIE_SES_SESFIL'; Numero: 'NUMERO_SES_SESFIL'),
+    (Tabla: 'fza_compras_sesiones_lineas_props';
+     Serie: 'SERIE_SES_SESLPROP'; Numero: 'NUMERO_SES_SESLPROP'),
+    (Tabla: 'fza_compras_sesiones_lineas_skus_precios';
+     Serie: 'SERIE_SES_SESLINSKU'; Numero: 'NUMERO_SES_SESLINSKU'),
+    (Tabla: 'fza_compras_sesiones_lineas';
+     Serie: 'SERIE_SES_SESLIN'; Numero: 'NUMERO_SES_SESLIN'),
+    (Tabla: 'fza_compras_sesiones_kits_det';
+     Serie: 'SERIE_SES_SESKITD'; Numero: 'NUMERO_SES_SESKITD'),
+    (Tabla: 'fza_compras_sesiones_kits';
+     Serie: 'SERIE_SES_SESKIT'; Numero: 'NUMERO_SES_SESKIT'),
+    (Tabla: 'fza_compras_sesiones_props';
+     Serie: 'SERIE_SES_SESPROP'; Numero: 'NUMERO_SES_SESPROP'),
+    (Tabla: 'fza_compras_sesiones_documentos';
+     Serie: 'SERIE_SES_SESDOC'; Numero: 'NUMERO_SES_SESDOC'));
+var
+  Consulta: TUniQuery;
+  Indice: Integer;
+begin
+  BorrarBarrasSesion(AConn, ASerie, ANumero);
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := AConn;
+    for Indice := Low(TABLAS) to High(TABLAS) do
+    begin
+      Consulta.SQL.Text :=
+        'DELETE FROM ' + TABLAS[Indice].Tabla +
+        ' WHERE ' + TABLAS[Indice].Serie + ' = :s' +
+        '   AND ' + TABLAS[Indice].Numero + ' = :n';
+      Consulta.ParamByName('s').AsString := ASerie;
+      Consulta.ParamByName('n').AsString := ANumero;
+      Consulta.ExecSQL;
+    end;
   finally
     FreeAndNil(Consulta);
   end;

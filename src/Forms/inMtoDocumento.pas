@@ -389,6 +389,9 @@ begin
   if Assigned(FPanelPrecarga) then
     FPanelPrecarga.Visible := False;
   inherited;
+  // FZ-ISSUE-1090: el documento nuevo se crea con «Nuevo». La flecha abajo
+  // sobre el último de la lista no puede dar de alta uno vacío.
+  cxGrdDBTabPrin.OptionsData.Appending := False;
   // Foto de la línea activa bajo el icono de la barra derecha; sigue al
   // registro y abre el visor igual que Ctrl+F.
   if not Assigned(FMiniaturaFoto) and Assigned(FotosArticulos) then

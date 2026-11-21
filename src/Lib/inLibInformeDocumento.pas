@@ -22,7 +22,7 @@ procedure CrearInformeDocumento(AInforme: TfrxReport;
   ACabecera, ALineas, AImpuestos: TfrxDBDataset;
   const ATitulo, AEtiquetaTercero: string;
   AMostrarDescuento: Boolean = False;
-  APedidoCompra: Boolean = False);
+  APedidoCompra: Boolean = False; AHorizontal: Boolean = False);
 
 // Aplica el formato español también a plantillas de factura guardadas.
 procedure AjustarFormatoBasesFactura(AInforme: TfrxReport);
@@ -31,8 +31,9 @@ procedure AjustarRotulosReciboFactura(AInforme: TfrxReport);
 implementation
 
 uses
-  inLibMsgPresupuestos,
-  System.SysUtils, System.Classes, Vcl.Graphics, frBaseGraphicsTypes;
+  inLibMsgPresupuestos, inLibMsgFacturas, inLibPivoteVentaCalculo,
+  System.SysUtils, System.Classes, Vcl.Graphics, Vcl.Printers,
+  frBaseGraphicsTypes;
 
 procedure AjustarFormatoBasesFactura(AInforme: TfrxReport);
 const
@@ -175,6 +176,7 @@ type
     FAncho: Extended;
     FMostrarDescuento: Boolean;
     FPedidoCompra: Boolean;
+    FHorizontal: Boolean;
     function Memo(AParent: TfrxComponent; const ATexto: string;
       ALeft, ATop, AWidth, AHeight: Extended): TfrxMemoView;
     function Importe(const ACampo: string): string;
@@ -185,10 +187,11 @@ type
     function CeldaLinea(AParent: TfrxComponent; const ATexto: string;
       ALeft, AWidth: Extended; AAlineacion: TfrxHAlign): TfrxMemoView;
     procedure CrearSujeto(ABanda: TfrxBand; const AEtiqueta, ANombre,
-      ABloque: string; ALeft: Extended);
+      ABloque: string; ALeft, ATop: Extended);
     procedure CrearCabecera(APagina: TfrxReportPage);
     procedure CrearDetalle(APagina: TfrxReportPage);
     procedure CrearDetallePedidoCompra(APagina: TfrxReportPage);
+    procedure CrearDetallePedidoCompraHorizontal(APagina: TfrxReportPage);
     procedure CrearDesgloseIva(AResumen: TfrxBand);
     procedure CrearFilaTotal(AResumen: TfrxBand; const AEtiqueta,
       AValor: string; ATop: Extended; const AAlVisualizar: string);
@@ -263,18 +266,20 @@ begin
 end;
 
 procedure TInformeDocumento.CrearSujeto(ABanda: TfrxBand;
-  const AEtiqueta, ANombre, ABloque: string; ALeft: Extended);
+  const AEtiqueta, ANombre, ABloque: string; ALeft, ATop: Extended);
 var
   oTexto: TfrxMemoView;
 begin
-  oTexto := Memo(ABanda, AEtiqueta, ALeft, 100, ANCHO_CAJA, 18);
+  oTexto := Memo(ABanda, AEtiqueta, ALeft, ATop, ANCHO_CAJA, 18);
   oTexto.Font.Style := [fsBold];
   oTexto.Font.Color := COLOR_TENUE;
-  Caja(ABanda, ALeft, 120, ANCHO_CAJA, 118);
-  oTexto := Memo(ABanda, ANombre, ALeft + 10, 126, ANCHO_CAJA - 20, 20);
+  Caja(ABanda, ALeft, ATop + 20, ANCHO_CAJA, 118);
+  oTexto := Memo(ABanda, ANombre, ALeft + 10, ATop + 26, ANCHO_CAJA - 20,
+    20);
   oTexto.Font.Size := 10;
   oTexto.Font.Style := [fsBold];
-  oTexto := Memo(ABanda, ABloque, ALeft + 10, 148, ANCHO_CAJA - 20, 86);
+  oTexto := Memo(ABanda, ABloque, ALeft + 10, ATop + 48, ANCHO_CAJA - 20,
+    86);
   oTexto.WordWrap := True;
   oTexto.VAlign := vaTop;
 end;
@@ -283,25 +288,37 @@ procedure TInformeDocumento.CrearCabecera(APagina: TfrxReportPage);
 var
   oBanda: TfrxReportTitle;
   oTexto: TfrxMemoView;
+  nTopNumero, nTopSujeto: Extended;
 begin
   oBanda := TfrxReportTitle.Create(APagina);
   oBanda.CreateUniqueName;
   oBanda.Height := 252;
+  nTopNumero := 44;
+  nTopSujeto := 100;
+  if FHorizontal then
+  begin
+    oBanda.Height := 186;
+    nTopNumero := 0;
+    nTopSujeto := 40;
+  end;
   oTexto := Memo(oBanda, FTitulo.ToUpper, 0, 0, FAncho, 30);
   oTexto.Font.Size := 16;
   oTexto.Font.Style := [fsBold, fsUnderline];
   oTexto.HAlign := haCenter;
-  oTexto := Memo(oBanda, SInformeNumeroDocumento, 0, 44, ANCHO_CAJA, 18);
+  oTexto := Memo(oBanda, SInformeNumeroDocumento, 0, nTopNumero,
+    ANCHO_CAJA, 18);
   oTexto.Font.Size := 10;
   oTexto.Font.Style := [fsBold];
-  Memo(oBanda, SInformeFechaDocumento, 0, 62, ANCHO_CAJA, 18).Font.Size :=
+  Memo(oBanda, SInformeFechaDocumento, 0, nTopNumero + 18,
+    ANCHO_CAJA, 18).Font.Size :=
     10;
-  Memo(oBanda, '[Cabecera."VALIDEZ"]', 0, 80, ANCHO_CAJA, 18).Font.Size :=
-    10;
+  if not FHorizontal then
+    Memo(oBanda, '[Cabecera."VALIDEZ"]', 0, 80,
+      ANCHO_CAJA, 18).Font.Size := 10;
   CrearSujeto(oBanda, SInformeEmisorDocumento, '[Cabecera."EMPRESA"]',
-    '[Cabecera."BLOQUE_EMPRESA"]', 0);
+    '[Cabecera."BLOQUE_EMPRESA"]', 0, nTopSujeto);
   CrearSujeto(oBanda, FEtiquetaTercero, '[Cabecera."TERCERO"]',
-    '[Cabecera."BLOQUE_TERCERO"]', FAncho - ANCHO_CAJA);
+    '[Cabecera."BLOQUE_TERCERO"]', FAncho - ANCHO_CAJA, nTopSujeto);
 end;
 
 procedure TInformeDocumento.CrearDetalle(APagina: TfrxReportPage);
@@ -454,6 +471,107 @@ begin
     if iColumna = 1 then
       oTexto.Font.Size := 8;
   end;
+end;
+
+procedure TInformeDocumento.CrearDetallePedidoCompraHorizontal(
+  APagina: TfrxReportPage);
+const
+  ANCHO_VARIANTE = 160;
+  ANCHO_PRECIO = 80;
+  ANCHO_UNIDADES = 72;
+  ANCHO_TOTAL = 86;
+  ALTO_TRAMO = 38;
+  FORMATO_CANTIDAD = '#,##0.######';
+var
+  oGrupo: TfrxGroupHeader;
+  oCabecera: TfrxHeader;
+  oDetalle: TfrxMasterData;
+  oFoto: TfrxPictureView;
+  oTexto: TfrxMemoView;
+  nPrecio, nCantidad, nTotal, nAnchoTalla, X: Extended;
+  I: Integer;
+  sColumna: string;
+begin
+  nTotal := FAncho - ANCHO_TOTAL;
+  nCantidad := nTotal - ANCHO_UNIDADES;
+  nPrecio := nCantidad - ANCHO_PRECIO;
+  nAnchoTalla := (nPrecio - ANCHO_VARIANTE) / MAX_TALLAS_HORIZONTAL;
+  oGrupo := TfrxGroupHeader.Create(APagina);
+  oGrupo.Name := 'CabeceraModeloCompra';
+  oGrupo.Top := 270;
+  oGrupo.Height := 72;
+  oGrupo.Condition := 'LineasHorizontales."GRUPO_MODELO"';
+  oGrupo.ReprintOnNewPage := True;
+  oGrupo.KeepChild := True;
+  oFoto := TfrxPictureView.Create(oGrupo);
+  oFoto.Name := 'foto300';
+  oFoto.SetBounds(0, 4, 92, 62);
+  oFoto.DataSet := FLineas;
+  oFoto.Stretched := True;
+  oFoto.KeepAspectRatio := True;
+  oTexto := Memo(oGrupo, 'Modelo [LineasHorizontales."MODELO"]',
+    104, 4, FAncho - 104, 24);
+  oTexto.Font.Size := 11;
+  oTexto.Font.Style := [fsBold];
+  Memo(oGrupo, '[LineasHorizontales."DESCRIPCION_BASE"]',
+    104, 27, FAncho - 104, 36).WordWrap := True;
+  oCabecera := TfrxHeader.Create(APagina);
+  oCabecera.CreateUniqueName;
+  oCabecera.Top := 370;
+  oCabecera.Height := 24;
+  oCabecera.ReprintOnNewPage := True;
+  CeldaTitulo(oCabecera, STextoSkuFacturas, 0, ANCHO_VARIANTE, haLeft);
+  CeldaTitulo(oCabecera, STextoTallasFacturas, ANCHO_VARIANTE,
+    nPrecio - ANCHO_VARIANTE, haCenter);
+  CeldaTitulo(oCabecera, SInformePrecioDocumento, nPrecio,
+    ANCHO_PRECIO, haRight);
+  CeldaTitulo(oCabecera, SInformeCantidadDocumento, nCantidad,
+    ANCHO_UNIDADES, haRight);
+  CeldaTitulo(oCabecera, SInformeImporteDocumento, nTotal,
+    ANCHO_TOTAL, haRight);
+  oDetalle := TfrxMasterData.Create(APagina);
+  oDetalle.CreateUniqueName;
+  oDetalle.Top := 400;
+  oDetalle.DataSet := FLineas;
+  oDetalle.Height := ALTO_TRAMO;
+  oDetalle.Stretched := True;
+  oDetalle.AllowSplit := False;
+  CeldaLinea(oDetalle, '', 0, FAncho, haLeft).Height := ALTO_TRAMO;
+  oTexto := Memo(oDetalle, '[LineasHorizontales."VARIANTE"]', 4, 1,
+    ANCHO_VARIANTE - 8, 17);
+  oTexto.Font.Size := 8;
+  Memo(oDetalle, '[LineasHorizontales."COLOR_TEXTO"]', 4, 18,
+    ANCHO_VARIANTE - 8, 17).Font.Size := 8;
+  oTexto := Memo(oDetalle, '[LineasHorizontales."DETALLE"]',
+    ANCHO_VARIANTE, 0, nPrecio - ANCHO_VARIANTE, ALTO_TRAMO - 2);
+  oTexto.WordWrap := True;
+  oTexto.StretchMode := smActualHeight;
+  for I := 1 to MAX_TALLAS_HORIZONTAL do
+  begin
+    X := ANCHO_VARIANTE + (I - 1) * nAnchoTalla;
+    oTexto := Memo(oDetalle, Format('[LineasHorizontales."R%.2d"]', [I]),
+      X, 1, nAnchoTalla, 17);
+    oTexto.Font.Size := 8;
+    oTexto.Font.Style := [fsBold];
+    oTexto.Font.Color := COLOR_TENUE;
+    oTexto.HAlign := haCenter;
+    oTexto.GapX := 1;
+    sColumna := Format('<LineasHorizontales."T%.2d">', [I]);
+    oTexto := Memo(oDetalle, '[IIF(' + sColumna + ' = 0, '''', ' +
+      'FormatFloat(''' + FORMATO_CANTIDAD + ''', ' + sColumna + '))]',
+      X, 18, nAnchoTalla, 17);
+    oTexto.Font.Size := 8;
+    oTexto.HAlign := haCenter;
+    oTexto.GapX := 1;
+  end;
+  Memo(oDetalle, '[FormatFloat(''#,##0.00####'', ' +
+    '<LineasHorizontales."PRECIO_COMPRA">)]', nPrecio, 18,
+    ANCHO_PRECIO, 17).HAlign := haRight;
+  Memo(oDetalle, '[FormatFloat(''' + FORMATO_CANTIDAD +
+    ''', <LineasHorizontales."TOTAL_UNIDADES">)]', nCantidad, 18,
+    ANCHO_UNIDADES, 17).HAlign := haRight;
+  Memo(oDetalle, Importe('LineasHorizontales."TOTAL_LINEA"'),
+    nTotal, 18, ANCHO_TOTAL, 17).HAlign := haRight;
 end;
 
 // Desglose guardado por tipo; las dos columnas de R.E. son condicionales.
@@ -611,6 +729,12 @@ begin
   oPagina := TfrxReportPage.Create(FInforme);
   oPagina.CreateUniqueName;
   oPagina.SetDefaults;
+  if FHorizontal then
+  begin
+    oPagina.Orientation := poLandscape;
+    oPagina.PaperWidth := 297;
+    oPagina.PaperHeight := 210;
+  end;
   oPagina.LeftMargin := 10;
   oPagina.RightMargin := 10;
   oPagina.TopMargin := 10;
@@ -618,7 +742,9 @@ begin
   FAncho := (oPagina.PaperWidth - oPagina.LeftMargin -
     oPagina.RightMargin) * PIXELES_POR_MM;
   CrearCabecera(oPagina);
-  if FPedidoCompra then
+  if FHorizontal then
+    CrearDetallePedidoCompraHorizontal(oPagina)
+  else if FPedidoCompra then
     CrearDetallePedidoCompra(oPagina)
   else
     CrearDetalle(oPagina);
@@ -629,7 +755,7 @@ end;
 procedure CrearInformeDocumento(AInforme: TfrxReport;
   ACabecera, ALineas, AImpuestos: TfrxDBDataset;
   const ATitulo, AEtiquetaTercero: string;
-  AMostrarDescuento, APedidoCompra: Boolean);
+  AMostrarDescuento, APedidoCompra, AHorizontal: Boolean);
 var
   oConstructor: TInformeDocumento;
 begin
@@ -641,6 +767,7 @@ begin
     oConstructor.FImpuestos := AImpuestos;
     oConstructor.FMostrarDescuento := AMostrarDescuento;
     oConstructor.FPedidoCompra := APedidoCompra;
+    oConstructor.FHorizontal := AHorizontal;
     oConstructor.FTitulo := ATitulo;
     oConstructor.FEtiquetaTercero := AEtiquetaTercero;
     oConstructor.CrearInforme;

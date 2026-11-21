@@ -24,6 +24,7 @@ type
     FConfiguracion: TConfiguracionDocumento;
     FSerie: string;
     FNumero: string;
+    FHorizontal: Boolean;
     procedure CrearInforme;
   protected
     procedure DoShow; override;
@@ -34,15 +35,17 @@ type
     procedure AfterReportLoaded; override;
     class procedure Ejecutar(AOwner: TComponent;
       ATipo: TTipoDocumento; ASentido: TSentidoDocumento;
-      ACabecera: TDataSet; ALineas: TDataSet = nil);
+      ACabecera: TDataSet; ALineas: TDataSet = nil;
+      AHorizontal: Boolean = False);
     class procedure EjecutarReferencia(AOwner: TComponent;
       ATipo: TTipoDocumento; ASentido: TSentidoDocumento;
-      const ASerie, ANumero: string);
+      const ASerie, ANumero: string; AHorizontal: Boolean = False);
   end;
 
 implementation
 
 uses
+  frxDBSet,
   inLibMsgFacturas,
   inLibInformeTabular, inLibInformeTabularExcel,
   System.SysUtils, Vcl.Forms, inLibInformeDocumento,
@@ -74,7 +77,7 @@ end;
 
 class procedure TfrmPrintDocumento.Ejecutar(AOwner: TComponent;
   ATipo: TTipoDocumento; ASentido: TSentidoDocumento;
-  ACabecera: TDataSet; ALineas: TDataSet);
+  ACabecera: TDataSet; ALineas: TDataSet; AHorizontal: Boolean);
 var
   oConfig: TConfiguracionDocumento;
 begin
@@ -96,7 +99,8 @@ begin
     ACabecera.CheckBrowseMode;
     EjecutarReferencia(AOwner, ATipo, ASentido,
       ACabecera.FieldByName(oConfig.CampoSerieCabecera).AsString,
-      ACabecera.FieldByName(oConfig.CampoNumeroCabecera).AsString);
+      ACabecera.FieldByName(oConfig.CampoNumeroCabecera).AsString,
+      AHorizontal);
   end;
 end;
 
@@ -144,7 +148,7 @@ end;
 
 class procedure TfrmPrintDocumento.EjecutarReferencia(AOwner: TComponent;
   ATipo: TTipoDocumento; ASentido: TSentidoDocumento;
-  const ASerie, ANumero: string);
+  const ASerie, ANumero: string; AHorizontal: Boolean);
 var
   eTipoCorreo: TTipoDocumentoCorreo;
   oFormulario: TfrmPrintDocumento;
@@ -159,6 +163,10 @@ begin
         CrearConfiguracionDocumento(ATipo, ASentido);
       oFormulario.Name := 'frmPrintDocumento' +
         oFormulario.FConfiguracion.PrefijoCabecera;
+      oFormulario.FHorizontal := AHorizontal and (ATipo = tdPedido) and
+        (ASentido = sdCompra);
+      if oFormulario.FHorizontal then
+        oFormulario.Name := oFormulario.Name + 'H';
       oFormulario.FSerie := ASerie;
       oFormulario.FNumero := ANumero;
       oFormulario.FDatos := TDatosInformeDocumento.Create(oFormulario);
@@ -177,16 +185,21 @@ end;
 procedure TfrmPrintDocumento.CrearInforme;
 var
   sTercero: string;
+  oLineas: TfrxDBDataset;
+  bPedidoCompra: Boolean;
 begin
   sTercero := SInformeClienteDocumento;
   if FConfiguracion.Sentido = sdCompra then
     sTercero := SInformeProveedorDocumento;
-  CrearInformeDocumento(frxrprt1, FDatos.Cabecera, FDatos.Lineas,
+  bPedidoCompra := (FConfiguracion.TipoDocumento = tdPedido) and
+    (FConfiguracion.Sentido = sdCompra);
+  oLineas := FDatos.Lineas;
+  if FHorizontal then
+    oLineas := FDatos.LineasHorizontales;
+  CrearInformeDocumento(frxrprt1, FDatos.Cabecera, oLineas,
     FDatos.Impuestos, NombreInformeDocumento(
       FConfiguracion.TipoDocumento, FConfiguracion.Sentido), sTercero,
-    FConfiguracion.TipoDocumento = tdPresupuesto,
-    (FConfiguracion.TipoDocumento = tdPedido) and
-    (FConfiguracion.Sentido = sdCompra));
+    FConfiguracion.TipoDocumento = tdPresupuesto, bPedidoCompra, FHorizontal);
   frxReportOrigen.AssignAll(frxrprt1);
 end;
 
@@ -197,7 +210,8 @@ end;
 
 procedure TfrmPrintDocumento.preparar_consulta;
 begin
-  FDatos.Abrir(ConexionPrincipal, FConfiguracion, FSerie, FNumero);
+  FDatos.Abrir(ConexionPrincipal, FConfiguracion, FSerie, FNumero,
+    FHorizontal);
 end;
 
 procedure TfrmPrintDocumento.AfterReportLoaded;
@@ -214,12 +228,20 @@ begin
   frxrprt1.DataSets.Add(FDatos.Cabecera);
   frxrprt1.DataSets.Add(FDatos.Lineas);
   frxrprt1.DataSets.Add(FDatos.Impuestos);
+  if FHorizontal then
+  begin
+    frxrprt1.EnabledDataSets.Add(FDatos.LineasHorizontales);
+    frxrprt1.DataSets.Add(FDatos.LineasHorizontales);
+  end;
   for iObjeto := 0 to frxrprt1.AllObjects.Count - 1 do
   begin
     oObjeto := TfrxComponent(frxrprt1.AllObjects[iObjeto]);
     if (oObjeto is TfrxDataBand) and
        SameText(TfrxDataBand(oObjeto).DataSetName, 'Lineas') then
       TfrxDataBand(oObjeto).DataSet := FDatos.Lineas
+    else if (oObjeto is TfrxDataBand) and
+       SameText(TfrxDataBand(oObjeto).DataSetName, 'LineasHorizontales') then
+      TfrxDataBand(oObjeto).DataSet := FDatos.LineasHorizontales
     else if (oObjeto is TfrxDataBand) and
        SameText(TfrxDataBand(oObjeto).DataSetName, 'Impuestos') then
       TfrxDataBand(oObjeto).DataSet := FDatos.Impuestos;

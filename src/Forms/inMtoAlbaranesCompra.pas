@@ -1620,6 +1620,7 @@ begin
       CANT_TALLAS_MAX);
     CfgPV.CampoPorcentajeDto := 'PORCENTAJE_DTO_ALBCLIN';
     CfgPV.UnidadesMedida := UnidadesMedida;
+    CfgPV.OmitirAvisoTallasRecortadas := True;
     // Albaran de compra: UNA sola cantidad por linea -> banda unica.
     CfgPV.BandaUnica := True;
     // La columna Total del host pasa a UNIDADES del grupo en pivote.

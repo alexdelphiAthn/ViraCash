@@ -51,11 +51,16 @@
   inherited frxrprt1: TfrxReport
     ReportOptions.LastChange = 46196.500000000000000000
     ScriptText.Strings = (
+      'function LoteEspecifico: Boolean;'
+      'begin'
+      '  Result := (Trim(<LineasAlbaran."LOTE">) <> '''') and'
+      '    (UpperCase(Trim(<LineasAlbaran."LOTE">)) <>'
+      '     UpperCase(<Albaran."LOTE_REPOSICION_ALBC">));'
+      'end;'
       'procedure LineaCompraAntesDeImprimir(Sender: TfrxComponent);'
       'begin'
       '  BandaTrazabilidad.Visible :='
-      '    (<LineasAlbaran."LOTE"> <> '''') or'
-      '    (<LineasAlbaran."FECHA_CADUCIDAD"> > 0);'
+      '    LoteEspecifico or (<LineasAlbaran."FECHA_CADUCIDAD"> > 0);'
       'end;'
       'begin'
       'end.')
@@ -71,7 +76,7 @@
         DataSetName = 'LineasAlbaran'
       end
       item
-        DataSet = dmComprasSesiones.fxdsGuiasSesion
+        DataSet = dmAlbaranesCompra.fxdsGuiasAlbc
         DataSetName = 'GuiasTallas'
       end>
     Variables = <>
@@ -91,7 +96,7 @@
         FillGap.Bottom = 0
         FillGap.Right = 0
         Frame.Typ = []
-        Height = 132.283464570000000000
+        Height = 155.401670000000000000
         Top = 18.897650000000000000
         Width = 1046.929810000000000000
         object MemoTitulo: TfrxMemoView
@@ -359,10 +364,30 @@
             '[Albaran."FECHA_ALBC"]')
           ParentFont = False
         end
-        object MemoSesEstadoLbl: TfrxMemoView
+        object MemoLoteReposicion: TfrxMemoView
           AllowVectorExport = True
           Left = 710.551640000000000000
           Top = 86.929190000000000000
+          Width = 336.378170000000000000
+          Height = 15.118120000000000000
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -12
+          Font.Name = 'Arial'
+          Font.Style = [fsBold]
+          Frame.Typ = []
+          HAlign = haLeft
+          Memo.UTF8W = (
+            '[IIF((<Page#> = 1) and (<Albaran."LOTE_REPOSICION_ALBC"> <> ''''),'
+            ' ''Lote: '' + <Albaran."LOTE_REPOSICION_ALBC">, '''')]')
+          ParentFont = False
+          VAlign = vaCenter
+          WordWrap = False
+        end
+        object MemoSesEstadoLbl: TfrxMemoView
+          AllowVectorExport = True
+          Left = 710.551640000000000000
+          Top = 102.047310000000000000
           Width = 100.157700000000000000
           Height = 15.118120000000000000
           Font.Charset = DEFAULT_CHARSET
@@ -378,7 +403,7 @@
         object MemoSesEstado: TfrxMemoView
           AllowVectorExport = True
           Left = 813.543600000000000000
-          Top = 86.929190000000000000
+          Top = 102.047310000000000000
           Width = 233.386210000000000000
           Height = 15.118120000000000000
           DataSet = dmAlbaranesCompra.fxdsCabAlbc
@@ -396,7 +421,7 @@
         object MemoSesRefPrvLbl: TfrxMemoView
           AllowVectorExport = True
           Left = 710.551640000000000000
-          Top = 102.047310000000000000
+          Top = 117.165430000000000000
           Width = 100.157700000000000000
           Height = 15.118120000000000000
           Font.Charset = DEFAULT_CHARSET
@@ -412,7 +437,7 @@
         object MemoSesRefPrv: TfrxMemoView
           AllowVectorExport = True
           Left = 813.543600000000000000
-          Top = 102.047310000000000000
+          Top = 117.165430000000000000
           Width = 233.386210000000000000
           Height = 15.118120000000000000
           DataSet = dmAlbaranesCompra.fxdsCabAlbc
@@ -429,7 +454,7 @@
         end
         object MemoGuiaTitulo: TfrxMemoView
           AllowVectorExport = True
-          Top = 117.165430000000000000
+          Top = 140.283550000000000000
           Width = 1046.929500000000000000
           Height = 15.118120000000000000
           Font.Charset = DEFAULT_CHARSET
@@ -455,18 +480,18 @@
         Height = 18.897650000000000000
         Top = 211.653680000000000000
         Width = 1046.929810000000000000
-        DataSet = dmComprasSesiones.fxdsGuiasSesion
+        DataSet = dmAlbaranesCompra.fxdsGuiasAlbc
         DataSetName = 'GuiasTallas'
         RowCount = 0
         object GuiaSistema: TfrxMemoView
           AllowVectorExport = True
           Width = 60.000000000000000000
           Height = 18.897650000000000000
-          DataSet = dmComprasSesiones.fxdsGuiasSesion
+          DataSet = dmAlbaranesCompra.fxdsGuiasAlbc
           DataSetName = 'GuiasTallas'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
-          Font.Height = -14
+          Font.Height = -10
           Font.Name = 'Arial'
           Font.Style = [fsBold]
           Frame.Typ = [ftLeft, ftRight, ftTop, ftBottom]
@@ -475,13 +500,14 @@
             '[GuiasTallas."NOMBRE_CORTO_AC"]')
           ParentFont = False
           VAlign = vaCenter
+          WordWrap = False
         end
         object GuiaNombre: TfrxMemoView
           AllowVectorExport = True
           Left = 60.000000000000000000
           Width = 344.500000000000000000
           Height = 18.897650000000000000
-          DataSet = dmComprasSesiones.fxdsGuiasSesion
+          DataSet = dmAlbaranesCompra.fxdsGuiasAlbc
           DataSetName = 'GuiasTallas'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -497,9 +523,9 @@
         object GuiaT01: TfrxMemoView
           AllowVectorExport = True
           Left = 404.500000000000000000
-          Width = 25.500000000000000000
+          Width = 23.000000000000000000
           Height = 18.897650000000000000
-          DataSet = dmComprasSesiones.fxdsGuiasSesion
+          DataSet = dmAlbaranesCompra.fxdsGuiasAlbc
           DataSetName = 'GuiasTallas'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -515,10 +541,10 @@
         end
         object GuiaT02: TfrxMemoView
           AllowVectorExport = True
-          Left = 430.000000000000000000
-          Width = 25.500000000000000000
+          Left = 427.500000000000000000
+          Width = 23.000000000000000000
           Height = 18.897650000000000000
-          DataSet = dmComprasSesiones.fxdsGuiasSesion
+          DataSet = dmAlbaranesCompra.fxdsGuiasAlbc
           DataSetName = 'GuiasTallas'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -534,10 +560,10 @@
         end
         object GuiaT03: TfrxMemoView
           AllowVectorExport = True
-          Left = 455.500000000000000000
-          Width = 25.500000000000000000
+          Left = 450.500000000000000000
+          Width = 23.000000000000000000
           Height = 18.897650000000000000
-          DataSet = dmComprasSesiones.fxdsGuiasSesion
+          DataSet = dmAlbaranesCompra.fxdsGuiasAlbc
           DataSetName = 'GuiasTallas'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -553,10 +579,10 @@
         end
         object GuiaT04: TfrxMemoView
           AllowVectorExport = True
-          Left = 481.000000000000000000
-          Width = 25.500000000000000000
+          Left = 473.500000000000000000
+          Width = 23.000000000000000000
           Height = 18.897650000000000000
-          DataSet = dmComprasSesiones.fxdsGuiasSesion
+          DataSet = dmAlbaranesCompra.fxdsGuiasAlbc
           DataSetName = 'GuiasTallas'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -572,10 +598,10 @@
         end
         object GuiaT05: TfrxMemoView
           AllowVectorExport = True
-          Left = 506.500000000000000000
-          Width = 25.500000000000000000
+          Left = 496.500000000000000000
+          Width = 23.000000000000000000
           Height = 18.897650000000000000
-          DataSet = dmComprasSesiones.fxdsGuiasSesion
+          DataSet = dmAlbaranesCompra.fxdsGuiasAlbc
           DataSetName = 'GuiasTallas'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -591,10 +617,10 @@
         end
         object GuiaT06: TfrxMemoView
           AllowVectorExport = True
-          Left = 532.000000000000000000
-          Width = 25.500000000000000000
+          Left = 519.500000000000000000
+          Width = 23.000000000000000000
           Height = 18.897650000000000000
-          DataSet = dmComprasSesiones.fxdsGuiasSesion
+          DataSet = dmAlbaranesCompra.fxdsGuiasAlbc
           DataSetName = 'GuiasTallas'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -610,10 +636,10 @@
         end
         object GuiaT07: TfrxMemoView
           AllowVectorExport = True
-          Left = 557.500000000000000000
-          Width = 25.500000000000000000
+          Left = 542.500000000000000000
+          Width = 23.000000000000000000
           Height = 18.897650000000000000
-          DataSet = dmComprasSesiones.fxdsGuiasSesion
+          DataSet = dmAlbaranesCompra.fxdsGuiasAlbc
           DataSetName = 'GuiasTallas'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -629,10 +655,10 @@
         end
         object GuiaT08: TfrxMemoView
           AllowVectorExport = True
-          Left = 583.000000000000000000
-          Width = 25.500000000000000000
+          Left = 565.500000000000000000
+          Width = 23.000000000000000000
           Height = 18.897650000000000000
-          DataSet = dmComprasSesiones.fxdsGuiasSesion
+          DataSet = dmAlbaranesCompra.fxdsGuiasAlbc
           DataSetName = 'GuiasTallas'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -648,10 +674,10 @@
         end
         object GuiaT09: TfrxMemoView
           AllowVectorExport = True
-          Left = 608.500000000000000000
-          Width = 25.500000000000000000
+          Left = 588.500000000000000000
+          Width = 23.000000000000000000
           Height = 18.897650000000000000
-          DataSet = dmComprasSesiones.fxdsGuiasSesion
+          DataSet = dmAlbaranesCompra.fxdsGuiasAlbc
           DataSetName = 'GuiasTallas'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -667,10 +693,10 @@
         end
         object GuiaT10: TfrxMemoView
           AllowVectorExport = True
-          Left = 634.000000000000000000
-          Width = 25.500000000000000000
+          Left = 611.500000000000000000
+          Width = 23.000000000000000000
           Height = 18.897650000000000000
-          DataSet = dmComprasSesiones.fxdsGuiasSesion
+          DataSet = dmAlbaranesCompra.fxdsGuiasAlbc
           DataSetName = 'GuiasTallas'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -686,10 +712,10 @@
         end
         object GuiaT11: TfrxMemoView
           AllowVectorExport = True
-          Left = 659.500000000000000000
-          Width = 25.500000000000000000
+          Left = 634.500000000000000000
+          Width = 23.000000000000000000
           Height = 18.897650000000000000
-          DataSet = dmComprasSesiones.fxdsGuiasSesion
+          DataSet = dmAlbaranesCompra.fxdsGuiasAlbc
           DataSetName = 'GuiasTallas'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -705,10 +731,10 @@
         end
         object GuiaT12: TfrxMemoView
           AllowVectorExport = True
-          Left = 685.000000000000000000
-          Width = 25.500000000000000000
+          Left = 657.500000000000000000
+          Width = 23.000000000000000000
           Height = 18.897650000000000000
-          DataSet = dmComprasSesiones.fxdsGuiasSesion
+          DataSet = dmAlbaranesCompra.fxdsGuiasAlbc
           DataSetName = 'GuiasTallas'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -724,10 +750,10 @@
         end
         object GuiaT13: TfrxMemoView
           AllowVectorExport = True
-          Left = 710.500000000000000000
-          Width = 25.500000000000000000
+          Left = 680.500000000000000000
+          Width = 23.000000000000000000
           Height = 18.897650000000000000
-          DataSet = dmComprasSesiones.fxdsGuiasSesion
+          DataSet = dmAlbaranesCompra.fxdsGuiasAlbc
           DataSetName = 'GuiasTallas'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -743,10 +769,10 @@
         end
         object GuiaT14: TfrxMemoView
           AllowVectorExport = True
-          Left = 736.000000000000000000
-          Width = 25.500000000000000000
+          Left = 703.500000000000000000
+          Width = 23.000000000000000000
           Height = 18.897650000000000000
-          DataSet = dmComprasSesiones.fxdsGuiasSesion
+          DataSet = dmAlbaranesCompra.fxdsGuiasAlbc
           DataSetName = 'GuiasTallas'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -762,10 +788,10 @@
         end
         object GuiaT15: TfrxMemoView
           AllowVectorExport = True
-          Left = 761.500000000000000000
-          Width = 25.500000000000000000
+          Left = 726.500000000000000000
+          Width = 23.000000000000000000
           Height = 18.897650000000000000
-          DataSet = dmComprasSesiones.fxdsGuiasSesion
+          DataSet = dmAlbaranesCompra.fxdsGuiasAlbc
           DataSetName = 'GuiasTallas'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -781,10 +807,10 @@
         end
         object GuiaT16: TfrxMemoView
           AllowVectorExport = True
-          Left = 787.000000000000000000
-          Width = 25.500000000000000000
+          Left = 749.500000000000000000
+          Width = 23.000000000000000000
           Height = 18.897650000000000000
-          DataSet = dmComprasSesiones.fxdsGuiasSesion
+          DataSet = dmAlbaranesCompra.fxdsGuiasAlbc
           DataSetName = 'GuiasTallas'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -800,10 +826,10 @@
         end
         object GuiaT17: TfrxMemoView
           AllowVectorExport = True
-          Left = 812.500000000000000000
-          Width = 25.500000000000000000
+          Left = 772.500000000000000000
+          Width = 23.000000000000000000
           Height = 18.897650000000000000
-          DataSet = dmComprasSesiones.fxdsGuiasSesion
+          DataSet = dmAlbaranesCompra.fxdsGuiasAlbc
           DataSetName = 'GuiasTallas'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -819,10 +845,10 @@
         end
         object GuiaT18: TfrxMemoView
           AllowVectorExport = True
-          Left = 838.000000000000000000
-          Width = 25.500000000000000000
+          Left = 795.500000000000000000
+          Width = 23.000000000000000000
           Height = 18.897650000000000000
-          DataSet = dmComprasSesiones.fxdsGuiasSesion
+          DataSet = dmAlbaranesCompra.fxdsGuiasAlbc
           DataSetName = 'GuiasTallas'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -838,10 +864,10 @@
         end
         object GuiaT19: TfrxMemoView
           AllowVectorExport = True
-          Left = 863.500000000000000000
-          Width = 25.500000000000000000
+          Left = 818.500000000000000000
+          Width = 23.000000000000000000
           Height = 18.897650000000000000
-          DataSet = dmComprasSesiones.fxdsGuiasSesion
+          DataSet = dmAlbaranesCompra.fxdsGuiasAlbc
           DataSetName = 'GuiasTallas'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -857,10 +883,10 @@
         end
         object GuiaT20: TfrxMemoView
           AllowVectorExport = True
-          Left = 889.000000000000000000
-          Width = 25.500000000000000000
+          Left = 841.500000000000000000
+          Width = 23.000000000000000000
           Height = 18.897650000000000000
-          DataSet = dmComprasSesiones.fxdsGuiasSesion
+          DataSet = dmAlbaranesCompra.fxdsGuiasAlbc
           DataSetName = 'GuiasTallas'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -876,10 +902,10 @@
         end
         object GuiaT21: TfrxMemoView
           AllowVectorExport = True
-          Left = 914.500000000000000000
-          Width = 25.500000000000000000
+          Left = 864.500000000000000000
+          Width = 23.000000000000000000
           Height = 18.897650000000000000
-          DataSet = dmComprasSesiones.fxdsGuiasSesion
+          DataSet = dmAlbaranesCompra.fxdsGuiasAlbc
           DataSetName = 'GuiasTallas'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -998,7 +1024,7 @@
         object HdrTallasBlock: TfrxMemoView
           AllowVectorExport = True
           Left = 404.500000000000000000
-          Width = 535.500000000000000000
+          Width = 483.000000000000000000
           Height = 22.677180000000000000
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clWhite
@@ -1010,6 +1036,24 @@
           HAlign = haCenter
           Memo.UTF8W = (
             'Cantidades por talla (T01..T21 - ver guías arriba)')
+          ParentFont = False
+          VAlign = vaCenter
+        end
+        object HdrPrecio: TfrxMemoView
+          AllowVectorExport = True
+          Left = 887.500000000000000000
+          Width = 52.500000000000000000
+          Height = 22.677180000000000000
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clWhite
+          Font.Height = -10
+          Font.Name = 'Arial'
+          Font.Style = [fsBold]
+          Frame.Typ = [ftLeft, ftRight, ftTop, ftBottom]
+          Fill.BackColor = 6710886
+          HAlign = haCenter
+          Memo.UTF8W = (
+            'Precio')
           ParentFont = False
           VAlign = vaCenter
         end
@@ -1159,7 +1203,7 @@
           DataSetName = 'LineasAlbaran'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
-          Font.Height = -12
+          Font.Height = -9
           Font.Name = 'Arial'
           Font.Style = [fsBold]
           Frame.Typ = [ftLeft, ftRight, ftTop, ftBottom]
@@ -1168,25 +1212,26 @@
             '[LineasAlbaran."NOMBRE_CORTO_AC"]')
           ParentFont = False
           VAlign = vaCenter
+          WordWrap = False
         end
         object LinT01: TfrxMemoView
           AllowVectorExport = True
           StretchMode = smMaxHeight
           Left = 404.500000000000000000
-          Width = 25.500000000000000000
+          Width = 23.000000000000000000
           Height = 22.677180000000000000
           DataSet = dmAlbaranesCompra.fxdsLinAlbc
           DataSetName = 'LineasAlbaran'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
-          Font.Height = -13
+          Font.Height = -10
           Font.Name = 'Arial'
           Font.Style = []
           Frame.Typ = [ftLeft, ftRight, ftTop, ftBottom]
           HAlign = haCenter
           Memo.UTF8W = (
 
-              '[IIF(<LineasAlbaran."T01"> > 0, FormatFloat('#39'0'#39', <LineasAlbaran.' +
+              '[IIF(<LineasAlbaran."T01"> <> 0, FormatFloat('#39'0.######'#39', <LineasAlbaran.' +
               '"T01">), '#39#39')]')
           ParentFont = False
           VAlign = vaCenter
@@ -1194,21 +1239,21 @@
         object LinT02: TfrxMemoView
           AllowVectorExport = True
           StretchMode = smMaxHeight
-          Left = 430.000000000000000000
-          Width = 25.500000000000000000
+          Left = 427.500000000000000000
+          Width = 23.000000000000000000
           Height = 22.677180000000000000
           DataSet = dmAlbaranesCompra.fxdsLinAlbc
           DataSetName = 'LineasAlbaran'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
-          Font.Height = -13
+          Font.Height = -10
           Font.Name = 'Arial'
           Font.Style = []
           Frame.Typ = [ftLeft, ftRight, ftTop, ftBottom]
           HAlign = haCenter
           Memo.UTF8W = (
 
-              '[IIF(<LineasAlbaran."T02"> > 0, FormatFloat('#39'0'#39', <LineasAlbaran.' +
+              '[IIF(<LineasAlbaran."T02"> <> 0, FormatFloat('#39'0.######'#39', <LineasAlbaran.' +
               '"T02">), '#39#39')]')
           ParentFont = False
           VAlign = vaCenter
@@ -1216,21 +1261,21 @@
         object LinT03: TfrxMemoView
           AllowVectorExport = True
           StretchMode = smMaxHeight
-          Left = 455.500000000000000000
-          Width = 25.500000000000000000
+          Left = 450.500000000000000000
+          Width = 23.000000000000000000
           Height = 22.677180000000000000
           DataSet = dmAlbaranesCompra.fxdsLinAlbc
           DataSetName = 'LineasAlbaran'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
-          Font.Height = -13
+          Font.Height = -10
           Font.Name = 'Arial'
           Font.Style = []
           Frame.Typ = [ftLeft, ftRight, ftTop, ftBottom]
           HAlign = haCenter
           Memo.UTF8W = (
 
-              '[IIF(<LineasAlbaran."T03"> > 0, FormatFloat('#39'0'#39', <LineasAlbaran.' +
+              '[IIF(<LineasAlbaran."T03"> <> 0, FormatFloat('#39'0.######'#39', <LineasAlbaran.' +
               '"T03">), '#39#39')]')
           ParentFont = False
           VAlign = vaCenter
@@ -1238,21 +1283,21 @@
         object LinT04: TfrxMemoView
           AllowVectorExport = True
           StretchMode = smMaxHeight
-          Left = 481.000000000000000000
-          Width = 25.500000000000000000
+          Left = 473.500000000000000000
+          Width = 23.000000000000000000
           Height = 22.677180000000000000
           DataSet = dmAlbaranesCompra.fxdsLinAlbc
           DataSetName = 'LineasAlbaran'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
-          Font.Height = -13
+          Font.Height = -10
           Font.Name = 'Arial'
           Font.Style = []
           Frame.Typ = [ftLeft, ftRight, ftTop, ftBottom]
           HAlign = haCenter
           Memo.UTF8W = (
 
-              '[IIF(<LineasAlbaran."T04"> > 0, FormatFloat('#39'0'#39', <LineasAlbaran.' +
+              '[IIF(<LineasAlbaran."T04"> <> 0, FormatFloat('#39'0.######'#39', <LineasAlbaran.' +
               '"T04">), '#39#39')]')
           ParentFont = False
           VAlign = vaCenter
@@ -1260,21 +1305,21 @@
         object LinT05: TfrxMemoView
           AllowVectorExport = True
           StretchMode = smMaxHeight
-          Left = 506.500000000000000000
-          Width = 25.500000000000000000
+          Left = 496.500000000000000000
+          Width = 23.000000000000000000
           Height = 22.677180000000000000
           DataSet = dmAlbaranesCompra.fxdsLinAlbc
           DataSetName = 'LineasAlbaran'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
-          Font.Height = -13
+          Font.Height = -10
           Font.Name = 'Arial'
           Font.Style = []
           Frame.Typ = [ftLeft, ftRight, ftTop, ftBottom]
           HAlign = haCenter
           Memo.UTF8W = (
 
-              '[IIF(<LineasAlbaran."T05"> > 0, FormatFloat('#39'0'#39', <LineasAlbaran.' +
+              '[IIF(<LineasAlbaran."T05"> <> 0, FormatFloat('#39'0.######'#39', <LineasAlbaran.' +
               '"T05">), '#39#39')]')
           ParentFont = False
           VAlign = vaCenter
@@ -1282,21 +1327,21 @@
         object LinT06: TfrxMemoView
           AllowVectorExport = True
           StretchMode = smMaxHeight
-          Left = 532.000000000000000000
-          Width = 25.500000000000000000
+          Left = 519.500000000000000000
+          Width = 23.000000000000000000
           Height = 22.677180000000000000
           DataSet = dmAlbaranesCompra.fxdsLinAlbc
           DataSetName = 'LineasAlbaran'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
-          Font.Height = -13
+          Font.Height = -10
           Font.Name = 'Arial'
           Font.Style = []
           Frame.Typ = [ftLeft, ftRight, ftTop, ftBottom]
           HAlign = haCenter
           Memo.UTF8W = (
 
-              '[IIF(<LineasAlbaran."T06"> > 0, FormatFloat('#39'0'#39', <LineasAlbaran.' +
+              '[IIF(<LineasAlbaran."T06"> <> 0, FormatFloat('#39'0.######'#39', <LineasAlbaran.' +
               '"T06">), '#39#39')]')
           ParentFont = False
           VAlign = vaCenter
@@ -1304,21 +1349,21 @@
         object LinT07: TfrxMemoView
           AllowVectorExport = True
           StretchMode = smMaxHeight
-          Left = 557.500000000000000000
-          Width = 25.500000000000000000
+          Left = 542.500000000000000000
+          Width = 23.000000000000000000
           Height = 22.677180000000000000
           DataSet = dmAlbaranesCompra.fxdsLinAlbc
           DataSetName = 'LineasAlbaran'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
-          Font.Height = -13
+          Font.Height = -10
           Font.Name = 'Arial'
           Font.Style = []
           Frame.Typ = [ftLeft, ftRight, ftTop, ftBottom]
           HAlign = haCenter
           Memo.UTF8W = (
 
-              '[IIF(<LineasAlbaran."T07"> > 0, FormatFloat('#39'0'#39', <LineasAlbaran.' +
+              '[IIF(<LineasAlbaran."T07"> <> 0, FormatFloat('#39'0.######'#39', <LineasAlbaran.' +
               '"T07">), '#39#39')]')
           ParentFont = False
           VAlign = vaCenter
@@ -1326,21 +1371,21 @@
         object LinT08: TfrxMemoView
           AllowVectorExport = True
           StretchMode = smMaxHeight
-          Left = 583.000000000000000000
-          Width = 25.500000000000000000
+          Left = 565.500000000000000000
+          Width = 23.000000000000000000
           Height = 22.677180000000000000
           DataSet = dmAlbaranesCompra.fxdsLinAlbc
           DataSetName = 'LineasAlbaran'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
-          Font.Height = -13
+          Font.Height = -10
           Font.Name = 'Arial'
           Font.Style = []
           Frame.Typ = [ftLeft, ftRight, ftTop, ftBottom]
           HAlign = haCenter
           Memo.UTF8W = (
 
-              '[IIF(<LineasAlbaran."T08"> > 0, FormatFloat('#39'0'#39', <LineasAlbaran.' +
+              '[IIF(<LineasAlbaran."T08"> <> 0, FormatFloat('#39'0.######'#39', <LineasAlbaran.' +
               '"T08">), '#39#39')]')
           ParentFont = False
           VAlign = vaCenter
@@ -1348,21 +1393,21 @@
         object LinT09: TfrxMemoView
           AllowVectorExport = True
           StretchMode = smMaxHeight
-          Left = 608.500000000000000000
-          Width = 25.500000000000000000
+          Left = 588.500000000000000000
+          Width = 23.000000000000000000
           Height = 22.677180000000000000
           DataSet = dmAlbaranesCompra.fxdsLinAlbc
           DataSetName = 'LineasAlbaran'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
-          Font.Height = -13
+          Font.Height = -10
           Font.Name = 'Arial'
           Font.Style = []
           Frame.Typ = [ftLeft, ftRight, ftTop, ftBottom]
           HAlign = haCenter
           Memo.UTF8W = (
 
-              '[IIF(<LineasAlbaran."T09"> > 0, FormatFloat('#39'0'#39', <LineasAlbaran.' +
+              '[IIF(<LineasAlbaran."T09"> <> 0, FormatFloat('#39'0.######'#39', <LineasAlbaran.' +
               '"T09">), '#39#39')]')
           ParentFont = False
           VAlign = vaCenter
@@ -1370,21 +1415,21 @@
         object LinT10: TfrxMemoView
           AllowVectorExport = True
           StretchMode = smMaxHeight
-          Left = 634.000000000000000000
-          Width = 25.500000000000000000
+          Left = 611.500000000000000000
+          Width = 23.000000000000000000
           Height = 22.677180000000000000
           DataSet = dmAlbaranesCompra.fxdsLinAlbc
           DataSetName = 'LineasAlbaran'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
-          Font.Height = -13
+          Font.Height = -10
           Font.Name = 'Arial'
           Font.Style = []
           Frame.Typ = [ftLeft, ftRight, ftTop, ftBottom]
           HAlign = haCenter
           Memo.UTF8W = (
 
-              '[IIF(<LineasAlbaran."T10"> > 0, FormatFloat('#39'0'#39', <LineasAlbaran.' +
+              '[IIF(<LineasAlbaran."T10"> <> 0, FormatFloat('#39'0.######'#39', <LineasAlbaran.' +
               '"T10">), '#39#39')]')
           ParentFont = False
           VAlign = vaCenter
@@ -1392,21 +1437,21 @@
         object LinT11: TfrxMemoView
           AllowVectorExport = True
           StretchMode = smMaxHeight
-          Left = 659.500000000000000000
-          Width = 25.500000000000000000
+          Left = 634.500000000000000000
+          Width = 23.000000000000000000
           Height = 22.677180000000000000
           DataSet = dmAlbaranesCompra.fxdsLinAlbc
           DataSetName = 'LineasAlbaran'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
-          Font.Height = -13
+          Font.Height = -10
           Font.Name = 'Arial'
           Font.Style = []
           Frame.Typ = [ftLeft, ftRight, ftTop, ftBottom]
           HAlign = haCenter
           Memo.UTF8W = (
 
-              '[IIF(<LineasAlbaran."T11"> > 0, FormatFloat('#39'0'#39', <LineasAlbaran.' +
+              '[IIF(<LineasAlbaran."T11"> <> 0, FormatFloat('#39'0.######'#39', <LineasAlbaran.' +
               '"T11">), '#39#39')]')
           ParentFont = False
           VAlign = vaCenter
@@ -1414,21 +1459,21 @@
         object LinT12: TfrxMemoView
           AllowVectorExport = True
           StretchMode = smMaxHeight
-          Left = 685.000000000000000000
-          Width = 25.500000000000000000
+          Left = 657.500000000000000000
+          Width = 23.000000000000000000
           Height = 22.677180000000000000
           DataSet = dmAlbaranesCompra.fxdsLinAlbc
           DataSetName = 'LineasAlbaran'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
-          Font.Height = -13
+          Font.Height = -10
           Font.Name = 'Arial'
           Font.Style = []
           Frame.Typ = [ftLeft, ftRight, ftTop, ftBottom]
           HAlign = haCenter
           Memo.UTF8W = (
 
-              '[IIF(<LineasAlbaran."T12"> > 0, FormatFloat('#39'0'#39', <LineasAlbaran.' +
+              '[IIF(<LineasAlbaran."T12"> <> 0, FormatFloat('#39'0.######'#39', <LineasAlbaran.' +
               '"T12">), '#39#39')]')
           ParentFont = False
           VAlign = vaCenter
@@ -1436,21 +1481,21 @@
         object LinT13: TfrxMemoView
           AllowVectorExport = True
           StretchMode = smMaxHeight
-          Left = 710.500000000000000000
-          Width = 25.500000000000000000
+          Left = 680.500000000000000000
+          Width = 23.000000000000000000
           Height = 22.677180000000000000
           DataSet = dmAlbaranesCompra.fxdsLinAlbc
           DataSetName = 'LineasAlbaran'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
-          Font.Height = -13
+          Font.Height = -10
           Font.Name = 'Arial'
           Font.Style = []
           Frame.Typ = [ftLeft, ftRight, ftTop, ftBottom]
           HAlign = haCenter
           Memo.UTF8W = (
 
-              '[IIF(<LineasAlbaran."T13"> > 0, FormatFloat('#39'0'#39', <LineasAlbaran.' +
+              '[IIF(<LineasAlbaran."T13"> <> 0, FormatFloat('#39'0.######'#39', <LineasAlbaran.' +
               '"T13">), '#39#39')]')
           ParentFont = False
           VAlign = vaCenter
@@ -1458,21 +1503,21 @@
         object LinT14: TfrxMemoView
           AllowVectorExport = True
           StretchMode = smMaxHeight
-          Left = 736.000000000000000000
-          Width = 25.500000000000000000
+          Left = 703.500000000000000000
+          Width = 23.000000000000000000
           Height = 22.677180000000000000
           DataSet = dmAlbaranesCompra.fxdsLinAlbc
           DataSetName = 'LineasAlbaran'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
-          Font.Height = -13
+          Font.Height = -10
           Font.Name = 'Arial'
           Font.Style = []
           Frame.Typ = [ftLeft, ftRight, ftTop, ftBottom]
           HAlign = haCenter
           Memo.UTF8W = (
 
-              '[IIF(<LineasAlbaran."T14"> > 0, FormatFloat('#39'0'#39', <LineasAlbaran.' +
+              '[IIF(<LineasAlbaran."T14"> <> 0, FormatFloat('#39'0.######'#39', <LineasAlbaran.' +
               '"T14">), '#39#39')]')
           ParentFont = False
           VAlign = vaCenter
@@ -1480,21 +1525,21 @@
         object LinT15: TfrxMemoView
           AllowVectorExport = True
           StretchMode = smMaxHeight
-          Left = 761.500000000000000000
-          Width = 25.500000000000000000
+          Left = 726.500000000000000000
+          Width = 23.000000000000000000
           Height = 22.677180000000000000
           DataSet = dmAlbaranesCompra.fxdsLinAlbc
           DataSetName = 'LineasAlbaran'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
-          Font.Height = -13
+          Font.Height = -10
           Font.Name = 'Arial'
           Font.Style = []
           Frame.Typ = [ftLeft, ftRight, ftTop, ftBottom]
           HAlign = haCenter
           Memo.UTF8W = (
 
-              '[IIF(<LineasAlbaran."T15"> > 0, FormatFloat('#39'0'#39', <LineasAlbaran.' +
+              '[IIF(<LineasAlbaran."T15"> <> 0, FormatFloat('#39'0.######'#39', <LineasAlbaran.' +
               '"T15">), '#39#39')]')
           ParentFont = False
           VAlign = vaCenter
@@ -1502,21 +1547,21 @@
         object LinT16: TfrxMemoView
           AllowVectorExport = True
           StretchMode = smMaxHeight
-          Left = 787.000000000000000000
-          Width = 25.500000000000000000
+          Left = 749.500000000000000000
+          Width = 23.000000000000000000
           Height = 22.677180000000000000
           DataSet = dmAlbaranesCompra.fxdsLinAlbc
           DataSetName = 'LineasAlbaran'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
-          Font.Height = -13
+          Font.Height = -10
           Font.Name = 'Arial'
           Font.Style = []
           Frame.Typ = [ftLeft, ftRight, ftTop, ftBottom]
           HAlign = haCenter
           Memo.UTF8W = (
 
-              '[IIF(<LineasAlbaran."T16"> > 0, FormatFloat('#39'0'#39', <LineasAlbaran.' +
+              '[IIF(<LineasAlbaran."T16"> <> 0, FormatFloat('#39'0.######'#39', <LineasAlbaran.' +
               '"T16">), '#39#39')]')
           ParentFont = False
           VAlign = vaCenter
@@ -1524,21 +1569,21 @@
         object LinT17: TfrxMemoView
           AllowVectorExport = True
           StretchMode = smMaxHeight
-          Left = 812.500000000000000000
-          Width = 25.500000000000000000
+          Left = 772.500000000000000000
+          Width = 23.000000000000000000
           Height = 22.677180000000000000
           DataSet = dmAlbaranesCompra.fxdsLinAlbc
           DataSetName = 'LineasAlbaran'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
-          Font.Height = -13
+          Font.Height = -10
           Font.Name = 'Arial'
           Font.Style = []
           Frame.Typ = [ftLeft, ftRight, ftTop, ftBottom]
           HAlign = haCenter
           Memo.UTF8W = (
 
-              '[IIF(<LineasAlbaran."T17"> > 0, FormatFloat('#39'0'#39', <LineasAlbaran.' +
+              '[IIF(<LineasAlbaran."T17"> <> 0, FormatFloat('#39'0.######'#39', <LineasAlbaran.' +
               '"T17">), '#39#39')]')
           ParentFont = False
           VAlign = vaCenter
@@ -1546,21 +1591,21 @@
         object LinT18: TfrxMemoView
           AllowVectorExport = True
           StretchMode = smMaxHeight
-          Left = 838.000000000000000000
-          Width = 25.500000000000000000
+          Left = 795.500000000000000000
+          Width = 23.000000000000000000
           Height = 22.677180000000000000
           DataSet = dmAlbaranesCompra.fxdsLinAlbc
           DataSetName = 'LineasAlbaran'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
-          Font.Height = -13
+          Font.Height = -10
           Font.Name = 'Arial'
           Font.Style = []
           Frame.Typ = [ftLeft, ftRight, ftTop, ftBottom]
           HAlign = haCenter
           Memo.UTF8W = (
 
-              '[IIF(<LineasAlbaran."T18"> > 0, FormatFloat('#39'0'#39', <LineasAlbaran.' +
+              '[IIF(<LineasAlbaran."T18"> <> 0, FormatFloat('#39'0.######'#39', <LineasAlbaran.' +
               '"T18">), '#39#39')]')
           ParentFont = False
           VAlign = vaCenter
@@ -1568,21 +1613,21 @@
         object LinT19: TfrxMemoView
           AllowVectorExport = True
           StretchMode = smMaxHeight
-          Left = 863.500000000000000000
-          Width = 25.500000000000000000
+          Left = 818.500000000000000000
+          Width = 23.000000000000000000
           Height = 22.677180000000000000
           DataSet = dmAlbaranesCompra.fxdsLinAlbc
           DataSetName = 'LineasAlbaran'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
-          Font.Height = -13
+          Font.Height = -10
           Font.Name = 'Arial'
           Font.Style = []
           Frame.Typ = [ftLeft, ftRight, ftTop, ftBottom]
           HAlign = haCenter
           Memo.UTF8W = (
 
-              '[IIF(<LineasAlbaran."T19"> > 0, FormatFloat('#39'0'#39', <LineasAlbaran.' +
+              '[IIF(<LineasAlbaran."T19"> <> 0, FormatFloat('#39'0.######'#39', <LineasAlbaran.' +
               '"T19">), '#39#39')]')
           ParentFont = False
           VAlign = vaCenter
@@ -1590,21 +1635,21 @@
         object LinT20: TfrxMemoView
           AllowVectorExport = True
           StretchMode = smMaxHeight
-          Left = 889.000000000000000000
-          Width = 25.500000000000000000
+          Left = 841.500000000000000000
+          Width = 23.000000000000000000
           Height = 22.677180000000000000
           DataSet = dmAlbaranesCompra.fxdsLinAlbc
           DataSetName = 'LineasAlbaran'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
-          Font.Height = -13
+          Font.Height = -10
           Font.Name = 'Arial'
           Font.Style = []
           Frame.Typ = [ftLeft, ftRight, ftTop, ftBottom]
           HAlign = haCenter
           Memo.UTF8W = (
 
-              '[IIF(<LineasAlbaran."T20"> > 0, FormatFloat('#39'0'#39', <LineasAlbaran.' +
+              '[IIF(<LineasAlbaran."T20"> <> 0, FormatFloat('#39'0.######'#39', <LineasAlbaran.' +
               '"T20">), '#39#39')]')
           ParentFont = False
           VAlign = vaCenter
@@ -1612,22 +1657,42 @@
         object LinT21: TfrxMemoView
           AllowVectorExport = True
           StretchMode = smMaxHeight
-          Left = 914.500000000000000000
-          Width = 25.500000000000000000
+          Left = 864.500000000000000000
+          Width = 23.000000000000000000
           Height = 22.677180000000000000
           DataSet = dmAlbaranesCompra.fxdsLinAlbc
           DataSetName = 'LineasAlbaran'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
-          Font.Height = -13
+          Font.Height = -10
           Font.Name = 'Arial'
           Font.Style = []
           Frame.Typ = [ftLeft, ftRight, ftTop, ftBottom]
           HAlign = haCenter
           Memo.UTF8W = (
 
-              '[IIF(<LineasAlbaran."T21"> > 0, FormatFloat('#39'0'#39', <LineasAlbaran.' +
+              '[IIF(<LineasAlbaran."T21"> <> 0, FormatFloat('#39'0.######'#39', <LineasAlbaran.' +
               '"T21">), '#39#39')]')
+          ParentFont = False
+          VAlign = vaCenter
+        end
+        object LinPrecio: TfrxMemoView
+          AllowVectorExport = True
+          StretchMode = smMaxHeight
+          Left = 887.500000000000000000
+          Width = 52.500000000000000000
+          Height = 22.677180000000000000
+          DataSet = dmAlbaranesCompra.fxdsLinAlbc
+          DataSetName = 'LineasAlbaran'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -10
+          Font.Name = 'Arial'
+          Font.Style = []
+          Frame.Typ = [ftLeft, ftRight, ftTop, ftBottom]
+          HAlign = haRight
+          Memo.UTF8W = (
+            '[FormatFloat('#39'#,##0.00####'#39', <LineasAlbaran."PRECIO_COMPRA">)]')
           ParentFont = False
           VAlign = vaCenter
         end
@@ -1692,7 +1757,7 @@
           Font.Name = 'Arial'
           Font.Style = []
           Frame.Typ = []
-          Memo.UTF8W = ('[IIF(<LineasAlbaran."LOTE"> <> '''', ''Lote: '' + <LineasAlbaran."LOTE">, '''')][IIF(<LineasAlbaran."FECHA_CADUCIDAD"> > 0, ''  Caducidad: '' + FormatDateTime(''dd/mm/yyyy'', <LineasAlbaran."FECHA_CADUCIDAD">), '''')]')
+          Memo.UTF8W = ('[IIF(LoteEspecifico, ''Lote: '' + <LineasAlbaran."LOTE">, '''')][IIF(<LineasAlbaran."FECHA_CADUCIDAD"> > 0, ''  Caducidad: '' + FormatDateTime(''dd/mm/yyyy'', <LineasAlbaran."FECHA_CADUCIDAD">), '''')]')
           ParentFont = False
         end
       end
@@ -1862,7 +1927,7 @@
         DataSetName = 'LineasAlbaran'
       end
       item
-        DataSet = dmComprasSesiones.fxdsGuiasSesion
+        DataSet = dmAlbaranesCompra.fxdsGuiasAlbc
         DataSetName = 'GuiasTallas'
       end>
     Variables = <>

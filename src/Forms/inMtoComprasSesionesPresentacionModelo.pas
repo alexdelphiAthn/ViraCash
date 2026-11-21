@@ -98,6 +98,8 @@ type
     procedure PrepararDecisionCodigo(
       const ADuplicado: TResolverDuplicadoSesion);
     function SolicitarDecisionCodigo(out ACodigoNuevo: string): string;
+    procedure HeredarIdentidadReusada(
+      const ADuplicado: TResolverDuplicadoSesion);
     procedure ConstruirConsulta;
     procedure ConstruirVistaModelos;
     procedure AnadirColumnaModelos(const ACaption, ACampo: string;
@@ -162,7 +164,7 @@ type
 implementation
 
 uses
-  Vcl.Dialogs, cxCurrencyEdit,
+  System.StrUtils, Vcl.Dialogs, cxCurrencyEdit,
   inLibComprasSesionesCodigoArticulo,
   inLibMensajesVcl,
   inLibMsgCompras,
@@ -893,6 +895,56 @@ begin
   end;
 end;
 
+// FZ-ISSUE-1093: reutilizar es usar el mismo artículo, así que la línea
+// toma su identidad: sistema de tallas y ejes, familia, tipos y, si está
+// vacía, la descripción. Sin el sistema de tallas, el veto de artículo y
+// color repetido no reconocía la otra línea. Precios y color no se tocan.
+procedure TBuscadorModeloProveedorSesion.HeredarIdentidadReusada(
+  const ADuplicado: TResolverDuplicadoSesion);
+var
+  oLineas: TDataSet;
+begin
+  oLineas := FEntorno.Lineas;
+  if (Trim(oLineas.FieldByName('DESCRIPCION_SESLIN').AsString) = '') and
+     (Trim(ADuplicado.DescripcionArt) <> '') then
+    oLineas.FieldByName('DESCRIPCION_SESLIN').AsString :=
+      ADuplicado.DescripcionArt;
+  if ADuplicado.CodigoFam <> '' then
+    oLineas.FieldByName('CODIGO_FAM_SESLIN').AsString :=
+      ADuplicado.CodigoFam;
+  if ADuplicado.TipoArt <> '' then
+    oLineas.FieldByName('TIPO_ART_SESLIN').AsString := ADuplicado.TipoArt;
+  if ADuplicado.TipoIva <> '' then
+    oLineas.FieldByName('TIPO_IVA_SESLIN').AsString := ADuplicado.TipoIva;
+  if ADuplicado.TipoCantidad <> '' then
+    oLineas.FieldByName('TIPO_CANTIDAD_SESLIN').AsString :=
+      ADuplicado.TipoCantidad;
+  if ADuplicado.TipoVariacion <> '' then
+    oLineas.FieldByName('CODIGO_VAR_SESLIN').AsString :=
+      ADuplicado.TipoVariacion;
+  oLineas.FieldByName('ESTRAZABLE_SESLIN').AsString :=
+    IfThen(ADuplicado.EsTrazable, 'S', 'N');
+  if ADuplicado.EsVariacion then
+    oLineas.FieldByName('TIPO_LINEA_SESLIN').AsString := 'MATRIZ'
+  else
+    oLineas.FieldByName('TIPO_LINEA_SESLIN').AsString := 'ESCALAR';
+  if ADuplicado.IdAcPivot > 0 then
+    oLineas.FieldByName('ID_AC_PIVOT_SESLIN').AsInteger :=
+      ADuplicado.IdAcPivot;
+  if ADuplicado.IdVaPivot <> '' then
+    oLineas.FieldByName('ID_VA_PIVOT_SESLIN').AsString :=
+      ADuplicado.IdVaPivot;
+  if ADuplicado.IdAcFila > 0 then
+    oLineas.FieldByName('ID_AC_FILA_SESLIN').AsInteger :=
+      ADuplicado.IdAcFila;
+  if ADuplicado.IdVaFila <> '' then
+    oLineas.FieldByName('ID_VA_FILA_SESLIN').AsString :=
+      ADuplicado.IdVaFila;
+  if (ADuplicado.IdAcPivot > 0) and
+     Assigned(FEntorno.FijarTallajeDefecto) then
+    FEntorno.FijarTallajeDefecto(ADuplicado.IdAcPivot);
+end;
+
 procedure TBuscadorModeloProveedorSesion.ResolverCodigoPropuestoPendiente;
 var
   sAccion: string;
@@ -936,6 +988,7 @@ begin
         'ACCION_DUPLICADO_SESLIN').AsString := 'REUSAR';
       FEntorno.Lineas.FieldByName('CODIGO_ART_REUSAR_SESLIN').AsString :=
         FDuplicadoCodigo.CodigoArt;
+      HeredarIdentidadReusada(FDuplicadoCodigo);
       FDuplicadoCodigo.Encontrado := False;
       RefrescarColumnasTallas;
     end

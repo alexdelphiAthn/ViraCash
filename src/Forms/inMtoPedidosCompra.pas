@@ -192,6 +192,7 @@ type
     btnIraalbaran: TcxButton;
 
     btnImprimir: TcxButton;
+    btnImprimirHorizontal: TcxButton;
     btnAnadirLinea: TcxButton;
     btnBorrarLinea: TcxButton;
     procedure FormCreate(Sender: TObject);
@@ -2438,7 +2439,8 @@ begin
   if PuedeImprimir and Assigned(dmmPedidosCompra) then
   begin
     TfrmPrintDocumento.Ejecutar(Self, tdPedido, sdCompra,
-      dmmPedidosCompra.unqryTablaG, dmmPedidosCompra.unqryPedidosCompraLineas);
+      dmmPedidosCompra.unqryTablaG, dmmPedidosCompra.unqryPedidosCompraLineas,
+      Sender = btnImprimirHorizontal);
   end;
 end;
 
