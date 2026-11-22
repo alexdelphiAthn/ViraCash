@@ -22,6 +22,11 @@ type
 function BloquearPedidoCompra(
   AConexion: TUniConnection;
   const ASeriePedido, ANumeroPedido: string): Boolean;
+// FZ-ISSUE-1133: texto para cuando BloquearPedidoCompra falla: un pedido
+// ya RECIBIDO o FACTURADO no tiene nada pendiente; si no, no hay pedido.
+function MotivoPedidoCompraNoBloqueado(
+  AConexion: TUniConnection;
+  const ASeriePedido, ANumeroPedido: string): string;
 function BloquearAlbaranCompra(
   AConexion: TUniConnection;
   const ASerieAlbaran, ANumeroAlbaran: string): Boolean;
@@ -73,6 +78,35 @@ begin
     FreeAndNil(Consulta);
   end;
 end;
+function MotivoPedidoCompraNoBloqueado(
+  AConexion: TUniConnection;
+  const ASeriePedido, ANumeroPedido: string): string;
+var
+  Consulta: TUniQuery;
+  sEstado: string;
+begin
+  Result := SErrorPedidoCompraNoActivoCrearAlbaran;
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := AConexion;
+    Consulta.SQL.Text :=
+      'SELECT IFNULL(ESTADO_PEDC, '''') AS ESTADO ' +
+      '  FROM fza_pedidos_compra ' +
+      ' WHERE SERIE_PEDC = :s AND NUMERO_PEDC = :n';
+    Consulta.ParamByName('s').AsString := ASeriePedido;
+    Consulta.ParamByName('n').AsString := ANumeroPedido;
+    Consulta.Open;
+    if not Consulta.IsEmpty then
+    begin
+      sEstado := UpperCase(Trim(Consulta.FieldByName('ESTADO').AsString));
+      if (sEstado = 'RECIBIDO') or (sEstado = 'FACTURADO') then
+        Result := SErrorPedidoCompraSinPendienteCrearAlbaran;
+    end;
+  finally
+    FreeAndNil(Consulta);
+  end;
+end;
+
 function BloquearAlbaranCompra(
   AConexion: TUniConnection;
   const ASerieAlbaran, ANumeroAlbaran: string): Boolean;

@@ -124,6 +124,10 @@ type
       const AEmpresa, AAlmacen, ACaja: string;
       AFecha: TDateTime;
       const ALineas: TLineasCargaTraspaso);
+    // FZ-ISSUE-1130: tras PrepararCargaExterna (traspaso directo), deja
+    // como destino el almacén de taras del almacén origen; si no tiene,
+    // deja el destino vacío y despliega la lista de almacenes al mostrar.
+    procedure ProponerDestinoTaras;
   end;
 
   IAnfitrionCajaVentanas = interface

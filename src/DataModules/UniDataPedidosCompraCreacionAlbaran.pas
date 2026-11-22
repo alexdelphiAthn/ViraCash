@@ -99,7 +99,7 @@ begin
   // La lectura de pendientes debe hacerse despues del mismo bloqueo que usa
   // la reversion; asi no fija una instantanea anterior a otra recepcion.
   if not BloquearPedidoCompra(AConn, ASeriePedc, ANumPedc) then
-    AMensaje := SErrorPedidoCompraNoActivoCrearAlbaran;
+    AMensaje := MotivoPedidoCompraNoBloqueado(AConn, ASeriePedc, ANumPedc);
   // Construye una celda por linea pendiente del almacen y delega en
   // CrearAlbaranDesdePedidoConCantidades: un unico camino de codigo
   // para el flujo "todo lo pendiente" y el flujo celda a celda del
@@ -740,7 +740,8 @@ begin
     ACeldas, AMensaje) then
   begin
     if not BloquearPedidoCompra(AConn, ASeriePedc, ANumPedc) then
-      AMensaje := SErrorPedidoCompraNoActivoCrearAlbaran
+      AMensaje := MotivoPedidoCompraNoBloqueado(
+        AConn, ASeriePedc, ANumPedc)
     // FZ-ISSUE-434: nada entra en stock sin su lote, serie o caducidad.
     else if not ValidarLotesRecepcionPedidoCompraUniDAC(AConn, ASeriePedc,
       ANumPedc, ACodigoAlm, ACeldas, AMensaje) then

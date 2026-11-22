@@ -81,6 +81,13 @@ type
 function CalcularPlanGrabacionModalArqueo(
   const ARecuento: TArray<TDatoRecuentoModalArqueo>;
   AImporteRetirada: Currency): TPlanGrabacionModalArqueo;
+// FZ-ISSUE-1137: descuadres por forma de pago que el total del cierre no
+// deja ver: se ha recontado importe en una forma de pago sin importe en el
+// sistema, o la diferencia total es 0 con formas de pago descuadradas.
+// Devuelve una línea por forma de pago con diferencia; '' si no hay nada
+// que avisar.
+function DescuadresOcultosModalArqueo(
+  const ARecuento: TArray<TDatoRecuentoModalArqueo>): string;
 procedure CalcularDistribucionEfectivoModalArqueo(
   AEfectivoRecontado: Currency;
   AEfectivoDejadoSolicitado: Currency;
@@ -160,6 +167,42 @@ begin
   Result.EfectivoDejado := CalcularEfectivoDejado(
     Result.EfectivoRecontado,
     AImporteRetirada);
+end;
+
+function DescuadresOcultosModalArqueo(
+  const ARecuento: TArray<TDatoRecuentoModalArqueo>): string;
+var
+  i: Integer;
+  cDiferencia, cTotal: Currency;
+  bRecuentoSinSistema, bHayDescuadre: Boolean;
+  sLineas, sNombre: string;
+begin
+  cTotal := 0;
+  bRecuentoSinSistema := False;
+  bHayDescuadre := False;
+  sLineas := '';
+  for i := 0 to High(ARecuento) do
+  begin
+    cDiferencia :=
+      ARecuento[i].ImporteRecuento - ARecuento[i].ImporteSistema;
+    cTotal := cTotal + cDiferencia;
+    if (ARecuento[i].ImporteSistema = 0) and
+       (ARecuento[i].ImporteRecuento <> 0) then
+      bRecuentoSinSistema := True;
+    if cDiferencia <> 0 then
+    begin
+      bHayDescuadre := True;
+      sNombre := Trim(ARecuento[i].Descripcion);
+      if sNombre = '' then
+        sNombre := ARecuento[i].CodigoFormaPago;
+      sLineas := sLineas + sLineBreak + '  ' + sNombre + ': ' +
+        FormatFloat('+,0.00;-,0.00;0.00', cDiferencia);
+    end;
+  end;
+  if bRecuentoSinSistema or (bHayDescuadre and (cTotal = 0)) then
+    Result := Trim(sLineas)
+  else
+    Result := '';
 end;
 
 function TResultadoPreparacionModalArqueo.PuedeGrabar: Boolean;

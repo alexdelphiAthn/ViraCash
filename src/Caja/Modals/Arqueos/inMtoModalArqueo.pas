@@ -334,6 +334,7 @@ type
     procedure ConfigurarResumenes;
     procedure RefrescarResumenes;
     procedure CargarResumenFamilias;
+    procedure MostrarColumnasRecargoIva;
     function ConstruirSolicitudResumen:
       TSolicitudResumenModalArqueo;
     function  FormatImporte(AValor: Currency): string;
@@ -1240,8 +1241,39 @@ begin
     dsResFP.DataSet := FResumenFormasPago.DataSet;
     dsResProp.DataSet := FResumenPropiedades.DataSet;
     dsResIVA.DataSet := FResumenIva.DataSet;
+    MostrarColumnasRecargoIva;
     CargarResumenFamilias;
   end;
+end;
+
+// FZ-ISSUE-1134: el TPV es venta directa y el recargo de equivalencia solo
+// se aplica en venta mayor: sin ninguna cuota de RE en el periodo, las
+// columnas «% RE» y «Cuota RE» no se muestran. Si algún día hay recargo,
+// vuelven a aparecer solas.
+procedure TfrmModalArqueo.MostrarColumnasRecargoIva;
+var
+  oDatos: TDataSet;
+  bRecargo: Boolean;
+begin
+  bRecargo := False;
+  oDatos := dsResIVA.DataSet;
+  if Assigned(oDatos) and oDatos.Active then
+  begin
+    oDatos.DisableControls;
+    try
+      oDatos.First;
+      while (not oDatos.Eof) and (not bRecargo) do
+      begin
+        bRecargo := oDatos.FieldByName('CUOTA_RE').AsCurrency <> 0;
+        oDatos.Next;
+      end;
+      oDatos.First;
+    finally
+      oDatos.EnableControls;
+    end;
+  end;
+  tvResIVAPORC_RE.Visible := bRecargo;
+  tvResIVACUOTA_RE.Visible := bRecargo;
 end;
 
 procedure TfrmModalArqueo.RellenarPantalla(const AArqueo: TArqueoCaja);
@@ -1772,8 +1804,20 @@ end;
 
 function TfrmModalArqueo.ConfirmarGrabacion(
   const AEntrada: TEntradaGrabacionModalArqueo): Boolean;
+var
+  sDescuadres: string;
 begin
-  Result := MessageBox_fza(
+  // FZ-ISSUE-1137: un faltante en una forma de pago compensado por un
+  // sobrante en otra (p. ej. el efectivo tecleado en la fila de Bitcoin)
+  // da diferencia total 0; se avisa antes de grabar, con «No» por defecto.
+  sDescuadres := DescuadresOcultosModalArqueo(AEntrada.Recuento);
+  Result := (sDescuadres = '') or
+    (MessageBox_fza(
+       PChar(Format(SAvisoDescuadreFormasPagoArqueoCaja, [sDescuadres])),
+       PChar(STituloConfirmarArqueoCaja),
+       MB_YESNO or MB_ICONWARNING or MB_DEFBUTTON2) = IDYES);
+  if Result then
+    Result := MessageBox_fza(
     PChar(Format(
       SPreguntaGrabarArqueoCaja,
       [FormatDateTime(

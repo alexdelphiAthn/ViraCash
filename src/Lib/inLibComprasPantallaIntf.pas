@@ -48,6 +48,9 @@ type
     function ColumnaLineasExiste(const ANombreColumna: string): Boolean;
     function AlmacenEfectivoPrimeraLinea(
       const ASerie, ANumero: string): string;
+    // FZ-ISSUE-1133: el pedido sigue abierto y le quedan unidades por
+    // recibir (lo que «Crear albarán» puede llevar a un albarán).
+    function TienePendienteRecibir(const ASerie, ANumero: string): Boolean;
   end;
 
   IPersistenciaPlantillasCompraPantalla = interface

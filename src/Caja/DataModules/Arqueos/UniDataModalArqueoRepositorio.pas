@@ -257,11 +257,18 @@ begin
     '              WHEN 2 THEN f.TOTAL_IVAR_FAC ' +
     '              WHEN 3 THEN f.TOTAL_IVAS_FAC ' +
     '              ELSE f.TOTAL_IVAE_FAC END), 0) AS CUOTA_IVA, ' +
+    // FZ-ISSUE-1134: la factura guarda el % de RE del tipo aunque no lo
+    // aplique (empresa sin recargo); solo cuenta si hubo cuota de RE.
     '        MAX(CASE t.ORD ' +
-    '              WHEN 1 THEN f.PORCENTAJE_REN_FAC ' +
-    '              WHEN 2 THEN f.PORCENTAJE_RER_FAC ' +
-    '              WHEN 3 THEN f.PORCENTAJE_RES_FAC ' +
-    '              ELSE f.PORCENTAJE_REE_FAC END) AS PORC_RE, ' +
+    '              WHEN 1 THEN CASE WHEN COALESCE(f.TOTAL_REN_FAC, 0) <> 0 ' +
+    '                  THEN f.PORCENTAJE_REN_FAC ELSE 0 END ' +
+    '              WHEN 2 THEN CASE WHEN COALESCE(f.TOTAL_RER_FAC, 0) <> 0 ' +
+    '                  THEN f.PORCENTAJE_RER_FAC ELSE 0 END ' +
+    '              WHEN 3 THEN CASE WHEN COALESCE(f.TOTAL_RES_FAC, 0) <> 0 ' +
+    '                  THEN f.PORCENTAJE_RES_FAC ELSE 0 END ' +
+    '              ELSE CASE WHEN COALESCE(f.TOTAL_REE_FAC, 0) <> 0 ' +
+    '                   THEN f.PORCENTAJE_REE_FAC ELSE 0 END END) ' +
+    '          AS PORC_RE, ' +
     '        COALESCE(SUM(CASE t.ORD ' +
     '              WHEN 1 THEN f.TOTAL_REN_FAC ' +
     '              WHEN 2 THEN f.TOTAL_RER_FAC ' +

@@ -782,6 +782,17 @@ resourcestring
   SCaptionEmpresaAlmacenCaja = 'Empresa %s - Almacén %s - Caja %s';
   STituloOperacionNCajaReal = 'Operación %d - (Caja Real %s)';
   STituloTraspasosAlmacenCaja = 'Traspasos - (Almacén %s · Caja %s)';
+  // FZ-ISSUE-1138: cobro de un cambio con la línea devuelta con descuento.
+  SCaptionDtoDevueltoCobroCaja = 'Dto. devuelto';
+  // FZ-ISSUE-1137: descuadres por forma de pago que el total no refleja.
+  SAvisoDescuadreFormasPagoArqueoCaja =
+    'El recuento no cuadra por formas de pago, aunque el total lo ' +
+    'parezca:' + sLineBreak + sLineBreak + '%s' + sLineBreak + sLineBreak +
+    'Revise si ha anotado algún importe en la fila equivocada. ' +
+    '¿Grabar el cierre igualmente?';
+  // FZ-ISSUE-1130: tras una devolución por «Artículo defectuoso».
+  SPreguntaPasarArticuloTarasCaja =
+    '¿Desea pasar el artículo a almacén de Taras?';
   SCaptionVentaContado = 'VENTA CONTADO';
   SCaptionVerHistoricoCaja = 'Ver histórico';
   SCaptionOcultarHistoricoCaja = 'Ocultar histórico';

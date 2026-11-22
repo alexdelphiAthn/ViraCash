@@ -18,6 +18,7 @@ unit inMtoInventariosPresentacionColumnas;
 interface
 
 uses
+  System.SysUtils,
   inLibMsgArticulos,
   Vcl.Graphics,
   Vcl.Controls,
@@ -83,17 +84,20 @@ type
 // Recrea en runtime las columnas propias del documento que mueren en el
 // ClearItems del contrato de entrada. Con AConLotes (algún modo de
 // trazabilidad activo, F-LOTEC-014) añade lote y caducidad, editables.
+// FZ-ISSUE-1135: AObtenerPartidas rellena el desplegable de la columna Lote
+// con las partidas del SKU de la línea (recuento manual por partida).
 procedure CrearColumnasDocumentoInventario(
   AVista: TcxGridDBTableView;
   AValidarEdicion: TcxEditValidateEvent;
   AUnidades: TUnidadesMedida;
-  AConLotes: Boolean = False);
+  AConLotes: Boolean = False;
+  const AObtenerPartidas: TFunc<TArray<string>> = nil);
 
 implementation
 
 uses
-  System.SysUtils,
   System.Classes,
+  cxDropDownEdit,
   cxGraphics,
   dxCoreGraphics,
   cxCalendar,
@@ -132,14 +136,53 @@ begin
   TcxCurrencyEditProperties(AColumna.Properties).DecimalPlaces := 2;
 end;
 
-procedure CrearColumnasLoteInventario(AVista: TcxGridDBTableView);
+type
+  // Rellena, al abrirlo, el desplegable de partidas de la línea; la
+  // columna es su dueña.
+  TSelectorPartidaInventario = class(TComponent)
+  private
+    FObtener: TFunc<TArray<string>>;
+    procedure AlAbrir(Sender: TObject);
+  end;
+
+procedure TSelectorPartidaInventario.AlAbrir(Sender: TObject);
+var
+  sPartida: string;
+begin
+  if Sender is TcxCustomComboBox then
+  begin
+    TcxCustomComboBox(Sender).Properties.Items.BeginUpdate;
+    try
+      TcxCustomComboBox(Sender).Properties.Items.Clear;
+      for sPartida in FObtener() do
+        TcxCustomComboBox(Sender).Properties.Items.Add(sPartida);
+    finally
+      TcxCustomComboBox(Sender).Properties.Items.EndUpdate;
+    end;
+  end;
+end;
+
+procedure CrearColumnasLoteInventario(AVista: TcxGridDBTableView;
+  const AObtenerPartidas: TFunc<TArray<string>>);
 var
   oCaducidad: TcxGridDBColumn;
   oLote: TcxGridDBColumn;
+  oSelector: TSelectorPartidaInventario;
 begin
   oLote := CrearColumnaDocumentoInventario(AVista,
     SCaptionLoteExcelInventario, 'LOTE_INVLIN', 90, True);
   oLote.HeaderAlignmentHorz := taLeftJustify;
+  // FZ-ISSUE-1135: en el recuento manual se elige la partida contada; se
+  // puede seguir tecleando o leyendo un lote. Vacío = sin partida.
+  if Assigned(AObtenerPartidas) then
+  begin
+    oLote.PropertiesClass := TcxComboBoxProperties;
+    TcxComboBoxProperties(oLote.Properties).DropDownListStyle :=
+      lsEditList;
+    oSelector := TSelectorPartidaInventario.Create(oLote);
+    oSelector.FObtener := AObtenerPartidas;
+    TcxComboBoxProperties(oLote.Properties).OnInitPopup := oSelector.AlAbrir;
+  end;
   oCaducidad := CrearColumnaDocumentoInventario(AVista,
     SCaptionCaducidadExcelInventario, 'FECHA_CADUCIDAD_INVLIN', 90, True);
   oCaducidad.PropertiesClass := TcxDateEditProperties;
@@ -149,7 +192,8 @@ procedure CrearColumnasDocumentoInventario(
   AVista: TcxGridDBTableView;
   AValidarEdicion: TcxEditValidateEvent;
   AUnidades: TUnidadesMedida;
-  AConLotes: Boolean);
+  AConLotes: Boolean;
+  const AObtenerPartidas: TFunc<TArray<string>>);
 var
   oDescripcion: TcxGridDBColumn;
   oPmp: TcxGridDBColumn;
@@ -165,7 +209,7 @@ begin
       200, False);
   oDescripcion.HeaderAlignmentHorz := taLeftJustify;
   if AConLotes then
-    CrearColumnasLoteInventario(AVista);
+    CrearColumnasLoteInventario(AVista, AObtenerPartidas);
   oTeorico := CrearColumnaDocumentoInventario(AVista,
     SCaptionUnidadesTeoricasInventario, 'CANTIDAD_TEORICA_INVLIN', 90, False);
   oRecuento := CrearColumnaDocumentoInventario(AVista,

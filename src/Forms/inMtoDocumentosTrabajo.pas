@@ -237,6 +237,9 @@ type
       ATipo: TTipoEnvioNumeradoDocumentoTrabajo;
       const ASerie, ANumero: string);
     function PuedeMarcarEnviadoManual: Boolean;
+    // FZ-ISSUE-1131: «Enviar a...» da de alta un documento en otra
+    // pantalla; exige su permiso de menú y el de alta, como al abrirla.
+    function PuedeCrearEnDestino(const ACall: string): Boolean;
     procedure MostrarDocumentoReabierto(AIdDtr: Int64);
     function PrepararCargaDocumentoTrabajo(
       out ADestino: TDestinoCargaDocumentoTrabajo): Boolean;
@@ -810,6 +813,15 @@ begin
     Permisos.TienePermiso('menu.ListasRegalosPrestaShop', paPermitir) and
     Permisos.TienePermiso(CodigoPermisoMto('ListasRegalosPrestaShop',
       apmModificar), paPermitir);
+  miEnviarAlbaranDTR.Enabled := PuedeCrearEnDestino('Albaranes');
+  miEnviarFacturaVentaDTR.Enabled := PuedeCrearEnDestino('Facturas');
+  miEnviarPedidoCompraDTR.Enabled := PuedeCrearEnDestino('PedidosCompra');
+  miEnviarAlbaranCompraDTR.Enabled :=
+    PuedeCrearEnDestino('AlbaranesCompra');
+  miEnviarDevolucionCompraDTR.Enabled :=
+    PuedeCrearEnDestino('DevolucionesCompra');
+  miEnviarInventarioDTR.Enabled := PuedeCrearEnDestino('Inventarios');
+  miEnviarTarifasDTR.Enabled := PuedeCrearEnDestino('TarifasCambios');
   btnEnviarADTR.Enabled := bPuedeEnviar;
   btnCargarDTR.Enabled := bEditarExistente;
   btnCompartirDTR.Enabled := bEditarExistente;
@@ -1018,6 +1030,15 @@ procedure TfrmMtoDocumentosTrabajo.miEstadoArchivadoDTRClick(
   Sender: TObject);
 begin
   btnArchivarDTRClick(Sender);
+end;
+
+function TfrmMtoDocumentosTrabajo.PuedeCrearEnDestino(
+  const ACall: string): Boolean;
+begin
+  Result := Assigned(Permisos) and
+    Permisos.TienePermiso('menu.' + ACall, paPermitir) and
+    Permisos.TienePermiso(CodigoPermisoMto(ACall, apmInsertar),
+      paPermitir);
 end;
 
 procedure TfrmMtoDocumentosTrabajo.AbrirDocumentoDestino(

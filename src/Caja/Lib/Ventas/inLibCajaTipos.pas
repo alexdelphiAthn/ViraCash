@@ -15,6 +15,12 @@ unit inLibCajaTipos;
 
 interface
 
+const
+  // FZ-ISSUE-1130: motivo de devolución del par dañado (lista fija de
+  // inMtoModalMotivoDevolucion). Sus unidades no vuelven al stock
+  // vendible: entran en el almacén de taras del almacén de la caja.
+  MOTIVO_DEVOLUCION_DEFECTUOSO = 'Artículo defectuoso';
+
 type
   TTipoRectificativaCaja = (
     trcNinguna,

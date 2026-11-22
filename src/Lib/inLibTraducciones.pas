@@ -671,6 +671,17 @@ begin
          (sClave = 'inmtosplash.tfrmsplash.cxlabel2.caption') and
          (oCatalogo.Textos[iEntrada].Texto = '与申诉人的接触') then
         FTextos.AddOrSetValue(sClave, '联系作者');
+      // Los catálogos anteriores llamaban bruto al neto de las líneas.
+      if sClave = 'inmtomodalarqueo.tfrmmodalarqueo.lbllinnetolbl.caption' then
+      begin
+        sTextoBase := oCatalogo.Textos[iEntrada].Texto;
+        if sTextoBase = '= Bruto' then
+          FTextos.AddOrSetValue(sClave, '= Neto')
+        else if (sTextoBase = '= Brut') or (sTextoBase = '= Gross') then
+          FTextos.AddOrSetValue(sClave, '= Net')
+        else if sTextoBase = '= 毛额' then
+          FTextos.AddOrSetValue(sClave, '= 净额');
+      end;
     end;
     for iEntrada := 0 to High(oCatalogo.TextosInforme) do
     begin

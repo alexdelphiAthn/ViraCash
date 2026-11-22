@@ -123,7 +123,8 @@ begin
   Result := BloquearPedidoCompra(
     FConexion, FSeriePedido, FNumeroPedido);
   if not Result then
-    AMensaje := SErrorPedidoCompraNoActivoCrearAlbaran;
+    AMensaje := MotivoPedidoCompraNoBloqueado(
+      FConexion, FSeriePedido, FNumeroPedido);
   if Result then
   begin
     Result := BloquearAlbaranCompra(

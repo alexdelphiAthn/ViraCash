@@ -750,7 +750,11 @@ resourcestring
   SErrorPedidoCompraNoActivo =
     'No hay pedido de compra activo.';
   SErrorPedidoCompraNoActivoCrearAlbaran =
-    'No hay pedido activo del que crear albarán.';
+    'No hay un pedido seleccionado.';
+  // FZ-ISSUE-1133: pedido existente sin nada que recibir.
+  SErrorPedidoCompraSinPendienteCrearAlbaran =
+    'El pedido ya ha sido albaranado, no hay cantidades pendientes de ' +
+    'recibir.';
   SErrorAlmacenLineaPedidoCompraNoExiste =
     'Línea %s: el almacén «%s» no existe. Elíjalo de la lista.';
   SErrorCrearAlbaranDesdePedidoCompra =

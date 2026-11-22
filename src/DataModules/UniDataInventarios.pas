@@ -211,6 +211,10 @@ type
     // Teorico del lote de la linea actual (sin lote, ACantidadSku).
     function CantidadTeoricaLoteLinea(const ASku: string;
       ACantidadSku: Currency): Currency;
+    // FZ-ISSUE-1135: lotes / partidas con existencias del SKU de la linea
+    // actual en el almacen del inventario, del mas reciente al mas antiguo
+    // (selector de partida del recuento manual).
+    function PartidasLineaActual: TArray<string>;
     function ModoTrazabilidadEfectivo(
       const ACodigoArticulo: string): TModoTrazabilidad;
     procedure EscribirLoteLeidoLinea(
@@ -3292,6 +3296,45 @@ begin
       Result := qry.FieldByName('CANTIDAD_STK').AsCurrency;
     finally
       FreeAndNil(qry);
+    end;
+  end;
+end;
+
+function TdmInventarios.PartidasLineaActual: TArray<string>;
+var
+  oConsulta: TUniQuery;
+  sSku: string;
+begin
+  Result := nil;
+  sSku := '';
+  if cdsLineas.Active and not cdsLineas.IsEmpty then
+    sSku := Trim(cdsLineas.FieldByName('CODIGO_UNIDAD_INVLIN').AsString);
+  if sSku <> '' then
+  begin
+    oConsulta := TUniQuery.Create(nil);
+    try
+      oConsulta.Connection := ConexionEscritura;
+      oConsulta.SQL.Text :=
+        'SELECT S.LOTE_STK ' +
+        '  FROM fza_articulos_stockactual S ' +
+        '  LEFT JOIN fza_articulos_lotes L ' +
+        '    ON L.CODIGO_UNIDAD_LOT = S.CODIGO_UNIDAD_STK ' +
+        '   AND L.LOTE_LOT = S.LOTE_STK ' +
+        ' WHERE S.CODIGO_ALM_STK = :ALMACEN ' +
+        '   AND S.CODIGO_UNIDAD_STK = :SKU ' +
+        '   AND COALESCE(S.LOTE_STK, '''') <> '''' ' +
+        '   AND COALESCE(S.CANTIDAD_STK, 0) <> 0 ' +
+        ' ORDER BY L.FECHA_ENTRADA_LOT DESC, S.LOTE_STK';
+      oConsulta.ParamByName('ALMACEN').AsString := FCodigoAlmacen;
+      oConsulta.ParamByName('SKU').AsString := sSku;
+      oConsulta.Open;
+      while not oConsulta.Eof do
+      begin
+        Result := Result + [oConsulta.Fields[0].AsString];
+        oConsulta.Next;
+      end;
+    finally
+      FreeAndNil(oConsulta);
     end;
   end;
 end;

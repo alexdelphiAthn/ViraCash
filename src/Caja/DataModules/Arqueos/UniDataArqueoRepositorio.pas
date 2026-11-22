@@ -192,17 +192,27 @@ function SqlOperaciones: string;
 begin
   // El libro contabiliza un documento rectificativo por su saldo.
   // La operación se usa como referencia en ventas sin factura vinculada.
+  // FZ-ISSUE-1136: dentro de cada operación, lo vendido (filas en
+  // positivo) suma en ventas y lo abonado (en negativo) en devoluciones.
+  // Un cambio (VE 80 + DV -54) ya no cuenta como una venta neta de 26; el
+  // neto no cambia.
   Result :=
     'SELECT COALESCE(SUM(v.NETO_VENTA), 0) AS NETO, ' +
-    'COALESCE(SUM(CASE WHEN v.NETO_VENTA > 0 ' +
-    'THEN v.NETO_VENTA ELSE 0 END), 0) AS V_NORMALES, ' +
-    'COALESCE(SUM(CASE WHEN v.NETO_VENTA < 0 ' +
-    'THEN -v.NETO_VENTA ELSE 0 END), 0) AS V_DEVOL, ' +
+    'COALESCE(SUM(v.VENDIDO), 0) AS V_NORMALES, ' +
+    'COALESCE(SUM(v.ABONADO), 0) AS V_DEVOL, ' +
     'COALESCE(SUM(v.ENTRADAS), 0) AS ENTRADAS, ' +
     'COALESCE(SUM(v.SALIDAS), 0) AS SALIDAS ' +
     'FROM (SELECT SUM(CASE ' +
     'WHEN o.TIPO_OPERACION_OPCAJA IN (:pTIPO_VE, :pTIPO_DV) ' +
     'THEN o.IMPORTE_TOTAL_OPCAJA ELSE 0 END) AS NETO_VENTA, ' +
+    'SUM(CASE ' +
+    'WHEN o.TIPO_OPERACION_OPCAJA IN (:pTIPO_VE, :pTIPO_DV) ' +
+    'AND o.IMPORTE_TOTAL_OPCAJA > 0 ' +
+    'THEN o.IMPORTE_TOTAL_OPCAJA ELSE 0 END) AS VENDIDO, ' +
+    'SUM(CASE ' +
+    'WHEN o.TIPO_OPERACION_OPCAJA IN (:pTIPO_VE, :pTIPO_DV) ' +
+    'AND o.IMPORTE_TOTAL_OPCAJA < 0 ' +
+    'THEN -o.IMPORTE_TOTAL_OPCAJA ELSE 0 END) AS ABONADO, ' +
     'SUM(CASE WHEN o.TIPO_OPERACION_OPCAJA = :pTIPO_EC ' +
     'THEN o.IMPORTE_TOTAL_OPCAJA ELSE 0 END) AS ENTRADAS, ' +
     'SUM(CASE WHEN o.TIPO_OPERACION_OPCAJA = :pTIPO_GC ' +

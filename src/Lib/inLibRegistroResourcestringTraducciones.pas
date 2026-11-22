@@ -9130,6 +9130,30 @@ begin
       SErrorEncolarCierreVentasWs);
   ARegistrar(
     'inLibMsgCaja.' +
+    'SErrorSustitutivaDiaAnteriorCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      SErrorSustitutivaDiaAnteriorCaja);
+  ARegistrar(
+    'inLibMsgCaja.' +
+    'SPreguntaPasarArticuloTarasCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      SPreguntaPasarArticuloTarasCaja);
+  ARegistrar(
+    'inLibMsgCaja.' +
+    'SAvisoDescuadreFormasPagoArqueoCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      SAvisoDescuadreFormasPagoArqueoCaja);
+  ARegistrar(
+    'inLibMsgCaja.' +
+    'SCaptionDtoDevueltoCobroCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      SCaptionDtoDevueltoCobroCaja);
+  ARegistrar(
+    'inLibMsgCaja.' +
     'SErrorRepositorioVentasWsNoAsignado',
     'src/Lib/inLibMsgCaja.pas',
     @inLibMsgCaja.
@@ -15605,6 +15629,12 @@ begin
     'src/Lib/inLibMsgCompras.pas',
     @inLibMsgCompras.
       SErrorPedidoCompraNoActivoCrearAlbaran);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SErrorPedidoCompraSinPendienteCrearAlbaran',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SErrorPedidoCompraSinPendienteCrearAlbaran);
   ARegistrar(
     'inLibMsgCompras.' +
     'SErrorAlmacenLineaPedidoCompraNoExiste',

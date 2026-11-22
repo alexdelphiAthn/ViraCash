@@ -523,6 +523,9 @@ type
     // origen es de otra tienda, la grabación genera el traspaso
     // automático hacia el almacén actual.
     FMotivoDevolucion: string;
+    // FZ-ISSUE-1130: líneas devueltas por «Artículo defectuoso» en la venta
+    // que se acaba de grabar, para proponer su traspaso a taras.
+    FLineasTaras: TLineasCargaTraspaso;
     FPresupuestoEmpresa: string;
     FPresupuestoSerie: string;
     FPresupuestoNumero: string;
@@ -579,6 +582,8 @@ type
     procedure WMAvisoTarifaDefecto(var Msg: TMessage);
                                        message WM_AVISO_TARIFA_DEFECTO_CAJA;
     function PedirMotivoDevolucionSiProcede: Boolean;
+    procedure RecogerLineasTaras;
+    procedure OfrecerTraspasoTaras;
     procedure CargarDepositosF2;
     procedure CancelarEdicionLineas;
     procedure MostrarLineasCuentaCliente;
@@ -4533,6 +4538,9 @@ procedure TfrmMtoOpeCaja.ProcesarResultadoCierre(
 var
   sMensajeCorreo: string;
 begin
+  // Antes de limpiar el motivo y la venta: las líneas devueltas del par
+  // defectuoso se ofrecen para traspasar a taras al terminar.
+  RecogerLineasTaras;
   MarcarVentaAppGrabada;
   if FPresupuestoNumero <> '' then
   begin
@@ -4628,6 +4636,91 @@ begin
     FCodigoAlmacen,
     FCodigoCaja,
     FFecha);
+  OfrecerTraspasoTaras;
+end;
+
+// FZ-ISSUE-1130: la devolución entra en el stock del almacén de la caja;
+// el par defectuoso se aparta después con un traspaso directo (documento,
+// movimientos y ticket del circuito de traspasos).
+procedure TfrmMtoOpeCaja.RecogerLineasTaras;
+var
+  oClon: TClientDataSet;
+  rLinea: TLineaCargaTraspaso;
+  aPartes: TArray<string>;
+  i: Integer;
+begin
+  FLineasTaras := nil;
+  if SameText(Trim(FMotivoDevolucion), MOTIVO_DEVOLUCION_DEFECTUOSO) and
+     DatosCaja.cdsLineas.Active then
+  begin
+    oClon := TClientDataSet.Create(nil);
+    try
+      oClon.CloneCursor(DatosCaja.cdsLineas, True);
+      oClon.First;
+      while not oClon.Eof do
+      begin
+        if (oClon.FieldByName('CANTIDAD_FACLIN').AsFloat < 0) and
+           SameText(oClon.FieldByName('TIPO_ARTICULO_FACLIN').AsString,
+             'ESTANDAR') and
+           (Trim(oClon.FieldByName('VIENE_DE_DEPOSITO').AsString) = '') then
+        begin
+          rLinea := Default(TLineaCargaTraspaso);
+          rLinea.CodigoArticulo :=
+            oClon.FieldByName('CODIGO_ART_FACLIN').AsString;
+          rLinea.CodigoSku :=
+            oClon.FieldByName('CODIGO_UNIDAD_FACLIN').AsString;
+          rLinea.Descripcion :=
+            oClon.FieldByName('DESCRIPCION_ARTICULO_FACLIN').AsString;
+          rLinea.Cantidad :=
+            Abs(oClon.FieldByName('CANTIDAD_FACLIN').AsFloat);
+          rLinea.Lote := oClon.FieldByName('LOTE_FACLIN').AsString;
+          if not oClon.FieldByName('FECHA_CADUCIDAD_FACLIN').IsNull then
+            rLinea.FechaCaducidad := Trunc(
+              oClon.FieldByName('FECHA_CADUCIDAD_FACLIN').AsDateTime);
+          aPartes := rLinea.CodigoSku.Split(['/']);
+          rLinea.NumeroAtributos := Length(aPartes) - 1;
+          if rLinea.NumeroAtributos > 5 then
+            rLinea.NumeroAtributos := 5;
+          for i := 1 to rLinea.NumeroAtributos do
+            rLinea.ValoresAtributos[i] := aPartes[i];
+          FLineasTaras := FLineasTaras + [rLinea];
+        end;
+        oClon.Next;
+      end;
+    finally
+      FreeAndNil(oClon);
+    end;
+  end;
+end;
+
+procedure TfrmMtoOpeCaja.OfrecerTraspasoTaras;
+var
+  aLineas: TLineasCargaTraspaso;
+  oTraspaso: ITraspasoCaja;
+  oFormulario: TCustomForm;
+begin
+  aLineas := FLineasTaras;
+  FLineasTaras := nil;
+  if (Length(aLineas) > 0) and
+     (MessageDlg_fza(SPreguntaPasarArticuloTarasCaja, mtConfirmation,
+       [mbYes, mbNo], 0) = mrYes) then
+  begin
+    oTraspaso := ExigirAnfitrionCaja(Application.MainForm).
+      CrearTraspasoCaja(Application, Permisos);
+    oFormulario := oTraspaso.FormularioTraspaso;
+    try
+      oFormulario.PopupParent := Self;
+      oFormulario.Caption := Format(STituloTraspasosAlmacenCaja,
+        [FCodigoAlmacen, FCodigoCaja]);
+      oTraspaso.PrepararCargaExterna(mvtTraspaso, FCodigoEmpresa,
+        FCodigoAlmacen, FCodigoCaja, Date, aLineas);
+      oTraspaso.ProponerDestinoTaras;
+      oFormulario.Show;
+    except
+      FreeAndNil(oFormulario);
+      raise;
+    end;
+  end;
 end;
 
 procedure TfrmMtoOpeCaja.btnF12Click(Sender: TObject);

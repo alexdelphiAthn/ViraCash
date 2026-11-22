@@ -34,7 +34,7 @@ function CrearUnidadTrabajoComprasPantallaUniDAC(
 implementation
 
 uses
-  System.SysUtils,
+  System.SysUtils, System.StrUtils,
   inLibPrestaShopColaSenal;
 
 const
@@ -108,6 +108,7 @@ type
     function ColumnaLineasExiste(const ANombreColumna: string): Boolean;
     function AlmacenEfectivoPrimeraLinea(
       const ASerie, ANumero: string): string;
+    function TienePendienteRecibir(const ASerie, ANumero: string): Boolean;
   end;
 
   TPersistenciaPlantillasCompraPantallaUniDAC = class(
@@ -290,6 +291,41 @@ begin
       oConsulta.Open;
       if not oConsulta.Eof then
         Result := oConsulta.FieldByName('ALM').AsString;
+    finally
+      oConsulta.Free;
+    end;
+  end;
+end;
+
+function TConsultasPedidoCompraPantallaUniDAC.TienePendienteRecibir(
+  const ASerie, ANumero: string): Boolean;
+var
+  oConsulta: TUniQuery;
+begin
+  Result := False;
+  if (Trim(ASerie) <> '') and (Trim(ANumero) <> '') then
+  begin
+    oConsulta := TUniQuery.Create(nil);
+    try
+      oConsulta.Connection := FConexion;
+      oConsulta.SQL.Text :=
+        'SELECT IFNULL(P.ESTADO_PEDC, '''') AS ESTADO, ' +
+        '       (SELECT IFNULL(SUM(GREATEST(L.CANTIDAD_PEDCLIN - ' +
+        '                IFNULL(L.CANTIDAD_RECIBIDA_PEDCLIN, 0), 0)), 0) ' +
+        '          FROM fza_pedidos_compra_lineas L ' +
+        '         WHERE L.SERIE_PEDC_PEDCLIN = P.SERIE_PEDC ' +
+        '           AND L.NUMERO_PEDC_PEDCLIN = P.NUMERO_PEDC) AS PEND ' +
+        '  FROM fza_pedidos_compra P ' +
+        ' WHERE P.SERIE_PEDC = :s AND P.NUMERO_PEDC = :n';
+      oConsulta.ParamByName('s').AsString := ASerie;
+      oConsulta.ParamByName('n').AsString := ANumero;
+      oConsulta.Open;
+      if not oConsulta.Eof then
+        Result :=
+          (oConsulta.FieldByName('PEND').AsFloat > 0) and
+          not MatchText(
+            UpperCase(Trim(oConsulta.FieldByName('ESTADO').AsString)),
+            ['RECIBIDO', 'FACTURADO', 'CANCELADO']);
     finally
       oConsulta.Free;
     end;

@@ -195,7 +195,7 @@
           object lblLinNetoLbl: TcxLabel
             Left = 16
             Top = 92
-            Caption = '= Bruto'
+            Caption = '= Neto'
             TabOrder = 5
             Transparent = True
           end

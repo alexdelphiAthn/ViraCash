@@ -467,6 +467,11 @@ var
 begin
   if FCabecera.IsEmpty then
     ShowMessage_fza(SErrorPedidoCompraNoActivoCrearAlbaran)
+  // FZ-ISSUE-1133: sin cantidades pendientes no se abre el diálogo.
+  else if not FConsultas.TienePendienteRecibir(
+            FCabecera.FieldByName('SERIE_PEDC').AsString,
+            FCabecera.FieldByName('NUMERO_PEDC').AsString) then
+    ShowMessage_fza(SErrorPedidoCompraSinPendienteCrearAlbaran)
   else
   begin
     Entrada := CrearEntrada(AUsarCampoCantidades);

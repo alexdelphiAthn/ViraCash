@@ -135,6 +135,8 @@ type
     FComboCodigos: TStringList;
     // Taras del propio almacen ofrecidas como destino (FZ-ISSUE-923).
     FCodigosTaras: TStringList;
+    // FZ-ISSUE-1130: al mostrarse, desplegar los destinos para elegirlo.
+    FDesplegarDestinoAlMostrar: Boolean;
     // FZ-ISSUE-215: almacenes TRANSITO del desplegable de destino, el boton
     // «Recepcionar (n)» (creado en codigo) y el destino final de la carga.
     FAlmacenesTransito: TStringList;
@@ -478,6 +480,7 @@ type
       const AEmpresa, AAlmacen, ACaja: string;
       AFecha: TDateTime;
       const ALineas: TLineasCargaTraspaso);
+    procedure ProponerDestinoTaras;
     procedure MostrarHistoricoSolicitudes(
       const AAlmacen, ATitulo: string);
   end;
@@ -692,6 +695,15 @@ begin
   // (editor de articulo abierto) para poder escanear directamente sin pulsar
   // Enter; el almacen destino trae su valor por defecto y se valida al grabar.
   EnfocarSegunModo;
+  // FZ-ISSUE-1130: par defectuoso sin almacén de taras: se elige el destino
+  // entre todos los almacenes.
+  if FDesplegarDestinoAlMostrar then
+  begin
+    FDesplegarDestinoAlMostrar := False;
+    if cboDestino.CanFocus then
+      cboDestino.SetFocus;
+    cboDestino.DroppedDown := True;
+  end;
 end;
 
 procedure TfrmMtoOpeTraspaso.FormActivate(Sender: TObject);
@@ -1695,6 +1707,21 @@ begin
     ACaja,
     AFecha);
   CargarLineasExternas(ALineas);
+end;
+
+procedure TfrmMtoOpeTraspaso.ProponerDestinoTaras;
+var
+  iIndice: Integer;
+begin
+  iIndice := -1;
+  if (FModo = mtTraspaso) and (FCodigosTaras.Count > 0) then
+    iIndice := FComboCodigos.IndexOf(FCodigosTaras[0]);
+  cboDestino.ItemIndex := iIndice;
+  if iIndice < 0 then
+  begin
+    cboDestino.Text := '';
+    FDesplegarDestinoAlMostrar := True;
+  end;
 end;
 
 procedure TfrmMtoOpeTraspaso.AplicarModo(AModo: TModoTraspaso);

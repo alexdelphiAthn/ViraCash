@@ -190,6 +190,8 @@ type
     procedure chkEnviarEmailPropertiesEditValueChanged(Sender: TObject);
   private
     FTipoImpresion: TTipoImpresionTicket;
+    // Rótulo de «Imp dto. Lineal» ya traducido (FZ-ISSUE-1138).
+    FCaptionDtoLineal: string;
     FDatosCobro: TDatosFaseCobro;
     FRepositorioPersistencia: IRepositorioFaseCobro;
     FRepositorioVales: IRepositorioInformesCaja;
@@ -263,6 +265,7 @@ type
       out ANumeroFmt: string): Boolean;
     procedure CargarFormasPago;
     procedure AplicarValesOrigenSiProcede;
+    procedure MostrarDescuentoLineal(ABruto, ADescuento: Currency);
     procedure CargarComboSeries;
     procedure AjustarFormatoEditorActivo;
     procedure ActualizarInterfaz;
@@ -1643,13 +1646,8 @@ begin
       txtCantidadLineas.Text := IntToStr(TotalesFactura.Lineas.RecordCount);
     end;
     txtBrutoLineas.Value := TotalesFactura.Totales.TotalBruto;
-    txtTotalDtoLineal.Value := TotalesFactura.Totales.TotalDescuentosLineas;
-    if TotalesFactura.Totales.TotalBruto <> 0 then
-      txtPorcenDtoLineal.Text := FormatFloat('0.## %',
-        (TotalesFactura.Totales.TotalDescuentosLineas /
-         TotalesFactura.Totales.TotalBruto) * 100)
-    else
-      txtPorcenDtoLineal.Text := '0 %';
+    MostrarDescuentoLineal(TotalesFactura.Totales.TotalBruto,
+      TotalesFactura.Totales.TotalDescuentosLineas);
     FDatosCobro.Recalcular;
   end;
 end;
@@ -1658,6 +1656,34 @@ end;
 // tabla de pagos, que no existe hasta CargarFormasPago (FormShow) y que
 // ese método vuelve a crear. Por eso se aplica justo después, y no al
 // cargar la factura (daba «closed dataset»).
+// FZ-ISSUE-1138: en un cambio, la línea devuelta con descuento deja un
+// descuento neto negativo (se devuelve al cliente) sobre una suma que ya es
+// la diferencia del cambio: «-30 %» y «-6,00» no se entendían. Se rotula
+// «Dto. devuelto» con el importe en positivo (suma + dto. devuelto = total)
+// y sin porcentaje. El resto de casos, como siempre.
+procedure TfrmMtoCajaFaseCobro.MostrarDescuentoLineal(ABruto,
+  ADescuento: Currency);
+begin
+  if FCaptionDtoLineal = '' then
+    FCaptionDtoLineal := lblImporteDtoLineal.Caption;
+  if (ADescuento < 0) and (ABruto >= 0) then
+  begin
+    lblImporteDtoLineal.Caption := SCaptionDtoDevueltoCobroCaja;
+    txtTotalDtoLineal.Value := -ADescuento;
+    txtPorcenDtoLineal.Text := '';
+  end
+  else
+  begin
+    lblImporteDtoLineal.Caption := FCaptionDtoLineal;
+    txtTotalDtoLineal.Value := ADescuento;
+    if ABruto <> 0 then
+      txtPorcenDtoLineal.Text := FormatFloat('0.## %',
+        (ADescuento / ABruto) * 100)
+    else
+      txtPorcenDtoLineal.Text := '0 %';
+  end;
+end;
+
 procedure TfrmMtoCajaFaseCobro.AplicarValesOrigenSiProcede;
 begin
   if (not FModoSubsanacion) and

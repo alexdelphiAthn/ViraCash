@@ -762,8 +762,14 @@ begin
   ALineas.Add('       COALESCE(NULLIF(fl.CODIGO_VENDEDOR_FACLIN, ''''),');
   ALineas.Add('                o.CODIGO_EMPLEADO_OPCAJA, '''') AS VENDEDOR,');
   ALineas.Add('       COALESCE(pg.FORMAS_PAGO, '''') AS FORMA_PAGO,');
+  // FZ-ISSUE-1136: en un cambio todas las líneas cuelgan de la fila VE;
+  // la línea devuelta (en negativo) se identifica como DV.
   ALineas.Add('       CONCAT_WS(''.'', o.CODIGO_EMP_OPCAJA,');
-  ALineas.Add('                 o.TIPO_OPERACION_OPCAJA,');
+  ALineas.Add('                 CASE WHEN o.TIPO_OPERACION_OPCAJA IN');
+  ALineas.Add('                        (''VE'', ''DV'')');
+  ALineas.Add('                       AND COALESCE(fl.TOTAL_FACLIN, 0) < 0');
+  ALineas.Add('                      THEN ''DV''');
+  ALineas.Add('                      ELSE o.TIPO_OPERACION_OPCAJA END,');
   ALineas.Add('                 o.SERIE_FAC_OPCAJA,');
   ALineas.Add('                 o.NUMERO_FAC_OPCAJA) AS DOCUMENTO,');
   ALineas.Add(' COALESCE(NULLIF(fl.TIPO_CANTIDAD_ARTICULO_FACLIN, ''''),');
@@ -820,11 +826,14 @@ begin
   ALineas.Add('       AND av.ID_VA_AV = (SELECT EJ452.ID_ATB_VA FROM ' +
     'VI_VARIACIONES_EJES EJ452 WHERE EJ452.ID_VAR_VA = ' +
     'sk.CODIGO_VAR_SKU AND EJ452.EJE_VA = ''F'')');
-  ALineas.Add('      JOIN fza_articulos_atributos_basicos aab');
+  // FZ-ISSUE-1139: sin fila en fza_articulos_atributos_basicos (SKU dados
+  // de alta con «Añadir SKU»), el color básico del propio valor, como la
+  // ficha del artículo.
+  ALineas.Add('      LEFT JOIN fza_articulos_atributos_basicos aab');
   ALineas.Add('        ON aab.CODIGO_ART_AAB = sk.CODIGO_ART_SKU');
   ALineas.Add('       AND aab.ID_AV_AAB = av.ID_AV');
   ALineas.Add('      JOIN fza_atributos_basicos atb');
-  ALineas.Add('        ON atb.ID_ATB = aab.ID_ATB_AAB');
+  ALineas.Add('        ON atb.ID_ATB = COALESCE(aab.ID_ATB_AAB, av.ID_ATB_AV)');
   ALineas.Add('     GROUP BY sa.CODIGO_UNIDAD_SKU_SA');
   ALineas.Add('  ) cb');
   ALineas.Add('    ON cb.CODIGO_UNIDAD_SKU =');

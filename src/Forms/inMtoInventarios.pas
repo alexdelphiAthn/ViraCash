@@ -377,7 +377,7 @@ type
 implementation
 
 uses
-  System.DateUtils,
+  System.DateUtils, UniDataReposicionAutomatica,
   inLibMensajesVcl,
   inLibErroresBBDD,
   inLibWin,
@@ -1235,11 +1235,18 @@ begin
   // Columnas propias del documento tras el ClearItems del contrato
   // (equivalente runtime de las del dfm; LOTE/CADUCIDAD/USUARIO, que
   // iban ocultas, quedan fuera de la prueba).
+  // FZ-ISSUE-1135: la columna Lote (con el selector de partida) también en
+  // Modo Yeti, con las partidas de reposición, como en albaranes.
   CrearColumnasDocumentoInventario(
     tvLineas,
     tvLineasUdsFisicasPropertiesValidate,
     UnidadesMedida,
-    TActivacionTrazabilidad.Leer(ParametrosApp).AlgunModoActivo);
+    ActivacionVisualReposicion(ConexionPrincipal,
+      ParametrosApp).AlgunModoActivo,
+    function: TArray<string>
+    begin
+      Result := dmmInventarios.PartidasLineaActual;
+    end);
 end;
 
 procedure TfrmMtoInventarios.MostrarColumnasAtributoGlobales;
