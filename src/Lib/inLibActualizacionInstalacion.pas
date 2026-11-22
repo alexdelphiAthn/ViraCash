@@ -64,7 +64,7 @@ function AplicarSustitucionesElevado(
   out AAnteriores: TArray<string>;
   out AError: string): Boolean;
 // Punto de entrada de la instancia elevada. Si el programa se ha
-// lanzado con /actualizacion-sustituir=<plan>, aplica el plan, escribe
+// lanzado con /actualizacion-sustituir "<plan>", aplica el plan, escribe
 // el resultado junto a él y termina.
 procedure ProcesarArranqueSustitucionElevada;
 
@@ -575,6 +575,8 @@ begin
           oResultado := TJSONObject(oJson);
           Result := oResultado.GetValue('ok') is TJSONTrue;
           AError := TextoPlan(oResultado, 'error');
+          if not Result and (Trim(AError) = '') then
+            AError := SErrorSustitucionElevadaSinRespuesta;
           oLista := oResultado.GetValue('anteriores');
           if oLista is TJSONArray then
           begin
@@ -606,7 +608,7 @@ begin
   Result := False;
   AError := '';
   sRutaActual := ExpandFileName(ParamStr(0));
-  sParametros := '/' + cConmutadorSustitucionElevada + '="' +
+  sParametros := '/' + cConmutadorSustitucionElevada + ' "' +
     ARutaPlan + '"';
   ZeroMemory(@Informacion, SizeOf(Informacion));
   Informacion.cbSize := SizeOf(Informacion);
@@ -625,12 +627,18 @@ begin
   end
   else
   begin
-    WaitForSingleObject(Informacion.hProcess, INFINITE);
-    if GetExitCodeProcess(Informacion.hProcess, iCodigo) then
-      Result := iCodigo = 0
-    else
-      AError := SysErrorMessage(GetLastError);
-    CloseHandle(Informacion.hProcess);
+    try
+      if WaitForSingleObject(Informacion.hProcess, INFINITE) <> WAIT_OBJECT_0
+      then
+        AError := SysErrorMessage(GetLastError)
+      else if not GetExitCodeProcess(Informacion.hProcess, iCodigo) then
+        AError := SysErrorMessage(GetLastError)
+      else
+        // Incluso si termina con error, el detalle se lee del resultado.
+        Result := True;
+    finally
+      CloseHandle(Informacion.hProcess);
+    end;
   end;
 end;
 
@@ -673,9 +681,13 @@ var
   sPlan: string;
 begin
   sPlan := '';
-  if FindCmdLineSwitch(cConmutadorSustitucionElevada, sPlan, True) and
-     (Trim(sPlan) <> '') then
+  if FindCmdLineSwitch(cConmutadorSustitucionElevada, sPlan, True) then
   begin
+    // FindCmdLineSwitch conserva el '=' del formato antiguo.
+    if sPlan.StartsWith('=') then
+      Delete(sPlan, 1, 1);
+    if Trim(sPlan) = '' then
+      Halt(1);
     bOk := CargarPlanSustitucion(
       sPlan,
       sCarpetaTrabajo,
