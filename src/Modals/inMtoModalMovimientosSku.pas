@@ -81,7 +81,7 @@ implementation
 
 uses
   inLibMensajesVcl,
-  inLibShowMto, inLibMsgArticulos, dxCore;
+  inLibShowMto, inLibMsgArticulos, dxCore, inLibPermisosIntf;
 
 {$R *.dfm}
 
@@ -138,6 +138,9 @@ end;
 
 procedure TfrmModalMovimientosSku.FormShow(Sender: TObject);
 begin
+  // FZ-ISSUE-1128: reconstruir recalcula también la valoración a coste;
+  // solo para quien puede ver costes.
+  btnReconstruirStock.Visible := PuedeVerCostes(Permisos);
   ActualizarCabecera;
   CargarMovimientos;
   ActualizarAcciones;

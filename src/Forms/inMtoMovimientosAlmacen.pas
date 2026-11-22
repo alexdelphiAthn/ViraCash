@@ -135,7 +135,7 @@ uses
   inLibWin, inLibUser, inLibShowMto, inLibGridCantidad,
   inLibMsgArticulos, inLibMsgComun, inLibTrazabilidad,
   UniDataMovimientosAlmacenRepositorio,
-  UniDataDestinoFacturaRepositorio;
+  UniDataDestinoFacturaRepositorio, inLibPermisosIntf;
 
 {$R *.dfm}
 
@@ -348,6 +348,11 @@ begin
     cxGrdDBTabPrin.GetColumnByFieldName('TIPO_CANTIDAD_ART'),
     UnidadesMedida);
   pkFieldName := 'NUMERO_MOV';
+  // FZ-ISSUE-1128: sin 'caja.verCoste' no se ven coste ni precio medio,
+  // como en la consulta de stock (Ctrl+U).
+  if not PuedeVerCostes(Permisos) then
+    RestringirCampos(['PRECIO_COSTE_UNITARIO_MOV', 'TOTAL_COSTE_MOV',
+      'PRECIO_MEDIO_MOV']);
   // F-LOTEC-018: con trazabilidad, lote y caducidad visibles por defecto.
   if TActivacionTrazabilidad.Leer(ParametrosApp).AlgunModoActivo then
   begin

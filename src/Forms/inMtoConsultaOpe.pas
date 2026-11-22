@@ -919,6 +919,15 @@ begin
   if bSigue and SeleccionarTipoRectificativa(
     sSerie, sNumero, TipoRectificativa) then
   begin
+    // FZ-ISSUE-1102: la sustitutiva anula el stock y el cobro del ticket
+    // original; si es de un día anterior, solo la hace un administrador.
+    if (TipoRectificativa = trcSustitutiva) and
+       (Trunc(Factura.Fecha) < Trunc(Date)) and
+       not IdentidadSesion.EsAdministrador then
+    begin
+      ShowMessage_fza(SErrorSustitutivaDiaAnteriorCaja);
+      bSigue := False;
+    end;
     TratamientoMovimientos := tmrMantenerOriginales;
     if TipoRectificativa = trcSustitutiva then
       TratamientoMovimientos := tmrReemplazarOriginales;

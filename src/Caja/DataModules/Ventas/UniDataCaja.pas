@@ -233,10 +233,13 @@ type
                                         AFechaCaducidad: TDate = 0);
     // AFechaOperacion: fecha de la operacion de caja que cierra el
     // deposito; queda como fecha de entrega (FZ-ISSUE-900).
+    // ANumeroOperacion: operacion de caja (venta o devolucion) que lo
+    // cierra; se guarda en los campos *_CANCEL_DEP (FZ-ISSUE-1125).
     procedure CerrarDepositoCliente(QryTrx: TUniQuery;
                                     const AIdDeposito, AEmpresa,
                                           AAlmacen, ACaja,
-                                          AUsuario: string;
+                                          AUsuario,
+                                          ANumeroOperacion: string;
                                     AFechaOperacion: TDateTime);
     procedure AumentarAnticipoDeposito(QryTrx: TUniQuery;
                                        const AIdDeposito, AEmpresa,
@@ -538,6 +541,7 @@ type
       var ALineas: TLineasServicioVenta);
     procedure CrearOrdenesReparacion;
     procedure SincronizarContadorLineas;
+    procedure AcumularAbonoRectificativaDiferencias;
     procedure RegistrarTotalesVenta;
     procedure RegistrarFiscalmente;
     procedure RegistrarFormasPago;
@@ -1287,7 +1291,8 @@ procedure TdmCajaOpe.CerrarDepositoCliente(QryTrx: TUniQuery;
                                                  AEmpresa,
                                                  AAlmacen,
                                                  ACaja,
-                                                 AUsuario: string;
+                                                 AUsuario,
+                                                 ANumeroOperacion: string;
                                            AFechaOperacion: TDateTime);
 var
   Consulta: TUniQuery;
@@ -1329,6 +1334,11 @@ begin
         // cantidad no se toca: tickets, arqueos e informes la leen como
         // cantidad del deposito tambien despues de cerrarlo.
         '    FECHA_ENTREGA_DEP = :FECHA_ENTREGA, ' +
+        // FZ-ISSUE-1125: operacion de caja que cierra el deposito.
+        '    EMPRESA_CANCEL_DEP = :EMPRESA, ' +
+        '    ALMACEN_CANCEL_DEP = :ALMACEN, ' +
+        '    CAJA_CANCEL_DEP = :CAJA, ' +
+        '    NUMERO_OPERACION_CANCEL_DEP = :NUMERO_OPERACION, ' +
         '    USUARIO_MODIF = :USUARIO, INSTANTE_MODIF = NOW() ' +
         'WHERE ID_DEPOSITO_DEP = :ID ' +
         'AND CODIGO_EMP_DEP = :EMPRESA ' +
@@ -1337,6 +1347,7 @@ begin
         'AND ESTADO_DEP = ''PENDIENTE''';
       Consulta.ParamByName('FECHA_ENTREGA').AsDate :=
         Trunc(AFechaOperacion);
+      Consulta.ParamByName('NUMERO_OPERACION').AsString := ANumeroOperacion;
       Consulta.ParamByName('USUARIO').AsString := AUsuario;
       Consulta.ParamByName('ID').AsString := AIdDeposito;
       Consulta.ParamByName('EMPRESA').AsString := AEmpresa;
@@ -2428,7 +2439,7 @@ begin
     Result := AlmacenDeposito;
     FDataModule.CerrarDepositoCliente(
       FQuery, sIdDeposito, FEmpresa, FAlmacen,
-      FCaja, FUsuario, FFechaOperacion);
+      FCaja, FUsuario, FNumeroOperacion, FFechaOperacion);
     // PRECIO_ORIGINAL_DEP es unitario: el depósito vale por sus unidades
     dImporteCierre := ALinea.PrecioOriginalDep;
     if ALinea.Cantidad <> 0 then
@@ -2441,12 +2452,15 @@ begin
       FNumeroFactura, FSerieGenerada, FCabecera.CodigoCliente,
       'Cierre depósito: ' + ALinea.Descripcion,
       '', '', '', '', '', 'N', sIdDeposito);
-    FPersistencia.GuardarOperacion(
-      FQuery, FEmpresa, FAlmacen, FCaja, FNumeroOperacion,
-      'VE', ALinea.TotalCIva, FUsuario, FFechaOperacion,
-      FNumeroFactura, FSerieGenerada, FCabecera.CodigoCliente,
-      'Venta depósito: ' + ALinea.Descripcion,
-      '', '', '', '', '', 'N', sIdDeposito);
+    // FZ-ISSUE-1125: la devolución del préstamo (sin importe ni factura)
+    // solo cierra el depósito; no se anota una venta a 0.
+    if (ALinea.TotalCIva <> 0) or (FNumeroFactura <> '0') then
+      FPersistencia.GuardarOperacion(
+        FQuery, FEmpresa, FAlmacen, FCaja, FNumeroOperacion,
+        'VE', ALinea.TotalCIva, FUsuario, FFechaOperacion,
+        FNumeroFactura, FSerieGenerada, FCabecera.CodigoCliente,
+        'Venta depósito: ' + ALinea.Descripcion,
+        '', '', '', '', '', 'N', sIdDeposito);
   end
   else
   begin
@@ -2658,6 +2672,24 @@ begin
   end;
 end;
 
+// FZ-ISSUE-1103: la rectificativa por diferencias hecha desde el menú
+// (sin ticket de origen de devolución) también abona parte del ticket
+// rectificado. Se acumula su abono neto (lo devuelto menos lo que vuelve
+// a venderse en ella, p. ej. -1 a 69,95 y +1 a 64,95 = 5,00) para que el
+// límite de lo que aún puede devolverse del ticket sea el real.
+procedure TGrabacionFacturaCaja.AcumularAbonoRectificativaDiferencias;
+var
+  cAbonoNeto: Currency;
+begin
+  cAbonoNeto := FTotalDevolucionesNormales - FTotalVentasNormales;
+  if (FTipoRectificativa = trcDiferencias) and (cAbonoNeto > 0) and
+     (Trim(FSerieRectificada) <> '') and
+     (Trim(FNumeroRectificado) <> '') then
+    FPersistencia.AcumularDevolucionVentaOrigen(
+      FQuery, FEmpresa, '', FSerieRectificada, FNumeroRectificado,
+      cAbonoNeto);
+end;
+
 procedure TGrabacionFacturaCaja.RegistrarTotalesVenta;
 var
   sSerieRefDevolucion: string;
@@ -2712,7 +2744,9 @@ begin
           FQuery, FEmpresaOrigenDevolucion,
           FAlmacenOrigenDevolucion,
           FSerieOrigenDevolucion, FNumeroOrigenDevolucion,
-          FTotalDevolucionesNormales);
+          FTotalDevolucionesNormales)
+      else
+        AcumularAbonoRectificativaDiferencias;
     end;
   end;
 end;

@@ -358,21 +358,30 @@ end;
 procedure TPresentadorEstadosStock.PoblarCombo;
 var
   i: Integer;
+  AlCambiarEstado: TNotifyEvent;
 begin
-  FCombo.Properties.Items.BeginUpdate;
+  // El cambio de modo recarga después de completar la selección.
+  AlCambiarEstado := FCombo.Properties.OnEditValueChanged;
+  FCombo.Properties.OnEditValueChanged := nil;
   try
-    FCombo.Properties.Items.Clear;
-    for i := 0 to FSeleccion.Cuenta - 1 do
-      FCombo.Properties.Items.Add(
-        NombreEstadoStockCorto(FSeleccion.Estados[i]));
+    FCombo.Properties.Items.BeginUpdate;
+    try
+      FCombo.Properties.Items.Clear;
+      for i := 0 to FSeleccion.Cuenta - 1 do
+        FCombo.Properties.Items.Add(
+          NombreEstadoStockCorto(FSeleccion.Estados[i]));
+    finally
+      FCombo.Properties.Items.EndUpdate;
+    end;
+    FCombo.Enabled := not FSeleccion.ModoDesglosado;
+    if FSeleccion.ModoDesglosado then
+      FCombo.ItemIndex := FSeleccion.IndiceDe(esTodoAlaVez)
+    else
+      FCombo.ItemIndex := 0;
   finally
-    FCombo.Properties.Items.EndUpdate;
+    FCombo.Properties.OnEditValueChanged := AlCambiarEstado;
   end;
-  FCombo.Enabled := not FSeleccion.ModoDesglosado;
-  if FSeleccion.ModoDesglosado then
-    FCombo.ItemIndex := FSeleccion.IndiceDe(esTodoAlaVez)
-  else
-    FCombo.ItemIndex := 0;
+  AplicarColorEstadoActual;
 end;
 
 procedure TPresentadorEstadosStock.MarcarModoEnRadios;
@@ -391,6 +400,9 @@ end;
 
 procedure TPresentadorEstadosStock.RadioClick(Sender: TObject);
 begin
+  if FSeleccion.ModoDesglosado = FRadioDesglosado.Checked then
+    Exit;
+
   FSeleccion.FijarModo(FRadioDesglosado.Checked);
   PoblarCombo;
   if Assigned(FAlGuardarModo) then
@@ -694,68 +706,73 @@ var
   i: Integer;
   sTituloGrupo: string;
 begin
-  for i := FColumnas.Count - 1 downto 0 do
-    FColumnas[i].Free;
-  FColumnas.Clear;
-  FColumnasDetalle.Clear;
-  FColumnaGrupo := nil;
-  FColumnaEstado := nil;
-  FEsModoColor := APorColor;
-  FEsModoTodo := AEstado = esTodoAlaVez;
-  FEstadoActual := AEstado;
-  FDetalle := FEsModoTodo and ADesglosado;
-  if FDetalle then
-    FVista.OptionsView.DataRowHeight := EscalarAncho(112)
-  else
-    FVista.OptionsView.DataRowHeight := 0;
-  if APorColor then
-    sTituloGrupo := SCaptionColColor
-  else
-    sTituloGrupo := SCaptionColAlmacen;
-  Definiciones := DefinirColumnasPivoteStock(
-    ATallas, APorColor, FEsModoTodo and not FDetalle, sTituloGrupo,
-    SCaptionColEstado, SCaptionColTotal);
-  for Definicion in Definiciones do
-  begin
-    Columna := TColumnaPivoteStock.CrearEnVista(FVista);
-    // Fijar Width antes de MinWidth y del campo: si ya coincide con el
-    // mínimo, DevExpress no lo guarda como asignado y al abrir el dataset
-    // lo sustituye por DisplayWidth, aunque ColumnAutoWidth sea False.
-    Columna.Width := EscalarAncho(Definicion.Ancho);
-    if FDetalle and (Definicion.Clase in [cpsTalla, cpsTotal]) then
-      Columna.Width := EscalarAncho(135);
-    Columna.MinWidth := Columna.Width;
-    Columna.Caption := Definicion.Titulo;
-    Columna.DataBinding.FieldName := Definicion.Campo;
-    case Definicion.Clase of
-      cpsGrupo:
-        begin
-          Columna.BestFitMaxWidth := EscalarAncho(360);
-          Columna.HeaderAlignmentHorz := taLeftJustify;
-          Columna.Options.Sorting := False;
-          Columna.Styles.OnGetContentStyle := GrupoGetContentStyle;
-          FColumnaGrupo := Columna;
-        end;
-      cpsEstado:
-        begin
-          Columna.BestFitMaxWidth := EscalarAncho(180);
-          Columna.OnGetDisplayText := EstadoGetDisplayText;
-          Columna.HeaderAlignmentHorz := taLeftJustify;
-          Columna.Options.Sorting := False;
-          Columna.Styles.OnGetContentStyle := DatosGetContentStyle;
-          FColumnaEstado := Columna;
-        end;
+  FVista.BeginUpdate;
+  try
+    for i := FColumnas.Count - 1 downto 0 do
+      FColumnas[i].Free;
+    FColumnas.Clear;
+    FColumnasDetalle.Clear;
+    FColumnaGrupo := nil;
+    FColumnaEstado := nil;
+    FEsModoColor := APorColor;
+    FEsModoTodo := AEstado = esTodoAlaVez;
+    FEstadoActual := AEstado;
+    FDetalle := FEsModoTodo and ADesglosado;
+    if FDetalle then
+      FVista.OptionsView.DataRowHeight := EscalarAncho(112)
     else
-      begin
-        Columna.BestFitMaxWidth := EscalarAncho(110);
-        ConfigurarColumnaDatos(Columna);
+      FVista.OptionsView.DataRowHeight := 0;
+    if APorColor then
+      sTituloGrupo := SCaptionColColor
+    else
+      sTituloGrupo := SCaptionColAlmacen;
+    Definiciones := DefinirColumnasPivoteStock(
+      ATallas, APorColor, FEsModoTodo and not FDetalle, sTituloGrupo,
+      SCaptionColEstado, SCaptionColTotal);
+    for Definicion in Definiciones do
+    begin
+      Columna := TColumnaPivoteStock.CrearEnVista(FVista);
+      // Fijar Width antes de MinWidth y del campo: si ya coincide con el
+      // mínimo, DevExpress no lo guarda como asignado y al abrir el dataset
+      // lo sustituye por DisplayWidth, aunque ColumnAutoWidth sea False.
+      Columna.Width := EscalarAncho(Definicion.Ancho);
+      if FDetalle and (Definicion.Clase in [cpsTalla, cpsTotal]) then
+        Columna.Width := EscalarAncho(135);
+      Columna.MinWidth := Columna.Width;
+      Columna.Caption := Definicion.Titulo;
+      Columna.DataBinding.FieldName := Definicion.Campo;
+      case Definicion.Clase of
+        cpsGrupo:
+          begin
+            Columna.BestFitMaxWidth := EscalarAncho(360);
+            Columna.HeaderAlignmentHorz := taLeftJustify;
+            Columna.Options.Sorting := False;
+            Columna.Styles.OnGetContentStyle := GrupoGetContentStyle;
+            FColumnaGrupo := Columna;
+          end;
+        cpsEstado:
+          begin
+            Columna.BestFitMaxWidth := EscalarAncho(180);
+            Columna.OnGetDisplayText := EstadoGetDisplayText;
+            Columna.HeaderAlignmentHorz := taLeftJustify;
+            Columna.Options.Sorting := False;
+            Columna.Styles.OnGetContentStyle := DatosGetContentStyle;
+            FColumnaEstado := Columna;
+          end;
+      else
+        begin
+          Columna.BestFitMaxWidth := EscalarAncho(110);
+          ConfigurarColumnaDatos(Columna);
+        end;
       end;
+      FColumnas.Add(Columna);
     end;
-    FColumnas.Add(Columna);
+    FTallas := Copy(ATallas);
+    if FDetalle then
+      CrearColumnasDetalle;
+  finally
+    FVista.EndUpdate;
   end;
-  FTallas := Copy(ATallas);
-  if FDetalle then
-    CrearColumnasDetalle;
 end;
 
 // El fondo real de la fila puede diferir de DefaultContentColor del skin.

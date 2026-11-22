@@ -119,8 +119,8 @@ uses
   inLibMensajesVcl,
   System.SysUtils, System.Classes, Winapi.Windows, Vcl.Controls, Vcl.Dialogs,
   Vcl.Forms, System.UITypes, System.Variants, inLibErroresBBDD,
-  cxEdit, cxGridCustomTableView, cxGridDBDataDefinitions,
-  inLibColumnasDocumento, inLibDocumento, inLibDatasets,
+  cxEdit, cxGridCustomTableView, cxGridDBDataDefinitions, cxGrid,
+  cxLookAndFeels, inLibColumnasDocumento, inLibDocumento, inLibDatasets,
   inLibFiltroUsuario, inLibMsgCompras, inLibMsgComun,
   inLibPerfilesUsuarioIntf, inLibPerfilesUsuarioValores,
   inLibPrecargaMantenimientos, inMtoGenPresentacionPerfilesVcl,
@@ -156,6 +156,13 @@ begin
     FVistaLineasDocumento.DataController.RemoveDataChangedListener(Self,
       ActualizarVisibilidadPropiedadesArticulo);
   FVistaLineasDocumento := AVista;
+  // FZ-ISSUE-1096: el proyecto deja ScrollbarMode = sbmDefault y, con el
+  // ajuste de Windows que oculta las barras (por defecto en Windows 11),
+  // la barra horizontal solo aparece al pasar el ratón. En las líneas
+  // (tallas en horizontal, columnas del documento) quedaban columnas
+  // fuera de la vista sin forma visible de llegar a ellas.
+  if Assigned(AVista) and (AVista.Control is TcxGrid) then
+    TcxGrid(AVista.Control).LookAndFeel.ScrollbarMode := sbmClassic;
   if Assigned(AVista) and (FConfiguracionDocumento.Sentido = sdVenta) then
     AVista.DataController.AddDataChangedListener(Self,
       ActualizarVisibilidadPropiedadesArticulo);

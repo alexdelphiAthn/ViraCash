@@ -25,7 +25,8 @@ uses
   Vcl.ComCtrls, cxListView,
   Data.DB, MemDS, DBAccess, Uni,
   frxClass, frxDBSet,
-  UniDataGen, UniDataArticulos, inLibUser, inLibLotesLineaDocumento;
+  UniDataGen, UniDataArticulos, inLibUser, inLibLotesLineaDocumento,
+  inLibDevolucionesCompraStock;
 
 type
   TdmDevolucionesCompra = class(TdmBase)
@@ -96,6 +97,10 @@ type
     function DocumentoLotes: TDocumentoLineaLote;
     procedure GetCodigoAutoDevolucionCompra;
     procedure CalcularTotalesDevolucionCompra;
+    function DevolverStockCompleto(
+      const APersistencia: IPersistenciaStockDevolucionCompra;
+      AModo: TModoStockDevolucionCompra; const AArticulo, ALote: string;
+      out ALineas: Integer): TEstadoStockDevolucionCompra;
     // Numero total de prendas (suma CANTIDAD_DEVCLIN de todas las lineas).
     // Se muestra en la pestana Totales; no se persiste en BBDD.
     function TotalPrendasDevolucion: Double;
@@ -153,7 +158,7 @@ uses
   inLibArticulosValidadorIntf,
   UniDataArticulosValidadorRepositorio,
   inLibMsgCompras, inLibDocumento, inLibDocumentoIntf,
-  UniDataDatosProveedorDocumento;
+  UniDataDatosProveedorDocumento, UniDataInformeDocumento;
 
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 
@@ -836,6 +841,67 @@ begin
     UnidadesMedida);
 end;
 
+function TdmDevolucionesCompra.DevolverStockCompleto(
+  const APersistencia: IPersistenciaStockDevolucionCompra;
+  AModo: TModoStockDevolucionCompra; const AArticulo, ALote: string;
+  out ALineas: Integer): TEstadoStockDevolucionCompra;
+var
+  oConexion: TUniConnection;
+  rDocumento: TDocumentoLineaLote;
+  rParametros: TParametrosStockDevolucionCompra;
+  bTransaccionPropia: Boolean;
+begin
+  rDocumento := DocumentoLotes;
+  rParametros := Default(TParametrosStockDevolucionCompra);
+  rParametros.Modo := AModo;
+  rParametros.Serie := rDocumento.Serie;
+  rParametros.Numero := rDocumento.Numero;
+  rParametros.CodigoProveedor := rDocumento.CodigoProveedor;
+  rParametros.CodigoAlmacen := rDocumento.CodigoAlmacen;
+  rParametros.CodigoEmpresa := Trim(
+    unqryTablaG.FieldByName('CODIGO_EMP_DEVC').AsString);
+  rParametros.CodigoArticulo := AArticulo;
+  rParametros.Lote := ALote;
+  rParametros.Usuario := IdentidadSesion.Usuario;
+  rParametros.IvaNormal := unqryTablaG.FieldByName(
+    'PORCENTAJE_IVAN_DEVC').AsFloat;
+  rParametros.IvaReducido := unqryTablaG.FieldByName(
+    'PORCENTAJE_IVAR_DEVC').AsFloat;
+  rParametros.IvaSuperreducido := unqryTablaG.FieldByName(
+    'PORCENTAJE_IVAS_DEVC').AsFloat;
+  rParametros.IvaExento := unqryTablaG.FieldByName(
+    'PORCENTAJE_IVAE_DEVC').AsFloat;
+
+  oConexion := ConexionEscritura;
+  bTransaccionPropia := not oConexion.InTransaction;
+  if bTransaccionPropia then
+    oConexion.StartTransaction;
+  try
+    if DevolverTodoStockCompra(APersistencia, rParametros, ALineas, Result) then
+    begin
+      unqryDevolucionesCompraLineas.Close;
+      unqryDevolucionesCompraLineas.Open;
+      CalcularTotalesDevolucionCompra;
+      if unqryTablaG.State in dsEditModes then
+        unqryTablaG.Post
+      else
+        SincronizarMovimientos;
+    end;
+    if bTransaccionPropia then
+      oConexion.Commit;
+  except
+    if bTransaccionPropia and oConexion.InTransaction then
+    begin
+      oConexion.Rollback;
+      unqryTablaG.Cancel;
+      unqryTablaG.Refresh;
+      unqryDevolucionesCompraLineas.Close;
+      unqryDevolucionesCompraLineas.Open;
+    end;
+    raise;
+  end;
+end;
+
 function TdmDevolucionesCompra.HayLineasMovimiento(const ASerie,
   ANumero: string): Boolean;
 var
@@ -961,19 +1027,26 @@ begin
 end;
 
 procedure TdmDevolucionesCompra.PrepararPrint(const ASerie, ANumero: string);
+var
+  Config: TConfiguracionDocumento;
 begin
   unqryCabDevcPrint.Close;
   PrepararSQLCabeceraPrint;
   unqryCabDevcPrint.ParamByName('SERIE_DEVC').AsString  := ASerie;
   unqryCabDevcPrint.ParamByName('NUMERO_DEVC').AsString := ANumero;
   unqryCabDevcPrint.Open;
+  // FZ-ISSUE-1127: mismas líneas y guías que el albarán de compra. Con más
+  // tallas de las que caben, cada sistema se reparte en varias guías.
+  Config := CrearConfiguracionDocumento(tdDevolucion, sdCompra);
   unqryLinDevcPrint.Close;
-  unqryLinDevcPrint.ParamByName('SERIE_DEVC').AsString  := ASerie;
-  unqryLinDevcPrint.ParamByName('NUMERO_DEVC').AsString := ANumero;
+  unqryLinDevcPrint.SQL.Text := SqlImpresionHorizontalCompra(Config, False);
+  unqryLinDevcPrint.ParamByName('SERIE').AsString := ASerie;
+  unqryLinDevcPrint.ParamByName('NUMERO').AsString := ANumero;
   unqryLinDevcPrint.Open;
   unqryGuiasDevcPrint.Close;
-  unqryGuiasDevcPrint.ParamByName('SERIE_DEVC').AsString  := ASerie;
-  unqryGuiasDevcPrint.ParamByName('NUMERO_DEVC').AsString := ANumero;
+  unqryGuiasDevcPrint.SQL.Text := SqlImpresionHorizontalCompra(Config, True);
+  unqryGuiasDevcPrint.ParamByName('SERIE').AsString := ASerie;
+  unqryGuiasDevcPrint.ParamByName('NUMERO').AsString := ANumero;
   unqryGuiasDevcPrint.Open;
 end;
 

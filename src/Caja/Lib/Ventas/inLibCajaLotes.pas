@@ -61,6 +61,7 @@ type
     Avisar: TAvisoLoteCaja;
     // Política general antes de repartir, también al elegir con F9.
     ValidarStock: TProc<TDataSet>;
+    CompensarDevoluciones: TFunc<Boolean>;
     // Unidades que no caben en la línea grabada (series, varios lotes):
     // se dan de alta como lecturas del SKU, fuera del Post.
     AnadirLecturas: TAnadirLecturasCaja;
@@ -92,6 +93,9 @@ type
     function Contexto(const AArticulo, ADescripcion: string;
       const ACantidad: Double; AFefo: Boolean): TContextoLoteLectura;
     function ModoArticulo(const AArticulo: string): TModoTrazabilidad;
+    function CompensaDevoluciones: Boolean;
+    function LotesDevueltos(const ASku: string; ACantidad: Double;
+      AExcluir: TDataSet): TArray<TAsignacionLote>;
     function UnidadesTicket(const ASku, ALote: string;
       AExcluir: TDataSet): Double;
     function DecidirCaja(const AResolucion: TArtResolucionEntrada;
@@ -124,10 +128,21 @@ type
     procedure ValidarTicket;
   end;
 
+function EsLineaStockRectificativaCaja(ALinea: TDataSet): Boolean;
+
 implementation
 
 uses
-  System.Math, System.Classes, System.Variants, inLibMsgTrazabilidad;
+  System.Math, System.Classes, System.Variants, System.Generics.Collections,
+  inLibMsgTrazabilidad, inLibCajaStockLinea;
+
+function EsLineaStockRectificativaCaja(ALinea: TDataSet): Boolean;
+begin
+  Result := SameText(
+    Trim(ALinea.FieldByName('TIPO_ARTICULO_FACLIN').AsString), 'ESTANDAR') and
+    (Trim(ALinea.FieldByName('VIENE_DE_DEPOSITO').AsString) = '') and
+    (Trim(ALinea.FieldByName('ACCION_DEPOSITO').AsString) = '');
+end;
 
 procedure EscribirLoteLineaCaja(ALineas: TDataSet;
   const AAsignacion: TAsignacionLote; AEsSerie: Boolean);
@@ -232,31 +247,95 @@ begin
   Result.SeriesDocumento := SeriesTicket;
 end;
 
+function TTrazabilidadEntradaCaja.CompensaDevoluciones: Boolean;
+begin
+  Result := Assigned(FConfig.CompensarDevoluciones) and
+    FConfig.CompensarDevoluciones();
+end;
+
+function TTrazabilidadEntradaCaja.LotesDevueltos(const ASku: string;
+  ACantidad: Double; AExcluir: TDataSet): TArray<TAsignacionLote>;
+var
+  Clon: TClientDataSet;
+  Lotes: TList<string>;
+  Asignacion: TAsignacionLote;
+  Saldo, Pendiente: Double;
+  CampoSerie, CampoFecha: TField;
+  Lote: string;
+begin
+  Result := [];
+  Pendiente := ACantidad;
+  Clon := TClientDataSet.Create(nil);
+  Lotes := TList<string>.Create;
+  try
+    Clon.CloneCursor(FConfig.Lineas, True);
+    CampoSerie := Clon.FindField(CAMPO_ES_SERIE_CAJA);
+    CampoFecha := Clon.FieldByName(CAMPO_CADUCIDAD_CAJA);
+    Clon.First;
+    while not Clon.Eof and (Pendiente > 0.000001) do
+    begin
+      Lote := Trim(Clon.FieldByName(CAMPO_LOTE_CAJA).AsString);
+      if (Lote <> '') and
+         (Clon.FieldByName(CAMPO_CANTIDAD_CAJA).AsFloat < 0) and
+         SameText(Trim(Clon.FieldByName(CAMPO_SKU_CAJA).AsString), ASku) and
+         EsLineaStockRectificativaCaja(Clon) and
+         ((CampoSerie = nil) or not SameText(CampoSerie.AsString, 'S')) and
+         not Lotes.Contains(UpperCase(Lote)) then
+      begin
+        Lotes.Add(UpperCase(Lote));
+        Saldo := -UnidadesTicket(ASku, Lote, AExcluir);
+        if Saldo > 0.000001 then
+        begin
+          Asignacion := Default(TAsignacionLote);
+          Asignacion.Lote := Lote;
+          if not CampoFecha.IsNull then
+            Asignacion.FechaCaducidad := CampoFecha.AsDateTime;
+          Asignacion.Cantidad := Min(Pendiente, Saldo);
+          Pendiente := Pendiente - Asignacion.Cantidad;
+          Result := Result + [Asignacion];
+        end;
+      end;
+      Clon.Next;
+    end;
+    // Si las devoluciones no cubren la línea, conserva el flujo de reparto.
+    if Pendiente > 0.000001 then
+      Result := [];
+  finally
+    Lotes.Free;
+    Clon.Free;
+  end;
+end;
+
 function TTrazabilidadEntradaCaja.UnidadesTicket(
   const ASku, ALote: string; AExcluir: TDataSet): Double;
 var
   Clon: TClientDataSet;
-  Excluida: string;
-  Deposito: TField;
+  Deposito, Serie: TField;
+  Cantidad: Double;
+  Compensar: Boolean;
 begin
   Result := 0;
-  Excluida := '';
-  if Assigned(AExcluir) then
-    Excluida := AExcluir.FieldByName('LINEA_FACLIN').AsString;
+  Compensar := (ALote <> '') and CompensaDevoluciones;
   Clon := TClientDataSet.Create(nil);
   try
     Clon.CloneCursor(FConfig.Lineas, True);
+    Serie := Clon.FindField(CAMPO_ES_SERIE_CAJA);
     Clon.First;
     while not Clon.Eof do
     begin
       Deposito := Clon.FindField('VIENE_DE_DEPOSITO');
-      if ((Excluida = '') or
-          (Clon.FieldByName('LINEA_FACLIN').AsString <> Excluida)) and
+      if not MismaLineaGrabadaCaja(Clon, AExcluir) and
          SameText(Trim(Clon.FieldByName(CAMPO_SKU_CAJA).AsString), ASku) and
          SameText(Trim(Clon.FieldByName(CAMPO_LOTE_CAJA).AsString), ALote) and
          ((Deposito = nil) or (Trim(Deposito.AsString) = '')) then
-        Result := Result + Max(0,
-          Clon.FieldByName(CAMPO_CANTIDAD_CAJA).AsFloat);
+      begin
+        Cantidad := Clon.FieldByName(CAMPO_CANTIDAD_CAJA).AsFloat;
+        if Compensar and EsLineaStockRectificativaCaja(Clon) and
+           ((Serie = nil) or not SameText(Serie.AsString, 'S')) then
+          Result := Result + Cantidad
+        else
+          Result := Result + Max(0, Cantidad);
+      end;
       Clon.Next;
     end;
   finally
@@ -280,6 +359,20 @@ begin
   Datos := Contexto(AResolucion.CodigoArticulo,
     AResolucion.DescripcionArticulo, ACantidad, AFefo);
   Resolucion := AResolucion;
+  if CompensaDevoluciones and (Trim(Resolucion.Lote) = '') and
+     (Trim(Resolucion.Serie) = '') and
+     (FConfig.Activacion.ModoEfectivo(Datos.Modo) <> mtSerie) and
+     ((AExcluir = nil) or EsLineaStockRectificativaCaja(AExcluir)) then
+  begin
+    Result := Default(TDecisionLoteLectura);
+    Result.Asignaciones :=
+      LotesDevueltos(Resolucion.CodigoSku, ACantidad, AExcluir);
+    if Length(Result.Asignaciones) > 0 then
+    begin
+      Result.Resultado := rllAsignado;
+      Exit;
+    end;
+  end;
   // FZ-ISSUE-1043: un artículo sin trazabilidad con partidas de reposición
   // en el almacén se vende con lote (neto de lo que ya lleva el ticket).
   if (FConfig.Activacion.ModoEfectivo(Datos.Modo) = mtLote) or
@@ -342,6 +435,15 @@ begin
       FConfig.Repositorio, FConfig.Selector);
 end;
 
+function LocalizarLineaGrabadaCaja(AClon, ALinea: TDataSet): Boolean;
+begin
+  Result := AClon.Locate(
+    'SERIE_FAC_FACLIN;NUMERO_FAC_FACLIN;LINEA_FACLIN',
+    VarArrayOf([ALinea.FieldByName('SERIE_FAC_FACLIN').AsString,
+      ALinea.FieldByName('NUMERO_FAC_FACLIN').AsString,
+      ALinea.FieldByName('LINEA_FACLIN').AsString]), []);
+end;
+
 // FZ-ISSUE-1085: el recálculo de precios y totales vuelve a grabar la misma
 // línea (cuatro veces tras aceptar «Elegir lote»). La asignación «(sin lote)»
 // sigue siendo válida mientras no cambien el SKU, las unidades ni el lote.
@@ -357,8 +459,7 @@ begin
     Clon := TClientDataSet.Create(nil);
     try
       Clon.CloneCursor(FConfig.Lineas, True);
-      Result := Clon.Locate('LINEA_FACLIN',
-        ALinea.FieldByName('LINEA_FACLIN').AsString, []) and
+      Result := LocalizarLineaGrabadaCaja(Clon, ALinea) and
         (Trim(Clon.FieldByName(CAMPO_LOTE_CAJA).AsString) = '') and
         SameText(Trim(Clon.FieldByName(CAMPO_SKU_CAJA).AsString),
           Trim(ALinea.FieldByName(CAMPO_SKU_CAJA).AsString)) and
@@ -387,8 +488,7 @@ begin
     Clon := TClientDataSet.Create(nil);
     try
       Clon.CloneCursor(FConfig.Lineas, True);
-      if Clon.Locate('LINEA_FACLIN',
-           ALinea.FieldByName('LINEA_FACLIN').AsString, []) then
+      if LocalizarLineaGrabadaCaja(Clon, ALinea) then
         for Indice := 0 to ALinea.FieldCount - 1 do
         begin
           Campo := ALinea.Fields[Indice];
@@ -434,15 +534,18 @@ begin
       for Otro := 0 to High(AAsignaciones) do
         if SameText(Lote, AAsignaciones[Otro].Lote) then
           Cantidad := Cantidad + AAsignaciones[Otro].Cantidad;
-      Validacion := FConfig.Repositorio.ValidarSalida(Sku,
-        FConfig.Almacen(), Lote, Cantidad);
-      if (Validacion.Resultado = rslLoteInexistente) or
-         (Cantidad > Validacion.StockDisponible + 0.000001) then
+      if Cantidad > 0.000001 then
       begin
-        FConfig.Avisar(Format(SErrorCantidadLoteSuperaStock,
-          [Lote, FormatFloat('0.###', Cantidad),
-           FormatFloat('0.###', Validacion.StockDisponible)]));
-        Abort;
+        Validacion := FConfig.Repositorio.ValidarSalida(Sku,
+          FConfig.Almacen(), Lote, Cantidad);
+        if (Validacion.Resultado = rslLoteInexistente) or
+           (Cantidad > Validacion.StockDisponible + 0.000001) then
+        begin
+          FConfig.Avisar(Format(SErrorCantidadLoteSuperaStock,
+            [Lote, FormatFloat('0.###', Cantidad),
+             FormatFloat('0.###', Validacion.StockDisponible)]));
+          Abort;
+        end;
       end;
     end;
   end;
@@ -622,6 +725,7 @@ var
   Sku, Lote: string;
   Validacion: TValidacionSalidaLote;
   Deposito: TField;
+  Catalogo: TLoteCatalogo;
 begin
   Cantidad := ALinea.FieldByName(CAMPO_CANTIDAD_CAJA).AsFloat;
   Sku := Trim(ALinea.FieldByName(CAMPO_SKU_CAJA).AsString);
@@ -629,10 +733,15 @@ begin
   Deposito := ALinea.FindField('VIENE_DE_DEPOSITO');
   if (Cantidad > 0) and (Sku <> '') and (Lote <> '') and
      ((Deposito = nil) or (Trim(Deposito.AsString) = '')) and
-     RequiereLote(ModoArticulo(
-       ALinea.FieldByName(CAMPO_ARTICULO_CAJA).AsString)) then
+     (RequiereLote(ModoArticulo(
+        ALinea.FieldByName(CAMPO_ARTICULO_CAJA).AsString)) or
+      (CompensaDevoluciones and
+       FConfig.Repositorio.BuscarLote(Sku, Lote, Catalogo) and
+       Catalogo.EsReposicion)) then
   begin
     Cantidad := Cantidad + UnidadesTicket(Sku, Lote, ALinea);
+    if Cantidad <= 0.000001 then
+      Exit;
     Validacion := FConfig.Repositorio.ValidarSalida(Sku,
       FConfig.Almacen(), Lote, Cantidad);
     if (Validacion.Resultado <> rslCorrecta) or
@@ -781,6 +890,7 @@ var
   sLote: string;
   Validacion: TValidacionSalidaLote;
   Catalogo: TLoteCatalogo;
+  CantidadNeta: Double;
 begin
   sLote := Trim(ALinea.FieldByName(CAMPO_LOTE_CAJA).AsString);
   if (sLote = '') and TomarLecturaReposicion(
@@ -794,7 +904,8 @@ begin
      (ALinea.FieldByName(CAMPO_CANTIDAD_CAJA).AsFloat > 0) and
      (Trim(ALinea.FieldByName(CAMPO_SKU_CAJA).AsString) <> '') and
      ((oCampo = nil) or (Trim(oCampo.AsString) = '')) and
-     (RequiereLote(ModoArticulo(
+     ((CompensaDevoluciones and EsLineaStockRectificativaCaja(ALinea)) or
+      RequiereLote(ModoArticulo(
         ALinea.FieldByName(CAMPO_ARTICULO_CAJA).AsString)) or
       // FZ-ISSUE-1043: partidas de reposición en el almacén.
       SalidaPideLoteReposicion(FConfig.Activacion, FConfig.Repositorio,
@@ -832,16 +943,22 @@ begin
        (ALinea.FieldByName(CAMPO_CANTIDAD_CAJA).AsFloat > 0) and
        ((oCampo = nil) or (Trim(oCampo.AsString) = '')) then
     begin
+      CantidadNeta := ALinea.FieldByName(CAMPO_CANTIDAD_CAJA).AsFloat +
+        UnidadesTicket(ALinea.FieldByName(CAMPO_SKU_CAJA).AsString,
+          sLote, ALinea);
+      if CantidadNeta <= 0.000001 then
+        Exit;
       Validacion := FConfig.Repositorio.ValidarSalida(
         ALinea.FieldByName(CAMPO_SKU_CAJA).AsString,
-        FConfig.Almacen(), sLote,
-        ALinea.FieldByName(CAMPO_CANTIDAD_CAJA).AsFloat);
-      if ALinea.FieldByName(CAMPO_CANTIDAD_CAJA).AsFloat +
-         UnidadesTicket(ALinea.FieldByName(CAMPO_SKU_CAJA).AsString,
-           sLote, ALinea) > Validacion.StockDisponible + 0.000001 then
+        FConfig.Almacen(), sLote, CantidadNeta);
+      if CantidadNeta > Validacion.StockDisponible + 0.000001 then
       begin
+        // FZ-ISSUE-1097: la partida ya no cubre las unidades. Se decide
+        // sin ella, como en una lectura: «Elegir lote» reparte entre las
+        // partidas (más antigua primero) y Cancelar devuelve la línea a
+        // lo grabado. Pasarla como leída la mantenía en las partidas de
+        // reposición y daba dos avisos sin restaurar la línea.
         rGs1 := Default(TLecturaGs1Pendiente);
-        rGs1.Lote := sLote;
         DecidirAlGrabar(ALinea, rGs1);
       end;
     end;

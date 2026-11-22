@@ -30,6 +30,8 @@ type
   TPosicionConjuntoTallas = record
     IdAv: Integer;
     Valor: string;
+    // FZ-ISSUE-1095: el artículo tiene algún SKU en esta talla.
+    EnArticulo: Boolean;
   end;
   // Cantidad viva en la propia linea (la que no tiene celdas).
   TCantidadLineaTallas = record

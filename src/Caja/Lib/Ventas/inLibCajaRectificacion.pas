@@ -40,7 +40,7 @@ type
       AOrigen, ADestino: TDataSet;
       ASigno, ACantidad: Double; AImportePendiente: Currency);
     procedure CopiarLineas(
-      AOrigen, ADestino: TDataSet;
+      AOrigen, ADestino, ACabecera: TDataSet;
       ASigno: Double);
     procedure CopiarAtributos(AOrigen, ADestino: TDataSet);
     procedure CopiarCampoAtributo(AOrigen, ADestino: TDataSet;
@@ -337,7 +337,7 @@ begin
 end;
 
 procedure TServicioRectificacionCaja.CopiarLineas(
-  AOrigen, ADestino: TDataSet;
+  AOrigen, ADestino, ACabecera: TDataSet;
   ASigno: Double);
 var
   oDevuelto: TDictionary<string, Double>;
@@ -345,7 +345,10 @@ var
   dImporte: Currency;
   rCantidad: Double;
   bDescuenta: Boolean;
+  UltimaLinea, NumeroLinea: Integer;
+  Contador: TField;
 begin
+  UltimaLinea := 0;
   oDevuelto := TDictionary<string, Double>.Create;
   oImportes := TDictionary<string, Currency>.Create;
   ADestino.DisableControls;
@@ -368,6 +371,10 @@ begin
       if (not bDescuenta) or (rCantidad > 0) then
       begin
         CopiarLinea(AOrigen, ADestino, ASigno, rCantidad, dImporte);
+        NumeroLinea := StrToIntDef(
+          AOrigen.FieldByName('LINEA_FACLIN').AsString, 0);
+        if NumeroLinea > UltimaLinea then
+          UltimaLinea := NumeroLinea;
       end;
       AOrigen.Next;
     end;
@@ -375,6 +382,14 @@ begin
     ADestino.EnableControls;
     FreeAndNil(oImportes);
     FreeAndNil(oDevuelto);
+  end;
+  // Append numera la línea de destino antes de que la copia la sustituya
+  // por su número original. La siguiente alta ha de quedar después de todos.
+  Contador := ACabecera.FindField('CONTADOR_LINEAS_FAC');
+  if Assigned(Contador) and (UltimaLinea > Contador.AsInteger) then
+  begin
+    ACabecera.Edit;
+    Contador.AsInteger := UltimaLinea;
   end;
 end;
 
@@ -509,7 +524,7 @@ begin
       'TOTAL_LIQUIDO_FAC').AsCurrency;
   CopiarLineas(
     ConsultaLineas.DataSet,
-    ALineas,
+    ALineas, ACabecera,
     ASigno);
 end;
 

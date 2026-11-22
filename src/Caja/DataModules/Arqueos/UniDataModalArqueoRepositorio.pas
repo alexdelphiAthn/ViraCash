@@ -137,7 +137,9 @@ begin
     '      AND l.CODIGO_ALM_FACLIN = o.CODIGO_ALM_OPCAJA ' +
     '      AND l.CODIGO_CAJA_FACLIN = o.CODIGO_CAJA_OPCAJA ' +
     '      AND l.NUMERO_OPERACION_FACLIN = ' +
-    '          o.NUMERO_OPERACION_OPCAJA)), 0) AS UDS, ' +
+    '          o.NUMERO_OPERACION_OPCAJA ' +
+    SqlPrimeraFilaDocumentoArqueo +
+    '    )), 0) AS UDS, ' +
     '   COALESCE(SUM(o.IMPORTE_TOTAL_OPCAJA), 0) AS NETO ' +
     '   FROM fza_caja_operaciones o ' +
     '   LEFT JOIN fza_empleados e ' +
@@ -224,6 +226,7 @@ begin
     '    AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
     SqlExcluirOperacionesArqueadasAntes +
     SqlExcluirLiquidacionDepositoArqueo +
+    SqlPrimeraFilaDocumentoArqueo +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
       'o.SERIE_FAC_OPCAJA',

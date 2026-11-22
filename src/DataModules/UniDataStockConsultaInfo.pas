@@ -120,12 +120,11 @@ var
 begin
   AConsulta.SQL.Text :=
     'SELECT AT.CODIGO_TAR_ARTTAR, T.NOMBRE_TAR_TAR, ' +
-    '       AT.PRECIO_FINAL_ARTTAR ' +
+    '       AT.CODIGO_UNIDAD_ARTTAR, AT.PRECIO_FINAL_ARTTAR ' +
     '  FROM fza_articulos_tarifas AT ' +
     '  LEFT JOIN fza_tarifas T ' +
     '    ON T.CODIGO_TAR_ARTTAR = AT.CODIGO_TAR_ARTTAR ' +
     ' WHERE AT.CODIGO_ART_ARTTAR = :art ' +
-    '   AND IFNULL(AT.CODIGO_UNIDAD_ARTTAR, '''') = '''' ' +
     '   AND AT.ESACTIVO_ARTTAR = ''S'' ' +
     '   AND (AT.FECHA_DESDE_ARTTAR IS NULL ' +
     '        OR AT.FECHA_DESDE_ARTTAR <= CURRENT_DATE) ' +
@@ -135,17 +134,20 @@ begin
     '         SELECT AT2.CODIGO_UNICO_ARTTAR ' +
     '           FROM fza_articulos_tarifas AT2 ' +
     '          WHERE AT2.CODIGO_ART_ARTTAR = AT.CODIGO_ART_ARTTAR ' +
-    '            AND IFNULL(AT2.CODIGO_UNIDAD_ARTTAR, '''') = '''' ' +
+    '            AND COALESCE(AT2.CODIGO_UNIDAD_ARTTAR, '''') = ' +
+    '                COALESCE(AT.CODIGO_UNIDAD_ARTTAR, '''') ' +
     '            AND AT2.CODIGO_TAR_ARTTAR = AT.CODIGO_TAR_ARTTAR ' +
     '            AND AT2.ESACTIVO_ARTTAR = ''S'' ' +
     '            AND (AT2.FECHA_DESDE_ARTTAR IS NULL ' +
     '                 OR AT2.FECHA_DESDE_ARTTAR <= CURRENT_DATE) ' +
     '            AND (AT2.FECHA_HASTA_ARTTAR IS NULL ' +
     '                 OR AT2.FECHA_HASTA_ARTTAR >= CURRENT_DATE) ' +
-    '          ORDER BY AT2.FECHA_DESDE_ARTTAR DESC, ' +
+    '          ORDER BY (AT2.FECHA_HASTA_ARTTAR IS NULL), ' +
+    '                   AT2.FECHA_DESDE_ARTTAR DESC, ' +
     '                   AT2.CODIGO_UNICO_ARTTAR DESC ' +
     '          LIMIT 1) ' +
-    ' ORDER BY COALESCE(T.ORDEN_TAR, 999999), T.NOMBRE_TAR_TAR';
+    ' ORDER BY COALESCE(T.ORDEN_TAR, 999999), T.NOMBRE_TAR_TAR, ' +
+    '          AT.CODIGO_TAR_ARTTAR, AT.CODIGO_UNIDAD_ARTTAR';
   AConsulta.ParamByName('art').AsString := ACodigoArticulo;
   AConsulta.Open;
   SetLength(AInfo.Tarifas, 0);
@@ -157,6 +159,8 @@ begin
       AConsulta.FieldByName('CODIGO_TAR_ARTTAR').AsString;
     AInfo.Tarifas[i].Nombre :=
       AConsulta.FieldByName('NOMBRE_TAR_TAR').AsString;
+    AInfo.Tarifas[i].CodigoUnidad :=
+      AConsulta.FieldByName('CODIGO_UNIDAD_ARTTAR').AsString;
     AInfo.Tarifas[i].PrecioFinal :=
       AConsulta.FieldByName('PRECIO_FINAL_ARTTAR').AsFloat;
     Inc(i);

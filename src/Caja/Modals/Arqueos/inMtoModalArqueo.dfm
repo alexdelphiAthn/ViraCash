@@ -249,7 +249,7 @@
           object lblOpeVentasPrestLbl: TcxLabel
             Left = 16
             Top = 54
-            Caption = '+ Ventas Pr'#233'stamos'
+            Caption = 'Pr'#233'stamos (informativo)'
             TabOrder = 3
             Transparent = True
           end

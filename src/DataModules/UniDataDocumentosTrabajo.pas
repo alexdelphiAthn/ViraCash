@@ -302,6 +302,8 @@ begin
   unqryTablaG.BeforeEdit := unqryTablaGBeforeEdit;
   unqryTablaG.AfterInsert := unqryTablaGAfterInsert;
   unqryTablaG.BeforeDelete := unqryTablaGBeforeDelete;
+  unqryTablaG.AfterDelete := ConfirmarBorradoTransaccional;
+  unqryTablaG.OnDeleteError := ErrorBorradoTransaccional;
   unqryTablaG.BeforePost := unqryTablaGBeforePost;
   unqryTablaG.AfterUpdateExecute := unqryProtegidaAfterUpdateExecute;
   unqryLineas.Connection := ConexionPrincipal;
@@ -1172,10 +1174,52 @@ begin
 end;
 
 procedure TdmDocumentosTrabajo.unqryTablaGBeforeDelete(DataSet: TDataSet);
+var
+  Consulta: TUniQuery;
+  IdDocumento: Int64;
+
+  procedure AsignarId(const ASql: string);
+  begin
+    Consulta.SQL.Text := ASql;
+    Consulta.ParamByName('id').AsLargeInt := IdDocumento;
+  end;
+
 begin
   if not PuedeEditarDocumentoActual then
-  begin
     raise ERangeError.Create(SErrorModificarDocumentoTrabajoNoPermitido);
+  IdDocumento := DataSet.FieldByName('ID_DTR').AsLargeInt;
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := unqryTablaG.Connection;
+    IniciarBorradoTransaccional;
+    try
+      // Verificar de nuevo el propietario y el estado bajo bloqueo.
+      AsignarId(
+        'SELECT ID_DTR FROM fza_documentos_trabajo ' +
+        ' WHERE ID_DTR = :id AND USUARIO_DTR = :usuario AND ' +
+        CondicionSqlDocumentoTrabajoCreado('ESTADO_DTR') + ' FOR UPDATE');
+      Consulta.ParamByName('usuario').AsString :=
+        DataSet.FieldByName('USUARIO_DTR').AsString;
+      Consulta.Open;
+      if Consulta.IsEmpty then
+        raise ERangeError.Create(
+          SErrorModificarDocumentoTrabajoNoPermitido);
+      Consulta.Close;
+      AsignarId('DELETE FROM fza_documentos_trabajo_celdas ' +
+        'WHERE ID_DTR_DTRCEL = :id');
+      Consulta.ExecSQL;
+      AsignarId('DELETE FROM fza_documentos_trabajo_lineas ' +
+        'WHERE ID_DTR_DTL = :id');
+      Consulta.ExecSQL;
+      AsignarId('DELETE FROM fza_documentos_trabajo_compartidos ' +
+        'WHERE ID_DTR_DTC = :id');
+      Consulta.ExecSQL;
+    except
+      RevertirBorradoTransaccional;
+      raise;
+    end;
+  finally
+    Consulta.Free;
   end;
 end;
 

@@ -498,10 +498,17 @@
         Condition = 'Ventas."CLAVE_CAJA"'
         Frame.Typ = []
       end
+      object GroupHeaderVendedor: TfrxGroupHeader
+        Height = 0.100000000000000000
+        Top = 73.000000000000000000
+        Width = 1047.000000000000000000
+        Condition = 'Ventas."VENDEDOR"'
+        Frame.Typ = []
+      end
       object MasterData1: TfrxMasterData
         FillType = ftBrush
         Height = 16.000000000000000000
-        Top = 75.000000000000000000
+        Top = 77.000000000000000
         Width = 1047.000000000000000000
         DataSet = fxdsVentas
         DataSetName = 'Ventas'
@@ -822,9 +829,127 @@
           Clipped = True
         end
       end
+      object GroupFooterVendedor: TfrxGroupFooter
+        Height = 18.000000000000000000
+        Top = 97.000000000000000
+        Width = 1047.000000000000000000
+        Frame.Typ = []
+        object MemoTotalVendedor: TfrxMemoView
+          Left = 0.000000000000000000
+          Top = 1.000000000000000000
+          Width = 467.000000000000000000
+          Height = 16.000000000000000000
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -9
+          Font.Name = 'Arial'
+          Font.Style = []
+          Frame.Typ = []
+          Memo.UTF8W = (
+            'TOT.VENDEDOR  [Ventas."VENDEDOR"]')
+          ParentFont = False
+        end
+        object MemoTotalVendedorCantidad: TfrxMemoView
+          Left = 467.000000000000000000
+          Top = 1.000000000000000000
+          Width = 45.000000000000000000
+          Height = 16.000000000000000000
+          DisplayFormat.FormatStr = '%g'
+          DisplayFormat.Kind = fkNumeric
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -9
+          Font.Name = 'Arial'
+          Font.Style = []
+          Frame.Typ = []
+          HAlign = haRight
+          Memo.UTF8W = (
+            '[SUM(IIF(<Ventas."ES_PRESTAMO"> = 1, 0, <Ventas."CANTIDAD">),MasterData1)]')
+          ParentFont = False
+        end
+        object MemoTotalVendedorBruto: TfrxMemoView
+          Left = 512.000000000000000000
+          Top = 1.000000000000000000
+          Width = 65.000000000000000000
+          Height = 16.000000000000000000
+          DisplayFormat.DecimalSeparator = ','
+          DisplayFormat.FormatStr = '%2.2m'
+          DisplayFormat.Kind = fkNumeric
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -9
+          Font.Name = 'Arial'
+          Font.Style = []
+          Frame.Typ = []
+          HAlign = haRight
+          Memo.UTF8W = (
+            '[SUM(IIF(<Ventas."ES_PRESTAMO"> = 1, 0, <Ventas."BRUTO">),MasterData1)]')
+          ParentFont = False
+        end
+        object MemoTotalVendedorDto: TfrxMemoView
+          Left = 577.000000000000000000
+          Top = 1.000000000000000000
+          Width = 48.000000000000000000
+          Height = 16.000000000000000000
+          DisplayFormat.DecimalSeparator = ','
+          DisplayFormat.FormatStr = '%2.2n'
+          DisplayFormat.Kind = fkNumeric
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -9
+          Font.Name = 'Arial'
+          Font.Style = []
+          Frame.Typ = []
+          HAlign = haRight
+          Memo.UTF8W = (
+            '[IIF(SUM(IIF(<Ventas."ES_PRESTAMO"> = 1, 0, <Ventas."BRUTO">),MasterData1) = 0, 0,'
+            ' (SUM(IIF(<Ventas."ES_PRESTAMO"> = 1, 0, <Ventas."BRUTO">),MasterData1) -'
+            ' SUM(IIF(<Ventas."ES_PRESTAMO"> = 1, 0, <Ventas."NETO_ARTICULO">),MasterData1)) * 100 /'
+            ' SUM(IIF(<Ventas."ES_PRESTAMO"> = 1, 0, <Ventas."BRUTO">),MasterData1))]')
+          ParentFont = False
+        end
+        object MemoTotalVendedorNeto: TfrxMemoView
+          Left = 625.000000000000000000
+          Top = 1.000000000000000000
+          Width = 65.000000000000000000
+          Height = 16.000000000000000000
+          DisplayFormat.DecimalSeparator = ','
+          DisplayFormat.FormatStr = '%2.2m'
+          DisplayFormat.Kind = fkNumeric
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -9
+          Font.Name = 'Arial'
+          Font.Style = []
+          Frame.Typ = []
+          HAlign = haRight
+          Memo.UTF8W = (
+            '[SUM(IIF(<Ventas."ES_PRESTAMO"> = 1, 0, <Ventas."NETO_ARTICULO">),MasterData1)]')
+          ParentFont = False
+        end
+        object MemoTotalVendedorIngresos: TfrxMemoView
+          Left = 690.000000000000000000
+          Top = 1.000000000000000000
+          Width = 65.000000000000000000
+          Height = 16.000000000000000000
+          DisplayFormat.DecimalSeparator = ','
+          DisplayFormat.FormatStr = '%2.2m'
+          DisplayFormat.Kind = fkNumeric
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -9
+          Font.Name = 'Arial'
+          Font.Style = []
+          Frame.Typ = []
+          HAlign = haRight
+          Memo.UTF8W = (
+            '[SUM(<Ventas."INGRESOS">,MasterData1)]')
+          ParentFont = False
+        end
+      end
       object GroupFooterCaja: TfrxGroupFooter
         Height = 18.000000000000000000
-        Top = 95.000000000000000000
+        Top = 119.000000000000000
         Width = 1047.000000000000000000
         Frame.Typ = []
         object MemoTotalCaja: TfrxMemoView
@@ -857,7 +982,7 @@
           Frame.Typ = [ftTop]
           HAlign = haRight
           Memo.UTF8W = (
-            '[SUM(<Ventas."CANTIDAD">,MasterData1)]')
+            '[SUM(IIF(<Ventas."ES_PRESTAMO"> = 1, 0, <Ventas."CANTIDAD">),MasterData1)]')
           ParentFont = False
         end
         object MemoTotalCajaBruto: TfrxMemoView
@@ -876,7 +1001,7 @@
           Frame.Typ = [ftTop]
           HAlign = haRight
           Memo.UTF8W = (
-            '[SUM(<Ventas."BRUTO">,MasterData1)]')
+            '[SUM(IIF(<Ventas."ES_PRESTAMO"> = 1, 0, <Ventas."BRUTO">),MasterData1)]')
           ParentFont = False
         end
         object MemoTotalCajaDto: TfrxMemoView
@@ -895,10 +1020,10 @@
           Frame.Typ = [ftTop]
           HAlign = haRight
           Memo.UTF8W = (
-            '[IIF(SUM(<Ventas."BRUTO">,MasterData1) = 0, 0,'
-            ' (SUM(<Ventas."BRUTO">,MasterData1) -'
-            ' SUM(<Ventas."NETO_ARTICULO">,MasterData1)) * 100 /'
-            ' SUM(<Ventas."BRUTO">,MasterData1))]')
+            '[IIF(SUM(IIF(<Ventas."ES_PRESTAMO"> = 1, 0, <Ventas."BRUTO">),MasterData1) = 0, 0,'
+            ' (SUM(IIF(<Ventas."ES_PRESTAMO"> = 1, 0, <Ventas."BRUTO">),MasterData1) -'
+            ' SUM(IIF(<Ventas."ES_PRESTAMO"> = 1, 0, <Ventas."NETO_ARTICULO">),MasterData1)) * 100 /'
+            ' SUM(IIF(<Ventas."ES_PRESTAMO"> = 1, 0, <Ventas."BRUTO">),MasterData1))]')
           ParentFont = False
         end
         object MemoTotalCajaNeto: TfrxMemoView
@@ -917,7 +1042,7 @@
           Frame.Typ = [ftTop]
           HAlign = haRight
           Memo.UTF8W = (
-            '[SUM(<Ventas."NETO_ARTICULO">,MasterData1)]')
+            '[SUM(IIF(<Ventas."ES_PRESTAMO"> = 1, 0, <Ventas."NETO_ARTICULO">),MasterData1)]')
           ParentFont = False
         end
         object MemoTotalCajaIngresos: TfrxMemoView
@@ -942,7 +1067,7 @@
       end
       object GroupFooterFecha: TfrxGroupFooter
         Height = 19.000000000000000000
-        Top = 117.000000000000000000
+        Top = 141.000000000000000
         Width = 1047.000000000000000000
         Frame.Typ = []
         object MemoTotalFecha: TfrxMemoView
@@ -976,7 +1101,7 @@
           Frame.Typ = []
           HAlign = haRight
           Memo.UTF8W = (
-            '[SUM(<Ventas."CANTIDAD">,MasterData1)]')
+            '[SUM(IIF(<Ventas."ES_PRESTAMO"> = 1, 0, <Ventas."CANTIDAD">),MasterData1)]')
           ParentFont = False
         end
         object MemoTotalFechaBruto: TfrxMemoView
@@ -995,7 +1120,7 @@
           Frame.Typ = []
           HAlign = haRight
           Memo.UTF8W = (
-            '[SUM(<Ventas."BRUTO">,MasterData1)]')
+            '[SUM(IIF(<Ventas."ES_PRESTAMO"> = 1, 0, <Ventas."BRUTO">),MasterData1)]')
           ParentFont = False
         end
         object MemoTotalFechaDto: TfrxMemoView
@@ -1014,10 +1139,10 @@
           Frame.Typ = []
           HAlign = haRight
           Memo.UTF8W = (
-            '[IIF(SUM(<Ventas."BRUTO">,MasterData1) = 0, 0,'
-            ' (SUM(<Ventas."BRUTO">,MasterData1) -'
-            ' SUM(<Ventas."NETO_ARTICULO">,MasterData1)) * 100 /'
-            ' SUM(<Ventas."BRUTO">,MasterData1))]')
+            '[IIF(SUM(IIF(<Ventas."ES_PRESTAMO"> = 1, 0, <Ventas."BRUTO">),MasterData1) = 0, 0,'
+            ' (SUM(IIF(<Ventas."ES_PRESTAMO"> = 1, 0, <Ventas."BRUTO">),MasterData1) -'
+            ' SUM(IIF(<Ventas."ES_PRESTAMO"> = 1, 0, <Ventas."NETO_ARTICULO">),MasterData1)) * 100 /'
+            ' SUM(IIF(<Ventas."ES_PRESTAMO"> = 1, 0, <Ventas."BRUTO">),MasterData1))]')
           ParentFont = False
         end
         object MemoTotalFechaNeto: TfrxMemoView
@@ -1036,7 +1161,7 @@
           Frame.Typ = []
           HAlign = haRight
           Memo.UTF8W = (
-            '[SUM(<Ventas."NETO_ARTICULO">,MasterData1)]')
+            '[SUM(IIF(<Ventas."ES_PRESTAMO"> = 1, 0, <Ventas."NETO_ARTICULO">),MasterData1)]')
           ParentFont = False
         end
         object MemoTotalFechaIngresos: TfrxMemoView
@@ -1061,7 +1186,7 @@
       end
       object PageFooter1: TfrxPageFooter
         Height = 18.000000000000000000
-        Top = 140.000000000000000000
+        Top = 164.000000000000000
         Width = 1047.000000000000000000
         Frame.Typ = []
         object MemoPie: TfrxMemoView

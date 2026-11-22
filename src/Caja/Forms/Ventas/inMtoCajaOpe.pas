@@ -166,6 +166,7 @@ type
     FAtributosArticulos: IArticulosAtributosLookup;
     FDependencias: TContextoDependenciasOperacionCaja;
     FSuspenderStock: Boolean;
+    FCargandoOriginales: Boolean;
     FMostrarAvisoStock: TProc<string>;
     FRepositorioArticulos: IRepositorioArticulosCaja;
     FRepositorioFacturas: IRepositorioLecturasFactura;
@@ -260,6 +261,9 @@ type
     procedure ComprobarStockLinea(ALinea: TDataSet);
     procedure ComprobarStockTicket;
     procedure CargarLineasOriginales(const ACarga: TProc);
+    // FZ-ISSUE-1098: líneas de un ticket ya vendido entrando en la rejilla.
+    property CargandoLineasOriginales: Boolean read FCargandoOriginales;
+    procedure CompensarStockLineasCargadas;
     procedure ReiniciarStockComprobado;
     procedure CancelarLinea;
     procedure EjecutarBusquedaIncremental(Sender: TObject);
@@ -933,6 +937,12 @@ begin
       begin
         Result := AFormulario.FCodigoAlmacen;
       end;
+    rConfig.CompensarDevoluciones :=
+      function: Boolean
+      begin
+        Result := (AFormulario.FTipoRectificativa = trcDiferencias) and
+          (Trim(AFormulario.FSerieOrigenDev) = '');
+      end;
     rConfig.SiguienteNumeroLinea :=
       function: string
       var
@@ -992,7 +1002,14 @@ begin
     AFormulario.DatosCaja.ValidarLoteLinea :=
       procedure(ALinea: TDataSet)
       begin
-        AFormulario.FLotesCaja.ValidarLinea(ALinea);
+        // FZ-ISSUE-1098: las líneas de un ticket ya vendido (al cargarlas
+        // para subsanar o rectificar, y las de la subsanación, que no
+        // cambian de partida) no vuelven a validar la partida: sus
+        // unidades salieron con esa misma venta y la partida puede
+        // haberse quedado a 0 por ella.
+        if not AFormulario.FEditorLineas.CargandoLineasOriginales and
+           not Assigned(AFormulario.FSubsanacion) then
+          AFormulario.FLotesCaja.ValidarLinea(ALinea);
       end;
   end;
 end;
@@ -1244,7 +1261,11 @@ begin
   // de la original; antes se contarian las mismas unidades dos veces.
   if AFormulario.FTipoRectificativa <> trcSustitutiva then
     Result.ValidarStock := AFormulario.FEditorLineas.ComprobarStockTicket;
-  if Assigned(AFormulario.FLotesCaja) then
+  // FZ-ISSUE-1098: como el stock, la subsanación y la sustituta no
+  // revalidan las partidas del ticket original antes de reponerlas.
+  if Assigned(AFormulario.FLotesCaja) and
+     not Assigned(AFormulario.FSubsanacion) and
+     (AFormulario.FTipoRectificativa <> trcSustitutiva) then
     Result.ValidarLotes :=
       procedure
       begin
@@ -2209,13 +2230,47 @@ end;
 procedure TEditorLineasCajaVcl.CargarLineasOriginales(const ACarga: TProc);
 var
   SuspendidoAntes: Boolean;
+  CargandoAntes: Boolean;
 begin
   SuspendidoAntes := FSuspenderStock;
+  CargandoAntes := FCargandoOriginales;
   FSuspenderStock := True;
+  FCargandoOriginales := True;
   try
     ACarga();
   finally
     FSuspenderStock := SuspendidoAntes;
+    FCargandoOriginales := CargandoAntes;
+  end;
+end;
+
+// FZ-ISSUE-1102: en la sustitutiva, la grabación repone el stock del ticket
+// original antes de validar la nueva. Mientras se edita, esas unidades
+// cuentan como disponibles: quitar o cambiar una talla no es vender más.
+procedure TEditorLineasCajaVcl.CompensarStockLineasCargadas;
+var
+  oClon: TClientDataSet;
+begin
+  if DatosCaja.cdsLineas.Active then
+  begin
+    oClon := TClientDataSet.Create(nil);
+    try
+      oClon.CloneCursor(DatosCaja.cdsLineas, True);
+      oClon.First;
+      while not oClon.Eof do
+      begin
+        if SameText(oClon.FieldByName('TIPO_ARTICULO_FACLIN').AsString,
+             'ESTANDAR') and
+           (Trim(oClon.FieldByName('VIENE_DE_DEPOSITO').AsString) = '') and
+           (Trim(oClon.FieldByName('ACCION_DEPOSITO').AsString) = '') then
+          VigilanteStock.CompensarUnidades(
+            oClon.FieldByName('CODIGO_UNIDAD_FACLIN').AsString,
+            oClon.FieldByName('CANTIDAD_FACLIN').AsFloat);
+        oClon.Next;
+      end;
+    finally
+      FreeAndNil(oClon);
+    end;
   end;
 end;
 
@@ -3216,6 +3271,7 @@ begin
         // el cliente se lleva ahora.
         // F-LOTEC-015: un lote solo suma en su línea.
         if (not EsLineaDeposito(VieneDeDep)) and
+           (Clon.FieldByName('CANTIDAD_FACLIN').AsFloat > 0) and
            (Clon.FieldByName('CODIGO_UNIDAD_FACLIN').AsString = ASku)
            and SameText(Trim(Clon.FieldByName('LOTE_FACLIN').AsString),
                         Trim(ALote))
@@ -4834,6 +4890,8 @@ begin
   FTipoRectificativa := Resultado.Tipo;
   FTratamientoMovRectificativa :=
     Resultado.TratamientoMovimientos;
+  if FTipoRectificativa = trcSustitutiva then
+    FEditorLineas.CompensarStockLineasCargadas;
   if FCaptionPrevio = '' then
   begin
     FCaptionPrevio := Caption;
@@ -4848,6 +4906,16 @@ begin
   lblTipoRectificativa.Caption := Format(SCaptionRectificativaTipo,
     [Resultado.DescripcionTipo]);
   lblTipoRectificativa.Visible := True;
+  // El servicio ya copió el cliente de la factura. Reflejar su cabecera
+  // evita buscarlo de nuevo o cargar su cuenta sobre las líneas copiadas.
+  btnCodigoCliente.Text :=
+    DatosCaja.cdsCabecera.FieldByName('CODIGO_CLI_FAC').AsString;
+  btnCodigoCliente.EditModified := False;
+  if Trim(btnCodigoCliente.Text) <> '' then
+    lblNombreCliente.Caption := DatosCaja.cdsCabecera.FieldByName(
+      'RAZON_SOCIAL_CLIENTE_FAC').AsString
+  else
+    lblNombreCliente.Caption := SCaptionVentaContado;
   // FZ-ISSUE-629: desde Buscar/Modificar nadie recalcula tras copiar las
   // líneas y el rótulo Total conservaba el importe previo (0,00 €).
   RefrescarTotalOperacion;

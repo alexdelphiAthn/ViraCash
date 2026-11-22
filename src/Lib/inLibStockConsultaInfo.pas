@@ -27,6 +27,7 @@ type
   TTarifaInfoStock = record
     Codigo: string;
     Nombre: string;
+    CodigoUnidad: string;
     PrecioFinal: Double;
   end;
   TProveedorInfoStock = record
@@ -111,6 +112,8 @@ begin
       sNombre := Trim(Tarifa.Nombre);
       if sNombre = '' then
         sNombre := Tarifa.Codigo;
+      if Tarifa.CodigoUnidad <> '' then
+        sNombre := sNombre + ' (' + Tarifa.CodigoUnidad + ')';
       sLinea := '';
       if SameText(Tarifa.Codigo, ATarifaDefecto) then
         sLinea := SStockInfoTarifaDefecto;

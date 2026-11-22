@@ -165,6 +165,9 @@ type
     procedure unqrySesionLinAfterInsert(DataSet: TDataSet);
     procedure unqrySesionLinBeforePost(DataSet: TDataSet);
     procedure unqrySesionLinAfterPost(DataSet: TDataSet);
+    procedure IniciarEdicionLineaSesion(DataSet: TDataSet);
+    procedure ConfirmarEdicionLineaSesion;
+    procedure RevertirEdicionLineaSesion(DataSet: TDataSet);
     procedure unqrySesionLinAfterDelete(DataSet: TDataSet);
     procedure unqrySesionCelAfterPost(DataSet: TDataSet);
     function TrazabilidadLineaActual: TTrazabilidadAlta;
@@ -177,6 +180,8 @@ type
     FProximaLineaImportacion: Integer;
     FUltimaLineaImportacion: Integer;
     FUnidadTrabajoImportacionOcr: IUnidadTrabajoMaterializacion;
+    FConexionEdicionLinea: TUniConnection;
+    FTransaccionPropiaEdicionLinea: Boolean;
     FTallajeDefectoActual: Integer;
                         // Sistema de tallas (ID_AC) que se propone a la
                         // siguiente linea NUEVA de la sesion. Arranca en 0
@@ -1606,6 +1611,59 @@ begin
   unqrySesionLin.FieldByName('INSTANTE_MODIF').AsDateTime := Now;
 end;
 
+procedure TdmComprasSesiones.IniciarEdicionLineaSesion(DataSet: TDataSet);
+var
+  Conexion: TUniConnection;
+begin
+  // Las celdas se escriben antes del Post de la línea. El Cancel del
+  // dataset también tiene que revertir esas escrituras y sus totales.
+  Conexion := TUniQuery(DataSet).Connection;
+  FTransaccionPropiaEdicionLinea := not Conexion.InTransaction;
+  if FTransaccionPropiaEdicionLinea then
+    Conexion.StartTransaction
+  else
+    Conexion.ExecSQL('SAVEPOINT sesion_compra_linea', []);
+  FConexionEdicionLinea := Conexion;
+end;
+
+procedure TdmComprasSesiones.ConfirmarEdicionLineaSesion;
+begin
+  if Assigned(FConexionEdicionLinea) then
+  begin
+    try
+      if FTransaccionPropiaEdicionLinea then
+        FConexionEdicionLinea.Commit
+      else
+        FConexionEdicionLinea.ExecSQL(
+          'RELEASE SAVEPOINT sesion_compra_linea', []);
+      FConexionEdicionLinea := nil;
+    except
+      RevertirEdicionLineaSesion(unqrySesionLin);
+      raise;
+    end;
+  end;
+end;
+
+procedure TdmComprasSesiones.RevertirEdicionLineaSesion(DataSet: TDataSet);
+begin
+  if Assigned(FConexionEdicionLinea) then
+  begin
+    if FConexionEdicionLinea.InTransaction then
+    begin
+      if FTransaccionPropiaEdicionLinea then
+        FConexionEdicionLinea.Rollback
+      else
+      begin
+        FConexionEdicionLinea.ExecSQL(
+          'ROLLBACK TO SAVEPOINT sesion_compra_linea', []);
+        FConexionEdicionLinea.ExecSQL(
+          'RELEASE SAVEPOINT sesion_compra_linea', []);
+      end;
+    end;
+    FConexionEdicionLinea := nil;
+  end;
+end;
+
 procedure TdmComprasSesiones.unqrySesionLinAfterPost(DataSet: TDataSet);
 begin
   inherited;
@@ -1915,7 +1973,15 @@ var
   EstadoInicial: TDataSetState;
   sCampoTipoIvaLinea: string;
 begin
-  if Assigned(unqryTablaG) and unqryTablaG.Active and
+  // El cálculo recorre las líneas (First/Next) y graba la que está en
+  // edición o inserción: eso confirmaba la transacción de la línea y Esc
+  // ya no deshacía las tallas tecleadas ni la línea nueva
+  // (FZ-ISSUE-1104/1105). Con la línea abierta se espera a su Post o
+  // Cancel, que vuelven a llamar aquí.
+  if Assigned(unqrySesionLin) and
+     (unqrySesionLin.State in [dsEdit, dsInsert]) then
+    LogSes('RefrescarTotalesSesion: aplazado, línea en edición')
+  else if Assigned(unqryTablaG) and unqryTablaG.Active and
      Assigned(unqrySesionLin) and unqrySesionLin.Active and
      (not unqryTablaG.IsEmpty) then
   begin

@@ -57,6 +57,11 @@ resourcestring
   SArqueoVentaRequiereRoot =
     'Para cambiar el importe de una venta con arqueo cerrado se necesita ' +
     'permiso root (administrador).';
+  SArqueoVentaSustitutivaConfirmar =
+    'La sustitutiva anula el ticket original, también su cobro, y ese ' +
+    'ticket pertenece a un arqueo cerrado. Se borrará el cierre actual ' +
+    '(%s) al guardar. Tendrá que realizar de nuevo el cierre de caja. ' +
+    '¿Desea continuar?';
   SArqueoVentaConfirmar =
     'El importe económico de la venta cambia y pertenece a un arqueo ' +
     'cerrado. Se borrará el cierre actual (%s) al guardar. Tendrá que ' +
@@ -73,6 +78,11 @@ begin
   if AModo = mcavDiferencias then
     // La diferencia pertenece a una operación nueva del turno actual.
     Result := False
+  else if AModo = mcavSustitutiva then
+    // FZ-ISSUE-1102: la sustitutiva anula todo el ticket original, también
+    // su cobro, aunque el total no cambie (otra forma de pago, otro turno).
+    // El arqueo cerrado que lo contaba deja de cuadrar.
+    Result := True
   else
     Result := ANuevo <> AOriginal;
 end;

@@ -34,7 +34,8 @@ implementation
 uses
   System.SysUtils,
   Data.DB, DBAccess,
-  inLibMsgCompras, UniDataAlbaranesCompraMovimientos;
+  inLibMsgCompras, UniDataAlbaranesCompraMovimientos,
+  UniDataComprasSesionesVinculos;
 // Aviso de paso omitido o degradado: rastro en el log tecnico y en la
 // pestania Log de la pantalla de sesiones cuando esta activa.
 procedure AvisoPaso(ADM: TdmComprasSesiones; const ATexto: string);
@@ -791,54 +792,6 @@ begin
   end;
 end;
 
-procedure ReabrirSesion(AQuery: TUniQuery;
-                        const ASerieSesion,
-                        ANumeroSesion,
-                        AUsuario: string);
-begin
-  // Una sesion cerrada ya inserto sus articulos en la materializacion.
-  // Se conservan al revertir y deben reutilizarse en el siguiente intento.
-  // Las decisiones REUSAR previas mantienen su codigo de destino.
-  AQuery.SQL.Text :=
-    'UPDATE fza_compras_sesiones_lineas L ' +
-    ' JOIN fza_compras_sesiones S ' +
-    ' ON S.SERIE_SES = L.SERIE_SES_SESLIN ' +
-    ' AND S.NUMERO_SES = L.NUMERO_SES_SESLIN ' +
-    ' JOIN fza_articulos A ON A.CODIGO_ART_ART = ' +
-    ' COALESCE(L.CODIGO_ART_REUSAR_SESLIN, ' +
-    '          L.CODIGO_ART_TENTATIVO_SESLIN) ' +
-    ' SET L.CODIGO_ART_REUSAR_SESLIN = A.CODIGO_ART_ART, ' +
-    ' L.ACCION_DUPLICADO_SESLIN = ''REUSAR'', ' +
-    ' L.ESDUPLICADO_SESLIN = ''S'', ' +
-    ' L.INSTANTE_MODIF = NOW(), L.USUARIO_MODIF = :u ' +
-    ' WHERE L.SERIE_SES_SESLIN = :s ' +
-    ' AND L.NUMERO_SES_SESLIN = :n ' +
-    ' AND S.ESTADO_SES = ''CERRADA'' ' +
-    ' AND IFNULL(L.ACCION_DUPLICADO_SESLIN, '''') <> ''REUSAR''';
-  AQuery.ParamByName('s').AsString := ASerieSesion;
-  AQuery.ParamByName('n').AsString := ANumeroSesion;
-  AQuery.ParamByName('u').AsString := AUsuario;
-  AQuery.ExecSQL;
-  AQuery.SQL.Text :=
-    'UPDATE fza_compras_sesiones SET ' +
-    '  ESTADO_SES = ''BORRADOR'', ' +
-    '  INSTANTE_MATERIALIZA_SES = NULL, ' +
-    '  USUARIO_MATERIALIZA_SES = NULL, ' +
-    '  SERIE_PEDC_SES = NULL, ' +
-    '  NUMERO_PEDC_SES = NULL, ' +
-    '  SERIE_ALBC_SES = NULL, ' +
-    '  NUMERO_ALBC_SES = NULL, ' +
-    '  MENSAJE_ERROR_SES = NULL, ' +
-    '  INSTANTE_MODIF = NOW(), ' +
-    '  USUARIO_MODIF = :u ' +
-    ' WHERE SERIE_SES = :s AND NUMERO_SES = :n';
-  AQuery.ParamByName('s').AsString := ASerieSesion;
-  AQuery.ParamByName('n').AsString := ANumeroSesion;
-  AQuery.ParamByName('u').AsString := AUsuario;
-  AQuery.ExecSQL;
-end;
-
-
 procedure EjecutarReversionSesion(
   ADM: TdmComprasSesiones;
   AConexion: TUniConnection;
@@ -929,7 +882,7 @@ begin
       sSerieSes,
       sNumSes,
       Tablas.TieneDocumentos);
-    ReabrirSesion(
+    ReabrirSesionCompra(
       q,
       sSerieSes,
       sNumSes,

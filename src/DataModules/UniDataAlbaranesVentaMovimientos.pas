@@ -31,7 +31,7 @@ function CrearUnidadTrabajoMovimientosAlbaranVentaUniDAC(
 implementation
 
 uses
-  System.SysUtils,
+  System.SysUtils, System.Classes,
   Data.DB,
   UniDataMovimientosLote,
   inLibContadorLineas,
@@ -447,6 +447,11 @@ function TPersistenciaMovimientosAlbaranVentaUniDAC.
 begin
   Result := TUniQuery.Create(nil);
   Result.Connection := FConexion;
+  // FZ-ISSUE-1111: en «Tallas horiz.» la línea agrupa las tallas de un
+  // artículo y color y cada cantidad vive en su celda. Esas líneas mueven
+  // una fila por celda con el SKU de su talla (el del artículo con ese
+  // valor de talla y el resto de valores del SKU de la línea); antes se
+  // movía todo con el SKU de la línea. Las líneas sin celdas, igual.
   Result.SQL.Text :=
     'SELECT L.LINEA_ALBLIN, L.CODIGO_UNIDAD_ALBLIN, ' +
     '       L.CODIGO_ART_ALBLIN, L.CANTIDAD_ALBLIN, ' +
@@ -459,9 +464,61 @@ begin
     '   AND L.SERIE_ALB_ALBLIN = :SERIE ' +
     '   AND COALESCE(UPPER(TRIM(A.TIPO_ART)), ''ESTANDAR'') ' +
     '       <> ''SERVICIO'' ' +
-    ' ORDER BY L.LINEA_ALBLIN';
+    '   AND NOT EXISTS (SELECT 1 FROM fza_albaranes_celdas C0 ' +
+    '        WHERE C0.SERIE_ALB_ALBCEL = L.SERIE_ALB_ALBLIN ' +
+    '          AND C0.NUMERO_ALB_ALBCEL = L.NUMERO_ALB_ALBLIN ' +
+    '          AND CAST(C0.LINEA_ALBCEL AS UNSIGNED) = ' +
+    '              CAST(L.LINEA_ALBLIN AS UNSIGNED) ' +
+    '          AND C0.CANTIDAD_ALBCEL <> 0) ' +
+    'UNION ALL ' +
+    'SELECT L.LINEA_ALBLIN, ' +
+    '       CASE WHEN C.ID_AV_PIVOT_ALBCEL = 0 ' +
+    '            THEN L.CODIGO_UNIDAD_ALBLIN ' +
+    '            ELSE (SELECT SK.CODIGO_UNIDAD_SKU ' +
+    '                    FROM fza_articulos_skus SK ' +
+    '                    JOIN fza_atributos_sku SA ' +
+    '                      ON SA.CODIGO_UNIDAD_SKU_SA = ' +
+    '                         SK.CODIGO_UNIDAD_SKU ' +
+    '                     AND SA.ID_AV_SA = C.ID_AV_PIVOT_ALBCEL ' +
+    '                   WHERE SK.CODIGO_ART_SKU = L.CODIGO_ART_ALBLIN ' +
+    '                     AND NOT EXISTS (SELECT 1 ' +
+    '                       FROM fza_atributos_sku SL ' +
+    '                       JOIN fza_atributos_valores VL ' +
+    '                         ON VL.ID_AV = SL.ID_AV_SA ' +
+    '                      WHERE SL.CODIGO_UNIDAD_SKU_SA = ' +
+    '                            L.CODIGO_UNIDAD_ALBLIN ' +
+    '                        AND VL.ID_VA_AV <> (SELECT VC.ID_VA_AV ' +
+    '                              FROM fza_atributos_valores VC ' +
+    '                             WHERE VC.ID_AV = ' +
+    '                                   C.ID_AV_PIVOT_ALBCEL) ' +
+    '                        AND NOT EXISTS (SELECT 1 ' +
+    '                          FROM fza_atributos_sku SS ' +
+    '                         WHERE SS.CODIGO_UNIDAD_SKU_SA = ' +
+    '                               SK.CODIGO_UNIDAD_SKU ' +
+    '                           AND SS.ID_AV_SA = SL.ID_AV_SA)) ' +
+    '                   ORDER BY SK.CODIGO_UNIDAD_SKU LIMIT 1) ' +
+    '       END AS CODIGO_UNIDAD_ALBLIN, ' +
+    '       L.CODIGO_ART_ALBLIN, C.CANTIDAD_ALBCEL AS CANTIDAD_ALBLIN, ' +
+    '       L.CODIGO_ALMACEN_ALBLIN, L.LOTE_ALBLIN, ' +
+    '       L.FECHA_CADUCIDAD_ALBLIN ' +
+    '  FROM fza_albaranes_lineas L ' +
+    '  LEFT JOIN fza_articulos A ' +
+    '    ON A.CODIGO_ART_ART = L.CODIGO_ART_ALBLIN ' +
+    '  JOIN fza_albaranes_celdas C ' +
+    '    ON C.SERIE_ALB_ALBCEL = L.SERIE_ALB_ALBLIN ' +
+    '   AND C.NUMERO_ALB_ALBCEL = L.NUMERO_ALB_ALBLIN ' +
+    '   AND CAST(C.LINEA_ALBCEL AS UNSIGNED) = ' +
+    '       CAST(L.LINEA_ALBLIN AS UNSIGNED) ' +
+    ' WHERE L.NUMERO_ALB_ALBLIN = :NUMERO2 ' +
+    '   AND L.SERIE_ALB_ALBLIN = :SERIE2 ' +
+    '   AND COALESCE(UPPER(TRIM(A.TIPO_ART)), ''ESTANDAR'') ' +
+    '       <> ''SERVICIO'' ' +
+    '   AND C.CANTIDAD_ALBCEL <> 0 ' +
+    ' ORDER BY LINEA_ALBLIN';
   Result.ParamByName('NUMERO').AsString := ADocumento.Numero;
   Result.ParamByName('SERIE').AsString := ADocumento.Serie;
+  Result.ParamByName('NUMERO2').AsString := ADocumento.Numero;
+  Result.ParamByName('SERIE2').AsString := ADocumento.Serie;
   Result.Open;
 end;
 
@@ -653,20 +710,29 @@ var
   Linea: TLineaMovimientoAlbaranVenta;
   oConsultaExistencia: TUniQuery;
   oConsultaLineas: TUniQuery;
+  oLineasGeneradas: TStringList;
 begin
   Result := 0;
   oConsultaLineas := CrearConsultaLineasMovimiento(ADocumento);
   oConsultaExistencia := CrearConsultaExistencia(ADocumento);
+  // Una línea con tallas da varias filas (FZ-ISSUE-1111): sus movimientos
+  // se generan juntos; la existencia previa se mira por línea, no tras
+  // insertar la primera talla.
+  oLineasGeneradas := TStringList.Create;
   try
+    oLineasGeneradas.Sorted := True;
+    oLineasGeneradas.Duplicates := dupIgnore;
     while not oConsultaLineas.Eof do
     begin
       Linea := LeerLinea(oConsultaLineas, ADocumento.Almacen);
       if PuedeGenerar(Linea) then
       begin
-        if not ExisteMovimiento(
+        if (oLineasGeneradas.IndexOf(Linea.Linea) >= 0) or
+           not ExisteMovimiento(
             oConsultaExistencia, ADocumento, Linea.Linea) then
         begin
           InsertarMovimiento(ADocumento, Linea);
+          oLineasGeneradas.Add(Linea.Linea);
           Inc(Result);
         end;
       end
@@ -675,6 +741,7 @@ begin
       oConsultaLineas.Next;
     end;
   finally
+    FreeAndNil(oLineasGeneradas);
     FreeAndNil(oConsultaLineas);
     FreeAndNil(oConsultaExistencia);
   end;

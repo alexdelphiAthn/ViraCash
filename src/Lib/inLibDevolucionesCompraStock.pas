@@ -14,9 +14,16 @@ type
     esdcAlmacenNoIndicado,
     esdcArticuloNoIndicado,
     esdcRequiereColor,
-    esdcSinStock
+    esdcSinStock,
+    esdcDocumentoNoEditable,
+    esdcSinEspacioLineas
   );
+  TModoStockDevolucionCompra = (msdcFila, msdcArticulo, msdcLote);
+
   TParametrosStockDevolucionCompra = record
+    Modo: TModoStockDevolucionCompra;
+    CodigoEmpresa: string;
+    Lote: string;
     Serie: string;
     Numero: string;
     CodigoArticulo: string;

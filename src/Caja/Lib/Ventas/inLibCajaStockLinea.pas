@@ -29,11 +29,20 @@ type
       ALineas: TDataSet): TResultadoPoliticaStockVenta;
     // Ticket nuevo: lo comprobado en el anterior ya no cuenta.
     procedure Reiniciar;
+    // FZ-ISSUE-1102: unidades que la operación repone antes de vender
+    // (las del ticket original en una sustitutiva). Se descuentan de lo
+    // que el ticket vende de ese SKU hasta el siguiente Reiniciar.
+    procedure CompensarUnidades(const ACodigoSku: string;
+      ACantidad: Double);
   end;
 
 function CrearVigilanteStockVentaCaja(
   const APolitica: TFunc<IPoliticaStockVenta>;
   const AObtenerAlmacen: TFunc<string>): IVigilanteStockVentaCaja;
+
+// Una inserción carece de fila grabada. Las líneas copiadas de una
+// factura pueden conservar el mismo número con otra serie y documento.
+function MismaLineaGrabadaCaja(APersistida, AActual: TDataSet): Boolean;
 
 implementation
 
@@ -44,6 +53,8 @@ uses
 const
   CAMPO_SKU = 'CODIGO_UNIDAD_FACLIN';
   CAMPO_LINEA = 'LINEA_FACLIN';
+  CAMPO_SERIE = 'SERIE_FAC_FACLIN';
+  CAMPO_NUMERO = 'NUMERO_FAC_FACLIN';
   CAMPO_CANTIDAD = 'CANTIDAD_FACLIN';
   TOLERANCIA_CANTIDAD = 0.0000005;
 
@@ -58,8 +69,10 @@ type
     // a preguntar a la política cuando el total sube.
     FComprobado: TDictionary<string, Double>;
     FAvisado: TDictionary<string, Double>;
+    FCompensadas: TDictionary<string, Double>;
+    function Compensadas(const ACodigoSku: string): Double;
     function UnidadesOtrasLineas(ALineas: TDataSet;
-      const ACodigoSku, ALineaExcluida: string): Double;
+      const ACodigoSku: string; AExcluir: TDataSet): Double;
     function Comprobar(const ACodigoSku: string;
       ATotal: Double): TResultadoPoliticaStockVenta;
   public
@@ -74,6 +87,8 @@ type
     function ComprobarTicket(
       ALineas: TDataSet): TResultadoPoliticaStockVenta;
     procedure Reiniciar;
+    procedure CompensarUnidades(const ACodigoSku: string;
+      ACantidad: Double);
   end;
 
 function SinIncidencia: TResultadoPoliticaStockVenta;
@@ -96,10 +111,12 @@ begin
   FObtenerAlmacen := AObtenerAlmacen;
   FComprobado := TDictionary<string, Double>.Create;
   FAvisado := TDictionary<string, Double>.Create;
+  FCompensadas := TDictionary<string, Double>.Create;
 end;
 
 destructor TVigilanteStockVentaCaja.Destroy;
 begin
+  FreeAndNil(FCompensadas);
   FreeAndNil(FAvisado);
   FreeAndNil(FComprobado);
   inherited;
@@ -109,13 +126,42 @@ procedure TVigilanteStockVentaCaja.Reiniciar;
 begin
   FComprobado.Clear;
   FAvisado.Clear;
+  FCompensadas.Clear;
+end;
+
+procedure TVigilanteStockVentaCaja.CompensarUnidades(
+  const ACodigoSku: string; ACantidad: Double);
+var
+  sClave: string;
+begin
+  sClave := UpperCase(Trim(ACodigoSku));
+  if (sClave <> '') and (ACantidad > 0) then
+    FCompensadas.AddOrSetValue(sClave, Compensadas(sClave) + ACantidad);
+end;
+
+function TVigilanteStockVentaCaja.Compensadas(
+  const ACodigoSku: string): Double;
+begin
+  if not FCompensadas.TryGetValue(UpperCase(Trim(ACodigoSku)), Result) then
+    Result := 0;
+end;
+
+function MismaLineaGrabadaCaja(APersistida, AActual: TDataSet): Boolean;
+begin
+  Result := Assigned(AActual) and (AActual.State <> dsInsert) and
+    (APersistida.FieldByName(CAMPO_LINEA).AsString =
+     AActual.FieldByName(CAMPO_LINEA).AsString) and
+    (APersistida.FieldByName(CAMPO_SERIE).AsString =
+     AActual.FieldByName(CAMPO_SERIE).AsString) and
+    (APersistida.FieldByName(CAMPO_NUMERO).AsString =
+     AActual.FieldByName(CAMPO_NUMERO).AsString);
 end;
 
 // En un clon: no mueve el cursor de la rejilla ni dispara sus eventos. La
 // línea en edición aún no está en el clon con su valor nuevo, por eso se
 // excluye por su número y se suma aparte.
 function TVigilanteStockVentaCaja.UnidadesOtrasLineas(ALineas: TDataSet;
-  const ACodigoSku, ALineaExcluida: string): Double;
+  const ACodigoSku: string; AExcluir: TDataSet): Double;
 var
   oClon: TClientDataSet;
 begin
@@ -130,9 +176,7 @@ begin
       begin
         if SameText(Trim(oClon.FieldByName(CAMPO_SKU).AsString),
              ACodigoSku) and
-           ((ALineaExcluida = '') or
-            (oClon.FieldByName(CAMPO_LINEA).AsString <> ALineaExcluida))
-        then
+           not MismaLineaGrabadaCaja(oClon, AExcluir) then
           Result := Result + oClon.FieldByName(CAMPO_CANTIDAD).AsFloat;
         oClon.Next;
       end;
@@ -149,6 +193,7 @@ var
   sClave: string;
 begin
   Result := SinIncidencia;
+  ATotal := ATotal - Compensadas(ACodigoSku);
   sClave := UpperCase(FObtenerAlmacen()) + #9 + UpperCase(ACodigoSku);
   if not FComprobado.TryGetValue(sClave, dComprobado) then
     dComprobado := 0;
@@ -174,7 +219,7 @@ begin
   sSku := Trim(ACodigoSku);
   if sSku <> '' then
     Result := Comprobar(sSku,
-      UnidadesOtrasLineas(ALineas, sSku, '') + 1);
+      UnidadesOtrasLineas(ALineas, sSku, nil) + 1);
 end;
 
 function TVigilanteStockVentaCaja.ComprobarLinea(
@@ -188,8 +233,8 @@ begin
   dCantidad := ALinea.FieldByName(CAMPO_CANTIDAD).AsFloat;
   // Devoluciones (cantidad negativa) y líneas sin SKU no consumen stock.
   if (sSku <> '') and (dCantidad > 0) then
-    Result := Comprobar(sSku, dCantidad + UnidadesOtrasLineas(ALinea, sSku,
-      ALinea.FieldByName(CAMPO_LINEA).AsString));
+    Result := Comprobar(sSku,
+      dCantidad + UnidadesOtrasLineas(ALinea, sSku, ALinea));
 end;
 
 function CrearVigilanteStockVentaCaja(
@@ -222,7 +267,10 @@ begin
     begin
       Sku := UpperCase(Trim(Clon.FieldByName(CAMPO_SKU).AsString));
       Cantidad := Clon.FieldByName(CAMPO_CANTIDAD).AsFloat;
-      if (Sku <> '') and (Cantidad > 0) and
+      // FZ-ISSUE-1100: las unidades que la propia operación devuelve
+      // (líneas en negativo del mismo SKU, p. ej. −1 y +1 al corregir el
+      // precio en una rectificativa) compensan; se valida el neto.
+      if (Sku <> '') and (Abs(Cantidad) > TOLERANCIA_CANTIDAD) and
          SameText(Clon.FieldByName('TIPO_ARTICULO_FACLIN').AsString,
            'ESTANDAR') and
          (Trim(Clon.FieldByName('VIENE_DE_DEPOSITO').AsString) = '') and
@@ -235,9 +283,10 @@ begin
       Clon.Next;
     end;
     for Par in Cantidades do
+    if Par.Value - Compensadas(Par.Key) > TOLERANCIA_CANTIDAD then
     begin
       ResultadoSku := FPolitica().ValidarCantidad(
-        Par.Key, FObtenerAlmacen(), Par.Value);
+        Par.Key, FObtenerAlmacen(), Par.Value - Compensadas(Par.Key));
       // Reconsultar siempre al cobrar mantiene el bloqueo si cambia el
       // stock o el parámetro. Solo se omite un aviso ya presentado (768).
       Clave := UpperCase(FObtenerAlmacen()) + #9 + Par.Key;

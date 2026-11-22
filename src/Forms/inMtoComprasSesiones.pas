@@ -507,7 +507,8 @@ type
     procedure ReintentarFotosSesion;
     procedure EditarPreciosTallaLinea;
     procedure ElegirFamiliaLinea;
-    procedure AjustarAltoBarraLineas(Sender: TObject);
+    procedure AjustarAnchoCabecera(Sender: TObject);
+    procedure AjustarBarraLineas(Sender: TObject);
     procedure CopiarPreciosTallaCopia(ALineaOrigen,
       ALineaDestino: Integer);
     procedure RefrescarRotulosVariacion(AForzar: Boolean = False);
@@ -592,6 +593,7 @@ type
 implementation
 
 uses
+  System.Math,
   inLibMensajesVcl, inLibTrazabilidad, inLibMargenTarifa,
   inLibUser,
   inLibFiltroUsuario,
@@ -1644,6 +1646,8 @@ begin
   // Hooks del detalle: al cambiar de fila el dataset hace Post
   // automatico, cxGrid repinta desde el dataset y pierde los Values[]
   // no-bound de las tallas; hay que volver a publicarlos.
+  Dmm.unqrySesionLin.BeforeEdit   := Dmm.IniciarEdicionLineaSesion;
+  Dmm.unqrySesionLin.BeforeClose  := Dmm.RevertirEdicionLineaSesion;
   Dmm.unqrySesionLin.BeforePost   := unqrySesionLinBeforePostHook;
   Dmm.unqrySesionLin.AfterPost    := unqrySesionLinAfterPostHook;
   Dmm.unqrySesionLin.BeforeInsert := unqrySesionLinBeforeInsertHook;
@@ -1972,6 +1976,7 @@ end;
 procedure TfrmMtoComprasSesiones.unqrySesionLinAfterPostHook(
                                                       DataSet: TDataSet);
 begin
+  Dmm.ConfirmarEdicionLineaSesion;
   Dmm.unqrySesionLinAfterPost(DataSet);
   RefrescarVisibilidadTipoIva;
   // Al cambiar de fila el dataset hace Post automatico y cxGrid repinta
@@ -2071,6 +2076,8 @@ begin
   // que exista la linea. Una insercion cancelada no llega a la BBDD (su
   // LINEA sale del contador atomico y no se reutiliza), asi que todo lo
   // que dejo con ese numero es huerfano y se borra como en un Delete.
+  if DataSet.State = dsEdit then
+    Dmm.RevertirEdicionLineaSesion(DataSet);
   if (DataSet.State = dsInsert) and
      Assigned(FServicioComprasSesiones) and
      not (csDestroying in ComponentState) then
@@ -2099,10 +2106,13 @@ end;
 procedure TfrmMtoComprasSesiones.unqrySesionLinAfterCancelHook(
   DataSet: TDataSet);
 begin
-  // Cancel elimina el registro de insercion y cxGrid vuelve a construir su
-  // buffer. Las cantidades de las lineas grabadas persisten en SESCEL,
-  // pero hay que republicarlas.
-  RecargarTallasDiferido;
+  if not (csDestroying in ComponentState) then
+  begin
+    if GestorTallas <> nil then
+      GestorTallas.InvalidarCache;
+    Dmm.RefrescarTotalesSesion;
+    RecargarTallasDiferido;
+  end;
 end;
 
 procedure TfrmMtoComprasSesiones.unqrySesionLinBeforeDeleteHook(
@@ -2146,7 +2156,6 @@ var
   oBarra: TcxScrollBox;
   oControl: TControl;
   i: Integer;
-  iAncho: Integer;
 begin
   SetLength(aTabulacion, gbCabecera.ControlCount);
   for i := 0 to gbCabecera.ControlCount - 1 do
@@ -2162,7 +2171,7 @@ begin
   oCabecera.HorzScrollBar.Tracking := True;
   oCabecera.VertScrollBar.Tracking := True;
   oCabecera.HorzScrollBar.Margin := ScaleValue(8);
-  oCabecera.VertScrollBar.Margin := ScaleValue(8);
+  oCabecera.VertScrollBar.Margin := ScaleValue(4);
   // Cada campo conserva su posicion y orden de tabulacion. Al recibir
   // el foco, el contenedor tambien desplaza el campo a la zona visible.
   for i := gbCabecera.ControlCount - 1 downto 0 do
@@ -2176,14 +2185,9 @@ begin
     if Assigned(aTabulacion[i]) then
       aTabulacion[i].TabOrder := i;
 
-  iAncho := 0;
-  for i := 0 to pnlLineasTop.ControlCount - 1 do
-  begin
-    oControl := pnlLineasTop.Controls[i];
-    if oControl.Visible and
-       (oControl.Left + oControl.Width > iAncho) then
-      iAncho := oControl.Left + oControl.Width;
-  end;
+  oCabecera.OnResize := AjustarAnchoCabecera;
+  AjustarAnchoCabecera(oCabecera);
+
   oBarra := TcxScrollBox.Create(Self);
   oBarra.Parent := pnlLineasTop.Parent;
   oBarra.Top := pnlLineasTop.Top;
@@ -2193,19 +2197,59 @@ begin
   oBarra.VertScrollBar.Visible := False;
   pnlLineasTop.Parent := oBarra;
   pnlLineasTop.Align := alNone;
-  pnlLineasTop.SetBounds(0, 0, iAncho + ScaleValue(8),
-    pnlLineasTop.Height);
-  // El presentador de copas cambia el alto de esta barra al mostrar
-  // sus botones; conservar tambien entonces espacio para desplazarla.
-  pnlLineasTop.OnResize := AjustarAltoBarraLineas;
-  AjustarAltoBarraLineas(nil);
+  pnlLineasTop.SetBounds(0, 0, oBarra.Width, pnlLineasTop.Height);
+  // El presentador de copas amplía el panel al mostrar sus botones.
+  pnlLineasTop.OnResize := AjustarBarraLineas;
+  oBarra.OnResize := AjustarBarraLineas;
+  AjustarBarraLineas(oBarra);
 end;
 
-procedure TfrmMtoComprasSesiones.AjustarAltoBarraLineas(Sender: TObject);
+procedure TfrmMtoComprasSesiones.AjustarAnchoCabecera(Sender: TObject);
+var
+  oCabecera: TcxScrollBox;
+  iLimite: Integer;
+begin
+  if not (csDestroying in ComponentState) then
+  begin
+    oCabecera := Sender as TcxScrollBox;
+    // Left incluye el desplazamiento actual de los controles.
+    iLimite := oCabecera.ClientWidth - ScaleValue(8) -
+      oCabecera.HorzScrollBar.Position;
+    cbbVariacion.Width := Max(ScaleValue(200), iLimite - cbbVariacion.Left);
+    lblProveedorNombre.Width := Max(ScaleValue(200),
+      iLimite - lblProveedorNombre.Left);
+  end;
+end;
+
+procedure TfrmMtoComprasSesiones.AjustarBarraLineas(Sender: TObject);
+var
+  oBarra: TcxScrollBox;
+  oControl: TControl;
+  i, iAnchoBotones, iMargen, iAlto: Integer;
 begin
   if not (csDestroying in ComponentState) and
      Assigned(pnlLineasTop.Parent) then
-    pnlLineasTop.Parent.Height := pnlLineasTop.Height + ScaleValue(20);
+  begin
+    oBarra := pnlLineasTop.Parent as TcxScrollBox;
+    iMargen := ScaleValue(8);
+    iAnchoBotones := 0;
+    for i := 0 to pnlLineasTop.ControlCount - 1 do
+    begin
+      oControl := pnlLineasTop.Controls[i];
+      if (oControl <> lblHint) and oControl.Visible then
+        iAnchoBotones := Max(iAnchoBotones, oControl.BoundsRect.Right);
+    end;
+
+    lblHint.Visible := lblHint.BoundsRect.Right + iMargen <= oBarra.Width;
+    pnlLineasTop.Hint := lblHint.Caption;
+    pnlLineasTop.ShowHint := not lblHint.Visible;
+    iAnchoBotones := iAnchoBotones + iMargen;
+    pnlLineasTop.Width := Max(oBarra.Width, iAnchoBotones);
+    iAlto := pnlLineasTop.Height;
+    if iAnchoBotones > oBarra.Width then
+      Inc(iAlto, ScaleValue(20));
+    oBarra.Height := iAlto;
+  end;
 end;
 
 procedure TfrmMtoComprasSesiones.FormCreate(Sender: TObject);

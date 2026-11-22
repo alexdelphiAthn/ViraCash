@@ -569,6 +569,77 @@ begin
   ProcesarCabeceraPosteada;
 end;
 
+procedure ReponerEntregasPedidoAlBorrarAlbaran(AConexion: TUniConnection;
+  const ASerie, ANumero, AUsuario: string);
+const
+  CONDICION_ALBARAN =
+    ' WHERE SERIE_ALB_ALBLIN = :s AND NUMERO_ALB_ALBLIN = :n ';
+  ENLACE_LINEA_PEDIDO =
+    '   ON A.SERIE_PED_ALBLIN = P.SERIE_PED_PEDLIN ' +
+    '  AND A.NUMERO_PED_ALBLIN = P.NUMERO_PED_PEDLIN ' +
+    '  AND A.LINEA_PED_ALBLIN = P.LINEA_PEDLIN ';
+var
+  Consulta: TUniQuery;
+
+  procedure Ejecutar(const ASql: string);
+  begin
+    Consulta.SQL.Text := ASql;
+    Consulta.ParamByName('s').AsString := ASerie;
+    Consulta.ParamByName('n').AsString := ANumero;
+    Consulta.ParamByName('usuario').AsString := AUsuario;
+    Consulta.ExecSQL;
+  end;
+
+begin
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := AConexion;
+    Ejecutar(
+      'UPDATE fza_pedidos_lineas P ' +
+      ' JOIN (SELECT SERIE_PED_ALBLIN, NUMERO_PED_ALBLIN, LINEA_PED_ALBLIN, ' +
+      '              SUM(COALESCE(CANTIDAD_ALBLIN, 0)) AS ENTREGADA ' +
+      '         FROM fza_albaranes_lineas ' + CONDICION_ALBARAN +
+      '        GROUP BY SERIE_PED_ALBLIN, NUMERO_PED_ALBLIN, ' +
+      '                 LINEA_PED_ALBLIN) A ' + ENLACE_LINEA_PEDIDO +
+      ' SET P.CANTIDAD_ENTREGADA_PEDLIN = GREATEST(0, ' +
+      '       COALESCE(P.CANTIDAD_ENTREGADA_PEDLIN, 0) - A.ENTREGADA), ' +
+      '     P.USUARIO_MODIF = :usuario, P.INSTANTE_MODIF = NOW()');
+    Ejecutar(
+      'UPDATE fza_pedidos_lineas P ' +
+      ' JOIN (SELECT DISTINCT SERIE_PED_ALBLIN, NUMERO_PED_ALBLIN, ' +
+      '                       LINEA_PED_ALBLIN ' +
+      '         FROM fza_albaranes_lineas ' + CONDICION_ALBARAN +
+      '      ) A ' + ENLACE_LINEA_PEDIDO +
+      ' SET P.CANTIDAD_PENDIENTE_PEDLIN = GREATEST(0, ' +
+      '       COALESCE(P.CANTIDAD_PEDLIN, 0) - P.CANTIDAD_ENTREGADA_PEDLIN), ' +
+      '     P.ESENTREGADA_PEDLIN = CASE ' +
+      '       WHEN COALESCE(P.CANTIDAD_PEDLIN, 0) <= P.CANTIDAD_ENTREGADA_PEDLIN ' +
+      '       THEN ''S'' ELSE ''N'' END, ' +
+      '     P.USUARIO_MODIF = :usuario, P.INSTANTE_MODIF = NOW()');
+    Ejecutar(
+      'UPDATE fza_pedidos P ' +
+      ' JOIN (SELECT DISTINCT SERIE_PED_ALBLIN, NUMERO_PED_ALBLIN ' +
+      '         FROM fza_albaranes_lineas ' + CONDICION_ALBARAN +
+      '      ) A ON A.SERIE_PED_ALBLIN = P.SERIE_PED ' +
+      '         AND A.NUMERO_PED_ALBLIN = P.NUMERO_PED ' +
+      ' SET P.ESTADO_PED = CASE ' +
+      '       WHEN EXISTS (SELECT 1 FROM fza_pedidos_lineas L ' +
+      '                     WHERE L.SERIE_PED_PEDLIN = P.SERIE_PED ' +
+      '                       AND L.NUMERO_PED_PEDLIN = P.NUMERO_PED ' +
+      '                       AND L.CANTIDAD_ENTREGADA_PEDLIN > 0) ' +
+      '       THEN ''PARCIAL'' ELSE ''ABIERTO'' END, ' +
+      '     P.USUARIO_MODIF = :usuario, P.INSTANTE_MODIF = NOW() ' +
+      ' WHERE P.ESTADO_PED IN (''ENTREGADO'', ''PARCIAL'') ' +
+      '   AND EXISTS (SELECT 1 FROM fza_pedidos_lineas L ' +
+      '                WHERE L.SERIE_PED_PEDLIN = P.SERIE_PED ' +
+      '                  AND L.NUMERO_PED_PEDLIN = P.NUMERO_PED ' +
+      '                  AND COALESCE(L.CANTIDAD_PEDLIN, 0) > ' +
+      '                      COALESCE(L.CANTIDAD_ENTREGADA_PEDLIN, 0))');
+  finally
+    Consulta.Free;
+  end;
+end;
+
 procedure TdmAlbaranes.unqryTablaGBeforeDelete(DataSet: TDataSet);
 var
   q: TUniQuery;
@@ -636,9 +707,31 @@ begin
     end;
     IniciarBorradoTransaccional;
     try
+      // Evitar aplicar dos veces la reversión y releer si se ha facturado.
+      q.SQL.Text :=
+        'SELECT SERIE_ALB FROM fza_albaranes ' +
+        ' WHERE SERIE_ALB = :s AND NUMERO_ALB = :n ' +
+        '   AND COALESCE(NUMERO_FAC_ALB, '''') = '''' ' +
+        '   AND COALESCE(SERIE_FAC_ALB, '''') = '''' ' +
+        '   AND COALESCE(ESTADO_ALB, '''') <> ''FACTURADO'' FOR UPDATE';
+      AsignarDocumento;
+      q.Open;
+      if q.IsEmpty then
+      begin
+        NotificarAdvertencia(SAvisoAlbaranFacturado);
+        Abort;
+      end;
+      q.Close;
+      ReponerEntregasPedidoAlBorrarAlbaran(
+        q.Connection, sSerie, sNumero, IdentidadSesion.Usuario);
       q.SQL.Text := 'CALL PRC_FZA_MOVIMIENTOS_ALMACEN_DELETE_DOC(:t, :s, :n)';
       q.ParamByName('t').AsString :=
         EstrategiaAlbaranVenta.TipoDocumentoMovimientoStock;
+      AsignarDocumento;
+      q.ExecSQL;
+      q.SQL.Text :=
+        'DELETE FROM fza_albaranes_celdas ' +
+        ' WHERE SERIE_ALB_ALBCEL = :s AND NUMERO_ALB_ALBCEL = :n';
       AsignarDocumento;
       q.ExecSQL;
       q.SQL.Text :=
@@ -1044,12 +1137,25 @@ begin
 end;
 
 procedure TdmAlbaranes.unqryAlbaranesLineasAfterPost(DataSet: TDataSet);
+const
+  CAMPOS_CLAVE = 'SERIE_ALB_ALBLIN;NUMERO_ALB_ALBLIN;LINEA_ALBLIN';
+var
+  vClave: Variant;
 begin
   inherited;
-  if Assigned(FLotesLineas) and not FDesempaquetandoAtributos then
-    FLotesLineas.DespuesDePostLinea;
   if not FDesempaquetandoAtributos then
+  begin
+    vClave := DataSet.FieldValues[CAMPOS_CLAVE];
+    if Assigned(FLotesLineas) then
+      FLotesLineas.DespuesDePostLinea;
     ProcesarLineasPosteadas;
+    // La sincronización reabre el detalle. El modo de tallas continúa
+    // usando la línea grabada para añadir su celda y aplicar sus datos.
+    if (DataSet.State <> dsBrowse) or
+       not DataSet.Locate(CAMPOS_CLAVE, vClave, []) then
+      raise EValidacionBBDD.CreateFmt(SErrorRestaurarLineaAlbaran,
+        [VarToStr(vClave[0]), VarToStr(vClave[1]), VarToStr(vClave[2])]);
+  end;
 end;
 
 procedure TdmAlbaranes.ConfigurarLotesLineas(

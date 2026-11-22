@@ -180,6 +180,7 @@ type
 implementation
 
 uses
+  UniDataComprasSesionesVinculos,
   UniDataProveedoresTexto,
   UniDataReparacionesProteccion,
   UniDataReposicionAutomatica, UniDataCodigosBarrasLote,
@@ -192,7 +193,7 @@ uses
   inLibAlbaranesCompraMovimientos,
   inLibPrestaShopColaSenal,
   UniDataAlbaranesCompraMovimientos,
-  UniDataPedidosCompraAlbaranComun,
+  UniDataPedidosCompraAlbaranComun, UniDataPedidosCompraPendientes,
   inLibComprasImpuestos, UniDataImpuestosRepositorio,
   inLibData, UniDataAlmacenesEmpresaRepositorio,
   inLibArticulosValidadorIntf,
@@ -819,6 +820,8 @@ begin
     end;
     IniciarBorradoTransaccional;
     try
+      ReponerPendientesAlBorrarAlbaranCompra(
+        q.Connection, sSerie, sNumero, IdentidadSesion.Usuario);
       ReservarRevisionRecepcion(sSerie, sNumero);
       RevertirRecepcionAlbaranCompra(q.Connection, sSerie, sNumero,
         IdentidadSesion.Usuario);
@@ -834,6 +837,10 @@ begin
         '   AND NUMERO_ALBC_ALBCLIN = :n';
       AsignarDocumento;
       q.ExecSQL;
+      // Igual que al borrar el pedido (FZ-ISSUE-1106).
+      DesvincularDocumentoSesionesCompra(
+        q.Connection, cTipoDocSesionAlbaranCompra,
+        sSerie, sNumero, IdentidadSesion.Usuario);
     except
       RevertirBorradoTransaccional;
       raise;

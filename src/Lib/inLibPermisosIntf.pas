@@ -149,6 +149,9 @@ function PermisoAusenteCodigo(const ACodigo: string): TPermisoAusente;
 // abre la pantalla y el propio formulario al guardar.
 function PuedeAbrirParametrosAplicacion(
   const APermisos: IPermisosAplicacion): Boolean;
+// FZ-ISSUE-1128: costes, márgenes y reconstrucción de stock. Administrador
+// siempre; el resto, solo con concesión de 'caja.verCoste'.
+function PuedeVerCostes(const APermisos: IPermisosAplicacion): Boolean;
 
 implementation
 
@@ -231,6 +234,12 @@ begin
             APermisos.TienePermiso(
               PERMISO_MENU_PARAMETROS_ENTORNO,
               paExigirConcesion);
+end;
+
+function PuedeVerCostes(const APermisos: IPermisosAplicacion): Boolean;
+begin
+  Result := Assigned(APermisos) and
+            APermisos.TienePermiso(PERMISO_CAJA_VER_COSTE, paDenegar);
 end;
 
 end.

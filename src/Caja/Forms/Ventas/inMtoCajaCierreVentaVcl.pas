@@ -148,7 +148,8 @@ uses
   inLibCorreoValidacion,
   inLibFormatoDocumento, UniDataFormatoDocumentoRepositorio,
   inLibMsgComun,
-  System.UITypes, Vcl.Dialogs,
+  System.UITypes, System.Generics.Collections, Vcl.Dialogs,
+  inLibCajaLotes,
   inLibErroresBBDD, inLibMensajesVcl, inLibMsgCaja,
   inLibCajaVentaOperacion, inLibCajaDescuentos,
   inMtoModalMotivoDevolucion, inMtoModalDevolucionTicket,
@@ -197,43 +198,53 @@ begin
     FContexto.EnfocarAtributoPendiente(AOrden);
 end;
 
-// FZ-ISSUE-1020: SKU y unidades que una rectificativa devolverá al stock
-// (líneas de artículo en negativo), una por línea. Vacío si no hay.
+// Solo se anuncia el saldo que vuelve a cada partida de almacén.
 function UnidadesDevueltasRectificativaCaja(ALineas: TDataSet): string;
 var
-  oMarca: TBookmark;
-  sCodigo: string;
-  dCantidad: Double;
+  Marca: TBookmark;
+  Sku, Lote, Clave: string;
+  Saldos: TDictionary<string, Double>;
+  Saldo: Double;
 begin
   Result := '';
   if Assigned(ALineas) and ALineas.Active and not ALineas.IsEmpty then
   begin
+    Saldos := TDictionary<string, Double>.Create;
     ALineas.DisableControls;
-    oMarca := ALineas.GetBookmark;
+    Marca := ALineas.GetBookmark;
     try
       ALineas.First;
       while not ALineas.Eof do
       begin
-        dCantidad := ALineas.FieldByName('CANTIDAD_FACLIN').AsFloat;
-        sCodigo := Trim(ALineas.FieldByName(
-          'CODIGO_UNIDAD_FACLIN').AsString);
-        if sCodigo = '' then
-          sCodigo := Trim(ALineas.FieldByName(
-            'CODIGO_ART_FACLIN').AsString);
-        if (dCantidad < 0) and (sCodigo <> '') and
-           (not SameText(Trim(ALineas.FieldByName(
-              'TIPO_ARTICULO_FACLIN').AsString), 'SERVICIO')) and
-           (not SameText(sCodigo, 'ACUENTA')) and
-           (not SameText(sCodigo, 'ANTICIPO')) then
-          Result := Result + '  - ' + sCodigo + ' x' +
-            FormatFloat('0.##', Abs(dCantidad)) + sLineBreak;
+        if EsLineaStockRectificativaCaja(ALineas) then
+        begin
+          Sku := Trim(ALineas.FieldByName(CAMPO_SKU_CAJA).AsString);
+          if Sku = '' then
+            Sku := Trim(ALineas.FieldByName(CAMPO_ARTICULO_CAJA).AsString);
+          if (Sku <> '') and not SameText(Sku, 'ACUENTA') and
+             not SameText(Sku, 'ANTICIPO') then
+          begin
+            Lote := Trim(ALineas.FieldByName(CAMPO_LOTE_CAJA).AsString);
+            Clave := UpperCase(Sku);
+            if Lote <> '' then
+              Clave := Clave + ' [' + UpperCase(Lote) + ']';
+            Saldos.TryGetValue(Clave, Saldo);
+            Saldos.AddOrSetValue(Clave,
+              Saldo + ALineas.FieldByName(CAMPO_CANTIDAD_CAJA).AsFloat);
+          end;
+        end;
         ALineas.Next;
       end;
-      if ALineas.BookmarkValid(oMarca) then
-        ALineas.GotoBookmark(oMarca);
+      for Clave in Saldos.Keys do
+        if Saldos[Clave] < -0.000001 then
+          Result := Result + '  - ' + Clave + ' x' +
+            FormatFloat('0.##', -Saldos[Clave]) + sLineBreak;
     finally
-      ALineas.FreeBookmark(oMarca);
+      if ALineas.BookmarkValid(Marca) then
+        ALineas.GotoBookmark(Marca);
+      ALineas.FreeBookmark(Marca);
       ALineas.EnableControls;
+      Saldos.Free;
     end;
   end;
   Result := TrimRight(Result);
@@ -350,6 +361,10 @@ begin
   begin
     if not EsRootParaCambiarArqueo(APermisos) then
       ShowMessage_fza(SArqueoVentaRequiereRoot)
+    else if AModo = mcavSustitutiva then
+      Result := MessageDlg_fza(Format(SArqueoVentaSustitutivaConfirmar,
+        [string.Join(', ', AConfirmados)]), mtWarning,
+        [mbYes, mbNo], 0, mbNo) = mrYes
     else
       Result := MessageDlg_fza(Format(SArqueoVentaConfirmar,
         [string.Join(', ', AConfirmados)]), mtWarning,

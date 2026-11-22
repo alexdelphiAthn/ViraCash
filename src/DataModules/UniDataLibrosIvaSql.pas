@@ -108,7 +108,10 @@ begin
     '  C.FECHA_FACC, ' +
     '  C.SERIE_FACC, ' +
     '  C.NUMERO_FACC, ' +
-    '  ''COMPRA'', ' +
+    // FZ-ISSUE-1124: el abono de proveedor se anota como rectificativa,
+    // igual que en el libro repercutido.
+    '  IF(COALESCE(C.TIPO_FACC, ''NORMAL'') = ''RECTIFICATIVA'', ' +
+    '    ''RECTIFICATIVA'', ''COMPRA''), ' +
     '  COALESCE(C.NIF_PRV_FACC, ''''), ' +
     '  COALESCE(C.RAZON_SOCIAL_PRV_FACC, ''''), ' +
     // N.º de factura del proveedor: documento externo o, vacío, la

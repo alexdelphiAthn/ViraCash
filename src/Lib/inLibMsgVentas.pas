@@ -107,6 +107,8 @@ resourcestring
   SErrorAsignarLineaAlbaran =
     'No se pudo asignar número de línea: la cabecera %s/%s no existe en ' +
     'la base de datos.';
+  SErrorRestaurarLineaAlbaran =
+    'Actualiza el albarán %s/%s para volver a localizar la línea %s.';
   SErrorContadorAlbaran =
     'No se pudo obtener un número de albarán válido. Revise el contador ' +
     'AV de la serie %s y empresa %s.';

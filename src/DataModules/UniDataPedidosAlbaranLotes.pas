@@ -38,6 +38,7 @@ implementation
 uses
   System.SysUtils, Data.DB,
   inLibTrazabilidad, inLibLotesPersistenciaIntf, inLibPropuestaTraspasoLotes,
+  inLibAsignacionLoteLectura,
   inLibMsgVentas, UniDataLotesRepositorio, UniDataAlbaranes,
   inLibErroresBBDD;
 
@@ -208,7 +209,10 @@ var
   rReparto: TRepartoLotesPropuesta;
   i: Integer;
 begin
-  if ActivacionVigente.AlgunModoActivo then
+  // FZ-ISSUE-1112: en Modo Yeti no hay modo de trazabilidad activo, pero
+  // un artículo con partidas de reposición en el almacén sale con su
+  // partida (FZ-ISSUE-1043), igual que el albarán tecleado y el TPV.
+  if ActivacionVigente.AlgunModoActivo or HayReposicionPublicada then
   begin
     oLectura := CrearLecturaTrazabilidadArticuloUniDAC(AConexion);
     oRepositorio := CrearRepositorioLotesUniDAC(AConexion);
@@ -220,6 +224,10 @@ begin
       begin
         oModo := ActivacionVigente.ModoEfectivo(
           oLectura.Leer(rLinea.Articulo).Modo);
+        if (oModo = mtNinguna) and SalidaPideLoteReposicion(
+             ActivacionVigente, oRepositorio, rLinea.Sku,
+             rLinea.Almacen) then
+          oModo := mtLote;
         if RequiereLote(oModo) then
         begin
           rReparto := RepartirPropuestaPorLotes(oModo,

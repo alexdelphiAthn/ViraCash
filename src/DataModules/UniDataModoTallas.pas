@@ -483,15 +483,20 @@ begin
     oConsulta := NuevaConsulta;
     try
       oConsulta.SQL.Text :=
-        'SELECT ID_AV_ACD, VALOR FROM (' +
+        'SELECT ID_AV_ACD, VALOR, EN_ARTICULO FROM (' +
         'SELECT ACD.ID_AV_ACD, AV.AV AS VALOR, ' +
-        '       0 AS BLOQUE, ACD.ORDEN_ACD AS ORDEN ' +
+        '       0 AS BLOQUE, ACD.ORDEN_ACD AS ORDEN, ' +
+        '       EXISTS(SELECT 1 FROM fza_articulos_skus SKA ' +
+        '         JOIN fza_atributos_sku SAA ' +
+        '           ON SAA.CODIGO_UNIDAD_SKU_SA = SKA.CODIGO_UNIDAD_SKU ' +
+        '        WHERE SKA.CODIGO_ART_SKU = :art ' +
+        '          AND SAA.ID_AV_SA = ACD.ID_AV_ACD) AS EN_ARTICULO ' +
         '  FROM fza_atributos_conjuntos_det ACD ' +
         '  JOIN fza_atributos_valores AV ' +
         '    ON AV.ID_AV = ACD.ID_AV_ACD ' +
         ' WHERE ACD.ID_AC_ACD = :p ' +
         ' UNION ALL ' +
-        'SELECT DISTINCT AV.ID_AV, AV.AV, 1, AV.ORDEN_AV ' +
+        'SELECT DISTINCT AV.ID_AV, AV.AV, 1, AV.ORDEN_AV, 1 ' +
         '  FROM fza_articulos_skus SK ' +
         '  JOIN fza_atributos_sku SA ' +
         '    ON SA.CODIGO_UNIDAD_SKU_SA = SK.CODIGO_UNIDAD_SKU ' +
@@ -514,6 +519,8 @@ begin
           oConsulta.FieldByName('ID_AV_ACD').AsInteger;
         Result[iIndice].Valor :=
           oConsulta.FieldByName('VALOR').AsString;
+        Result[iIndice].EnArticulo :=
+          oConsulta.FieldByName('EN_ARTICULO').AsInteger <> 0;
         oConsulta.Next;
       end;
     finally

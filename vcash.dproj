@@ -1821,6 +1821,7 @@
         <DCCReference Include="src\DataModules\UniDataComprasSesionesMaterializar.pas"/>
         <DCCReference Include="src\DataModules\UniDataComprasSesionesPedidos.pas"/>
         <DCCReference Include="src\DataModules\UniDataComprasSesionesReversion.pas"/>
+        <DCCReference Include="src\DataModules\UniDataComprasSesionesVinculos.pas"/>
         <DCCReference Include="src\DataModules\UniDataComprasSesionesUnidadTrabajo.pas"/>
         <DCCReference Include="src\DataModules\UniDataCatalogoSqlAplicacion.pas"/>
         <DCCReference Include="src\Forms\inMtoComprasPlantillas.pas">

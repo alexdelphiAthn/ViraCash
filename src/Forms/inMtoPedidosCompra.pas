@@ -400,6 +400,14 @@ type
     procedure KeyDown(var Key: Word; Shift: TShiftState); override;
   public
     dmmPedidosCompra: TdmPedidosCompra;
+    // Al volver a la pestaña recarga el pedido mostrado: otra pestaña
+    // (Albaranes de compra) puede haber cambiado sus recepciones
+    // (FZ-ISSUE-1115).
+    procedure PestanaActivada; override;
+    // El data module confirma el borrado con su propio mensaje
+    // («¿Borrar el pedido de compra...?»): el guardián no pregunta
+    // además el genérico (FZ-ISSUE-1107).
+    function ContarHijosActivos: Integer; override;
     procedure AplicarEtiquetas; override;
     procedure CrearTablaPrincipal; override;
   end;
@@ -427,7 +435,7 @@ uses
   inLibColumnasDocumento, UniDataColumnasDocumentoRepositorio,
   inLibFormatoMonetario,
   inLibDevExp,
-  UniDataGen,
+  UniDataGen, inLibGestorGuardianBorradoMto,
   inLibBusquedasCompra,
   inLibValidacionDocumento, UniDataValidacionDocumentoRepositorio,
   inLibPresentacionDocumento,
@@ -1165,6 +1173,36 @@ begin
     FModoEntradaSel, True);
   // El rótulo cambia con el modo: se renumera para Alt+1..Alt+4.
   NumerarPestanasAtajo(pcPedido);
+end;
+
+procedure TfrmMtoPedidosCompra.PestanaActivada;
+var
+  oCabecera: TDataSet;
+  oLineas: TDataSet;
+begin
+  inherited;
+  if Assigned(dmmPedidosCompra) then
+  begin
+    oCabecera := dmmPedidosCompra.unqryTablaG;
+    oLineas := dmmPedidosCompra.unqryPedidosCompraLineas;
+    // Solo sin ediciones pendientes: recargar no debe pisar lo tecleado.
+    if oCabecera.Active and (not oCabecera.IsEmpty) and
+       (oCabecera.State = dsBrowse) and
+       ((not oLineas.Active) or (oLineas.State = dsBrowse)) then
+    begin
+      dmmPedidosCompra.unqryTablaG.RefreshRecord;
+      if oLineas.Active then
+        oLineas.Refresh;
+      if Assigned(FPivote) and FPivote.Activo then
+        FPivote.RecargarYRepublicar;
+      RefrescarCantidadAAlbaranar;
+    end;
+  end;
+end;
+
+function TfrmMtoPedidosCompra.ContarHijosActivos: Integer;
+begin
+  Result := cBorradoConConfirmacionPropia;
 end;
 
 procedure TfrmMtoPedidosCompra.KeyDown(var Key: Word; Shift: TShiftState);
@@ -2126,6 +2164,7 @@ begin
       'PRECIO_COMPRA_SIVA_ARTICULO_PEDCLIN',
       CANT_TALLAS_MAX);
     CfgPV.UnidadesMedida := UnidadesMedida;
+    CfgPV.OmitirAvisoTallasRecortadas := True;
     // Compra sobre las bandas del pivote de venta: Pedido /
     // A recibir (banda de servicio) / Pendiente.
     CfgPV.FieldCantidadEntregada := 'CANTIDAD_RECIBIDA_PEDCLIN';

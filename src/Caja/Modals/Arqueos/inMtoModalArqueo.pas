@@ -512,6 +512,17 @@ begin
       // El usuario introduce el recuento sin ver los importes del sistema.
       frm.tvRecuentoSistema.Visible := False;
       frm.tvRecuentoDiferencia.Visible := False;
+      // FZ-ISSUE-1099: arqueo ciego completo antes de grabar. «1_Arqueo»
+      // enseña el teórico (efectivo en caja, saldo a recontar...), la tira
+      // de caja las ventas y sus totales, y el histórico los arqueos
+      // anteriores. Solo queda el recuento; el justificante se ve al
+      // grabar.
+      frm.tsArqueo.TabVisible := False;
+      frm.pcArqueo.ActivePage := frm.tsRecuento;
+      frm.btnTiraCaja.Visible := False;
+      frm.actTiraCaja.Enabled := False;
+      frm.btnHistorico.Visible := False;
+      frm.actHistorico.Enabled := False;
     end;
     if frm.FArqueoTarjetasPermitido then
     begin

@@ -231,7 +231,8 @@ uses
   UniDataComprasAgricultores,
   inLibComprasDirectas, UniDataComprasDirectasFiscal, inLibErroresBBDD,
   inLibRedondeo, inLibVerifactu, inLibTrazabilidad,
-  UniDataFacturasCompraMovimientos, UniDataPedidosCompraPendientes;
+  UniDataFacturasCompraMovimientos, UniDataPedidosCompraPendientes,
+  UniDataInformeDocumento;
 
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 
@@ -1667,18 +1668,25 @@ begin
 end;
 
 procedure TdmFacturasCompra.PrepararPrint(const ASerie, ANumero: string);
+var
+  Config: TConfiguracionDocumento;
 begin
   unqryCabFaccPrint.Close;
   unqryCabFaccPrint.ParamByName('SERIE_FACC').AsString  := ASerie;
   unqryCabFaccPrint.ParamByName('NUMERO_FACC').AsString := ANumero;
   unqryCabFaccPrint.Open;
+  // FZ-ISSUE-1127: mismas líneas y guías que el albarán de compra. Con más
+  // tallas de las que caben, cada sistema se reparte en varias guías.
+  Config := CrearConfiguracionDocumento(tdFactura, sdCompra);
   unqryLinFaccPrint.Close;
-  unqryLinFaccPrint.ParamByName('SERIE_FACC').AsString  := ASerie;
-  unqryLinFaccPrint.ParamByName('NUMERO_FACC').AsString := ANumero;
+  unqryLinFaccPrint.SQL.Text := SqlImpresionHorizontalCompra(Config, False);
+  unqryLinFaccPrint.ParamByName('SERIE').AsString := ASerie;
+  unqryLinFaccPrint.ParamByName('NUMERO').AsString := ANumero;
   unqryLinFaccPrint.Open;
   unqryGuiasFaccPrint.Close;
-  unqryGuiasFaccPrint.ParamByName('SERIE_FACC').AsString  := ASerie;
-  unqryGuiasFaccPrint.ParamByName('NUMERO_FACC').AsString := ANumero;
+  unqryGuiasFaccPrint.SQL.Text := SqlImpresionHorizontalCompra(Config, True);
+  unqryGuiasFaccPrint.ParamByName('SERIE').AsString := ASerie;
+  unqryGuiasFaccPrint.ParamByName('NUMERO').AsString := ANumero;
   unqryGuiasFaccPrint.Open;
 end;
 

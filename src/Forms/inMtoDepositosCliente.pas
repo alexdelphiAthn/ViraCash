@@ -41,6 +41,8 @@ type
     cxGrdDBTabPrinCODIGO_CLIENTE_DEP: TcxGridDBColumn;
     cxGrdDBTabPrinCODIGO_ARTICULO_DEP: TcxGridDBColumn;
     cxGrdDBTabPrinCODIGO_UNIDAD_DEP: TcxGridDBColumn;
+    cxGrdDBTabPrinLOTE_DEP: TcxGridDBColumn;
+    cxGrdDBTabPrinNUMERO_OPERACION_CANCEL_DEP: TcxGridDBColumn;
     cxGrdDBTabPrinPRECIO_VENTA_DEP: TcxGridDBColumn;
     cxGrdDBTabPrinIMPORTE_ANTICIPO_DEP: TcxGridDBColumn;
     cxGrdDBTabPrinESTADO_DEP: TcxGridDBColumn;

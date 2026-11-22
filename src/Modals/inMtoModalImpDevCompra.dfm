@@ -51,6 +51,12 @@
   inherited frxrprt1: TfrxReport
     ReportOptions.LastChange = 46196.500000000000000000
     ScriptText.Strings = (
+      'procedure GrupoLoteAntesDeImprimir(Sender: TfrxComponent);'
+      'begin'
+      '  GroupHeaderLote.Visible :='
+      '    (Trim(<LineasDevolucion."LOTE">) <> '''') or'
+      '    (<LineasDevolucion."FECHA_CADUCIDAD"> > 0);'
+      'end;'
       'begin'
       'end.')
     Left = 8
@@ -85,7 +91,7 @@
         FillGap.Bottom = 0
         FillGap.Right = 0
         Frame.Typ = []
-        Height = 132.283464570000000000
+        Height = 117.165430000000000000
         Top = 18.897650000000000000
         Width = 1046.929810000000000000
         object MemoTitulo: TfrxMemoView
@@ -422,9 +428,19 @@
             '[Devolucion."REF_PROVEEDOR_DEVC"]')
           ParentFont = False
         end
+      end
+      object HeaderGuias: TfrxHeader
+        FillType = ftBrush
+        FillGap.Top = 0
+        FillGap.Left = 0
+        FillGap.Bottom = 0
+        FillGap.Right = 0
+        Frame.Typ = []
+        Height = 15.118120000000000000
+        Top = 192.000000000000000000
+        Width = 1046.929810000000000000
         object MemoGuiaTitulo: TfrxMemoView
           AllowVectorExport = True
-          Top = 117.165430000000000000
           Width = 1046.929500000000000000
           Height = 15.118120000000000000
           Font.Charset = DEFAULT_CHARSET
@@ -454,6 +470,7 @@
         DataSetName = 'GuiasTallas'
         RowCount = 0
         object GuiaSistema: TfrxMemoView
+          WordWrap = False
           AllowVectorExport = True
           Width = 60.000000000000000000
           Height = 18.897650000000000000
@@ -461,7 +478,7 @@
           DataSetName = 'GuiasTallas'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
-          Font.Height = -14
+          Font.Height = -11
           Font.Name = 'Arial'
           Font.Style = [fsBold]
           Frame.Typ = [ftLeft, ftRight, ftTop, ftBottom]
@@ -890,6 +907,7 @@
         end
       end
       object HeaderLineas: TfrxHeader
+        ReprintOnNewPage = True
         FillType = ftBrush
         FillGap.Top = 0
         FillGap.Left = 0
@@ -1045,6 +1063,37 @@
           VAlign = vaCenter
         end
       end
+      object GroupHeaderLote: TfrxGroupHeader
+        FillType = ftBrush
+        FillGap.Top = 0
+        FillGap.Left = 0
+        FillGap.Bottom = 0
+        FillGap.Right = 0
+        Frame.Typ = []
+        Height = 20.000000000000000000
+        Top = 277.500000000000000000
+        Width = 1046.929810000000000000
+        OnBeforePrint = 'GrupoLoteAntesDeImprimir'
+        Condition = 'LineasDevolucion."LOTE"'
+        ReprintOnNewPage = True
+        object LinTrazabilidad: TfrxMemoView
+          AllowVectorExport = True
+          Top = 1.000000000000000000
+          Width = 760.000000000000000000
+          Height = 18.000000000000000000
+          DataSet = dmDevolucionesCompra.fxdsLinDevc
+          DataSetName = 'LineasDevolucion'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -12
+          Font.Name = 'Arial'
+          Font.Style = [fsBold]
+          Frame.Typ = [ftBottom]
+          Memo.UTF8W = ('[IIF(<LineasDevolucion."LOTE"> <> '''', ''Lote: '' + <LineasDevolucion."LOTE">, '''')][IIF(<LineasDevolucion."FECHA_CADUCIDAD"> > 0, ''  Caducidad: '' + FormatDateTime(''dd/mm/yyyy'', <LineasDevolucion."FECHA_CADUCIDAD">), '''')]')
+          ParentFont = False
+          VAlign = vaBottom
+        end
+      end
       object DataBandLineas: TfrxMasterData
         FillType = ftBrush
         FillGap.Top = 0
@@ -1112,7 +1161,7 @@
           Font.Style = []
           Frame.Typ = [ftLeft, ftRight, ftTop, ftBottom]
           Memo.UTF8W = (
-            '[LineasDevolucion."DESCRIPCION"]')
+            '[LineasDevolucion."DESCRIPCION_BASE"]')
           ParentFont = False
           VAlign = vaCenter
         end
@@ -1137,6 +1186,7 @@
           VAlign = vaCenter
         end
         object LinSistema: TfrxMemoView
+          WordWrap = False
           AllowVectorExport = True
           Left = 358.500000000000000000
           Width = 46.000000000000000000
@@ -1145,7 +1195,7 @@
           DataSetName = 'LineasDevolucion'
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
-          Font.Height = -12
+          Font.Height = -10
           Font.Name = 'Arial'
           Font.Style = [fsBold]
           Frame.Typ = [ftLeft, ftRight, ftTop, ftBottom]

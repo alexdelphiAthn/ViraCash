@@ -81,20 +81,9 @@ implementation
 
 procedure CalcularDerivadosArqueo(var AArqueo: TArqueoCaja);
 begin
-  // Ventas a préstamo = valor de la mercancía comprometida en el período
-  // (no el pendiente). Si el cliente ha entregado anticipos, esa parte
-  // ya está cobrada pero la venta "comprometida" sigue siendo el total.
+  // El valor del préstamo se muestra como información del turno.
   AArqueo.VentasPrestamos := AArqueo.Prestamos;
-
-  // Pendiente de cobro: viene calculado por depósito en
-  // CalcularDepositos. «Préstamos − Cobros clientes» contaba como
-  // pendientes los depósitos ya liquidados (FZ-ISSUE-349).
-
-  // Total Ventas = ventas normales + ventas a préstamo − devoluciones.
-  AArqueo.TotalVentas :=
-      AArqueo.VentasNormales
-    + AArqueo.VentasPrestamos
-    - AArqueo.Devoluciones;
+  AArqueo.TotalVentas := AArqueo.VentasNormales - AArqueo.Devoluciones;
 
   // Efectivo en caja: efectivo ingresos + entradas − salidas + anterior
   AArqueo.EfectivoCaja :=

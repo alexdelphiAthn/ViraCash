@@ -1022,6 +1022,28 @@ begin
   end;
 end;
 
+function SumaStockPreviewArticulos(const AAlmacenes: string): string;
+var
+  FiltroAlmacenes: string;
+begin
+  FiltroAlmacenes := '';
+  if AAlmacenes <> '' then
+    FiltroAlmacenes := ' AND s.CODIGO_ALM_STK IN (' + AAlmacenes + ')';
+  // El stock antiguo puede usar el código del artículo directamente.
+  // Se consulta aparte para aprovechar los índices de artículo y unidad.
+  Result :=
+    '(COALESCE((SELECT SUM(s.CANTIDAD_STK) ' +
+    'FROM fza_articulos_skus sk JOIN fza_articulos_stockactual s ' +
+    'ON s.CODIGO_UNIDAD_STK = sk.CODIGO_UNIDAD_SKU ' +
+    'WHERE sk.CODIGO_ART_SKU = a.CODIGO_ART_ART' + FiltroAlmacenes +
+    '), 0) + COALESCE((SELECT SUM(s.CANTIDAD_STK) ' +
+    'FROM fza_articulos_stockactual s ' +
+    'WHERE s.CODIGO_UNIDAD_STK = a.CODIGO_ART_ART ' +
+    'AND NOT EXISTS (SELECT 1 FROM fza_articulos_skus sk ' +
+    'WHERE sk.CODIGO_UNIDAD_SKU = s.CODIGO_UNIDAD_STK)' + FiltroAlmacenes +
+    '), 0))';
+end;
+
 procedure AnadirOrigenPreviewArticulos(
   ASql: TStrings;
   const AAlmacenes, AColumnasExtra, AYaCargado, AUniones: string);
@@ -1033,15 +1055,7 @@ begin
   ASql.Add('(SELECT GROUP_CONCAT(ap.CODIGO_PRV_AP)');
   ASql.Add('FROM fza_articulos_proveedores ap');
   ASql.Add('WHERE ap.CODIGO_ART_AP = a.CODIGO_ART_ART) AS PROVEEDORES,');
-  ASql.Add('COALESCE((SELECT SUM(s.CANTIDAD_STK)');
-  ASql.Add('FROM fza_articulos_stockactual s');
-  ASql.Add('LEFT JOIN fza_articulos_skus sk');
-  ASql.Add('ON sk.CODIGO_UNIDAD_SKU = s.CODIGO_UNIDAD_STK');
-  ASql.Add('WHERE COALESCE(sk.CODIGO_ART_SKU, s.CODIGO_UNIDAD_STK)');
-  ASql.Add('= a.CODIGO_ART_ART');
-  if AAlmacenes <> '' then
-    ASql.Add('AND s.CODIGO_ALM_STK IN (' + AAlmacenes + ')');
-  ASql.Add('), 0) AS STOCK_TOTAL,');
+  ASql.Add(SumaStockPreviewArticulos(AAlmacenes) + ' AS STOCK_TOTAL,');
   if AColumnasExtra <> '' then
     ASql.Add(AColumnasExtra);
   ASql.Add(AYaCargado + ' AS YA_CARGADO');
@@ -1085,15 +1099,7 @@ begin
             IntToStr(Length(AFiltros.CodigosAlmacen)));
         end;
       scSumaPositiva:
-        begin
-          ASql.Add('AND COALESCE((SELECT SUM(s2.CANTIDAD_STK)');
-          ASql.Add('FROM fza_articulos_stockactual s2');
-          ASql.Add('LEFT JOIN fza_articulos_skus sk2');
-          ASql.Add('ON sk2.CODIGO_UNIDAD_SKU = s2.CODIGO_UNIDAD_STK');
-          ASql.Add('WHERE COALESCE(sk2.CODIGO_ART_SKU,');
-          ASql.Add('s2.CODIGO_UNIDAD_STK) = a.CODIGO_ART_ART');
-          ASql.Add('AND s2.CODIGO_ALM_STK IN (' + AAlmacenes + ')), 0) > 0');
-        end;
+        ASql.Add('AND ' + SumaStockPreviewArticulos(AAlmacenes) + ' > 0');
     end;
   end;
 end;

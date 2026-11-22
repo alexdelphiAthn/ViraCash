@@ -142,6 +142,8 @@ type
     btnTallasHorizontal:  TcxButton;
     btnAtributosColumna:  TcxButton;
     btnDevolverTodoStock: TcxButton;
+    btnDevolverArticuloCompleto: TcxButton;
+    btnDevolverLoteCompleto: TcxButton;
     btnImprimirH: TcxButton;
     btnImprimirV: TcxButton;
     btnPegatinas: TcxButton;
@@ -159,6 +161,8 @@ type
     procedure btnTallasHorizontalClick(Sender: TObject);
     procedure btnAtributosColumnaClick(Sender: TObject);
     procedure btnDevolverTodoStockClick(Sender: TObject);
+    procedure btnDevolverArticuloCompletoClick(Sender: TObject);
+    procedure btnDevolverLoteCompletoClick(Sender: TObject);
     procedure btnImprimirHClick(Sender: TObject);
     procedure btnImprimirVClick(Sender: TObject);
     procedure btnPegatinasClick(Sender: TObject);
@@ -300,6 +304,8 @@ type
     procedure RestaurarPivoteHorizontalTrasOperacion(
                 ADebeEstarActivo: Boolean);
     procedure DevolverTodoStock;
+    procedure DevolverStockCompleto(AModo: TModoStockDevolucionCompra);
+    procedure ActualizarBotonesStockCompleto;
     procedure AplicarArticuloDevolucion(const ACodigoArt: string);
     procedure PresentarResultadoArticuloDevolucion(
       const AResultado: TResultadoArticuloDevolucionCompra;
@@ -498,6 +504,8 @@ begin
   FColorPivotCodigos := TDictionary<string, string>.Create;
   btnGenerarAbono.Caption := SCaptionGenerarAbonoDevolucionCompra;
   btnGenerarAbono.Hint := SHintGenerarAbonoDevolucionCompra;
+  btnDevolverArticuloCompleto.Caption := SCaptionDevolverArticuloCompleto;
+  btnDevolverLoteCompleto.Caption := SCaptionDevolverLoteCompleto;
   // Columnas no-bound de tallas y atributos ANTES del inherited.
   CrearColumnasTallas;
   CrearColumnasAtributos;
@@ -578,6 +586,7 @@ begin
   FColsModoConstruido := False;
   btnTallasHorizontal.Visible := False;
   btnAtributosColumna.Visible := False;
+  ActualizarBotonesStockCompleto;
   ActualizarCaptionModoLineas;
   // Primera construccion al abrir la pantalla: sin ella, hasta entrar
   // en el grid se veian las columnas del dfm (ningun modo).
@@ -1459,6 +1468,111 @@ begin
   DevolverTodoStock;
 end;
 
+procedure TfrmMtoDevolucionesCompra.ActualizarBotonesStockCompleto;
+var
+  oCabecera: TDataSet;
+begin
+  oCabecera := dsTablaG.DataSet;
+  btnDevolverLoteCompleto.Visible := Assigned(dmmDevolucionesCompra) and
+    Assigned(oCabecera) and oCabecera.Active and
+    ((oCabecera.State = dsInsert) or not oCabecera.IsEmpty) and
+    EmpresaReposicionActiva(
+      dmmDevolucionesCompra.unqryTablaG.Connection, CodigoEmpresaActiva);
+end;
+
+procedure TfrmMtoDevolucionesCompra.btnDevolverArticuloCompletoClick(
+  Sender: TObject);
+begin
+  DevolverStockCompleto(msdcArticulo);
+end;
+
+procedure TfrmMtoDevolucionesCompra.btnDevolverLoteCompletoClick(
+  Sender: TObject);
+begin
+  if btnDevolverLoteCompleto.Visible then
+    DevolverStockCompleto(msdcLote);
+end;
+
+procedure TfrmMtoDevolucionesCompra.DevolverStockCompleto(
+  AModo: TModoStockDevolucionCompra);
+var
+  oCabecera: TDataSet;
+  sArticulo, sLote, sIdentificador, sAlmacen: string;
+  iLineas: Integer;
+  bContinuar: Boolean;
+  eCursor: TCursor;
+begin
+  oCabecera := dsTablaG.DataSet;
+  if Assigned(dmmDevolucionesCompra) and Assigned(oCabecera) and
+     oCabecera.Active and
+     ((oCabecera.State = dsInsert) or not oCabecera.IsEmpty) and
+     (((oCabecera.State = dsInsert) and PuedeAccionMto(apmInsertar)) or
+      ((oCabecera.State <> dsInsert) and PuedeAccionMto(apmModificar))) and
+     PuedeIntroducirArticuloDevolucion then
+  begin
+    sAlmacen := ValorTextoDataSetCompra(oCabecera, 'CODIGO_ALM_DEVC');
+    if sAlmacen = '' then
+      MessageDlg_fza(SErrorAlmacenDevolucionFilaNoSeleccionado,
+        mtWarning, [mbOk], 0)
+    else
+    begin
+      sArticulo := '';
+      sLote := '';
+      if AModo = msdcLote then
+      begin
+        sLote := ValorLineaActiva('LOTE_DEVCLIN');
+        bContinuar := InputQuery_fza(SCaptionDevolverLoteCompleto,
+          SPreguntaCodigoLoteDevolucion, sLote);
+        sLote := NormalizarLote(sLote);
+        bContinuar := bContinuar and (sLote <> '');
+        sIdentificador := sLote;
+      end
+      else
+      begin
+        sArticulo := ValorLineaActiva('CODIGO_ART_DEVCLIN');
+        bContinuar := sArticulo <> '';
+        if not bContinuar then
+          MessageDlg_fza(SErrorArticuloDevolucionFilaNoSeleccionado,
+            mtInformation, [mbOk], 0);
+        sIdentificador := sArticulo;
+      end;
+
+      if bContinuar and (MessageDlg_fza(
+        Format(SPreguntaDevolverStockCompleto, [sIdentificador, sAlmacen]),
+        mtConfirmation, [mbYes, mbNo], 0) = mrYes) then
+      begin
+        ConfirmarLineaDocumento(tvLineasDevolucion);
+        AsegurarCabeceraPersistidaParaLineas;
+        eCursor := Screen.Cursor;
+        Screen.Cursor := crHourGlass;
+        try
+          case dmmDevolucionesCompra.DevolverStockCompleto(FPersistenciaStock,
+            AModo, sArticulo, sLote, iLineas) of
+            esdcDisponible:
+              begin
+                ConstruirModoEntrada;
+                ActualizarLabelPrendas;
+                MessageDlg_fza(Format(SInfoDevolverStockCompleto, [iLineas]),
+                  mtInformation, [mbOk], 0);
+              end;
+            esdcDocumentoNoEditable:
+              MessageDlg_fza(SErrorDevolverStockCompletoNoEditable,
+                mtWarning, [mbOk], 0);
+            esdcSinEspacioLineas:
+              MessageDlg_fza(SErrorDevolverStockCompletoSinEspacio,
+                mtWarning, [mbOk], 0);
+            esdcSinStock:
+              MessageDlg_fza(Format(SErrorDevolverStockCompletoSinExistencias,
+                [sIdentificador]), mtInformation, [mbOk], 0);
+          end;
+        finally
+          Screen.Cursor := eCursor;
+        end;
+      end;
+    end;
+  end;
+end;
+
 procedure TfrmMtoDevolucionesCompra.btnNuevoClick(Sender: TObject);
 begin
   inherited;
@@ -1508,7 +1622,10 @@ procedure TfrmMtoDevolucionesCompra.dsTablaGDataChangeHook(Sender: TObject;
                                                        Field: TField);
 begin
   if (Field = nil) or SameText(Field.FieldName, 'CODIGO_EMP_DEVC') then
+  begin
     RefrescarAlmacenesCabecera;
+    ActualizarBotonesStockCompleto;
+  end;
   // Refrescar el rotulo del proveedor al navegar entre devoluciones
   // (Field=nil) o al cambiar CODIGO_PRV_DEVC tecleado directamente.
   if (Field = nil) or SameText(Field.FieldName, 'CODIGO_PRV_DEVC') then

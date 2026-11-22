@@ -39,6 +39,7 @@ type
     procedure FormCreate(Sender: TObject);
   private
     FControlesCreados: Boolean;
+    FMostrarCaducidad: Boolean;
     FRetirar: TcxButton;
     FHistorico: TcxButton;
     FCodigosAlmacen: TArray<string>;
@@ -83,6 +84,7 @@ type
     procedure DoCreate; override;
   public
     procedure CrearTablaPrincipal; override;
+    procedure AplicarEtiquetas; override;
     procedure ResetForm; override;
     // Desde la consulta de stock: abre filtrado por un artículo.
     procedure FiltrarArticulo(const AArticulo: string);
@@ -97,7 +99,8 @@ uses
   inLibDevExp,
   inMtoModalImpCaducidades, inLibPermisosIntf,
   inMtoModalRetiradaLotes, inMtoModalHistoricoLote,
-  UniDataLotesRepositorio, inLibMsgRetiradaLotes;
+  UniDataLotesRepositorio, UniDataReposicionAutomatica,
+  inLibMsgRetiradaLotes;
 
 {$R *.dfm}
 
@@ -271,10 +274,13 @@ begin
   CrearColumna(v, 'CODIGO_UNIDAD_STK', SCaptionColLotesSku, 140);
   CrearColumna(v, 'LOTE_STK', SCaptionColLotesLote, 150);
   CrearColumna(v, 'TIPO_LOT', SCaptionColLotesTipo, 45);
-  FormatoFecha(CrearColumna(v, 'FECHA_CADUCIDAD',
-    SCaptionColLotesCaducidad, 90));
-  CrearColumna(v, 'DIAS_PARA_CADUCAR', SCaptionColLotesDias, 55);
-  CrearColumna(v, 'ESCADUCADO', SCaptionColLotesCaducado, 70);
+  if FMostrarCaducidad then
+  begin
+    FormatoFecha(CrearColumna(v, 'FECHA_CADUCIDAD',
+      SCaptionColLotesCaducidad, 90));
+    CrearColumna(v, 'DIAS_PARA_CADUCAR', SCaptionColLotesDias, 55);
+    CrearColumna(v, 'ESCADUCADO', SCaptionColLotesCaducado, 70);
+  end;
   FormatoNumero(CrearColumna(v, 'CANTIDAD_STK', SCaptionColLotesCantidad,
     80), FORMATO_UNIDADES);
   FormatoFecha(CrearColumna(v, 'FECHA_ENTRADA_LOT',
@@ -289,6 +295,10 @@ procedure TfrmMtoLotesCaducidades.CrearTablaPrincipal;
 begin
   inherited;
   dmmLotes := tdmDataModule as TdmLotesConsultas;
+  FMostrarCaducidad := not Assigned(ParametrosApp) or
+    ParametrosApp.GetBool(PARAMETRO_TRAZABILIDAD_LOTES, False) or
+    not EmpresaReposicionActiva(dmmLotes.unqryTablaG.Connection,
+      UbicacionSesion.Empresa);
   pkFieldName := 'CODIGO_UNIDAD_STK';
   cxGrdDBTabPrin.OptionsSelection.MultiSelect := True;
   cxGrdDBTabPrin.OptionsData.Editing := False;
@@ -298,6 +308,8 @@ begin
   nvNavegador.Visible := False;
   if cxGrdDBTabPrin.ColumnCount = 0 then
     CrearColumnasLotes;
+  if not FMostrarCaducidad then
+    cbbFiltro.ItemIndex := High(CODIGOS_FILTRO);
   spnDias.Value := DiasAvisoDefecto;
   CargarAlmacenes;
   cbbAlmacen.Properties.OnChange := FiltroCambiado;
@@ -313,6 +325,27 @@ procedure TfrmMtoLotesCaducidades.ResetForm;
 begin
   inherited;
   pcPantalla.ActivePage := tsLista;
+end;
+
+procedure TfrmMtoLotesCaducidades.AplicarEtiquetas;
+const
+  CAMPOS_CADUCIDAD: array[0..2] of string =
+    ('FECHA_CADUCIDAD', 'DIAS_PARA_CADUCAR', 'ESCADUCADO');
+var
+  sCampo: string;
+  oColumna: TcxGridDBColumn;
+begin
+  inherited;
+  if Assigned(dmmLotes) and not FMostrarCaducidad then
+    for sCampo in CAMPOS_CADUCIDAD do
+    begin
+      oColumna := cxGrdDBTabPrin.GetColumnByFieldName(sCampo);
+      if Assigned(oColumna) then
+      begin
+        oColumna.Visible := False;
+        oColumna.VisibleForCustomization := False;
+      end;
+    end;
 end;
 
 function TfrmMtoLotesCaducidades.DiasAvisoDefecto: Integer;
@@ -403,7 +436,7 @@ begin
   if PuedeImprimir and Assigned(dmmLotes) then
   begin
     oInforme := TfrmPrintCaducidades.CreateInforme(Application, dmmLotes,
-      FiltrosActuales, Selecciones);
+      FiltrosActuales, Selecciones, FMostrarCaducidad);
     try
       oInforme.ShowModal;
     finally

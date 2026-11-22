@@ -705,6 +705,17 @@ begin
     ' WHERE art.CODIGO_ART_ART = fl.CODIGO_ART_FACLIN)';
 end;
 
+// FZ-ISSUE-1126: proveedor de la partida vendida (modo Yeti), con el mismo
+// criterio que el ranking por proveedor (PRC_GET_MOV_VENTAS_ART).
+function SqlProveedorPartidaOperacion: string;
+begin
+  Result :=
+    '         (SELECT NULLIF(NULLIF(TRIM(lg.CODIGO_PRV_LOT), ''''), ''0'')' +
+    ' FROM fza_articulos_lotes lg' +
+    ' WHERE lg.CODIGO_UNIDAD_LOT = fl.CODIGO_UNIDAD_FACLIN' +
+    ' AND lg.LOTE_LOT = fl.LOTE_FACLIN LIMIT 1)';
+end;
+
 procedure TRepositorioInformesCajaUniDAC.AnadirAtributosOperacionesVenta(
   ALineas: TStrings);
 begin
@@ -717,6 +728,7 @@ begin
   ALineas.Add('       COALESCE(' + SqlValorEjeOperacion('P') +
     ', '''') AS TALLA,');
   ALineas.Add('       COALESCE(NULLIF(TRIM(fl.CODIGO_PRV_FACLIN), ''''),');
+  ALineas.Add(SqlProveedorPartidaOperacion + ',');
   ALineas.Add('                ap.CODIGO_PRV_AP, '''') AS PROVEEDOR,');
   ALineas.Add('       COALESCE(ap.REF_PROVEEDOR_AP, '''') AS MODELO,');
   ALineas.Add('       fl.DESCRIPCION_ARTICULO_FACLIN AS DESCRIPCION,');
@@ -757,7 +769,9 @@ begin
   ALineas.Add(' COALESCE(NULLIF(fl.TIPO_CANTIDAD_ARTICULO_FACLIN, ''''),');
   ALineas.Add('   (SELECT a.TIPO_CANTIDAD_ART FROM fza_articulos a');
   ALineas.Add('    WHERE a.CODIGO_ART_ART = fl.CODIGO_ART_FACLIN), '''')');
-  ALineas.Add('   AS UNIDAD_CANTIDAD');
+  ALineas.Add('   AS UNIDAD_CANTIDAD,');
+  // FZ-ISSUE-1126: los totales del informe no suman los préstamos.
+  ALineas.Add(' 0 AS ES_PRESTAMO');
 end;
 
 procedure TRepositorioInformesCajaUniDAC.AnadirOrigenOperacionesVenta(
@@ -778,6 +792,7 @@ begin
   ALineas.Add('    ON ap.CODIGO_ART_AP = fl.CODIGO_ART_FACLIN');
   ALineas.Add('   AND ap.CODIGO_PRV_AP =');
   ALineas.Add('       COALESCE(NULLIF(TRIM(fl.CODIGO_PRV_FACLIN), ''''),');
+  ALineas.Add(SqlProveedorPartidaOperacion + ',');
   ALineas.Add('         (SELECT apx.CODIGO_PRV_AP');
   ALineas.Add('            FROM fza_articulos_proveedores apx');
   ALineas.Add('           WHERE apx.CODIGO_ART_AP = fl.CODIGO_ART_FACLIN');
@@ -913,13 +928,15 @@ begin
   ALineas.Add(' CONCAT(''PRESTAMO '', fl.ID_DEPOSITO_DEP) AS DOCUMENTO,');
   ALineas.Add(' COALESCE((SELECT a.TIPO_CANTIDAD_ART FROM fza_articulos a');
   ALineas.Add('   WHERE a.CODIGO_ART_ART = fl.CODIGO_ART_FACLIN), '''')');
-  ALineas.Add('   AS UNIDAD_CANTIDAD');
+  ALineas.Add('   AS UNIDAD_CANTIDAD,');
+  ALineas.Add(' fl.ES_PRESTAMO');
   ALineas.Add(' FROM (SELECT d.ID_DEPOSITO_DEP, d.CODIGO_EMP_DEP,');
   ALineas.Add(' d.CODIGO_ALM_DEP, d.CODIGO_CAJA_DEP, d.NUMERO_OPERACION_DEP,');
   ALineas.Add(' d.FECHA_CREACION_DEP, d.PRECIO_VENTA_DEP,');
   ALineas.Add(' d.CANTIDAD_PENDIENTE_DEP, d.USUARIO_ALTA,');
   ALineas.Add(' d.CODIGO_ART_DEP AS CODIGO_ART_FACLIN,');
   ALineas.Add(' d.CODIGO_UNIDAD_DEP AS CODIGO_UNIDAD_FACLIN,');
+  ALineas.Add(' d.LOTE_DEP AS LOTE_FACLIN,');
   ALineas.Add(' '''' AS CODIGO_PRV_FACLIN,');
   ALineas.Add(' COALESCE(a.DESCRIPCION_ART, d.CODIGO_ART_DEP) AS');
   ALineas.Add('   DESCRIPCION_ARTICULO_FACLIN,');
@@ -960,7 +977,8 @@ begin
     AnadirFiltrosOperacionesVenta(slSQL, AFiltroUbicaciones);
     AnadirPrestamosOperacionesVenta(slSQL, AFiltroUbicaciones);
     slSQL.Add(' ORDER BY FECHA_DIA, CODIGO_EMP_OPCAJA,');
-    slSQL.Add('   CODIGO_ALM_OPCAJA, CODIGO_CAJA_OPCAJA,');
+    // FZ-ISSUE-1126: el informe subtotaliza por vendedor dentro de la caja.
+    slSQL.Add('   CODIGO_ALM_OPCAJA, CODIGO_CAJA_OPCAJA, VENDEDOR,');
     slSQL.Add('   NUMERO_OPERACION_OPCAJA, LINEA_FACLIN');
     Result := slSQL.Text;
   finally

@@ -19,7 +19,8 @@ implementation
 uses
   System.SysUtils,
   Data.DB,
-  DBAccess;
+  DBAccess,
+  UniDataReposicionAutomatica;
 
 type
   TServicioStockDevolucionCompra = class
@@ -30,6 +31,9 @@ type
     function SQLJoinColorLinea: string;
     function SQLCondicionGrupo: string;
     function SQLStockDisponible: string;
+    function SQLAmbitoLote: string;
+    function BloquearDocumento: Boolean;
+    procedure BloquearStock;
     procedure AsignarParametrosGrupo;
     procedure AsignarParametrosStock;
     function ArticuloTieneColores: Boolean;
@@ -41,7 +45,8 @@ type
     constructor Create(AConexion: TUniConnection;
       const AParametros: TParametrosStockDevolucionCompra);
     destructor Destroy; override;
-    function ConsultarEstado: TEstadoStockDevolucionCompra;
+    function ConsultarEstado(
+      out ALineasDisponibles: Integer): TEstadoStockDevolucionCompra;
     function Ejecutar(out ALineas: Integer;
       out AEstado: TEstadoStockDevolucionCompra): Boolean;
   end;
@@ -111,12 +116,62 @@ begin
     Result := Result + '   AND COALESCE(AVC.ID_AV, 0) = 0 ';
 end;
 
-function TServicioStockDevolucionCompra.SQLStockDisponible: string;
+function TServicioStockDevolucionCompra.SQLAmbitoLote: string;
 begin
+  Result :=
+    'STK.LOTE_STK = :lote AND EXISTS ( ' +
+    'SELECT 1 FROM fza_articulos_lotes LT ' +
+    'WHERE LT.CODIGO_UNIDAD_LOT = STK.CODIGO_UNIDAD_STK ' +
+    'AND LT.LOTE_LOT = STK.LOTE_STK AND LT.ESREPOSICION_LOT = ''S'' ' +
+    'AND LT.CODIGO_EMP_LOT = :empresa AND LT.CODIGO_PRV_LOT = :prv) ';
+end;
+
+function TServicioStockDevolucionCompra.SQLStockDisponible: string;
+var
+  sCamposLote, sProveedor, sColor, sFiltro, sGrupo: string;
+begin
+  sCamposLote := '';
+  sGrupo := '';
+  sColor := '';
+  sProveedor := '  JOIN ';
+  sFiltro := ' AND ART.CODIGO_ART_ART = :art ';
+  if FParametros.Modo <> msdcFila then
+  begin
+    sCamposLote := '       STK.LOTE_STK AS LOTE, ' +
+      '       MAX(STK.FECHA_CADUCIDAD_STK) AS CADUCIDAD, ';
+    sGrupo := ', STK.LOTE_STK ';
+  end;
+  if FParametros.Modo = msdcLote then
+  begin
+    sProveedor := '  LEFT JOIN ';
+    sFiltro := ' AND ' + SQLAmbitoLote;
+  end;
+  if FParametros.Modo = msdcFila then
+  begin
+    sColor :=
+      '  LEFT JOIN fza_atributos_sku CO ' +
+      '    ON CO.CODIGO_UNIDAD_SKU_SA = STK.CODIGO_UNIDAD_STK ' +
+      '   AND EXISTS (SELECT 1 FROM fza_atributos_valores AVC0 ' +
+      '                WHERE AVC0.ID_AV = CO.ID_AV_SA ' +
+      '                  AND AVC0.ID_VA_AV = (SELECT ' +
+      'EJ452.ID_ATB_VA FROM VI_VARIACIONES_EJES EJ452 WHERE ' +
+      'EJ452.ID_VAR_VA = SK.CODIGO_VAR_SKU AND EJ452.EJE_VA = ''F'')) ' +
+      '  LEFT JOIN fza_atributos_valores AVC ' +
+      '    ON AVC.ID_AV = CO.ID_AV_SA ' +
+      '   AND AVC.ID_VA_AV = (SELECT EJ452.ID_ATB_VA FROM ' +
+      'VI_VARIACIONES_EJES EJ452 WHERE EJ452.ID_VAR_VA = ' +
+      'SK.CODIGO_VAR_SKU AND EJ452.EJE_VA = ''F'') ';
+    sFiltro := sFiltro +
+      '   AND COALESCE(ART.ESACTIVO_ART, ''S'') = ''S'' ' +
+      '   AND (SK.CODIGO_UNIDAD_SKU IS NULL ' +
+      '        OR COALESCE(SK.ESACTIVO_SKU, ''S'') = ''S'') ' +
+      '   AND COALESCE(AVC.ID_AV, 0) = :color_av ';
+  end;
   Result :=
     'SELECT COALESCE(SK.CODIGO_ART_SKU, ' +
     '                STK.CODIGO_UNIDAD_STK) AS ART, ' +
     '       STK.CODIGO_UNIDAD_STK AS SKU_STOCK, ' +
+    sCamposLote +
     '       SUM(COALESCE(STK.CANTIDAD_STK, 0)) AS CANTIDAD, ' +
     '       LEFT(MAX(COALESCE(AP.REF_PROVEEDOR_AP, '''')), 100) ' +
     '         AS REF_PRV, ' +
@@ -144,23 +199,12 @@ begin
     '  JOIN fza_articulos ART ' +
     '    ON ART.CODIGO_ART_ART = COALESCE(SK.CODIGO_ART_SKU, ' +
     '                                     STK.CODIGO_UNIDAD_STK) ' +
-    '  JOIN fza_articulos_proveedores AP ' +
+    sProveedor + 'fza_articulos_proveedores AP ' +
     '    ON AP.CODIGO_ART_AP = ART.CODIGO_ART_ART ' +
     '   AND AP.CODIGO_PRV_AP = :prv ' +
     '  LEFT JOIN fza_articulos_skus_costes SKUC ' +
     '    ON SKUC.CODIGO_UNIDAD_SKU_SKUC = STK.CODIGO_UNIDAD_STK ' +
-    '  LEFT JOIN fza_atributos_sku CO ' +
-    '    ON CO.CODIGO_UNIDAD_SKU_SA = STK.CODIGO_UNIDAD_STK ' +
-    '   AND EXISTS (SELECT 1 FROM fza_atributos_valores AVC0 ' +
-    '                WHERE AVC0.ID_AV = CO.ID_AV_SA ' +
-    '                  AND AVC0.ID_VA_AV = (SELECT ' +
-    'EJ452.ID_ATB_VA FROM VI_VARIACIONES_EJES EJ452 WHERE ' +
-    'EJ452.ID_VAR_VA = SK.CODIGO_VAR_SKU AND EJ452.EJE_VA = ''F'')) ' +
-    '  LEFT JOIN fza_atributos_valores AVC ' +
-    '    ON AVC.ID_AV = CO.ID_AV_SA ' +
-    '   AND AVC.ID_VA_AV = (SELECT EJ452.ID_ATB_VA FROM ' +
-    'VI_VARIACIONES_EJES EJ452 WHERE EJ452.ID_VAR_VA = ' +
-    'SK.CODIGO_VAR_SKU AND EJ452.EJE_VA = ''F'') ' +
+    sColor +
     '  LEFT JOIN fza_articulos_familias FAM ' +
     '    ON FAM.CODIGO_FAM_FAM = ART.CODIGO_FAM_ART ' +
     '  LEFT JOIN ( ' +
@@ -174,16 +218,9 @@ begin
     '       ) ACA ' +
     '    ON ACA.CODIGO_ART_ACA = ART.CODIGO_ART_ART ' +
     ' WHERE STK.CODIGO_ALM_STK = :alm ' +
-    '   AND COALESCE(SK.CODIGO_ART_SKU, ' +
-    '                STK.CODIGO_UNIDAD_STK) = :art ' +
-    '   AND COALESCE(ART.ESACTIVO_ART, ''S'') = ''S'' ' +
-    '   AND (SK.CODIGO_UNIDAD_SKU IS NULL ' +
-    '        OR COALESCE(SK.ESACTIVO_SKU, ''S'') = ''S'') ' +
-    '   AND ((:color_av > 0 ' +
-    '         AND COALESCE(AVC.ID_AV, 0) = :color_av) ' +
-    '        OR (:color_av = 0 AND COALESCE(AVC.ID_AV, 0) = 0)) ' +
+    sFiltro +
     ' GROUP BY COALESCE(SK.CODIGO_ART_SKU, STK.CODIGO_UNIDAD_STK), ' +
-    '          STK.CODIGO_UNIDAD_STK ' +
+    '          STK.CODIGO_UNIDAD_STK ' + sGrupo +
     'HAVING SUM(COALESCE(STK.CANTIDAD_STK, 0)) > 0';
 end;
 
@@ -200,8 +237,72 @@ procedure TServicioStockDevolucionCompra.AsignarParametrosStock;
 begin
   FConsulta.ParamByName('prv').AsString := FParametros.CodigoProveedor;
   FConsulta.ParamByName('alm').AsString := FParametros.CodigoAlmacen;
-  FConsulta.ParamByName('art').AsString := FParametros.CodigoArticulo;
-  FConsulta.ParamByName('color_av').AsInteger := FParametros.IdColor;
+  if FParametros.Modo = msdcLote then
+  begin
+    FConsulta.ParamByName('empresa').AsString := FParametros.CodigoEmpresa;
+    FConsulta.ParamByName('lote').AsString := FParametros.Lote;
+  end
+  else
+    FConsulta.ParamByName('art').AsString := FParametros.CodigoArticulo;
+  if FParametros.Modo = msdcFila then
+    FConsulta.ParamByName('color_av').AsInteger := FParametros.IdColor;
+end;
+
+function TServicioStockDevolucionCompra.BloquearDocumento: Boolean;
+begin
+  FConsulta.Close;
+  FConsulta.SQL.Text :=
+    'SELECT 1 FROM fza_devoluciones_compra D ' +
+    'WHERE D.SERIE_DEVC = :serie AND D.NUMERO_DEVC = :numero ' +
+    'AND D.CODIGO_EMP_DEVC = :empresa AND D.CODIGO_PRV_DEVC = :prv ' +
+    'AND D.CODIGO_ALM_DEVC = :alm ' +
+    'AND COALESCE(D.ESTADO_DEVC, '''') <> ''CANCELADO'' ' +
+    'AND COALESCE(D.NUMERO_FAC_DEVC, '''') = '''' ' +
+    'AND COALESCE(D.SERIE_FAC_DEVC, '''') = '''' ' +
+    'AND NOT EXISTS (SELECT 1 FROM fza_devoluciones_compra_lineas L ' +
+    'WHERE L.SERIE_DEVC_DEVCLIN = D.SERIE_DEVC ' +
+    'AND L.NUMERO_DEVC_DEVCLIN = D.NUMERO_DEVC ' +
+    'AND (L.ESFACTURADA_DEVCLIN = ''S'' ' +
+    'OR COALESCE(L.NUMERO_FAC_DEVCLIN, '''') <> '''' ' +
+    'OR COALESCE(L.SERIE_FAC_DEVCLIN, '''') <> '''')) FOR UPDATE';
+  FConsulta.ParamByName('serie').AsString := FParametros.Serie;
+  FConsulta.ParamByName('numero').AsString := FParametros.Numero;
+  FConsulta.ParamByName('empresa').AsString := FParametros.CodigoEmpresa;
+  FConsulta.ParamByName('prv').AsString := FParametros.CodigoProveedor;
+  FConsulta.ParamByName('alm').AsString := FParametros.CodigoAlmacen;
+  FConsulta.Open;
+  Result := not FConsulta.IsEmpty;
+  FConsulta.Close;
+end;
+
+procedure TServicioStockDevolucionCompra.BloquearStock;
+var
+  sAmbito: string;
+begin
+  FConsulta.Close;
+  if FParametros.Modo = msdcLote then
+    sAmbito := SQLAmbitoLote
+  else
+    sAmbito := '(STK.CODIGO_UNIDAD_STK = :art OR EXISTS ( ' +
+      'SELECT 1 FROM fza_articulos_skus SK ' +
+      'WHERE SK.CODIGO_ART_SKU = :art ' +
+      'AND SK.CODIGO_UNIDAD_SKU = STK.CODIGO_UNIDAD_STK)) ';
+  FConsulta.SQL.Text :=
+    'SELECT STK.CODIGO_UNIDAD_STK FROM fza_articulos_stockactual STK ' +
+    'WHERE STK.CODIGO_ALM_STK = :alm AND ' + sAmbito +
+    ' ORDER BY STK.CODIGO_UNIDAD_STK, STK.LOTE_STK FOR UPDATE';
+  FConsulta.ParamByName('alm').AsString := FParametros.CodigoAlmacen;
+  if FParametros.Modo = msdcLote then
+  begin
+    FConsulta.ParamByName('empresa').AsString := FParametros.CodigoEmpresa;
+    FConsulta.ParamByName('prv').AsString := FParametros.CodigoProveedor;
+    FConsulta.ParamByName('lote').AsString := FParametros.Lote;
+  end
+  else
+    FConsulta.ParamByName('art').AsString := FParametros.CodigoArticulo;
+  FConsulta.Open;
+  FConsulta.Last;
+  FConsulta.Close;
 end;
 
 function TServicioStockDevolucionCompra.ArticuloTieneColores: Boolean;
@@ -279,7 +380,18 @@ end;
 
 function TServicioStockDevolucionCompra.InsertarLineasStock(
   ALineaBase: Integer): Integer;
+var
+  sCamposLote, sValoresLote, sOrden: string;
 begin
+  sCamposLote := '';
+  sValoresLote := '';
+  sOrden := 'Y.ORDEN_ART, Y.ART, Y.SKU_STOCK';
+  if FParametros.Modo <> msdcFila then
+  begin
+    sCamposLote := 'LOTE_DEVCLIN, FECHA_CADUCIDAD_DEVCLIN, ';
+    sValoresLote := 'Y.LOTE, Y.CADUCIDAD, ';
+    sOrden := sOrden + ', Y.LOTE';
+  end;
   FConsulta.Close;
   FConsulta.SQL.Text :=
     'INSERT INTO fza_devoluciones_compra_lineas ( ' +
@@ -292,17 +404,18 @@ begin
     '  PRECIO_COMPRA_SIVA_ARTICULO_DEVCLIN, ' +
     '  PRECIO_COMPRA_CIVA_ARTICULO_DEVCLIN, TOTAL_DEVCLIN, ' +
     '  CODIGO_ALMACEN_DEVCLIN, ESFACTURADA_DEVCLIN, ' +
+    sCamposLote +
     '  INSTANTE_MODIF, INSTANTE_ALTA, USUARIO_ALTA, USUARIO_MODIF) ' +
     'SELECT :numero, :serie, ' +
-    '       LPAD(:linea_base + (ROW_NUMBER() OVER (ORDER BY ' +
-    '                                Y.ORDEN_ART, Y.ART, Y.SKU_STOCK) ' +
-    '                                * 10), 4, ''0''), ' +
+    '       LPAD(:linea_base + ROW_NUMBER() OVER (ORDER BY ' +
+    sOrden + ') * 10, 4, ''0''), ' +
     '       Y.ART, Y.SKU_STOCK, Y.REF_PRV, NULLIF(Y.ID_AC, 0), ' +
     '       Y.CODIGO_FAM, Y.NOMBRE_FAM, Y.DESCRIPCION_ART, ' +
     '       Y.TIPO_CANTIDAD_ART, Y.CANTIDAD, Y.CANTIDAD, ' +
     '       Y.TIPO_IVA_ART, Y.PORCENTAJE_IVA, Y.PRECIO_COMPRA, ' +
     '       Y.PRECIO_COMPRA * (1 + Y.PORCENTAJE_IVA / 100), ' +
     '       Y.CANTIDAD * Y.PRECIO_COMPRA, :almacen_linea, ''N'', ' +
+    sValoresLote +
     '       NOW(), NOW(), :usuario_alta, :usuario_modif ' +
     '  FROM ( ' +
     '        SELECT X.*, ' +
@@ -313,7 +426,7 @@ begin
     '                 ELSE :iva_n END AS PORCENTAJE_IVA ' +
     '          FROM (' + SQLStockDisponible + ') X ' +
     '       ) Y ' +
-    ' ORDER BY Y.ORDEN_ART, Y.ART, Y.SKU_STOCK';
+    ' ORDER BY ' + sOrden;
   FConsulta.ParamByName('serie').AsString := FParametros.Serie;
   FConsulta.ParamByName('numero').AsString := FParametros.Numero;
   FConsulta.ParamByName('linea_base').AsInteger := ALineaBase;
@@ -330,22 +443,33 @@ begin
   Result := FConsulta.RowsAffected;
 end;
 
-function TServicioStockDevolucionCompra.ConsultarEstado:
-  TEstadoStockDevolucionCompra;
+function TServicioStockDevolucionCompra.ConsultarEstado(
+  out ALineasDisponibles: Integer): TEstadoStockDevolucionCompra;
 begin
+  ALineasDisponibles := 0;
   if (FParametros.CodigoProveedor = '') or
      (FParametros.CodigoProveedor = '0') then
     Result := esdcProveedorNoIndicado
   else if FParametros.CodigoAlmacen = '' then
     Result := esdcAlmacenNoIndicado
-  else if FParametros.CodigoArticulo = '' then
+  else if (FParametros.Modo <> msdcLote) and
+          (FParametros.CodigoArticulo = '') then
     Result := esdcArticuloNoIndicado
-  else if (FParametros.IdColor = 0) and ArticuloTieneColores then
+  else if (FParametros.Modo = msdcFila) and
+          (FParametros.IdColor = 0) and ArticuloTieneColores then
     Result := esdcRequiereColor
-  else if ContarStockDisponible = 0 then
+  else if (FParametros.Modo = msdcLote) and
+          ((FParametros.Lote = '') or not EmpresaReposicionActiva(
+            FConexion, FParametros.CodigoEmpresa)) then
     Result := esdcSinStock
   else
-    Result := esdcDisponible;
+  begin
+    ALineasDisponibles := ContarStockDisponible;
+    if ALineasDisponibles = 0 then
+      Result := esdcSinStock
+    else
+      Result := esdcDisponible;
+  end;
 end;
 
 function TServicioStockDevolucionCompra.Ejecutar(
@@ -353,7 +477,7 @@ function TServicioStockDevolucionCompra.Ejecutar(
   out AEstado: TEstadoStockDevolucionCompra): Boolean;
 var
   bTxOwned: Boolean;
-  iLineaBase: Integer;
+  iLineaBase, iLineasDisponibles: Integer;
 begin
   Result := False;
   ALineas := 0;
@@ -361,15 +485,31 @@ begin
   if bTxOwned then
     FConexion.StartTransaction;
   try
-    AEstado := ConsultarEstado;
+    if FParametros.Modo = msdcFila then
+      AEstado := ConsultarEstado(iLineasDisponibles)
+    else if not BloquearDocumento then
+      AEstado := esdcDocumentoNoEditable
+    else
+    begin
+      BloquearStock;
+      AEstado := ConsultarEstado(iLineasDisponibles);
+    end;
     if AEstado = esdcDisponible then
     begin
-      BorrarGrupo;
+      // Las devoluciones previas ya están descontadas del stock actual.
+      if FParametros.Modo = msdcFila then
+        BorrarGrupo;
       iLineaBase := ObtenerLineaBase;
-      ALineas := InsertarLineasStock(iLineaBase);
-      Result := ALineas > 0;
-      if not Result then
-        AEstado := esdcSinStock;
+      if (FParametros.Modo <> msdcFila) and
+         (iLineaBase + iLineasDisponibles * 10 > 9999) then
+        AEstado := esdcSinEspacioLineas
+      else
+      begin
+        ALineas := InsertarLineasStock(iLineaBase);
+        Result := ALineas > 0;
+        if not Result then
+          AEstado := esdcSinStock;
+      end;
     end;
     if Result then
     begin
@@ -397,11 +537,12 @@ function TPersistenciaStockDevolucionCompra.ConsultarEstado(
   TEstadoStockDevolucionCompra;
 var
   Servicio: TServicioStockDevolucionCompra;
+  iLineasDisponibles: Integer;
 begin
   Servicio := TServicioStockDevolucionCompra.Create(
     FConexion, AParametros);
   try
-    Result := Servicio.ConsultarEstado;
+    Result := Servicio.ConsultarEstado(iLineasDisponibles);
   finally
     FreeAndNil(Servicio);
   end;

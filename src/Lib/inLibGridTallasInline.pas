@@ -248,6 +248,20 @@ uses
   inLibPivoteVentaCalculo,
   inLibMsgArticulos;
 
+// FZ-ISSUE-1113: en los documentos de venta LINEA es texto y la línea
+// nueva no tiene número hasta grabarse (FZ-ISSUE-224). Convertir '' a
+// entero lanzaba EConvertError desde las recargas diferidas (TTimer).
+// Sin número válido se trata como línea 0, que el gestor ya ignora.
+function NumeroLineaValor(const AValor: Variant): Integer;
+begin
+  Result := 0;
+  if not (VarIsNull(AValor) or VarIsEmpty(AValor)) then
+  begin
+    if not TryStrToInt(Trim(VarToStr(AValor)), Result) then
+      Result := 0;
+  end;
+end;
+
 { TGestorGridTallas }
 
 function CrearConfigPersistenciaTallasInline(
@@ -421,7 +435,7 @@ begin
            ((oArticulo = nil) or SameText(VarToStr(
              FCfg.Grid.DataController.Values[i, oArticulo.Index]),
              AArticulo)) then
-          iLinea := vLinea;
+          iLinea := NumeroLineaValor(vLinea);
         if iLinea > 0 then
         begin
           aCeldas := FCfg.Persistencia.ConsultarCeldasLinea(iLinea);
@@ -444,19 +458,47 @@ end;
 function TGestorGridTallas.IndicesTallasVisibles(const AArticulo: string;
   const APosiciones: TArray<TPosicionConjuntoTallas>): TArray<Integer>;
 var
-  aConDatos, aIds: TArray<Integer>;
-  i: Integer;
+  aCandidatas, aConDatos, aIds, aElegidas: TArray<Integer>;
+  i, j: Integer;
+  bUsada, bArticuloConTallas: Boolean;
 begin
-  SetLength(aIds, Length(APosiciones));
-  for i := 0 to High(APosiciones) do
-    aIds[i] := APosiciones[i].IdAv;
   aConDatos := nil;
-  if Length(aIds) > FCfg.MaxColumnas then
+  SetLength(aCandidatas, Length(APosiciones));
+  for i := 0 to High(APosiciones) do
+    aCandidatas[i] := i;
+  if Length(APosiciones) > FCfg.MaxColumnas then
   begin
     aConDatos := TallasConCantidad(AArticulo);
-    FAvisoTallas.Anotar(AArticulo, Length(aIds), FCfg.MaxColumnas);
+    // FZ-ISSUE-1095: si el sistema no cabe, solo cuentan y se enseñan
+    // las tallas que el artículo usa (sus SKU y las que tienen cantidad).
+    bArticuloConTallas := False;
+    for i := 0 to High(APosiciones) do
+      if APosiciones[i].EnArticulo then
+        bArticuloConTallas := True;
+    if bArticuloConTallas then
+    begin
+      aCandidatas := nil;
+      for i := 0 to High(APosiciones) do
+      begin
+        bUsada := APosiciones[i].EnArticulo;
+        for j := 0 to High(aConDatos) do
+          if aConDatos[j] = APosiciones[i].IdAv then
+            bUsada := True;
+        if bUsada then
+          aCandidatas := aCandidatas + [i];
+      end;
+    end;
+    if Length(aCandidatas) > FCfg.MaxColumnas then
+      FAvisoTallas.Anotar(AArticulo, Length(aCandidatas),
+        FCfg.MaxColumnas);
   end;
-  Result := IndicesTallasHorizontal(aIds, aConDatos, FCfg.MaxColumnas);
+  SetLength(aIds, Length(aCandidatas));
+  for i := 0 to High(aCandidatas) do
+    aIds[i] := APosiciones[aCandidatas[i]].IdAv;
+  aElegidas := IndicesTallasHorizontal(aIds, aConDatos, FCfg.MaxColumnas);
+  SetLength(Result, Length(aElegidas));
+  for i := 0 to High(aElegidas) do
+    Result[i] := aCandidatas[aElegidas[i]];
 end;
 
 function TGestorGridTallas.GetPosicionesConjunto(
@@ -600,13 +642,13 @@ begin
       if Assigned(ColumnaLinea) and not ds.IsEmpty then
       begin
         FReferenciaCaptions := nil;
-        iLinea := ds.FieldByName(FCfg.FieldLinea).AsInteger;
+        iLinea := NumeroLineaValor(ds.FieldByName(FCfg.FieldLinea).Value);
         for iRegistro := 0 to FCfg.Grid.DataController.RecordCount - 1 do
         begin
           ValorLinea := FCfg.Grid.DataController.Values[
             iRegistro, ColumnaLinea.Index];
           if not VarIsNull(ValorLinea) and not VarIsEmpty(ValorLinea) and
-             (Integer(ValorLinea) <> iLinea) then
+             (NumeroLineaValor(ValorLinea) <> iLinea) then
           begin
             Posiciones := GetPosicionesRegistro(iRegistro);
             if Length(Posiciones) > Result then
@@ -737,7 +779,7 @@ begin
           vLinea := FCfg.Grid.DataController.Values[i, colLinea.Index];
           if not VarIsNull(vLinea) and not VarIsEmpty(vLinea) then
           begin
-            iLinea := vLinea;
+            iLinea := NumeroLineaValor(vLinea);
             if iLinea > 0 then
               CargarCantidadesUnaLinea(i, iLinea);
           end;
@@ -828,7 +870,7 @@ begin
   ds := Lineas;
   if HayLineaActiva then
   begin
-    iLinea := ds.FieldByName(FCfg.FieldLinea).AsInteger;
+    iLinea := NumeroLineaValor(ds.FieldByName(FCfg.FieldLinea).Value);
     if iLinea > 0 then
     begin
       aCeldas := FCfg.Persistencia.ConsultarCeldasLinea(iLinea);
@@ -955,7 +997,8 @@ begin
       if (iPos >= 1) and (iPos <= FCfg.MaxColumnas) and
          HayLineaActiva then
       begin
-        iLinea := Lineas.FieldByName(FCfg.FieldLinea).AsInteger;
+        iLinea := NumeroLineaValor(
+          Lineas.FieldByName(FCfg.FieldLinea).Value);
         iAc := Lineas.FieldByName(FCfg.FieldConjuntoPivot).AsInteger;
         arr := GetPosicionesConjunto(iAc);
         LogSes(Format(

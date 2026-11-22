@@ -39,6 +39,7 @@ type
     FDatos: TdmLotesConsultas;
     FFiltros: TFiltrosLotes;
     FSelecciones: TArray<string>;
+    FMostrarCaducidad: Boolean;
   protected
     procedure DoShow; override;
     procedure ConstruirExcelNativo(AControl: TdxSpreadSheet); override;
@@ -49,8 +50,9 @@ type
     // pares «título», «valor» de los filtros aplicados, para el resumen.
     constructor CreateInforme(AOwner: TComponent;
       ADatos: TdmLotesConsultas; const AFiltros: TFiltrosLotes;
-      const ASelecciones: TArray<string>);
+      const ASelecciones: TArray<string>; AMostrarCaducidad: Boolean);
     procedure preparar_consulta; override;
+    procedure AfterReportLoaded; override;
   end;
 
 implementation
@@ -63,14 +65,45 @@ uses
 
 constructor TfrmPrintCaducidades.CreateInforme(AOwner: TComponent;
   ADatos: TdmLotesConsultas; const AFiltros: TFiltrosLotes;
-  const ASelecciones: TArray<string>);
+  const ASelecciones: TArray<string>; AMostrarCaducidad: Boolean);
 begin
   if not Assigned(ADatos) then
     raise EArgumentNilException.Create('ADatos');
   FDatos := ADatos;
   FFiltros := AFiltros;
   FSelecciones := ASelecciones;
+  FMostrarCaducidad := AMostrarCaducidad;
   inherited Create(AOwner);
+end;
+
+procedure TfrmPrintCaducidades.AfterReportLoaded;
+
+  procedure OcultarCaducidad(const ALote, ACaducidad, ADias: string);
+  var
+    oLote, oCaducidad, oDias: TfrxComponent;
+  begin
+    oLote := frxrprt1.FindObject(ALote);
+    oCaducidad := frxrprt1.FindObject(ACaducidad);
+    oDias := frxrprt1.FindObject(ADias);
+    if (oLote is TfrxMemoView) and (oCaducidad is TfrxMemoView) and
+       (oDias is TfrxMemoView) and (oLote.Parent = oDias.Parent) and
+       (oLote.Parent = oCaducidad.Parent) and
+       (oLote.Left + oLote.Width = oCaducidad.Left) and
+       (oCaducidad.Left + oCaducidad.Width = oDias.Left) then
+      oLote.Width := oDias.Left + oDias.Width - oLote.Left;
+    if oCaducidad is TfrxMemoView then
+      oCaducidad.Visible := False;
+    if oDias is TfrxMemoView then
+      oDias.Visible := False;
+  end;
+
+begin
+  inherited;
+  if not FMostrarCaducidad then
+  begin
+    OcultarCaducidad('MemoHLote', 'MemoHCaducidad', 'MemoHDias');
+    OcultarCaducidad('MemoLote', 'MemoCaducidad', 'MemoDias');
+  end;
 end;
 
 procedure TfrmPrintCaducidades.preparar_consulta;
@@ -103,21 +136,26 @@ end;
 
 procedure TfrmPrintCaducidades.ConstruirExcelNativo(
   AControl: TdxSpreadSheet);
+var
+  aColumnas: TColumnasInformeTabular;
 begin
+  aColumnas := [
+    ColumnaInforme('CODIGO_ALM_STK', STextoAlmacenComun, 1),
+    ColumnaInforme('NOMBRE_ALM_ALM', STextoNombreAlmacenComun, 2),
+    ColumnaInforme('DESCRIPCION_FAM', STextoFamiliaComun2, 2),
+    ColumnaInforme('CODIGO_ART_SKU', STextoArticuloComun2, 1),
+    ColumnaInforme('DESCRIPCION_ART', STextoDescripcionComun, 3),
+    ColumnaInforme('CODIGO_UNIDAD_STK', STextoSkuComun, 1),
+    ColumnaInforme('LOTE_STK', STextoLoteComun, 1)];
+  if FMostrarCaducidad then
+    aColumnas := aColumnas + [
+      ColumnaInforme('FECHA_CADUCIDAD', STextoCaducidadComun, 1),
+      ColumnaInforme('DIAS_PARA_CADUCAR', STextoDiasParaCaducarComun, 1, '%g')];
+  aColumnas := aColumnas + [
+    ColumnaInforme('CANTIDAD_STK', STextoCantidadComun, 1, '%g'),
+    ColumnaInforme('VALOR_TOTAL_STK', STextoValorTotalComun, 1, '%n')];
   ExportarInformeTabularExcel(AControl, dsCaducidadesPrint.DataSet,
-    Caption,
-    [ColumnaInforme('CODIGO_ALM_STK', STextoAlmacenComun, 1),
-     ColumnaInforme('NOMBRE_ALM_ALM', STextoNombreAlmacenComun, 2),
-     ColumnaInforme('DESCRIPCION_FAM', STextoFamiliaComun2, 2),
-     ColumnaInforme('CODIGO_ART_SKU', STextoArticuloComun2, 1),
-     ColumnaInforme('DESCRIPCION_ART', STextoDescripcionComun, 3),
-     ColumnaInforme('CODIGO_UNIDAD_STK', STextoSkuComun, 1),
-     ColumnaInforme('LOTE_STK', STextoLoteComun, 1),
-     ColumnaInforme('FECHA_CADUCIDAD', STextoCaducidadComun, 1),
-     ColumnaInforme('DIAS_PARA_CADUCAR', STextoDiasParaCaducarComun, 1, '%g'),
-     ColumnaInforme('CANTIDAD_STK', STextoCantidadComun, 1, '%g'),
-     ColumnaInforme('VALOR_TOTAL_STK', STextoValorTotalComun, 1, '%n')],
-    LineasResumenSelecciones);
+    Caption, aColumnas, LineasResumenSelecciones);
   AnadirResumenInformeTabularExcel(AControl, dsCaducidadesPrint.DataSet,
     STextoTotalesPorAlmacenComun,
     [ColumnaInforme('CODIGO_ALM_STK', STextoAlmacenComun, 1),

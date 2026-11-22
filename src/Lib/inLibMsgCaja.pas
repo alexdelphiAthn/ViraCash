@@ -1146,6 +1146,10 @@ resourcestring
     'Las unidades en negativo de sus líneas siempre vuelven al stock: ' +
     'la rectificación por diferencias no permite corregir solo el ' +
     'precio. ¿Desea continuar?';
+  // FZ-ISSUE-1102: anula stock y cobro de un día ya cerrado.
+  SErrorSustitutivaDiaAnteriorCaja =
+    'Solo un administrador puede hacer la rectificativa sustitutiva de ' +
+    'un ticket de un día anterior.';
   // FZ-ISSUE-1021: %0:s ticket, %1:s importe cobrado, %2:s formas de pago.
   SAvisoSustitutivaTicketCobradoCaja =
     'El ticket original %0:s ya se cobró (%1:s: %2:s).' + sLineBreak +

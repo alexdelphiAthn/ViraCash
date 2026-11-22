@@ -119,6 +119,7 @@ begin
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
     SqlExcluirOperacionesArqueadasAntes +
     SqlExcluirLiquidacionDepositoArqueo +
+    SqlPrimeraFilaDocumentoArqueo +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
       'o.SERIE_FAC_OPCAJA',
@@ -225,6 +226,7 @@ begin
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
     SqlExcluirOperacionesArqueadasAntes +
     SqlExcluirLiquidacionDepositoArqueo +
+    SqlPrimeraFilaDocumentoArqueo +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
       'o.SERIE_FAC_OPCAJA',
@@ -257,6 +259,7 @@ begin
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
     SqlExcluirOperacionesArqueadasAntes +
     SqlExcluirLiquidacionDepositoArqueo +
+    SqlPrimeraFilaDocumentoArqueo +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
       'o.SERIE_FAC_OPCAJA',
@@ -345,6 +348,7 @@ begin
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
     SqlExcluirOperacionesArqueadasAntes +
     SqlExcluirLiquidacionDepositoArqueo +
+    SqlPrimeraFilaDocumentoArqueo +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
       'o.SERIE_FAC_OPCAJA',
@@ -423,7 +427,7 @@ begin
     'RAZON_SOCIAL_EMP,NIF_EMP,DIRECCION1_EMP,' +
     'CODIGO_POSTAL_EMP,POBLACION_EMP,PROVINCIA_EMP');
   Result[1] := DefinicionSql(
-    'ObtenerContadores',
+    'ObtenerContadoresComercial',
     SqlContadores,
     'pTIPO_VE,pTIPO_DV,' + PARAMETROS_CONTEXTO,
     'PRIMERA,ULTIMA,UDS');
@@ -433,17 +437,17 @@ begin
     PARAMETROS_CONTEXTO + ',pTIPO_DV',
     'FP,IMPORTE');
   Result[3] := DefinicionSql(
-    'ListarResumenSeccion',
+    'ListarResumenSeccionComercial',
     SqlResumenSeccion,
     'pTIPO_VE,pTIPO_DV,' + PARAMETROS_CONTEXTO + ',pNIVELES',
     'FAMILIA,UDS,NETO');
   Result[4] := DefinicionSql(
-    'ListarResumenTemporada',
+    'ListarResumenTemporadaComercial',
     SqlResumenTemporada,
     'pTIPO_VE,pTIPO_DV,' + PARAMETROS_CONTEXTO,
     'TEMPORADA,UDS,NETO');
   Result[5] := DefinicionSql(
-    'ListarResumenEmpleado',
+    'ListarResumenEmpleadoComercial',
     SqlResumenEmpleado,
     'pTIPO_VE,pTIPO_DV,' + PARAMETROS_CONTEXTO,
     'EMPLEADO,OPS,NETO');
@@ -453,7 +457,7 @@ begin
     PARAMETROS_CONTEXTO + ',pTIPO_EC,pTIPO_GC',
     'FP,DESCR,UDS,IMP');
   Result[7] := DefinicionSql(
-    'ListarResumenSerie',
+    'ListarResumenSerieComercial',
     SqlResumenSerie,
     'pTIPO_VE,pTIPO_DV,' + PARAMETROS_CONTEXTO,
     'SERIE,BASE,CUOTA,TOTAL');

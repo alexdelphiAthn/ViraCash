@@ -422,6 +422,7 @@
   object LookAndFeelController1: TcxLookAndFeelController
     Kind = lfOffice11
     NativeStyle = False
+    ScrollbarMode = sbmClassic
     SkinName = 'Office2019Colorful'
     Left = 72
     Top = 144
@@ -987,6 +988,7 @@
   object dxSkinController1: TdxSkinController
     Kind = lfOffice11
     NativeStyle = False
+    ScrollbarMode = sbmClassic
     SkinName = 'Office2019Colorful'
     FormCorners = fcRounded
     Left = 400

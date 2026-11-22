@@ -37,6 +37,12 @@
             object cxGrdDBTabPrinCODIGO_UNIDAD_DEP: TcxGridDBColumn
               Caption = 'SKU/Unidad'
               DataBinding.FieldName = 'CODIGO_UNIDAD_DEP'
+              Width = 260
+            end
+            object cxGrdDBTabPrinLOTE_DEP: TcxGridDBColumn
+              Caption = 'Lote'
+              DataBinding.FieldName = 'LOTE_DEP'
+              Options.Editing = False
               Width = 180
             end
             object cxGrdDBTabPrinPRECIO_VENTA_DEP: TcxGridDBColumn
@@ -63,6 +69,12 @@
               Caption = 'F. Entrega'
               DataBinding.FieldName = 'FECHA_ENTREGA_DEP'
               Width = 120
+            end
+            object cxGrdDBTabPrinNUMERO_OPERACION_CANCEL_DEP: TcxGridDBColumn
+              Caption = 'Op. cierre'
+              DataBinding.FieldName = 'NUMERO_OPERACION_CANCEL_DEP'
+              Options.Editing = False
+              Width = 110
             end
             object cxGrdDBTabPrinCANTIDAD_PENDIENTE_DEP: TcxGridDBColumn
               Caption = 'Cant. Pendiente'

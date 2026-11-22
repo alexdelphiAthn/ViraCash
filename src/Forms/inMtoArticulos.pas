@@ -945,7 +945,7 @@ begin
     tvTarifasCODIGO_UNIDAD_TARIFA.Visible :=
       Visibilidad.MostrarSkuTarifa;
     tvSkuMtoPRECIO_ULT_COMPRA_SKUC.Visible :=
-      Visibilidad.MostrarCompraSku;
+      Visibilidad.MostrarCompraSku and PuedeVerCostes(Permisos);
     tvSkuMtoFECHA_ULT_COMPRA_SKUC.Visible :=
       Visibilidad.MostrarCompraSku;
   end;
@@ -1914,6 +1914,16 @@ begin
       PERMISO_ARTICULOS_ACTIVAR_DESACTIVAR_WEB,
       paDenegar);
   chkEnWeb.Properties.ReadOnly := not FPuedeCambiarMarcaWeb;
+  // FZ-ISSUE-1128: sin 'caja.verCoste', ni coste, ni margen, ni precio
+  // medio en la ficha, igual que en la consulta de stock (Ctrl+U).
+  if not PuedeVerCostes(Permisos) then
+  begin
+    RestringirColumnas([tvSkuMtoPRECIO_ULT_COMPRA_SKUC,
+      cxgrdbclmnTarifasPRECIO_ULT_COMPRA, dbcTarifasMARGEN, colCompraCoste,
+      tvMovimientosPRECIO_COSTE_UNITARIO_MOV, tvMovimientosTOTAL_COSTE_MOV,
+      tvMovimientosPRECIO_MEDIO_MOV]);
+    btnReconstruirStock.Visible := False;
+  end;
   dmmArticulos.AsignarPermisoCambioMarcaWeb(
     FPuedeCambiarMarcaWeb);
   dmmArticulos.AsignarConfirmacionDesactivacionWeb(

@@ -107,6 +107,10 @@ type
     function RecortarTallasHorizontal(const AArticulo: string;
       var APosiciones: TValoresTallaPivoteVenta;
       const ATallasGrupo: TArray<Integer>): Boolean;
+    procedure QuedarseConTallasArticulo(
+      var APosiciones: TValoresTallaPivoteVenta;
+      const ADelArticulo: TValoresTallaPivoteVenta;
+      const ATallasGrupo: TArray<Integer>);
     procedure AnexarTallasFaltantes(var APosiciones:
       TValoresTallaPivoteVenta; const ATallas: TValoresTallaPivoteVenta);
     // Conserva el sistema y completa las tallas del articulo y documento.
@@ -434,6 +438,34 @@ begin
   end;
 end;
 
+procedure TModeloPivoteVenta.QuedarseConTallasArticulo(
+  var APosiciones: TValoresTallaPivoteVenta;
+  const ADelArticulo: TValoresTallaPivoteVenta;
+  const ATallasGrupo: TArray<Integer>);
+var
+  aFiltradas: TValoresTallaPivoteVenta;
+  i, j: Integer;
+  bUsada: Boolean;
+begin
+  aFiltradas := nil;
+  for i := 0 to High(APosiciones) do
+  begin
+    bUsada := False;
+    for j := 0 to High(ADelArticulo) do
+      if ADelArticulo[j].IdAv = APosiciones[i].IdAv then
+        bUsada := True;
+    for j := 0 to High(ATallasGrupo) do
+      if ATallasGrupo[j] = APosiciones[i].IdAv then
+        bUsada := True;
+    if bUsada then
+    begin
+      SetLength(aFiltradas, Length(aFiltradas) + 1);
+      aFiltradas[High(aFiltradas)] := APosiciones[i];
+    end;
+  end;
+  APosiciones := aFiltradas;
+end;
+
 function TModeloPivoteVenta.RecortarTallasHorizontal(
   const AArticulo: string; var APosiciones: TValoresTallaPivoteVenta;
   const ATallasGrupo: TArray<Integer>): Boolean;
@@ -462,12 +494,12 @@ function TModeloPivoteVenta.ResolverConjuntoGrupo(
   ALineaRepr, AConjunto: Integer;
   const ATallas: TArray<Integer>): Integer;
 var
-  aPosiciones, aExtra: TValoresTallaPivoteVenta;
+  aPosiciones, aExtra, aDelArticulo: TValoresTallaPivoteVenta;
   aFaltantes: TArray<Integer>;
   oGrupo: TGrupoPivoteVenta;
   sClave: string;
   i, j, iLongitudSistema: Integer;
-  bPresente, bRecortado: Boolean;
+  bPresente, bRecortado, bSoloArticulo: Boolean;
 begin
   Result := AConjunto;
   aPosiciones := nil;
@@ -476,9 +508,12 @@ begin
     if AConjunto > 0 then
       aPosiciones := Copy(PosicionesConjunto(AConjunto));
     iLongitudSistema := Length(aPosiciones);
+    aDelArticulo := nil;
     if oGrupo.Articulo <> '' then
-      AnexarTallasFaltantes(aPosiciones,
-        FRepositorio.TallasDeArticulo(oGrupo.Articulo));
+    begin
+      aDelArticulo := FRepositorio.TallasDeArticulo(oGrupo.Articulo);
+      AnexarTallasFaltantes(aPosiciones, aDelArticulo);
+    end;
     // Red de seguridad: tallas del grupo que no salieron por el
     // artículo se anexan al final para que su celda tenga columna.
     aFaltantes := nil;
@@ -500,12 +535,20 @@ begin
       AnexarTallasFaltantes(aPosiciones, aExtra);
     end;
     OrdenarTallasNumericas(aPosiciones);
+    // FZ-ISSUE-1095: si el sistema no cabe, se enseñan solo las tallas
+    // que el artículo usa (sus SKU y las del documento). Así se cuentan
+    // las suyas, no las del sistema, y la talla de una cantidad (también
+    // negativa, FZ-ISSUE-1096) no se queda fuera del recorte.
+    bSoloArticulo := (Length(aPosiciones) > MAX_TALLAS_HORIZONTAL) and
+      (Length(aDelArticulo) > 0);
+    if bSoloArticulo then
+      QuedarseConTallasArticulo(aPosiciones, aDelArticulo, ATallas);
     // Recortado, el sistema real ya no sirve: sus posiciones no son
     // las que se enseñan y hace falta el conjunto virtual.
     bRecortado := RecortarTallasHorizontal(oGrupo.Articulo, aPosiciones,
       ATallas);
     if (Length(aPosiciones) > 0) and
-       ((AConjunto = 0) or bRecortado or
+       ((AConjunto = 0) or bRecortado or bSoloArticulo or
         (Length(aPosiciones) > iLongitudSistema)) then
     begin
       // Un id virtual por LISTA de tallas: dos grupos con las mismas

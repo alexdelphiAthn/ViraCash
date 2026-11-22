@@ -60,6 +60,7 @@ type
   end;
 
 function SqlExcluirLiquidacionDepositoArqueo: string;
+function SqlPrimeraFilaDocumentoArqueo: string;
 function SqlExcluirOperacionesArqueadasAntes: string;
 
 implementation
@@ -85,16 +86,43 @@ end;
 
 function SqlExcluirLiquidacionDepositoArqueo: string;
 begin
-  // La liquidacion ya tiene su movimiento DE: no es una venta normal.
-  // Mismo criterio que V_NORMALES; evita sumar el anticipo ACUENTA.
+  // Un cierre de depósito que emite factura es una venta. Las filas
+  // auxiliares sin factura se excluyen por su vínculo con el depósito.
   Result :=
-    'AND NOT EXISTS (SELECT 1 FROM fza_caja_operaciones od ' +
-    'WHERE o.TIPO_OPERACION_OPCAJA = ''VE'' ' +
-    'AND od.CODIGO_EMP_OPCAJA = o.CODIGO_EMP_OPCAJA ' +
+    'AND NOT (o.TIPO_OPERACION_OPCAJA IN (''VE'', ''DV'') ' +
+    'AND (COALESCE(o.SERIE_FAC_OPCAJA, '''') = '''' ' +
+    ' OR COALESCE(o.NUMERO_FAC_OPCAJA, '''') = '''') ' +
+    'AND EXISTS (SELECT 1 FROM fza_caja_operaciones od ' +
+    'WHERE od.CODIGO_EMP_OPCAJA = o.CODIGO_EMP_OPCAJA ' +
     'AND od.CODIGO_ALM_OPCAJA = o.CODIGO_ALM_OPCAJA ' +
     'AND od.CODIGO_CAJA_OPCAJA = o.CODIGO_CAJA_OPCAJA ' +
     'AND od.NUMERO_OPERACION_OPCAJA = o.NUMERO_OPERACION_OPCAJA ' +
-    'AND od.TIPO_OPERACION_OPCAJA = ''DE'') ';
+    'AND od.TIPO_OPERACION_OPCAJA = ''DE'' ' +
+    'AND ((NULLIF(o.ID_DEPOSITO_OPCAJA, '''') IS NOT NULL ' +
+    '      AND od.ID_DEPOSITO_OPCAJA = o.ID_DEPOSITO_OPCAJA) ' +
+    ' OR (od.IMPORTE_TOTAL_OPCAJA <= 0 ' +
+    '     AND (o.IMPORTE_TOTAL_OPCAJA = 0 ' +
+    '          OR o.IMPORTE_TOTAL_OPCAJA = od.IMPORTE_TOTAL_OPCAJA))))) ';
+end;
+
+function SqlPrimeraFilaDocumentoArqueo: string;
+begin
+  // Para contar una vez las líneas de un documento con varias filas VE
+  // (liquidaciones) o con VE y DV (rectificativas).
+  Result :=
+    'AND o.ID_OPCAJA = (SELECT COALESCE(' +
+    'MIN(CASE WHEN od.TIPO_OPERACION_OPCAJA = ''VE'' ' +
+    '         THEN od.ID_OPCAJA END), MIN(od.ID_OPCAJA)) ' +
+    'FROM fza_caja_operaciones od ' +
+    'WHERE od.CODIGO_EMP_OPCAJA = o.CODIGO_EMP_OPCAJA ' +
+    'AND od.CODIGO_ALM_OPCAJA = o.CODIGO_ALM_OPCAJA ' +
+    'AND od.CODIGO_CAJA_OPCAJA = o.CODIGO_CAJA_OPCAJA ' +
+    'AND od.NUMERO_OPERACION_OPCAJA = o.NUMERO_OPERACION_OPCAJA ' +
+    'AND COALESCE(od.SERIE_FAC_OPCAJA, '''') = ' +
+    '    COALESCE(o.SERIE_FAC_OPCAJA, '''') ' +
+    'AND COALESCE(od.NUMERO_FAC_OPCAJA, '''') = ' +
+    '    COALESCE(o.NUMERO_FAC_OPCAJA, '''') ' +
+    'AND od.TIPO_OPERACION_OPCAJA IN (''VE'', ''DV'')) ';
 end;
 
 function SqlContadores: string;
@@ -103,6 +131,8 @@ begin
     ' SELECT ' +
     'COUNT(DISTINCT CASE ' +
     'WHEN TIPO_OPERACION_OPCAJA = :pTIPO_VE ' +
+    'AND NOT (COALESCE(o.NUMERO_FAC_OPCAJA, '''') = '''' ' +
+    '         AND o.IMPORTE_TOTAL_OPCAJA = 0) ' +
     'THEN NUMERO_OPERACION_OPCAJA END) AS VENTAS, ' +
     'COUNT(DISTINCT NUMERO_OPERACION_OPCAJA) AS OPERAC ' +
     'FROM fza_caja_operaciones o ' +
@@ -112,6 +142,7 @@ begin
     'AND FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     'AND FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
     SqlExcluirOperacionesArqueadasAntes +
+    SqlExcluirLiquidacionDepositoArqueo +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
       'o.SERIE_FAC_OPCAJA',
@@ -138,13 +169,14 @@ begin
     'FROM (SELECT DISTINCT o.CODIGO_EMP_OPCAJA, o.CODIGO_ALM_OPCAJA, ' +
     'o.CODIGO_CAJA_OPCAJA, o.NUMERO_OPERACION_OPCAJA ' +
     'FROM fza_caja_operaciones o ' +
-    'WHERE o.TIPO_OPERACION_OPCAJA = :pTIPO_VE ' +
+    'WHERE o.TIPO_OPERACION_OPCAJA IN (:pTIPO_VE, :pTIPO_DV) ' +
     'AND o.CODIGO_EMP_OPCAJA = :pEMPRESA ' +
     'AND o.CODIGO_ALM_OPCAJA = :pALMACEN ' +
     'AND o.CODIGO_CAJA_OPCAJA = :pCAJA ' +
     'AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
     SqlExcluirOperacionesArqueadasAntes +
+    SqlExcluirLiquidacionDepositoArqueo +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
       'o.SERIE_FAC_OPCAJA',
@@ -158,31 +190,23 @@ end;
 
 function SqlOperaciones: string;
 begin
+  // El libro contabiliza un documento rectificativo por su saldo.
+  // La operación se usa como referencia en ventas sin factura vinculada.
   Result :=
-    ' SELECT COALESCE(SUM(CASE ' +
-    'WHEN o.TIPO_OPERACION_OPCAJA = :pTIPO_VE ' +
-    'THEN o.IMPORTE_TOTAL_OPCAJA ELSE 0 END), 0) AS NETO, ' +
-    'COALESCE(SUM(CASE ' +
-    'WHEN o.TIPO_OPERACION_OPCAJA = :pTIPO_VE ' +
-    'AND o.IMPORTE_TOTAL_OPCAJA > 0 AND NOT EXISTS ' +
-    '(SELECT 1 FROM fza_caja_operaciones o2 ' +
-    'WHERE o2.CODIGO_EMP_OPCAJA = o.CODIGO_EMP_OPCAJA ' +
-    'AND o2.CODIGO_ALM_OPCAJA = o.CODIGO_ALM_OPCAJA ' +
-    'AND o2.CODIGO_CAJA_OPCAJA = o.CODIGO_CAJA_OPCAJA ' +
-    'AND o2.NUMERO_OPERACION_OPCAJA = o.NUMERO_OPERACION_OPCAJA ' +
-    'AND o2.TIPO_OPERACION_OPCAJA = :pTIPO_DE) ' +
-    'THEN o.IMPORTE_TOTAL_OPCAJA ELSE 0 END), 0) AS V_NORMALES, ' +
-    'ABS(COALESCE(SUM(CASE ' +
-    'WHEN o.TIPO_OPERACION_OPCAJA = :pTIPO_DV OR ' +
-    '(o.TIPO_OPERACION_OPCAJA=:pTIPO_VE ' +
-    'AND o.IMPORTE_TOTAL_OPCAJA<0) ' +
-    'THEN o.IMPORTE_TOTAL_OPCAJA ELSE 0 END), 0)) AS V_DEVOL, ' +
-    'COALESCE(SUM(CASE ' +
-    'WHEN o.TIPO_OPERACION_OPCAJA = :pTIPO_EC ' +
-    'THEN o.IMPORTE_TOTAL_OPCAJA ELSE 0 END), 0) AS ENTRADAS, ' +
-    'COALESCE(SUM(CASE ' +
-    'WHEN o.TIPO_OPERACION_OPCAJA = :pTIPO_GC ' +
-    'THEN o.IMPORTE_TOTAL_OPCAJA ELSE 0 END), 0) AS SALIDAS ' +
+    'SELECT COALESCE(SUM(v.NETO_VENTA), 0) AS NETO, ' +
+    'COALESCE(SUM(CASE WHEN v.NETO_VENTA > 0 ' +
+    'THEN v.NETO_VENTA ELSE 0 END), 0) AS V_NORMALES, ' +
+    'COALESCE(SUM(CASE WHEN v.NETO_VENTA < 0 ' +
+    'THEN -v.NETO_VENTA ELSE 0 END), 0) AS V_DEVOL, ' +
+    'COALESCE(SUM(v.ENTRADAS), 0) AS ENTRADAS, ' +
+    'COALESCE(SUM(v.SALIDAS), 0) AS SALIDAS ' +
+    'FROM (SELECT SUM(CASE ' +
+    'WHEN o.TIPO_OPERACION_OPCAJA IN (:pTIPO_VE, :pTIPO_DV) ' +
+    'THEN o.IMPORTE_TOTAL_OPCAJA ELSE 0 END) AS NETO_VENTA, ' +
+    'SUM(CASE WHEN o.TIPO_OPERACION_OPCAJA = :pTIPO_EC ' +
+    'THEN o.IMPORTE_TOTAL_OPCAJA ELSE 0 END) AS ENTRADAS, ' +
+    'SUM(CASE WHEN o.TIPO_OPERACION_OPCAJA = :pTIPO_GC ' +
+    'THEN o.IMPORTE_TOTAL_OPCAJA ELSE 0 END) AS SALIDAS ' +
     'FROM fza_caja_operaciones o ' +
     'WHERE o.CODIGO_EMP_OPCAJA = :pEMPRESA ' +
     'AND o.CODIGO_ALM_OPCAJA = :pALMACEN ' +
@@ -190,10 +214,13 @@ begin
     'AND o.FECHA_OPERACION_OPCAJA >= :pFDESDE ' +
     'AND o.FECHA_OPERACION_OPCAJA <= :pFHASTA ' +
     SqlExcluirOperacionesArqueadasAntes +
+    SqlExcluirLiquidacionDepositoArqueo +
     SQLExcluirVentaRetirada(
       'o.CODIGO_EMP_OPCAJA',
       'o.SERIE_FAC_OPCAJA',
-      'o.NUMERO_FAC_OPCAJA');
+      'o.NUMERO_FAC_OPCAJA') +
+    ' GROUP BY o.NUMERO_OPERACION_OPCAJA, ' +
+    'NULLIF(o.SERIE_FAC_OPCAJA, ''''), NULLIF(o.NUMERO_FAC_OPCAJA, '''')) v';
 end;
 
 function SqlPrestamos: string;
@@ -382,19 +409,19 @@ const
 begin
   SetLength(Result, 10);
   Result[0] := DefinicionSql(
-    'CalcularContadores',
+    'CalcularContadoresComerciales',
     SqlContadores,
     PARAMETROS_RANGO,
     'VENTAS,OPERAC');
   Result[1] := DefinicionSql(
-    'CalcularLineas',
+    'CalcularLineasComerciales',
     SqlLineas,
-    PARAMETROS_RANGO,
+    PARAMETROS_RANGO + ',pTIPO_DV',
     'BRUTO,NETO_LIN');
   Result[2] := DefinicionSql(
-    'CalcularOperaciones',
+    'CalcularOperacionesComerciales',
     SqlOperaciones,
-    'pTIPO_VE,pTIPO_DE,pTIPO_DV,pTIPO_EC,pTIPO_GC,' +
+    'pTIPO_VE,pTIPO_DV,pTIPO_EC,pTIPO_GC,' +
     'pEMPRESA,pALMACEN,pCAJA,pFDESDE,pFHASTA',
     'NETO,V_NORMALES,V_DEVOL,ENTRADAS,SALIDAS');
   Result[3] := DefinicionSql(
@@ -550,6 +577,7 @@ begin
         Query.Close;
         Query.SQL.Text := ASql;
         Query.ParamByName('pTIPO_VE').AsString := TipoOpVenta;
+        Query.ParamByName('pTIPO_DV').AsString := TipoOpDevolucion;
         Query.ParamByName('pEMPRESA').AsString := oContexto.Empresa;
         Query.ParamByName('pALMACEN').AsString := oContexto.Almacen;
         Query.ParamByName('pCAJA').AsString := oContexto.Caja;
@@ -579,16 +607,8 @@ var
   oDefinicion: TDefinicionSql;
   Query: TUniQuery;
 begin
-  // Esquema de cálculo:
-  //   - Neto              = SUM IMPORTE_TOTAL_OPCAJA WHERE TIPO='VE' (signed,
-  //                         se mantiene como cifra interna).
-  //   - VentasNormales    = VE > 0 sin DE en la misma operación.
-  //   - Devoluciones      = ABS(SUM TIPO='DV')  ← canónico, no VE < 0.
-  //
-  // Préstamos y CobrosClientes NO se calculan aquí: se sacan en
-  // CalcularDepositos directamente de fza_depositos_cliente, que tiene
-  // el saldo correcto (PRECIO_VENTA_DEP × CANTIDAD para el valor de la
-  // mercancía, IMPORTE_ANTICIPO_DEP para lo ya cobrado).
+  // Ventas y devoluciones se clasifican por el signo del importe
+  // neto del documento. Los pagos se calculan por separado.
   oContexto := AArqueo;
   Query := TUniQuery.Create(nil);
   try
@@ -605,7 +625,6 @@ begin
         Query.ParamByName('pTIPO_DV').AsString := TipoOpDevolucion;
         Query.ParamByName('pTIPO_EC').AsString := TipoOpEntradaCambio;
         Query.ParamByName('pTIPO_GC').AsString := TipoOpGastoCaja;
-        Query.ParamByName('pTIPO_DE').AsString := TipoOpDeposito;
         Query.ParamByName('pEMPRESA').AsString := oContexto.Empresa;
         Query.ParamByName('pALMACEN').AsString := oContexto.Almacen;
         Query.ParamByName('pCAJA').AsString := oContexto.Caja;

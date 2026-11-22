@@ -576,7 +576,17 @@ begin
     AResultado.Datos.DescripcionSku);
   if not AResultado.Datos.EsVariacion then
     LimpiarCampoLinea(ADataSet, 'DESCRIPCION_VARIACION_ALBLIN');
-  if not AResultado.Datos.EsTrazable then
+  // FZ-ISSUE-1114: como NormalizarCamposOpcionalesLinea (FZ-ISSUE-1056),
+  // una partida de reposición (Modo Yeti) conserva su lote aunque el
+  // artículo no sea trazable. En «Tallas horiz.» esto corre tras resolver
+  // el SKU, con el lote ya elegido; al borrarlo, cada Post volvía a abrir
+  // «Elegir lote».
+  if (not AResultado.Datos.EsTrazable) and
+     ((ADataSet.FindField('LOTE_ALBLIN') = nil) or
+      not EsPartidaReposicion(
+        dmmAlbaranes.unqryTablaG.Connection as TUniConnection,
+        AResultado.Datos.CodigoSku,
+        ADataSet.FieldByName('LOTE_ALBLIN').AsString)) then
   begin
     LimpiarCampoLinea(ADataSet, 'LOTE_ALBLIN');
     LimpiarCampoLinea(ADataSet, 'FECHA_CADUCIDAD_ALBLIN');

@@ -56,21 +56,24 @@ begin
       Sku := UpperCase(Trim(Lineas.FieldByName(
         'CODIGO_UNIDAD_FACLIN').AsString));
       Cantidad := Lineas.FieldByName('CANTIDAD_FACLIN').AsFloat;
-      if (Sku <> '') and (Cantidad > 0) and
+      // FZ-ISSUE-1100: se valida el neto del SKU en la operación; las
+      // líneas en negativo (unidades que vuelven) compensan las ventas.
+      if (Sku <> '') and (Abs(Cantidad) > 0.0000005) and
          SameText(Lineas.FieldByName('TIPO_ARTICULO_FACLIN').AsString,
            'ESTANDAR') and
          (Trim(Lineas.FieldByName('VIENE_DE_DEPOSITO').AsString) = '') and
          (Trim(Lineas.FieldByName('ACCION_DEPOSITO').AsString) = '') then
       begin
         if not Cantidades.TryGetValue(Sku, Disponible) then
-        begin
           Disponible := 0;
-          Claves.Add(Sku);
-        end;
         Cantidades.AddOrSetValue(Sku, Disponible + Cantidad);
       end;
       Lineas.Next;
     end;
+    // Solo se bloquean y validan los SKU que la operación deja vendidos.
+    for Sku in Cantidades.Keys do
+      if Cantidades[Sku] > 0.0000005 then
+        Claves.Add(Sku);
     // Mismo orden entre cajas; los bloqueos duran hasta commit/rollback.
     Claves.Sort;
     Consulta.Connection := AConexion;

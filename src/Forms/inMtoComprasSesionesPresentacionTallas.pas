@@ -661,6 +661,8 @@ begin
   end;
   if Assigned(FGestor) and not Error then
   begin
+    if HayLineaActiva and (FLineas.State = dsBrowse) then
+      FLineas.Edit;
     FGestor.PersistirCeldaActiva(ASender);
     if Assigned(FEntorno.RefrescarTotalesSesion) then
       FEntorno.RefrescarTotalesSesion();
@@ -775,10 +777,10 @@ begin
       Abort;
   FAplicandoSistema := True;
   try
-    FEntorno.ReiniciarCantidadesLinea(
-      FLineas.FieldByName('LINEA_SESLIN').AsInteger);
     if not (FLineas.State in dsEditModes) then
       FLineas.Edit;
+    FEntorno.ReiniciarCantidadesLinea(
+      FLineas.FieldByName('LINEA_SESLIN').AsInteger);
     FLineas.FieldByName('TOTAL_UNIDADES_SESLIN').AsFloat := 0;
     FLineas.FieldByName('TOTAL_LINEA_SESLIN').AsFloat := 0;
     FEntorno.DefinirVariacionLinea(ACodigo);

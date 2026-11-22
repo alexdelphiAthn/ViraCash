@@ -170,6 +170,7 @@ type
 implementation
 
 uses
+  UniDataComprasSesionesVinculos,
   UniDataProveedoresTexto,
   inLibLineaSku,
   inLibValoresAutomaticos, UniDataValoresAutomaticosRepositorio,
@@ -792,41 +793,51 @@ procedure TdmPedidosCompra.unqryTablaGBeforeDelete(DataSet: TDataSet);
 var
   sSerie, sNumero: string;
   q: TUniQuery;
+
+  procedure Ejecutar(const ASql: string);
+  begin
+    q.SQL.Text := ASql;
+    q.ParamByName('s').AsString := sSerie;
+    q.ParamByName('n').AsString := sNumero;
+    q.ExecSQL;
+  end;
+
 begin
   inherited;
-  // Limpiar pendientes de recibir antes de borrar la cabecera para no
-  // dejar filas huerfanas. Las lineas las borra el ON DELETE CASCADE
-  // (no aplica aqui: no hay FK) — bueno, simplemente las lineas se
-  // pueden quedar tambien huerfanas. Las borramos a mano.
-  sSerie  := unqryTablaG.FieldByName('SERIE_PEDC').AsString;
-  sNumero := unqryTablaG.FieldByName('NUMERO_PEDC').AsString;
+  sSerie := DataSet.FieldByName('SERIE_PEDC').AsString;
+  sNumero := DataSet.FieldByName('NUMERO_PEDC').AsString;
   if (sSerie <> '') and (sNumero <> '') then
   begin
+    // Un pedido con albaranes no se puede borrar: avisar antes de
+    // preguntar, no después de anunciar un borrado que no ocurrirá
+    // (FZ-ISSUE-1109). Dentro de la transacción se vuelve a comprobar
+    // con bloqueo.
+    ExigirPedidoCompraSinRecepciones(ConexionEscritura, sSerie, sNumero);
     if not SolicitarConfirmacion(
-      Format(SPreguntaBorrarPedidoCompra,
-        [sSerie, sNumero])) then
-    begin
+      Format(SPreguntaBorrarPedidoCompra, [sSerie, sNumero])) then
       Abort;
-    end;
     IniciarBorradoTransaccional;
     try
+      ExigirPedidoCompraSinRecepciones(ConexionEscritura, sSerie, sNumero);
       CrearPendientesPedidoCompraUniDAC(
-        ConexionEscritura).BorrarPdteRecibirDesdePedido(
-          sSerie, sNumero);
-      // Borrar lineas asociadas para evitar registros huerfanos.
+        ConexionEscritura).BorrarPdteRecibirDesdePedido(sSerie, sNumero);
       q := TUniQuery.Create(nil);
       try
         q.Connection := ConexionEscritura;
-        q.SQL.Text :=
+        Ejecutar(
+          'DELETE FROM fza_pedidos_compra_celdas ' +
+          ' WHERE SERIE_PEDC_PEDCCEL = :s AND NUMERO_PEDC_PEDCCEL = :n');
+        Ejecutar(
           'DELETE FROM fza_pedidos_compra_lineas ' +
-          ' WHERE SERIE_PEDC_PEDCLIN  = :s ' +
-          '   AND NUMERO_PEDC_PEDCLIN = :n';
-        q.ParamByName('s').AsString := sSerie;
-        q.ParamByName('n').AsString := sNumero;
-        q.ExecSQL;
+          ' WHERE SERIE_PEDC_PEDCLIN = :s AND NUMERO_PEDC_PEDCLIN = :n');
       finally
-        FreeAndNil(q);
+        q.Free;
       end;
+      // La sesion que lo genero deja de apuntarlo y, sin documentos,
+      // vuelve a BORRADOR (FZ-ISSUE-1106).
+      DesvincularDocumentoSesionesCompra(
+        ConexionEscritura, cTipoDocSesionPedidoCompra,
+        sSerie, sNumero, IdentidadSesion.Usuario);
     except
       RevertirBorradoTransaccional;
       raise;

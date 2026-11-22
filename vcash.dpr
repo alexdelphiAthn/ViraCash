@@ -1197,6 +1197,7 @@ uses
   UniDataComprasSesionesMaterializar in 'src\DataModules\UniDataComprasSesionesMaterializar.pas',
   UniDataComprasSesionesPedidos in 'src\DataModules\UniDataComprasSesionesPedidos.pas',
   UniDataComprasSesionesReversion in 'src\DataModules\UniDataComprasSesionesReversion.pas',
+  UniDataComprasSesionesVinculos in 'src\DataModules\UniDataComprasSesionesVinculos.pas',
   UniDataComprasSesionesUnidadTrabajo in 'src\DataModules\UniDataComprasSesionesUnidadTrabajo.pas',
   UniDataCatalogoSqlAplicacion in 'src\DataModules\UniDataCatalogoSqlAplicacion.pas',
   inMtoComprasPlantillas in 'src\Forms\inMtoComprasPlantillas.pas' {frmMtoComprasPlantillas},

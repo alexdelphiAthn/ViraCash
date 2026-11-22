@@ -160,6 +160,7 @@ type
       const AClave: TClaveOperacionSubsanacionCaja);
     procedure ValidarFiscal(const AClave: TClaveOperacionSubsanacionCaja);
     procedure ValidarVinculos(const AClave: TClaveOperacionSubsanacionCaja);
+    procedure ValidarArqueo(const AClave: TClaveOperacionSubsanacionCaja);
     function EsSinVerifactu: Boolean;
     procedure ValidarCabecera(ADatos: TDatosSubsanacionCaja);
     procedure ValidarOperaciones(ADatos: TDatosSubsanacionCaja;
@@ -853,6 +854,37 @@ begin
   end;
 end;
 
+// FZ-ISSUE-1110: un cobro incluido en un arqueo CERRADO (marcado con su
+// código o dentro de su rango de fechas) no se subsana: cambiaría las
+// formas de pago de un cierre ya hecho sin dejar rastro en él.
+procedure TServicioSubsanacionCajaUniDAC.ValidarArqueo(
+  const AClave: TClaveOperacionSubsanacionCaja);
+var
+  oConsulta: TUniQuery;
+begin
+  oConsulta := Consulta(
+    'SELECT 1 AS ARQUEO FROM fza_caja_operaciones O ' +
+    'JOIN fza_caja_arqueos A ' +
+    '  ON A.CODIGO_EMP_ARQ = O.CODIGO_EMP_OPCAJA ' +
+    ' AND A.CODIGO_ALM_ARQ = O.CODIGO_ALM_OPCAJA ' +
+    ' AND A.CODIGO_CAJA_ARQ = O.CODIGO_CAJA_OPCAJA ' +
+    ' AND A.FASE_ARQ = ''CERRADO'' ' +
+    ' AND (O.CODIGO_ARQUEO_OPCAJA = A.CODIGO_ARQ OR ' +
+    '      (O.FECHA_OPERACION_OPCAJA >= A.FECHA_DESDE_ARQ AND ' +
+    '       O.FECHA_OPERACION_OPCAJA <= A.FECHA_HASTA_ARQ)) ' +
+    'WHERE O.CODIGO_EMP_OPCAJA = :EMP AND O.CODIGO_ALM_OPCAJA = :ALM ' +
+    '  AND O.CODIGO_CAJA_OPCAJA = :CAJA ' +
+    '  AND O.NUMERO_OPERACION_OPCAJA = :OPE ' +
+    'LIMIT 1', AClave);
+  try
+    oConsulta.Open;
+    if not oConsulta.IsEmpty then
+      raise EInvalidOpException.Create(SSubsanacionArqueoCerrado);
+  finally
+    FreeAndNil(oConsulta);
+  end;
+end;
+
 procedure TServicioSubsanacionCajaUniDAC.ValidarPago(
   ADatos: TDatosSubsanacionCaja);
 begin
@@ -1064,6 +1096,7 @@ begin
   if not EsSinVerifactu then
     ValidarFiscal(AClave);
   ValidarVinculos(AClave);
+  ValidarArqueo(AClave);
   ValidarPago(ADatos);
   AnalizarLineas(ADatos);
   dTotal := ADatos.Cabecera.FieldByName(ftotal).AsCurrency;

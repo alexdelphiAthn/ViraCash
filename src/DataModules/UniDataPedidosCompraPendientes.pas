@@ -17,6 +17,10 @@ uses
   Uni, inLibPedidosCompraIntf;
 function CrearPendientesPedidoCompraUniDAC(
   AConexion: TUniConnection): IPedidosCompraPendientes;
+procedure ExigirPedidoCompraSinRecepciones(AConexion: TUniConnection;
+  const ASerie, ANumero: string);
+procedure ReponerPendientesAlBorrarAlbaranCompra(AConexion: TUniConnection;
+  const ASerie, ANumero, AUsuario: string);
 procedure RecalcularEstadoPedido(AConn: TUniConnection;
   const ASeriePedc, ANumPedc, AUsuario: string);
 procedure RecalcularPedidosFacturaCompra(AConexion: TUniConnection;
@@ -35,7 +39,111 @@ procedure VincularArticulosProveedorDesdePedido(AConn: TUniConnection;
   const ASerie, ANumero, AUsuario: string);
 implementation
 uses
-  System.SysUtils, Data.DB, DBAccess;
+  System.SysUtils, Data.DB, DBAccess, inLibMsgCompras, inLibErroresBBDD;
+procedure ExigirPedidoCompraSinRecepciones(AConexion: TUniConnection;
+  const ASerie, ANumero: string);
+var
+  Consulta: TUniQuery;
+begin
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := AConexion;
+    Consulta.SQL.Text :=
+      'SELECT SERIE_PEDC FROM fza_pedidos_compra ' +
+      ' WHERE SERIE_PEDC = :s AND NUMERO_PEDC = :n FOR UPDATE';
+    Consulta.ParamByName('s').AsString := ASerie;
+    Consulta.ParamByName('n').AsString := ANumero;
+    Consulta.Open;
+    if Consulta.IsEmpty then
+      Abort;
+    Consulta.Close;
+    Consulta.SQL.Text :=
+      'SELECT LINEA_ALBCLIN FROM fza_albaranes_compra_lineas ' +
+      ' WHERE SERIE_PEDC_ALBCLIN = :s AND NUMERO_PEDC_ALBCLIN = :n ' +
+      ' LIMIT 1 FOR UPDATE';
+    Consulta.ParamByName('s').AsString := ASerie;
+    Consulta.ParamByName('n').AsString := ANumero;
+    Consulta.Open;
+    if not Consulta.IsEmpty then
+      raise EValidacionBBDD.CreateFmt(
+        SPedidoCompraConRecepcionesNoBorrable, [ASerie, ANumero]);
+  finally
+    Consulta.Free;
+  end;
+end;
+
+procedure ReponerPendientesAlBorrarAlbaranCompra(AConexion: TUniConnection;
+  const ASerie, ANumero, AUsuario: string);
+var
+  Pedidos, Consulta: TUniQuery;
+  SeriePedido, NumeroPedido: string;
+begin
+  Pedidos := TUniQuery.Create(nil);
+  try
+    Consulta := TUniQuery.Create(nil);
+    try
+      Pedidos.Connection := AConexion;
+      Consulta.Connection := AConexion;
+      Pedidos.SQL.Text :=
+        'SELECT P.SERIE_PEDC, P.NUMERO_PEDC FROM fza_pedidos_compra P ' +
+        ' JOIN (SELECT DISTINCT SERIE_PEDC_ALBCLIN, NUMERO_PEDC_ALBCLIN ' +
+        '         FROM fza_albaranes_compra_lineas ' +
+        '        WHERE SERIE_ALBC_ALBCLIN = :s ' +
+        '          AND NUMERO_ALBC_ALBCLIN = :n) R ' +
+        '   ON R.SERIE_PEDC_ALBCLIN = P.SERIE_PEDC ' +
+        '  AND R.NUMERO_PEDC_ALBCLIN = P.NUMERO_PEDC ' +
+        ' ORDER BY P.SERIE_PEDC, P.NUMERO_PEDC FOR UPDATE';
+      Pedidos.ParamByName('s').AsString := ASerie;
+      Pedidos.ParamByName('n').AsString := ANumero;
+      Pedidos.Open;
+      while not Pedidos.Eof do
+      begin
+        SeriePedido := Pedidos.FieldByName('SERIE_PEDC').AsString;
+        NumeroPedido := Pedidos.FieldByName('NUMERO_PEDC').AsString;
+        Consulta.SQL.Text :=
+          'UPDATE fza_pedidos_compra_lineas P ' +
+          ' JOIN (SELECT DISTINCT LINEA_PEDC_ALBCLIN AS LINEA ' +
+          '         FROM fza_albaranes_compra_lineas ' +
+          '        WHERE SERIE_ALBC_ALBCLIN = :s ' +
+          '          AND NUMERO_ALBC_ALBCLIN = :n ' +
+          '          AND SERIE_PEDC_ALBCLIN = :sp ' +
+          '          AND NUMERO_PEDC_ALBCLIN = :np) D ' +
+          '   ON D.LINEA = P.LINEA_PEDCLIN ' +
+          ' SET P.CANTIDAD_RECIBIDA_PEDCLIN = COALESCE((' +
+          '       SELECT SUM(R.CANTIDAD_ALBCLIN) ' +
+          '         FROM fza_albaranes_compra_lineas R ' +
+          '         JOIN fza_albaranes_compra A ' +
+          '           ON A.SERIE_ALBC = R.SERIE_ALBC_ALBCLIN ' +
+          '          AND A.NUMERO_ALBC = R.NUMERO_ALBC_ALBCLIN ' +
+          '        WHERE R.SERIE_PEDC_ALBCLIN = P.SERIE_PEDC_PEDCLIN ' +
+          '          AND R.NUMERO_PEDC_ALBCLIN = P.NUMERO_PEDC_PEDCLIN ' +
+          '          AND R.LINEA_PEDC_ALBCLIN = P.LINEA_PEDCLIN ' +
+          '          AND (A.SERIE_ALBC <> :s OR A.NUMERO_ALBC <> :n) ' +
+          '          AND COALESCE(A.ESTADO_ALBC, '''') <> ''CANCELADO'' ' +
+          '     ), 0), ' +
+          '     P.USUARIO_MODIF = :usuario, P.INSTANTE_MODIF = NOW() ' +
+          ' WHERE P.SERIE_PEDC_PEDCLIN = :sp ' +
+          '   AND P.NUMERO_PEDC_PEDCLIN = :np';
+        Consulta.ParamByName('s').AsString := ASerie;
+        Consulta.ParamByName('n').AsString := ANumero;
+        Consulta.ParamByName('sp').AsString := SeriePedido;
+        Consulta.ParamByName('np').AsString := NumeroPedido;
+        Consulta.ParamByName('usuario').AsString := AUsuario;
+        Consulta.ExecSQL;
+        GenerarPdteRecibirDesdePedidoInterno(
+          AConexion, SeriePedido, NumeroPedido, AUsuario);
+        RecalcularEstadoPedido(
+          AConexion, SeriePedido, NumeroPedido, AUsuario);
+        Pedidos.Next;
+      end;
+    finally
+      Consulta.Free;
+    end;
+  finally
+    Pedidos.Free;
+  end;
+end;
+
 procedure VincularArticulosProveedorDesdePedido(AConn: TUniConnection;
   const ASerie, ANumero, AUsuario: string);
 var

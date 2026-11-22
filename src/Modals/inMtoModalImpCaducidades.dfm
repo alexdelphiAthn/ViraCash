@@ -78,25 +78,10 @@
             'Familia')
           ParentFont = False
         end
-        object MemoHArticulo: TfrxMemoView
+        object MemoHDescripcion: TfrxMemoView
           Left = 150.000000000000000000
           Top = 2.000000000000000000
-          Width = 90.000000000000000000
-          Height = 18.000000000000000000
-          Font.Charset = DEFAULT_CHARSET
-          Font.Color = clBlack
-          Font.Height = -11
-          Font.Name = 'Arial'
-          Font.Style = [fsBold]
-          Frame.Typ = [ftBottom]
-          Memo.UTF8W = (
-            'Art'#237'culo')
-          ParentFont = False
-        end
-        object MemoHDescripcion: TfrxMemoView
-          Left = 240.000000000000000000
-          Top = 2.000000000000000000
-          Width = 230.000000000000000000
+          Width = 210.000000000000000000
           Height = 18.000000000000000000
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -109,9 +94,9 @@
           ParentFont = False
         end
         object MemoHSku: TfrxMemoView
-          Left = 470.000000000000000000
+          Left = 360.000000000000000000
           Top = 2.000000000000000000
-          Width = 130.000000000000000000
+          Width = 240.000000000000000000
           Height = 18.000000000000000000
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -254,28 +239,10 @@
             '[Caducidades."DESCRIPCION_FAM"]')
           ParentFont = False
         end
-        object MemoArticulo: TfrxMemoView
+        object MemoDescripcion: TfrxMemoView
           Left = 150.000000000000000000
           Top = 1.000000000000000000
-          Width = 90.000000000000000000
-          Height = 18.000000000000000000
-          DataSet = fxdsCaducidades
-          DataSetName = 'Caducidades'
-          Font.Charset = DEFAULT_CHARSET
-          Font.Color = clBlack
-          Font.Height = -11
-          Font.Name = 'Arial'
-          Font.Style = []
-          Frame.Typ = []
-          WordWrap = False
-          Memo.UTF8W = (
-            '[Caducidades."CODIGO_ART_SKU"]')
-          ParentFont = False
-        end
-        object MemoDescripcion: TfrxMemoView
-          Left = 240.000000000000000000
-          Top = 1.000000000000000000
-          Width = 230.000000000000000000
+          Width = 210.000000000000000000
           Height = 18.000000000000000000
           DataSet = fxdsCaducidades
           DataSetName = 'Caducidades'
@@ -291,9 +258,9 @@
           ParentFont = False
         end
         object MemoSku: TfrxMemoView
-          Left = 470.000000000000000000
+          Left = 360.000000000000000000
           Top = 1.000000000000000000
-          Width = 130.000000000000000000
+          Width = 240.000000000000000000
           Height = 18.000000000000000000
           DataSet = fxdsCaducidades
           DataSetName = 'Caducidades'
@@ -333,8 +300,6 @@
           Height = 18.000000000000000000
           DataSet = fxdsCaducidades
           DataSetName = 'Caducidades'
-          DisplayFormat.FormatStr = 'dd/mm/yyyy'
-          DisplayFormat.Kind = fkDateTime
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
           Font.Height = -11
@@ -343,7 +308,9 @@
           Frame.Typ = []
           WordWrap = False
           Memo.UTF8W = (
-            '[Caducidades."FECHA_CADUCIDAD"]')
+            '[IIF(<Caducidades."FECHA_CADUCIDAD"> > 0, ' +
+            'FormatDateTime(''dd/mm/yyyy'', <Caducidades."FECHA_CADUCIDAD">), ' +
+            ''''')]')
           ParentFont = False
         end
         object MemoDias: TfrxMemoView
@@ -362,7 +329,8 @@
           HAlign = haRight
           WordWrap = False
           Memo.UTF8W = (
-            '[Caducidades."DIAS_PARA_CADUCAR"]')
+            '[IIF(<Caducidades."FECHA_CADUCIDAD"> > 0, ' +
+            '<Caducidades."DIAS_PARA_CADUCAR">, '''')]')
           ParentFont = False
         end
         object MemoCantidad: TfrxMemoView

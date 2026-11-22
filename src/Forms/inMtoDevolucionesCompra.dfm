@@ -359,6 +359,25 @@
             TabOrder = 2
             OnClick = btnDevolverTodoStockClick
           end
+          object btnDevolverArticuloCompleto: TcxButton
+            Left = 398
+            Top = 6
+            Width = 180
+            Height = 26
+            Caption = 'Todo el art'#237'culo en stock'
+            TabOrder = 5
+            OnClick = btnDevolverArticuloCompletoClick
+          end
+          object btnDevolverLoteCompleto: TcxButton
+            Left = 584
+            Top = 6
+            Width = 160
+            Height = 26
+            Caption = 'Devolver todo el lote'
+            TabOrder = 6
+            Visible = False
+            OnClick = btnDevolverLoteCompletoClick
+          end
         end
         object pnlBodyFicha: TPanel
           Left = 0

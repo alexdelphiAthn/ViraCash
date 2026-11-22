@@ -161,7 +161,7 @@ resourcestring
   STicketLineasArticulos = 'LÍNEAS DE ARTÍCULOS';
   STicketBruto = '  BRUTO';
   STicketVentasNormales = '  Ventas Normales';
-  STicketVentasPrestamos = '+ Ventas Préstamos';
+  STicketVentasPrestamos = 'Préstamos (informativo)';
   STicketDevoluciones = '− Devoluciones';
   STicketTotalVentas = '= TOTAL VENTAS';
   STicketCobros = 'COBROS';

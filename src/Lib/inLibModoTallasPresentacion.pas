@@ -66,7 +66,16 @@ type
     // Guardia de reentrada del modal distribuidor (OnEditing puede
     // dispararse varias veces mientras el modal se abre).
     FDistribAbierto: Boolean;
+    // FZ-ISSUE-1118: la carga y la recarga recorren las líneas (First/
+    // Next/GotoBookmark) y cada scroll volvía a armar la recarga: un
+    // bucle perpetuo de consultas (una conexión cada una) mientras la
+    // pantalla seguía abierta. Mientras dura, ArmarRecarga no rearma.
+    FRecargandoCeldas: Boolean;
+    // FZ-ISSUE-1119: el texto del editor de Artículo ya se mandó a
+    // resolver (Intro/Tab); al salir de la celda no se repite.
+    FEntradaEnviada: Boolean;
     procedure Registrar(const ATexto: string);
+    procedure CargarCeldasIniciales;
     procedure CrearColumnaArticulo;
     procedure CrearColumnasAtributo;
     procedure CrearColumnasTalla;
@@ -103,6 +112,7 @@ type
     procedure TimerCargaTimer(Sender: TObject);
     procedure TimerRecargaTimer(Sender: TObject);
     procedure EntradaElegida(const AEntrada: string);
+    procedure EntradaElegidaBuscador(const AEntrada: string);
     // El gestor rotula las columnas sobrantes con el generico
     // 'Talla N': aqui se dejan con un punto — solo se pinta la talla.
     procedure LimpiarCaptionsGenericas;
@@ -175,7 +185,7 @@ begin
   FRegistro := ARegistro;
   FBuscador := TBuscadorSkusTallas.Create(ABusqueda, AConfig.View,
                                           ARegistro);
-  FBuscador.OnEntradaElegida := EntradaElegida;
+  FBuscador.OnEntradaElegida := EntradaElegidaBuscador;
   FBuscador.EstablecerAlmacenStock(AConfig.AlmacenStock);
   FTimerResolve := CrearTemporizador(1, TimerResolveTimer);
   FTimerCarga := CrearTemporizador(1, TimerCargaTimer);
@@ -465,30 +475,42 @@ begin
   FTimerCarga.Enabled := False;
   if FGestor <> nil then
   begin
-    FGestor.RecalcularMaxColumnas;
-    // Totales ANTES de cargar celdas: escribirlos mueve el cursor y
-    // repinta filas, lo que limpiaria los Values[] no-bound.
-    FLineas.RefrescarTotales(FPersistencia.ConsultarTotalesPorLinea);
-    // Reposicionar TAMBIEN antes de cargar: el scroll del First resetea
-    // los Values[] no-bound igual que el EnableControls. El foco tras
-    // construir suele quedar en la linea en blanco (pivote 0) y los
-    // rotulos se quedarian en el generico 'Talla N'.
-    if FLineas.ConjuntoPivotActual = 0 then
-      FLineas.IrAlPrimero;
-    // La carga de celdas, SIEMPRE lo ultimo que toca el grid.
-    FGestor.CargarCantidadesTodasLineas;
-    FGestor.ActualizarCaptionsLineaActiva;
-    LimpiarCaptionsGenericas;
-    // Conversion terminada: a partir de aqui el hook AfterPost recarga
-    // las celdas tras cada Post del usuario.
-    FLineas.TerminarProceso;
+    FRecargandoCeldas := True;
+    try
+      CargarCeldasIniciales;
+    finally
+      FRecargandoCeldas := False;
+    end;
+    // Fuera de la guarda: los posts silenciados de la conversión sí
+    // deben rearmar la recarga una vez.
     FLineas.NotificarPostsSilenciados;
   end;
 end;
 
+procedure TPresentacionModoTallas.CargarCeldasIniciales;
+begin
+  FGestor.RecalcularMaxColumnas;
+  // Totales ANTES de cargar celdas: escribirlos mueve el cursor y
+  // repinta filas, lo que limpiaria los Values[] no-bound.
+  FLineas.RefrescarTotales(FPersistencia.ConsultarTotalesPorLinea);
+  // Reposicionar TAMBIEN antes de cargar: el scroll del First resetea
+  // los Values[] no-bound igual que el EnableControls. El foco tras
+  // construir suele quedar en la linea en blanco (pivote 0) y los
+  // rotulos se quedarian en el generico 'Talla N'.
+  if FLineas.ConjuntoPivotActual = 0 then
+    FLineas.IrAlPrimero;
+  // La carga de celdas, SIEMPRE lo ultimo que toca el grid.
+  FGestor.CargarCantidadesTodasLineas;
+  FGestor.ActualizarCaptionsLineaActiva;
+  LimpiarCaptionsGenericas;
+  // Conversion terminada: a partir de aqui el hook AfterPost recarga
+  // las celdas tras cada Post del usuario.
+  FLineas.TerminarProceso;
+end;
+
 procedure TPresentacionModoTallas.ArmarRecarga(Sender: TObject);
 begin
-  if FGestor <> nil then
+  if (FGestor <> nil) and not FRecargandoCeldas then
   begin
     FTimerRecarga.Enabled := False;
     FTimerRecarga.Enabled := True;
@@ -500,10 +522,15 @@ begin
   FTimerRecarga.Enabled := False;
   if FGestor <> nil then
   begin
-    FGestor.RecalcularMaxColumnas;
-    FGestor.CargarCantidadesTodasLineas;
-    FGestor.ActualizarCaptionsLineaActiva;
-    LimpiarCaptionsGenericas;
+    FRecargandoCeldas := True;
+    try
+      FGestor.RecalcularMaxColumnas;
+      FGestor.CargarCantidadesTodasLineas;
+      FGestor.ActualizarCaptionsLineaActiva;
+      LimpiarCaptionsGenericas;
+    finally
+      FRecargandoCeldas := False;
+    end;
   end;
 end;
 
@@ -545,7 +572,24 @@ begin
 end;
 
 procedure TPresentacionModoTallas.EditorSalir(Sender: TObject);
+var
+  sEntrada: string;
 begin
+  // FZ-ISSUE-1119: con el desplegable de sugerencias abierto, el propio
+  // editor consume el Intro o el Tab y no llegan a VistaEditKeyDown: el
+  // primer texto de la fila nueva se quedaba sin resolver. Salir de la
+  // celda con texto tecleado y sin enviar lo resuelve como el Intro.
+  if (not FEntradaEnviada) and (Sender is TcxCustomTextEdit) and
+     TcxCustomEdit(Sender).ModifiedAfterEnter then
+  begin
+    sEntrada := Trim(TcxCustomTextEdit(Sender).Text);
+    if sEntrada <> '' then
+    begin
+      FEntradaEnviada := True;
+      Registrar('ModoTallas.EditorSalir: resuelve "' + sEntrada + '"');
+      EntradaElegida(sEntrada);
+    end;
+  end;
   if Assigned(FOnSalirEdicion) then
     FOnSalirEdicion(Sender);
 end;
@@ -560,6 +604,7 @@ begin
   // salida de celda persiste su cantidad.
   if AItem = FColArticulo then
   begin
+    FEntradaEnviada := False;
     if Assigned(FOnEntrarEdicion) then
       FOnEntrarEdicion(AEdit);
     THackWinControl(AEdit).OnExit := EditorSalir;
@@ -617,8 +662,12 @@ begin
            ((Key >= Ord('0')) and
             not ((Key >= VK_F1) and (Key <= VK_F24)))) then
     FBuscador.Rearmar
-  // Enter en la celda de articulo (tecleo o lector Codigo+CR).
-  else if (AItem = FColArticulo) and (Key = VK_RETURN) then
+  // Enter en la celda de articulo (tecleo o lector Codigo+CR). Tab
+  // resuelve igual (FZ-ISSUE-1117): antes dejaba el texto sin resolver.
+  // Se consume como el Enter, porque la resolución recoloca el foco en
+  // la talla; Mayús+Tab sigue retrocediendo.
+  else if (AItem = FColArticulo) and
+          ((Key = VK_RETURN) or ((Key = VK_TAB) and (Shift = []))) then
   begin
     // Si el desplegable esta abierto, cerrarlo elige la fila y el Enter
     // no se queda consumido en el dropdown.
@@ -632,7 +681,9 @@ begin
     if sEntrada <> '' then
     begin
       Key := 0;
-      Registrar('ModoTallas.EditKeyDown: Enter con "' + sEntrada + '"');
+      Registrar('ModoTallas.EditKeyDown: Enter/Tab con "' +
+        sEntrada + '"');
+      FEntradaEnviada := True;
       EntradaElegida(sEntrada);
     end;
   end;
@@ -643,9 +694,20 @@ procedure TPresentacionModoTallas.EntradaElegida(
 begin
   // Resolucion diferida (mismo timer que el Enter): consolida la linea
   // y suma la talla en su celda.
+  FBuscador.CancelarBusquedaPendiente;
   FEntradaPend := AEntrada;
   FTimerResolve.Enabled := False;
   FTimerResolve.Enabled := True;
+end;
+
+procedure TPresentacionModoTallas.EntradaElegidaBuscador(
+  const AEntrada: string);
+begin
+  // FZ-ISSUE-1119: lo resuelto desde el desplegable cuenta como enviado;
+  // si no, al cerrar el editor EditorSalir lo resolvería otra vez y la
+  // talla sumaría 2 unidades.
+  FEntradaEnviada := True;
+  EntradaElegida(AEntrada);
 end;
 
 procedure TPresentacionModoTallas.TimerResolveTimer(Sender: TObject);

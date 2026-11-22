@@ -204,20 +204,58 @@ begin
   Result := Result + '_' + AConfig.PrefijoLineas;
 end;
 
+function IdValorAtributoSku(const AEje: string;
+  const AValor: string = ''): string;
+begin
+  Result := '(SELECT SA.ID_AV_SA FROM fza_atributos_sku SA ' +
+    'JOIN fza_atributos_valores AV ON AV.ID_AV = SA.ID_AV_SA ' +
+    'WHERE SA.CODIGO_UNIDAD_SKU_SA = SK.CODIGO_UNIDAD_SKU ' +
+    'AND AV.ID_VA_AV = ' + AEje;
+  if AValor <> '' then
+    Result := Result + ' AND AV.AV = ' + AValor;
+  Result := Result + ' ORDER BY SA.ID_AV_SA LIMIT 1)';
+end;
+
+function UnionesColorBasicoSku: string;
+begin
+  // Resuelve el color del SKU de la línea sin materializar la vista del
+  // catálogo. Conserva la prioridad artículo, conjunto y valor global.
+  Result :=
+    ' LEFT JOIN fza_articulos_atributos_basicos CB ' +
+    'ON CB.CODIGO_ART_AAB = SK.CODIGO_ART_SKU AND CB.ID_AV_AAB = CV.ID_AV ' +
+    'LEFT JOIN fza_articulos_conjuntos_asign CA ' +
+    'ON CA.CODIGO_ART_ACA = SK.CODIGO_ART_SKU AND CA.ID_VA_ACA = CV.ID_VA_AV ' +
+    'LEFT JOIN fza_atributos_conjuntos_det CD ' +
+    'ON CD.ID_AC_ACD = CA.ID_AC_ACA AND CD.ID_AV_ACD = CV.ID_AV ' +
+    'LEFT JOIN fza_atributos_basicos VC ON VC.ID_ATB = CASE ' +
+    'WHEN CB.CODIGO_ART_AAB IS NOT NULL THEN CB.ID_ATB_AAB ' +
+    'WHEN CD.ID_ATB_ACD IS NOT NULL THEN CD.ID_ATB_ACD ' +
+    'ELSE CV.ID_ATB_AV END ';
+end;
+
 function SqlLineasImpresionCompra(
   const AConfig: TConfiguracionDocumento): string;
 var
-  Sufijo, Sku, Cantidad, Precio, Total, RefProveedor, Color, Lote,
-    Caducidad, NumeroTalla: string;
+  Sufijo, Sku, Cantidad, Precio, Total, RefProveedor, Color, ValorColor, Lote,
+    Caducidad, NumeroTalla, Descuento: string;
 begin
   Sufijo := '_' + AConfig.PrefijoLineas;
+  // FZ-ISSUE-1127: las líneas de factura y devolución de compra no tienen
+  // descuento propio.
+  Descuento := 'L.PORCENTAJE_DTO' + Sufijo;
+  if AConfig.TipoDocumento in [tdFactura, tdDevolucion] then
+    Descuento := '0';
   Sku := 'L.CODIGO_UNIDAD' + Sufijo;
   Cantidad := 'COALESCE(L.CANTIDAD' + Sufijo + ', 0)';
   Precio := 'COALESCE(L.' + PrecioLinea(AConfig) + ', 0)';
   Total := 'COALESCE(L.TOTAL' + Sufijo + ', 0)';
   RefProveedor := 'COALESCE(NULLIF(TRIM(L.REF_PRV' + Sufijo +
     '), ''''), '''')';
-  Color := 'COALESCE(VC.NOMBRE_ATB, NULLIF(VC.VALOR_AV, ''''), '''')';
+  ValorColor := 'CASE WHEN CV.ID_AV IS NOT NULL THEN CV.AV ' +
+    'WHEN SK.CODIGO_UNIDAD_SKU LIKE CONCAT(SK.CODIGO_ART_SKU, ''/%'') ' +
+    'THEN SUBSTRING_INDEX(SUBSTRING_INDEX(SUBSTR(SK.CODIGO_UNIDAD_SKU, ' +
+    'CHAR_LENGTH(SK.CODIGO_ART_SKU) + 2), ''/'', CAE.ORDEN_VA), ''/'', -1) END';
+  Color := 'COALESCE(VC.NOMBRE_ATB, NULLIF(' + ValorColor + ', ''''), '''')';
   Lote := 'L.LOTE' + Sufijo;
   Caducidad := 'L.FECHA_CADUCIDAD' + Sufijo;
   if AConfig.TipoDocumento = tdPedido then
@@ -231,7 +269,7 @@ begin
       'AND PC.SERIE_PEDC = :SERIE AND PC.NUMERO_PEDC = :NUMERO ' +
       'LIMIT 1), '''')';
     Color := 'COALESCE(NULLIF(TRIM(L.COLOR_TEXTO_PEDCLIN), ''''), ' +
-      'NULLIF(VC.NOMBRE_ATB, ''''), VC.VALOR_AV, '''')';
+      'NULLIF(VC.NOMBRE_ATB, ''''), ' + ValorColor + ', '''')';
     Caducidad := 'L.CADUCIDAD_PEDCLIN';
   end;
   NumeroTalla := 'SUBSTRING_INDEX(' + Sku + ', ''/'', -1)';
@@ -249,7 +287,7 @@ begin
     'COALESCE(L.TIPO_CANTIDAD_ARTICULO' + Sufijo +
     ', '''') AS TIPO_CANTIDAD, ' + Cantidad + ' AS CANTIDAD, ' +
     Precio + ' AS PRECIO_COMPRA, ' + Total + ' AS IMPORTE, ' +
-    'L.PORCENTAJE_DTO' + Sufijo + ' AS DESCUENTO, ' +
+    Descuento + ' AS DESCUENTO, ' +
     'L.PORCENTAJE_IVA' + Sufijo + ' AS IVA, ' +
     'L.CODIGO_ALMACEN' + Sufijo + ' AS CODIGO_ALM_ALBCLIN, ' +
     'COALESCE(' + Lote + ', '''') AS LOTE, ' + Caducidad +
@@ -263,15 +301,16 @@ begin
     'LEFT JOIN fza_articulos_skus SK ON SK.CODIGO_UNIDAD_SKU = ' + Sku +
     ' LEFT JOIN vi_variaciones_ejes EP ' +
     'ON EP.ID_VAR_VA = SK.CODIGO_VAR_SKU AND EP.EJE_VA = ''P'' ' +
-    'LEFT JOIN fza_atributos_valores V ON V.ID_AV = (' +
-    'SELECT SA.ID_AV_SA FROM fza_atributos_sku SA ' +
-    'JOIN fza_atributos_valores AV ON AV.ID_AV = SA.ID_AV_SA ' +
-    'WHERE SA.CODIGO_UNIDAD_SKU_SA = SK.CODIGO_UNIDAD_SKU ' +
-    'AND AV.ID_VA_AV = EP.ID_ATB_VA ORDER BY SA.ID_AV_SA LIMIT 1) ' +
+    'LEFT JOIN fza_atributos_valores V ON V.ID_AV = ' +
+    IdValorAtributoSku('EP.ID_ATB_VA') + ' ' +
     'LEFT JOIN vi_variaciones_ejes EF ' +
     'ON EF.ID_VAR_VA = SK.CODIGO_VAR_SKU AND EF.EJE_VA = ''F'' ' +
-    'LEFT JOIN vi_atributos_sku_basico VC ' +
-    'ON VC.CODIGO_UNIDAD_SKU = ' + Sku + ' AND VC.ID_VA_AV = EF.ID_ATB_VA ' +
+    'LEFT JOIN (fza_atributos_sku SC JOIN fza_atributos_valores CV ' +
+    'ON CV.ID_AV = SC.ID_AV_SA) ON SC.CODIGO_UNIDAD_SKU_SA = ' +
+    'SK.CODIGO_UNIDAD_SKU AND CV.ID_VA_AV = EF.ID_ATB_VA' +
+    UnionesColorBasicoSku +
+    'LEFT JOIN fza_variaciones_atributos CAE ' +
+    'ON CAE.ID_VAR_VA = SK.CODIGO_VAR_SKU AND CAE.ID_ATB_VA = EF.ID_ATB_VA ' +
     'WHERE L.' + AConfig.CampoSerieLinea + ' = :SERIE AND L.' +
     AConfig.CampoNumeroLinea + ' = :NUMERO';
 end;
@@ -353,10 +392,15 @@ end;
 function SqlImpresionHorizontalCompra(const AConfig: TConfiguracionDocumento;
   AGuias: Boolean): string;
 var
-  Cel, Cab, CamposGuia, RotulosLinea, Cantidades: string;
+  Cel, Cab, CamposGuia, RotulosLinea, Cantidades, OrdenLote: string;
 begin
   Cab := AConfig.PrefijoCabecera;
   Cel := Cab + 'CEL';
+  // FZ-ISSUE-1127: factura y devolución agrupan las líneas por lote (el
+  // lote sale una vez, como cabecera de grupo del informe).
+  OrdenLote := '';
+  if AConfig.TipoDocumento in [tdFactura, tdDevolucion] then
+    OrdenLote := 'L.LOTE, ';
   // Se priorizan las celdas cuando explican toda la cantidad de la línea.
   // El importe acumulado reparte los céntimos incluso al cambiar de tramo.
   Result := 'WITH ORIGEN AS (' + SqlLineasImpresionCompra(AConfig) +
@@ -439,7 +483,8 @@ begin
       'L.TIPO_CANTIDAD, L.PRECIO_COMPRA, L.CODIGO_ALM_ALBCLIN, ' +
       'L.DESCUENTO, L.IVA, T.TRAMO, ' +
       'CASE WHEN T.TRAMO IS NULL THEN L.LINEA END ' +
-      'ORDER BY MODELO, L.CODIGO_ART, L.DESCRIPCION_BASE, L.COLOR_TEXTO, ' +
+      'ORDER BY ' + OrdenLote + 'MODELO, L.CODIGO_ART, ' +
+      'L.DESCRIPCION_BASE, L.COLOR_TEXTO, ' +
       'L.VARIANTE, L.PRECIO_COMPRA, L.DESCUENTO, L.IVA, T.TRAMO, LINEA_ALBC';
 end;
 
@@ -547,15 +592,13 @@ end;
 function NombreColorAtributo(const AConfig: TConfiguracionDocumento;
   const AAtributo: string): string;
 begin
-  Result := 'COALESCE((SELECT NULLIF(TRIM(VB.NOMBRE_ATB), '''') ' +
-    'FROM vi_atributos_sku_basico VB WHERE VB.CODIGO_UNIDAD_SKU = ' +
-    'L.CODIGO_UNIDAD_' + AConfig.PrefijoLineas + ' AND VB.ID_VA_AV = ' +
-    '(SELECT E.ID_ATB_VA FROM VI_VARIACIONES_EJES E ' +
-    'JOIN fza_articulos_skus SK ON SK.CODIGO_VAR_SKU = E.ID_VAR_VA ' +
-    'WHERE SK.CODIGO_UNIDAD_SKU = VB.CODIGO_UNIDAD_SKU ' +
-    'AND E.EJE_VA = ''F'') AND VB.VALOR_AV = ' +
-    AAtributo + ' LIMIT 1), ' +
-    AAtributo + ')';
+  Result := 'COALESCE((SELECT NULLIF(TRIM(VC.NOMBRE_ATB), '''') ' +
+    'FROM fza_articulos_skus SK JOIN vi_variaciones_ejes EF ' +
+    'ON EF.ID_VAR_VA = SK.CODIGO_VAR_SKU AND EF.EJE_VA = ''F'' ' +
+    'JOIN fza_atributos_valores CV ON CV.ID_AV = ' +
+    IdValorAtributoSku('EF.ID_ATB_VA', AAtributo) + UnionesColorBasicoSku +
+    'WHERE SK.CODIGO_UNIDAD_SKU = L.CODIGO_UNIDAD_' +
+    AConfig.PrefijoLineas + ' LIMIT 1), ' + AAtributo + ')';
 end;
 
 // Variante en el orden de atributos de la variacion (ATTR1..ATTR5, p. ej.

@@ -20,7 +20,7 @@ interface
 uses
   System.SysUtils, System.Classes, System.Variants, Data.DB,
   Vcl.Forms, Vcl.Controls, Vcl.ExtCtrls,
-  cxEdit, cxTextEdit, cxDropDownEdit, cxEditRepositoryItems,
+  cxControls, cxEdit, cxTextEdit, cxDropDownEdit, cxEditRepositoryItems,
   cxDBExtLookupComboBox, cxGrid, cxGridCustomTableView,
   cxGridTableView, cxGridDBTableView,
   inLibModoTallasIntf;
@@ -42,10 +42,13 @@ type
     FRegistro: TRegistroTallas;
     FOnEntrarEdicion: TNotifyEvent;
     FOnEntradaElegida: TEntradaElegidaTallas;
+    FMotivoCierre: TcxEditCloseUpReason;
     procedure CrearVista;
     procedure CrearCombo;
     procedure TimerBusqueda(Sender: TObject);
     procedure ComboInitPopup(Sender: TObject);
+    procedure ComboClosePopup(Sender: TcxControl;
+      AReason: TcxEditCloseUpReason);
     procedure ComboCloseUp(Sender: TObject);
     procedure Registrar(const ATexto: string);
     function TextoTecleado(ACombo: TcxCustomEdit): string;
@@ -56,6 +59,7 @@ type
     procedure Construir;
     // Cada tecleo rearma el debounce que abre el desplegable filtrado.
     procedure Rearmar;
+    procedure CancelarBusquedaPendiente;
     procedure ComboChange(Sender: TObject);
     procedure AbrirFiltrada(const ATexto: string);
     // Limpia el filtro interno del desplegable (IncSearching + Filter
@@ -100,6 +104,7 @@ begin
   begin
     FCombo.Properties.OnChange := nil;
     FCombo.Properties.OnInitPopup := nil;
+    FCombo.Properties.OnClosePopup := nil;
     FCombo.Properties.OnCloseUp := nil;
   end;
   FreeAndNil(FTimer);
@@ -189,7 +194,11 @@ begin
   Propiedades.DropDownRows := 15;
   Propiedades.DropDownAutoWidth := True;
   Propiedades.ImmediateDropDownWhenKeyPressed := False;
+  // FZ-ISSUE-1119: con el desplegable abierto, Tab también lo cierra
+  // (crTab) en vez de perderse; ComboCloseUp resuelve lo tecleado.
+  Propiedades.PostPopupValueOnTab := True;
   Propiedades.OnInitPopup := ComboInitPopup;
+  Propiedades.OnClosePopup := ComboClosePopup;
   Propiedades.OnCloseUp := ComboCloseUp;
   // En el repositorio: los clones de properties heredan el evento (el
   // hook por editor se pierde con AlwaysShowEditor).
@@ -235,6 +244,12 @@ end;
 procedure TBuscadorSkusTallas.ComboChange(Sender: TObject);
 begin
   Rearmar;
+end;
+
+procedure TBuscadorSkusTallas.CancelarBusquedaPendiente;
+begin
+  if FTimer <> nil then
+    FTimer.Enabled := False;
 end;
 
 function TBuscadorSkusTallas.TextoTecleado(
@@ -334,6 +349,7 @@ var
   sTexto: string;
 begin
   sTexto := '';
+  FMotivoCierre := crUnknown;
   if Sender is TcxCustomEdit then
     sTexto := TextoTecleado(TcxCustomEdit(Sender));
   // Con el desplegable abierto, el Enter elige fila (no Tab).
@@ -342,20 +358,44 @@ begin
   AbrirFiltrada(sTexto);
 end;
 
+procedure TBuscadorSkusTallas.ComboClosePopup(Sender: TcxControl;
+  AReason: TcxEditCloseUpReason);
+begin
+  // DevExpress lo lanza justo antes de OnCloseUp: ComboCloseUp necesita
+  // saber si se cerró con Intro/Tab o con Esc/clic fuera.
+  FMotivoCierre := AReason;
+end;
+
 procedure TBuscadorSkusTallas.ComboCloseUp(Sender: TObject);
 var
   sEntrada: string;
 begin
+  // Lo tecleado se lee ANTES de limpiar el filtro: LimpiarFiltro refresca
+  // la lista y el combo puede sincronizar su texto con ella.
+  sEntrada := '';
+  if (FMotivoCierre <> crCancel) and (Sender is TcxCustomEdit) then
+  begin
+    sEntrada := Trim(VarToStr(TcxCustomEdit(Sender).EditValue));
+    // FZ-ISSUE-1119: con el desplegable abierto, Intro y Tab solo lo
+    // cierran (DevExpress consume la tecla y no llega al KeyDown del
+    // grid). Sin fila elegida, EditValue queda vacío y el SKU tecleado
+    // en la fila nueva se perdía. Se resuelve lo tecleado como el Intro.
+    if (sEntrada = '') and (FMotivoCierre in [crEnter, crTab]) then
+    begin
+      sEntrada := TextoTecleado(TcxCustomEdit(Sender));
+      if sEntrada <> '' then
+        Registrar('ModoTallas.CloseUp: resuelve lo tecleado "' +
+                  sEntrada + '"');
+    end;
+  end;
+  FMotivoCierre := crUnknown;
   LimpiarFiltro;
+  CancelarBusquedaPendiente;
   // NO se restaura aqui el EnterAsTab: el foco sigue en la celda y el
   // siguiente Enter debe llegar al grid (mismo arreglo que
   // inLibGridArticulos).
-  if Sender is TcxCustomEdit then
-  begin
-    sEntrada := Trim(VarToStr(TcxCustomEdit(Sender).EditValue));
-    if (sEntrada <> '') and Assigned(FOnEntradaElegida) then
-      FOnEntradaElegida(sEntrada);
-  end;
+  if (sEntrada <> '') and Assigned(FOnEntradaElegida) then
+    FOnEntradaElegida(sEntrada);
 end;
 
 end.

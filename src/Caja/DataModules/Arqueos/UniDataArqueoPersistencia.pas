@@ -187,6 +187,22 @@ begin
     oConsulta.Connection := AConexion;
     for sCodigo in aCodigos do
     begin
+      // FZ-ISSUE-1116: la retirada que grabó el cierre (GC con su código
+      // y posterior al fin de su rango, ver InsertarRetirada) se borra
+      // con él. Desmarcada quedaba como gasto suelto y el arqueo
+      // siguiente la restaba otra vez. Los gastos del turno (dentro del
+      // rango) solo se desmarcan, como el resto de operaciones.
+      oConsulta.SQL.Text :=
+        'DELETE O FROM fza_caja_operaciones O ' +
+        'JOIN fza_caja_arqueos A ON A.CODIGO_ARQ = O.CODIGO_ARQUEO_OPCAJA ' +
+        'WHERE O.CODIGO_ARQUEO_OPCAJA = :ARQUEO ' +
+        'AND O.TIPO_OPERACION_OPCAJA = ''GC'' ' +
+        'AND O.CODIGO_EMP_OPCAJA = A.CODIGO_EMP_ARQ ' +
+        'AND O.CODIGO_ALM_OPCAJA = A.CODIGO_ALM_ARQ ' +
+        'AND O.CODIGO_CAJA_OPCAJA = A.CODIGO_CAJA_ARQ ' +
+        'AND O.FECHA_OPERACION_OPCAJA > A.FECHA_HASTA_ARQ';
+      oConsulta.ParamByName('ARQUEO').AsString := sCodigo;
+      oConsulta.Execute;
       oConsulta.SQL.Text :=
         'UPDATE fza_caja_operaciones SET CODIGO_ARQUEO_OPCAJA = NULL ' +
         'WHERE CODIGO_ARQUEO_OPCAJA = :ARQUEO';

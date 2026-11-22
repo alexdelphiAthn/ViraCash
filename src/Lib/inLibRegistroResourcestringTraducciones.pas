@@ -14920,6 +14920,12 @@ begin
       SErrorAlmacenPedidoCompraNoSeleccionado);
   ARegistrar(
     'inLibMsgCompras.' +
+    'SPedidoCompraConRecepcionesNoBorrable',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SPedidoCompraConRecepcionesNoBorrable);
+  ARegistrar(
+    'inLibMsgCompras.' +
     'SErrorPedidoCompraSinCantidadesRecibir',
     'src/Lib/inLibMsgCompras.pas',
     @inLibMsgCompras.
@@ -15305,6 +15311,54 @@ begin
     'src/Lib/inLibMsgCompras.pas',
     @inLibMsgCompras.
       SErrorColorDevolucionFilaNoSeleccionado);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SCaptionDevolverLoteCompleto',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SCaptionDevolverLoteCompleto);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SCaptionDevolverArticuloCompleto',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SCaptionDevolverArticuloCompleto);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SPreguntaCodigoLoteDevolucion',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SPreguntaCodigoLoteDevolucion);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SPreguntaDevolverStockCompleto',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SPreguntaDevolverStockCompleto);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SErrorDevolverStockCompletoSinExistencias',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SErrorDevolverStockCompletoSinExistencias);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SErrorDevolverStockCompletoNoEditable',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SErrorDevolverStockCompletoNoEditable);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SErrorDevolverStockCompletoSinEspacio',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SErrorDevolverStockCompletoSinEspacio);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SInfoDevolverStockCompleto',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.
+      SInfoDevolverStockCompleto);
   ARegistrar(
     'inLibMsgCompras.' +
     'SPreguntaGrabarDevolucionCompraSinSku',
@@ -22839,6 +22893,12 @@ begin
     'src/Lib/inLibMsgVentas.pas',
     @inLibMsgVentas.
       SErrorAsignarLineaAlbaran);
+  ARegistrar(
+    'inLibMsgVentas.' +
+    'SErrorRestaurarLineaAlbaran',
+    'src/Lib/inLibMsgVentas.pas',
+    @inLibMsgVentas.
+      SErrorRestaurarLineaAlbaran);
   ARegistrar(
     'inLibMsgVentas.' +
     'SErrorContadorAlbaran',
@@ -32380,6 +32440,10 @@ begin
     'inLibMsgCaja.SAvisoSustitutivaTicketCobradoCaja',
     'src/Lib/inLibMsgCaja.pas',
     @inLibMsgCaja.SAvisoSustitutivaTicketCobradoCaja);
+  ARegistrar(
+    'inLibMsgCaja.SErrorSustitutivaDiaAnteriorCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.SErrorSustitutivaDiaAnteriorCaja);
   ARegistrar(
     'inLibMsgCaja.' +
     'SDetalleVentaAppLineaOmitida',

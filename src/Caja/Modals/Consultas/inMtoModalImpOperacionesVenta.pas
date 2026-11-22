@@ -73,6 +73,7 @@ type
     FIndiceCantidades: TIndiceCantidadesBalance;
     FFechaGrupoCantidad: string;
     FCajaGrupoCantidad: string;
+    FVendedorGrupoCantidad: string;
     // Títulos de las columnas de los dos ejes cuando hay variaciones que
     // los llaman de otra forma («Color / Aroma»); vacío = el del formato.
     FRotuloEjeColor: string;
@@ -650,13 +651,16 @@ begin
   FIndiceCantidades := TIndiceCantidadesBalance.Create;
   FFechaGrupoCantidad := '';
   FCajaGrupoCantidad := '';
+  FVendedorGrupoCantidad := '';
   Marca := ADatos.Bookmark;
   ADatos.DisableControls;
   try
     ADatos.First;
     while not ADatos.Eof do
     begin
-      if ADatos.FieldByName('CANTIDAD').AsFloat <> 0 then
+      // FZ-ISSUE-1126: los préstamos no entran en los totales.
+      if (ADatos.FieldByName('CANTIDAD').AsFloat <> 0) and
+         (ADatos.FieldByName('ES_PRESTAMO').AsInteger = 0) then
       begin
         Unidad := UpperCase(Trim(
           ADatos.FieldByName('UNIDAD_CANTIDAD').AsString));
@@ -665,7 +669,8 @@ begin
         FIndiceCantidades.Agregar(Unidad,
           [FormatDateTime('yyyymmdd',
             ADatos.FieldByName('FECHA_DIA').AsDateTime),
-           ADatos.FieldByName('CLAVE_CAJA').AsString]);
+           ADatos.FieldByName('CLAVE_CAJA').AsString,
+           ADatos.FieldByName('VENDEDOR').AsString]);
       end;
       ADatos.Next;
     end;
@@ -741,6 +746,17 @@ begin
     if SameText(Component.Name, 'GroupHeaderCaja') then
       FCajaGrupoCantidad :=
         dsVentasPrint.DataSet.FieldByName('CLAVE_CAJA').AsString;
+    if SameText(Component.Name, 'GroupHeaderVendedor') then
+      FVendedorGrupoCantidad :=
+        dsVentasPrint.DataSet.FieldByName('VENDEDOR').AsString;
+    if SameText(Component.Name, 'GroupFooterVendedor') then
+    begin
+      ObjetoCantidad := frxrprt1.FindObject('MemoTotalVendedorCantidad');
+      if ObjetoCantidad is TfrxMemoView then
+        TfrxMemoView(ObjetoCantidad).Visible :=
+          FIndiceCantidades.GrupoSumable([FFechaGrupoCantidad,
+            FCajaGrupoCantidad, FVendedorGrupoCantidad], 3);
+    end;
     if SameText(Component.Name, 'GroupFooterCaja') then
     begin
       ObjetoCantidad := frxrprt1.FindObject('MemoTotalCajaCantidad');

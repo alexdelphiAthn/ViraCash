@@ -23,9 +23,9 @@ resourcestring
     'La fila seleccionada no tiene cantidades pendientes de recibir.';
   // FZ-ISSUE-1089: «A recibir» no puede superar lo pendiente del pedido.
   SAvisoARecibirSuperaPendiente =
-    'Se ha tecleado %s, pero solo quedan %s pendientes de recibir en ' +
-    'esta línea del pedido. «A recibir» se deja en %s. Si ha llegado ' +
-    'mercancía de más, regístrela aparte en el albarán.';
+    'Se ha tecleado %s, pero lo pendiente de recibir en esta línea del ' +
+    'pedido es %s. «A recibir» se deja en %s. Si ha llegado mercancía ' +
+    'de más, regístrela aparte en el albarán.';
   SErrorDescuentoLineaCompra =
     'El descuento de la línea debe estar entre 0 y 100 %.';
   SErrorColorRepetidoSesion =
@@ -467,6 +467,9 @@ resourcestring
     '%s/%s.';
   SErrorAlmacenPedidoCompraNoSeleccionado =
     'Debes seleccionar un almacén.';
+  SPedidoCompraConRecepcionesNoBorrable =
+    'No se puede borrar el pedido de compra %s / %s: tiene albaranes ' +
+    'vinculados. Borra primero los albaranes correspondientes.';
   SErrorPedidoCompraSinCantidadesRecibir =
     'No hay cantidades "A recibir" tecleadas para el almacén "%s" en el ' +
     'pedido %s/%s.';
@@ -638,6 +641,20 @@ resourcestring
     'Selecciona el almacén de salida antes de devolver el stock.';
   SErrorColorDevolucionFilaNoSeleccionado =
     'Selecciona el color de la fila antes de devolver su stock.';
+  SCaptionDevolverLoteCompleto = 'Devolver todo el lote';
+  SCaptionDevolverArticuloCompleto = 'Todo el artículo en stock';
+  SPreguntaCodigoLoteDevolucion = 'Código del lote de reposición';
+  SPreguntaDevolverStockCompleto =
+    '¿Añadir a la devolución todas las existencias disponibles de %s ' +
+    'en el almacén %s?';
+  SErrorDevolverStockCompletoSinExistencias =
+    'No hay existencias disponibles de %s para esta devolución.';
+  SErrorDevolverStockCompletoNoEditable =
+    'La devolución ya no se puede modificar. Actualiza la ficha.';
+  SErrorDevolverStockCompletoSinEspacio =
+    'La devolución no admite tantas líneas. Crea otra devolución.';
+  SInfoDevolverStockCompleto =
+    'Se han añadido %d líneas a la devolución.';
   SPreguntaGrabarDevolucionCompraSinSku =
     'Las líneas %s tienen artículos con variaciones sin SKU asignado. ' +
     '¿Grabar de todas formas?';

@@ -198,6 +198,8 @@ type
     FVentanaSeparada: TPresentacionVentanaSeparada;
     FCambiandoContenedor: Boolean;
     FConsultandoCierre: Boolean;
+    FCamposRestringidos: TArray<string>;
+    FColumnasRestringidas: TArray<TcxGridColumn>;
     function ObtenerModeloMantenimiento: IModeloMantenimiento;
     function ControladorMantenimiento: TControladorMantenimiento;
     function DecidirCierreMantenimiento: TDecisionCierreMantenimiento;
@@ -236,10 +238,18 @@ type
     procedure VincularFotoArticulo(
       const ADataSources: TArray<TDataSource>);
     procedure MostrarStockArticulo(const ACodArt, ACodSku: string);
+    procedure AplicarCamposRestringidos;
   protected
     // Para pantallas cuyo artículo / SKU depende de la pestaña activa:
     // el visor Ctrl+F vuelve a preguntarlo si sigue a este Mto.
     procedure RefrescarFotoArticulo;
+    // FZ-ISSUE-1128: columnas de la rejilla principal que el usuario no
+    // puede ver (p. ej. costes sin permiso). Quedan ocultas y fuera del
+    // selector de columnas aunque el perfil o las guías las muestren.
+    procedure RestringirCampos(const ACampos: array of string);
+    // Igual, para columnas de otras rejillas de la pantalla.
+    procedure RestringirColumnas(
+      const AColumnas: array of TcxGridColumn);
   private
     procedure ResetearGridPerfil(
       const ANombreGrid, ANombreFormulario, APermisos: string);
@@ -2789,6 +2799,48 @@ begin
   // Permisos por pantalla: ocultan/deshabilitan los controles segun
   // consultar, insertar, modificar, borrar, excel e imprimir.
   AplicarPermisosPantalla;
+  AplicarCamposRestringidos;
+end;
+
+procedure TfrmMtoGen.RestringirCampos(const ACampos: array of string);
+var
+  i: Integer;
+begin
+  for i := Low(ACampos) to High(ACampos) do
+    FCamposRestringidos := FCamposRestringidos + [ACampos[i]];
+  AplicarCamposRestringidos;
+end;
+
+procedure TfrmMtoGen.RestringirColumnas(
+  const AColumnas: array of TcxGridColumn);
+var
+  i: Integer;
+begin
+  for i := Low(AColumnas) to High(AColumnas) do
+    if Assigned(AColumnas[i]) then
+      FColumnasRestringidas := FColumnasRestringidas + [AColumnas[i]];
+  AplicarCamposRestringidos;
+end;
+
+procedure TfrmMtoGen.AplicarCamposRestringidos;
+var
+  sCampo: string;
+  oColumna: TcxGridColumn;
+begin
+  for sCampo in FCamposRestringidos do
+  begin
+    oColumna := cxGrdDBTabPrin.GetColumnByFieldName(sCampo);
+    if Assigned(oColumna) then
+    begin
+      oColumna.Visible := False;
+      oColumna.VisibleForCustomization := False;
+    end;
+  end;
+  for oColumna in FColumnasRestringidas do
+  begin
+    oColumna.Visible := False;
+    oColumna.VisibleForCustomization := False;
+  end;
 end;
 
 procedure TfrmMtoGen.CrearColumnasPerfilTrasAbrir;
@@ -2808,6 +2860,7 @@ begin
   else
     FGestorPerfiles.AplicarEtiquetasTrasAbrir(
       FGestorGuias.CamposGuia.Count > 0);
+  AplicarCamposRestringidos;
 end;
 
 procedure TfrmMtoGen.rbBBDDClick(Sender: TObject);
@@ -2914,6 +2967,7 @@ procedure TfrmMtoGen.SeleccionGuiasAceptada(ACampos, AVisibles: TStrings);
 begin
   FGestorPerfiles.ActualizarVisibilidadColumnas(
     cxGrdDBTabPrin, ACampos, AVisibles);
+  AplicarCamposRestringidos;
 end;
 
 procedure TfrmMtoGen.EjecutarModalGuias;
