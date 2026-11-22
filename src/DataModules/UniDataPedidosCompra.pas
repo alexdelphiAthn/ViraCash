@@ -273,7 +273,14 @@ begin
 end;
 
 procedure TdmPedidosCompra.ConfigurarSqlCabecera;
+const
+  SQL_CABECERA =
+    'SELECT V.*, CASE WHEN V.ESTADO_PEDC = ''CANCELADO'' THEN 0 ' +
+    'ELSE V.CANTIDAD_PENDIENTE_RECEPCION_PEDC END AS PENDIENTE_OPERATIVO_PEDC ' +
+    'FROM vi_pedidos_compra V';
 begin
+  unqryTablaG.SQL.Text := SQL_CABECERA + sLineBreak +
+    'ORDER BY FECHA_PEDC DESC, NUMERO_PEDC DESC';
   ConfigurarSqlInsertCabecera;
   unqryTablaG.SQLDelete.Text :=
     'DELETE FROM fza_pedidos_compra ' + sLineBreak +
@@ -376,8 +383,7 @@ begin
     ' WHERE NUMERO_PEDC = :Old_NUMERO_PEDC ' + sLineBreak +
     '   AND SERIE_PEDC = :Old_SERIE_PEDC';
   unqryTablaG.SQLRefresh.Text :=
-    'SELECT * ' + sLineBreak +
-    '  FROM vi_pedidos_compra ' + sLineBreak +
+    SQL_CABECERA + sLineBreak +
     ' WHERE NUMERO_PEDC = :NUMERO_PEDC ' + sLineBreak +
     '   AND SERIE_PEDC = :SERIE_PEDC';
 end;
@@ -936,6 +942,9 @@ begin
     TThread.ForceQueue(nil, CancelarLineaVaciaDiferida);
     Abort;
   end;
+  if SameText(unqryTablaG.FieldByName('ESTADO_PEDC').AsString,
+      'CANCELADO') then
+    FieldByName('CANTIDAD_A_RECIBIR_PEDCLIN').AsFloat := 0;
   AsignarNumeroLineaPedidoCompra(DataSet);
   // Acepta articulo, SKU, codigo de barras o referencia de proveedor.
   NormalizarArticuloSkuEnDataSet(ConexionEscritura,

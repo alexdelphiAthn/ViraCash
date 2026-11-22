@@ -83,6 +83,7 @@ type
     FBandaUnica         : Boolean;
     FAgruparSinPrecio   : Boolean;
     FTextoAAlbaranar    : string;
+    FPendienteCancelado : Boolean;
     FLineasVista        : TList<Integer>;
     FLineaBase          : TDictionary<Integer, Integer>;
     FLineaBanda         : TDictionary<Integer, TBandaPivoteVenta>;
@@ -156,6 +157,8 @@ type
                                   out AUds: Double): Boolean;
     function ValorCantidadBanda(AClave: Int64;
                                 ABanda: TBandaPivoteVenta): Double;
+    property PendienteCancelado: Boolean read FPendienteCancelado
+      write FPendienteCancelado;
     function PendienteBaseCelda(AClave: Int64): Double;
     function PendienteCelda(AClave: Int64): Double;
     function AAlbaranarCelda(AClave: Int64): Double;
@@ -793,6 +796,8 @@ function TModeloPivoteVenta.PendienteBaseCelda(AClave: Int64): Double;
 var
   oCelda: TCeldaPivoteVenta;
 begin
+  if FPendienteCancelado then
+    Exit(0);
   Celda(AClave, oCelda);
   Result := PendienteBasePivoteVenta(oCelda.Pedida, oCelda.Entregada);
 end;
@@ -801,6 +806,8 @@ function TModeloPivoteVenta.PendienteCelda(AClave: Int64): Double;
 var
   oCelda: TCeldaPivoteVenta;
 begin
+  if FPendienteCancelado then
+    Exit(0);
   Celda(AClave, oCelda);
   Result := PendientePivoteVenta(oCelda.Pedida, oCelda.Entregada,
                                  oCelda.AAlbaranar);
@@ -810,6 +817,8 @@ function TModeloPivoteVenta.AAlbaranarCelda(AClave: Int64): Double;
 var
   oCelda: TCeldaPivoteVenta;
 begin
+  if FPendienteCancelado then
+    Exit(0);
   Celda(AClave, oCelda);
   Result := oCelda.AAlbaranar;
 end;

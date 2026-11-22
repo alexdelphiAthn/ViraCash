@@ -19,7 +19,7 @@ const
 
 type
   TMotivoRetiradaLote = (mrlCaducidad, mrlProximaCaducidad,
-    mrlAlerta, mrlMerma, mrlOtro);
+    mrlAlerta, mrlMerma, mrlOtro, mrlRotura, mrlRobo);
 
   TLineaRetiradaLote = record
     CodigoArticulo: string;
@@ -38,6 +38,7 @@ type
     Id: string;
     Instante: TDateTime;
     EsUrgente: Boolean;
+    EsBajaSinLote: Boolean;
     Empresa: string;
     Empleado: string;
     Usuario: string;

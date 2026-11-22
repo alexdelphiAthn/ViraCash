@@ -200,13 +200,26 @@ function TEstrategiaEmisionFiscalBase.Emitir(
 ): TResultadoEmisionFiscal;
 var
   oSolicitud: TSolicitudEmisionFiscal;
+  bTransaccionPropia: Boolean;
 begin
   oSolicitud := ASolicitud;
   oSolicitud.FormatoDocumento := FormatoDocumentoFacturaDelProveedor(
     FServicioCola, ASolicitud.Serie, ASolicitud.Numero);
-  Ejecutar(oSolicitud);
-  if oSolicitud.RegistrarEvento then
-    RegistrarEvento(oSolicitud);
+  bTransaccionPropia := SameText(oSolicitud.TipoOperacion, 'ANULACION') and
+    not Conexion.InTransaction;
+  if bTransaccionPropia then
+    Conexion.StartTransaction;
+  try
+    Ejecutar(oSolicitud);
+    if oSolicitud.RegistrarEvento then
+      RegistrarEvento(oSolicitud);
+    if bTransaccionPropia then
+      Conexion.Commit;
+  except
+    if bTransaccionPropia and Conexion.InTransaction then
+      Conexion.Rollback;
+    raise;
+  end;
   Result.Modo := Modo;
   Result.Mensaje := CrearMensaje(oSolicitud);
 end;

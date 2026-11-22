@@ -197,6 +197,7 @@ begin
   Result.NumeroOperacion := ADatos.NumeroOperacion;
   Result.Fecha := ADatos.Fecha;
   Result.Usuario := AUsuario;
+  Result.ConservarLote := False;
 end;
 
 function TCasoUsoConsolidacionFactura.Validar(

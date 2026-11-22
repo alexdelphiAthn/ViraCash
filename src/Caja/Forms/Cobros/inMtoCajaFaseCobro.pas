@@ -44,6 +44,9 @@ type
     CodigoEmpresa: string;
     CodigoAlmacen: string;
     CodigoCaja: string;
+    EmpresaEmisora: string;
+    AlmacenEmision: string;
+    CajaEmision: string;
     Fecha: TDateTime;
     CodigoCliente: string;
     EmailCliente: string;
@@ -202,6 +205,9 @@ type
     FEmailEnvio: string;
     FActualizandoEmail: Boolean;
     FCodigoEmpresa: string;
+    FEmpresaEmisora: string;
+    FAlmacenEmision: string;
+    FCajaEmision: string;
     FCodigoCliente: string;
     FEmailCliente: string;
     FNifCliente: string;
@@ -349,6 +355,18 @@ begin
   FCodigoEmpresa := AEntrada.CodigoEmpresa;
   FCodigoAlmacen := AEntrada.CodigoAlmacen;
   FCodigoCaja := AEntrada.CodigoCaja;
+  if Trim(AEntrada.EmpresaEmisora) = '' then
+  begin
+    FEmpresaEmisora := FCodigoEmpresa;
+    FAlmacenEmision := FCodigoAlmacen;
+    FCajaEmision := FCodigoCaja;
+  end
+  else
+  begin
+    FEmpresaEmisora := AEntrada.EmpresaEmisora;
+    FAlmacenEmision := AEntrada.AlmacenEmision;
+    FCajaEmision := AEntrada.CajaEmision;
+  end;
   FUsarVales := UsarValesCobro(ParametrosCaja);
   FDatosCobro.RestriccionVales := TRestriccionCanjeVale.Crear(
     ParametrosCaja.GetString('vgerAmbitoCanjeVale', 'TODOS'),
@@ -558,9 +576,9 @@ var
   Series: TSeriesFaseCobro;
   sSerie: string;
 begin
-  Solicitud.CodigoEmpresa := FCodigoEmpresa;
-  Solicitud.CodigoAlmacen := FCodigoAlmacen;
-  Solicitud.CodigoCaja := FCodigoCaja;
+  Solicitud.CodigoEmpresa := FEmpresaEmisora;
+  Solicitud.CodigoAlmacen := FAlmacenEmision;
+  Solicitud.CodigoCaja := FCajaEmision;
   Solicitud.Fecha := FFecha;
   if FRectificaA <> '' then
   begin
@@ -802,7 +820,7 @@ var
   Mensaje: string;
 begin
   Result := ValidarAlmacenDepositoCredito(
-    ConexionPrincipal, FCodigoEmpresa, Mensaje);
+    ConexionPrincipal, FCodigoEmpresa, FCodigoAlmacen, Mensaje);
   if not Result then
     ShowMessage_fza(Mensaje);
 end;
@@ -861,7 +879,7 @@ begin
   Result := True;
   dUltima := TdmCajaOpe.FechaUltimoTicketSerie(
     ConexionPrincipal,
-    FCodigoEmpresa,
+    FEmpresaEmisora,
     ASerie);
   if (dUltima > 0) and (Trunc(AFecha) < Trunc(dUltima)) then
   begin
@@ -880,8 +898,8 @@ begin
       oConfig.Titulo := STituloCambiarSerieFechaVenta;
       oConfig.Aviso := sAviso;
       oConfig.Tipos := [oTipo];
-      oConfig.Propuesta.Empresa := FCodigoEmpresa;
-      oConfig.Propuesta.Almacen := FCodigoAlmacen;
+      oConfig.Propuesta.Empresa := FEmpresaEmisora;
+      oConfig.Propuesta.Almacen := FAlmacenEmision;
       oConfig.Propuesta.Tipo := 'FC';
       oConfig.Propuesta.Serie := ASerie;
       oConfig.Propuesta.Fecha := Trunc(AFecha);
@@ -894,7 +912,7 @@ begin
           dUltimaElegida: TDateTime;
         begin
           dUltimaElegida := TdmCajaOpe.FechaUltimoTicketSerie(
-            ConexionPrincipal, FCodigoEmpresa, AOpciones.Serie);
+            ConexionPrincipal, FEmpresaEmisora, AOpciones.Serie);
           Result := (dUltimaElegida = 0) or
             (Trunc(AFecha) >= Trunc(dUltimaElegida));
           if not Result then
@@ -921,7 +939,7 @@ begin
      ParametrosCaja.GetBool('vgerAvisoHuecosNumeracion', True) then
   begin
     Resumen := FRepositorioPersistencia.ObtenerResumenNumeracion(
-      FCodigoEmpresa,
+      FEmpresaEmisora,
       ASerie,
       0);
     iHuecos := HuecosNumeracion(
@@ -929,7 +947,7 @@ begin
     // FZ-ISSUE-394: una vez por sesión y serie; se repite solo si
     // aparecen huecos nuevos (los migrados no saltan en cada venta).
     if RegistroAvisosHuecosNumeracion.DebeAvisar(
-         FCodigoEmpresa, ASerie, iHuecos) then
+         FEmpresaEmisora, ASerie, iHuecos) then
     begin
       MessageDlg_fza(
         Format(
@@ -980,7 +998,7 @@ begin
   else
   begin
     Resumen := FRepositorioPersistencia.ObtenerResumenNumeracion(
-      FCodigoEmpresa,
+      FEmpresaEmisora,
       ASerie,
       iNumero);
     if Resumen.ExistentesNumero > 0 then
@@ -1027,7 +1045,12 @@ begin
   // configuran en lugar del aviso generico.
   if (not Result) and (FRectificaA <> '') and
      (cbbSERIE_FAC.Properties.Items.Count = 0) then
-    ShowMessage_fza(SAvisoSinSerieRectificativaCaja)
+  begin
+    if not SameText(FEmpresaEmisora, FCodigoEmpresa) then
+      ShowMessage_fza(SErrorSerieAuxiliarDevolucionCaja)
+    else
+      ShowMessage_fza(SAvisoSinSerieRectificativaCaja);
+  end
   else if not Result then
     ShowMessage_fza(STextoNoHayUnaSerieDeFacturaDisponibleCaja);
   if Result and (Length(sSerie) > 12) then

@@ -38,6 +38,8 @@ resourcestring
   SMotivoProximaCaducidadRetirada = 'Próximo a vencer';
   SMotivoAlertaRetirada = 'Alerta de proveedor';
   SMotivoMermaRetirada = 'Merma';
+  SMotivoRoturaRetirada = 'Rotura';
+  SMotivoRoboRetirada = 'Robo';
   SMotivoOtroRetirada = 'Otro';
   SEtiquetaMotivoRetirada = 'Motivo';
   SEtiquetaDestinoRetirada = 'Destino';
@@ -56,6 +58,11 @@ resourcestring
   SErrorRetiradaDestino =
     'Seleccione un almacén de taras distinto del origen.';
   SErrorRetiradaStock = 'No hay existencias suficientes de %s, lote %s.';
+  SErrorBajaSinLoteStock = 'No hay existencias sin lote suficientes de %s.';
+  SErrorBajaSinLoteLinea =
+    'Indique un SKU, un almacén y una cantidad positiva para la baja.';
+  STituloBajasSinLote = 'Bajas de stock sin lote';
+  SErrorBajaSinLoteMotivo = 'Seleccione un motivo válido para la baja.';
   SErrorRetiradaAlmacen =
     'El almacén no pertenece a la empresa o no está activo.';
   SErrorRetiradaSinRegistro =

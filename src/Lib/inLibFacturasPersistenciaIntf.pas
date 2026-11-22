@@ -75,6 +75,7 @@ type
     Cliente: string;
     Lote: string;
     FechaCaducidad: TDate;
+    ConservarLote: Boolean;
   end;
   IRepositorioBorradoFactura = interface
     ['{2CFE5841-408C-4180-9E1F-DCC23123B7F0}']

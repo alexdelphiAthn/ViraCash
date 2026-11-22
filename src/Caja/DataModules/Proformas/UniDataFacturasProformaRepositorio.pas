@@ -17,7 +17,7 @@ unit UniDataFacturasProformaRepositorio;
 interface
 
 uses
-  Uni,
+  Data.DB, Uni,
   inLibParametrosIntf,
   inLibFacturasProformaIntf,
   inLibOpcionesDocumentoIntf,
@@ -199,19 +199,78 @@ type
       const AUsuario: string): string;
   end;
 
+function ConsultarConciliacionEfectivoEmpresas(AConexion: TUniConnection;
+  const ASolicitud: TSolicitudFacturacionCaja): TDataSet;
+
 implementation
 
 uses
   inLibMsgCaja,
   System.SysUtils,
   System.Generics.Collections,
-  Data.DB,
   inLibFacturas,
   inLibFacturasProformaValoracion,
   inLibVerifactu,
   UniDataFacturasLecturas,
   UniDataFacturasRecalculoTotales,
   UniDataImpuestosRepositorio;
+
+function ConsultarConciliacionEfectivoEmpresas(AConexion: TUniConnection;
+  const ASolicitud: TSolicitudFacturacionCaja): TDataSet;
+var
+  Consulta: TUniQuery;
+begin
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := AConexion;
+    Consulta.ReadOnly := True;
+    Consulta.SQL.Text :=
+      'SELECT O.FECHA_OPERACION_OPCAJA AS FECHA, ' +
+      'O.CODIGO_EMP_OPCAJA AS EMPRESA_EMISORA, ' +
+      'O.CODIGO_ALM_OPCAJA AS ALMACEN_EMISOR, ' +
+      'O.CODIGO_CAJA_OPCAJA AS CAJA_AUXILIAR, ' +
+      'O.NUMERO_OPERACION_OPCAJA AS OPERACION_AUXILIAR, ' +
+      'O.CODIGO_EMP_CONTRA_OPCAJA AS EMPRESA_PAGO, ' +
+      'O.CODIGO_ALM_CONTRA_OPCAJA AS ALMACEN_PAGO, ' +
+      'D.CODIGO_CAJA_OPCAJA AS CAJA_PAGO, ' +
+      'D.NUMERO_OPERACION_OPCAJA AS OPERACION_PAGO, ' +
+      'F.SERIE_FAC, F.NUMERO_FAC, F.FASE_FAC, ' +
+      'CASE WHEN O.TIPO_OPERACION_OPCAJA = ''GC'' ' +
+      'THEN -O.IMPORTE_TOTAL_OPCAJA ELSE O.IMPORTE_TOTAL_OPCAJA END ' +
+      'AS EFECTIVO, O.CONCEPTO_GASTO_INGRESO_OPCAJA AS CONCEPTO ' +
+      'FROM fza_caja_operaciones O ' +
+      'JOIN fza_facturas F ON F.SERIE_FAC = O.SERIE_FAC_OPCAJA ' +
+      ' AND F.NUMERO_FAC = O.NUMERO_FAC_OPCAJA ' +
+      ' AND F.CODIGO_EMP_FAC = O.CODIGO_EMP_OPCAJA ' +
+      ' AND F.CODIGO_ALM_FAC = O.CODIGO_ALM_OPCAJA ' +
+      ' AND F.CODIGO_CAJA_FAC = O.CODIGO_CAJA_OPCAJA ' +
+      ' AND F.NUMERO_OPERACION_FAC = O.NUMERO_OPERACION_OPCAJA ' +
+      'JOIN fza_caja_operaciones D ' +
+      ' ON D.CODIGO_EMP_OPCAJA = O.CODIGO_EMP_CONTRA_OPCAJA ' +
+      ' AND D.CODIGO_ALM_OPCAJA = O.CODIGO_ALM_CONTRA_OPCAJA ' +
+      ' AND D.SERIE_FAC_OPCAJA = F.SERIE_FAC ' +
+      ' AND D.NUMERO_FAC_OPCAJA = F.NUMERO_FAC ' +
+      ' AND D.TIPO_OPERACION_OPCAJA = ''DV'' ' +
+      'WHERE O.TIPO_OPERACION_OPCAJA IN (''EC'', ''GC'') ' +
+      ' AND O.CODIGO_CAJA_OPCAJA = ''99'' ' +
+      ' AND F.TIPO_FAC = ''RECTIFICATIVA'' ' +
+      ' AND ((O.CODIGO_EMP_OPCAJA = :ORIGEN ' +
+      '   AND D.CODIGO_EMP_OPCAJA = :DESTINO) ' +
+      ' OR (O.CODIGO_EMP_OPCAJA = :DESTINO ' +
+      '   AND D.CODIGO_EMP_OPCAJA = :ORIGEN)) ' +
+      ' AND O.FECHA_OP_DIA_OPCAJA BETWEEN :DESDE AND :HASTA ' +
+      'ORDER BY O.FECHA_OPERACION_OPCAJA, O.ID_OPCAJA';
+    Consulta.ParamByName('ORIGEN').AsString := ASolicitud.CodigoEmpresaOrigen;
+    Consulta.ParamByName('DESTINO').AsString := ASolicitud.CodigoEmpresaDestino;
+    Consulta.ParamByName('DESDE').AsDateTime := ASolicitud.FechaDesde;
+    Consulta.ParamByName('HASTA').AsDateTime := ASolicitud.FechaHasta;
+    Consulta.Open;
+    Result := Consulta;
+    Consulta := nil;
+  finally
+    Consulta.Free;
+  end;
+end;
 
 type
   TDatosPropuestaVales = record

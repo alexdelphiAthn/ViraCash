@@ -252,7 +252,8 @@ begin
       // F-LOTEC-013: con lote o serie, ..._INSERT_LOTE.
       EjecutarMovimientoConLote(spIns, spInsLote,
         qSrc.FieldByName('LOTE').AsString,
-        FechaCaducidadMovimiento(qSrc));
+        FechaCaducidadMovimiento(qSrc),
+        qSrc.FieldByName('VINCULADA').AsInteger <> 0);
         Inc(iCount);
       end;
       qSrc.Next;

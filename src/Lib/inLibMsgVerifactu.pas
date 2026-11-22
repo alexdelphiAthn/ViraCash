@@ -342,6 +342,8 @@ resourcestring
     '%s registrada y firmada en NO VERI*FACTU.';
   SInfoAccionFiscalSinVerifactu =
     '%s registrada en modo SIN VERIFACTU.';
+  SErrorSegundaRectificativaSustitutiva =
+    'La factura original ya tiene una rectificativa por sustitución.';
   SErrorTipoRectificativaFiscalInvalido =
     'El tipo fiscal de rectificativa debe ser I o S.';
   SErrorTipoFacturaVerifactuRectificativaInvalido =

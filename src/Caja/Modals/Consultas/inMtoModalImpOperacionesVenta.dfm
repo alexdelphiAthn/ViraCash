@@ -160,6 +160,135 @@
         OnClick = btnDesmarcarTodasClick
       end
     end
+    object tsFiltros: TcxTabSheet
+      Caption = 'Filtros de ventas'
+      object lblFiltrosOpcionales: TcxLabel
+        Left = 14
+        Top = 14
+        Caption = 'Deje en blanco los filtros que no quiera aplicar.'
+        TabOrder = 0
+        Transparent = True
+      end
+      object lblFiltroTalla: TcxLabel
+        Left = 14
+        Top = 44
+        Caption = 'Talla / medida'
+        TabOrder = 1
+        Transparent = True
+      end
+      object edtFiltroTalla: TcxButtonEdit
+        Properties.Buttons = <
+          item
+            Default = True
+            Kind = bkEllipsis
+          end>
+        Properties.OnButtonClick = BuscarFiltroButtonClick
+        Left = 14
+        Top = 68
+        TabOrder = 2
+        Width = 155
+      end
+      object lblFiltroColor: TcxLabel
+        Left = 180
+        Top = 44
+        Caption = 'Color / aroma'
+        TabOrder = 3
+        Transparent = True
+      end
+      object edtFiltroColor: TcxButtonEdit
+        Tag = 1
+        Properties.Buttons = <
+          item
+            Default = True
+            Kind = bkEllipsis
+          end>
+        Properties.OnButtonClick = BuscarFiltroButtonClick
+        Left = 180
+        Top = 68
+        TabOrder = 4
+        Width = 155
+      end
+      object lblFiltroCopa: TcxLabel
+        Left = 346
+        Top = 44
+        Caption = 'Copa'
+        TabOrder = 5
+        Transparent = True
+      end
+      object edtFiltroCopa: TcxButtonEdit
+        Tag = 2
+        Properties.Buttons = <
+          item
+            Default = True
+            Kind = bkEllipsis
+          end>
+        Properties.OnButtonClick = BuscarFiltroButtonClick
+        Left = 346
+        Top = 68
+        TabOrder = 6
+        Width = 155
+      end
+      object lblNombreAtributo: TcxLabel
+        Left = 14
+        Top = 113
+        Caption = 'Otro atributo'
+        TabOrder = 7
+        Transparent = True
+      end
+      object edtNombreAtributo: TcxButtonEdit
+        Tag = 3
+        Properties.Buttons = <
+          item
+            Default = True
+            Kind = bkEllipsis
+          end>
+        Properties.OnButtonClick = BuscarFiltroButtonClick
+        Left = 14
+        Top = 137
+        TabOrder = 8
+        Width = 236
+      end
+      object lblValorAtributo: TcxLabel
+        Left = 264
+        Top = 113
+        Caption = 'Valor del atributo'
+        TabOrder = 9
+        Transparent = True
+      end
+      object edtValorAtributo: TcxButtonEdit
+        Tag = 4
+        Properties.Buttons = <
+          item
+            Default = True
+            Kind = bkEllipsis
+          end>
+        Properties.OnButtonClick = BuscarFiltroButtonClick
+        Left = 264
+        Top = 137
+        TabOrder = 10
+        Width = 237
+      end
+      object lblCodigoArqueo: TcxLabel
+        Left = 14
+        Top = 182
+        Caption = 'Turno (c'#243'digo de arqueo)'
+        TabOrder = 11
+        Transparent = True
+      end
+      object edtCodigoArqueo: TcxButtonEdit
+        Tag = 5
+        Properties.Buttons = <
+          item
+            Default = True
+            Kind = bkEllipsis
+          end>
+        Properties.OnButtonClick = BuscarFiltroButtonClick
+        Left = 14
+        Top = 206
+        TabOrder = 12
+        Width = 236
+      end
+    end
   end
   inherited frxrprt1: TfrxReport
     Datasets = <

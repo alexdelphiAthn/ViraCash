@@ -39,7 +39,7 @@ procedure SincronizarInstanteMovimientoDocumento(
   const ACampoFecha, ACampoInstante: string);
 function ObtenerAlmacenDepositoEmpresa(
   const ARepositorio: IRepositorioAlmacenesEmpresa;
-  const AEmpresa: string): string;
+  const AEmpresa: string; const AAlmacenOrigen: string = ''): string;
 // Locate generico sobre la clave primaria (uno o varios campos
 // separados por coma). Lo usan TfrmMtoGen.LocalizarYEnfocar y las
 // busquedas externas entre pantallas. Antes vivia en inLibShowMto.
@@ -232,13 +232,13 @@ end;
 
 function ObtenerAlmacenDepositoEmpresa(
   const ARepositorio: IRepositorioAlmacenesEmpresa;
-  const AEmpresa: string): string;
+  const AEmpresa, AAlmacenOrigen: string): string;
 begin
   Result := '';
   if Assigned(ARepositorio) then
   begin
     Result := ARepositorio.ObtenerAlmacenDepositoEmpresa(
-      AEmpresa);
+      AEmpresa, AAlmacenOrigen);
   end;
   if Result = '' then
   begin

@@ -93,6 +93,13 @@ procedure ConservarLineaVentaPorValidacion(ALineas: TDataSet);
 // de deposito (esas llevan su propio circuito). El flag llega de un
 // CHAR de BBDD y puede traer relleno: se compara con Trim.
 function HayLineasNegativasVenta(ALineas: TDataSet): Boolean;
+function EsLineaDevolucionVentaCaja(ALinea: TDataSet): Boolean;
+function EsDevolucionExclusivaCaja(ALineas: TDataSet): Boolean;
+
+// Devuelve el aviso que impide pasar a cobro o grabar sin origen.
+function ErrorOrigenDevolucionCaja(ALineas: TDataSet;
+  AEsRectificativa, AExigirOrigen: Boolean; const ASerieRectificada,
+  ANumeroRectificado, ASerieOrigen, ANumeroOrigen: string): string;
 
 // La venta arrastra alguna linea de deposito (prenda apartada o abono).
 function HayLineasDepositoVenta(ALineas: TDataSet): Boolean;
@@ -176,7 +183,7 @@ implementation
 
 uses
   System.SysUtils, System.Classes,
-  inLibCajaVentaCliente;
+  inLibCajaVentaCliente, inLibMsgCaja;
 
 procedure EscribirDatosBaseArticulo(
   ALineas: TDataSet;
@@ -470,10 +477,43 @@ begin
   end;
 end;
 
+function EsLineaDevolucionVentaCaja(ALinea: TDataSet): Boolean;
+begin
+  Result := (ALinea.FieldByName('CANTIDAD_FACLIN').AsFloat < 0) and
+    not EsLineaDeposito(Trim(ALinea.FieldByName('VIENE_DE_DEPOSITO').AsString));
+end;
+
+function EsDevolucionExclusivaCaja(ALineas: TDataSet): Boolean;
+var
+  Marca: TBookmark;
+  SoloDevolucion: Boolean;
+begin
+  Result := False;
+  SoloDevolucion := True;
+  ALineas.DisableControls;
+  Marca := ALineas.GetBookmark;
+  try
+    ALineas.First;
+    while not ALineas.Eof and SoloDevolucion do
+    begin
+      if ALineas.FieldByName('CANTIDAD_FACLIN').AsFloat <> 0 then
+      begin
+        SoloDevolucion := EsLineaDevolucionVentaCaja(ALineas);
+        Result := SoloDevolucion;
+      end;
+      ALineas.Next;
+    end;
+  finally
+    if ALineas.BookmarkValid(Marca) then
+      ALineas.GotoBookmark(Marca);
+    ALineas.FreeBookmark(Marca);
+    ALineas.EnableControls;
+  end;
+end;
+
 function HayLineasNegativasVenta(ALineas: TDataSet): Boolean;
 var
   Marcador: TBookmark;
-  sVieneDeDep: string;
 begin
   Result := False;
   if Assigned(ALineas) and ALineas.Active then
@@ -485,10 +525,7 @@ begin
         ALineas.First;
         while (not ALineas.Eof) and (not Result) do
         begin
-          sVieneDeDep := Trim(
-            ALineas.FieldByName('VIENE_DE_DEPOSITO').AsString);
-          if (ALineas.FieldByName('CANTIDAD_FACLIN').AsFloat < 0) and
-             (not EsLineaDeposito(sVieneDeDep)) then
+          if EsLineaDevolucionVentaCaja(ALineas) then
             Result := True
           else
             ALineas.Next;
@@ -502,6 +539,22 @@ begin
       ALineas.EnableControls;
     end;
   end;
+end;
+
+function ErrorOrigenDevolucionCaja(ALineas: TDataSet;
+  AEsRectificativa, AExigirOrigen: Boolean; const ASerieRectificada,
+  ANumeroRectificado, ASerieOrigen, ANumeroOrigen: string): string;
+begin
+  Result := '';
+  if AEsRectificativa then
+  begin
+    if (Trim(ASerieRectificada) = '') or (Trim(ANumeroRectificado) = '') then
+      Result := SErrorFacturaRectificativaCajaSinOriginal;
+  end
+  else if AExigirOrigen and
+          ((Trim(ASerieOrigen) = '') or (Trim(ANumeroOrigen) = '')) and
+          HayLineasNegativasVenta(ALineas) then
+    Result := SErrorDevolucionCajaSinFacturaOrigen;
 end;
 
 function HayLineasDepositoVenta(ALineas: TDataSet): Boolean;

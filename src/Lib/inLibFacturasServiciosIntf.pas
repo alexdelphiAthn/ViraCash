@@ -185,6 +185,7 @@ type
     // Cero conserva el instante de alta asignado por el servidor.
     Fecha: TDateTime;
     Usuario: string;
+    ConservarLote: Boolean;
   end;
   IServicioMovimientosFactura = interface
     ['{A73BE906-C8F3-412D-9CA6-27CF126A1282}']

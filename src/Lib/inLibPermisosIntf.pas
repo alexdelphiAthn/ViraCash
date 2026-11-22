@@ -92,6 +92,8 @@ type
   end;
 
 const
+  PERMISO_PEDIDO_COMPRA_CANCELAR_PENDIENTE =
+    'compras.pedidos.cancelarPendiente';
   PERMISO_CAJA_CAMBIAR_FECHA = 'caja.cambiarFecha';
   PERMISO_CAJA_VER_COSTE = 'caja.verCoste';
   PERMISO_CAJA_ABRIR_CAJON = 'caja.abrirCajon';
@@ -115,7 +117,7 @@ const
 
   // Pantallas de administración (FZ-ISSUE-028): un usuario que no es
   // administrador solo entra con concesión expresa a su usuario o grupo.
-  PERMISOS_ADMINISTRACION: array[0..9] of string = (
+  PERMISOS_ADMINISTRACION: array[0..11] of string = (
     'menu.mnuParmetrosdeEntorno',
     'menu.Usuarios',
     'menu.Grupos',
@@ -125,7 +127,9 @@ const
     'menu.HacerCopiadeSeguridad1',
     'menu.GeneradorProcesos',
     'menu.mnuProcesosAuxiliaresBBDD',
-    'menu.mnuCambioCodigoCliente'
+    'menu.mnuCambioCodigoCliente',
+    'menu.mnuAjusteDepositos',
+    'menu.mnuBajasSinLote'
   );
   PERMISO_MENU_PARAMETROS_ENTORNO = 'menu.mnuParmetrosdeEntorno';
   // Mantenimientos de administración: entrar (menú) no autoriza a dar de
@@ -221,7 +225,8 @@ end;
 
 function PermisoAusenteCodigo(const ACodigo: string): TPermisoAusente;
 begin
-  if EsPermisoAdministracion(ACodigo) then
+  if EsPermisoAdministracion(ACodigo) or
+     SameText(ACodigo, PERMISO_PEDIDO_COMPRA_CANCELAR_PENDIENTE) then
     Result := paExigirConcesion
   else
     Result := paPermitir;

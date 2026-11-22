@@ -408,7 +408,9 @@ begin
     oQry.SQL.Text :=
       ' UPDATE fza_facturas ' +
       ' SET ESCONSOLIDADA_FAC = ''S'', INSTANTECONSO_FAC = NOW(), ' +
-      '     FASE_FAC = :FASE, INSTANTE_MODIF = NOW(), ' +
+      '     FASE_FAC = CASE ' +
+      '       WHEN :FASE = ''VERIFACTU_OK'' AND FASE_FAC = ''RECTIFICADA'' ' +
+      '         THEN FASE_FAC ELSE :FASE END, INSTANTE_MODIF = NOW(), ' +
       '     USUARIO_MODIF = :USUARIO ' +
       ' WHERE SERIE_FAC = :SERIE ' +
       '   AND NUMERO_FAC = :NUMERO';
@@ -487,8 +489,13 @@ begin
         ' UPDATE fza_facturas ' +
         ' SET FASE_FAC = :FASE, INSTANTE_MODIF = NOW(), ' +
         '     USUARIO_MODIF = :USUARIO ' +
-        ' WHERE SERIE_FAC = :SERIE ' +
-        '   AND NUMERO_FAC = :NUMERO';
+        ' WHERE SERIE_FAC = :SERIE AND NUMERO_FAC = :NUMERO ' +
+        '   AND (COALESCE(TIPO_RECTIFICATIVA_FAC, '''') ' +
+        '          NOT IN (''I'', ''S'') ' +
+        '     OR NOT EXISTS (SELECT 1 FROM fza_verifactu_cola q ' +
+        '       WHERE q.ID_VFCOLA = :ID ' +
+        '         AND q.TIPO_OPERACION_VFCOLA = ''ANULACION''))';
+      oQry.ParamByName('ID').AsLargeInt := AEntrada.IdCola;
       oQry.ParamByName('FASE').AsString :=
         cFaseFacturaVerifactuError;
       oQry.ParamByName('USUARIO').AsString := AEntrada.Usuario;

@@ -30,6 +30,7 @@ const
   // Sin marcar, la fase de cobro oculta el botón, las cajas y las
   // etiquetas de vales (tiendas que no los usan).
   PARAMETRO_USAR_VALES_COBRO = 'vgerUsarValesCobro';
+  PARAMETRO_CAJA_EXIGIR_ORIGEN_DEVOLUCION = 'vgerReqRefDevolucion';
 
 type
   TParametrosCaja = class(
@@ -288,7 +289,7 @@ begin
                      tpBoolean,
                      'True');
   RegistrarParametro('Devoluciones y Vales',
-                     'vgerReqRefDevolucion',
+                     PARAMETRO_CAJA_EXIGIR_ORIGEN_DEVOLUCION,
                      'Pedir referencia en devoluciones',
                      tpBoolean,
                      'False');

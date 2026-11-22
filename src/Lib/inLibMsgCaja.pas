@@ -889,9 +889,14 @@ resourcestring
     'Ticket %s\%s — %s — Tienda %s — Total %s €';
   SInfoVentasOrigenSkuCaja =
     'Ventas de los últimos 12 meses que contienen "%s". ' +
-    'Elija el ticket de origen o cancele para devolver sin origen.';
+    'Elija el ticket de origen.';
   SErrorVentaOrigenCajaSinSeleccion =
     'Seleccione una venta de la lista o cancele.';
+  SErrorDevolucionCajaSinLoteYeti =
+    'Seleccione una partida de devolución para %s.';
+  SErrorDevolucionCajaSinFacturaOrigen =
+    'Para finalizar la devolución, seleccione la factura o el ticket ' +
+    'de origen.';
   SErrorDevolucionTicketOperacionEnCurso =
     'Termine o cancele la operación en curso antes de cargar ' +
     'una devolución por ticket.';
@@ -905,9 +910,18 @@ resourcestring
     'No se pueden devolver %s unidades de %s: de %s solo quedan %s ' +
     'por devolver (vendidas %s, ya devueltas %s).';
   SAvisoDevolucionTicketOtraEmpresa =
-    'El ticket es de otra empresa: la devolución se grabará como ' +
-    'devolución con referencia al ticket de origen, sin ' +
-    'rectificativa fiscal.';
+    'El ticket es de otra empresa: la rectificativa se emitirá en la ' +
+    'caja 99 del almacén de origen. El reembolso se hará en esta caja.';
+  SCajaAuxiliarCaja = 'Caja auxiliar';
+  SReferenciaOperacionDevolucionOtraEmpresa =
+    'Operación de caja %s/%s/%s/%s';
+  SConceptoCompensacionEfectivoCaja = 'Compensación de efectivo';
+  SErrorSerieAuxiliarDevolucionCaja =
+    'La caja 99 del almacén de origen necesita una serie rectificativa.';
+  SErrorEmisorDevolucionCajaIncompleto =
+    'La factura de origen no tiene los datos fiscales necesarios.';
+  SErrorDevolucionOtraEmpresaConVenta =
+    'Cierre la devolución de otra empresa sin añadir artículos de venta.';
   SCaptionDevolucionTicketDe =
     '  —  DEVOLUCIÓN de %s\%s (Tienda %s)';
   // Apartados de prendas con el cliente de Varios

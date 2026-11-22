@@ -18,7 +18,7 @@ unit UniDataLotesRepositorio;
 interface
 
 uses
-  System.SysUtils, Uni, inLibLotesPersistenciaIntf;
+  System.SysUtils, Uni, inLibLotesPersistenciaIntf, inLibTrazabilidad;
 
 type
   // Un procedimiento ha devuelto un código que este adaptador no conoce:
@@ -32,10 +32,13 @@ function CrearConsultaLotesArticuloUniDAC(
 function CrearLecturaTrazabilidadArticuloUniDAC(
   AConexion: TUniConnection): ILecturaTrazabilidadArticulo;
 
+function ConsultarPartidasDevolucionUniDAC(AConexion: TUniConnection;
+  const ASku: string): TLotesDisponibles;
+
 implementation
 
 uses
-  Data.DB, inLibTrazabilidad, inLibMsgTrazabilidad, UniDataProveedoresTexto;
+  Data.DB, inLibMsgTrazabilidad, UniDataProveedoresTexto;
 
 const
   PROC_ASEGURAR = 'PRC_FZA_LOTES_ASEGURAR';
@@ -184,6 +187,40 @@ begin
     Result := SIN_FECHA
   else
     Result := Trunc(AField.AsDateTime);
+end;
+
+function ConsultarPartidasDevolucionUniDAC(AConexion: TUniConnection;
+  const ASku: string): TLotesDisponibles;
+var
+  Consulta: TUniQuery;
+  Partida: TLoteDisponible;
+begin
+  Result := [];
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := AConexion;
+    Consulta.SQL.Text :=
+      'SELECT LOTE_LOT, FECHA_CADUCIDAD_LOT, FECHA_ENTRADA_LOT ' +
+      'FROM fza_articulos_lotes WHERE CODIGO_UNIDAD_LOT = :SKU ' +
+      'AND ESREPOSICION_LOT = ''S'' AND NULLIF(TRIM(LOTE_LOT), '''') ' +
+      'IS NOT NULL ORDER BY FECHA_ENTRADA_LOT DESC, LOTE_LOT';
+    Consulta.ParamByName('SKU').AsString := ASku;
+    Consulta.Open;
+    while not Consulta.Eof do
+    begin
+      Partida := Default(TLoteDisponible);
+      Partida.Lote := Consulta.FieldByName('LOTE_LOT').AsString;
+      Partida.FechaCaducidad := FechaCampo(
+        Consulta.FieldByName('FECHA_CADUCIDAD_LOT'));
+      Partida.FechaEntrada := FechaCampo(
+        Consulta.FieldByName('FECHA_ENTRADA_LOT'));
+      Partida.EsReposicion := True;
+      Result := Result + [Partida];
+      Consulta.Next;
+    end;
+  finally
+    Consulta.Free;
+  end;
 end;
 
 procedure PonerFecha(AParam: TUniParam; AFecha: TDate);

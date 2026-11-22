@@ -59,6 +59,8 @@ type
     ): IResultadoInformeCaja;
     function ConstruirFiltroUbicaciones(
       const AUbicaciones: TUbicacionesInformeCaja): string;
+    procedure VincularPeriodoYUbicacionesVenta(AConsulta: TUniQuery;
+      const ASolicitud: TSolicitudOperacionesVentaCaja);
     function ConstruirFiltroUbicacionesSolicitudes(
       const AUbicaciones: TUbicacionesInformeCaja): string;
     function ConstruirFiltroEstadosSolicitudes(
@@ -71,14 +73,15 @@ type
     procedure AnadirOrigenOperacionesVenta(ALineas: TStrings);
     procedure AnadirProveedorOperacionesVenta(ALineas: TStrings);
     procedure AnadirPrestamosOperacionesVenta(ALineas: TStrings;
-      const AFiltroUbicaciones: string);
+      const AFiltroUbicaciones: string;
+      const ASolicitud: TSolicitudOperacionesVentaCaja);
     procedure AnadirColoresOperacionesVenta(ALineas: TStrings);
     procedure AnadirPagosOperacionesVenta(ALineas: TStrings);
     procedure AnadirFiltrosOperacionesVenta(
       ALineas: TStrings;
       const AFiltroUbicaciones: string);
     function ConstruirSqlOperacionesVenta(
-      const AFiltroUbicaciones: string): string;
+      const ASolicitud: TSolicitudOperacionesVentaCaja): string;
     function ConstruirFiltroFormasPago(
       const ACodigosFormaPago: TCodigosFormaPagoInformeCaja): string;
     procedure AnadirColumnasPagos(ALineas: TStrings);
@@ -121,6 +124,9 @@ type
     function ConsultarOperacionesVenta(
       const ASolicitud: TSolicitudOperacionesVentaCaja
     ): IResultadoInformeCaja;
+    function ConsultarOpcionesFiltroOperacionesVenta(
+      AFiltro: TFiltroOperacionesVentaCaja;
+      const ASolicitud: TSolicitudOperacionesVentaCaja): IResultadoInformeCaja;
     function ListarEstadosSolicitudesTraspaso:
       TEstadosSolicitudTraspasoCaja;
     function ConsultarSolicitudesTraspaso(
@@ -642,6 +648,8 @@ var
   iUbicacion: Integer;
   sSufijo: string;
 begin
+  if Length(AUbicaciones) = 0 then
+    Exit(' AND 1 = 0');
   Result := '   AND (';
   for iUbicacion := 0 to High(AUbicaciones) do
   begin
@@ -662,6 +670,8 @@ procedure TRepositorioInformesCajaUniDAC.AnadirCabeceraOperacionesVenta(
   ALineas: TStrings);
 begin
   ALineas.Add('SELECT DATE(o.FECHA_OPERACION_OPCAJA) AS FECHA_DIA,');
+  ALineas.Add('       DATE_FORMAT(o.FECHA_OPERACION_OPCAJA, ''%H:%i'')' +
+    ' AS HORA_OPERACION,');
   ALineas.Add('       DATE(:pDESDE) AS FECHA_DESDE,');
   ALineas.Add('       DATE(:pHASTA) AS FECHA_HASTA,');
   ALineas.Add('       o.CODIGO_EMP_OPCAJA,');
@@ -909,8 +919,45 @@ begin
 
 end;
 
+// Prefiere el atributo guardado en la factura. Para líneas antiguas
+// sin ese atributo y para préstamos consulta la variante del SKU.
+function SqlFiltroAtributoOperacion: string;
+var
+  i: Integer;
+  Posicion, Nombre, Valor, Guardado, Coincide: string;
+begin
+  Guardado := '';
+  Coincide := '';
+  for i := 1 to 5 do
+  begin
+    Posicion := IntToStr(i);
+    Nombre := 'TRIM(fl.ATTR' + Posicion + '_NOMBRE_FACLIN)';
+    Valor := 'TRIM(fl.ATTR' + Posicion + '_VALOR_FACLIN)';
+    if i > 1 then
+    begin
+      Guardado := Guardado + ' OR ';
+      Coincide := Coincide + ' OR ';
+    end;
+    Guardado := Guardado + '(' + Nombre + ' = :pATRIBUTO AND ' +
+      Valor + ' <> '''')';
+    Coincide := Coincide + '(' + Nombre + ' = :pATRIBUTO AND ' +
+      Valor + ' = :pVALORATRIBUTO)';
+  end;
+  Result := ' AND ((' + Coincide + ') OR (NOT (' +
+    'COALESCE((' + Guardado + '), 0)) AND EXISTS (' +
+    'SELECT 1 FROM fza_atributos_sku sa' +
+    ' JOIN fza_articulos_skus sk ON sk.CODIGO_UNIDAD_SKU = sa.CODIGO_UNIDAD_SKU_SA' +
+    ' JOIN fza_atributos_valores av ON av.ID_AV = sa.ID_AV_SA' +
+    ' JOIN fza_variaciones_atributos va ON va.ID_ATB_VA = av.ID_VA_AV' +
+    ' AND va.ID_VAR_VA = sk.CODIGO_VAR_SKU' +
+    ' WHERE sa.CODIGO_UNIDAD_SKU_SA = fl.CODIGO_UNIDAD_FACLIN' +
+    ' AND TRIM(va.NOMBRE_VA) = :pATRIBUTO' +
+    ' AND TRIM(av.AV) = :pVALORATRIBUTO)))';
+end;
+
 procedure TRepositorioInformesCajaUniDAC.AnadirPrestamosOperacionesVenta(
-  ALineas: TStrings; const AFiltroUbicaciones: string);
+  ALineas: TStrings; const AFiltroUbicaciones: string;
+  const ASolicitud: TSolicitudOperacionesVentaCaja);
 var
   Filtro: string;
   I: Integer;
@@ -919,6 +966,7 @@ begin
   // Valor y fecha siguen el criterio de prestamos del arqueo.
   ALineas.Add('UNION ALL');
   ALineas.Add('SELECT DATE(fl.FECHA_CREACION_DEP) AS FECHA_DIA,');
+  ALineas.Add(' DATE_FORMAT(fl.FECHA_CREACION_DEP, ''%H:%i''),');
   ALineas.Add(' DATE(:pDESDE), DATE(:pHASTA), fl.CODIGO_EMP_DEP,');
   ALineas.Add(' fl.CODIGO_ALM_DEP, fl.CODIGO_CAJA_DEP,');
   ALineas.Add(' CONCAT_WS(''/'', fl.CODIGO_EMP_DEP, fl.CODIGO_ALM_DEP,');
@@ -968,23 +1016,57 @@ begin
   Filtro := StringReplace(Filtro, 'o.CODIGO_CAJA_OPCAJA',
     'fl.CODIGO_CAJA_DEP', [rfReplaceAll]);
   ALineas.Add(Filtro);
+  if ASolicitud.NombreAtributo <> '' then
+    ALineas.Add(SqlFiltroAtributoOperacion);
+  if ASolicitud.CodigoArqueo <> '' then
+  begin
+    ALineas.Add(' AND EXISTS (SELECT 1 FROM fza_caja_operaciones od');
+    ALineas.Add('   WHERE od.CODIGO_EMP_OPCAJA = fl.CODIGO_EMP_DEP');
+    ALineas.Add('     AND od.CODIGO_ALM_OPCAJA = fl.CODIGO_ALM_DEP');
+    ALineas.Add('     AND od.CODIGO_CAJA_OPCAJA = fl.CODIGO_CAJA_DEP');
+    ALineas.Add('     AND od.NUMERO_OPERACION_OPCAJA = fl.NUMERO_OPERACION_DEP');
+    ALineas.Add('     AND od.ID_DEPOSITO_OPCAJA = fl.ID_DEPOSITO_DEP');
+    ALineas.Add('     AND od.TIPO_OPERACION_OPCAJA = ''DE''');
+    ALineas.Add('     AND od.CODIGO_ARQUEO_OPCAJA = :pARQUEO)');
+  end;
 end;
 
 function TRepositorioInformesCajaUniDAC.ConstruirSqlOperacionesVenta(
-  const AFiltroUbicaciones: string): string;
+  const ASolicitud: TSolicitudOperacionesVentaCaja): string;
 var
   slSQL: TStringList;
+  FiltroUbicaciones: string;
+  FiltrarEjes: Boolean;
 begin
+  FiltroUbicaciones := ConstruirFiltroUbicaciones(ASolicitud.Ubicaciones);
+  FiltrarEjes := (ASolicitud.Talla <> '') or
+    (ASolicitud.Color <> '') or (ASolicitud.Copa <> '');
   slSQL := TStringList.Create;
   try
+    if FiltrarEjes then
+      slSQL.Add('SELECT * FROM (');
     AnadirCabeceraOperacionesVenta(slSQL);
     AnadirAtributosOperacionesVenta(slSQL);
     AnadirImportesOperacionesVenta(slSQL);
     AnadirOrigenOperacionesVenta(slSQL);
     AnadirColoresOperacionesVenta(slSQL);
     AnadirPagosOperacionesVenta(slSQL);
-    AnadirFiltrosOperacionesVenta(slSQL, AFiltroUbicaciones);
-    AnadirPrestamosOperacionesVenta(slSQL, AFiltroUbicaciones);
+    AnadirFiltrosOperacionesVenta(slSQL, FiltroUbicaciones);
+    if ASolicitud.NombreAtributo <> '' then
+      slSQL.Add(SqlFiltroAtributoOperacion);
+    if ASolicitud.CodigoArqueo <> '' then
+      slSQL.Add(' AND o.CODIGO_ARQUEO_OPCAJA = :pARQUEO');
+    AnadirPrestamosOperacionesVenta(slSQL, FiltroUbicaciones, ASolicitud);
+    if FiltrarEjes then
+    begin
+      slSQL.Add(') detalle WHERE 1 = 1');
+      if ASolicitud.Talla <> '' then
+        slSQL.Add(' AND TRIM(TALLA) = :pTALLA');
+      if ASolicitud.Color <> '' then
+        slSQL.Add(' AND TRIM(COLOR) = :pCOLOR');
+      if ASolicitud.Copa <> '' then
+        slSQL.Add(' AND TRIM(COPA) = :pCOPA');
+    end;
     slSQL.Add(' ORDER BY FECHA_DIA, CODIGO_EMP_OPCAJA,');
     // FZ-ISSUE-1126: el informe subtotaliza por vendedor dentro de la caja.
     slSQL.Add('   CODIGO_ALM_OPCAJA, CODIGO_CAJA_OPCAJA, VENDEDOR,');
@@ -995,38 +1077,128 @@ begin
   end;
 end;
 
-function TRepositorioInformesCajaUniDAC.ConsultarOperacionesVenta(
-  const ASolicitud: TSolicitudOperacionesVentaCaja
-): IResultadoInformeCaja;
+procedure TRepositorioInformesCajaUniDAC.VincularPeriodoYUbicacionesVenta(
+  AConsulta: TUniQuery; const ASolicitud: TSolicitudOperacionesVentaCaja);
 var
-  oConsulta: TUniQuery;
   iUbicacion: Integer;
   sSufijo: string;
+begin
+  AConsulta.ParamByName('pDESDE').AsDateTime :=
+    Trunc(ASolicitud.FechaDesde);
+  AConsulta.ParamByName('pHASTA').AsDateTime :=
+    Trunc(ASolicitud.FechaHasta);
+  for iUbicacion := 0 to High(ASolicitud.Ubicaciones) do
+  begin
+    sSufijo := IntToStr(iUbicacion);
+    AConsulta.ParamByName('pEMPRESA' + sSufijo).AsString :=
+      ASolicitud.Ubicaciones[iUbicacion].Empresa;
+    AConsulta.ParamByName('pALMACEN' + sSufijo).AsString :=
+      ASolicitud.Ubicaciones[iUbicacion].Almacen;
+    AConsulta.ParamByName('pCAJA' + sSufijo).AsString :=
+      ASolicitud.Ubicaciones[iUbicacion].Caja;
+  end;
+end;
+
+function TRepositorioInformesCajaUniDAC.ConsultarOperacionesVenta(
+  const ASolicitud: TSolicitudOperacionesVentaCaja): IResultadoInformeCaja;
+var
+  oConsulta: TUniQuery;
 begin
   oConsulta := TUniQuery.Create(nil);
   try
     oConsulta.Connection := FConexion;
-    oConsulta.SQL.Text := ConstruirSqlOperacionesVenta(
-      ConstruirFiltroUbicaciones(ASolicitud.Ubicaciones));
-    oConsulta.ParamByName('pDESDE').AsDateTime :=
-      Trunc(ASolicitud.FechaDesde);
-    oConsulta.ParamByName('pHASTA').AsDateTime :=
-      Trunc(ASolicitud.FechaHasta);
-    for iUbicacion := 0 to High(ASolicitud.Ubicaciones) do
+    oConsulta.SQL.Text := ConstruirSqlOperacionesVenta(ASolicitud);
+    if ASolicitud.Talla <> '' then
+      oConsulta.ParamByName('pTALLA').AsString := ASolicitud.Talla;
+    if ASolicitud.Color <> '' then
+      oConsulta.ParamByName('pCOLOR').AsString := ASolicitud.Color;
+    if ASolicitud.Copa <> '' then
+      oConsulta.ParamByName('pCOPA').AsString := ASolicitud.Copa;
+    if ASolicitud.NombreAtributo <> '' then
     begin
-      sSufijo := IntToStr(iUbicacion);
-      oConsulta.ParamByName('pEMPRESA' + sSufijo).AsString :=
-        ASolicitud.Ubicaciones[iUbicacion].Empresa;
-      oConsulta.ParamByName('pALMACEN' + sSufijo).AsString :=
-        ASolicitud.Ubicaciones[iUbicacion].Almacen;
-      oConsulta.ParamByName('pCAJA' + sSufijo).AsString :=
-        ASolicitud.Ubicaciones[iUbicacion].Caja;
+      oConsulta.ParamByName('pATRIBUTO').AsString := ASolicitud.NombreAtributo;
+      oConsulta.ParamByName('pVALORATRIBUTO').AsString := ASolicitud.ValorAtributo;
     end;
+    if ASolicitud.CodigoArqueo <> '' then
+      oConsulta.ParamByName('pARQUEO').AsString := ASolicitud.CodigoArqueo;
+    VincularPeriodoYUbicacionesVenta(oConsulta, ASolicitud);
     oConsulta.Open;
     Result := TResultadoInformeCajaUniDAC.Create(oConsulta);
     oConsulta := nil;
   finally
     FreeAndNil(oConsulta);
+  end;
+end;
+
+function TRepositorioInformesCajaUniDAC.ConsultarOpcionesFiltroOperacionesVenta(
+  AFiltro: TFiltroOperacionesVentaCaja;
+  const ASolicitud: TSolicitudOperacionesVentaCaja): IResultadoInformeCaja;
+const
+  EJES: array[fovTalla..fovCopa] of string = ('P', 'F', 'S');
+  SQL_VALORES_ATRIBUTO =
+    'SELECT TRIM(AV.AV) AS VALOR, ' +
+    'MAX(NULLIF(TRIM(AV.DESCRIPCION_AV), '''')) AS DESCRIPCION ' +
+    'FROM fza_atributos_valores AV ' +
+    'WHERE TRIM(AV.AV) <> '''' AND EXISTS (';
+  SQL_ORDEN_VALORES = ') GROUP BY TRIM(AV.AV) ORDER BY VALOR';
+var
+  Consulta: TUniQuery;
+begin
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := FConexion;
+    case AFiltro of
+      fovTalla, fovColor, fovCopa:
+        begin
+          Consulta.SQL.Text := SQL_VALORES_ATRIBUTO +
+            'SELECT 1 FROM VI_VARIACIONES_EJES E ' +
+            'WHERE E.ID_ATB_VA = AV.ID_VA_AV AND E.EJE_VA = :EJE' +
+            SQL_ORDEN_VALORES;
+          Consulta.ParamByName('EJE').AsString := EJES[AFiltro];
+        end;
+      fovAtributo:
+        Consulta.SQL.Text :=
+          'SELECT DISTINCT TRIM(VA.NOMBRE_VA) AS VALOR ' +
+          'FROM fza_variaciones_atributos VA ' +
+          'WHERE TRIM(VA.NOMBRE_VA) <> '''' AND EXISTS (' +
+          'SELECT 1 FROM fza_atributos_valores AV ' +
+          'WHERE AV.ID_VA_AV = VA.ID_ATB_VA AND TRIM(AV.AV) <> '''') ' +
+          'ORDER BY VALOR';
+      fovValorAtributo:
+        begin
+          Consulta.SQL.Text := SQL_VALORES_ATRIBUTO +
+            'SELECT 1 FROM fza_variaciones_atributos VA ' +
+            'WHERE VA.ID_ATB_VA = AV.ID_VA_AV ' +
+            'AND TRIM(VA.NOMBRE_VA) = :NOMBRE' + SQL_ORDEN_VALORES;
+          Consulta.ParamByName('NOMBRE').AsString := ASolicitud.NombreAtributo;
+        end;
+      fovTurno:
+        begin
+          Consulta.SQL.Text :=
+            'SELECT DISTINCT o.CODIGO_ARQUEO_OPCAJA AS VALOR, ' +
+            'o.CODIGO_EMP_OPCAJA AS EMPRESA, o.CODIGO_ALM_OPCAJA AS ALMACEN, ' +
+            'o.CODIGO_CAJA_OPCAJA AS CAJA, ' +
+            'A.FECHA_DESDE_ARQ AS DESDE, A.FECHA_HASTA_ARQ AS HASTA ' +
+            'FROM fza_caja_operaciones o ' +
+            'LEFT JOIN fza_caja_arqueos A ' +
+            'ON A.CODIGO_ARQ = o.CODIGO_ARQUEO_OPCAJA ' +
+            'AND A.CODIGO_EMP_ARQ = o.CODIGO_EMP_OPCAJA ' +
+            'AND A.CODIGO_ALM_ARQ = o.CODIGO_ALM_OPCAJA ' +
+            'AND A.CODIGO_CAJA_ARQ = o.CODIGO_CAJA_OPCAJA ' +
+            'WHERE o.CODIGO_ARQUEO_OPCAJA <> '''' ' +
+            'AND o.TIPO_OPERACION_OPCAJA IN (''VE'', ''DV'', ''DE'') ' +
+            'AND o.FECHA_OPERACION_OPCAJA >= :pDESDE ' +
+            'AND o.FECHA_OPERACION_OPCAJA < DATE_ADD(:pHASTA, INTERVAL 1 DAY) ' +
+            ConstruirFiltroUbicaciones(ASolicitud.Ubicaciones) +
+            ' ORDER BY HASTA DESC, VALOR DESC';
+          VincularPeriodoYUbicacionesVenta(Consulta, ASolicitud);
+        end;
+    end;
+    Consulta.Open;
+    Result := TResultadoInformeCajaUniDAC.Create(Consulta);
+    Consulta := nil;
+  finally
+    Consulta.Free;
   end;
 end;
 

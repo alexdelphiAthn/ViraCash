@@ -3,30 +3,30 @@
   BorderStyle = bsDialog
   Caption = 'Fase de cobro'
   ClientHeight = 680
-  ClientWidth = 834
+  ClientWidth = 914
   Font.Height = -16
   Position = poScreenCenter
   OnDestroy = FormDestroy
   OnShow = FormShow
-  ExplicitWidth = 846
+  ExplicitWidth = 926
   ExplicitHeight = 718
   TextHeight = 20
   object pnlPrincipal: TPanel [0]
     Left = 65
     Top = 0
-    Width = 769
+    Width = 849
     Height = 680
     Align = alClient
     BevelOuter = bvNone
     Color = clCream
     ParentBackground = False
     TabOrder = 0
-    ExplicitWidth = 765
+    ExplicitWidth = 845
     ExplicitHeight = 679
     object pnlIzquierdo: TPanel
       Left = 0
       Top = 0
-      Width = 521
+      Width = 601
       Height = 680
       Align = alClient
       BevelOuter = bvNone
@@ -40,21 +40,21 @@
       ParentBackground = False
       ParentFont = False
       TabOrder = 0
-      ExplicitWidth = 517
+      ExplicitWidth = 597
       ExplicitHeight = 679
       object pnlContenedor: TPanel
         Left = 0
         Top = 0
-        Width = 521
+        Width = 601
         Height = 680
         Align = alClient
         TabOrder = 0
-        ExplicitWidth = 517
+        ExplicitWidth = 597
         ExplicitHeight = 679
         object pnlTotales: TPanel
           Left = 6
           Top = 0
-          Width = 515
+          Width = 595
           Height = 201
           BevelInner = bvRaised
           BevelKind = bkSoft
@@ -120,7 +120,7 @@
             TabOrder = 3
           end
           object txtCantidadLineas: TcxTextEdit
-            Left = 275
+            Left = 355
             Top = 14
             Properties.Alignment.Horz = taCenter
             Properties.ReadOnly = True
@@ -130,7 +130,7 @@
             Width = 64
           end
           object txtBrutoLineas: TcxCurrencyEdit
-            Left = 334
+            Left = 414
             Top = 14
             Properties.Alignment.Horz = taRightJustify
             Properties.DisplayFormat = '#,##0.00 '#8364
@@ -141,14 +141,14 @@
             Width = 171
           end
           object txtPorcenDtoLineal: TcxTextEdit
-            Left = 243
+            Left = 323
             Top = 57
             Style.BorderStyle = ebsOffice11
             TabOrder = 8
             Width = 96
           end
           object txtTotalPagar: TcxCurrencyEdit
-            Left = 334
+            Left = 414
             Top = 139
             Properties.Alignment.Horz = taRightJustify
             Properties.DisplayFormat = '#,##0.00 '#8364
@@ -161,7 +161,7 @@
             Width = 171
           end
           object txtDtoGlobal: TcxCurrencyEdit
-            Left = 334
+            Left = 414
             Top = 100
             Properties.Alignment.Horz = taRightJustify
             Properties.DisplayFormat = '#,##0.00 '#8364
@@ -172,7 +172,7 @@
             Width = 171
           end
           object txtTotalDtoLineal: TcxCurrencyEdit
-            Left = 334
+            Left = 414
             Top = 57
             Properties.Alignment.Horz = taRightJustify
             Properties.DisplayFormat = '#,##0.00 '#8364
@@ -180,7 +180,7 @@
             Width = 171
           end
           object txtPorcenDtoGlobal: TcxCurrencyEdit
-            Left = 243
+            Left = 323
             Top = 100
             Properties.Alignment.Horz = taRightJustify
             Properties.DisplayFormat = ',0.00 %;-,0.00 %;'#39#39
@@ -198,7 +198,7 @@
         object pnlCuenta: TPanel
           Left = 6
           Top = 196
-          Width = 515
+          Width = 595
           Height = 108
           BevelInner = bvRaised
           BevelKind = bkSoft
@@ -234,7 +234,7 @@
             TabOrder = 1
           end
           object txtDejarCuenta: TcxCurrencyEdit
-            Left = 334
+            Left = 414
             Top = 17
             Properties.Alignment.Horz = taRightJustify
             Properties.DisplayFormat = '#,##0.00 '#8364
@@ -245,7 +245,7 @@
             Width = 171
           end
           object txtPendienteCuenta: TcxCurrencyEdit
-            Left = 334
+            Left = 414
             Top = 54
             Properties.Alignment.Horz = taRightJustify
             Properties.DisplayFormat = '#,##0.00 '#8364
@@ -259,7 +259,7 @@
         object pnlCambioVales: TPanel
           Left = 6
           Top = 299
-          Width = 515
+          Width = 595
           Height = 108
           BevelInner = bvRaised
           BevelKind = bkSoft
@@ -295,7 +295,7 @@
             TabOrder = 1
           end
           object txtValeRecogido: TcxCurrencyEdit
-            Left = 334
+            Left = 414
             Top = 10
             Properties.Alignment.Horz = taRightJustify
             Properties.DisplayFormat = '#,##0.00 '#8364
@@ -306,7 +306,7 @@
             Width = 171
           end
           object txtValeEmitido: TcxCurrencyEdit
-            Left = 334
+            Left = 414
             Top = 54
             Properties.Alignment.Horz = taRightJustify
             Properties.DisplayFormat = '#,##0.00 '#8364
@@ -321,8 +321,9 @@
         object cxgrdFormasPago: TcxGrid
           Left = 5
           Top = 409
-          Width = 514
+          Width = 594
           Height = 186
+          Anchors = [akLeft, akTop, akRight]
           BevelOuter = bvRaised
           BorderStyle = cxcbsNone
           TabOrder = 3
@@ -332,6 +333,7 @@
             DataController.DataSource = dsFormasPago
             OptionsData.Deleting = False
             OptionsData.Inserting = False
+            OptionsView.ColumnAutoWidth = True
             OptionsView.GroupByBox = False
             OptionsView.Indicator = True
             Styles.Header = styCobroLine
@@ -350,7 +352,7 @@
               Options.Editing = False
               Options.Focusing = False
               Styles.Header = styCobroLine
-              Width = 254
+              Width = 334
             end
             object dbmImporte: TcxGridDBColumn
               Caption = 'Importe Entregado'
@@ -385,14 +387,14 @@
         object pnlFormasPago: TPanel
           Left = 1
           Top = 599
-          Width = 519
+          Width = 599
           Height = 80
           Align = alBottom
           BevelOuter = bvNone
           ParentBackground = False
           TabOrder = 4
           ExplicitTop = 598
-          ExplicitWidth = 515
+          ExplicitWidth = 595
           object lblPendienteCobroAlt: TcxLabel
             Left = 15
             Top = 43
@@ -410,7 +412,7 @@
             TabOrder = 0
           end
           object txtPendienteCobro: TcxCurrencyEdit
-            Left = 341
+            Left = 421
             Top = 39
             Properties.Alignment.Horz = taRightJustify
             Properties.DisplayFormat = '#,##0.00 '#8364
@@ -437,7 +439,7 @@
             TabOrder = 2
           end
           object txtCambio: TcxCurrencyEdit
-            Left = 341
+            Left = 421
             Top = 0
             Properties.Alignment.Horz = taRightJustify
             Properties.DisplayFormat = '#,##0.00 '#8364
@@ -451,7 +453,7 @@
       end
     end
     object pnlDerecho: TPanel
-      Left = 521
+      Left = 601
       Top = 0
       Width = 248
       Height = 680
@@ -460,7 +462,7 @@
       Color = clCream
       ParentBackground = False
       TabOrder = 1
-      ExplicitLeft = 517
+      ExplicitLeft = 597
       ExplicitHeight = 679
       object pnlBotones: TPanel
         Left = 0

@@ -47,6 +47,7 @@ type
     Lectura: ILecturaTrazabilidadArticulo;
     Repositorio: IRepositorioLotes;
     Selector: ISelectorLotesVisual;
+    PartidasDevolucion: TFunc<string, TLotesDisponibles>;
     Lineas: TClientDataSet;
     Almacen: TFunc<string>;
     SiguienteNumeroLinea: TFunc<string>;
@@ -124,6 +125,7 @@ type
     // Devolución de ticket: las líneas copiadas traen el lote; se marca
     // cuáles son series para el ticket.
     procedure MarcarSeries;
+    procedure ConfirmarLotesDevolucion(AConOrigen: Boolean);
     procedure ValidarExistencias(ALinea: TDataSet);
     procedure ValidarTicket;
   end;
@@ -134,7 +136,7 @@ implementation
 
 uses
   System.Math, System.Classes, System.Variants, System.Generics.Collections,
-  inLibMsgTrazabilidad, inLibCajaStockLinea;
+  inLibMsgTrazabilidad, inLibCajaStockLinea, inLibCajaVentaOperacion;
 
 function EsLineaStockRectificativaCaja(ALinea: TDataSet): Boolean;
 begin
@@ -512,10 +514,12 @@ var
   Indice, Otro, Campo, NumeroLinea: Integer;
   PuntoGuardado: Int64;
   Cantidad, Total: Double;
+  EsDevolucion: Boolean;
   Sku, Lote: string;
   Validacion: TValidacionSalidaLote;
 begin
-  if Assigned(FConfig.ValidarStock) then
+  EsDevolucion := ALinea.FieldByName(CAMPO_CANTIDAD_CAJA).AsFloat < 0;
+  if not EsDevolucion and Assigned(FConfig.ValidarStock) then
     FConfig.ValidarStock(ALinea);
   // Prevalidar todo antes de escribir: incluye otras líneas y lotes
   // repetidos en el reparto, excluyendo la línea que se sustituye.
@@ -524,11 +528,11 @@ begin
   for Indice := 0 to High(AAsignaciones) do
   begin
     Cantidad := AAsignaciones[Indice].Cantidad;
-    if Cantidad <= 0 then
+    if (Cantidad = 0) or ((Cantidad < 0) <> EsDevolucion) then
       Abort;
     Total := Total + Cantidad;
     Lote := AAsignaciones[Indice].Lote;
-    if Trim(Lote) <> '' then
+    if not EsDevolucion and (Trim(Lote) <> '') then
     begin
       Cantidad := UnidadesTicket(Sku, Lote, ALinea);
       for Otro := 0 to High(AAsignaciones) do
@@ -770,6 +774,87 @@ begin
     end;
   finally
     FreeAndNil(Clon);
+  end;
+end;
+
+procedure TTrazabilidadEntradaCaja.ConfirmarLotesDevolucion(
+  AConOrigen: Boolean);
+var
+  Clon: TClientDataSet;
+  LineasPendientes: TList<string>;
+  NumeroLinea: string;
+  Parametros: TParametrosSeleccionLote;
+  Seleccion: TResultadoSeleccionLote;
+  Catalogo: TLoteCatalogo;
+  LoteActual: string;
+  PuntoGuardado: Int64;
+  Indice: Integer;
+  Cambios: Boolean;
+begin
+  if Assigned(FConfig.PartidasDevolucion) then
+  begin
+    Clon := TClientDataSet.Create(nil);
+    LineasPendientes := TList<string>.Create;
+    FConfig.Lineas.DisableControls;
+    try
+      Clon.CloneCursor(FConfig.Lineas, True);
+      PuntoGuardado := Clon.SavePoint;
+      Cambios := False;
+      Clon.First;
+      while not Clon.Eof do
+      begin
+        if EsLineaDevolucionVentaCaja(Clon) then
+          LineasPendientes.Add(Clon.FieldByName('LINEA_FACLIN').AsString);
+        Clon.Next;
+      end;
+      try
+        for NumeroLinea in LineasPendientes do
+          if Clon.Locate('LINEA_FACLIN', NumeroLinea, []) then
+          begin
+            Parametros := Default(TParametrosSeleccionLote);
+            Parametros.CodigoSku := Trim(
+              Clon.FieldByName(CAMPO_SKU_CAJA).AsString);
+            LoteActual := Trim(Clon.FieldByName(CAMPO_LOTE_CAJA).AsString);
+            if (Parametros.CodigoSku <> '') and
+               (not AConOrigen or (LoteActual = '') or
+                not FConfig.Repositorio.BuscarLote(
+                  Parametros.CodigoSku, LoteActual, Catalogo)) then
+              Parametros.Disponibles :=
+                FConfig.PartidasDevolucion(Parametros.CodigoSku);
+            if Length(Parametros.Disponibles) > 0 then
+            begin
+              Parametros.DescripcionArticulo :=
+                Clon.FieldByName(CAMPO_DESCRIPCION_CAJA).AsString;
+              Parametros.CodigoAlmacen := FConfig.Almacen();
+              Parametros.Modo := mtLote;
+              Parametros.Hoy := Date;
+              Parametros.EsDevolucion := True;
+              Parametros.Cantidad :=
+                -Clon.FieldByName(CAMPO_CANTIDAD_CAJA).AsFloat;
+              Seleccion := FConfig.Selector.SeleccionarLotes(Parametros);
+              if not Seleccion.Aceptado then
+                Abort;
+              for Indice := 0 to High(Seleccion.Asignaciones) do
+                Seleccion.Asignaciones[Indice].Cantidad :=
+                  -Seleccion.Asignaciones[Indice].Cantidad;
+              FModoUltimo := mtLote;
+              AplicarReparto(Clon, Seleccion.Asignaciones);
+              Clon.Post;
+              Cambios := True;
+            end;
+          end;
+      except
+        Clon.Cancel;
+        Clon.SavePoint := PuntoGuardado;
+        raise;
+      end;
+    finally
+      FConfig.Lineas.EnableControls;
+      LineasPendientes.Free;
+      Clon.Free;
+    end;
+    if Cambios and Assigned(FConfig.Recalcular) then
+      FConfig.Recalcular();
   end;
 end;
 

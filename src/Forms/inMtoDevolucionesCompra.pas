@@ -138,6 +138,7 @@ type
 
     // Botones de accion
     btnAnadirLinea:       TcxButton;
+    btnDesdeAlbaran:      TcxButton;
     btnBorrarLinea:       TcxButton;
     btnTallasHorizontal:  TcxButton;
     btnAtributosColumna:  TcxButton;
@@ -157,6 +158,7 @@ type
     procedure btnNuevoClick(Sender: TObject);
     procedure btnGrabarClick(Sender: TObject);
     procedure btnAnadirLineaClick(Sender: TObject);
+    procedure btnDesdeAlbaranClick(Sender: TObject);
     procedure btnBorrarLineaClick(Sender: TObject);
     procedure btnTallasHorizontalClick(Sender: TObject);
     procedure btnAtributosColumnaClick(Sender: TObject);
@@ -328,6 +330,8 @@ type
     procedure WMRevisarEnterAsTabDevolucionCompra(var Msg: TMessage);
       message WM_REVISAR_ENTER_AS_TAB_DEVOLUCION_COMPRA;
     procedure ConstruirModoEntrada;
+    procedure CrearColumnaOrigenRecepcion(const ACampo, ARotulo: string;
+      AAncho: Integer);
     function DevolucionClaveActual: string;
     procedure CrearColumnasHostDevolucionCompra;
     procedure ModoEntradaResuelto(const ACodArt, ASku,
@@ -387,6 +391,7 @@ uses
   UniDataPivoteVenta, UniDataGridPivoteCompraRepositorio,
   UniDataColumnasSkuServicios, UniDataModoTallas,
   inLibDevolucionesCompraPresentacionFlujo,
+  UniDataDevolucionesCompraRepositorio, inLibErroresBBDD,
   inMtoDevolucionesCompraSeleccionVcl,
   inMtoDevolucionesCompraAbonoVcl,
   UniDataAbonoDevolucionCompraRepositorio;
@@ -1056,7 +1061,13 @@ function TfrmMtoDevolucionesCompra.PuedeActivarTallasHorizontal(
 begin
   AMensaje := '';
   Result := True;
-  if Assigned(dmmDevolucionesCompra) and Assigned(FPivote) then
+  if Assigned(dmmDevolucionesCompra) and
+     dmmDevolucionesCompra.TieneLineasOrigenRecepcion then
+  begin
+    AMensaje := SErrorOrigenRecepcionPivote;
+    Result := False;
+  end;
+  if Result and Assigned(dmmDevolucionesCompra) and Assigned(FPivote) then
     Result := PuedeActivarTallasHorizontalCompra(
       dmmDevolucionesCompra.unqryTablaG,
       dmmDevolucionesCompra.unqryDevolucionesCompraLineas,
@@ -1465,7 +1476,11 @@ procedure TfrmMtoDevolucionesCompra.btnDevolverTodoStockClick(
   Sender: TObject);
 begin
   inherited;
-  DevolverTodoStock;
+  if TieneOrigenRecepcionDevolucion(
+    dmmDevolucionesCompra.unqryDevolucionesCompraLineas) then
+    raise Exception.Create(SErrorOrigenRecepcionCantidadManual)
+  else
+    DevolverTodoStock;
 end;
 
 procedure TfrmMtoDevolucionesCompra.ActualizarBotonesStockCompleto;
@@ -1503,6 +1518,9 @@ var
   eCursor: TCursor;
 begin
   oCabecera := dsTablaG.DataSet;
+  if Assigned(dmmDevolucionesCompra) and
+     dmmDevolucionesCompra.TieneLineasOrigenRecepcion then
+    raise Exception.Create(SErrorOrigenRecepcionCantidadManual);
   if Assigned(dmmDevolucionesCompra) and Assigned(oCabecera) and
      oCabecera.Active and
      ((oCabecera.State = dsInsert) or not oCabecera.IsEmpty) and
@@ -1776,6 +1794,10 @@ begin
   inherited;
   if Assigned(FPivote) then
     FPivote.EditingCeldaTalla(Sender, AItem, AAllow);
+  if AAllow and TieneOrigenRecepcionDevolucion(
+    dmmDevolucionesCompra.unqryDevolucionesCompraLineas) then
+    AAllow := (AItem is TcxGridDBColumn) and
+      SameText(TcxGridDBColumn(AItem).DataBinding.FieldName, 'CANTIDAD_DEVCLIN');
 end;
 
 // Apaga TJvEnterAsTab al entrar al grid para que Enter navegue de
@@ -1872,6 +1894,8 @@ begin
   // Field=nil: reconstruir ahi liberaba el pivote con el editor de
   // Articulo aun validando (FZ-ISSUE-071).
   FDevolucionModoActual := DevolucionClaveActual;
+  if dmmDevolucionesCompra.TieneLineasOrigenRecepcion then
+    FModoEntradaSel := mcsSku;
   PrepararReconstruccionModoDocumento(tvLineasDevolucion, ds,
     FModoEntrada, FTallaColumns, FAtribColumns, FColColorPivot);
   // Solo el DESGLOSE liga columnas a ATTRn: desempaquetar SKU->ATTR
@@ -1941,6 +1965,12 @@ begin
   else
   begin
     CrearColumnasHostDevolucionCompra;
+    if ds.FindField('SERIE_ALBC_DEVCLIN') <> nil then
+    begin
+      CrearColumnaOrigenRecepcion('SERIE_ALBC_DEVCLIN', 'Serie origen', 95);
+      CrearColumnaOrigenRecepcion('NUMERO_ALBC_DEVCLIN', 'Albarán origen', 100);
+      CrearColumnaOrigenRecepcion('LINEA_ALBC_DEVCLIN', 'Línea origen', 80);
+    end;
     // Rotulo por modo EFECTIVO (Auto puede degradar a SKU si faltan
     // las columnas ATTR en la BBDD) y, en desglose, mostrar Color y
     // Talla con nombres globales desde el principio (patron albaranes
@@ -2426,6 +2456,93 @@ begin
     cxgrdLineasDevolucion.SetFocus;
   AnadirLineaDocumento(dmmDevolucionesCompra.unqryDevolucionesCompraLineas,
     FModoEntrada);
+end;
+
+procedure TfrmMtoDevolucionesCompra.CrearColumnaOrigenRecepcion(
+  const ACampo, ARotulo: string; AAncho: Integer);
+var
+  Columna: TcxGridDBColumn;
+begin
+  Columna := tvLineasDevolucion.CreateColumn;
+  Columna.DataBinding.FieldName := ACampo;
+  Columna.Caption := ARotulo;
+  Columna.Width := AAncho;
+  Columna.Options.Editing := False;
+end;
+
+procedure TfrmMtoDevolucionesCompra.btnDesdeAlbaranClick(Sender: TObject);
+var
+  Cabecera, Lineas, Origen: TDataSet;
+  Empresa, Proveedor: string;
+  Cantidad: Double;
+begin
+  Cabecera := dsTablaG.DataSet;
+  if Assigned(dmmDevolucionesCompra) and Assigned(Cabecera) and
+     Cabecera.Active and ((Cabecera.State = dsInsert) or not Cabecera.IsEmpty)
+     and (((Cabecera.State = dsInsert) and PuedeAccionMto(apmInsertar)) or
+          ((Cabecera.State <> dsInsert) and PuedeAccionMto(apmModificar)))
+  then
+  begin
+    Empresa := ValorTextoDataSetCompra(Cabecera, 'CODIGO_EMP_DEVC');
+    Proveedor := ValorTextoDataSetCompra(Cabecera, 'CODIGO_PRV_DEVC');
+    if (Empresa = '') or (Proveedor = '') or (Proveedor = '0') then
+      raise Exception.Create(SErrorOrigenRecepcionCabecera);
+    if dmmDevolucionesCompra.unqryDevolucionesCompraLineas.Active then
+      ConfirmarLineaDocumento(tvLineasDevolucion);
+    Origen := ConsultaOrigenRecepcionDevolucion(
+      dmmDevolucionesCompra.unqryTablaG.Connection, Empresa, Proveedor,
+      AlmacenRestringido(ContextoSesion, ParametrosApp));
+    try
+      if Origen.IsEmpty then
+        MessageDlg_fza(SErrorOrigenRecepcionNoDisponible, mtInformation,
+          [mbOk], 0)
+      else
+      begin
+        Origen.FieldByName('FECHA').DisplayLabel := 'Fecha';
+        Origen.FieldByName('NUMERO').DisplayLabel := 'Albarán';
+        Origen.FieldByName('RECIBIDAS').DisplayLabel := 'Recibidas';
+        Origen.FieldByName('PENDIENTES').DisplayLabel := 'Por devolver';
+        Origen.FieldByName('PRECIO').DisplayLabel := 'Precio sin IVA';
+        Origen.FieldByName('ARTICULO').Visible := False;
+        Origen.FieldByName('MODELO').Visible := False;
+        Origen.FieldByName('UNIDAD').Visible := False;
+        Origen.FieldByName('TIPO_IVA').Visible := False;
+        Origen.FieldByName('SERIE_PEDIDO').Visible := False;
+        Origen.FieldByName('NUMERO_PEDIDO').Visible := False;
+        Origen.FieldByName('LINEA_PEDIDO').Visible := False;
+        if BusquedaVisual.EjecutarBusquedaDataSet(STituloOrigenRecepcion,
+          Origen, 'DevolucionCompraOrigenRecepcion', Self) and
+          SolicitarCantidadOrigenRecepcion(Origen.FieldByName('SKU').AsString,
+            Origen.FieldByName('PENDIENTES').AsFloat, Cantidad) then
+        begin
+          AsegurarCabeceraPersistidaParaLineas;
+          if Assigned(FPivote) and FPivote.Activo then
+            btnTallasHorizontalClick(Sender);
+          FModoEntradaSel := mcsSku;
+          ConstruirModoEntrada;
+          Lineas := dmmDevolucionesCompra.unqryDevolucionesCompraLineas;
+          Lineas.Append;
+          try
+            try
+              CopiarOrigenRecepcionDevolucion(Origen, Lineas);
+              Lineas.FieldByName('CANTIDAD_DEVCLIN').AsFloat := Cantidad;
+              Lineas.Post;
+            except
+              if Lineas.State in dsEditModes then
+                Lineas.Cancel;
+              raise;
+            end;
+            pcDevolucion.ActivePage := tsLineasDevolucion;
+          except
+            on E: EValidacionBBDD do
+              MessageDlg_fza(E.Message, mtWarning, [mbOk], 0);
+          end;
+        end;
+      end;
+    finally
+      Origen.Free;
+    end;
+  end;
 end;
 
 procedure TfrmMtoDevolucionesCompra.btnBorrarLineaClick(Sender: TObject);

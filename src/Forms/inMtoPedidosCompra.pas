@@ -184,6 +184,7 @@ type
     ActionList1: TActionList;
     actArticulos: TAction;
     btnRecibirTodo: TcxButton;
+    btnCancelarPendiente: TcxButton;
     // Atajo Ctrl+May+A en la pestania Albaranes: abre el albaran de
     // compra seleccionado en la rejilla.
     actIrDocumento: TAction;
@@ -233,6 +234,7 @@ type
     procedure actIrProveedorExecute(Sender: TObject);
     procedure cbbSERIE_PEDCPropertiesInitPopup(Sender: TObject);
     procedure btnRecibirTodoClick(Sender: TObject);
+    procedure btnCancelarPendienteClick(Sender: TObject);
     procedure btnCODIGO_EMP_PEDCPropertiesButtonClick(Sender: TObject;
                 AButtonIndex: Integer);
     procedure btnCODIGO_EMP_PEDCPropertiesEditValueChanged(Sender: TObject);
@@ -348,6 +350,9 @@ type
     // ApplyBestFit + ensanche para la columna Color (el cuadradito de
     // color que pinta FColColorPivot ocupa ~20 px que BestFit no mide).
     procedure BestFitConSwatch;
+    function PedidoCancelado: Boolean;
+    function PuedeCancelarPendiente: Boolean;
+    procedure CancelarPendientePedido;
     procedure GuardarAnchosMinimosLineas;
     procedure AplicarAnchosMinimosLineas;
     // Rotulo de modo en la pestania de lineas, como en ventas.
@@ -428,7 +433,7 @@ uses
   System.StrUtils,
   inLibFiltroUsuario,
   inLibAtributosPaleta,
-  inLibPedidosCompra,
+  inLibPedidosCompra, UniDataPedidosCompraPendientes,
   inLibValoresAutomaticos, UniDataValoresAutomaticosRepositorio,
   UniDataAplicacionArticuloCompra,
   inLibGridCantidad,
@@ -754,6 +759,7 @@ begin
   ConfigRecepcion.Pivote := FPivote;
   ConfigRecepcion.TotalAAlbaranar := curCabCANTIDAD_A_ALBARANAR_PEDC;
   ConfigRecepcion.BestFit := BestFitConSwatch;
+  ConfigRecepcion.CancelarPendiente := CancelarPendientePedido;
   FRecepcionVcl := CrearRecepcionPedidoCompraVcl(ConfigRecepcion);
   // Pintado del swatch de color en la columna no-bound: delegamos en el
   // controlador de pivote.
@@ -892,7 +898,9 @@ end;
 
 procedure TfrmMtoPedidosCompra.RefrescarCantidadAAlbaranar;
 begin
-  if Assigned(FRecepcionVcl) then
+  if PedidoCancelado then
+    curCabCANTIDAD_A_ALBARANAR_PEDC.EditValue := 0
+  else if Assigned(FRecepcionVcl) then
     FRecepcionVcl.ActualizarTotal(FColsModoConstruido);
   AplicarFormatoCantidadesCabecera;
 end;
@@ -1231,6 +1239,8 @@ end;
 procedure TfrmMtoPedidosCompra.btnRecibirFilaEnteraClick(Sender: TObject);
 begin
   inherited;
+  if PedidoCancelado then
+    Exit;
   if Assigned(FAccionesPivote) then
   begin
     if FAccionesPivote.MarcarFilaAAlbaranar = 0 then
@@ -1250,8 +1260,53 @@ end;
 procedure TfrmMtoPedidosCompra.btnRecibirTodoClick(Sender: TObject);
 begin
   inherited;
-  if Assigned(FRecepcionVcl) then
+  if not PedidoCancelado and Assigned(FRecepcionVcl) then
     FRecepcionVcl.RecibirTodo(FColsModoConstruido);
+end;
+
+function TfrmMtoPedidosCompra.PedidoCancelado: Boolean;
+begin
+  Result := Assigned(dsTablaG.DataSet) and dsTablaG.DataSet.Active and
+    not dsTablaG.DataSet.IsEmpty and
+    SameText(dsTablaG.DataSet.FieldByName('ESTADO_PEDC').AsString,
+      'CANCELADO');
+end;
+
+function TfrmMtoPedidosCompra.PuedeCancelarPendiente: Boolean;
+begin
+  Result := (dsTablaG.State = dsBrowse) and not dsTablaG.DataSet.IsEmpty and
+    SameText(dsTablaG.DataSet.FieldByName('ESTADO_PEDC').AsString,
+      'PARCIAL') and Assigned(Permisos) and
+    Permisos.TienePermiso(PERMISO_PEDIDO_COMPRA_CANCELAR_PENDIENTE,
+      PermisoAusenteCodigo(PERMISO_PEDIDO_COMPRA_CANCELAR_PENDIENTE));
+end;
+
+procedure TfrmMtoPedidosCompra.CancelarPendientePedido;
+var
+  oPivote: IPivoteVentaAlbaranar;
+begin
+  if not PuedeCancelarPendiente then
+    Exit;
+  if MessageDlg_fza(STextoElPedidoTieneCantidadesPendientesDeRecibirCompras,
+      mtConfirmation, [mbYes, mbNo], 0, mbNo) <> mrYes then
+    Exit;
+  if dmmPedidosCompra.unqryPedidosCompraLineas.State in dsEditModes then
+    dmmPedidosCompra.unqryPedidosCompraLineas.Post;
+  CancelarRestoPedidoCompra(dmmPedidosCompra.unqryTablaG.Connection,
+    dsTablaG.DataSet.FieldByName('SERIE_PEDC').AsString,
+    dsTablaG.DataSet.FieldByName('NUMERO_PEDC').AsString,
+    IdentidadSesion.Usuario);
+  dmmPedidosCompra.unqryTablaG.Refresh;
+  dmmPedidosCompra.unqryPedidosCompraLineas.Close;
+  dmmPedidosCompra.unqryPedidosCompraLineas.Open;
+  if Supports(FModoEntrada, IPivoteVentaAlbaranar, oPivote) then
+    oPivote.RecargarYPublicar;
+  RefrescarCantidadAAlbaranar;
+end;
+
+procedure TfrmMtoPedidosCompra.btnCancelarPendienteClick(Sender: TObject);
+begin
+  CancelarPendientePedido;
 end;
 
 procedure TfrmMtoPedidosCompra.btnNuevoClick(Sender: TObject);
@@ -1305,6 +1360,9 @@ end;
 procedure TfrmMtoPedidosCompra.dsTablaGDataChangeHook(Sender: TObject;
                                                      Field: TField);
 begin
+  btnCancelarPendiente.Enabled := PuedeCancelarPendiente;
+  btnRecibirTodo.Enabled := not PedidoCancelado;
+  btnRecibirFilaEntera.Enabled := btnRecibirTodo.Enabled;
   // Refrescar el rotulo del proveedor al navegar entre pedidos (Field=nil)
   // o al cambiar CODIGO_PRV_PEDC tecleado directamente en el ButtonEdit.
   if (Field = nil) or SameText(Field.FieldName, 'CODIGO_PRV_PEDC') then
@@ -2083,6 +2141,7 @@ begin
   inherited;
   if Assigned(FRecepcionVcl) then
     FRecepcionVcl.CrearAlbaran(FColsModoConstruido);
+  RefrescarCantidadAAlbaranar;
   // La recepcion refresca las lineas (A recibir a cero en el servidor),
   // pero las bandas del pivote son una cache propia: sin recargarla
   // seguian mostrando lo ya recibido (FZ-ISSUE-210). Si se cancela, las
@@ -2171,6 +2230,7 @@ begin
     CfgPV.FieldCantidadAAlbaranar := 'CANTIDAD_A_RECIBIR_PEDCLIN';
     CfgPV.BandaUnica := False;
     CfgPV.TextoBandaAAlbaranar := SCaptionColumnaPedidoARecibir;
+    CfgPV.OnPendienteCancelado := PedidoCancelado;
     CfgPV.CampoPorcentajeDto := 'PORCENTAJE_DTO_PEDCLIN';
     CfgPV.FieldImporteLinea := 'TOTAL_PEDCLIN';
     CfgPV.Repositorios :=

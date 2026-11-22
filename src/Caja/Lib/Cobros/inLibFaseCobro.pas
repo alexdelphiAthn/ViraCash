@@ -155,7 +155,6 @@ type
     function ValidarApartado(
       AImporteCuenta: Currency): TResultadoValidacion;
     function ValidarVale: TResultadoValidacion;
-    function ImporteEfectivoEuros: Currency;
     function ValidarLimiteEfectivo: TResultadoValidacion;
     function ObtenerFormaPagoInfo(const ACodigo: string): TFormaPagoInfo;
     function ObtenerCurrencySafe(const ANombreCampo: string;
@@ -207,6 +206,7 @@ type
     // Canje parcial: el vale de cambio procede del vale canjeado (FZ-360)
     procedure EstablecerValePadre(const ACodigoVale: string);
     function EsDevolucionEconomica: Boolean;
+    function ImporteEfectivoEuros: Currency;
     // FZ-ISSUE-395: algún pago con importe usa una forma de pago que
     // abre el cajón (el efectivo); con solo tarjeta no hay que abrirlo.
     function AlgunPagoAbreCajon: Boolean;

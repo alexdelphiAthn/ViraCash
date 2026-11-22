@@ -101,6 +101,13 @@ implementation
 uses
   System.SysUtils;
 
+resourcestring
+  SAvisoRecepcionSinCantidadesMarcadas =
+    'No hay cantidades marcadas en «A recibir». Marque las cantidades ' +
+    'o use «Recibir Todo».';
+  SAvisoRecepcionAlmacenSinCantidadesMarcadas =
+    'El almacén seleccionado no tiene cantidades marcadas en «A recibir».';
+
 constructor TFlujoPresentacionRecepcionPedidoCompra.Create(
   const ARecepcion: IRecepcionPedidoCompra;
   const ACantidades: ISeleccionCantidadesRecepcionPedidoCompra;
@@ -150,8 +157,14 @@ var
   Parametros: TParametrosRecepcionPedidoCompra;
   Resultado: TResultadoRecepcionPedidoCompra;
 begin
-  Parametros := CrearParametros(AEntrada, ASolicitud);
   try
+    Parametros := CrearParametros(AEntrada, ASolicitud);
+    if Length(Parametros.Celdas) = 0 then
+    begin
+      FVisualizacion.MostrarAviso(
+        SAvisoRecepcionAlmacenSinCantidadesMarcadas);
+      Exit;
+    end;
     // Cancelar la petición de lotes deja el pedido como estaba.
     if (FLotes = nil) or FLotes.Completar(Parametros) then
     begin
@@ -185,6 +198,11 @@ var
   EntradaDialogo: TEntradaPresentacionRecepcionPedidoCompra;
   Solicitud: TSolicitudPresentacionRecepcionPedidoCompra;
 begin
+  if FCantidades.Total(AEntrada.UsarCampoCantidades) <= 0 then
+  begin
+    FVisualizacion.MostrarAviso(SAvisoRecepcionSinCantidadesMarcadas);
+    Exit;
+  end;
   EntradaDialogo := AEntrada;
   EntradaDialogo.AlmacenSugerido := FCantidades.PrimerAlmacen(
     AEntrada.UsarCampoCantidades);

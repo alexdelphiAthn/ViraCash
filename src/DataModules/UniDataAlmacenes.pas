@@ -63,7 +63,7 @@ implementation
 
 uses
   inLibErroresBBDD, inLibMsgConfiguracion,
-  UniDataPrestaShopEncolado;
+  UniDataPrestaShopEncolado, UniDataUbicacionSesion;
 
 resourcestring
   SAlmacenWebNoValido =
@@ -414,13 +414,21 @@ end;
 procedure TdmAlmacenes.AplicarCambiosDiferidos;
 begin
   if qryAlmacenesCajas.Active and qryAlmacenesCajas.UpdatesPending then
+  begin
     qryAlmacenesCajas.ApplyUpdates;
+    if not qryAlmacenesCajas.IsEmpty then
+      AsegurarCajaAuxiliarAlmacen(qryAlmacenesCajas.Connection,
+        unqryTablaG.FieldByName('CODIGO_ALM_ALM').AsString);
+  end;
 end;
 
 procedure TdmAlmacenes.ConfirmarCambiosDiferidos;
 begin
   if qryAlmacenesCajas.Active then
+  begin
     qryAlmacenesCajas.CommitUpdates;
+    qryAlmacenesCajas.Refresh;
+  end;
 end;
 
 procedure TdmAlmacenes.RestaurarCambiosDiferidos;

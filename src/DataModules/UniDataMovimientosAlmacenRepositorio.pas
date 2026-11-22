@@ -467,7 +467,7 @@ begin
     CrearParametros(Procedimiento);
     AsignarParametros(Procedimiento, AMovimiento, Numero);
     EjecutarMovimientoConLote(Procedimiento, oConLote, AMovimiento.Lote,
-      AMovimiento.FechaCaducidad);
+      AMovimiento.FechaCaducidad, AMovimiento.ConservarLote);
   finally
     oConLote.Free;
     Procedimiento.Free;

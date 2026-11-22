@@ -42,11 +42,15 @@ procedure SeleccionarEmpresaDevolucionCompra(
   const AContexto: TContextoSeleccionDevolucionCompra);
 procedure SeleccionarProveedorDevolucionCompra(
   const AContexto: TContextoSeleccionDevolucionCompra);
+function SolicitarCantidadOrigenRecepcion(const ASku: string;
+  APendiente: Double; out ACantidad: Double): Boolean;
 
 implementation
 
 uses
   inLibMensajesVcl,
+  System.Math,
+  System.SysUtils,
   System.UITypes,
   Vcl.Dialogs,
   Vcl.Forms,
@@ -57,6 +61,35 @@ uses
 resourcestring
   STituloBuscarEmpresasDevolucionCompra = 'Búsqueda de empresas';
   STituloBuscarProveedoresDevolucionCompra = 'Búsqueda de proveedores';
+
+function SolicitarCantidadOrigenRecepcion(const ASku: string;
+  APendiente: Double; out ACantidad: Double): Boolean;
+var
+  Valores: TArray<string>;
+  Cantidad: Double;
+begin
+  Valores := [FloatToStr(Min(1.0, APendiente))];
+  Result := InputQuery_fza(STituloOrigenRecepcion,
+    [Format(SPreguntaCantidadOrigenRecepcion, [ASku, APendiente])],
+    Valores,
+    function(const AValores: array of string): Boolean
+    var
+      Aviso: string;
+    begin
+      Aviso := '';
+      if not TryStrToFloat(Trim(AValores[0]), Cantidad) or
+         IsNan(Cantidad) or IsInfinite(Cantidad) or (Cantidad <= 0) then
+        Aviso := SErrorOrigenRecepcionCantidadPositiva
+      else if Cantidad - APendiente > 0.0000001 then
+        Aviso := Format(SErrorOrigenRecepcionCantidad, [APendiente]);
+      Result := Aviso = '';
+      if not Result then
+        MessageDlg_fza(Aviso, mtWarning, [mbOk], 0);
+    end);
+  ACantidad := 0;
+  if Result then
+    ACantidad := Cantidad;
+end;
 
 function FormularioPadreSeleccion(
   AControl: TControl): TCustomForm;

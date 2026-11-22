@@ -1367,10 +1367,12 @@ begin
       case Resultado.Error of
         egaRevisionPropiedades:
           begin
+            pcDetail.ActivePage := tsPropiedades;
             ShowMessage_fza(Format(
               SAvisoRevisionArticulo,
               [Resultado.Mensaje]));
-            pcDetail.ActivePage := tsPropiedades;
+            if Assigned(FGestorProp) then
+              FGestorProp.EnfocarPrimeraPropiedadPendiente;
           end;
         egaGuardadoPropiedades:
           ShowMessage_fza(Format(

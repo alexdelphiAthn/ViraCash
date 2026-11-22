@@ -168,6 +168,20 @@ resourcestring
     'Se eliminarán sus líneas y se revertirán los movimientos de stock.';
   SErrorCabeceraDevolucionCompraSinGrabar =
     'Graba la cabecera de la devolución antes de guardar líneas.';
+  SErrorOrigenRecepcionNoDisponible =
+    'La línea recibida ya no está disponible para esta devolución.';
+  SErrorOrigenRecepcionCantidadPositiva = 'Indique una cantidad positiva.';
+  SErrorOrigenRecepcionCantidad =
+    'La cantidad supera el pendiente de la recepción. Quedan %g unidades.';
+  SErrorOrigenRecepcionCabecera =
+    'Seleccione la empresa y el proveedor de la devolución.';
+  SErrorOrigenRecepcionPivote =
+    'Las líneas vinculadas al albarán se editan en el modo por SKU.';
+  SErrorOrigenRecepcionCantidadManual =
+    'Edite la cantidad de la línea vinculada al albarán.';
+  STituloOrigenRecepcion = 'Líneas recibidas del proveedor';
+  SPreguntaCantidadOrigenRecepcion =
+    'Cantidad que desea devolver de %s (pendiente: %g):';
   SErrorContadorDevolucionCompra =
     'No se pudo obtener un número de devolución de compra válido. Revise ' +
     'el contador DC de la serie %s y empresa %s.';

@@ -80,6 +80,10 @@ type
     FDesempaquetandoAtributos: Boolean;
     // F-LOTEC-013: lote de las líneas (nil = como siempre).
     FLotesLineas: TLotesLineasDocumento;
+    FTransaccionOrigenPropia: Boolean;
+    procedure CancelarTransaccionOrigen;
+    procedure ErrorPostLinea(DataSet: TDataSet; E: EDatabaseError;
+      var Action: TDataAction);
     procedure CancelarLineaVaciaDiferida;
     procedure AsignarNumeroLineaDevolucionCompra(DataSet: TDataSet);
     function CampoVistaCabeceraPrintExiste(const ACampo: string): Boolean;
@@ -128,6 +132,7 @@ type
                                         AFecha: TDateTime);
     procedure OpenTables;
     procedure RefrescarAlmacenes(const ACodigoEmpresa: string);
+    function TieneLineasOrigenRecepcion: Boolean;
     // Override: abre las queries detalle tras unqryTablaG. Llamada
     // desde TfrmMtoGen.AbrirTablaPrincipalAsync.
     // El form empuja su dsTablaG; el DM ya no usa GetOwnerForm.
@@ -158,7 +163,8 @@ uses
   inLibArticulosValidadorIntf,
   UniDataArticulosValidadorRepositorio,
   inLibMsgCompras, inLibDocumento, inLibDocumentoIntf,
-  UniDataDatosProveedorDocumento, UniDataInformeDocumento;
+  UniDataDatosProveedorDocumento, UniDataInformeDocumento,
+  UniDataDevolucionesCompraRepositorio, inLibFiltroUsuario;
 
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 
@@ -189,6 +195,7 @@ begin
   unqryDevolucionesCompraLineas.Connection := ConexionPrincipal;
   unqryDevolucionesCompraLineas.KeyFields :=
     'SERIE_DEVC_DEVCLIN;NUMERO_DEVC_DEVCLIN;LINEA_DEVCLIN';
+  unqryDevolucionesCompraLineas.OnPostError := ErrorPostLinea;
   unqryDevolucionesCompraLineas.SQLDelete.Text :=
     'DELETE FROM fza_devoluciones_compra_lineas ' +
     ' WHERE SERIE_DEVC_DEVCLIN = :Old_SERIE_DEVC_DEVCLIN ' +
@@ -380,6 +387,13 @@ begin
     oContador.ProviderFlags := [];
   end;
   inherited;
+  if (DataSet.State = dsEdit) and
+     ((VarToStr(DataSet.FieldByName('CODIGO_PRV_DEVC').OldValue) <>
+       DataSet.FieldByName('CODIGO_PRV_DEVC').AsString) or
+      (VarToStr(DataSet.FieldByName('CODIGO_EMP_DEVC').OldValue) <>
+       DataSet.FieldByName('CODIGO_EMP_DEVC').AsString)) and
+     TieneLineasOrigenRecepcion then
+    raise Exception.Create(SErrorOrigenRecepcionNoDisponible);
   SincronizarInstanteMovimientoDocumento(
     DataSet, 'FECHA_DEVC', 'INSTANTE_MOVIMIENTO_DEVC');
   ValidarAlmacenSalida;
@@ -564,7 +578,7 @@ begin
       'CODIGO_UNIDAD_DEVCLIN');
   // F-LOTEC-013: antes de los totales (una serie deja la línea
   // en 1).
-  if Assigned(FLotesLineas) then
+  if Assigned(FLotesLineas) and not TieneOrigenRecepcionDevolucion(DataSet) then
     FLotesLineas.AntesDePostLinea(unqryDevolucionesCompraLineas,
       DocumentoLotes);
     // TOTAL_UNIDADES acompaña a CANTIDAD, igual que en el albarán de
@@ -623,10 +637,40 @@ begin
         unqrySkusDevc.Close;
       end;
     end;
-  PrepararLineaFiscalCompra(CrearLecturasImpuestos(ConexionEscritura),
-    unqryTablaG,
-    unqryDevolucionesCompraLineas, 'DEVC', 'DEVCLIN', 'TOTAL_DEVCLIN');
+  if TieneOrigenRecepcionDevolucion(DataSet) then
+  begin
+    FTransaccionOrigenPropia := not ConexionEscritura.InTransaction;
+    if FTransaccionOrigenPropia then
+      ConexionEscritura.StartTransaction;
   end;
+  try
+    if TieneOrigenRecepcionDevolucion(DataSet) then
+      ValidarOrigenRecepcionDevolucion(ConexionEscritura, unqryTablaG,
+        DataSet, AlmacenRestringido(ContextoSesion, ParametrosApp));
+    PrepararLineaFiscalCompra(CrearLecturasImpuestos(ConexionEscritura),
+      unqryTablaG, DataSet, 'DEVC', 'DEVCLIN', 'TOTAL_DEVCLIN');
+  except
+    CancelarTransaccionOrigen;
+    raise;
+  end;
+  end;
+end;
+
+procedure TdmDevolucionesCompra.CancelarTransaccionOrigen;
+begin
+  if FTransaccionOrigenPropia then
+  begin
+    FTransaccionOrigenPropia := False;
+    if ConexionEscritura.InTransaction then
+      ConexionEscritura.Rollback;
+  end;
+end;
+
+procedure TdmDevolucionesCompra.ErrorPostLinea(DataSet: TDataSet;
+  E: EDatabaseError; var Action: TDataAction);
+begin
+  CancelarTransaccionOrigen;
+  Action := daFail;
 end;
 
 // True si la linea tiene celdas del pivote antiguo (linea consolidada):
@@ -740,20 +784,29 @@ end;
 procedure TdmDevolucionesCompra.unqryDevolucionesCompraLineasAfterPost(
                                                        DataSet: TDataSet);
 begin
-  inherited;
-  // Antes de copiar lotes pendientes: el cursor cambiará de línea.
-  GenerarCodigoLoteLinea(TUniQuery(DataSet).Connection, DataSet,
-    'DEVCLIN', IdentidadSesion.Usuario, ParametrosApp);
-  if Assigned(FLotesLineas) then
-    FLotesLineas.DespuesDePostLinea;
-  CalcularTotalesDevolucionCompra;
-  // El Post de una cabecera ensuciada por los totales pasa por su AfterPost
-  // y sincroniza una sola vez. La rama Browse conserva la sincronizacion de
-  // cambios de stock que no alteran el total fiscal.
-  if unqryTablaG.State in dsEditModes then
-    unqryTablaG.Post
-  else
-    SincronizarMovimientos;
+  try
+    inherited;
+    if not TieneOrigenRecepcionDevolucion(DataSet) then
+    begin
+      GenerarCodigoLoteLinea(TUniQuery(DataSet).Connection, DataSet,
+        'DEVCLIN', IdentidadSesion.Usuario, ParametrosApp);
+      if Assigned(FLotesLineas) then
+        FLotesLineas.DespuesDePostLinea;
+    end;
+    CalcularTotalesDevolucionCompra;
+    if unqryTablaG.State in dsEditModes then
+      unqryTablaG.Post
+    else
+      SincronizarMovimientos;
+    if FTransaccionOrigenPropia then
+    begin
+      ConexionEscritura.Commit;
+      FTransaccionOrigenPropia := False;
+    end;
+  except
+    CancelarTransaccionOrigen;
+    raise;
+  end;
 end;
 
 procedure TdmDevolucionesCompra.unqryDevolucionesCompraLineasAfterDelete(
@@ -931,6 +984,34 @@ begin
   begin
     unqryMovimientosProveedor.Close;
     unqryMovimientosProveedor.Open;
+  end;
+end;
+
+function TdmDevolucionesCompra.TieneLineasOrigenRecepcion: Boolean;
+var
+  Datos: TUniQuery;
+begin
+  Result := False;
+  if unqryTablaG.Active and (not unqryTablaG.IsEmpty) and
+     (unqryDevolucionesCompraLineas.FindField('SERIE_ALBC_DEVCLIN') <> nil)
+  then
+  begin
+    Datos := TUniQuery.Create(nil);
+    try
+      Datos.Connection := ConexionEscritura;
+      Datos.SQL.Text :=
+        'SELECT 1 FROM fza_devoluciones_compra_lineas ' +
+        'WHERE SERIE_DEVC_DEVCLIN=:S AND NUMERO_DEVC_DEVCLIN=:N ' +
+        'AND COALESCE(SERIE_ALBC_DEVCLIN,'''')<>'''' LIMIT 1';
+      Datos.ParamByName('S').AsString :=
+        unqryTablaG.FieldByName('SERIE_DEVC').AsString;
+      Datos.ParamByName('N').AsString :=
+        unqryTablaG.FieldByName('NUMERO_DEVC').AsString;
+      Datos.Open;
+      Result := not Datos.IsEmpty;
+    finally
+      Datos.Free;
+    end;
   end;
 end;
 

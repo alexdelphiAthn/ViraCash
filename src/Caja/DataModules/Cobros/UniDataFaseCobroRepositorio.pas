@@ -26,11 +26,11 @@ procedure AsignarAmbitoCanjeVale(AConsulta: TUniQuery;
   const ARestriccion: TRestriccionCanjeVale);
 
 function ValidarAlmacenDepositoCredito(AConexion: TUniConnection;
-  const AEmpresa: string; out AMensaje: string): Boolean;
+  const AEmpresa, AAlmacenOrigen: string; out AMensaje: string): Boolean;
 
 procedure AsegurarSerieFacturaCaja(AConexion: TUniConnection;
   const AEmpresa, AAlmacen, ACaja, ASerie, ASubtipo, AUsuario: string;
-  AFecha: TDateTime);
+  AFecha: TDateTime; AExigirExistente: Boolean = False);
 
 // FZ-ISSUE-1021: cobros netos (entregado - cambio) de la venta VE de un
 // ticket, como «Forma importe» separados por «; ». Vacío si no hay cobros.
@@ -76,12 +76,13 @@ begin
 end;
 
 function ValidarAlmacenDepositoCredito(AConexion: TUniConnection;
-  const AEmpresa: string; out AMensaje: string): Boolean;
+  const AEmpresa, AAlmacenOrigen: string; out AMensaje: string): Boolean;
 var
   Repositorio: IRepositorioAlmacenesEmpresa;
 begin
   Repositorio := TRepositorioAlmacenesEmpresaUniDAC.Create(AConexion);
-  Result := Repositorio.ObtenerAlmacenDepositoEmpresa(AEmpresa) <> '';
+  Result := Repositorio.ObtenerAlmacenDepositoEmpresa(
+    AEmpresa, AAlmacenOrigen) <> '';
   AMensaje := '';
   if not Result then
     AMensaje := Format(SErrorCreditoSinAlmacenDeposito, [AEmpresa]);
@@ -126,7 +127,7 @@ const
 
 procedure AsegurarSerieFacturaCaja(AConexion: TUniConnection;
   const AEmpresa, AAlmacen, ACaja, ASerie, ASubtipo, AUsuario: string;
-  AFecha: TDateTime);
+  AFecha: TDateTime; AExigirExistente: Boolean);
 var
   Consulta: TUniQuery;
   CodigoSerie: string;
@@ -169,7 +170,9 @@ begin
     Consulta.ParamByName('USUARIO').AsString := AUsuario;
     Consulta.ParamByName('INICIO').AsLargeInt := InicioContador;
     Consulta.Execute;
-    BuscarSerie(False);
+    BuscarSerie(AExigirExistente);
+    if Consulta.IsEmpty and AExigirExistente then
+      raise EValidacionBBDD.Create(SErrorSerieAuxiliarDevolucionCaja);
     if Consulta.IsEmpty then
     begin
       Consulta.Close;

@@ -28,10 +28,12 @@ uses
 // se prepara la primera vez con los parámetros de ASinLote (lo libera el
 // llamante). Fecha 0 = sin caducidad.
 procedure EjecutarMovimientoConLote(ASinLote, AConLote: TUniStoredProc;
-  const ALote: string; AFechaCaducidad: TDate); overload;
+  const ALote: string; AFechaCaducidad: TDate;
+  AConservarLote: Boolean = False); overload;
 procedure EjecutarMovimientoConLote(ASinLote, AConLote: TUniStoredProc;
   const ALote: string; AFechaCaducidad: TDate;
-  const AActivacion: TActivacionTrazabilidad); overload;
+  const AActivacion: TActivacionTrazabilidad;
+  AConservarLote: Boolean = False); overload;
 // Columna FECHA_CADUCIDAD de la consulta de origen (0 si es NULL).
 function FechaCaducidadMovimiento(AConsulta: TDataSet): TDate;
 
@@ -113,22 +115,29 @@ begin
 end;
 
 procedure EjecutarMovimientoConLote(ASinLote, AConLote: TUniStoredProc;
-  const ALote: string; AFechaCaducidad: TDate);
+  const ALote: string; AFechaCaducidad: TDate; AConservarLote: Boolean);
 begin
   EjecutarMovimientoConLote(ASinLote, AConLote, ALote,
-    AFechaCaducidad, ActivacionVigente);
+    AFechaCaducidad, ActivacionVigente, AConservarLote);
 end;
 
 procedure EjecutarMovimientoConLote(ASinLote, AConLote: TUniStoredProc;
   const ALote: string; AFechaCaducidad: TDate;
-  const AActivacion: TActivacionTrazabilidad);
+  const AActivacion: TActivacionTrazabilidad; AConservarLote: Boolean);
 var
+  bAplicarLote: Boolean;
   iParametro: Integer;
   sLote: string;
 begin
   sLote := ALote;
-  PrepararReposicionMovimiento(ASinLote, sLote);
-  if not LoteAplicable(ASinLote, sLote, AActivacion) then
+  if AConservarLote then
+    bAplicarLote := (Trim(sLote) <> '') or (AFechaCaducidad <> 0)
+  else
+  begin
+    PrepararReposicionMovimiento(ASinLote, sLote);
+    bAplicarLote := LoteAplicable(ASinLote, sLote, AActivacion);
+  end;
+  if not bAplicarLote then
     ASinLote.ExecProc
   else
   begin

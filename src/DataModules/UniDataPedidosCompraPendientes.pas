@@ -220,7 +220,17 @@ begin
       Consulta.ParamByName('USUARIO').AsString := AUsuario;
       Consulta.Execute;
       if Consulta.RowsAffected > 0 then
+      begin
+        Consulta.SQL.Text :=
+          'UPDATE fza_pedidos_compra_lineas ' +
+          'SET CANTIDAD_A_RECIBIR_PEDCLIN = 0 ' +
+          'WHERE SERIE_PEDC_PEDCLIN = :SERIE AND NUMERO_PEDC_PEDCLIN = :NUMERO ' +
+          'AND CANTIDAD_A_RECIBIR_PEDCLIN <> 0';
+        Consulta.ParamByName('SERIE').AsString := ASerie;
+        Consulta.ParamByName('NUMERO').AsString := ANumero;
+        Consulta.Execute;
         BorrarPdteRecibirDesdePedidoInterno(AConn, ASerie, ANumero, '');
+      end;
       if Propia then
         AConn.Commit;
     except

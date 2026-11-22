@@ -109,7 +109,7 @@ begin
   FMotivo.SetBounds(ScaleValue(370), ScaleValue(8), ScaleValue(240), 24);
   FMotivo.Properties.DropDownListStyle := lsFixedList;
   for Indice := Ord(Low(TMotivoRetiradaLote)) to
-      Ord(High(TMotivoRetiradaLote)) do
+      Ord(mrlOtro) do
     FMotivo.Properties.Items.Add(TextoMotivoRetirada(
       TMotivoRetiradaLote(Indice)));
   FMotivo.ItemIndex := Ord(FOrden.Motivo);

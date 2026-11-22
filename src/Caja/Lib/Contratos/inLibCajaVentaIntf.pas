@@ -119,7 +119,8 @@ type
       const AEmpresa, AAlmacen, ACaja,
       ANumeroOperacion: string): IResultadoConsultaCaja;
     function ConsultarVentasOrigenSku(
-      const ASku, AEmpresa: string): IResultadoConsultaCaja;
+      const ASku, AEmpresa, AAlmacen: string;
+      AOtrosAlmacenes, AOtrasEmpresas: Boolean): IResultadoConsultaCaja;
   end;
   IRepositorioArticulosCaja = interface
     ['{6C1C97EF-F58D-4AF5-AC46-607C60686337}']
@@ -274,6 +275,9 @@ type
 function EvaluarPoliticaStockVenta(
   const AEntrada: TEntradaPoliticaStockVenta
 ): TResultadoPoliticaStockVenta;
+
+const
+  CAJA_AUXILIAR_DEVOLUCION = '99';
 
 implementation
 

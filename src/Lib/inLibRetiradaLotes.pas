@@ -22,6 +22,10 @@ function MismaSolicitudRetirada(const A, B: TOrdenRetiradaLotes): Boolean;
 function TextoMotivoRetirada(AMotivo: TMotivoRetiradaLote): string;
 function CrearIdRetirada: string;
 
+const
+  MOTIVOS_BAJA_SIN_LOTE: array[0..3] of TMotivoRetiradaLote =
+    (mrlMerma, mrlRotura, mrlRobo, mrlOtro);
+
 implementation
 
 uses
@@ -43,19 +47,26 @@ begin
     mrlProximaCaducidad: Result := SMotivoProximaCaducidadRetirada;
     mrlAlerta: Result := SMotivoAlertaRetirada;
     mrlMerma: Result := SMotivoMermaRetirada;
+    mrlRotura: Result := SMotivoRoturaRetirada;
+    mrlRobo: Result := SMotivoRoboRetirada;
   else
     Result := SMotivoOtroRetirada;
   end;
 end;
 
 
-function ValidarLinea(const ALinea: TLineaRetiradaLote): string;
+function ValidarLinea(const ALinea: TLineaRetiradaLote;
+  AEsBajaSinLote: Boolean): string;
 begin
   Result := '';
-  if (Trim(ALinea.CodigoSku) = '') or (Trim(ALinea.Lote) = '') or
+  if (Trim(ALinea.CodigoSku) = '') or
+     ((Trim(ALinea.Lote) = '') <> AEsBajaSinLote) or
      (Trim(ALinea.CodigoAlmacen) = '') or IsNan(ALinea.Cantidad) or
      IsInfinite(ALinea.Cantidad) or (ALinea.Cantidad < 0.000001) then
-    Result := SErrorRetiradaLinea;
+    if AEsBajaSinLote then
+      Result := SErrorBajaSinLoteLinea
+    else
+      Result := SErrorRetiradaLinea;
 end;
 
 function ValidarOrdenRetirada(const AOrden: TOrdenRetiradaLotes): string;
@@ -68,6 +79,14 @@ begin
   if (Trim(AOrden.Empresa) = '') or (Trim(AOrden.Usuario) = '') or
      (Trim(AOrden.Empleado) = '') then
     Result := SErrorRetiradaIdentidad
+  else if AOrden.EsBajaSinLote then
+  begin
+    if (Length(AOrden.Lineas) = 0) or AOrden.EsUrgente or
+       (Trim(AOrden.AlmacenDestino) <> '') then
+      Result := SErrorBajaSinLoteLinea
+    else if not (AOrden.Motivo in [mrlMerma, mrlRotura, mrlRobo, mrlOtro]) then
+      Result := SErrorBajaSinLoteMotivo;
+  end
   else if Length(AOrden.Lineas) = 0 then
     Result := SErrorRetiradaSinLineas;
   oClaves := TDictionary<string, Boolean>.Create;
@@ -75,15 +94,16 @@ begin
     for rLinea in AOrden.Lineas do
       if Result = '' then
       begin
-        Result := ValidarLinea(rLinea);
+        Result := ValidarLinea(rLinea, AOrden.EsBajaSinLote);
         sClave := UpperCase(rLinea.CodigoAlmacen + '|' +
           rLinea.CodigoSku + '|' + rLinea.Lote);
         if oClaves.ContainsKey(sClave) then
           Result := SErrorRetiradaDuplicada
         else
           oClaves.Add(sClave, True);
-        if (Trim(AOrden.AlmacenDestino) = '') or
-           SameText(AOrden.AlmacenDestino, rLinea.CodigoAlmacen) then
+        if not AOrden.EsBajaSinLote and
+           ((Trim(AOrden.AlmacenDestino) = '') or
+            SameText(AOrden.AlmacenDestino, rLinea.CodigoAlmacen)) then
           Result := SErrorRetiradaDestino;
       end;
   finally
@@ -100,6 +120,7 @@ begin
     SameText(A.Empleado, B.Empleado) and
     (A.Motivo = B.Motivo) and
     (A.EsUrgente = B.EsUrgente) and
+    (A.EsBajaSinLote = B.EsBajaSinLote) and
     SameText(A.AlmacenDestino, B.AlmacenDestino) and
     (Length(A.Lineas) = Length(B.Lineas));
   if Result then

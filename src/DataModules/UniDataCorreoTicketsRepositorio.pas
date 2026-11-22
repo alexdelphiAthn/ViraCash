@@ -83,7 +83,11 @@ begin
       '         AS NUM_DEPOSITOS' +
       '  FROM fza_caja_operaciones o' +
       '  LEFT JOIN fza_facturas f' +
-      '    ON f.CODIGO_EMP_FAC = o.CODIGO_EMP_OPCAJA' +
+      '    ON (f.CODIGO_EMP_FAC = o.CODIGO_EMP_OPCAJA' +
+      '      OR (f.CODIGO_CAJA_FAC = ''99''' +
+      '        AND o.TIPO_OPERACION_OPCAJA = ''DV''' +
+      '        AND f.SERIE_FAC = o.SERIE_FAC_OPCAJA' +
+      '        AND f.NUMERO_FAC = o.NUMERO_FAC_OPCAJA))' +
       '   AND ((TRIM(COALESCE(o.SERIE_FAC_OPCAJA, '''')) <> ''''' +
       '         AND TRIM(COALESCE(o.NUMERO_FAC_OPCAJA, '''')) <> ''''' +
       '         AND f.SERIE_FAC = o.SERIE_FAC_OPCAJA' +
@@ -98,7 +102,8 @@ begin
       '    ON cli.CODIGO_CLI_CLI = COALESCE(NULLIF(' +
       '      f.CODIGO_CLI_FAC, ''''), o.CODIGO_CLI_OPCAJA)' +
       '  LEFT JOIN fza_empresas emp' +
-      '    ON emp.CODIGO_EMP_EMP = o.CODIGO_EMP_OPCAJA' +
+      '    ON emp.CODIGO_EMP_EMP = COALESCE(f.CODIGO_EMP_FAC,' +
+      '      o.CODIGO_EMP_OPCAJA)' +
       ' WHERE o.CODIGO_EMP_OPCAJA = :EMP' +
       '   AND o.CODIGO_ALM_OPCAJA = :ALM' +
       '   AND o.CODIGO_CAJA_OPCAJA = :CAJA' +

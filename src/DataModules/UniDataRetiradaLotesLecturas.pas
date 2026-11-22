@@ -153,8 +153,11 @@ begin
     ConsultaStock.Open;
     if ConsultaStock.IsEmpty or
        (Cantidad > ConsultaStock.FieldByName('CANTIDAD_STK').AsFloat) then
-      raise Exception.CreateFmt(SErrorRetiradaStock,
-        [ALinea.CodigoSku, ALinea.Lote]);
+      if ALinea.Lote = '' then
+        raise Exception.CreateFmt(SErrorBajaSinLoteStock, [ALinea.CodigoSku])
+      else
+        raise Exception.CreateFmt(SErrorRetiradaStock,
+          [ALinea.CodigoSku, ALinea.Lote]);
     ACoste := ConsultaStock.FieldByName('PRECIO_MEDIO_STK').AsFloat;
     ALinea := LeerFila(ConsultaStock);
     ALinea.Cantidad := Cantidad;

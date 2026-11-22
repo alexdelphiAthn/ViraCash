@@ -63,6 +63,7 @@ type
     CosteUnitario: Currency;
     Lote: string;
     FechaCaducidad: TDateTime;
+    ConservarLote: Boolean;
     Usuario: string;
     Fecha: TDateTime;
   end;

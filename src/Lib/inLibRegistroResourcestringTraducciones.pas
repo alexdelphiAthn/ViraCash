@@ -859,6 +859,16 @@ begin
     @inLibMsgTrazabilidad.STituloSeleccionLote);
   ARegistrar(
     'inLibMsgTrazabilidad.' +
+    'STituloSeleccionLoteDevolucion',
+    'src/Lib/inLibMsgTrazabilidad.pas',
+    @inLibMsgTrazabilidad.STituloSeleccionLoteDevolucion);
+  ARegistrar(
+    'inLibMsgTrazabilidad.' +
+    'SErrorCantidadPartidasDevolucion',
+    'src/Lib/inLibMsgTrazabilidad.pas',
+    @inLibMsgTrazabilidad.SErrorCantidadPartidasDevolucion);
+  ARegistrar(
+    'inLibMsgTrazabilidad.' +
     'STituloSeleccionSerie',
     'src/Lib/inLibMsgTrazabilidad.pas',
     @inLibMsgTrazabilidad.STituloSeleccionSerie);
@@ -4232,6 +4242,24 @@ begin
     'src/Lib/inLibMsgRetiradaLotes.pas',
     @inLibMsgRetiradaLotes.
       SMotivoMermaRetirada);
+  ARegistrar('inLibMsgRetiradaLotes.SMotivoRoturaRetirada',
+    'src/Lib/inLibMsgRetiradaLotes.pas',
+    @inLibMsgRetiradaLotes.SMotivoRoturaRetirada);
+  ARegistrar('inLibMsgRetiradaLotes.SMotivoRoboRetirada',
+    'src/Lib/inLibMsgRetiradaLotes.pas',
+    @inLibMsgRetiradaLotes.SMotivoRoboRetirada);
+  ARegistrar('inLibMsgRetiradaLotes.SErrorBajaSinLoteStock',
+    'src/Lib/inLibMsgRetiradaLotes.pas',
+    @inLibMsgRetiradaLotes.SErrorBajaSinLoteStock);
+  ARegistrar('inLibMsgRetiradaLotes.SErrorBajaSinLoteLinea',
+    'src/Lib/inLibMsgRetiradaLotes.pas',
+    @inLibMsgRetiradaLotes.SErrorBajaSinLoteLinea);
+  ARegistrar('inLibMsgRetiradaLotes.STituloBajasSinLote',
+    'src/Lib/inLibMsgRetiradaLotes.pas',
+    @inLibMsgRetiradaLotes.STituloBajasSinLote);
+  ARegistrar('inLibMsgRetiradaLotes.SErrorBajaSinLoteMotivo',
+    'src/Lib/inLibMsgRetiradaLotes.pas',
+    @inLibMsgRetiradaLotes.SErrorBajaSinLoteMotivo);
   ARegistrar(
     'inLibMsgRetiradaLotes.' +
     'SMotivoOtroRetirada',
@@ -11409,6 +11437,9 @@ begin
     'src/Lib/inLibMsgArticulos.pas',
     @inLibMsgArticulos.
       SErrorPropiedadObligatoriaFamilia);
+  ARegistrar('inLibMsgArticulos.SErrorPropiedadesObligatoriasFamilia',
+    'src/Lib/inLibMsgArticulos.pas',
+    @inLibMsgArticulos.SErrorPropiedadesObligatoriasFamilia);
   ARegistrar(
     'inLibMsgArticulos.' +
     'SErrorPrecioCosteMargenNoValido',
@@ -14273,6 +14304,18 @@ begin
       SErrorVentaOrigenCajaSinSeleccion);
   ARegistrar(
     'inLibMsgCaja.' +
+    'SErrorDevolucionCajaSinLoteYeti',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      SErrorDevolucionCajaSinLoteYeti);
+  ARegistrar(
+    'inLibMsgCaja.' +
+    'SErrorDevolucionCajaSinFacturaOrigen',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.
+      SErrorDevolucionCajaSinFacturaOrigen);
+  ARegistrar(
+    'inLibMsgCaja.' +
     'SErrorDevolucionTicketOperacionEnCurso',
     'src/Lib/inLibMsgCaja.pas',
     @inLibMsgCaja.
@@ -14283,6 +14326,19 @@ begin
     'src/Lib/inLibMsgCaja.pas',
     @inLibMsgCaja.
       SAvisoDevolucionTicketOtraEmpresa);
+  ARegistrar('inLibMsgCaja.SCajaAuxiliarCaja', 'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.SCajaAuxiliarCaja);
+  ARegistrar('inLibMsgCaja.SReferenciaOperacionDevolucionOtraEmpresa',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.SReferenciaOperacionDevolucionOtraEmpresa);
+  ARegistrar('inLibMsgCaja.SConceptoCompensacionEfectivoCaja',
+    'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.SConceptoCompensacionEfectivoCaja);
+  ARegistrar('inLibMsgCaja.SErrorSerieAuxiliarDevolucionCaja',
+    'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.SErrorSerieAuxiliarDevolucionCaja);
+  ARegistrar('inLibMsgCaja.SErrorEmisorDevolucionCajaIncompleto',
+    'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.SErrorEmisorDevolucionCajaIncompleto);
+  ARegistrar('inLibMsgCaja.SErrorDevolucionOtraEmpresaConVenta',
+    'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.SErrorDevolucionOtraEmpresaConVenta);
   ARegistrar(
     'inLibMsgCaja.' +
     'SCaptionDevolucionTicketDe',
@@ -31913,6 +31969,11 @@ begin
     'src/Lib/inLibMsgFacturas.pas',
     @inLibMsgFacturas.
       SPreguntaCancelarSubsanacionConCambios);
+  ARegistrar(
+    'inLibMsgVerifactu.' +
+    'SErrorSegundaRectificativaSustitutiva',
+    'src/Lib/inLibMsgVerifactu.pas',
+    @inLibMsgVerifactu.SErrorSegundaRectificativaSustitutiva);
   ARegistrar(
     'inLibMsgVerifactu.' +
     'SErrorTipoRectificativaFiscalInvalido',

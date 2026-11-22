@@ -62,6 +62,7 @@ uses
     'src\Lib\inLibRetiradaLotesTicket.pas',
   inMtoModalRetiradaLotes in
     'src\Modals\inMtoModalRetiradaLotes.pas',
+  inMtoModalBajasSinLote in 'src\Modals\inMtoModalBajasSinLote.pas',
   inMtoModalPreciosTarifaSesion in
     'src\Modals\inMtoModalPreciosTarifaSesion.pas',
   inMtoModalPreciosTallaSesion in
@@ -169,6 +170,8 @@ uses
   inLibMsgCambioCodigoCliente in 'src\Lib\inLibMsgCambioCodigoCliente.pas',
   UniDataCambioCodigoCliente in 'src\DataModules\UniDataCambioCodigoCliente.pas',
   inMtoModalCambioCodigoCliente in 'src\Modals\inMtoModalCambioCodigoCliente.pas',
+  UniDataAjusteDepositos in 'src\DataModules\UniDataAjusteDepositos.pas',
+  inMtoModalAjusteDepositos in 'src\Modals\inMtoModalAjusteDepositos.pas',
   inLibMsgFotos in 'src\Lib\inLibMsgFotos.pas',
   inLibClientesCoincidencias in 'src\Lib\inLibClientesCoincidencias.pas',
   UniDataClientesCoincidencias in 'src\DataModules\UniDataClientesCoincidencias.pas',

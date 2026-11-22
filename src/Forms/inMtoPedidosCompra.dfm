@@ -122,7 +122,7 @@
             end
             object dbcGrdPedcCANTIDAD_PENDIENTE_RECEPCION_PEDC: TcxGridDBColumn
               Caption = 'Pte. recibir'
-              DataBinding.FieldName = 'CANTIDAD_PENDIENTE_RECEPCION_PEDC'
+              DataBinding.FieldName = 'PENDIENTE_OPERATIVO_PEDC'
               Width = 95
             end
             object dbcGrdPedcCODIGO_EMP_PEDC: TcxGridDBColumn
@@ -428,7 +428,7 @@
                 Left = 794
                 Top = 92
                 TabStop = False
-                DataBinding.DataField = 'CANTIDAD_PENDIENTE_RECEPCION_PEDC'
+                DataBinding.DataField = 'PENDIENTE_OPERATIVO_PEDC'
                 DataBinding.DataSource = dsTablaG
                 Properties.DecimalPlaces = 3
                 Properties.DisplayFormat = '#,##0.###'
@@ -543,6 +543,16 @@
             Caption = 'Recibir Todo'
             TabOrder = 2
             OnClick = btnRecibirTodoClick
+          end
+          object btnCancelarPendiente: TcxButton
+            Left = 740
+            Top = 8
+            Width = 174
+            Height = 26
+            Caption = 'Cancelar pendiente'
+            Enabled = False
+            TabOrder = 6
+            OnClick = btnCancelarPendienteClick
           end
         end
         object pnlBodyFicha: TPanel

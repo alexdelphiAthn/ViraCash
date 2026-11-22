@@ -32,7 +32,31 @@ function SQLExcluirTicketSustituido(
 function SQLCantidadDevueltaVenta(
   const ACampoSerie, ACampoNumero, ACampoSku: string): string;
 
+// Filtro de candidatas para mantener el vínculo a una rectificativa viva.
+function SQLRectificativaVigente(const AAlias: string;
+  AIncluirBorradores: Boolean = False): string;
+
 implementation
+
+function SQLRectificativaVigente(const AAlias: string;
+  AIncluirBorradores: Boolean): string;
+var
+  Fase: string;
+begin
+  Fase := 'COALESCE(' + AAlias + '.FASE_FAC, '''')';
+  Result := ' AND ' + Fase + ' NOT IN (''CANCELADA'', ' +
+    '''SIN_VERIF_ANULADA'', ''VERIFACTU_ANULADA'', ' +
+    '''NOVERIFACTU_ANULADA'') ' +
+    ' AND NOT EXISTS (SELECT 1 FROM fza_verifactu_cola ca ' +
+    ' WHERE ca.SERIE_FAC_VFCOLA = ' + AAlias + '.SERIE_FAC ' +
+    '   AND ca.NUMERO_FAC_VFCOLA = ' + AAlias + '.NUMERO_FAC ' +
+    '   AND ca.TIPO_OPERACION_VFCOLA = ''ANULACION'' ' +
+    '   AND (ca.ESTADO_VFCOLA = ''ENVIADA'' OR COALESCE(' +
+      AAlias + '.TIPO_RECTIFICATIVA_FAC, '''') NOT IN (''I'', ''S''))) ';
+  if not AIncluirBorradores then
+    Result := Result + ' AND ' + Fase +
+      ' NOT IN ('''', ''BORRADOR'', ''ERROR_BORRADOR'') ';
+end;
 
 function SQLExcluirVentaRetirada(
   const ACampoEmpresa, ACampoSerie, ACampoNumero: string): string;
@@ -51,9 +75,14 @@ begin
     ' AND NOT EXISTS (' +
     ' SELECT 1 ' +
     ' FROM fza_verifactu_cola va ' +
+    ' LEFT JOIN fza_facturas fa ON fa.SERIE_FAC = va.SERIE_FAC_VFCOLA ' +
+    '  AND fa.NUMERO_FAC = va.NUMERO_FAC_VFCOLA ' +
     ' WHERE va.SERIE_FAC_VFCOLA = ' + ACampoSerie +
     '   AND va.NUMERO_FAC_VFCOLA = ' + ACampoNumero +
     '   AND va.TIPO_OPERACION_VFCOLA = ''ANULACION'' ' +
+    '   AND (va.ESTADO_VFCOLA = ''ENVIADA'' OR ' +
+    '        COALESCE(fa.TIPO_RECTIFICATIVA_FAC, '''') ' +
+    '          NOT IN (''I'', ''S'')) ' +
     ' ) ' +
     ' AND NOT EXISTS (' +
     ' SELECT 1 ' +
@@ -73,6 +102,7 @@ begin
     '   AND fo.FASE_FAC = ''RECTIFICADA'' ' +
     '   AND fr.TIPO_RELACION_FACREL = ''RECTIFICA'' ' +
     '   AND fs.TIPO_RECTIFICATIVA_FAC = ''S'' ' +
+    SQLRectificativaVigente('fs') +
     ' ) ';
 end;
 

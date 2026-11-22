@@ -482,18 +482,17 @@ end;
 function TfrmMtoPermisosArbol.ResolverEfectivo(const ACodigo: string;
   out AOrigen: string): Boolean;
 var
-  bAdministracion: Boolean;
+  bExigeConcesion: Boolean;
   v: string;
 begin
-  // Las pantallas de administración no heredan de 'Todos': solo cuenta la
-  // concesión del usuario o de su grupo (misma regla que TPermisosAplicacion).
-  bAdministracion := EsPermisoAdministracion(ACodigo);
+  // Los permisos con concesión expresa solo cuentan para usuario y grupo.
+  bExigeConcesion := PermisoAusenteCodigo(ACodigo) = paExigirConcesion;
   Result := PermitidoPorDefecto(ACodigo);
   if Result then
     AOrigen := SOrigenDefectoPermitidoPermisos
   else
     AOrigen := SOrigenDefectoDenegadoPermisos;
-  if (not bAdministracion) and (FExpTodos <> nil) and
+  if not bExigeConcesion and (FExpTodos <> nil) and
      FExpTodos.TryGetValue(ACodigo, v) then
   begin
     Result  := (v = 'S');
@@ -506,7 +505,7 @@ begin
     AOrigen := Format(SOrigenHeredadoGrupoPermisos,
       [FSujetoActual.Grupo]);
   end;
-  if bAdministracion and (FSujetoActual.Tipo = tsTodos) then
+  if bExigeConcesion and (FSujetoActual.Tipo = tsTodos) then
     AOrigen := SOrigenExigeConcesionPermisos
   else if (FExpSujeto <> nil) and FExpSujeto.TryGetValue(ACodigo, v) then
   begin

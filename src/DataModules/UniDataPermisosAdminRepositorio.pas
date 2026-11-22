@@ -13,7 +13,11 @@ implementation
 
 uses
   System.SysUtils, System.Generics.Collections,
-  Data.DB, DBAccess, inLibTraducciones;
+  Data.DB, DBAccess, inLibTraducciones, inLibPermisosIntf;
+
+resourcestring
+  SPermisoCancelarPendienteCompra =
+    'Pedidos de compra: cancelar cantidades pendientes';
 
 type
   TRepositorioPermisosAdmin = class(
@@ -126,7 +130,9 @@ var
   Lista: TList<TPermisoCodigo>;
   Consulta: TUniQuery;
   Permiso: TPermisoCodigo;
+  IncluidoCancelarPendiente: Boolean;
 begin
+  IncluidoCancelarPendiente := False;
   Lista := TList<TPermisoCodigo>.Create;
   try
     if (FConexion <> nil) and FConexion.Connected then
@@ -145,12 +151,21 @@ begin
           Permiso.Codigo := Consulta.FieldByName('CODIGO_PERM').AsString;
           Permiso.Descripcion := NormalizarMarcaViraCash(
             Consulta.FieldByName('DESCR').AsString);
+          if SameText(Permiso.Codigo,
+             PERMISO_PEDIDO_COMPRA_CANCELAR_PENDIENTE) then
+            IncluidoCancelarPendiente := True;
           Lista.Add(Permiso);
           Consulta.Next;
         end;
       finally
         FreeAndNil(Consulta);
       end;
+    end;
+    if not IncluidoCancelarPendiente then
+    begin
+      Permiso.Codigo := PERMISO_PEDIDO_COMPRA_CANCELAR_PENDIENTE;
+      Permiso.Descripcion := SPermisoCancelarPendienteCompra;
+      Lista.Add(Permiso);
     end;
     Result := Lista.ToArray;
   finally

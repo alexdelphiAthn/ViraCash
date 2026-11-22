@@ -64,6 +64,8 @@ type
     LeerFecha: TLeerFechaCierreCaja;
     PresentarResultado: TPresentarResultadoCierreCaja;
     ValidarLotes: TProc;
+    ConfirmarLotesDevolucion: TProc;
+    ExigirOrigenDevolucion: Boolean;
     ValidarStock: TProc;
     DependenciasFaseCobro: TDependenciasFaseCobro;
   end;
@@ -135,7 +137,7 @@ function SeleccionarTicketDevolucionCajaVcl(
 function SeleccionarVentaOrigenCajaVcl(
   AOwner: TComponent;
   const ARepositorio: IRepositorioConsultasCaja;
-  const ASku, AEmpresa: string;
+  const ASku, AEmpresa, AAlmacen: string;
   out ASeleccion: TOrigenDevolucionCajaVcl): Boolean;
 
 implementation
@@ -154,7 +156,7 @@ uses
   inLibCajaVentaOperacion, inLibCajaDescuentos,
   inMtoModalMotivoDevolucion, inMtoModalDevolucionTicket,
   inMtoModalSeleccionVentaOrigen, UniDataArqueoPersistencia,
-  UniDataFaseCobroRepositorio;
+  UniDataFaseCobroRepositorio, UniDataCajaConsultasRepositorio;
 
 type
   // Adaptador de la sesión visual: posee el diálogo y los totales.
@@ -287,10 +289,27 @@ begin
 end;
 
 function TSesionCierreVentaCajaVcl.PrepararCobro: Boolean;
+var
+  Aviso: string;
 begin
-  Result := ConfirmarRectificativaCajaVcl(FContexto) and
-    TCoordinadorCierreVentaCajaVcl.PrepararFaseCobro(
-      FContexto, FFormulario, FTotales);
+  Aviso := ErrorOrigenDevolucionCaja(FContexto.Lineas,
+    (FContexto.TipoRectificativa <> trcNinguna) or
+      (Trim(FContexto.NumeroRectificado) <> ''),
+    FContexto.ExigirOrigenDevolucion, FContexto.SerieRectificada,
+    FContexto.NumeroRectificado,
+    FContexto.SerieOrigenDevolucion, FContexto.NumeroOrigenDevolucion);
+  Result := False;
+  if Aviso <> '' then
+    ShowMessage_fza(Aviso)
+  else
+  begin
+    Result := ConfirmarRectificativaCajaVcl(FContexto);
+    if Result and Assigned(FContexto.ConfirmarLotesDevolucion) then
+      FContexto.ConfirmarLotesDevolucion();
+    if Result then
+      Result := TCoordinadorCierreVentaCajaVcl.PrepararFaseCobro(
+        FContexto, FFormulario, FTotales);
+  end;
 end;
 
 procedure TSesionCierreVentaCajaVcl.AplicarCobro;
@@ -406,7 +425,7 @@ end;
 function SeleccionarVentaOrigenCajaVcl(
   AOwner: TComponent;
   const ARepositorio: IRepositorioConsultasCaja;
-  const ASku, AEmpresa: string;
+  const ASku, AEmpresa, AAlmacen: string;
   out ASeleccion: TOrigenDevolucionCajaVcl): Boolean;
 var
   SeleccionModal: TVentaOrigenSeleccionada;
@@ -417,6 +436,7 @@ begin
     ARepositorio,
     ASku,
     AEmpresa,
+    AAlmacen,
     SeleccionModal);
   if Result then
   begin
@@ -456,6 +476,15 @@ begin
   oEntrada.CodigoEmpresa := AContexto.CodigoEmpresa;
   oEntrada.CodigoAlmacen := AContexto.CodigoAlmacen;
   oEntrada.CodigoCaja := AContexto.CodigoCaja;
+  if (AContexto.NumeroRectificado <> '') and
+     (Trim(AContexto.EmpresaOrigenDevolucion) <> '') and
+     not SameText(AContexto.EmpresaOrigenDevolucion, AContexto.CodigoEmpresa)
+  then
+  begin
+    oEntrada.EmpresaEmisora := AContexto.EmpresaOrigenDevolucion;
+    oEntrada.AlmacenEmision := AContexto.AlmacenOrigenDevolucion;
+    oEntrada.CajaEmision := CAJA_AUXILIAR_DEVOLUCION;
+  end;
   oEntrada.Fecha := AContexto.LeerFecha();
   oEntrada.CodigoCliente :=
     AContexto.Cabecera.FieldByName('CODIGO_CLI_FAC').AsString;
@@ -580,12 +609,35 @@ class function TCoordinadorCierreVentaCajaVcl.PrepararFaseCobro(
   const AContexto: TContextoCierreVentaCajaVcl;
   out AFormulario: TfrmMtoCajaFaseCobro;
   out ATotales: TFacturaTotales): Boolean;
+var
+  Documento: TDocumentoOrigenDevolucionCaja;
 begin
   AFormulario := nil;
   ATotales := nil;
   AContexto.ActualizarReloj;
   EscribirFechaCabeceraVenta(AContexto.Cabecera, AContexto.LeerFecha());
-  Result := AContexto.ConfirmarMotivoDevolucion;
+  Result := True;
+  if (Trim(AContexto.EmpresaOrigenDevolucion) <> '') and
+     not SameText(AContexto.EmpresaOrigenDevolucion, AContexto.CodigoEmpresa)
+  then
+  begin
+    Result := EsDevolucionExclusivaCaja(AContexto.Lineas);
+    if not Result then
+      ShowMessage_fza(SErrorDevolucionOtraEmpresaConVenta)
+    else
+    begin
+      Documento := ResolverDocumentoDevolucionCajaUniDAC(AContexto.Conexion,
+        AContexto.SerieRectificada, AContexto.NumeroRectificado);
+      if not SameText(Documento.Empresa, AContexto.EmpresaOrigenDevolucion) or
+         not SameText(Documento.Almacen, AContexto.AlmacenOrigenDevolucion) or
+         (Trim(Documento.Almacen) = '') then
+        raise EValidacionBBDD.Create(SErrorEmisorDevolucionCajaIncompleto);
+      CopiarEmisorDevolucionCajaUniDAC(AContexto.Conexion, Documento,
+        AContexto.Cabecera);
+    end;
+  end;
+  if Result then
+    Result := AContexto.ConfirmarMotivoDevolucion;
   if Result and HayLineasGratuitasCaja(AContexto.Lineas) then
   begin
     Result := MessageDlg_fza(SConfirmarLineasGratuitasCaja,

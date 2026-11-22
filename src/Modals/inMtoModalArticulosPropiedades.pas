@@ -95,6 +95,7 @@ type
     FAnchoLabel     : Integer;
 
     function  TipoDesdeCadena(const ATipo: string): TTipoValorProp;
+    function FaltaValorObligatorio(const ASlot: TSlotProp): Boolean;
     function  AnchoColumnaRotulos: Integer;
     procedure LimpiarControles;
     procedure ReconstruirVista;
@@ -124,6 +125,7 @@ type
     procedure AbrirSelectorPropiedades;
     function GuardarPropiedades(AValidar: Boolean = True): Boolean;
     function Validar: string;
+    procedure EnfocarPrimeraPropiedadPendiente;
     property Modificado: Boolean read FModificado;
   end;
 
@@ -1044,37 +1046,61 @@ begin
   end;
 end;
 
-function TGestorPropiedades.Validar: string;
+function TGestorPropiedades.FaltaValorObligatorio(
+  const ASlot: TSlotProp): Boolean;
 var
-  i: Integer;
-  S: TSlotProp;
   TieneValor: Boolean;
   sNumero: string;
 begin
-  Result := '';
-  for i := 0 to FSlots.Count - 1 do
-  begin
-    S := FSlots[i];
-    if (Result = '') and S.EsRequerido then
-    begin
-      TieneValor := False;
-      if (not S.Eliminar) and Assigned(S.Ctrl) then
-      case S.TipoValor of
-        tvpLista:
-          TieneValor := (S.Ctrl as TcxComboBox).ItemIndex > 0;
-        tvpTextoLibre:
-          TieneValor := Trim((S.Ctrl as TcxTextEdit).Text) <> '';
-        tvpNumero:
-          TieneValor := LeerNumeroPropiedad(
-            (S.Ctrl as TcxMaskEdit).Text, sNumero);
-        tvpBooleano:
-          TieneValor := True;
-      end;
-      if not TieneValor then
-        Result := Format(SErrorPropiedadObligatoriaFamilia,
-          [S.NombrePropiedad]);
+  TieneValor := False;
+  if ASlot.EsRequerido and not ASlot.Eliminar and Assigned(ASlot.Ctrl) then
+    case ASlot.TipoValor of
+      tvpLista:
+        TieneValor := (ASlot.Ctrl as TcxComboBox).ItemIndex > 0;
+      tvpTextoLibre:
+        TieneValor := Trim((ASlot.Ctrl as TcxTextEdit).Text) <> '';
+      tvpNumero:
+        TieneValor := LeerNumeroPropiedad(
+          (ASlot.Ctrl as TcxMaskEdit).Text, sNumero);
+      tvpBooleano:
+        TieneValor := True;
     end;
+  Result := ASlot.EsRequerido and not TieneValor;
+end;
+
+function TGestorPropiedades.Validar: string;
+var
+  Slot: TSlotProp;
+  Pendientes: TArray<string>;
+begin
+  Pendientes := nil;
+  for Slot in FSlots do
+    if FaltaValorObligatorio(Slot) then
+      Pendientes := Pendientes + [Slot.NombrePropiedad];
+  case Length(Pendientes) of
+    0: Result := '';
+    1: Result := Format(SErrorPropiedadObligatoriaFamilia, [Pendientes[0]]);
+  else
+    Result := Format(SErrorPropiedadesObligatoriasFamilia,
+      [sLineBreak + '• ' + string.Join(sLineBreak + '• ', Pendientes)]);
   end;
+end;
+
+procedure TGestorPropiedades.EnfocarPrimeraPropiedadPendiente;
+var
+  I: Integer;
+  Control: TWinControl;
+begin
+  I := 0;
+  Control := nil;
+  while (I < FSlots.Count) and not Assigned(Control) do
+  begin
+    if FaltaValorObligatorio(FSlots[I]) and (FSlots[I].Ctrl is TWinControl) then
+      Control := TWinControl(FSlots[I].Ctrl);
+    Inc(I);
+  end;
+  if Assigned(Control) and Control.CanFocus then
+    Control.SetFocus;
 end;
 
 function TGestorPropiedades.GuardarPropiedades(

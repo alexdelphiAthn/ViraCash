@@ -212,7 +212,8 @@ const
     'ON f.SERIE_FAC = o.SERIE_FAC_OPCAJA ' +
     'AND f.NUMERO_FAC = o.NUMERO_FAC_OPCAJA ' +
     'LEFT JOIN fza_empresas emp ' +
-    'ON emp.CODIGO_EMP_EMP = o.CODIGO_EMP_OPCAJA ' +
+    'ON emp.CODIGO_EMP_EMP = COALESCE(f.CODIGO_EMP_FAC, ' +
+    'o.CODIGO_EMP_OPCAJA) ' +
     'LEFT JOIN fza_empleados empl ' +
     'ON empl.CODIGO_EMPL = o.CODIGO_EMPLEADO_OPCAJA ' +
     'WHERE o.CODIGO_EMP_OPCAJA = :EMP ' +

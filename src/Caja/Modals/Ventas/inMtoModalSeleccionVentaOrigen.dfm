@@ -15,21 +15,49 @@
     BevelOuter = bvNone
     ParentBackground = False
     TabOrder = 0
-    object lblTitulo: TcxLabel
-      Left = 16
-      Top = 8
-      Caption = 'Ventas que contienen el art'#237'culo'
-      Style.TextColor = clNavy
-      TabOrder = 1
-      Transparent = True
+    object pnlFiltros: TPanel
+      Left = 0
+      Top = 0
+      Width = 900
+      Height = 66
+      Align = alTop
+      BevelOuter = bvNone
+      ParentBackground = False
+      TabOrder = 0
+      object lblTitulo: TcxLabel
+        Left = 16
+        Top = 8
+        Caption = 'Ventas que contienen el art'#237'culo'
+        Style.TextColor = clNavy
+        TabOrder = 0
+        Transparent = True
+      end
+      object chkOtrosAlmacenes: TcxCheckBox
+        Left = 16
+        Top = 36
+        Caption = 'Ver tickets de otros almacenes'
+        Properties.OnEditValueChanged = FiltroOrigenCambiado
+        TabOrder = 1
+        Transparent = True
+        Width = 275
+      end
+      object chkOtrasEmpresas: TcxCheckBox
+        Left = 300
+        Top = 36
+        Caption = 'Ver tickets de otras empresas'
+        Properties.OnEditValueChanged = FiltroOrigenCambiado
+        TabOrder = 2
+        Transparent = True
+        Width = 270
+      end
     end
     object cxgrdVentas: TcxGrid
       Left = 0
-      Top = 36
+      Top = 66
       Width = 900
-      Height = 394
-      Align = alBottom
-      TabOrder = 0
+      Height = 364
+      Align = alClient
+      TabOrder = 1
       object dbtvVentas: TcxGridDBTableView
         OnDblClick = dbtvVentasDblClick
         DataController.DataSource = dsVentas
@@ -53,6 +81,12 @@
           Caption = 'N'#250'mero'
           DataBinding.FieldName = 'NUMERO_FAC'
           Width = 100
+        end
+        object colEmpresa: TcxGridDBColumn
+          Caption = 'Empresa'
+          DataBinding.FieldName = 'CODIGO_EMP_FAC'
+          Visible = False
+          Width = 85
         end
         object colAlmacen: TcxGridDBColumn
           Caption = 'Tienda'
@@ -126,7 +160,7 @@
       OnExecute = actAceptarExecute
     end
     object actCancelar: TAction
-      Caption = 'Sin origen (ESC)'
+      Caption = 'Cancelar (Esc)'
       OnExecute = actCancelarExecute
     end
   end

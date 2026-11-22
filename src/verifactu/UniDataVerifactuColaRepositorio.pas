@@ -210,7 +210,7 @@ procedure TServicioVerifactuColaUniDAC.EncolarFactura(
   const AUsuario, ASerie, ANumero, ATipoOperacion: string;
   ABorrarMovimientos: Boolean);
 var
-  bSistema: Boolean;
+  bSistema, bAnulacionRectificativa: Boolean;
   sColumna: string;
   sValor: string;
   sActualizar: string;
@@ -263,7 +263,10 @@ begin
         FConexion, ASerie, ANumero, SistemaColaVerifactu(AParametrosApp));
   end;
   FQry.Execute;
-  if ATipoOperacion = 'ANULACION' then
+  bAnulacionRectificativa := (ATipoOperacion = 'ANULACION') and
+    TOperacionesVerifactuColaUniDAC.EsRectificativa(FConexion, ASerie, ANumero);
+  // La rectificación sigue vigente hasta que se acepte su anulación.
+  if (ATipoOperacion = 'ANULACION') and not bAnulacionRectificativa then
     TOperacionesVerifactuColaUniDAC.BorrarMovimientosFactura(
       FQry, ASerie, ANumero);
   // El lanzamiento saca la factura de BORRADOR; el QR se calcula en
@@ -287,10 +290,11 @@ begin
     FQry.ParamByName('USUARIO').AsString := AUsuario;
     FQry.Execute;
   end;
-  TVentasWsCola.RegistrarFactura(
-    AParametrosCaja,
-    CrearRepositorioVentasWsColaUniDAC(FQry.Connection),
-    AUsuario, ASerie, ANumero, ATipoOperacion);
+  if not bAnulacionRectificativa then
+    TVentasWsCola.RegistrarFactura(
+      AParametrosCaja,
+      CrearRepositorioVentasWsColaUniDAC(FQry.Connection),
+      AUsuario, ASerie, ANumero, ATipoOperacion);
 end;
 procedure TServicioVerifactuColaUniDAC.RegistrarFacturaNoVerifactu(
   const AParametrosApp: IParametrosAplicacion;
@@ -340,8 +344,8 @@ begin
   FQry.ParamByName('NUMERO').AsString := ANumero;
   FQry.Execute;
   if ATipoOperacion = 'ANULACION' then
-    TOperacionesVerifactuColaUniDAC.BorrarMovimientosFactura(
-      FQry, ASerie, ANumero);
+    TOperacionesVerifactuColaUniDAC.AplicarAnulacionFactura(
+      AParametrosCaja, FQry, AUsuario, ASerie, ANumero);
   if Assigned(FRegistroLog) then
     FRegistroLog.RegistrarInformacion(
       'Factura ' + FormatearReferenciaFactura(FConexion, ASerie, ANumero) +

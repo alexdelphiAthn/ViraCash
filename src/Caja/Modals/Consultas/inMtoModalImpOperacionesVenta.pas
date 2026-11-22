@@ -23,6 +23,7 @@ uses
   Vcl.Dialogs, Vcl.ExtCtrls, Vcl.StdCtrls, Data.DB,
   inMtoModalGenImp, cxGraphics, cxLookAndFeels, cxLookAndFeelPainters,
   cxControls, cxContainer, cxEdit, cxTextEdit, cxMaskEdit, cxDropDownEdit,
+  cxButtonEdit,
   cxCalendar, cxLabel, cxButtons, cxClasses, cxLocalization, cxPC,
   cxCheckListBox, cxCheckBox, dxSkinsForm, dxCore, frxClass, frxDBSet,
   frxDesgn, frxExportXLSX,
@@ -37,6 +38,20 @@ type
   TfrmPrintOperacionesVenta = class(TfrmPrint)
     pcOpciones: TcxPageControl;
     tsUbicaciones: TcxTabSheet;
+    tsFiltros: TcxTabSheet;
+    lblFiltroTalla: TcxLabel;
+    lblFiltroColor: TcxLabel;
+    lblFiltroCopa: TcxLabel;
+    lblNombreAtributo: TcxLabel;
+    lblValorAtributo: TcxLabel;
+    lblCodigoArqueo: TcxLabel;
+    lblFiltrosOpcionales: TcxLabel;
+    edtFiltroTalla: TcxButtonEdit;
+    edtFiltroColor: TcxButtonEdit;
+    edtFiltroCopa: TcxButtonEdit;
+    edtNombreAtributo: TcxButtonEdit;
+    edtValorAtributo: TcxButtonEdit;
+    edtCodigoArqueo: TcxButtonEdit;
     lblFechas: TcxLabel;
     lblDesde: TcxLabel;
     dteDesde: TcxDateEdit;
@@ -56,6 +71,7 @@ type
     dsVentasPrint: TDataSource;
     fxdsVentas: TfrxDBDataset;
     procedure btnMarcarTodasClick(Sender: TObject);
+    procedure BuscarFiltroButtonClick(Sender: TObject; AButtonIndex: Integer);
     procedure btnDesmarcarTodasClick(Sender: TObject);
     procedure EjecutarAccionInforme(Sender: TObject);
     procedure clbUbicacionesMouseUp(Sender: TObject;
@@ -82,10 +98,15 @@ type
     procedure AlternarUbicacion(AIndice: Integer);
     procedure AmpliarCabeceraParaDosLineas;
     procedure RecortarTextosDetalle;
+    procedure AjustarDescuentoSubtotales;
+    procedure AnadirColumnaHora;
     function FocoEnUbicaciones: Boolean;
     procedure CMDialogKey(var Msg: TCMDialogKey); message CM_DIALOGKEY;
     procedure ExportarExcelDatos;
     procedure ComponerDependencias;
+    function ElegirOpcionFiltro(AFiltro: TFiltroOperacionesVentaCaja;
+      const ATitulo: string; out AValor: string): Boolean;
+    procedure IniciarDocumentoOperacionesVenta(Sender: TObject);
     procedure AsegurarUbicacionSeleccionada;
     procedure CargarUbicaciones;
     function ConstruirSolicitud:
@@ -119,9 +140,19 @@ implementation
 uses
   inLibFiltroUsuario, inLibMsgCaja, inLibResumenSeleccionesCaja,
   frBaseGraphicsTypes, UniDataColumnasDocumentoRepositorio,
-  inMtoPreviewExcel, inLibInformeTabularExcel, inLibMsgComun;
+  inMtoPreviewExcel, inLibInformeTabularExcel, inLibMsgComun,
+  inLibMensajesVcl;
 
 {$R *.dfm}
+
+resourcestring
+  STituloHoraOperacion = 'Hora';
+  STituloBuscarFiltroVentas = 'Buscar %s';
+  SColumnaDescripcionFiltroVentas = 'Descripción';
+  SColumnaCodigoArqueoFiltroVentas = 'Código de arqueo';
+  SAvisoSinOpcionesFiltroVentas = 'No hay valores disponibles para este filtro.';
+  SAvisoAtributoInformeIncompleto =
+    'Indique el nombre y el valor del atributo para aplicar ese filtro.';
 
 const
   // Títulos de los dos ejes en el formato del informe.
@@ -168,6 +199,7 @@ class function TfrmPrintOperacionesVenta.ColumnasExcel:
 begin
   Result := [
     ColumnaInforme('FECHA_DIA', STextoFechaCaja, 1),
+    ColumnaInforme('HORA_OPERACION', STituloHoraOperacion, 0.65),
     ColumnaInforme('CODIGO_EMP_OPCAJA', STextoEmpresaCaja, 0.6),
     ColumnaInforme('CODIGO_ALM_OPCAJA', STextoAlmacenCaja, 0.6),
     ColumnaInforme('CODIGO_CAJA_OPCAJA', STextoCajaCaja, 0.5),
@@ -324,8 +356,123 @@ begin
     FRotuloEjeTalla := '';
   if (FRotuloEjeColor <> '') or (FRotuloEjeTalla <> '') then
     AmpliarCabeceraParaDosLineas;
+  if FRotuloEjeColor <> '' then
+    lblFiltroColor.Caption := FRotuloEjeColor;
+  if FRotuloEjeTalla <> '' then
+    lblFiltroTalla.Caption := FRotuloEjeTalla;
+  lblFiltroCopa.Caption := FRotuloEjeCopa;
+  AnadirColumnaHora;
   RecortarTextosDetalle;
+  AjustarDescuentoSubtotales;
+  frxrprt1.OnBeginDoc := IniciarDocumentoOperacionesVenta;
   frxrprt1.OnBeforePrint := ReportBeforePrintConColor;
+end;
+
+procedure TfrmPrintOperacionesVenta.AnadirColumnaHora;
+const
+  ANCHO_HORA = 40;
+  ANCHO_MIN_DOCUMENTO = 82;
+
+  procedure AgregarMemo(const ANombreDocumento, ANombreHora,
+    ATexto: string);
+  var
+    Objeto: TfrxComponent;
+    Documento, Hora: TfrxMemoView;
+  begin
+    Objeto := frxrprt1.FindObject(ANombreDocumento);
+    if not (Objeto is TfrxMemoView) or
+       Assigned(frxrprt1.FindObject(ANombreHora)) then
+      Exit;
+    Documento := TfrxMemoView(Objeto);
+    if Documento.Width < ANCHO_MIN_DOCUMENTO + ANCHO_HORA then
+      Exit;
+    Documento.Width := Documento.Width - ANCHO_HORA;
+    Hora := TfrxMemoView.Create(Documento.Parent);
+    Hora.Name := ANombreHora;
+    Hora.Left := Documento.Left + Documento.Width;
+    Hora.Top := Documento.Top;
+    Hora.Width := ANCHO_HORA;
+    Hora.Height := Documento.Height;
+    Hora.ParentFont := False;
+    Hora.Font.Assign(Documento.Font);
+    Hora.Frame.Typ := Documento.Frame.Typ;
+    Hora.HAlign := haCenter;
+    Hora.VAlign := Documento.VAlign;
+    Hora.WordWrap := False;
+    Hora.Text := ATexto;
+  end;
+
+begin
+  AgregarMemo('MemoHDocumento', 'MemoHHoraOperacion', STituloHoraOperacion);
+  AgregarMemo('MemoDocumento', 'MemoHoraOperacion',
+    '[' + fxdsVentas.UserName + '."HORA_OPERACION"]');
+end;
+
+procedure TfrmPrintOperacionesVenta.AjustarDescuentoSubtotales;
+const
+  MEMOS_DESCUENTO: array[0..2] of string = (
+    'MemoTotalVendedorDto', 'MemoTotalCajaDto', 'MemoTotalFechaDto');
+  BRUTO = 'SUM(IIF(<Ventas."ES_PRESTAMO"> = 1, 0, ' +
+    '<Ventas."BRUTO">),MasterData1)';
+  NETO = 'SUM(IIF(<Ventas."ES_PRESTAMO"> = 1, 0, ' +
+    '<Ventas."NETO_ARTICULO">),MasterData1)';
+  FORMULA_ANTERIOR = '[IIF(' + BRUTO + ' = 0, 0, (' + BRUTO +
+    ' - ' + NETO + ') * 100 / ' + BRUTO + ')]';
+  LINEAS_VENTA = 'SUM(IIF(<Ventas."ES_PRESTAMO"> = 1, 0, 1),MasterData1)';
+  DESCUENTO_LINEA = 'SUM(IIF(<Ventas."ES_PRESTAMO"> = 1, 0, ' +
+    '<Ventas."PORCENTAJE_DTO">),MasterData1)';
+  FORMULA_NUEVA = '[IIF(' + LINEAS_VENTA + ' = 1, ' + DESCUENTO_LINEA +
+    ', (' + BRUTO + ' - ' + NETO + ') * 100 * IIF(' + BRUTO +
+    ' = 0, 0, 1) / IIF(' + BRUTO + ' = 0, 1, ' + BRUTO + '))]';
+var
+  Nombre: string;
+  Objeto: TfrxComponent;
+  Memo: TfrxMemoView;
+  Expresion: string;
+begin
+  // FZ-ISSUE-1141: conservar el descuento de la línea cuando es la única.
+  // Actualizar también los formatos guardados que usan la fórmula estándar.
+  for Nombre in MEMOS_DESCUENTO do
+  begin
+    Objeto := frxrprt1.FindObject(Nombre);
+    if Objeto is TfrxMemoView then
+    begin
+      Memo := TfrxMemoView(Objeto);
+      Expresion := StringReplace(Memo.Text, #13, '', [rfReplaceAll]);
+      Expresion := StringReplace(Expresion, #10, '', [rfReplaceAll]);
+      if SameText(Trim(Expresion), FORMULA_ANTERIOR) then
+        Memo.Text := FORMULA_NUEVA;
+    end;
+  end;
+end;
+
+procedure TfrmPrintOperacionesVenta.IniciarDocumentoOperacionesVenta(
+  Sender: TObject);
+
+  procedure AplicarFecha(const ANombreMemo, ACampo, AVariable: string;
+    const AFecha: TDateTime);
+  var
+    Objeto: TfrxComponent;
+    Memo: TfrxMemoView;
+  begin
+    Objeto := frxrprt1.FindObject(ANombreMemo);
+    if Objeto is TfrxMemoView then
+    begin
+      Memo := TfrxMemoView(Objeto);
+      frxrprt1.Variables[AVariable] := AFecha;
+      Memo.Text := StringReplace(Memo.Text,
+        '<' + fxdsVentas.UserName + '."' + ACampo + '">', '<' + AVariable + '>',
+        [rfReplaceAll, rfIgnoreCase]);
+    end;
+  end;
+
+begin
+  ReportInicioDocumento(Sender);
+  // Adaptar la cabecera después de traducirla, también en formatos guardados.
+  AplicarFecha('MemoDesde', 'FECHA_DESDE', 'FechaDesdeSeleccionada',
+    DateOf(dteDesde.Date));
+  AplicarFecha('MemoHasta', 'FECHA_HASTA', 'FechaHastaSeleccionada',
+    DateOf(dteHasta.Date));
 end;
 
 // FZ-ISSUE-641: un texto que no cabe en su columna («AMARILLO») saltaba a
@@ -461,6 +608,82 @@ begin
   end;
 end;
 
+function TfrmPrintOperacionesVenta.ElegirOpcionFiltro(
+  AFiltro: TFiltroOperacionesVentaCaja; const ATitulo: string;
+  out AValor: string): Boolean;
+const
+  NOMBRES_BUSQUEDA: array[TFiltroOperacionesVentaCaja] of string = (
+    'OperacionesVentaBuscarTalla', 'OperacionesVentaBuscarColor',
+    'OperacionesVentaBuscarCopa', 'OperacionesVentaBuscarAtributo',
+    'OperacionesVentaBuscarValor', 'OperacionesVentaBuscarTurno'
+  );
+var
+  Opciones: IResultadoInformeCaja;
+  Datos: TDataSet;
+  Campo: TField;
+begin
+  Opciones := FRepositorioPersistencia.ConsultarOpcionesFiltroOperacionesVenta(
+    AFiltro, ConstruirSolicitud);
+  Datos := Opciones.DataSet;
+  Result := False;
+  if Datos.IsEmpty then
+    ShowMessage_fza(SAvisoSinOpcionesFiltroVentas)
+  else
+  begin
+    Campo := Datos.FieldByName('VALOR');
+    Campo.DisplayLabel := ATitulo;
+    Campo.DisplayWidth := 22;
+    if AFiltro = fovTurno then
+    begin
+      Campo.DisplayLabel := SColumnaCodigoArqueoFiltroVentas;
+      Datos.FieldByName('EMPRESA').DisplayLabel := STextoEmpresaCaja;
+      Datos.FieldByName('ALMACEN').DisplayLabel := STextoAlmacenCaja;
+      Datos.FieldByName('CAJA').DisplayLabel := STextoCajaCaja;
+      Datos.FieldByName('DESDE').DisplayLabel := lblDesde.Caption;
+      Datos.FieldByName('HASTA').DisplayLabel := lblHasta.Caption;
+    end;
+    Campo := Datos.FindField('DESCRIPCION');
+    if Assigned(Campo) then
+    begin
+      Campo.DisplayLabel := SColumnaDescripcionFiltroVentas;
+      Campo.DisplayWidth := 32;
+    end;
+    Result := BusquedaVisual.EjecutarBusquedaDataSet(
+      Format(STituloBuscarFiltroVentas, [ATitulo]), Datos,
+      NOMBRES_BUSQUEDA[AFiltro], Self);
+    if Result then
+      AValor := Datos.FieldByName('VALOR').AsString;
+  end;
+end;
+
+procedure TfrmPrintOperacionesVenta.BuscarFiltroButtonClick(
+  Sender: TObject; AButtonIndex: Integer);
+var
+  Etiquetas: array[TFiltroOperacionesVentaCaja] of TcxLabel;
+  Editor: TcxButtonEdit;
+  Filtro: TFiltroOperacionesVentaCaja;
+  Valor: string;
+begin
+  Editor := TcxButtonEdit(Sender);
+  Filtro := TFiltroOperacionesVentaCaja(Editor.Tag);
+  Etiquetas[fovTalla] := lblFiltroTalla;
+  Etiquetas[fovColor] := lblFiltroColor;
+  Etiquetas[fovCopa] := lblFiltroCopa;
+  Etiquetas[fovAtributo] := lblNombreAtributo;
+  Etiquetas[fovValorAtributo] := lblValorAtributo;
+  Etiquetas[fovTurno] := lblCodigoArqueo;
+  if (Filtro = fovValorAtributo) and (Trim(edtNombreAtributo.Text) = '') then
+    BuscarFiltroButtonClick(edtNombreAtributo, 0);
+  if (Filtro <> fovValorAtributo) or (Trim(edtNombreAtributo.Text) <> '') then
+    if ElegirOpcionFiltro(Filtro, Etiquetas[Filtro].Caption, Valor) then
+    begin
+      if (Filtro = fovAtributo) and
+         not SameText(Trim(Editor.Text), Valor) then
+        edtValorAtributo.Text := '';
+      Editor.Text := Valor;
+    end;
+end;
+
 procedure TfrmPrintOperacionesVenta.btnDesmarcarTodasClick(
   Sender: TObject);
 var
@@ -553,16 +776,15 @@ begin
     FRestringido := RestriccionEmpAlmCajaActiva(
       ContextoSesion,
       ParametrosApp);
-    pcOpciones.Visible := not FRestringido;
+    ClientWidth := 900;
     tsUbicaciones.TabVisible := not FRestringido;
     if FRestringido then
     begin
-      ClientWidth := 341;
+      pcOpciones.ActivePage := tsFiltros;
       lblContexto.Caption := SCaptionTpvRestringido;
     end
     else
     begin
-      ClientWidth := 900;
       pcOpciones.ActivePage := tsUbicaciones;
       CargarUbicaciones;
     end;
@@ -613,6 +835,7 @@ end;
 procedure TfrmPrintOperacionesVenta.preparar_consulta;
 var
   NuevoResultado: IResultadoInformeCaja;
+  Solicitud: TSolicitudOperacionesVentaCaja;
 begin
   if frxrprt1.Engine.Running then
     raise EInvalidOperation.Create(
@@ -626,8 +849,11 @@ begin
     dteHasta.Date := dteDesde.Date;
   AsegurarUbicacionSeleccionada;
   // Mantener el resultado anterior hasta enlazar el nuevo por completo.
+  Solicitud := ConstruirSolicitud;
+  if (Solicitud.NombreAtributo = '') <> (Solicitud.ValorAtributo = '') then
+    raise EArgumentException.Create(SAvisoAtributoInformeIncompleto);
   NuevoResultado := FRepositorioPersistencia.ConsultarOperacionesVenta(
-    ConstruirSolicitud);
+    Solicitud);
   try
     dsVentasPrint.DataSet := NuevoResultado.DataSet;
     fxdsVentas.UpdateBounds;
@@ -693,6 +919,16 @@ begin
     lblFechas.Caption, oSolicitud.FechaDesde, oSolicitud.FechaHasta);
   AnadirUbicacionesInformeCaja(
     AResumen, tsUbicaciones.Caption, oSolicitud.Ubicaciones);
+  if oSolicitud.Talla <> '' then
+    AResumen.Anadir(lblFiltroTalla.Caption, oSolicitud.Talla);
+  if oSolicitud.Color <> '' then
+    AResumen.Anadir(lblFiltroColor.Caption, oSolicitud.Color);
+  if oSolicitud.Copa <> '' then
+    AResumen.Anadir(lblFiltroCopa.Caption, oSolicitud.Copa);
+  if oSolicitud.NombreAtributo <> '' then
+    AResumen.Anadir(oSolicitud.NombreAtributo, oSolicitud.ValorAtributo);
+  if oSolicitud.CodigoArqueo <> '' then
+    AResumen.Anadir(lblCodigoArqueo.Caption, oSolicitud.CodigoArqueo);
 end;
 
 function TfrmPrintOperacionesVenta.ConstruirSolicitud:
@@ -701,7 +937,19 @@ var
   i: Integer;
 begin
   Result.FechaDesde := Trunc(dteDesde.Date);
+  if Result.FechaDesde <= 0 then
+    Result.FechaDesde := EncodeDate(YearOf(Date), 1, 1);
   Result.FechaHasta := Trunc(dteHasta.Date);
+  if Result.FechaHasta <= 0 then
+    Result.FechaHasta := Date;
+  if Result.FechaHasta < Result.FechaDesde then
+    Result.FechaHasta := Result.FechaDesde;
+  Result.Talla := Trim(edtFiltroTalla.Text);
+  Result.Color := Trim(edtFiltroColor.Text);
+  Result.Copa := Trim(edtFiltroCopa.Text);
+  Result.NombreAtributo := Trim(edtNombreAtributo.Text);
+  Result.ValorAtributo := Trim(edtValorAtributo.Text);
+  Result.CodigoArqueo := Trim(edtCodigoArqueo.Text);
   SetLength(Result.Ubicaciones, 0);
   if FRestringido or (NumeroUbicacionesMarcadas = 0) then
   begin

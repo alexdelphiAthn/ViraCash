@@ -48,7 +48,17 @@ type
     FechaDesde: TDateTime;
     FechaHasta: TDateTime;
     Ubicaciones: TUbicacionesInformeCaja;
+    Talla: string;
+    Color: string;
+    Copa: string;
+    NombreAtributo: string;
+    ValorAtributo: string;
+    CodigoArqueo: string;
   end;
+
+  TFiltroOperacionesVentaCaja = (
+    fovTalla, fovColor, fovCopa, fovAtributo, fovValorAtributo, fovTurno
+  );
 
   TEstadosSolicitudTraspasoCaja = TArray<string>;
 
@@ -111,6 +121,9 @@ type
     function ConsultarOperacionesVenta(
       const ASolicitud: TSolicitudOperacionesVentaCaja
     ): IResultadoInformeCaja;
+    function ConsultarOpcionesFiltroOperacionesVenta(
+      AFiltro: TFiltroOperacionesVentaCaja;
+      const ASolicitud: TSolicitudOperacionesVentaCaja): IResultadoInformeCaja;
     function ListarEstadosSolicitudesTraspaso:
       TEstadosSolicitudTraspasoCaja;
     function ConsultarSolicitudesTraspaso(

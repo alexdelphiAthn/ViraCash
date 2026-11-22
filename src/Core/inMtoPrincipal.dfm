@@ -728,6 +728,10 @@
         ShortCut = 49225
         OnClick = MenuGenericoClick
       end
+      object mnuBajasSinLote: TMenuItem
+        Caption = 'Bajas de stock sin lote'
+        OnClick = mnuBajasSinLoteClick
+      end
       object mnuDocumentosTrabajo: TMenuItem
         Caption = 'Documentos de Trabajo'
         ShortCut = 16471
@@ -885,6 +889,13 @@
       object mnuCambioCodigoCliente: TMenuItem
         Caption = 'Cambio de código de cliente'
         OnClick = mnuCambioCodigoClienteClick
+      end
+      object mnuAjusteMovimientos: TMenuItem
+        Caption = 'Ajuste de movimientos'
+        object mnuAjusteDepositos: TMenuItem
+          Caption = 'Cambiar almacén de depósitos abiertos'
+          OnClick = mnuAjusteDepositosClick
+        end
       end
       object mnuSesionesCambioTarifa: TMenuItem
         Caption = 'Sesiones de cambio de tarifa'

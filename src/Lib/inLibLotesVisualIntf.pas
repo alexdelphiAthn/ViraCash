@@ -34,6 +34,7 @@ type
     DiasAviso: Integer;
     Hoy: TDate;
     // Caja: existencias netas tras descontar otras líneas del ticket.
+    EsDevolucion: Boolean;
     UsarDisponibles: Boolean;
     Disponibles: TLotesDisponibles;
   end;

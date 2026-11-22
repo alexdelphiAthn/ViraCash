@@ -40,7 +40,8 @@ implementation
 uses
   System.SysUtils, inLibVerifactu, inLibVentasWsCola,
   UniDataVentasWsCola, UniDataVerifactuResultadosEnvioOperacion,
-  UniDataVerifactuResultadosEnvioPersistencia;
+  UniDataVerifactuResultadosEnvioPersistencia,
+  UniDataVerifactuColaOperaciones;
 
 // FZ-ISSUE-311: el SII queda fuera del reglamento de SIF y no tiene
 // registro de eventos. Con el modo SII, o con una fila del SII aunque el
@@ -69,7 +70,8 @@ class procedure TResultadosVerifactuColaUniDAC.GuardarEnvioOk(
   const AResultado: TResultadoEnvioVerifactu;
   const ARegistroLog: IRegistroLog);
 var
-  bAplicado: Boolean;
+  bAplicado, bAnulacionRectificativa: Boolean;
+  Consulta: TUniQuery;
   oEntrada: TEntradaResultadoEnvioVerifactu;
   oOperacion: TOperacionResultadosEnvioVerifactu;
 begin
@@ -88,17 +90,35 @@ begin
   end;
   if bAplicado then
   begin
+    bAnulacionRectificativa := SameText(ATipoOperacion, 'ANULACION') and
+      TOperacionesVerifactuColaUniDAC.EsRectificativa(AConexion,
+        ASerie, ANumero);
+    if bAnulacionRectificativa then
+    begin
+      Consulta := TUniQuery.Create(nil);
+      try
+        Consulta.Connection := AConexion;
+        TOperacionesVerifactuColaUniDAC.AplicarAnulacionFactura(
+          AParametrosCaja, Consulta, AUsuario, ASerie, ANumero);
+        TVentasWsCola.RegistrarFactura(AParametrosCaja,
+          CrearRepositorioVentasWsColaUniDAC(AConexion),
+          AUsuario, ASerie, ANumero, ATipoOperacion);
+      finally
+        Consulta.Free;
+      end;
+    end;
     RegistrarEventoCola(AParametrosApp, AConexion, ARegistroLog,
       SameText(AResultado.Sistema, cSistemaColaSii), AUsuario,
       cEventoVerifactuEnvioOk,
       'Registro de facturación (' + ATipoOperacion + ') aceptado por la ' +
       'AEAT (' + AResultado.EstadoRegistro + ')',
       'CSV: ' + AResultado.RequestId, ASerie, ANumero);
-    TVentasWsCola.RegistrarEventoSeguro(
-      AParametrosCaja,
-      CrearRepositorioVentasWsColaUniDAC(AConexion),
-      AUsuario,
-      'FISCAL_ACTUALIZADO', ASerie, ANumero, ARegistroLog);
+    if not bAnulacionRectificativa then
+      TVentasWsCola.RegistrarEventoSeguro(
+        AParametrosCaja,
+        CrearRepositorioVentasWsColaUniDAC(AConexion),
+        AUsuario,
+        'FISCAL_ACTUALIZADO', ASerie, ANumero, ARegistroLog);
   end;
 end;
 

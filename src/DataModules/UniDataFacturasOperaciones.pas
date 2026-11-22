@@ -21,7 +21,8 @@ uses
   Uni, inLibFacturasPersistenciaIntf;
 
 function CrearPersistenciaFacturasUniDAC(
-  AConexion: TUniConnection): TPersistenciaFacturas;
+  AConexion: TUniConnection;
+  ARestaurarMovimientos: Boolean = False): TPersistenciaFacturas;
 
 implementation
 
@@ -44,12 +45,14 @@ type
     IFormatoDocumentoLecturas)
   private
     FConexion: TUniConnection;
+    FRestaurarMovimientos: Boolean;
     function NuevaConsulta: TUniQuery;
     function TablaEfectosExiste: Boolean;
   public
     function LeerFormatoEmpresa(const ACodigoEmpresa: string): string;
     function LeerFormatoFactura(const ASerie, ANumero: string): string;
-    constructor Create(AConexion: TUniConnection);
+    constructor Create(AConexion: TUniConnection;
+      ARestaurarMovimientos: Boolean);
     { IUnidadTrabajoFacturas }
     procedure Ejecutar(const ATrabajo: TProc);
     { IRepositorioBorradoFactura }
@@ -126,12 +129,13 @@ begin
 end;
 
 constructor TPersistenciaFacturasUniDAC.Create(
-  AConexion: TUniConnection);
+  AConexion: TUniConnection; ARestaurarMovimientos: Boolean);
 begin
   if not Assigned(AConexion) then
     raise EArgumentNilException.Create('AConexion');
   inherited Create;
   FConexion := AConexion;
+  FRestaurarMovimientos := ARestaurarMovimientos;
 end;
 
 procedure TPersistenciaFacturasUniDAC.Ejecutar(
@@ -709,10 +713,20 @@ begin
       '   AND F.NUMERO_FAC = L.NUMERO_FAC_FACLIN ' +
       '  LEFT JOIN fza_articulos A ' +
       '    ON A.CODIGO_ART_ART = L.CODIGO_ART_FACLIN ' +
-      ' WHERE COALESCE(UPPER(TRIM(A.TIPO_ART)), '''') <> ''SERVICIO'' ' +
-      '   AND L.NUMERO_FAC_FACLIN = :numero ' +
-      '   AND L.SERIE_FAC_FACLIN = :serie ' +
-      ' ORDER BY L.LINEA_FACLIN';
+      ' WHERE L.NUMERO_FAC_FACLIN = :numero ' +
+      '   AND L.SERIE_FAC_FACLIN = :serie ';
+    if FRestaurarMovimientos then
+      Qry.SQL.Add(
+        ' AND UPPER(COALESCE(NULLIF(TRIM(L.TIPO_ARTICULO_FACLIN), ''''), ' +
+        '   NULLIF(TRIM(A.TIPO_ART), ''''), ''ESTANDAR'')) <> ''SERVICIO'' ' +
+        ' AND (COALESCE(TRIM(F.CODIGO_CAJA_FAC), '''') = '''' ' +
+        '   OR COALESCE(TRIM(F.NUMERO_OPERACION_FAC), '''') IN ('''', ''0'') ' +
+        '   OR UPPER(COALESCE(NULLIF(TRIM(L.TIPO_ARTICULO_FACLIN), ''''), ' +
+        '        NULLIF(TRIM(A.TIPO_ART), ''''), ''ESTANDAR'')) = ''ESTANDAR'') ')
+    else
+      Qry.SQL.Add(
+        ' AND COALESCE(UPPER(TRIM(A.TIPO_ART)), '''') <> ''SERVICIO'' ');
+    Qry.SQL.Add(' ORDER BY L.LINEA_FACLIN');
     Qry.ParamByName('numero').AsString := ANumero;
     Qry.ParamByName('serie').AsString := ASerie;
     Qry.Open;
@@ -905,7 +919,7 @@ begin
       ADatos.Articulo;
     // F-LOTEC-016: con lote o serie, ..._INSERT_LOTE.
     EjecutarMovimientoConLote(Procedimiento, ProcedimientoLote, ADatos.Lote,
-      ADatos.FechaCaducidad);
+      ADatos.FechaCaducidad, ADatos.ConservarLote);
     if ADatos.Fecha > 0 then
     begin
       QryFecha := NuevaConsulta;
@@ -1003,11 +1017,13 @@ begin
 end;
 
 function CrearPersistenciaFacturasUniDAC(
-  AConexion: TUniConnection): TPersistenciaFacturas;
+  AConexion: TUniConnection;
+  ARestaurarMovimientos: Boolean): TPersistenciaFacturas;
 var
   oAdaptador: TPersistenciaFacturasUniDAC;
 begin
-  oAdaptador := TPersistenciaFacturasUniDAC.Create(AConexion);
+  oAdaptador := TPersistenciaFacturasUniDAC.Create(AConexion,
+    ARestaurarMovimientos);
   Result.UnidadTrabajo := oAdaptador;
   Result.Borrado := oAdaptador;
   Result.Reapertura := oAdaptador;

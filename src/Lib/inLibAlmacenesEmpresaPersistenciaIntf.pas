@@ -9,7 +9,7 @@ type
       AAlmacen: string): Boolean;
     function PrimerAlmacenEmpresa(const AEmpresa: string): string;
     function ObtenerAlmacenDepositoEmpresa(
-      const AEmpresa: string): string;
+      const AEmpresa: string; const AAlmacenOrigen: string = ''): string;
   end;
 
 implementation

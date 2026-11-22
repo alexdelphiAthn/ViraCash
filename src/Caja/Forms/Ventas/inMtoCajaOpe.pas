@@ -571,8 +571,6 @@ type
     procedure CargarDevolucionPorTicket;
     procedure CargarDevolucionTicket(
       const ASeleccion: TOrigenDevolucionCajaVcl);
-    procedure CargarDevolucionComercial(
-      const ASerie, ANumero, AEmpresaOrigen, AAlmacenOrigen: string);
     procedure CargarApartadoTicket(
       const ASeleccion: TOrigenDevolucionCajaVcl;
       const AApartado: TApartadoTicketCaja);
@@ -716,7 +714,7 @@ implementation
 {$R *.dfm}
 
 uses
-  UniDataReposicionAutomatica,
+  UniDataReposicionAutomatica, inLibCajaParam,
   inLibTpvMvcIntf, inLibControladorVentaTpv,
   inMtoFotoArticulo,
   inLibArqueoPersistencia,
@@ -937,6 +935,12 @@ begin
     rConfig.Selector := CrearSelectorLotesVisual(AFormulario,
                                                  rConfig.Repositorio);
     rConfig.Lineas := AFormulario.DatosCaja.cdsLineas;
+    rConfig.PartidasDevolucion :=
+      function(ASku: string): TLotesDisponibles
+      begin
+        Result := ConsultarPartidasDevolucionUniDAC(
+          AFormulario.ConexionPrincipal, ASku);
+      end;
     rConfig.Almacen :=
       function: string
       begin
@@ -1262,6 +1266,17 @@ begin
     AFormulario.FLecturas.RepositorioFacturas;
   Result.Cabecera := AFormulario.DatosCaja.cdsCabecera;
   Result.Lineas := AFormulario.DatosCaja.cdsLineas;
+  Result.ExigirOrigenDevolucion := AFormulario.ParametrosCaja.GetBool(
+    PARAMETRO_CAJA_EXIGIR_ORIGEN_DEVOLUCION, False);
+  if Assigned(AFormulario.FLotesCaja) and
+     (AFormulario.FTipoRectificativa <> trcSustitutiva) then
+    Result.ConfirmarLotesDevolucion :=
+      procedure
+      begin
+        AFormulario.FLotesCaja.ConfirmarLotesDevolucion(
+          (Trim(AFormulario.FNumeroRectifica) <> '') or
+          (Trim(AFormulario.FNumeroOrigenDev) <> ''));
+      end;
   // La sustituta valida dentro de la transaccion, tras retirar el stock
   // de la original; antes se contarian las mismas unidades dos veces.
   if AFormulario.FTipoRectificativa <> trcSustitutiva then
@@ -3852,32 +3867,22 @@ begin
   FNumeroOrigenDev := ASeleccion.Numero;
   FEmpresaOrigenDev := ASeleccion.Empresa;
   FAlmacenOrigenDev := ASeleccion.Almacen;
-  if SameText(ASeleccion.Empresa, FCodigoEmpresa) then
-  begin
-    CargarRectificacion(
-      ASeleccion.Serie,
-      ASeleccion.Numero,
-      trcDiferencias,
-      tmrMantenerOriginales);
-    FSerieOrigenDev := FSerieRectifica;
-    FNumeroOrigenDev := FNumeroRectifica;
-    GridRecalc(
-      ConexionPrincipal, FLecturas.RepositorioFacturas, nil,
-      tvLineasOpe,
-      DatosCaja.cdsLineas,
-      DatosCaja.cdsCabecera,
-      ActualizarLabelTotal);
-    FEditorLineas.AsegurarLineaNueva;
-  end
-  else
-  begin
+  if not SameText(ASeleccion.Empresa, FCodigoEmpresa) then
     ShowMessage_fza(SAvisoDevolucionTicketOtraEmpresa);
-    CargarDevolucionComercial(
-      ASeleccion.Serie,
-      ASeleccion.Numero,
-      ASeleccion.Empresa,
-      ASeleccion.Almacen);
-  end;
+  CargarRectificacion(
+    ASeleccion.Serie,
+    ASeleccion.Numero,
+    trcDiferencias,
+    tmrMantenerOriginales);
+  FSerieOrigenDev := FSerieRectifica;
+  FNumeroOrigenDev := FNumeroRectifica;
+  GridRecalc(
+    ConexionPrincipal, FLecturas.RepositorioFacturas, nil,
+    tvLineasOpe,
+    DatosCaja.cdsLineas,
+    DatosCaja.cdsCabecera,
+    ActualizarLabelTotal);
+  FEditorLineas.AsegurarLineaNueva;
 end;
 
 procedure TfrmMtoOpeCaja.CargarApartadoTicket(
@@ -3949,24 +3954,15 @@ procedure TfrmMtoOpeCaja.CargarDevolucion(
 var
   oSeleccion: TOrigenDevolucionCajaVcl;
 begin
-  // FZ-ISSUE-392: la devolución de un ticket de la propia empresa es una
-  // rectificativa por diferencias enlazada al original, igual que la de
-  // F4; antes salía un ticket negativo suelto en la serie de ventas.
-  if SameText(AEmpresaOrigen, FCodigoEmpresa) then
-  begin
-    oSeleccion := Default(TOrigenDevolucionCajaVcl);
-    oSeleccion.Serie := ASerie;
-    oSeleccion.Numero := ANumero;
-    oSeleccion.Empresa := AEmpresaOrigen;
-    oSeleccion.Almacen := AAlmacenOrigen;
-    CargarDevolucionTicket(oSeleccion);
-    // F-LOTEC-015: la devolución lleva el mismo lote o serie de su línea.
-    if Assigned(FLotesCaja) then
-      FLotesCaja.MarcarSeries;
-  end
-  else
-    CargarDevolucionComercial(ASerie, ANumero, AEmpresaOrigen,
-      AAlmacenOrigen);
+  oSeleccion := Default(TOrigenDevolucionCajaVcl);
+  oSeleccion.Serie := ASerie;
+  oSeleccion.Numero := ANumero;
+  oSeleccion.Empresa := AEmpresaOrigen;
+  oSeleccion.Almacen := AAlmacenOrigen;
+  CargarDevolucionTicket(oSeleccion);
+  // F-LOTEC-015: la devolución lleva el mismo lote o serie de su línea.
+  if Assigned(FLotesCaja) then
+    FLotesCaja.MarcarSeries;
 end;
 
 procedure TfrmMtoOpeCaja.CargarDevolucionLineas(const ASerie, ANumero,
@@ -3979,47 +3975,6 @@ begin
   ConservarLineasDevolucionCaja(DatosCaja.cdsLineas, ALineas);
   GridRecalc(ConexionPrincipal, FLecturas.RepositorioFacturas, nil,
     tvLineasOpe, DatosCaja.cdsLineas, DatosCaja.cdsCabecera,
-    ActualizarLabelTotal);
-  FEditorLineas.AsegurarLineaNueva;
-end;
-
-procedure TfrmMtoOpeCaja.CargarDevolucionComercial(
-  const ASerie, ANumero, AEmpresaOrigen,
-  AAlmacenOrigen: string);
-begin
-  // Devolucion comercial (ticket de otra empresa): copia la venta en
-  // negativo y conserva el ticket de origen para la operacion DV, pero no
-  // crea una rectificativa fiscal.
-  FSerieOrigenDev := ASerie;
-  FNumeroOrigenDev := ANumero;
-  FEmpresaOrigenDev := AEmpresaOrigen;
-  FAlmacenOrigenDev := AAlmacenOrigen;
-  FSerieRectifica := '';
-  FNumeroRectifica := '';
-  FTipoRectificativa := trcNinguna;
-  FTratamientoMovRectificativa := tmrMantenerOriginales;
-  FMotivoDevolucion := '';
-  FDependencias.ServicioRectificacion.CargarDevolucion(
-    ASerie,
-    ANumero,
-    DatosCaja.cdsCabecera,
-    DatosCaja.cdsLineas);
-  // F-LOTEC-015: la devolución lleva el mismo lote o serie de su línea.
-  if Assigned(FLotesCaja) then
-    FLotesCaja.MarcarSeries;
-  if FCaptionPrevio = '' then
-    FCaptionPrevio := Caption;
-  Caption := FCaptionPrevio + FormatearMensajeDocumentos(
-    CrearFormatoDocumentoLecturas(ConexionPrincipal)
-    .LeerFormatoEmpresa(FEmpresaOrigenDev),
-    SCaptionDevolucionTicketDe, [ASerie, ANumero, AAlmacenOrigen]);
-  lblTipoRectificativa.Caption := '';
-  lblTipoRectificativa.Visible := False;
-  GridRecalc(
-    ConexionPrincipal, FLecturas.RepositorioFacturas, nil,
-    tvLineasOpe,
-    DatosCaja.cdsLineas,
-    DatosCaja.cdsCabecera,
     ActualizarLabelTotal);
   FEditorLineas.AsegurarLineaNueva;
 end;
@@ -4041,7 +3996,7 @@ var
 begin
   // Devolución sin código de barras: al meter una prenda en negativo se
   // proponen las ventas que la contienen para elegir el ticket de
-  // origen. Cancelar es válido: la devolución queda sin origen (DV).
+  // origen. El parámetro de caja decide si se puede cerrar sin él.
   sSku := FSkuPendienteVentaOrigen;
   FSkuPendienteVentaOrigen := '';
   if (sSku <> '') and
@@ -4056,40 +4011,30 @@ begin
            FDependencias.RepositorioConsultas,
            sSku,
            FCodigoEmpresa,
+           FCodigoAlmacen,
            Seleccion) then
       begin
         FSerieOrigenDev := Seleccion.Serie;
         FNumeroOrigenDev := Seleccion.Numero;
         FEmpresaOrigenDev := Seleccion.Empresa;
         FAlmacenOrigenDev := Seleccion.Almacen;
-        if SameText(Seleccion.Empresa, FCodigoEmpresa) then
-        begin
-          // Rectificativa por diferencias del ticket elegido: solo se
-          // marca la referencia; las líneas las decide el usuario.
-          FSerieRectifica := Seleccion.Serie;
-          FNumeroRectifica := Seleccion.Numero;
-          FTipoRectificativa := trcDiferencias;
-          FTratamientoMovRectificativa := tmrMantenerOriginales;
-          if FCaptionPrevio = '' then
-            FCaptionPrevio := Caption;
-          Caption := FCaptionPrevio +
-            '  —  RECTIFICATIVA POR DIFERENCIAS de ' +
-            FormatearReferenciaFactura(ConexionPrincipal,
-              Seleccion.Serie, Seleccion.Numero);
-          lblTipoRectificativa.Caption := Format(
-            SCaptionRectificativaTipo, ['POR DIFERENCIAS']);
-          lblTipoRectificativa.Visible := True;
-        end
-        else
-        begin
-          if FCaptionPrevio = '' then
-            FCaptionPrevio := Caption;
-          Caption := FCaptionPrevio + FormatearMensajeDocumentos(
-            CrearFormatoDocumentoLecturas(ConexionPrincipal)
-            .LeerFormatoEmpresa(FEmpresaOrigenDev),
-            SCaptionDevolucionTicketDe,
-            [Seleccion.Serie, Seleccion.Numero, Seleccion.Almacen]);
-        end;
+        if not SameText(Seleccion.Empresa, FCodigoEmpresa) then
+          ShowMessage_fza(SAvisoDevolucionTicketOtraEmpresa);
+        // Rectificativa por diferencias del ticket elegido: solo se
+        // marca la referencia; las líneas las decide el usuario.
+        FSerieRectifica := Seleccion.Serie;
+        FNumeroRectifica := Seleccion.Numero;
+        FTipoRectificativa := trcDiferencias;
+        FTratamientoMovRectificativa := tmrMantenerOriginales;
+        if FCaptionPrevio = '' then
+          FCaptionPrevio := Caption;
+        Caption := FCaptionPrevio +
+          '  —  RECTIFICATIVA POR DIFERENCIAS de ' +
+          FormatearReferenciaFactura(ConexionPrincipal,
+            Seleccion.Serie, Seleccion.Numero);
+        lblTipoRectificativa.Caption := Format(
+          SCaptionRectificativaTipo, ['POR DIFERENCIAS']);
+        lblTipoRectificativa.Visible := True;
       end;
     finally
       FPreguntandoVentaOrigen := False;

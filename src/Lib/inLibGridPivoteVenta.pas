@@ -134,6 +134,7 @@ type
     // consumidor con CrearRepositorioPivoteVenta (UniDataPivoteVenta).
     Repositorios          : TRepositoriosPivoteVenta;
     OnPuedeResolverEntrada: TPuedeResolverEntradaPivoteVentaEvent;
+    OnPendienteCancelado: TPuedeResolverEntradaPivoteVentaEvent;
     OnElegirArticulo      : TElegirArticuloPivoteVentaEvent;
     OnCrearLineaSku       : TCrearLineaPivoteVentaEvent;
     OnBandaCambiada       : TBandaPivoteVentaEvent;
@@ -532,6 +533,8 @@ var
   bFiltrado, bGrupoNuevo: Boolean;
 begin
   FModelo.IniciarCarga;
+  FModelo.PendienteCancelado := Assigned(FCfg.OnPendienteCancelado) and
+    FCfg.OnPendienteCancelado();
   oDs := CdsLineas;
   // El pivote usa un borrador visual propio. Una inserción real vacía
   // heredada del host impediría recorrer las líneas ya existentes y
@@ -930,6 +933,8 @@ var
   iLineaFoco: Integer;
   bFiltrado: Boolean;
 begin
+  if FModelo.PendienteCancelado and (ABanda <> bpvPedida) then
+    Exit(False);
   Result := True;
   if not FEstado.GuardandoCantidad then
   begin

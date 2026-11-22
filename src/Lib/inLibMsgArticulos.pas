@@ -1066,6 +1066,8 @@ SLeyendaAvisosBalance =
     'Primero guarde el artículo antes de añadir propiedades.';
   SErrorPropiedadObligatoriaFamilia =
     'La propiedad "%s" es obligatoria para esta familia.';
+  SErrorPropiedadesObligatoriasFamilia =
+    'Faltan estas propiedades obligatorias de la familia:%s';
   SErrorPrecioCosteMargenNoValido =
     'El precio de coste debe ser mayor que cero.';
   // Margen de las tarifas: sobre venta o coeficiente (FZ-ISSUE-315).

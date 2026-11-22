@@ -71,6 +71,11 @@ type
       AConn: TUniConnection;
       const AUsuario, ASerie, ANumero,
       ASerieOrigen, ANumeroOrigen, ATipoRelacion: string); static;
+    class function EsRectificativa(AConexion: TUniConnection;
+      const ASerie, ANumero: string): Boolean; static;
+    class procedure AplicarAnulacionFactura(
+      const AParametrosCaja: IParametrosCaja; AQry: TUniQuery;
+      const AUsuario, ASerie, ANumero: string); static;
     // Revierte los movimientos vinculados a una factura de caja (VE) o
     // creada desde el mantenimiento (FC). El SP mantiene stock y
     // acumulados.
@@ -86,7 +91,10 @@ uses
   inLibFormatoDocumento, UniDataFormatoDocumentoRepositorio,
   System.SysUtils, System.Classes, System.StrUtils, Data.DB,
   inLibMsgFacturas, inLibMsgVerifactu, inLibVerifactu, inLibVerifactuEnvio,
-  inLibRelojFiscal, inLibVentasWsCola, UniDataVentasWsCola;
+  inLibRelojFiscal, inLibVentasWsCola, UniDataVentasWsCola,
+  inLibErroresBBDD, UniDataRectificativasSql, UniDataFacturasOperaciones,
+  inLibFacturasPersistenciaIntf, inLibFacturasServiciosIntf,
+  inLibFacturasMovimientos, UniDataValoresAutomaticosRepositorio;
 function ObtenerEstadoRegistroNoVerifactu(
   const ATipoOperacion: string): string;
 begin
@@ -310,9 +318,6 @@ begin
     AQry, ASerie, ANumero, ATipoOperacion, AResultado);
   MarcarFacturaRegistradaNoVerifactu(
     AQry, AUsuario, ASerie, ANumero, ATipoOperacion);
-  if ATipoOperacion = 'ANULACION' then
-    TOperacionesVerifactuColaUniDAC.BorrarMovimientosFactura(
-      AQry, ASerie, ANumero);
 end;
 // ===========================================================================
 //   TOperacionesVerifactuColaUniDAC — operaciones sin envío
@@ -368,6 +373,9 @@ begin
       raise Exception.Create(oResultado.MensajeError);
     GuardarRegistroNoVerifactu(AQryTrx, AUsuario, ASerie, ANumero,
       ATipoOperacion, oResultado, ABorrarMovimientos);
+    if ATipoOperacion = 'ANULACION' then
+      AplicarAnulacionFactura(AParametrosCaja, AQryTrx,
+        AUsuario, ASerie, ANumero);
     RegistrarEventoVerifactu(AParametrosApp, AQryTrx.Connection, AUsuario,
       cEventoVerifactuInfo,
       'Registro de facturación NO VERI*FACTU registrado', ATipoOperacion,
@@ -451,6 +459,70 @@ begin
     [cFaseFacturaSinVerifactuAnulada, cFaseFacturaVerifactuAnulada,
      cFaseFacturaNoVerifactuAnulada]);
 end;
+procedure ValidarSustitucionUnica(AConn: TUniConnection;
+  const ASerieOrigen, ANumeroOrigen, ASerieRect, ANumeroRect: string;
+  AIncluirBorradores: Boolean);
+const
+  FILTRO_SUSTITUTIVA =
+    ' AND F.TIPO_RECTIFICATIVA_FAC = ''S'' ' +
+    ' AND (F.SERIE_FAC <> :SERIERECT OR F.NUMERO_FAC <> :NUMERORECT) ';
+var
+  Consulta: TUniQuery;
+  SerieAbono, NumeroAbono: string;
+  Existe: Boolean;
+
+  function BuscarSustitutiva(const ASql: string;
+    const ASerie, ANumero: string): Boolean;
+  begin
+    Consulta.Close;
+    Consulta.SQL.Text := ASql + FILTRO_SUSTITUTIVA +
+      SQLRectificativaVigente('F', AIncluirBorradores);
+    Consulta.SQL.Add(' LIMIT 1 FOR UPDATE');
+    Consulta.ParamByName('SERIE').AsString := ASerie;
+    Consulta.ParamByName('NUMERO').AsString := ANumero;
+    Consulta.ParamByName('SERIERECT').AsString := ASerieRect;
+    Consulta.ParamByName('NUMERORECT').AsString := ANumeroRect;
+    Consulta.Open;
+    Result := not Consulta.IsEmpty;
+  end;
+
+begin
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := AConn;
+    // Serializar por factura original en la misma transacción del alta.
+    Consulta.SQL.Text :=
+      ' SELECT SERIE_FAC_ABONO_FAC, NUMERO_FAC_ABONO_FAC ' +
+      ' FROM fza_facturas WHERE SERIE_FAC = :SERIE ' +
+      ' AND NUMERO_FAC = :NUMERO FOR UPDATE';
+    Consulta.ParamByName('SERIE').AsString := ASerieOrigen;
+    Consulta.ParamByName('NUMERO').AsString := ANumeroOrigen;
+    Consulta.Open;
+    if Consulta.IsEmpty then
+      raise EValidacionBBDD.CreateFmt(SErrorFacturaRegistroFiscalNoEncontrada,
+        [ASerieOrigen, ANumeroOrigen]);
+    SerieAbono := Consulta.FieldByName('SERIE_FAC_ABONO_FAC').AsString;
+    NumeroAbono := Consulta.FieldByName('NUMERO_FAC_ABONO_FAC').AsString;
+    Existe := BuscarSustitutiva(
+      ' SELECT 1 FROM fza_facturas_relaciones R ' +
+      ' JOIN fza_facturas F ON F.SERIE_FAC = R.SERIE_FAC_FACREL ' +
+      ' AND F.NUMERO_FAC = R.NUMERO_FAC_FACREL ' +
+      ' WHERE R.SERIE_FAC_ORIGEN_FACREL = :SERIE ' +
+      ' AND R.NUMERO_FAC_ORIGEN_FACREL = :NUMERO ' +
+      ' AND R.TIPO_RELACION_FACREL = ''RECTIFICA'' ',
+      ASerieOrigen, ANumeroOrigen);
+    // Antes del histórico, el vínculo solo se guardaba en ABONO.
+    if not Existe and (SerieAbono <> '') and (NumeroAbono <> '') then
+      Existe := BuscarSustitutiva(
+        ' SELECT 1 FROM fza_facturas F WHERE F.SERIE_FAC = :SERIE ' +
+        ' AND F.NUMERO_FAC = :NUMERO ', SerieAbono, NumeroAbono);
+    if Existe then
+      raise EValidacionBBDD.Create(SErrorSegundaRectificativaSustitutiva);
+  finally
+    Consulta.Free;
+  end;
+end;
+
 procedure MarcarRectificativaVinculada(
   AQry: TUniQuery;
   const ASolicitud: TSolicitudVinculoRectificativa);
@@ -534,8 +606,9 @@ begin
     ' WHERE r.SERIE_FAC_ORIGEN_FACREL = :SERIE ' +
     '   AND r.NUMERO_FAC_ORIGEN_FACREL = :NUMERO ' +
     '   AND r.TIPO_RELACION_FACREL = ''RECTIFICA'' ' +
+    SQLRectificativaVigente('h', True) +
     ' ORDER BY CASE WHEN COALESCE(h.FASE_FAC, '''') ' +
-    '                    IN ('''', ''BORRADOR'') ' +
+    '                    IN ('''', ''BORRADOR'', ''ERROR_BORRADOR'') ' +
     '          THEN 1 ELSE 0 END, r.ID_FACREL DESC ' +
     ' LIMIT 1';
   AQry.ParamByName('SERIE').AsString := ASerieOriginal;
@@ -577,6 +650,223 @@ begin
     AUsuario, ASerieOriginal, ANumeroOriginal,
     'SUSTITUCION');
 end;
+function FechaOriginalParaStock(AConexion: TUniConnection;
+  const ASerie, ANumero: string;
+  const ADatos: TDatosFacturaConsolidacion): TDateTime;
+var
+  Consulta: TUniQuery;
+begin
+  Result := ADatos.Fecha;
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := AConexion;
+    Consulta.SQL.Text :=
+      ' SELECT FECHA_OPERACION_OPCAJA FROM fza_caja_operaciones ' +
+      ' WHERE CODIGO_EMP_OPCAJA = :EMPRESA ' +
+      '   AND CODIGO_CAJA_OPCAJA = :CAJA ' +
+      '   AND NUMERO_OPERACION_OPCAJA = :OPERACION ' +
+      '   AND SERIE_FAC_OPCAJA = :SERIE AND NUMERO_FAC_OPCAJA = :NUMERO ' +
+      '   AND TIPO_OPERACION_OPCAJA IN (''VE'', ''DV'') ' +
+      ' ORDER BY ID_OPCAJA LIMIT 1';
+    Consulta.ParamByName('EMPRESA').AsString := ADatos.Empresa;
+    Consulta.ParamByName('CAJA').AsString := ADatos.Caja;
+    Consulta.ParamByName('OPERACION').AsString := ADatos.NumeroOperacion;
+    Consulta.ParamByName('SERIE').AsString := ASerie;
+    Consulta.ParamByName('NUMERO').AsString := ANumero;
+    Consulta.Open;
+    if not Consulta.IsEmpty then
+      Result := Consulta.Fields[0].AsDateTime;
+  finally
+    Consulta.Free;
+  end;
+end;
+
+procedure RestaurarStockFacturaOriginal(AConexion: TUniConnection;
+  const AUsuario, ASerie, ANumero: string);
+var
+  Persistencia: TPersistenciaFacturas;
+  Datos: TDatosFacturaConsolidacion;
+  Solicitud: TSolicitudMovimientosFactura;
+  Movimientos: IServicioMovimientosFactura;
+  EsVentaCaja: Boolean;
+begin
+  Persistencia := CrearPersistenciaFacturasUniDAC(AConexion, True);
+  Datos := Persistencia.Consolidacion.CargarDatosConsolidacion(
+    ASerie, ANumero, False);
+  if Datos.Encontrada and
+     FacturaDebeGenerarMovimientos(Datos.TipoFactura, Datos.MueveStock) then
+  begin
+    Solicitud := Default(TSolicitudMovimientosFactura);
+    Solicitud.Serie := ASerie;
+    Solicitud.Numero := ANumero;
+    Solicitud.Empresa := Datos.Empresa;
+    Solicitud.Cliente := Datos.Cliente;
+    Solicitud.Caja := Datos.Caja;
+    Solicitud.NumeroOperacion := Datos.NumeroOperacion;
+    EsVentaCaja := (Trim(Datos.Caja) <> '') and
+      (Trim(Datos.NumeroOperacion) <> '') and (Datos.NumeroOperacion <> '0');
+    Solicitud.Fecha := Datos.Fecha;
+    if EsVentaCaja then
+      Solicitud.Fecha := FechaOriginalParaStock(AConexion,
+        ASerie, ANumero, Datos);
+    Solicitud.Usuario := AUsuario;
+    Solicitud.ConservarLote := True;
+    Movimientos := TServicioMovimientosFactura.Create(AConexion,
+      Persistencia.Movimientos,
+      TRepositorioValoresAutomaticosUniDAC.Create(AConexion), EsVentaCaja);
+    Movimientos.GenerarSalidas(Solicitud);
+  end;
+end;
+
+procedure ReactivarOriginalTrasAnulacion(AQry: TUniQuery;
+  const AUsuario, ASerie, ANumero: string;
+  ASustitutiva, AReemplazoStock: Boolean;
+  const AParametrosCaja: IParametrosCaja);
+var
+  SerieVigente, NumeroVigente: string;
+  HayOtraSustitutiva: Boolean;
+begin
+  AQry.SQL.Text :=
+    ' SELECT f.SERIE_FAC, f.NUMERO_FAC, f.TIPO_RECTIFICATIVA_FAC ' +
+    ' FROM fza_facturas_relaciones r ' +
+    ' JOIN fza_facturas f ON f.SERIE_FAC = r.SERIE_FAC_FACREL ' +
+    '  AND f.NUMERO_FAC = r.NUMERO_FAC_FACREL ' +
+    ' WHERE r.SERIE_FAC_ORIGEN_FACREL = :SERIE ' +
+    '   AND r.NUMERO_FAC_ORIGEN_FACREL = :NUMERO ' +
+    '   AND r.TIPO_RELACION_FACREL = ''RECTIFICA'' ' +
+    SQLRectificativaVigente('f') +
+    ' ORDER BY (f.TIPO_RECTIFICATIVA_FAC = ''S'') DESC, r.ID_FACREL DESC ' +
+    ' LIMIT 1';
+  AQry.ParamByName('SERIE').AsString := ASerie;
+  AQry.ParamByName('NUMERO').AsString := ANumero;
+  AQry.Open;
+  SerieVigente := AQry.FieldByName('SERIE_FAC').AsString;
+  NumeroVigente := AQry.FieldByName('NUMERO_FAC').AsString;
+  HayOtraSustitutiva :=
+    SameText(AQry.FieldByName('TIPO_RECTIFICATIVA_FAC').AsString, 'S');
+  AQry.Close;
+  AQry.SQL.Text :=
+    ' UPDATE fza_facturas f ' +
+    ' SET SERIE_FAC_ABONO_FAC = NULLIF(:SERIEVIGENTE, ''''), ' +
+    '     NUMERO_FAC_ABONO_FAC = NULLIF(:NUMEROVIGENTE, ''''), ' +
+    '     FASE_FAC = CASE ' +
+    '       WHEN :NUMEROVIGENTE <> '''' THEN ''RECTIFICADA'' ' +
+    '       WHEN EXISTS (SELECT 1 FROM fza_facturas_consolidaciones c ' +
+    '             WHERE c.SERIE_FAC_FACCON = f.SERIE_FAC ' +
+    '               AND c.NUMERO_FAC_FACCON = f.NUMERO_FAC ' +
+    '               AND c.ESTADO_FACCON LIKE ''NOVERIF%'') ' +
+    '         THEN ''NOVERIFACTU_OK'' ' +
+    '       WHEN EXISTS (SELECT 1 FROM fza_facturas_consolidaciones c ' +
+    '             WHERE c.SERIE_FAC_FACCON = f.SERIE_FAC ' +
+    '               AND c.NUMERO_FAC_FACCON = f.NUMERO_FAC ' +
+    '               AND (c.ESTADO_FACCON LIKE ''VERIFACTU%'' ' +
+    '                 OR c.ESTADO_FACCON LIKE ''SII%'')) ' +
+    '         OR EXISTS (SELECT 1 FROM fza_verifactu_cola q ' +
+    '             WHERE q.SERIE_FAC_VFCOLA = f.SERIE_FAC ' +
+    '               AND q.NUMERO_FAC_VFCOLA = f.NUMERO_FAC ' +
+    '               AND q.TIPO_OPERACION_VFCOLA = ''ALTA'' ' +
+    '               AND q.ESTADO_VFCOLA = ''ENVIADA'') ' +
+    '         THEN ''VERIFACTU_OK'' ' +
+    '       WHEN EXISTS (SELECT 1 FROM fza_verifactu_cola q ' +
+    '             WHERE q.SERIE_FAC_VFCOLA = f.SERIE_FAC ' +
+    '               AND q.NUMERO_FAC_VFCOLA = f.NUMERO_FAC ' +
+    '               AND q.TIPO_OPERACION_VFCOLA = ''ALTA'') ' +
+    '         THEN ''VERIFACTU_PENDIENTE'' ' +
+    '       WHEN f.ESCONSOLIDADA_FAC = ''S'' THEN ''SIN_VERIFACTU'' ' +
+    '       ELSE ''BORRADOR'' END, ' +
+    '     INSTANTE_MODIF = NOW(), USUARIO_MODIF = :USUARIO ' +
+    ' WHERE f.SERIE_FAC = :SERIE AND f.NUMERO_FAC = :NUMERO ' +
+    '   AND f.FASE_FAC = ''RECTIFICADA''';
+  AQry.ParamByName('USUARIO').AsString := AUsuario;
+  AQry.ParamByName('SERIE').AsString := ASerie;
+  AQry.ParamByName('NUMERO').AsString := ANumero;
+  AQry.ParamByName('SERIEVIGENTE').AsString := SerieVigente;
+  AQry.ParamByName('NUMEROVIGENTE').AsString := NumeroVigente;
+  AQry.Execute;
+  if ASustitutiva and not HayOtraSustitutiva then
+  begin
+    if AReemplazoStock then
+      RestaurarStockFacturaOriginal(AQry.Connection,
+        AUsuario, ASerie, ANumero);
+    TVentasWsCola.RegistrarFactura(AParametrosCaja,
+      CrearRepositorioVentasWsColaUniDAC(AQry.Connection),
+      AUsuario, ASerie, ANumero, 'ALTA');
+  end;
+end;
+
+class function TOperacionesVerifactuColaUniDAC.EsRectificativa(
+  AConexion: TUniConnection; const ASerie, ANumero: string): Boolean;
+var
+  Consulta: TUniQuery;
+begin
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := AConexion;
+    Consulta.SQL.Text :=
+      ' SELECT 1 FROM fza_facturas ' +
+      ' WHERE SERIE_FAC = :SERIE AND NUMERO_FAC = :NUMERO ' +
+      '   AND TIPO_RECTIFICATIVA_FAC IN (''I'', ''S'')';
+    Consulta.ParamByName('SERIE').AsString := ASerie;
+    Consulta.ParamByName('NUMERO').AsString := ANumero;
+    Consulta.Open;
+    Result := not Consulta.IsEmpty;
+  finally
+    Consulta.Free;
+  end;
+end;
+
+class procedure TOperacionesVerifactuColaUniDAC.AplicarAnulacionFactura(
+  const AParametrosCaja: IParametrosCaja; AQry: TUniQuery;
+  const AUsuario, ASerie, ANumero: string);
+var
+  Originales: TUniQuery;
+begin
+  // La fase anulada identifica qué rectificativa dejó de regir.
+  // La relación fiscal se conserva para el histórico.
+  Originales := TUniQuery.Create(nil);
+  try
+    Originales.Connection := AQry.Connection;
+    Originales.SQL.Text :=
+      ' SELECT o.SERIE_FAC, o.NUMERO_FAC, s.ESMUEVE_STOCK_FAC, ' +
+      '        s.TIPO_RECTIFICATIVA_FAC ' +
+      ' FROM fza_facturas s JOIN fza_facturas o ' +
+      '  ON o.CODIGO_EMP_FAC = s.CODIGO_EMP_FAC ' +
+      ' WHERE s.SERIE_FAC = :SERIE AND s.NUMERO_FAC = :NUMERO ' +
+      '   AND s.TIPO_RECTIFICATIVA_FAC IN (''I'', ''S'') ' +
+      '   AND o.FASE_FAC = ''RECTIFICADA'' ' +
+      '   AND NOT EXISTS (SELECT 1 FROM fza_verifactu_cola q ' +
+      '     WHERE q.SERIE_FAC_VFCOLA = o.SERIE_FAC ' +
+      '       AND q.NUMERO_FAC_VFCOLA = o.NUMERO_FAC ' +
+      '       AND q.TIPO_OPERACION_VFCOLA = ''ANULACION'') ' +
+      '   AND ((o.SERIE_FAC_ABONO_FAC = s.SERIE_FAC ' +
+      '     AND o.NUMERO_FAC_ABONO_FAC = s.NUMERO_FAC) OR EXISTS (' +
+      '     SELECT 1 FROM fza_facturas_relaciones r ' +
+      '      WHERE r.SERIE_FAC_FACREL = s.SERIE_FAC ' +
+      '        AND r.NUMERO_FAC_FACREL = s.NUMERO_FAC ' +
+      '        AND r.SERIE_FAC_ORIGEN_FACREL = o.SERIE_FAC ' +
+      '        AND r.NUMERO_FAC_ORIGEN_FACREL = o.NUMERO_FAC ' +
+      '        AND r.TIPO_RELACION_FACREL = ''RECTIFICA'')) ' +
+      ' ORDER BY o.SERIE_FAC, o.NUMERO_FAC FOR UPDATE';
+    Originales.ParamByName('SERIE').AsString := ASerie;
+    Originales.ParamByName('NUMERO').AsString := ANumero;
+    Originales.Open;
+    BorrarMovimientosFactura(AQry, ASerie, ANumero);
+    while not Originales.Eof do
+    begin
+      ReactivarOriginalTrasAnulacion(AQry, AUsuario,
+        Originales.FieldByName('SERIE_FAC').AsString,
+        Originales.FieldByName('NUMERO_FAC').AsString,
+        SameText(Originales.FieldByName('TIPO_RECTIFICATIVA_FAC').AsString,
+          'S'),
+        SameText(Originales.FieldByName('ESMUEVE_STOCK_FAC').AsString, 'S'),
+        AParametrosCaja);
+      Originales.Next;
+    end;
+  finally
+    Originales.Free;
+  end;
+end;
+
 class procedure TOperacionesVerifactuColaUniDAC.VincularRectificativa(
   const AParametrosApp: IParametrosAplicacion;
   const AParametrosCaja: IParametrosCaja;
@@ -620,6 +910,10 @@ begin
     Qry := TUniQuery.Create(nil);
     try
       Qry.Connection := AConn;
+      if oSolicitud.TipoRectificativa = 'S' then
+        ValidarSustitucionUnica(AConn, oSolicitud.SerieOriginal,
+          oSolicitud.NumeroOriginal, oSolicitud.SerieRectificativa,
+          oSolicitud.NumeroRectificativa, True);
       MarcarRectificativaVinculada(Qry, oSolicitud);
       if oSolicitud.EmitirAhora then
         EnlazarOriginalConRectificativa(Qry, oSolicitud.Usuario,
@@ -739,6 +1033,9 @@ begin
         SameText(Trim(Qry.FieldByName('ESMUEVE_STOCK_FAC').AsString),
           'S');
       Qry.Close;
+      if sTipoRectificativa = 'S' then
+        ValidarSustitucionUnica(AConn, sSerieOriginal, sNumeroOriginal,
+          ASerieRect, ANumeroRect, False);
       // Una original anulada conserva su fase: el vínculo queda en el
       // histórico sin resucitarla.
       if not EsFaseFacturaAnulada(sFaseOriginal) then

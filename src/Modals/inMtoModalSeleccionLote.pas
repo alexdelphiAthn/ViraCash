@@ -221,7 +221,9 @@ constructor TfrmModalSeleccionLote.CreateSeleccion(
 begin
   inherited Create(AOwner);
   FParametros := AParametros;
-  if AParametros.UsarDisponibles then
+  if AParametros.EsDevolucion then
+    FLotes := AParametros.Disponibles
+  else if AParametros.UsarDisponibles then
     FLotes := OrdenarParaSalida(AParametros.Modo,
       AParametros.Disponibles, AParametros.Hoy)
   else
@@ -237,6 +239,8 @@ begin
   styCaducado.TextColor := COLOR_CADUCADO;
   styProximo := TcxStyle(FEstilos.CreateItem(TcxStyle));
   styProximo.TextColor := COLOR_PROXIMO;
+  if AParametros.EsDevolucion then
+    Caption := STituloSeleccionLoteDevolucion;
   ConstruirCabecera;
   ConstruirPie;
   ConstruirRejilla;
@@ -392,6 +396,7 @@ begin
     ActivacionVigente.Lotes;
   colElegir.Visible := EsSerie;
   colCantidad.Visible := not EsSerie;
+  colStock.Visible := not FParametros.EsDevolucion;
   colCaducidad.Visible := bMostrarCaducidad;
   colDias.Visible := bMostrarCaducidad;
   colEntrada.Visible := not bMostrarCaducidad;
@@ -423,7 +428,7 @@ begin
       oDatos.Values[iFila, colStock.Index] := FLotes[iFila].Cantidad;
       oDatos.Values[iFila, colCantidad.Index] := 0.0;
     end;
-    if not EsSerie then
+    if not EsSerie and not FParametros.EsDevolucion then
       ProponerCantidades;
   finally
     oDatos.EndUpdate;
@@ -552,7 +557,8 @@ begin
                           [TextoLote(FLotes[iFila].Lote)]));
       Result := False;
     end
-    else if Result and (dCantidad > FLotes[iFila].Cantidad) then
+    else if Result and not FParametros.EsDevolucion and
+            (dCantidad > FLotes[iFila].Cantidad) then
     begin
       MostrarAviso(Format(SErrorCantidadLoteSuperaStock,
         [TextoLote(FLotes[iFila].Lote), TextoCantidad(dCantidad),
@@ -566,6 +572,12 @@ begin
       MostrarAviso(SErrorSeleccionSerieVacia)
     else
       MostrarAviso(SErrorSeleccionLoteVacia);
+    Result := False;
+  end;
+  if Result and FParametros.EsDevolucion and
+     (Abs(CantidadElegida - FParametros.Cantidad) > 0.000001) then
+  begin
+    MostrarAviso(SErrorCantidadPartidasDevolucion);
     Result := False;
   end;
   sCaducados := CaducadosElegidos;

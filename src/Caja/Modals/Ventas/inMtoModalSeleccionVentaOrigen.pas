@@ -9,10 +9,9 @@
 {  Copyright (c) Alejandro Laorden Hidalgo. Todos los derechos reservados.     }
 {                                                                              }
 {  Descripción:                                                                }
-{    Devolución sin código de barras: propone las ventas (12 meses,            }
-{    cualquier tienda de la empresa) que contienen el SKU devuelto para        }
-{    elegir el ticket de origen. Cancelable: la devolución queda sin           }
-{    origen (modo DV).                                                         }
+{    Devolución sin código de barras: propone ventas del SKU devuelto         }
+{    en los últimos 12 meses. Por defecto busca en el almacén actual.         }
+{    El usuario puede incluir otros almacenes u otras empresas.               }
 {******************************************************************************}
 unit inMtoModalSeleccionVentaOrigen;
 
@@ -24,7 +23,7 @@ uses
   Vcl.StdCtrls, Vcl.ExtCtrls, Vcl.ActnList, System.Actions,
   Data.DB,
   cxGraphics, cxControls, cxLookAndFeels, cxLookAndFeelPainters,
-  cxContainer, cxEdit, cxLabel, cxTextEdit, cxButtons,
+  cxContainer, cxEdit, cxLabel, cxTextEdit, cxButtons, cxCheckBox,
   cxCustomData, cxFilter, cxData, cxDataStorage, cxNavigator,
   cxDBData, cxGridLevel, cxClasses, cxGridCustomView,
   cxGridCustomTableView, cxGridTableView, cxGridDBTableView, cxGrid,
@@ -46,13 +45,17 @@ type
   TfrmModalSeleccionVentaOrigen = class(TfrmBase)
     pnlPrincipal: TPanel;
     pnlBotones: TPanel;
+    pnlFiltros: TPanel;
     lblTitulo: TcxLabel;
+    chkOtrosAlmacenes: TcxCheckBox;
+    chkOtrasEmpresas: TcxCheckBox;
     cxgrdVentas: TcxGrid;
     dbtvVentas: TcxGridDBTableView;
     cxgrdlvlVentas: TcxGridLevel;
     colFecha: TcxGridDBColumn;
     colSerie: TcxGridDBColumn;
     colNumero: TcxGridDBColumn;
+    colEmpresa: TcxGridDBColumn;
     colAlmacen: TcxGridDBColumn;
     colCaja: TcxGridDBColumn;
     colUds: TcxGridDBColumn;
@@ -67,6 +70,7 @@ type
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormShow(Sender: TObject);
+    procedure FiltroOrigenCambiado(Sender: TObject);
     procedure dbtvVentasDblClick(Sender: TObject);
     procedure actAceptarExecute(Sender: TObject);
     procedure actCancelarExecute(Sender: TObject);
@@ -75,6 +79,7 @@ type
     FMemVentas: TVirtualTable;
     FSku: string;
     FEmpresa: string;
+    FAlmacen: string;
     FSeleccion: TVentaOrigenSeleccionada;
     procedure CargarVentas;
     function SeleccionarVentaActual: Boolean;
@@ -82,7 +87,7 @@ type
     class function Ejecutar(
       AOwner: TComponent;
       const ARepositorio: IRepositorioConsultasCaja;
-      const ASku, AEmpresa: string;
+      const ASku, AEmpresa, AAlmacen: string;
       out ASeleccion: TVentaOrigenSeleccionada): Boolean;
   end;
 
@@ -99,7 +104,7 @@ procedure ForceReferenceToClass(C: TClass); begin end;
 class function TfrmModalSeleccionVentaOrigen.Ejecutar(
   AOwner: TComponent;
   const ARepositorio: IRepositorioConsultasCaja;
-  const ASku, AEmpresa: string;
+  const ASku, AEmpresa, AAlmacen: string;
   out ASeleccion: TVentaOrigenSeleccionada): Boolean;
 var
   frm: TfrmModalSeleccionVentaOrigen;
@@ -111,6 +116,7 @@ begin
     frm.FRepositorio := ARepositorio;
     frm.FSku := ASku;
     frm.FEmpresa := AEmpresa;
+    frm.FAlmacen := AAlmacen;
     frm.lblTitulo.Caption := Format(
       SInfoVentasOrigenSkuCaja, [ASku]);
     if frm.ShowModal = mrOk then
@@ -157,17 +163,25 @@ begin
     cxgrdVentas.SetFocus;
 end;
 
+procedure TfrmModalSeleccionVentaOrigen.FiltroOrigenCambiado(Sender: TObject);
+begin
+  if Assigned(FRepositorio) then
+    CargarVentas;
+end;
+
 procedure TfrmModalSeleccionVentaOrigen.CargarVentas;
 var
   oConsulta: IResultadoConsultaCaja;
   oDatos: TDataSet;
 begin
-  oConsulta := FRepositorio.ConsultarVentasOrigenSku(
-    FSku, FEmpresa);
-  oDatos := oConsulta.DataSet;
+  actAceptar.Enabled := False;
   FMemVentas.DisableControls;
   try
     FMemVentas.Clear;
+    colEmpresa.Visible := chkOtrasEmpresas.Checked;
+    oConsulta := FRepositorio.ConsultarVentasOrigenSku(FSku, FEmpresa,
+      FAlmacen, chkOtrosAlmacenes.Checked, chkOtrasEmpresas.Checked);
+    oDatos := oConsulta.DataSet;
     while not oDatos.Eof do
     begin
       FMemVentas.Append;
@@ -198,6 +212,7 @@ begin
     FMemVentas.EnableControls;
   end;
   FMemVentas.First;
+  actAceptar.Enabled := not FMemVentas.IsEmpty;
 end;
 
 function TfrmModalSeleccionVentaOrigen.SeleccionarVentaActual:
@@ -244,7 +259,6 @@ end;
 procedure TfrmModalSeleccionVentaOrigen.actCancelarExecute(
   Sender: TObject);
 begin
-  // Cancelar es válido: la devolución queda sin origen (modo DV)
   ModalResult := mrCancel;
 end;
 

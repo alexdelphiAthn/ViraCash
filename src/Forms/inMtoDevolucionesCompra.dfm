@@ -359,6 +359,15 @@
             TabOrder = 2
             OnClick = btnDevolverTodoStockClick
           end
+          object btnDesdeAlbaran: TcxButton
+            Left = 760
+            Top = 6
+            Width = 165
+            Height = 26
+            Caption = 'Desde albarán'
+            TabOrder = 7
+            OnClick = btnDesdeAlbaranClick
+          end
           object btnDevolverArticuloCompleto: TcxButton
             Left = 398
             Top = 6

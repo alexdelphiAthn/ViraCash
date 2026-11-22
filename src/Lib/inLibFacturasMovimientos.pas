@@ -27,6 +27,7 @@ type
     IServicioMovimientosFactura)
   private
     FConexion: TUniConnection;
+    FTipoDocumentoStock: string;
     FEstrategiaDocumento: IEstrategiaDocumento;
     FRepositorio: IRepositorioMovimientosFactura;
     FValoresAutomaticos: IRepositorioValoresAutomaticos;
@@ -34,7 +35,8 @@ type
     constructor Create(
       AConexion: TUniConnection;
       const ARepositorio: IRepositorioMovimientosFactura;
-      const AValoresAutomaticos: IRepositorioValoresAutomaticos);
+      const AValoresAutomaticos: IRepositorioValoresAutomaticos;
+      AEsVentaCaja: Boolean = False);
     function GenerarSalidas(
       const ASolicitud: TSolicitudMovimientosFactura): Integer;
   end;
@@ -51,12 +53,16 @@ uses
 constructor TServicioMovimientosFactura.Create(
   AConexion: TUniConnection;
   const ARepositorio: IRepositorioMovimientosFactura;
-  const AValoresAutomaticos: IRepositorioValoresAutomaticos);
+  const AValoresAutomaticos: IRepositorioValoresAutomaticos;
+  AEsVentaCaja: Boolean);
 begin
   inherited Create;
   FConexion := AConexion;
   FEstrategiaDocumento := CrearEstrategiaDocumento(
     CrearConfiguracionDocumento(tdFactura, sdVenta));
+  FTipoDocumentoStock := FEstrategiaDocumento.TipoDocumentoMovimientoStock;
+  if AEsVentaCaja then
+    FTipoDocumentoStock := 'VE';
   FRepositorio := ARepositorio;
   FValoresAutomaticos := AValoresAutomaticos;
 end;
@@ -84,7 +90,7 @@ begin
          (Linea.Cantidad <> 0) then
       begin
         NumeroMovimiento := FRepositorio.BuscarMovimientoExistente(
-          FEstrategiaDocumento.TipoDocumentoMovimientoStock,
+          FTipoDocumentoStock,
           ASolicitud.Serie,
           ASolicitud.Numero,
           Linea.Linea);
@@ -99,8 +105,7 @@ begin
             'MV',
             ASolicitud.Usuario);
           Datos.NumeroMovimiento := NumeroMovimiento;
-          Datos.TipoDocumento :=
-            FEstrategiaDocumento.TipoDocumentoMovimientoStock;
+          Datos.TipoDocumento := FTipoDocumentoStock;
           // Una cantidad negativa devuelve mercancía al almacén.
           Datos.TipoMovimiento := TipoMovimientoStockLinea(
             FEstrategiaDocumento.TipoMovimientoStock, Linea.Cantidad);
@@ -119,6 +124,7 @@ begin
           Datos.Cliente := ASolicitud.Cliente;
           Datos.Lote := Linea.Lote;
           Datos.FechaCaducidad := Linea.FechaCaducidad;
+          Datos.ConservarLote := ASolicitud.ConservarLote;
           FRepositorio.InsertarMovimiento(Datos);
           Inc(Result);
         end;
@@ -136,7 +142,7 @@ begin
     end;
     if Result > 0 then
       FRepositorio.RecalcularDocumento(
-        FEstrategiaDocumento.TipoDocumentoMovimientoStock,
+        FTipoDocumentoStock,
         ASolicitud.Serie,
         ASolicitud.Numero);
     if TransaccionPropia then

@@ -14,7 +14,14 @@ unit UniDataDevolucionesCompraRepositorio;
 interface
 
 uses
-  Uni, inLibDevolucionesCompraPersistenciaIntf;
+  Data.DB, Uni, inLibDevolucionesCompraPersistenciaIntf;
+
+function TieneOrigenRecepcionDevolucion(ALinea: TDataSet): Boolean;
+function ConsultaOrigenRecepcionDevolucion(AConexion: TUniConnection;
+  const AEmpresa, AProveedor, AAlmacenRestringido: string): TDataSet;
+procedure CopiarOrigenRecepcionDevolucion(AOrigen, ADestino: TDataSet);
+procedure ValidarOrigenRecepcionDevolucion(AConexion: TUniConnection;
+  ACabecera, ALinea: TDataSet; const AAlmacenRestringido: string);
 
 function CrearServiciosPersistenciaDevolucionCompraUniDAC(
   AConexion: TUniConnection
@@ -23,8 +30,219 @@ function CrearServiciosPersistenciaDevolucionCompraUniDAC(
 implementation
 
 uses
-  System.SysUtils, Data.DB, DBAccess,
-  UniDataDevolucionesCompraStockRepositorio;
+  System.SysUtils, System.Math, DBAccess,
+  UniDataDevolucionesCompraStockRepositorio, inLibMsgCompras,
+  inLibErroresBBDD;
+
+const
+  SQL_ENTRADAS_ORIGEN =
+    'SELECT H.SERIE_ALBC AS SERIE, H.NUMERO_ALBC AS NUMERO, ' +
+    'L.LINEA_ALBCLIN AS LINEA, H.FECHA_ALBC AS FECHA, ' +
+    'M.CODIGO_UNIDAD_MOV AS SKU, M.CODIGO_ALM_MOV AS ALMACEN, ' +
+    'M.CODIGO_ART_MOV AS ARTICULO, COALESCE(M.LOTE_MOV, '''') AS LOTE, ' +
+    'MAX(M.FECHA_CADUCIDAD_MOV) AS CADUCIDAD, ' +
+    'MAX(L.DESCRIPCION_ARTICULO_ALBCLIN) AS DESCRIPCION, ' +
+    'MAX(L.REF_PRV_ALBCLIN) AS MODELO, ' +
+    'MAX(H.REF_PROVEEDOR_ALBC) AS REFERENCIA, ' +
+    'MAX(L.TIPO_CANTIDAD_ARTICULO_ALBCLIN) AS UNIDAD, ' +
+    'MAX(L.TIPO_IVA_ARTICULO_ALBCLIN) AS TIPO_IVA, ' +
+    'MAX(L.SERIE_PEDC_ALBCLIN) AS SERIE_PEDIDO, ' +
+    'MAX(L.NUMERO_PEDC_ALBCLIN) AS NUMERO_PEDIDO, ' +
+    'MAX(L.LINEA_PEDC_ALBCLIN) AS LINEA_PEDIDO, ' +
+    'SUM(M.CANTIDAD_MOV) AS RECIBIDAS, ' +
+    'MAX(COALESCE(L.PRECIO_COMPRA_SIVA_ARTICULO_ALBCLIN,0) * ' +
+    '(1-COALESCE(L.PORCENTAJE_DTO_ALBCLIN,0)/100) * ' +
+    'GREATEST(0,1-CASE WHEN H.TOTAL_BRUTO_ALBC>0 ' +
+    'AND COALESCE(H.TOTAL_DTO_COMERCIAL_ALBC,0)<>0 ' +
+    'THEN H.TOTAL_DTO_COMERCIAL_ALBC/H.TOTAL_BRUTO_ALBC ' +
+    'ELSE COALESCE(H.PORCENTAJE_DTO_COMERCIAL_ALBC,0)/100 END)) AS PRECIO ' +
+    'FROM fza_albaranes_compra H JOIN fza_albaranes_compra_lineas L ' +
+    'ON L.SERIE_ALBC_ALBCLIN=H.SERIE_ALBC ' +
+    'AND L.NUMERO_ALBC_ALBCLIN=H.NUMERO_ALBC ' +
+    'JOIN fza_movimientos_almacen M ON M.TIPO_DOC_MOV=''AC'' ' +
+    'AND M.TIPO_MOV=''E'' AND M.ESACTIVO_MOV=''S'' AND M.CANTIDAD_MOV>0 ' +
+    'AND M.SERIE_DOC_MOV=H.SERIE_ALBC AND M.NUMERO_DOC_MOV=H.NUMERO_ALBC ' +
+    'AND M.LINEA_MOV=L.LINEA_ALBCLIN AND M.CODIGO_EMP_MOV=H.CODIGO_EMP_ALBC ' +
+    'WHERE H.CODIGO_EMP_ALBC=:EMP AND H.CODIGO_PRV_ALBC=:PRV ' +
+    'AND COALESCE(H.ESTADO_ALBC,'''')<>''CANCELADO'' ' +
+    'AND COALESCE(M.CODIGO_UNIDAD_MOV,'''')<>'''' ';
+  SQL_GRUPO_ORIGEN =
+    'GROUP BY H.SERIE_ALBC,H.NUMERO_ALBC,L.LINEA_ALBCLIN,H.FECHA_ALBC,' +
+    'M.CODIGO_UNIDAD_MOV,M.CODIGO_ALM_MOV,M.CODIGO_ART_MOV, ' +
+    'COALESCE(M.LOTE_MOV,'''') ';
+  SQL_DEVOLUCIONES_ORIGEN =
+    'FROM fza_devoluciones_compra_lineas D WHERE D.CANTIDAD_DEVCLIN>0 AND ';
+
+function TieneOrigenRecepcionDevolucion(ALinea: TDataSet): Boolean;
+var
+  Campo: TField;
+begin
+  Result := False;
+  if Assigned(ALinea) and ALinea.Active then
+  begin
+    Campo := ALinea.FindField('SERIE_ALBC_DEVCLIN');
+    Result := Assigned(Campo) and (Campo.AsString <> '');
+  end;
+end;
+
+function ConsultaOrigenRecepcionDevolucion(AConexion: TUniConnection;
+  const AEmpresa, AProveedor, AAlmacenRestringido: string): TDataSet;
+var
+  Datos: TUniQuery;
+begin
+  Datos := TUniQuery.Create(nil);
+  try
+    Datos.Connection := AConexion;
+    Datos.SQL.Text :=
+      'SELECT R.*, R.RECIBIDAS-COALESCE((SELECT SUM(D.CANTIDAD_DEVCLIN) ' +
+      SQL_DEVOLUCIONES_ORIGEN + 'D.SERIE_ALBC_DEVCLIN=R.SERIE ' +
+      'AND D.NUMERO_ALBC_DEVCLIN=R.NUMERO AND D.LINEA_ALBC_DEVCLIN=R.LINEA ' +
+      'AND D.CODIGO_UNIDAD_DEVCLIN=R.SKU AND D.CODIGO_ALMACEN_DEVCLIN=R.ALMACEN ' +
+      'AND COALESCE(D.LOTE_DEVCLIN,'''')=R.LOTE),0) AS PENDIENTES ' +
+      'FROM (' + SQL_ENTRADAS_ORIGEN +
+      'AND (:ALM='''' OR M.CODIGO_ALM_MOV=:ALM) ' +
+      SQL_GRUPO_ORIGEN + ') R HAVING PENDIENTES>0 ' +
+      'ORDER BY FECHA DESC, SERIE, NUMERO, LINEA, SKU';
+    Datos.ParamByName('EMP').AsString := AEmpresa;
+    Datos.ParamByName('PRV').AsString := AProveedor;
+    Datos.ParamByName('ALM').AsString := AAlmacenRestringido;
+    Datos.Open;
+  except
+    Datos.Free;
+    raise;
+  end;
+  Result := Datos;
+end;
+
+procedure CopiarOrigenRecepcionDevolucion(AOrigen, ADestino: TDataSet);
+const
+  CAMPOS_ORIGEN: array[0..15] of string = (
+    'SERIE', 'NUMERO', 'LINEA', 'ARTICULO', 'SKU', 'ALMACEN', 'MODELO',
+    'DESCRIPCION', 'UNIDAD', 'TIPO_IVA', 'PRECIO', 'SERIE_PEDIDO',
+    'NUMERO_PEDIDO', 'LINEA_PEDIDO', 'LOTE', 'CADUCIDAD');
+  CAMPOS_DESTINO: array[0..15] of string = (
+    'SERIE_ALBC', 'NUMERO_ALBC', 'LINEA_ALBC', 'CODIGO_ART', 'CODIGO_UNIDAD',
+    'CODIGO_ALMACEN', 'REF_PRV', 'DESCRIPCION_ARTICULO',
+    'TIPO_CANTIDAD_ARTICULO', 'TIPO_IVA_ARTICULO',
+    'PRECIO_COMPRA_SIVA_ARTICULO', 'SERIE_PEDC', 'NUMERO_PEDC', 'LINEA_PEDC',
+    'LOTE', 'FECHA_CADUCIDAD');
+var
+  I: Integer;
+  Prefijo: string;
+begin
+  for I := Low(CAMPOS_ORIGEN) to High(CAMPOS_ORIGEN) do
+    ADestino.FieldByName(CAMPOS_DESTINO[I] + '_DEVCLIN').Value :=
+      AOrigen.FieldByName(CAMPOS_ORIGEN[I]).Value;
+  if ADestino.State = dsInsert then
+  begin
+    for I := 1 to 5 do
+    begin
+      Prefijo := 'ATTR' + IntToStr(I);
+      ADestino.FieldByName(Prefijo + '_VALOR_DEVCLIN').AsString := '';
+      ADestino.FieldByName(Prefijo + '_NOMBRE_DEVCLIN').AsString := '';
+    end;
+    ADestino.FieldByName('NUM_ATRIBUTOS_DEVCLIN').AsInteger := 0;
+  end;
+end;
+
+procedure ValidarOrigenRecepcionDevolucion(AConexion: TUniConnection;
+  ACabecera, ALinea: TDataSet; const AAlmacenRestringido: string);
+var
+  Datos: TUniQuery;
+  Pendientes, Cantidad: Double;
+  Almacen: string;
+
+  procedure ClaveRecepcion;
+  begin
+    Datos.ParamByName('SERIE').AsString :=
+      ALinea.FieldByName('SERIE_ALBC_DEVCLIN').AsString;
+    Datos.ParamByName('NUMERO').AsString :=
+      ALinea.FieldByName('NUMERO_ALBC_DEVCLIN').AsString;
+  end;
+
+  procedure EmpresaProveedor;
+  begin
+    Datos.ParamByName('EMP').AsString :=
+      ACabecera.FieldByName('CODIGO_EMP_DEVC').AsString;
+    Datos.ParamByName('PRV').AsString :=
+      ACabecera.FieldByName('CODIGO_PRV_DEVC').AsString;
+  end;
+
+  procedure ClavePartida;
+  begin
+    ClaveRecepcion;
+    Datos.ParamByName('LINEA').AsString :=
+      ALinea.FieldByName('LINEA_ALBC_DEVCLIN').AsString;
+    Datos.ParamByName('SKU').AsString :=
+      ALinea.FieldByName('CODIGO_UNIDAD_DEVCLIN').AsString;
+    Datos.ParamByName('ALM').AsString := Almacen;
+    Datos.ParamByName('LOTE').AsString :=
+      ALinea.FieldByName('LOTE_DEVCLIN').AsString;
+  end;
+
+begin
+  Almacen := ALinea.FieldByName('CODIGO_ALMACEN_DEVCLIN').AsString;
+  if not AConexion.InTransaction or
+     ((AAlmacenRestringido <> '') and
+      not SameText(AAlmacenRestringido, Almacen)) then
+    raise EValidacionBBDD.Create(SErrorOrigenRecepcionNoDisponible);
+  Datos := TUniQuery.Create(nil);
+  try
+    Datos.Connection := AConexion;
+    Datos.SQL.Text :=
+      'SELECT SERIE_ALBC FROM fza_albaranes_compra ' +
+      'WHERE SERIE_ALBC=:SERIE AND NUMERO_ALBC=:NUMERO ' +
+      'AND CODIGO_EMP_ALBC=:EMP AND CODIGO_PRV_ALBC=:PRV FOR UPDATE';
+    ClaveRecepcion;
+    EmpresaProveedor;
+    Datos.Open;
+    if Datos.IsEmpty then
+      raise EValidacionBBDD.Create(SErrorOrigenRecepcionNoDisponible);
+    Datos.Close;
+    Datos.SQL.Text := SQL_ENTRADAS_ORIGEN +
+      'AND H.SERIE_ALBC=:SERIE AND H.NUMERO_ALBC=:NUMERO ' +
+      'AND L.LINEA_ALBCLIN=:LINEA AND M.CODIGO_UNIDAD_MOV=:SKU ' +
+      'AND M.CODIGO_ALM_MOV=:ALM AND COALESCE(M.LOTE_MOV,'''')=:LOTE ' +
+      SQL_GRUPO_ORIGEN + 'FOR UPDATE';
+    EmpresaProveedor;
+    ClavePartida;
+    Datos.Open;
+    if Datos.IsEmpty then
+      raise EValidacionBBDD.Create(SErrorOrigenRecepcionNoDisponible);
+    Pendientes := Datos.FieldByName('RECIBIDAS').AsFloat;
+    CopiarOrigenRecepcionDevolucion(Datos, ALinea);
+    Datos.Close;
+    Datos.SQL.Text := 'SELECT D.CANTIDAD_DEVCLIN ' +
+      SQL_DEVOLUCIONES_ORIGEN + 'D.SERIE_ALBC_DEVCLIN=:SERIE ' +
+      'AND D.NUMERO_ALBC_DEVCLIN=:NUMERO AND D.LINEA_ALBC_DEVCLIN=:LINEA ' +
+      'AND D.CODIGO_UNIDAD_DEVCLIN=:SKU AND D.CODIGO_ALMACEN_DEVCLIN=:ALM ' +
+      'AND COALESCE(D.LOTE_DEVCLIN,'''')=:LOTE ' +
+      'AND NOT (D.SERIE_DEVC_DEVCLIN=:SERIE_DC ' +
+      'AND D.NUMERO_DEVC_DEVCLIN=:NUMERO_DC AND D.LINEA_DEVCLIN=:LIN_DC) ' +
+      'FOR UPDATE';
+    ClavePartida;
+    Datos.ParamByName('SERIE_DC').AsString :=
+      ALinea.FieldByName('SERIE_DEVC_DEVCLIN').AsString;
+    Datos.ParamByName('NUMERO_DC').AsString :=
+      ALinea.FieldByName('NUMERO_DEVC_DEVCLIN').AsString;
+    Datos.ParamByName('LIN_DC').AsString :=
+      ALinea.FieldByName('LINEA_DEVCLIN').AsString;
+    Datos.Open;
+    while not Datos.Eof do
+    begin
+      Pendientes := Pendientes - Datos.Fields[0].AsFloat;
+      Datos.Next;
+    end;
+    Cantidad := ALinea.FieldByName('CANTIDAD_DEVCLIN').AsFloat;
+    if Cantidad <= 0 then
+      raise EValidacionBBDD.Create(SErrorOrigenRecepcionCantidadPositiva);
+    if Cantidad - Pendientes > 0.0000001 then
+      raise EValidacionBBDD.CreateFmt(SErrorOrigenRecepcionCantidad,
+        [Max(0.0, Pendientes)]);
+  finally
+    Datos.Free;
+  end;
+end;
 
 type
   TRepositorioDatosDevolucionCompraUniDAC = class(

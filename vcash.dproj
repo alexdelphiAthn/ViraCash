@@ -207,6 +207,7 @@
         <DCCReference Include="src\Lib\inLibRetiradaLotesIntf.pas"/>
         <DCCReference Include="src\Lib\inLibRetiradaLotesTicket.pas"/>
         <DCCReference Include="src\Modals\inMtoModalRetiradaLotes.pas"/>
+        <DCCReference Include="src\Modals\inMtoModalBajasSinLote.pas"/>
         <DCCReference Include="src\Modals\inMtoModalPreciosTarifaSesion.pas"/>
         <DCCReference Include="src\Modals\inMtoModalPreciosTallaSesion.pas"/>
         <DCCReference Include="src\Lib\inLibComprasSesionesTrazabilidad.pas"/>
@@ -294,6 +295,8 @@
         <DCCReference Include="src\Lib\inLibMsgCambioCodigoCliente.pas"/>
         <DCCReference Include="src\DataModules\UniDataCambioCodigoCliente.pas"/>
         <DCCReference Include="src\Modals\inMtoModalCambioCodigoCliente.pas"/>
+        <DCCReference Include="src\DataModules\UniDataAjusteDepositos.pas"/>
+        <DCCReference Include="src\Modals\inMtoModalAjusteDepositos.pas"/>
         <DCCReference Include="src\Lib\inLibMsgFotos.pas"/>
         <DCCReference Include="src\Lib\inLibClientesCoincidencias.pas"/>
         <DCCReference Include="src\DataModules\UniDataClientesCoincidencias.pas"/>

@@ -57,6 +57,7 @@ type
     btnImprimir         : TcxButton;
     btnConvertir        : TcxButton;
     btnCuadreInternas   : TcxButton;
+    btnConciliacion     : TcxButton;
     lblExplicacion      : TcxLabel;
     function EscalarDpi(AValor: Integer): Integer;
     function CrearEtiqueta(const ATexto: string; AIzq, ATop: Integer):
@@ -109,6 +110,7 @@ type
     procedure btnImprimirClick(Sender: TObject);
     procedure btnConvertirClick(Sender: TObject);
     procedure btnCuadreInternasClick(Sender: TObject);
+    procedure btnConciliacionClick(Sender: TObject);
     procedure rgModalidadPropertiesEditValueChanged(Sender: TObject);
   protected
     procedure CrearControlesDinamicos;
@@ -121,6 +123,12 @@ type
   end;
 
 resourcestring
+  SCaptionConciliacionEfectivoCaja = 'Conciliación de efectivo';
+  SConciliacionCajaSoloConsulta = 'Consulta de movimientos no facturables.';
+  SErrorConciliacionCajaEmpresas =
+    'Seleccione dos empresas distintas y un periodo válido.';
+  SInfoConciliacionCajaVacia =
+    'No hay compensaciones de efectivo entre estas empresas en el periodo.';
   SAyudaEmisoraTraspasoVendido =
     'TV: emite la empresa de origen por lo vendido en destino. ' +
     'La propuesta de vales la emite la empresa con saldo a favor.';
@@ -224,7 +232,9 @@ uses
   inMtoModalRevalorizacionInventario,
   inLibComprasSesionesIntf, inMtoModalDocsCreados,
   inMtoFacturasConsolidacionVcl, UniDataDestinoFacturaRepositorio,
-  inMtoModalMensajeTexto, inLibMsgFacturas, UniDataFacturaRecibidaInterna;
+  inMtoModalMensajeTexto, inLibMsgFacturas, UniDataFacturaRecibidaInterna,
+  UniDataFacturasProformaRepositorio, inMtoPreviewExcel,
+  inLibInformeTabular, inLibInformeTabularExcel;
 
 {$R *.dfm}
 
@@ -251,6 +261,7 @@ begin
     btnImprimir.Caption := SProformaImprimir;
     btnConvertir.Caption := SProformaConvertir;
     btnCuadreInternas.Caption := SCaptionBotonCuadreFacturasInternas;
+    btnConciliacion.Caption := SCaptionConciliacionEfectivoCaja;
     ActualizarEstadoEmpresaDestino;
     for I := 0 to cxGrdDBTabPrin.ColumnCount - 1 do
       cxGrdDBTabPrin.Columns[I].Caption := TituloColumnaProforma(
@@ -375,6 +386,8 @@ begin
       SProformaConvertir, 258, btnConvertirClick);
     btnCuadreInternas := CrearBotonBarraDerecha(
       SCaptionBotonCuadreFacturasInternas, 304, btnCuadreInternasClick);
+    btnConciliacion := CrearBotonBarraDerecha(
+      SCaptionConciliacionEfectivoCaja, 350, btnConciliacionClick);
     lblExplicacion := TcxLabel.Create(Self);
     lblExplicacion.Parent := pnlFacturacion;
     lblExplicacion.Left := EscalarDpi(12);
@@ -483,6 +496,8 @@ begin
   if not cbbEmpresaDestino.Enabled then
     cbbEmpresaDestino.EditValue := Null;
   chkCargarVales.Enabled := ObtenerModalidad = mfcTraspasoVendido;
+  if Assigned(btnConciliacion) then
+    btnConciliacion.Enabled := cbbEmpresaDestino.Enabled;
   if chkCargarVales.Enabled and chkCargarVales.Checked then
   begin
     lblEmpresaOrigen.Caption := SProformaEmpresaOrigen;
@@ -946,6 +961,60 @@ end;
 // en las fechas del periodo de la pantalla.
 // FZ-ISSUE-389: si falta alguna recibida, ofrece registrarla aquí mismo y
 // vuelve a mostrar el cuadre.
+procedure TfrmMtoFacturasProforma.btnConciliacionClick(Sender: TObject);
+var
+  Solicitud: TSolicitudFacturacionCaja;
+  Datos: TDataSet;
+  Vista: TfrmMtoPreviewExcel;
+begin
+  Solicitud := PrepararSolicitud;
+  if (Solicitud.CodigoEmpresaOrigen = '') or
+     (Solicitud.CodigoEmpresaDestino = '') or
+     SameText(Solicitud.CodigoEmpresaOrigen, Solicitud.CodigoEmpresaDestino) or
+     (Solicitud.FechaDesde <= 0) or
+     (Solicitud.FechaHasta < Solicitud.FechaDesde) then
+    ShowMessage_fza(SErrorConciliacionCajaEmpresas)
+  else
+  begin
+    Datos := ConsultarConciliacionEfectivoEmpresas(ConexionPrincipal,
+      Solicitud);
+    try
+      if Datos.IsEmpty then
+        ShowMessage_fza(SInfoConciliacionCajaVacia)
+      else
+      begin
+        Vista := TfrmMtoPreviewExcel.Create(Self);
+        try
+          Vista.Caption := SCaptionConciliacionEfectivoCaja;
+          Vista.DialogoGuardar.FileName := 'Conciliacion_efectivo.xlsx';
+          ExportarInformeTabularExcel(Vista.dxSpreadSheet1, Datos,
+            SCaptionConciliacionEfectivoCaja, [
+              ColumnaInforme('FECHA', 'Fecha', 1.4, 'dd/mm/yyyy hh:mm'),
+              ColumnaInforme('EMPRESA_EMISORA', 'Empresa emisora', 1),
+              ColumnaInforme('ALMACEN_EMISOR', 'Almacén emisor', 1),
+              ColumnaInforme('CAJA_AUXILIAR', 'Caja auxiliar', 0.8),
+              ColumnaInforme('OPERACION_AUXILIAR', 'Operación auxiliar', 1),
+              ColumnaInforme('EMPRESA_PAGO', 'Empresa del pago', 1),
+              ColumnaInforme('ALMACEN_PAGO', 'Almacén del pago', 1),
+              ColumnaInforme('CAJA_PAGO', 'Caja del pago', 0.8),
+              ColumnaInforme('OPERACION_PAGO', 'Operación del pago', 1),
+              ColumnaInforme('SERIE_FAC', 'Serie rectificativa', 1.2),
+              ColumnaInforme('NUMERO_FAC', 'Nº rectificativa', 1.2),
+              ColumnaInforme('FASE_FAC', 'Fase', 1.2),
+              ColumnaInforme('EFECTIVO', 'Efectivo (EUR)', 1.1, '#,##0.00'),
+              ColumnaInforme('CONCEPTO', 'Concepto', 3)],
+            [SConciliacionCajaSoloConsulta]);
+          Vista.ShowModal;
+        finally
+          Vista.Free;
+        end;
+      end;
+    finally
+      Datos.Free;
+    end;
+  end;
+end;
+
 procedure TfrmMtoFacturasProforma.btnCuadreInternasClick(Sender: TObject);
 var
   aLineas   : TLineasCuadreFacturasInternas;

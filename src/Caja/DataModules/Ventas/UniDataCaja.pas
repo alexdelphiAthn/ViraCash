@@ -394,7 +394,9 @@ uses
      UniDataAlmacenesEmpresaRepositorio,
      inLibDevExp,
      inLibCajaOpePresentacion, inLibCajaVentaOperacion,
-     inLibTrazabilidad, UniDataMovimientosLote,
+     inLibTrazabilidad, UniDataMovimientosLote, inLibCajaParam,
+     UniDataLotesRepositorio, inLibLotesPersistenciaIntf,
+     UniDataCajaConsultasRepositorio, UniDataUbicacionSesion,
      inLibFacturas,
      inLibVerifactu,
      inLibVerifactuCola,
@@ -460,6 +462,9 @@ type
     FQuery: TUniQuery;
     FCabecera: TDatosCabeceraFactura;
     FEmpresa: string;
+    FEmpresaEmisora: string;
+    FAlmacenEmision: string;
+    FCajaEmision: string;
     FAlmacen: string;
     FCaja: string;
     FPresupuestoEmpresa: string;
@@ -482,6 +487,7 @@ type
     FUsuarioSesion: string;
     FAlmacenDeposito: string;
     FNumeroFactura: string;
+    FNumeroOperacionAuxiliar: string;
     FNumeroOperacion: string;
     FValeGenerado: string;
     FConceptoOperacion: string;
@@ -506,11 +512,13 @@ type
     FServiciosDeposito: TLineasServicioVenta;
     FServiciosDesdeDeposito: TLineasServicioVenta;
     procedure CargarContexto;
+    procedure PrepararUbicacionEmision;
     function AlmacenDeposito: string;
     function OperacionTieneNovedad: Boolean;
     procedure AtenderOperacionSinNovedad;
     procedure DeterminarSiRequiereFactura;
     procedure ValidarSolicitud;
+    procedure ValidarPartidasDevolucion;
     procedure ValidarDevolucionPendiente;
     procedure SumarDevolucionesLineas(
       ADevolver: TDictionary<string, Double>);
@@ -526,13 +534,15 @@ type
     procedure ProcesarNuevoDeposito(
       const ALinea: TDatosLineaFactura);
     function RegistrarOperacionVenta(
-      const ALinea: TDatosLineaFactura): string;
+      var ALinea: TDatosLineaFactura; out AConservarLote: Boolean): string;
     function RegistrarMovimientoVenta(
       const ALinea: TDatosLineaFactura;
       const ANumeroMovimiento, AEmpresaMovimiento,
-        AAlmacenOrigen, ATipoMovimiento: string): Currency;
+        AAlmacenOrigen, ATipoMovimiento: string;
+      AConservarLote: Boolean): Currency;
     function RegistrarRetornoDeposito(
-      const ALinea: TDatosLineaFactura): Currency;
+      const ALinea: TDatosLineaFactura;
+      const AAlmacenCustodia: string; AConservarLote: Boolean): Currency;
     procedure ProcesarVenta(
       const ALinea: TDatosLineaFactura);
     procedure ProcesarLineas;
@@ -545,6 +555,8 @@ type
     procedure RegistrarTotalesVenta;
     procedure RegistrarFiscalmente;
     procedure RegistrarFormasPago;
+    procedure RegistrarCompensacionEfectivo;
+    function ReferenciaCajaDevolucion: string;
     procedure RegistrarValesRecogidos;
     procedure EmitirVale;
     procedure LeerHerenciaValePadre(out ACaducidad: TDateTime;
@@ -1539,7 +1551,7 @@ begin
     // F-LOTEC-015: con lote o serie (e interruptores), ..._INSERT_LOTE.
     uspMovLote := TUniStoredProc.Create(nil);
     EjecutarMovimientoConLote(uspMov, uspMovLote, ASolicitud.Lote,
-      ASolicitud.FechaCaducidad);
+      ASolicitud.FechaCaducidad, ASolicitud.Movimiento.ConservarLote);
     if ASolicitud.Movimiento.Fecha > 0 then
     begin
       QryFecha := TUniQuery.Create(nil);
@@ -1902,6 +1914,7 @@ procedure TGrabacionFacturaCaja.CargarContexto;
 begin
   FNumeroFactura := '0';
   FNumeroOperacion := '';
+  FNumeroOperacionAuxiliar := '';
   FValeGenerado := '';
   FDataModule.FUltSerieFacGrabada := '';
   FDataModule.FUltNumeroFacGrabada := '';
@@ -1946,16 +1959,45 @@ begin
     FDataModule.cdsLineas.Post;
   if FDataModule.cdsLineas.IsEmpty then
     raise Exception.Create(SErrorOperacionCajaSinLineas);
+  PrepararUbicacionEmision;
   FCabecera := LeerCabecera(FDataModule.cdsCabecera);
   if FFechaFactura > 0 then
     FCabecera.Fecha := FFechaFactura;
+end;
+
+procedure TGrabacionFacturaCaja.PrepararUbicacionEmision;
+var
+  Origen: TDocumentoOrigenDevolucionCaja;
+begin
+  FEmpresaEmisora := FEmpresa;
+  FAlmacenEmision := FAlmacen;
+  FCajaEmision := FCaja;
+  if (Trim(FEmpresaOrigenDevolucion) <> '') and
+     not SameText(FEmpresaOrigenDevolucion, FEmpresa) then
+  begin
+    if (FTipoRectificativa <> trcDiferencias) or
+       not SameText(FTipoFactura, 'RECTIFICATIVA') or
+       not EsDevolucionExclusivaCaja(FDataModule.cdsLineas) then
+      raise EValidacionBBDD.Create(SErrorDevolucionOtraEmpresaConVenta);
+    Origen := ResolverDocumentoDevolucionCajaUniDAC(
+      FDataModule.FConexion, FSerieRectificada, FNumeroRectificado);
+    if not SameText(Origen.Empresa, FEmpresaOrigenDevolucion) or
+       (Trim(Origen.Almacen) = '') then
+      raise EValidacionBBDD.Create(SErrorEmisorDevolucionCajaIncompleto);
+    FEmpresaEmisora := Origen.Empresa;
+    FAlmacenEmision := Origen.Almacen;
+    FCajaEmision := CAJA_AUXILIAR_DEVOLUCION;
+    FAlmacenOrigenDevolucion := Origen.Almacen;
+    CopiarEmisorDevolucionCajaUniDAC(FDataModule.FConexion, Origen,
+      FDataModule.cdsCabecera);
+  end;
 end;
 
 function TGrabacionFacturaCaja.AlmacenDeposito: string;
 begin
   if FAlmacenDeposito = '' then
     FAlmacenDeposito := ObtenerAlmacenDepositoEmpresa(
-      FDataModule.FConexion, FEmpresa);
+      FDataModule.FConexion, FEmpresa, FAlmacen);
   Result := FAlmacenDeposito;
 end;
 
@@ -2038,7 +2080,17 @@ end;
 procedure TGrabacionFacturaCaja.ValidarSolicitud;
 var
   dUltimaFechaSerie: TDateTime;
+  Aviso: string;
 begin
+  Aviso := ErrorOrigenDevolucionCaja(FDataModule.cdsLineas,
+    (FTipoRectificativa <> trcNinguna) or
+      SameText(FTipoFactura, 'RECTIFICATIVA'),
+    FDataModule.FParametrosCaja.GetBool(
+      PARAMETRO_CAJA_EXIGIR_ORIGEN_DEVOLUCION, False),
+    FSerieRectificada, FNumeroRectificado,
+    FSerieOrigenDevolucion, FNumeroOrigenDevolucion);
+  if Aviso <> '' then
+    raise EValidacionBBDD.Create(Aviso);
   if FRequiereFactura and SameText(FTipoFactura, 'NORMAL') then
   begin
     if Trim(FCabecera.RazonSocialCli) = '' then
@@ -2060,7 +2112,7 @@ begin
   if FRequiereFactura and (FNumeroManual = '') then
   begin
     dUltimaFechaSerie := TdmCajaOpe.FechaUltimoTicketSerie(
-      FDataModule.FConexion, FEmpresa, FSerieElegida);
+      FDataModule.FConexion, FEmpresaEmisora, FSerieElegida);
     if (dUltimaFechaSerie > 0) and
        (Trunc(FCabecera.Fecha) < Trunc(dUltimaFechaSerie)) then
       raise Exception.CreateFmt(
@@ -2075,10 +2127,51 @@ begin
       FDataModule.FConexion,
       FDataModule.FParametrosApp.Licencia.Estado,
       FCabecera.Fecha);
+  ValidarPartidasDevolucion;
   ValidarDevolucionPendiente;
 end;
 
 // Unidades en negativo de la operación en curso, por SKU.
+procedure TGrabacionFacturaCaja.ValidarPartidasDevolucion;
+var
+  Clon: TClientDataSet;
+  Repositorio: IRepositorioLotes;
+  Catalogo: TLoteCatalogo;
+  Sku, Lote: string;
+begin
+  if FTipoRectificativa <> trcSustitutiva then
+  begin
+    Clon := TClientDataSet.Create(nil);
+    try
+      Clon.CloneCursor(FDataModule.cdsLineas, True);
+      Clon.First;
+      while not Clon.Eof do
+      begin
+        if EsLineaDevolucionVentaCaja(Clon) then
+        begin
+          Sku := Trim(Clon.FieldByName('CODIGO_UNIDAD_FACLIN').AsString);
+          Lote := Trim(Clon.FieldByName('LOTE_FACLIN').AsString);
+          if (Sku <> '') and
+             (Length(ConsultarPartidasDevolucionUniDAC(
+               FDataModule.FConexion, Sku)) > 0) then
+          begin
+            if Repositorio = nil then
+              Repositorio := CrearRepositorioLotesUniDAC(
+                FDataModule.FConexion);
+            if (Lote = '') or not Repositorio.BuscarLote(Sku, Lote, Catalogo)
+            then
+              raise EValidacionBBDD.CreateFmt(
+                SErrorDevolucionCajaSinLoteYeti, [Sku]);
+          end;
+        end;
+        Clon.Next;
+      end;
+    finally
+      Clon.Free;
+    end;
+  end;
+end;
+
 procedure TGrabacionFacturaCaja.SumarDevolucionesLineas(
   ADevolver: TDictionary<string, Double>);
 var
@@ -2234,7 +2327,7 @@ begin
       oStoredProc.ParamByName('pserie').AsString := FSerieGenerada;
       oStoredProc.ParamByName('pTipoDoc').AsString := 'FC';
       oStoredProc.ParamByName(
-        'pEMPRESA_CONTADOR').AsString := FEmpresa;
+        'pEMPRESA_CONTADOR').AsString := FEmpresaEmisora;
       oStoredProc.ParamByName(
         'pUSUARIOMODIF').AsString := FUsuarioSesion;
       EjecutarContadorDocumentoUniDAC(oStoredProc,
@@ -2251,9 +2344,19 @@ procedure TGrabacionFacturaCaja.CrearFacturaSiProcede;
 begin
   if FRequiereFactura then
   begin
+    FNumeroOperacionAuxiliar := FNumeroOperacion;
+    if not SameText(FEmpresaEmisora, FEmpresa) then
+    begin
+      AsegurarCajaAuxiliarAlmacen(FDataModule.FConexion, FAlmacenEmision);
+      FNumeroOperacionAuxiliar := FPersistencia.SiguienteOperacion(
+        FEmpresaEmisora, FAlmacenEmision, FCajaEmision, FUsuario);
+      FCabecera.Comentarios := Trim(FCabecera.Comentarios + sLineBreak +
+        ReferenciaCajaDevolucion);
+    end;
     AsegurarSerieFacturaCaja(FDataModule.FConexion,
-      FEmpresa, FAlmacen, FCaja, FSerieGenerada, FTipoFactura,
-      FUsuarioSesion, FCabecera.Fecha);
+      FEmpresaEmisora, FAlmacenEmision, FCajaEmision,
+      FSerieGenerada, FTipoFactura, FUsuarioSesion, FCabecera.Fecha,
+      not SameText(FEmpresaEmisora, FEmpresa));
     FNumeroFactura := ObtenerNumeroFactura;
     FDatosCobro.TotalesFactura.Cabecera.Edit;
     FDatosCobro.TotalesFactura.Cabecera.FieldByName(
@@ -2270,14 +2373,14 @@ begin
       FCabecera.Fecha,
       FTipoFactura,
       'BORRADOR',
-      FEmpresa,
+      FEmpresaEmisora,
       FCabecera,
       '',
       '',
-      FAlmacen,
-      FCaja,
+      FAlmacenEmision,
+      FCajaEmision,
       FUsuario,
-      FNumeroOperacion,
+      FNumeroOperacionAuxiliar,
       FUsuarioSesion);
     GenerarCodigoBarrasTicket;
 
@@ -2428,18 +2531,28 @@ begin
 end;
 
 function TGrabacionFacturaCaja.RegistrarOperacionVenta(
-  const ALinea: TDatosLineaFactura): string;
+  var ALinea: TDatosLineaFactura; out AConservarLote: Boolean): string;
 var
+  Custodia: TCustodiaDeposito;
   dImporteCierre: Currency;
   sIdDeposito: string;
 begin
+  AConservarLote := False;
   if ALinea.VieneDeDeposito = 'S' then
   begin
     sIdDeposito := ALinea.IdDeposito;
-    Result := AlmacenDeposito;
     FDataModule.CerrarDepositoCliente(
       FQuery, sIdDeposito, FEmpresa, FAlmacen,
       FCaja, FUsuario, FNumeroOperacion, FFechaOperacion);
+    Custodia := LeerCustodiaDeposito(
+      FQuery.Connection, FEmpresa, sIdDeposito);
+    Result := Custodia.Almacen;
+    AConservarLote := Custodia.TieneMovimiento;
+    if AConservarLote then
+    begin
+      ALinea.Lote := Custodia.Lote;
+      ALinea.FechaCaducidad := Custodia.Caducidad;
+    end;
     // PRECIO_ORIGINAL_DEP es unitario: el depósito vale por sus unidades
     dImporteCierre := ALinea.PrecioOriginalDep;
     if ALinea.Cantidad <> 0 then
@@ -2478,7 +2591,7 @@ end;
 function TGrabacionFacturaCaja.RegistrarMovimientoVenta(
   const ALinea: TDatosLineaFactura;
   const ANumeroMovimiento, AEmpresaMovimiento,
-    AAlmacenOrigen, ATipoMovimiento: string): Currency;
+    AAlmacenOrigen, ATipoMovimiento: string; AConservarLote: Boolean): Currency;
 var
   Solicitud: TSolicitudMovimientoAlmacenCaja;
 begin
@@ -2496,6 +2609,7 @@ begin
   Solicitud.Movimiento.Unidad := ALinea.Sku;
   Solicitud.Movimiento.Articulo := ALinea.Articulo;
   Solicitud.Movimiento.TipoMovimiento := ATipoMovimiento;
+  Solicitud.Movimiento.ConservarLote := AConservarLote;
   Solicitud.Movimiento.Cantidad := ALinea.Cantidad;
   Solicitud.Movimiento.CosteUnitario := Result;
   Solicitud.Movimiento.Usuario := FUsuarioSesion;
@@ -2511,21 +2625,23 @@ begin
 end;
 
 function TGrabacionFacturaCaja.RegistrarRetornoDeposito(
-  const ALinea: TDatosLineaFactura): Currency;
+  const ALinea: TDatosLineaFactura; const AAlmacenCustodia: string;
+  AConservarLote: Boolean): Currency;
 var
   Solicitud: TSolicitudMovimientoAlmacenCaja;
 begin
-  Result := ObtenerCosteMedioSkuAlmacen(ALinea.Sku, AlmacenDeposito,
+  Result := ObtenerCosteMedioSkuAlmacen(ALinea.Sku, AAlmacenCustodia,
     ALinea.Lote);
   Solicitud := Default(TSolicitudMovimientoAlmacenCaja);
   Solicitud.Movimiento.TipoDocumento := 'TR';
   Solicitud.Movimiento.Linea := ALinea.Linea;
   Solicitud.Movimiento.Empresa := FEmpresa;
-  Solicitud.Movimiento.Almacen := AlmacenDeposito;
+  Solicitud.Movimiento.Almacen := AAlmacenCustodia;
   Solicitud.Movimiento.AlmacenContrapartida := FAlmacen;
   Solicitud.Movimiento.Unidad := ALinea.Sku;
   Solicitud.Movimiento.Articulo := ALinea.Articulo;
   Solicitud.Movimiento.TipoMovimiento := 'S';
+  Solicitud.Movimiento.ConservarLote := AConservarLote;
   Solicitud.Movimiento.Cantidad := Abs(ALinea.Cantidad);
   Solicitud.Movimiento.CosteUnitario := Result;
   Solicitud.Movimiento.Usuario := FUsuarioSesion;
@@ -2539,7 +2655,7 @@ begin
   RegistrarMovimientoCreado(
     FDataModule.InsertarMovimientoAlmacen(FQuery, Solicitud));
   Solicitud.Movimiento.Almacen := FAlmacen;
-  Solicitud.Movimiento.AlmacenContrapartida := AlmacenDeposito;
+  Solicitud.Movimiento.AlmacenContrapartida := AAlmacenCustodia;
   Solicitud.Movimiento.TipoMovimiento := 'E';
   RegistrarMovimientoCreado(
     FDataModule.InsertarMovimientoAlmacen(FQuery, Solicitud));
@@ -2554,6 +2670,7 @@ var
   sTipoMovimiento: string;
   sNumeroMovimiento: string;
   bRetornoDeposito: Boolean;
+  bConservarLote: Boolean;
 begin
   LineaFactura := ALinea;
   bRetornoDeposito := (ALinea.VieneDeDeposito = 'S') and
@@ -2564,7 +2681,7 @@ begin
       FDataModule.FConexion, 'MV', FUsuarioSesion)
   else
     sNumeroMovimiento := '';
-  sAlmacenOrigen := RegistrarOperacionVenta(ALinea);
+  sAlmacenOrigen := RegistrarOperacionVenta(LineaFactura, bConservarLote);
   if ALinea.Cantidad < 0 then
     sTipoMovimiento := 'E'
   else
@@ -2588,11 +2705,12 @@ begin
      FGenerarMovimientos then
   begin
     if bRetornoDeposito then
-      LineaFactura.CosteUnitario := RegistrarRetornoDeposito(LineaFactura)
+      LineaFactura.CosteUnitario := RegistrarRetornoDeposito(
+        LineaFactura, sAlmacenOrigen, bConservarLote)
     else
       LineaFactura.CosteUnitario := RegistrarMovimientoVenta(
         LineaFactura, sNumeroMovimiento, sEmpresaMovimiento,
-        sAlmacenOrigen, sTipoMovimiento);
+        sAlmacenOrigen, sTipoMovimiento, bConservarLote);
   end;
   // Los regalos conservan unidades, PVP y descuento en la factura.
   if FRequiereFactura and ((Abs(ALinea.TotalCIva) > 0.001) or
@@ -2757,7 +2875,7 @@ var
 begin
   if FRequiereFactura then
   begin
-    CompletarTipoFiscalFacturaCaja(FQuery, FEmpresa, FSerieGenerada,
+    CompletarTipoFiscalFacturaCaja(FQuery, FEmpresaEmisora, FSerieGenerada,
       FNumeroFactura, FTipoFactura, FSerieRectificada, FNumeroRectificado);
     if SameText(FTipoFactura, 'RECTIFICATIVA') then
     begin
@@ -2842,6 +2960,38 @@ begin
         sDivisa, sRedBlockchain, dFactor, dImporteDivisa, sReferencia);
     end;
     FDatosCobro.MemTablePagos.Next;
+  end;
+end;
+
+function TGrabacionFacturaCaja.ReferenciaCajaDevolucion: string;
+begin
+  Result := Format(SReferenciaOperacionDevolucionOtraEmpresa,
+    [FEmpresa, FAlmacen, FCaja, FNumeroOperacion]);
+end;
+
+procedure TGrabacionFacturaCaja.RegistrarCompensacionEfectivo;
+var
+  Importe: Currency;
+  Tipo: string;
+begin
+  if FRequiereFactura and not SameText(FEmpresaEmisora, FEmpresa) then
+  begin
+    Importe := FDatosCobro.ImporteEfectivoEuros;
+    if Abs(Importe) >= 0.01 then
+    begin
+      if Importe < 0 then
+        Tipo := 'GC'
+      else
+        Tipo := 'EC';
+      FPersistencia.GuardarOperacion(
+        FQuery, FEmpresaEmisora, FAlmacenEmision, FCajaEmision,
+        FNumeroOperacionAuxiliar, Tipo, Abs(Importe), FUsuario,
+        FFechaOperacion, FNumeroFactura, FSerieGenerada,
+        FCabecera.CodigoCliente,
+        SConceptoCompensacionEfectivoCaja + ' · ' + ReferenciaCajaDevolucion,
+        FSerieRectificada, FNumeroRectificado, '',
+        FEmpresa, FAlmacen);
+    end;
   end;
 end;
 
@@ -3242,6 +3392,7 @@ begin
         FSerieGenerada, FNumeroFactura);
     RegistrarFiscalmente;
     RegistrarFormasPago;
+    RegistrarCompensacionEfectivo;
     RegistrarValesRecogidos;
     EmitirVale;
     bConfirmando := True;
@@ -3284,7 +3435,7 @@ begin
     DeterminarSiRequiereFactura;
     if FRequiereFactura and Assigned(FDataModule.FConfirmarContador) then
       PrepararNumeracionDocumento(FDataModule.FConexion, dnFactura,
-        FEmpresa, FSerieGenerada, FUsuario, FNumeroManual,
+        FEmpresaEmisora, FSerieGenerada, FUsuario, FNumeroManual,
         FDataModule.FRegistroLog, FDataModule.FConfirmarContador);
     EjecutarTransaccion;
     if FRequiereFactura then
@@ -3391,7 +3542,7 @@ begin
     Qry.ParamByName('EMP').AsString := AEmpresa;
     Qry.ParamByName('TIPO').AsString := ATipoDoc;
     Qry.ParamByName('ALM').AsString := AAlmacen;
-    Qry.ParamByName('CAJA').AsString := FCaja;
+    Qry.ParamByName('CAJA').AsString := CAJA_AUXILIAR_DEVOLUCION;
     Qry.Open;
     if not Qry.IsEmpty then
       Result := Qry.FieldByName('EMPSER').AsString;
@@ -3480,7 +3631,7 @@ begin
     SolicitudMovimiento.Movimiento.CosteUnitario := Coste;
     SolicitudMovimiento.Movimiento.Usuario := FUsuarioSesion;
     SolicitudMovimiento.Movimiento.Fecha := FFechaOperacion;
-    SolicitudMovimiento.CajaDocumento := FCaja;
+    SolicitudMovimiento.CajaDocumento := CAJA_AUXILIAR_DEVOLUCION;
     SolicitudMovimiento.AlmacenDocumento := FAlmacenOrigenDevolucion;
     SolicitudMovimiento.NumeroOperacion := ANumeroOperacion;
     FDataModule.InsertarMovimientoAlmacen(FQuery, SolicitudMovimiento);
@@ -3507,7 +3658,7 @@ begin
     SolicitudMovimiento.Movimiento.CosteUnitario := Coste;
     SolicitudMovimiento.Movimiento.Usuario := FUsuarioSesion;
     SolicitudMovimiento.Movimiento.Fecha := FFechaOperacion;
-    SolicitudMovimiento.CajaDocumento := FCaja;
+    SolicitudMovimiento.CajaDocumento := CAJA_AUXILIAR_DEVOLUCION;
     SolicitudMovimiento.AlmacenDocumento := FAlmacenOrigenDevolucion;
     SolicitudMovimiento.NumeroOperacion := ANumeroOperacion;
     FDataModule.InsertarMovimientoAlmacen(FQuery, SolicitudMovimiento);
@@ -3563,8 +3714,10 @@ begin
     finally
       FreeAndNil(oStoredProc);
     end;
-    sNumOperacion := FPersistencia.SiguienteOperacion(
-      sEmpresaOrigen, FAlmacenOrigenDevolucion, FCaja, FUsuario);
+    AsegurarCajaAuxiliarAlmacen(FDataModule.FConexion,
+      FAlmacenOrigenDevolucion);
+    sNumOperacion := FPersistencia.SiguienteOperacion(sEmpresaOrigen,
+      FAlmacenOrigenDevolucion, CAJA_AUXILIAR_DEVOLUCION, FUsuario);
     cTotal := RegistrarLineasTraspasoDevolucion(
       sEmpresaOrigen, sTipoDoc, sSerieDoc, sNumeroDoc,
       sNumOperacion);
@@ -3573,10 +3726,10 @@ begin
     // Operación del traspaso: registrada en el origen con contra el
     // almacén actual (misma convención que el traspaso manual F3)
     FPersistencia.GuardarOperacion(
-      FQuery, sEmpresaOrigen, FAlmacenOrigenDevolucion, FCaja,
-      sNumOperacion, sTipoDoc, cTotal, FUsuario, FFechaOperacion,
+      FQuery, sEmpresaOrigen, FAlmacenOrigenDevolucion,
+      CAJA_AUXILIAR_DEVOLUCION, sNumOperacion, sTipoDoc, cTotal, FUsuario, FFechaOperacion,
       sNumeroDoc, sSerieDoc, '',
-      'Traspaso automático por devolución a ' + FAlmacen,
+      'Traspaso por devolución · ' + ReferenciaCajaDevolucion,
       FSerieOrigenDevolucion, FNumeroOrigenDevolucion, '',
       sEmpContra, FAlmacen, 'S');
   end;
@@ -4141,12 +4294,11 @@ begin
     AConsulta.ParamByName('SER').AsString := ASerieOrigen;
     AConsulta.ParamByName('NUM').AsString := ANumeroOrigen;
     AConsulta.Open;
-    if not AConsulta.IsEmpty then
-    begin
-      TipoOriginal := AConsulta.FieldByName('TIPO_FAC').AsString;
-      if AConsulta.FieldByName('TIPO_FACTURA_VERIFACTU_FAC').AsString = 'R5' then
-        TipoOriginal := 'SIMPLIFICADA';
-    end;
+    if AConsulta.IsEmpty then
+      raise EValidacionBBDD.Create(SErrorFacturaRectificativaCajaSinOriginal);
+    TipoOriginal := AConsulta.FieldByName('TIPO_FAC').AsString;
+    if AConsulta.FieldByName('TIPO_FACTURA_VERIFACTU_FAC').AsString = 'R5' then
+      TipoOriginal := 'SIMPLIFICADA';
   end;
   TipoFiscal := TipoFiscalFacturaCaja(ATipo, TipoOriginal);
   AConsulta.Close;

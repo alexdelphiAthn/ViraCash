@@ -158,6 +158,10 @@ begin
     '   AND f.CODIGO_ALM_FAC = o.CODIGO_ALM_OPCAJA ' +
     '   AND f.CODIGO_CAJA_FAC = o.CODIGO_CAJA_OPCAJA ' +
     '   AND f.NUMERO_OPERACION_FAC = o.NUMERO_OPERACION_OPCAJA ' +
+    '    OR (f.CODIGO_CAJA_FAC = ''99'' ' +
+    '      AND o.TIPO_OPERACION_OPCAJA = ''DV'' ' +
+    '      AND f.SERIE_FAC = o.SERIE_FAC_OPCAJA ' +
+    '      AND f.NUMERO_FAC = o.NUMERO_FAC_OPCAJA) ' +
     '  LEFT JOIN fza_clientes cli ' +
     '    ON cli.CODIGO_CLI_CLI = COALESCE(f.CODIGO_CLI_FAC, ' +
     '                                     o.CODIGO_CLI_OPCAJA) ' +

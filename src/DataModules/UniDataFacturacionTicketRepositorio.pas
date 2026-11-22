@@ -33,7 +33,7 @@ uses
   inLibVerifactuTipos, inLibFacturasPersistenciaIntf,
   inLibFacturasServiciosIntf, inLibFacturasMovimientos,
   UniDataFacturasOperaciones, UniDataFacturasRecalculoTotales,
-  UniDataAlmacenesEmpresaRepositorio, inLibAlmacenesEmpresaPersistenciaIntf,
+  UniDataAlmacenesEmpresaRepositorio,
   UniDataValoresAutomaticosRepositorio, UniDataFaseCobroRepositorio,
   inLibFacturasProformaIntf;
 
@@ -358,6 +358,7 @@ const
     'PRECIO_VENTA_SIVA_ARTICULO_FACLIN, TIPO_IVA_ARTICULO_FACLIN, ' +
     'PORCENTAJE_IVA_FACLIN, PRECIO_VENTA_CIVA_ARTICULO_FACLIN, ' +
     'TOTAL_FACLIN, TOTAL_FAC_SIVA_FACLIN, CODIGO_ALM_FACLIN, ' +
+    'LOTE_FACLIN, FECHA_CADUCIDAD_FACLIN, ' +
     'INSTANTE_ALTA, INSTANTE_MODIF, USUARIO_ALTA, USUARIO_MODIF) ' +
     'SELECT :NUMERO, :SERIE, D.CODIGO_EMP_DEP, LPAD(:LINEA, 4, ''0''), ' +
     'D.CODIGO_ART_DEP, D.CODIGO_UNIDAD_DEP, A.CODIGO_FAM_ART, ' +
@@ -375,6 +376,7 @@ const
     'ROUND(D.PRECIO_VENTA_DEP * COALESCE(D.CANTIDAD_PENDIENTE_DEP, 1), 2), ' +
     'ROUND(D.PRECIO_VENTA_DEP * COALESCE(D.CANTIDAD_PENDIENTE_DEP, 1) / ' +
     ' (1 + COALESCE(D.PORCENTAJE_IVA_DEP, 0) / 100), 2), :ALMACEN, ' +
+    'NULLIF(:LOTE, ''''), :CADUCIDAD, ' +
     'NOW(), NOW(), :USUARIO, :USUARIO ' +
     'FROM fza_depositos_cliente D ' +
     'LEFT JOIN fza_articulos A ON A.CODIGO_ART_ART = D.CODIGO_ART_DEP ' +
@@ -495,16 +497,17 @@ type
       const ASolicitud: TSolicitudFacturacionTicket);
     procedure BloquearPrestamos(
       const ASolicitud: TSolicitudFacturacionTicket);
-    function AlmacenDepositos(const AEmpresa: string): string;
     procedure EjecutarSqlPrestamo(AConsulta: TUniQuery; const ASql: string;
       const ASolicitud: TSolicitudFacturacionTicket; const ANumero,
-      AAlmacen, AIdDeposito: string; ALinea: Integer);
+      AAlmacen, AIdDeposito: string; ALinea: Integer;
+      const ALote: string = ''; ACaducidad: TDateTime = 0);
     procedure InsertarCabeceraPrestamos(AConsulta: TUniQuery;
       const ASolicitud: TSolicitudFacturacionTicket;
       const ANumero, AAlmacen: string);
     function InsertarLineasPrestamos(AConsulta: TUniQuery;
       const ASolicitud: TSolicitudFacturacionTicket;
-      const ANumero, AAlmacen: string): Integer;
+      const ANumero: string; const ACustodiaPrimera: TCustodiaDeposito):
+      Integer;
     procedure CerrarPrestamos(AConsulta: TUniQuery;
       const ASolicitud: TSolicitudFacturacionTicket);
     procedure GenerarMovimientosPrestamos(
@@ -1398,24 +1401,11 @@ begin
   end;
 end;
 
-// La prenda prestada está en el almacén de depósitos de la empresa (el
-// CODIGO_ALM_DEP del depósito es el de la tienda que prestó).
-function TServicioFacturacionTicketUniDAC.AlmacenDepositos(
-  const AEmpresa: string): string;
-var
-  oAlmacenes: IRepositorioAlmacenesEmpresa;
-begin
-  oAlmacenes := TRepositorioAlmacenesEmpresaUniDAC.Create(FConexion);
-  Result := Trim(oAlmacenes.ObtenerAlmacenDepositoEmpresa(AEmpresa));
-  if Result = '' then
-    raise Exception.CreateFmt(SErrorPrestamosSinAlmacenDeposito,
-      [AEmpresa]);
-end;
-
 procedure TServicioFacturacionTicketUniDAC.EjecutarSqlPrestamo(
   AConsulta: TUniQuery; const ASql: string;
   const ASolicitud: TSolicitudFacturacionTicket; const ANumero,
-  AAlmacen, AIdDeposito: string; ALinea: Integer);
+  AAlmacen, AIdDeposito: string; ALinea: Integer;
+  const ALote: string; ACaducidad: TDateTime);
 var
   oParametro: TParam;
 begin
@@ -1441,6 +1431,18 @@ begin
   oParametro := AConsulta.Params.FindParam('FECHA');
   if oParametro <> nil then
     oParametro.AsDate := Trunc(ASolicitud.Fecha);
+  oParametro := AConsulta.Params.FindParam('LOTE');
+  if oParametro <> nil then
+    oParametro.AsString := ALote;
+  oParametro := AConsulta.Params.FindParam('CADUCIDAD');
+  if oParametro <> nil then
+  begin
+    oParametro.DataType := ftDate;
+    if ACaducidad = 0 then
+      oParametro.Clear
+    else
+      oParametro.AsDate := ACaducidad;
+  end;
   AConsulta.Execute;
 end;
 
@@ -1469,16 +1471,23 @@ end;
 
 function TServicioFacturacionTicketUniDAC.InsertarLineasPrestamos(
   AConsulta: TUniQuery; const ASolicitud: TSolicitudFacturacionTicket;
-  const ANumero, AAlmacen: string): Integer;
+  const ANumero: string; const ACustodiaPrimera: TCustodiaDeposito): Integer;
 var
   oPrestamo: TPrestamoFacturacion;
+  Custodia: TCustodiaDeposito;
 begin
   Result := 0;
   for oPrestamo in ASolicitud.Prestamos do
   begin
+    if Result = 0 then
+      Custodia := ACustodiaPrimera
+    else
+      Custodia := LeerCustodiaDeposito(
+        FConexion, ASolicitud.Empresa, oPrestamo.IdDeposito);
     Inc(Result);
     EjecutarSqlPrestamo(AConsulta, SQL_INSERTAR_LINEA_PRESTAMO,
-      ASolicitud, ANumero, AAlmacen, oPrestamo.IdDeposito, Result);
+      ASolicitud, ANumero, Custodia.Almacen, oPrestamo.IdDeposito, Result,
+      Custodia.Lote, Custodia.Caducidad);
     if AConsulta.RowsAffected <> 1 then
       raise Exception.CreateFmt(SErrorPrestamoPeriodo,
         [oPrestamo.IdDeposito]);
@@ -1486,7 +1495,7 @@ begin
     begin
       Inc(Result);
       EjecutarSqlPrestamo(AConsulta, SQL_INSERTAR_LINEA_ANTICIPO_PRESTAMO,
-        ASolicitud, ANumero, AAlmacen, oPrestamo.IdDeposito, Result);
+        ASolicitud, ANumero, Custodia.Almacen, oPrestamo.IdDeposito, Result);
     end;
   end;
   if Result > 9999 then
@@ -1536,6 +1545,7 @@ begin
   oSolicitud.Cliente := ASolicitud.Cliente;
   oSolicitud.Fecha := Trunc(ASolicitud.Fecha);
   oSolicitud.Usuario := ASolicitud.Usuario;
+  oSolicitud.ConservarLote := True;
   oMovimientos.GenerarSalidas(oSolicitud);
 end;
 
@@ -1582,19 +1592,22 @@ function TServicioFacturacionTicketUniDAC.CrearFacturaPrestamos(
 var
   oConsulta: TUniQuery;
   oSolicitudEmision: TSolicitudEmisionFiscal;
-  sAlmacen, sMensaje: string;
+  CustodiaPrimera: TCustodiaDeposito;
+  sMensaje: string;
 begin
   ValidarFechasPrestamos(ASolicitud);
-  sAlmacen := AlmacenDepositos(ASolicitud.Empresa);
   FConexion.StartTransaction;
   oConsulta := TUniQuery.Create(nil);
   try
     try
       oConsulta.Connection := FConexion;
       BloquearPrestamos(ASolicitud);
+      CustodiaPrimera := LeerCustodiaDeposito(
+        FConexion, ASolicitud.Empresa, ASolicitud.Prestamos[0].IdDeposito);
       Result := ObtenerNumero(ASolicitud);
-      InsertarCabeceraPrestamos(oConsulta, ASolicitud, Result, sAlmacen);
-      InsertarLineasPrestamos(oConsulta, ASolicitud, Result, sAlmacen);
+      InsertarCabeceraPrestamos(oConsulta, ASolicitud, Result,
+        CustodiaPrimera.Almacen);
+      InsertarLineasPrestamos(oConsulta, ASolicitud, Result, CustodiaPrimera);
       if not RecalcularTotalesFacturaVenta(FConexion,
            ASolicitud.SerieNueva, Result, sMensaje) then
         raise Exception.Create(sMensaje);

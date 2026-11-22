@@ -78,6 +78,9 @@ resourcestring
 
   // Elegir lote o serie para una salida.
   STituloSeleccionLote = 'Elegir lote';
+  STituloSeleccionLoteDevolucion = 'Elegir partidas de devolución';
+  SErrorCantidadPartidasDevolucion =
+    'Asigne a las partidas todas las unidades de la devolución.';
   STituloSeleccionSerie = 'Elegir números de serie';
   SCaptionColumnaLote = 'Lote';
   SCaptionColumnaSerie = 'Nº de serie';

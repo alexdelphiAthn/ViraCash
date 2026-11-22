@@ -44,6 +44,23 @@ const
   cNombreDatosTicket    = 'fxdsTicketPrint';
   cNombreDatosPagos     = 'fxdsPagosTicketPrint';
 
+  // También admite el pago hecho en otra caja por cuenta del emisor.
+  cSqlPagosDocumento =
+    'p.SERIE_OPERACION_PAGO = f.SERIE_FAC ' +
+    'AND ((p.CODIGO_EMP_PAGO = f.CODIGO_EMP_FAC ' +
+    ' AND p.CODIGO_ALM_PAGO = f.CODIGO_ALM_FAC ' +
+    ' AND p.CODIGO_CAJA_PAGO = f.CODIGO_CAJA_FAC ' +
+    ' AND p.NUMERO_OPERACION_PAGO = f.NUMERO_OPERACION_FAC) ' +
+    'OR (f.CODIGO_CAJA_FAC = ''99'' AND EXISTS (' +
+    ' SELECT 1 FROM fza_caja_operaciones D ' +
+    ' WHERE D.SERIE_FAC_OPCAJA = f.SERIE_FAC ' +
+    ' AND D.NUMERO_FAC_OPCAJA = f.NUMERO_FAC ' +
+    ' AND D.TIPO_OPERACION_OPCAJA = ''DV'' ' +
+    ' AND D.CODIGO_EMP_OPCAJA = p.CODIGO_EMP_PAGO ' +
+    ' AND D.CODIGO_ALM_OPCAJA = p.CODIGO_ALM_PAGO ' +
+    ' AND D.CODIGO_CAJA_OPCAJA = p.CODIGO_CAJA_PAGO ' +
+    ' AND D.NUMERO_OPERACION_OPCAJA = p.NUMERO_OPERACION_PAGO))) ';
+
   cSqlTicket =
     'SELECT f.SERIE_FAC, f.NUMERO_FAC, ' +
     '       COALESCE(NULLIF(TRIM(empl.DIMINUTIVO_TICKET_EMPL), ''''), ' +
@@ -56,20 +73,12 @@ const
     '       emp.TEXTO_PIE_TICKET_CAJA_3_EMP, emp.TEXTO_PIE_TICKET_CAJA_4_EMP, ' +
     '       COALESCE((SELECT SUM(p.IMPORTE_ENTREGADO_PAGO) ' +
     '                   FROM fza_caja_pagos p ' +
-    '                  WHERE p.CODIGO_EMP_PAGO = f.CODIGO_EMP_FAC ' +
-    '                    AND p.CODIGO_ALM_PAGO = f.CODIGO_ALM_FAC ' +
-    '                    AND p.CODIGO_CAJA_PAGO = f.CODIGO_CAJA_FAC ' +
-    '                    AND p.SERIE_OPERACION_PAGO = f.SERIE_FAC ' +
-    '                    AND p.NUMERO_OPERACION_PAGO = ' +
-    '                        f.NUMERO_OPERACION_FAC), 0) AS ENTREGADO_TICKET, ' +
+    '                  WHERE ' + cSqlPagosDocumento +
+    '), 0) AS ENTREGADO_TICKET, ' +
     '       COALESCE((SELECT SUM(p.IMPORTE_CAMBIO_PAGO) ' +
     '                   FROM fza_caja_pagos p ' +
-    '                  WHERE p.CODIGO_EMP_PAGO = f.CODIGO_EMP_FAC ' +
-    '                    AND p.CODIGO_ALM_PAGO = f.CODIGO_ALM_FAC ' +
-    '                    AND p.CODIGO_CAJA_PAGO = f.CODIGO_CAJA_FAC ' +
-    '                    AND p.SERIE_OPERACION_PAGO = f.SERIE_FAC ' +
-    '                    AND p.NUMERO_OPERACION_PAGO = ' +
-    '                        f.NUMERO_OPERACION_FAC), 0) AS CAMBIO_TICKET ' +
+    '                  WHERE ' + cSqlPagosDocumento +
+    '), 0) AS CAMBIO_TICKET ' +
     '  FROM fza_facturas f ' +
     '  LEFT JOIN fza_caja_operaciones o ' +
     '    ON o.CODIGO_EMP_OPCAJA = f.CODIGO_EMP_FAC ' +
@@ -94,11 +103,7 @@ const
     '         AS IMPORTE_PAGADO_PAGO ' +
     '  FROM fza_facturas f ' +
     '  JOIN fza_caja_pagos p ' +
-    '    ON p.CODIGO_EMP_PAGO = f.CODIGO_EMP_FAC ' +
-    '   AND p.CODIGO_ALM_PAGO = f.CODIGO_ALM_FAC ' +
-    '   AND p.CODIGO_CAJA_PAGO = f.CODIGO_CAJA_FAC ' +
-    '   AND p.SERIE_OPERACION_PAGO = f.SERIE_FAC ' +
-    '   AND p.NUMERO_OPERACION_PAGO = f.NUMERO_OPERACION_FAC ' +
+    '    ON ' + cSqlPagosDocumento +
     '  LEFT JOIN fza_caja_formas_pago fp ' +
     '    ON fp.CODIGO_FP_CFP = p.CODIGO_FP_CFP ' +
     ' WHERE f.SERIE_FAC = :SERIE AND f.NUMERO_FAC = :NUMERO ' +

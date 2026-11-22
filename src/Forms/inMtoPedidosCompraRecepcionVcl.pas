@@ -45,6 +45,7 @@ type
     Pivote: TGridPivoteCompra;
     TotalAAlbaranar: TcxCurrencyEdit;
     BestFit: TAccionRecepcionPedidoCompraVcl;
+    CancelarPendiente: TAccionRecepcionPedidoCompraVcl;
   end;
 
   IRecepcionPedidoCompraVcl = interface
@@ -71,7 +72,7 @@ function CrearRecepcionPedidoCompraVcl(
 implementation
 
 uses
-  UniDataPedidosCompraPendientes, inLibTipoCantidad, inLibMensajesVcl,
+  inLibTipoCantidad, inLibMensajesVcl,
   System.SysUtils,
   System.UITypes,
   System.Variants,
@@ -106,6 +107,7 @@ type
     Consultas: IConsultasPedidoCompraPantalla;
     Recepcion: IRecepcionPedidoCompra;
     Cantidades: ISeleccionCantidadesRecepcionPedidoCompra;
+    CancelarPendiente: TAccionRecepcionPedidoCompraVcl;
   end;
 
   TVisualizacionRecepcionPedidoCompraVcl = class(
@@ -113,7 +115,7 @@ type
   private
     FConexion: TUniConnection;
     FRegistroLog: IRegistroLog;
-    FUsuario: string;
+    FCancelarPendiente: TAccionRecepcionPedidoCompraVcl;
     FCabecera: TDataSet;
     FLineas: TDataSet;
     FAlbaranes: TDataSet;
@@ -209,7 +211,7 @@ begin
   inherited Create;
   FConexion := AConfig.Conexion;
   FRegistroLog := AConfig.RegistroLog;
-  FUsuario := AConfig.Usuario;
+  FCancelarPendiente := AConfig.CancelarPendiente;
   FCabecera := AConfig.Cabecera;
   FLineas := AConfig.Lineas;
   FAlbaranes := AConfig.Albaranes;
@@ -301,15 +303,8 @@ begin
     MostrarAviso(Format(SAvisoPedidoCompraMarcadoOtrosAlmacenes,
       [FormatFloat('0.###', AResultado.CantidadMarcadaOtrosAlmacenes),
        AResultado.AlmacenMarcadoSiguiente]))
-  else if SameText(FCabecera.FieldByName('ESTADO_PEDC').AsString,
-       'PARCIAL') then
-    if MessageDlg_fza(STextoElPedidoTieneCantidadesPendientesDeRecibirCompras,
-         mtConfirmation, [mbYes, mbNo], 0, mbNo) = mrYes then
-    begin
-      CancelarRestoPedidoCompra(FConexion, AEntrada.SeriePedido,
-        AEntrada.NumeroPedido, FUsuario);
-      RefrescarDatos;
-    end;
+  else if Assigned(FCancelarPendiente) then
+    FCancelarPendiente;
   MostrarDocumentoCreado(AEntrada, ASolicitud, AResultado);
 end;
 
@@ -511,6 +506,7 @@ begin
   ConfigControlador.Consultas := AConfig.Consultas;
   ConfigControlador.Recepcion := AConfig.Recepcion;
   ConfigControlador.Cantidades := FCantidades;
+  ConfigControlador.CancelarPendiente := AConfig.CancelarPendiente;
   FControlador := TControladorRecepcionPedidoCompraVcl.Create(
     ConfigControlador);
 end;
@@ -549,7 +545,7 @@ begin
     ColFecha := TcxGridDBTableView(Sender).GetColumnByFieldName(
       'FECHA_TOPE_RECEPCION_PEDC');
     ColPendiente := TcxGridDBTableView(Sender).GetColumnByFieldName(
-      'CANTIDAD_PENDIENTE_RECEPCION_PEDC');
+      'PENDIENTE_OPERATIVO_PEDC');
     if Assigned(ColFecha) and Assigned(ColPendiente) then
     begin
       ValorFecha := ARecord.Values[ColFecha.Index];

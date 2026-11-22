@@ -246,6 +246,9 @@ type
     mnuEjecutarScript: TMenuItem;
     mnuCambioArticuloColor: TMenuItem;
     mnuCambioCodigoCliente: TMenuItem;
+    mnuAjusteMovimientos: TMenuItem;
+    mnuAjusteDepositos: TMenuItem;
+    mnuBajasSinLote: TMenuItem;
     mnuSesionesCambioTarifa: TMenuItem;
     mnuProcesosAuxiliaresBBDD: TMenuItem;
     mnuGeneradorProcesos: TMenuItem;
@@ -291,6 +294,8 @@ type
     procedure mnuEjecutarScriptClick(Sender: TObject);
     procedure mnuCambioArticuloColorClick(Sender: TObject);
     procedure mnuCambioCodigoClienteClick(Sender: TObject);
+    procedure mnuAjusteDepositosClick(Sender: TObject);
+    procedure mnuBajasSinLoteClick(Sender: TObject);
     procedure mnuProcesosAuxiliaresBBDDClick(Sender: TObject);
     procedure tmr1Timer(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -508,6 +513,8 @@ uses
   inMtoCajaMenu,
   inLibGenerarTicketCaja,
   inMtoPrincipalAccionesVcl,
+  inMtoModalAjusteDepositos, inLibFiltroUsuario,
+  inMtoModalBajasSinLote,
   inMtoModalScriptLog,
   inMtoRestauracionCopiasVcl,
   System.RegularExpressions,
@@ -1197,6 +1204,20 @@ end;
 procedure TfrmMtoPrincipal.mnuAlmacenClick(Sender: TObject);
 begin
   AplicarInterruptorTransito;
+end;
+
+procedure TfrmMtoPrincipal.mnuBajasSinLoteClick(Sender: TObject);
+var
+  Contexto: IContextoSesionAplicacion;
+begin
+  if Assigned(FComposicion) and Assigned(FComposicion.DmConn) and
+     PuedeAbrirMenu(mnuBajasSinLote) then
+  begin
+    Contexto := FComposicion.ContextoSesion;
+    TfrmModalBajasSinLote.Ejecutar(Self, FComposicion.DmConn.conUni,
+      Contexto.Ubicacion.Empresa, Contexto.Ubicacion.Almacen,
+      AlmacenRestringido(Contexto, ParametrosApp), Contexto.Identidad.Usuario);
+  end;
 end;
 
 // Se reevalúa al desplegar Ventas Mayor: encender o apagar appListasRegalos
@@ -2625,6 +2646,20 @@ begin
      Assigned(FComposicion) and Assigned(FComposicion.DmConn) then
     MostrarCambioCodigoCliente(Self, FComposicion.DmConn.conUni,
       FComposicion.ContextoSesion.Identidad.Usuario, pcPrincipal.PageCount);
+end;
+
+procedure TfrmMtoPrincipal.mnuAjusteDepositosClick(Sender: TObject);
+var
+  Contexto: IContextoSesionAplicacion;
+begin
+  if Assigned(FComposicion) and Assigned(FComposicion.DmConn) and
+     PuedeAbrirMenu(mnuAjusteDepositos) then
+  begin
+    Contexto := FComposicion.ContextoSesion;
+    TfrmModalAjusteDepositos.Ejecutar(Self, FComposicion.DmConn.conUni,
+      Contexto.Ubicacion.Empresa, AlmacenRestringido(Contexto, ParametrosApp),
+      Contexto.Identidad.Usuario);
+  end;
 end;
 
 procedure TfrmMtoPrincipal.MenuGenericoClick(Sender: TObject);

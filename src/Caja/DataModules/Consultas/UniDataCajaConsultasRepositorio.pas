@@ -70,8 +70,8 @@ type
       ANumeroOperacion: string):
       IResultadoConsultaCaja;
     function EjecutarConsultarVentasOrigenSku(
-      const ASql, ASku, AEmpresa: string):
-      IResultadoConsultaCaja;
+      const ASql, ASku, AEmpresa, AAlmacen: string;
+      AOtrosAlmacenes, AOtrasEmpresas: Boolean): IResultadoConsultaCaja;
     function EjecutarConsultarArticulos(
       const ASql, ATarifa, ATexto: string;
       AFechaTarifa: TDateTime;
@@ -110,7 +110,8 @@ type
       const AEmpresa, AAlmacen, ACaja,
       ANumeroOperacion: string): IResultadoConsultaCaja;
     function ConsultarVentasOrigenSku(
-      const ASku, AEmpresa: string): IResultadoConsultaCaja;
+      const ASku, AEmpresa, AAlmacen: string;
+      AOtrosAlmacenes, AOtrasEmpresas: Boolean): IResultadoConsultaCaja;
     function ConsultarArticulosIncremental(
       const ATarifa, ATexto: string;
       AFechaTarifa: TDateTime): IResultadoConsultaCaja;
@@ -130,6 +131,10 @@ function CrearRepositorioArticulosCajaUniDAC(
 // Resuelve únicamente SUSTITUYE. No convierte un ticket retirado en abono.
 function ResolverDocumentoDevolucionCajaUniDAC(AConexion: TUniConnection;
   const ASerie, ANumero: string): TDocumentoOrigenDevolucionCaja;
+
+// Copia los datos fiscales del emisor del documento que se rectifica.
+procedure CopiarEmisorDevolucionCajaUniDAC(AConexion: TUniConnection;
+  const ADocumento: TDocumentoOrigenDevolucionCaja; ACabecera: TDataSet);
 
 implementation
 
@@ -207,6 +212,41 @@ begin
        SameText(Result.Fase, 'VERIFACTU_ANULADA') or
        SameText(Result.Fase, 'NOVERIFACTU_ANULADA') then
       raise EValidacionBBDD.Create(SErrorFacturaAbonarNoVigente);
+  finally
+    Consulta.Free;
+  end;
+end;
+
+procedure CopiarEmisorDevolucionCajaUniDAC(AConexion: TUniConnection;
+  const ADocumento: TDocumentoOrigenDevolucionCaja; ACabecera: TDataSet);
+const
+  CAMPOS_EMISOR =
+    'CODIGO_EMP_FAC, NIF_EMPRESA_FAC, RAZON_SOCIAL_EMPRESA_FAC, ' +
+    'MOVIL_EMPRESA_FAC, EMAIL_EMPRESA_FAC, DIRECCION1_EMPRESA_FAC, ' +
+    'DIRECCION2_EMPRESA_FAC, POBLACION_EMPRESA_FAC, PROVINCIA_EMPRESA_FAC, ' +
+    'CODIGO_POSTAL_EMPRESA_FAC, CODIGO_PAI_EMPRESA_FAC, ' +
+    'NOMBRE_PAI_EMPRESA_FAC, ESRETENCIONES_EMPRESA_FAC, ' +
+    'GRUPO_ZONA_IVA_EMPRESA_FAC';
+var
+  Consulta: TUniQuery;
+  Campo: TField;
+begin
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := AConexion;
+    Consulta.SQL.Text := 'SELECT ' + CAMPOS_EMISOR +
+      ' FROM fza_facturas WHERE SERIE_FAC = :SERIE AND NUMERO_FAC = :NUMERO';
+    Consulta.ParamByName('SERIE').AsString := ADocumento.Serie;
+    Consulta.ParamByName('NUMERO').AsString := ADocumento.Numero;
+    Consulta.Open;
+    if Consulta.IsEmpty or
+       (Trim(Consulta.FieldByName('NIF_EMPRESA_FAC').AsString) = '') then
+      raise EValidacionBBDD.Create(SErrorEmisorDevolucionCajaIncompleto);
+    if not (ACabecera.State in dsEditModes) then
+      ACabecera.Edit;
+    for Campo in Consulta.Fields do
+      ACabecera.FieldByName(Campo.FieldName).Value := Campo.Value;
+    ACabecera.Post;
   finally
     Consulta.Free;
   end;
@@ -379,7 +419,9 @@ const
     'JOIN fza_facturas f ON f.SERIE_FAC = l.SERIE_FAC_FACLIN ' +
     'AND f.NUMERO_FAC = l.NUMERO_FAC_FACLIN ' +
     'WHERE l.CODIGO_UNIDAD_FACLIN = :SKU ' +
-    'AND f.CODIGO_EMP_FAC = :EMP ' +
+    'AND ((f.CODIGO_EMP_FAC = :EMP ' +
+    'AND (f.CODIGO_ALM_FAC = :ALM OR :OTROS_ALM = 1)) ' +
+    'OR (:OTRAS_EMP = 1 AND f.CODIGO_EMP_FAC <> :EMP)) ' +
     'AND l.CANTIDAD_FACLIN > 0 ' +
     'AND COALESCE(f.TIPO_FAC, ''NORMAL'') <> ''RECTIFICATIVA'' ' +
     'AND f.FECHA_FAC >= (CURDATE() - INTERVAL 12 MONTH) ' +
@@ -556,7 +598,7 @@ begin
     'RepositorioConsultasCaja',
     'ConsultarVentasOrigenSku',
     SQL_CONSULTAR_VENTAS_ORIGEN_SKU,
-    'SKU,EMP',
+    'SKU,EMP,ALM,OTROS_ALM,OTRAS_EMP',
     'SERIE_FAC,NUMERO_FAC,CODIGO_ALM_FAC,INSTANTE_ALTA',
     tssSelect,
     pesPerfilLecturaConFallback);
@@ -1157,8 +1199,8 @@ end;
 
 function TRepositorioConsultasCaja.
   EjecutarConsultarVentasOrigenSku(
-  const ASql, ASku, AEmpresa: string):
-  IResultadoConsultaCaja;
+  const ASql, ASku, AEmpresa, AAlmacen: string;
+  AOtrosAlmacenes, AOtrasEmpresas: Boolean): IResultadoConsultaCaja;
 var
   oConsulta: TUniQuery;
 begin
@@ -1168,6 +1210,9 @@ begin
     oConsulta.SQL.Text := ASql;
     oConsulta.ParamByName('SKU').AsString := ASku;
     oConsulta.ParamByName('EMP').AsString := AEmpresa;
+    oConsulta.ParamByName('ALM').AsString := AAlmacen;
+    oConsulta.ParamByName('OTROS_ALM').AsInteger := Ord(AOtrosAlmacenes);
+    oConsulta.ParamByName('OTRAS_EMP').AsInteger := Ord(AOtrasEmpresas);
     oConsulta.Open;
     ValidarCamposResultadoSql(
       DefinicionConsultarVentasOrigenSku,
@@ -1293,7 +1338,8 @@ begin
 end;
 
 function TRepositorioConsultasCaja.ConsultarVentasOrigenSku(
-  const ASku, AEmpresa: string): IResultadoConsultaCaja;
+  const ASku, AEmpresa, AAlmacen: string;
+  AOtrosAlmacenes, AOtrasEmpresas: Boolean): IResultadoConsultaCaja;
 var
   oDefinicion: TDefinicionSql;
   oResultado: IResultadoConsultaCaja;
@@ -1308,7 +1354,10 @@ begin
       oResultado := EjecutarConsultarVentasOrigenSku(
         ASql,
         ASku,
-        AEmpresa);
+        AEmpresa,
+        AAlmacen,
+        AOtrosAlmacenes,
+        AOtrasEmpresas);
     end,
     FIncidenciasSql);
   Result := oResultado;

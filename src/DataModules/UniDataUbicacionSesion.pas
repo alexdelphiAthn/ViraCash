@@ -36,11 +36,14 @@ type
 function ComprobarUbicacionSesion(AConexion: TUniConnection;
   const AUbicacion: TUbicacionSesion): TUbicacionSesionInexistente;
 
+procedure AsegurarCajaAuxiliarAlmacen(AConexion: TUniConnection;
+  const AAlmacen: string);
+
 implementation
 
 uses
   System.SysUtils,
-  inLibMsgLogon;
+  inLibMsgLogon, inLibCajaVentaIntf, inLibMsgCaja;
 
 const
   SQL_EXISTE_EMPRESA =
@@ -52,6 +55,28 @@ const
   SQL_EXISTE_CAJA =
     'SELECT COUNT(*) FROM fza_almacenes_cajas ' +
     'WHERE CODIGO_ALM_ALMCAJ = :ALM AND CODIGO_CAJA_ALMCAJ = :CAJA';
+
+procedure AsegurarCajaAuxiliarAlmacen(AConexion: TUniConnection;
+  const AAlmacen: string);
+var
+  Consulta: TUniQuery;
+begin
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := AConexion;
+    Consulta.SQL.Text :=
+      'INSERT INTO fza_almacenes_cajas ' +
+      '(CODIGO_ALM_ALMCAJ, CODIGO_CAJA_ALMCAJ, DESCRIPCION_ALMCAJ) ' +
+      'VALUES (:ALM, :CAJA, :DESCRIPCION) ' +
+      'ON DUPLICATE KEY UPDATE CODIGO_CAJA_ALMCAJ = CODIGO_CAJA_ALMCAJ';
+    Consulta.ParamByName('ALM').AsString := AAlmacen;
+    Consulta.ParamByName('CAJA').AsString := CAJA_AUXILIAR_DEVOLUCION;
+    Consulta.ParamByName('DESCRIPCION').AsString := SCajaAuxiliarCaja;
+    Consulta.Execute;
+  finally
+    Consulta.Free;
+  end;
+end;
 
 function TUbicacionSesionInexistente.Alguna: Boolean;
 begin

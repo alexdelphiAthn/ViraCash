@@ -290,7 +290,9 @@ begin
     '  LEFT JOIN fza_facturas fd '                                    +
     '    ON TRIM(COALESCE(o.SERIE_FAC_OPCAJA, '''')) <> '''' '       +
     '   AND TRIM(COALESCE(o.NUMERO_FAC_OPCAJA, '''')) <> '''' '      +
-    '   AND fd.CODIGO_EMP_FAC = o.CODIGO_EMP_OPCAJA '                +
+    '   AND (fd.CODIGO_EMP_FAC = o.CODIGO_EMP_OPCAJA '               +
+    '      OR (fd.CODIGO_CAJA_FAC = ''99'' '                         +
+    '        AND o.TIPO_OPERACION_OPCAJA = ''DV'')) '                 +
     '   AND fd.SERIE_FAC = o.SERIE_FAC_OPCAJA '                      +
     '   AND fd.NUMERO_FAC = o.NUMERO_FAC_OPCAJA '                    +
     '  LEFT JOIN fza_facturas fo '                                   +
