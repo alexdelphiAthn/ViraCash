@@ -101,6 +101,19 @@
         ParentFont = False
         OnClick = btnAceptarClick
       end
+      object lblCreditoIA: TcxLabel
+        Left = 24
+        Top = 27
+        AutoSize = False
+        Caption = 'Construido con ayuda de IA OpenAI y Anthropic'
+        Properties.Alignment.Horz = taCenter
+        Properties.Alignment.Vert = taVCenter
+        TabOrder = 4
+        Transparent = True
+        Visible = False
+        Height = 20
+        Width = 457
+      end
     end
     object pnlDatosAutor: TPanel
       Left = 2

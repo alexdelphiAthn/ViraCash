@@ -32,6 +32,7 @@ type
     hlEmail: TcxHyperLinkEdit;
     cxLabel2: TcxLabel;
     btnAceptar: TcxButton;
+    lblCreditoIA: TcxLabel;
     Panel2: TPanel;
     pnlDatosAutor: TPanel;
     lblNombreAutor: TcxLabel;

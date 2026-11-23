@@ -822,18 +822,17 @@ end;
 function LeerProductorSoftwareVerifactu(
   const AParametrosApp: IParametrosAplicacion): string;
 const
-  // SHA-256 (UTF-8, hex) del nombre del productor del software
-  cHashProductorSoftware =
-    'b536ead94548d821636435953328882d910dd2e6403dc4be9e1282ac8228ab79';
+  cNombreProductor = 'Alejandro Laorden Hidalgo';
 begin
   // Las demos se distribuyen con el perfil editable: no se admite que
   // el registro fiscal declare otro productor del software.
   Result := Trim(AParametrosApp.GetString('appVerifactuSifNombreRazon',
     ''));
-  if not SameText(THashSHA2.GetHashString(Result),
-    cHashProductorSoftware) then
+  if not SameText(Result, cNombreProductor) then
     raise Exception.CreateFmt(SErrorProductorSoftwareVerifactuNoAutorizado,
-      [Result]);
+      [Result])
+  else
+    Result := cNombreProductor;
 end;
 
 function EsNifProductorSoftwareVerifactu(const ANif: string): Boolean;

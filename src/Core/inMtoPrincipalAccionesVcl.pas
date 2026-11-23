@@ -274,6 +274,7 @@ var
 begin
   Formulario := TfrmSplash.Create(AOwner, ARegistroLog);
   try
+    Formulario.lblCreditoIA.Visible := True;
     Formulario.ShowModal;
   finally
     FreeAndNil(Formulario);
