@@ -52,31 +52,9 @@ uses
   inLibMsgFacturas,
   inLibInformeTabular, inLibInformeTabularExcel,
   System.SysUtils, Vcl.Forms, inLibInformeDocumento,
-  inLibDocumento, inLibCorreoTickets, UniDataFacturas, inMtoModalImpFac;
+  inLibDocumento, inLibCorreoTickets, inMtoModalImpFac;
 
 {$R *.dfm}
-
-procedure ImprimirFactura(AOwner: TComponent;
-  const ASerie, ANumero: string);
-var
-  oDatos: TdmFacturas;
-  oFormulario: TfrmPrintFac;
-begin
-  oDatos := TdmFacturas.Create(AOwner);
-  try
-    oFormulario := TfrmPrintFac.Create(AOwner);
-    try
-      oFormulario.ConfigurarDataModule(oDatos);
-      oFormulario.edtSerie.Text := ASerie;
-      oFormulario.edtNroFac.Text := ANumero;
-      oFormulario.ShowModal;
-    finally
-      FreeAndNil(oFormulario);
-    end;
-  finally
-    FreeAndNil(oDatos);
-  end;
-end;
 
 class procedure TfrmPrintDocumento.Ejecutar(AOwner: TComponent;
   ATipo: TTipoDocumento; ASentido: TSentidoDocumento;
@@ -157,7 +135,7 @@ var
   oFormulario: TfrmPrintDocumento;
 begin
   if ATipo = tdFactura then
-    ImprimirFactura(AOwner, ASerie, ANumero)
+    TfrmPrintFac.MostrarPorReferencia(AOwner, ASerie, ANumero)
   else
   begin
     oFormulario := TfrmPrintDocumento.Create(AOwner);

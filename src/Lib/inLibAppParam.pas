@@ -430,7 +430,7 @@ begin
   // --- Apariencia ---
   RegistrarParametro('Apariencia', 'appModoVentanas',
     'Modo de ventanas: MDI o SDI sin fondo (requiere reiniciar)',
-    tpString, 'MDI');
+    tpString, 'SDI');
   RegistrarParametro('Apariencia', 'appTema',
     'Tema de interfaz (DevExpress)', tpString, 'Office2019Colorful');
   // Valores y dibujo en inLibResplandorBordesVcl.

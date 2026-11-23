@@ -1294,7 +1294,7 @@ begin
   // SIMPLIFICADA se generan movimientos siempre.
   AFormulario.chkMueveStock.Visible := SameText(
     AFormulario.TipoFacturaFiltro, 'NORMAL');
-  // Convertir en normal solo aplica a facturas simplificadas (F3 AEAT).
+  // El listado de simplificadas también incluye sus rectificativas R5.
   AFormulario.btnVerifactuFacturar.Visible := SameText(
     AFormulario.TipoFacturaFiltro, 'SIMPLIFICADA');
   AplicarOrigenCobrosFacturaVcl(AFormulario);
@@ -2403,11 +2403,17 @@ procedure TfrmMtoFacturasBase.btnVerifactuAnularClick(Sender: TObject);
 begin
   // Anulación fiscal de la factura activa según modo Verifactu.
   if Assigned(FDependencias.OperacionFiscal) then
+  begin
+    if dmmFacturas.unqryTablaG.Active and
+       (dmmFacturas.unqryTablaG.State = dsBrowse) and
+       not dmmFacturas.unqryTablaG.IsEmpty then
+      dmmFacturas.unqryTablaG.RefreshRecord;
     FDependencias.OperacionFiscal.Ejecutar(
       CrearContextoOperacionFiscalFacturaVcl(
         Self,
         'ANULACION',
-        'Anulación'));
+        'Anular'));
+  end;
 end;
 procedure TfrmMtoFacturasBase.btnVerifactuResolverIncidenciaClick(
   Sender: TObject);
@@ -2495,7 +2501,7 @@ begin
 end;
 procedure TfrmMtoFacturasBase.btnVerifactuFacturarClick(Sender: TObject);
 begin
-  FacturarTicketVcl(Self, dsTablaG.DataSet, ParametrosApp);
+  FacturarTicketVcl(Self, dsTablaG.DataSet, PuedeImprimir);
 end;
 function TfrmMtoFacturasBase.TipoFacturaFiltro: string;
 begin

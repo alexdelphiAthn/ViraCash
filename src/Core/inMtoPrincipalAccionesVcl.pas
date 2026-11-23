@@ -13,7 +13,7 @@ unit inMtoPrincipalAccionesVcl;
 interface
 
 uses
-  System.Classes, Vcl.Forms, cxPC, Uni,
+  System.Classes, System.SysUtils, Vcl.Forms, cxPC, Uni,
   inLibAnfitrionMtoIntf, inLibLogIntf,
   inLibCargaEfectosRemesaPersistenciaIntf;
 
@@ -29,7 +29,8 @@ function FacturarSimplificadosPeriodo(AOwner: TComponent;
   out ASerie, ANumero: string): Boolean;
 procedure MostrarProcesosAuxiliares(
   AOwner: TComponent;
-  const AAnfitrionMantenimiento: IAnfitrionMantenimiento);
+  const AAnfitrionMantenimiento: IAnfitrionMantenimiento;
+  const ACompararEsquema: TProc<TForm>);
 procedure MostrarCambioArticuloColor(
   AOwner: TComponent;
   AConexion: TUniConnection;
@@ -62,7 +63,6 @@ procedure CargarEfectosRemesaPrincipal(
 implementation
 
 uses
-  System.SysUtils,
   Vcl.Controls,
   inMtoModalListadoVentas,
   inMtoModalImpDocsProveedor,
@@ -162,11 +162,13 @@ end;
 
 procedure MostrarProcesosAuxiliares(
   AOwner: TComponent;
-  const AAnfitrionMantenimiento: IAnfitrionMantenimiento);
+  const AAnfitrionMantenimiento: IAnfitrionMantenimiento;
+  const ACompararEsquema: TProc<TForm>);
 begin
   TfrmModalProcesosAuxiliaresBBDD.Ejecutar(
     AOwner,
-    AAnfitrionMantenimiento);
+    AAnfitrionMantenimiento,
+    ACompararEsquema);
 end;
 
 function FacturarSimplificadosPeriodo(AOwner: TComponent;

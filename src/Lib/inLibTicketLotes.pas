@@ -95,6 +95,8 @@ begin
         Result.FieldDefs.Add(Campo.FieldName, Campo.DataType, Campo.Size);
       Result.FieldDefs.Add('TOTAL_BRUTO_TICKET', ftCurrency);
       Result.CreateDataSet;
+      // Las líneas de impresión son una copia sin cambios que guardar.
+      Result.LogChanges := False;
       ALineas.First;
       while not ALineas.Eof do
       begin

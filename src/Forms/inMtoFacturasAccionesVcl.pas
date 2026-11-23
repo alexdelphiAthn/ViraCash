@@ -42,7 +42,7 @@ procedure RectificarFacturaVcl(
 procedure FacturarTicketVcl(
   AOwner: TComponent;
   ACabecera: TDataSet;
-  const AParametros: IParametrosAplicacion);
+  APuedeImprimir: Boolean);
 
 implementation
 
@@ -640,7 +640,7 @@ end;
 procedure FacturarTicketVcl(
   AOwner: TComponent;
   ACabecera: TDataSet;
-  const AParametros: IParametrosAplicacion);
+  APuedeImprimir: Boolean);
 var
   Resultado: TFacturarTicketResult;
   Serie: string;
@@ -650,10 +650,6 @@ begin
   Numero := ACabecera.FieldByName('NUMERO_FAC').AsString;
   if Trim(Numero) = '' then
     ShowMessage_fza(SErrorBorradorListaNoSeleccionado)
-  else if not SameText(
-    ACabecera.FieldByName('TIPO_FAC').AsString,
-    'SIMPLIFICADA') then
-    ShowMessage_fza(SErrorFacturarTicketRequiereSimplificado)
   else
   begin
     Resultado := TfrmModalFacturarTicket.Ejecutar(
@@ -661,16 +657,10 @@ begin
       Serie,
       Numero,
       ACabecera.FieldByName('CODIGO_EMP_FAC').AsString,
-      ACabecera.FieldByName('CODIGO_ALM_FAC').AsString);
+      ACabecera.FieldByName('CODIGO_ALM_FAC').AsString,
+      APuedeImprimir);
     if Resultado.Aceptado then
-    begin
-      ShowMessage_fza(FormatearMensajeDocumentos(
-        Resultado.FormatoDocumento,
-        SInfoBorradorSustitucionTicketCreado,
-        [Resultado.SerieNueva, Resultado.NumeroNueva,
-        Serie, Numero, ModoVerifactuTexto(AParametros)]));
       ACabecera.Refresh;
-    end;
   end;
 end;
 

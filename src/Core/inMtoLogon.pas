@@ -190,7 +190,8 @@ type
     procedure IniciarRestauracionAdministrativa;
     procedure ReiniciarServiciosLogonTrasRestauracion;
     function ActualizarBaseAlArrancar(
-      APorComparacion: Boolean = False): Boolean;
+      APorComparacion: Boolean = False;
+      AModeloLocal: Boolean = False): Boolean;
     function CrearCopiaPreviaAlArrancar(out ARutaCopia: string): Boolean;
   protected
     procedure CreateParams(var Params: TCreateParams); override;
@@ -2102,7 +2103,7 @@ begin
 end;
 
 function TfrmLogon.ActualizarBaseAlArrancar(
-  APorComparacion: Boolean): Boolean;
+  APorComparacion, AModeloLocal: Boolean): Boolean;
 var
   oConexion: TUniConnection;
   oPerfiles: TdmPerfiles;
@@ -2130,7 +2131,9 @@ begin
           try
             AsignarParametros(oParametros.Lectura, nil);
             eModo := mpaComprobar;
-            if APorComparacion then
+            if AModeloLocal then
+              eModo := mpaCompararModeloLocal
+            else if APorComparacion then
               eModo := mpaCompararModelo;
             TfrmModalActualizacion.Ejecutar(Self, nil,
               oParametros.Lectura, oParametros.Edicion, oConexion,
@@ -2188,6 +2191,10 @@ begin
           function: Boolean
           begin
             Result := ActualizarBaseAlArrancar(True);
+          end,
+          function: Boolean
+          begin
+            Result := ActualizarBaseAlArrancar(True, True);
           end)
       else
         Result := ValidarIntegridadEsquemaAlArrancar(

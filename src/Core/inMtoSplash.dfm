@@ -3,7 +3,7 @@
   Top = 190
   BorderIcons = []
   BorderStyle = bsNone
-  ClientHeight = 518
+  ClientHeight = 550
   ClientWidth = 515
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -18,7 +18,7 @@
     Left = 0
     Top = 0
     Width = 515
-    Height = 518
+    Height = 550
     Align = alClient
     BevelInner = bvLowered
     TabOrder = 0
@@ -26,7 +26,7 @@
       Left = 2
       Top = 336
       Width = 511
-      Height = 180
+      Height = 212
       Align = alBottom
       TabOrder = 0
       object cxLabel1: TcxLabel
@@ -88,7 +88,7 @@
       end
       object btnAceptar: TcxButton
         Left = 24
-        Top = 135
+        Top = 168
         Width = 457
         Height = 25
         Caption = 'Aceptar'
@@ -103,7 +103,7 @@
       end
       object lblCreditoIA: TcxLabel
         Left = 24
-        Top = 27
+        Top = 137
         AutoSize = False
         Caption = 'Construido con ayuda de IA OpenAI y Anthropic'
         Properties.Alignment.Horz = taCenter

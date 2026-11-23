@@ -43,6 +43,7 @@ implementation
 
 uses
   System.SysUtils,
+  inLibErroresBBDD,
   inLibFacturasConsolidacionPresentacion,
   inLibFacturasOperacionFiscal;
 
@@ -195,10 +196,15 @@ begin
   end
   else if FVista.Confirmar(Preparacion.PreguntaConfirmacion) then
   begin
-    Resultado := FServicio.Emitir(
-      CrearSolicitudOperacionFiscalFactura(AContexto));
-    FVista.MostrarInformacion(Resultado.Mensaje);
-    FVista.RefrescarFactura;
+    try
+      Resultado := FServicio.Emitir(
+        CrearSolicitudOperacionFiscalFactura(AContexto));
+      FVista.MostrarInformacion(Resultado.Mensaje);
+      FVista.RefrescarFactura;
+    except
+      on E: EValidacionBBDD do
+        FVista.MostrarError(E.Message);
+    end;
   end;
 end;
 

@@ -27,6 +27,7 @@ const
   // Códigos de salida de DBComparer.
   cSalidaComparadorBien = 0;
   cSalidaComparadorAvisos = 2;
+  cSalidaReferenciaYaExiste = 3;
 
 type
   TResultadoComparacionActualizacion = record
@@ -61,7 +62,8 @@ function CrearCarpetaIntentoComparacion(
 // el modelo se convierte a él antes de comparar. Vacío = lo detecta.
 function GenerarScriptComparacion(
   AConexion: TUniConnection;
-  const ARutaComparador, ARutaModelo, ARutaScript, ADestino: string):
+  const ARutaComparador, ARutaModelo, ARutaScript, ADestino: string;
+  AReferenciaLocal: Boolean = False; AReemplazarReferencia: Boolean = False):
   TResultadoComparacionActualizacion;
 // DBComparer --convertir: deja en ARutaConvertido el script de ARutaOrigen
 // en el dialecto ADestino. Sin conexión: no toca ninguna base.
@@ -157,7 +159,8 @@ end;
 
 function LineaOrdenes(
   AConexion: TUniConnection;
-  const ARutaComparador, ARutaModelo, ARutaScript, ADestino: string): string;
+  const ARutaComparador, ARutaModelo, ARutaScript, ADestino: string;
+  AReferenciaLocal, AReemplazarReferencia: Boolean): string;
 begin
   Result := EntreComillas(ARutaComparador) +
     ' ' + EntreComillas('--modelo=' + ARutaModelo) +
@@ -170,6 +173,10 @@ begin
   if SameText(AConexion.SpecificOptions.Values['MySQL.Protocol'],
        'mpSSL') then
     Result := Result + ' --ssl';
+  if AReferenciaLocal then
+    Result := Result + ' --referencia-local';
+  if AReemplazarReferencia then
+    Result := Result + ' --reemplazar-referencia-local';
 end;
 
 function CrearFicheroSalida(const ARuta: string): THandle;
@@ -225,9 +232,30 @@ begin
   end;
 end;
 
+procedure ComprobarContratoReferencia(
+  const ARutaComparador, ARutaSalida: string);
+var
+  hSalida: THandle;
+  iCodigo: Cardinal;
+begin
+  hSalida := CrearFicheroSalida(ARutaSalida);
+  try
+    iCodigo := EjecutarComparador(EntreComillas(ARutaComparador) +
+      ' --contrato-referencia-local', ExtractFilePath(ARutaComparador),
+      hSalida);
+  finally
+    CloseHandle(hSalida);
+  end;
+  if (iCodigo <> cSalidaComparadorBien) or
+     (Trim(LeerTextoScriptSql(ARutaSalida)) <> 'DBCOMPARER_REFERENCIA_LOCAL=1')
+  then
+    raise Exception.Create(SErrorComparadorSinReferenciaLocal);
+end;
+
 function GenerarScriptComparacion(
   AConexion: TUniConnection;
-  const ARutaComparador, ARutaModelo, ARutaScript, ADestino: string):
+  const ARutaComparador, ARutaModelo, ARutaScript, ADestino: string;
+  AReferenciaLocal, AReemplazarReferencia: Boolean):
   TResultadoComparacionActualizacion;
 var
   hSalida: THandle;
@@ -239,6 +267,8 @@ begin
   try
     if TFile.Exists(ARutaScript) then
       TFile.Delete(ARutaScript);
+    if AReferenciaLocal then
+      ComprobarContratoReferencia(ARutaComparador, sRutaSalida);
     hSalida := CrearFicheroSalida(sRutaSalida);
     try
       // El hijo hereda el entorno: la variable se quita en cuanto arranca
@@ -248,7 +278,7 @@ begin
       try
         Result.Codigo := EjecutarComparador(
           LineaOrdenes(AConexion, ARutaComparador, ARutaModelo, ARutaScript,
-            ADestino),
+            ADestino, AReferenciaLocal, AReemplazarReferencia),
           ExtractFilePath(ARutaComparador),
           hSalida);
       finally

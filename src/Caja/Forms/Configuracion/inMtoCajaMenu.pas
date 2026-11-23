@@ -321,9 +321,12 @@ procedure TfrmMtoMenuCaja.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
   FCerrando := True;
   Action := caFree;
-  if Assigned(Application.MainForm) and
+  if not Application.Terminated and Assigned(Application.MainForm) and
+     Application.MainForm.HandleAllocated and
+     not (csDestroying in Application.MainForm.ComponentState) and
      (Application.MainForm.WindowState = wsMinimized) then
-    Application.MainForm.WindowState := wsMaximized;
+    // Windows conserva el tamaño y el estado anteriores a minimizar.
+    ShowWindow(Application.MainForm.Handle, SW_RESTORE);
 end;
 
 procedure TfrmMtoMenuCaja.FormCloseQuery(Sender: TObject;

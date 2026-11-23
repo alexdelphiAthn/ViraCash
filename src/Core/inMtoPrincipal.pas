@@ -687,13 +687,17 @@ end;
 
 procedure TfrmMtoPrincipal.AjustarBarraEstado;
 begin
-  // Teclas, servidor, usuario, ubicación, colas y fecha con conexión.
-  // Si no cabe se sacrifican, por este orden, teclas, servidor y usuario;
-  // la ubicación y la fecha no se recortan.
-  AjustarPanelesBarraEstado(
-    JvStatusBar1,
-    [100, 300, 300, 150],
-    [0, 1, 2], True);
+  JvStatusBar1.SizeGrip := not (
+    Assigned(FPresentacionInicio) and FPresentacionInicio.Compacta);
+  if not JvStatusBar1.SizeGrip then
+  begin
+    FPresentacionInicio.AjustarAnchoCompacto(
+      AnchoNecesarioBarraEstado(JvStatusBar1));
+    AjustarPanelesBarraEstado(JvStatusBar1, [], [], True);
+  end
+  else
+    AjustarPanelesBarraEstado(
+      JvStatusBar1, [100, 300, 300, 150], [0, 1, 2], True);
 end;
 
 // FZ-ISSUE-1042: la primera línea de una recepción Yeti pide el lote con la
@@ -990,8 +994,9 @@ begin
   RegistroLog.AplicarModosDepuracion(ParametrosApp);
   FPresentacionInicio.Configurar(ParametrosApp, oVersion);
   FormManager.ModoSDI := SameText(
-    Trim(ParametrosApp.GetString('appModoVentanas', 'MDI')), 'SDI');
+    Trim(ParametrosApp.GetString('appModoVentanas', 'SDI')), 'SDI');
   Self.OnResize := FormResize;
+  AjustarBarraEstado;
 end;
 
 procedure TfrmMtoPrincipal.RegistrarInicioAplicacion;
@@ -2615,7 +2620,12 @@ begin
   inherited;
   if mnuProcesosAuxiliaresBBDD.Visible and
      PuedeAbrirMenu(mnuProcesosAuxiliaresBBDD) then
-    MostrarProcesosAuxiliares(Self, Self);
+    MostrarProcesosAuxiliares(Self, Self,
+      procedure(AFormulario: TForm)
+      begin
+        ComprobarIntegridadEsquemaVcl(AFormulario, ConexionPrincipal,
+          RegistroLog);
+      end);
 end;
 
 procedure TfrmMtoPrincipal.mnuCambioArticuloColorClick(Sender: TObject);

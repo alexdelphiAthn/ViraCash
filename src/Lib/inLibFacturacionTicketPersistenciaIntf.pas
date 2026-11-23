@@ -85,6 +85,8 @@ type
       const ACodigoCliente: string): TClienteFacturacionTicket;
     function CrearFactura(
       const ASolicitud: TSolicitudFacturacionTicket): string;
+    function ResolverOrigenCanje(var ASerie, ANumero: string;
+      const AEmpresa: string): Boolean;
     procedure LeerClienteTicket(const ASerie, ANumero: string;
       out ACliente, ARazonSocial: string);
     // Fecha del ticket (0 si no existe).

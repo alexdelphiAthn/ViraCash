@@ -26,7 +26,7 @@ uses
   cxInplaceContainer, cxTL, cxTLData, SynEdit,
   SynEditHighlighter, SynHighlighterSQL,
   inMtoFrmBase, inLibAnfitrionMtoIntf, inLibMetadatosBBDDIntf,
-  UniDataMetadatosBBDD;
+  Uni;
 
 type
   TTipoOperacionAuxiliarTabla = (
@@ -53,7 +53,9 @@ type
     toaaExportarDDL,
     toaaRegenerarProcedimiento,
     toaaCalcularChecksum,
-    toaaRefrescarMetadatos
+    toaaRefrescarMetadatos,
+    toaaCompararEsquema,
+    toaaCompararAplicarLocal
   );
   TfrmModalProcesosAuxiliaresBBDD = class(TfrmBase)
     procedure FormCreate(Sender: TObject);
@@ -106,11 +108,17 @@ type
     lblBusqueda: TcxLabel;
     lblAcciones: TcxLabel;
     lblAyuda: TcxLabel;
-    FDataModule: TdmMetadatosBBDD;
+    FMetadatos: TUniQuery;
+    FContenido: TUniQuery;
+    FSoloConsulta: Boolean;
+    FCompararLocal: TFunc<Boolean>;
     FCatalogo: ICatalogoMetadatosBBDD;
     FAnfitrionMantenimiento: IAnfitrionMantenimiento;
+    FCompararEsquema: TProc<TForm>;
     FNombreContenidoActual: string;
     FOtrasAcciones: TArray<TTipoOtraAccionAuxiliar>;
+    procedure InicializarConsultaTablas(AConexion: TUniConnection);
+    procedure InicializarOperaciones;
     procedure CrearInterfaz;
     procedure CrearSelector;
     procedure CrearLista;
@@ -194,7 +202,11 @@ type
     destructor Destroy; override;
     class procedure Ejecutar(
       AOwner: TComponent;
-      const AAnfitrionMantenimiento: IAnfitrionMantenimiento);
+      const AAnfitrionMantenimiento: IAnfitrionMantenimiento;
+      const ACompararEsquema: TProc<TForm>);
+    class function ConsultarTablas(
+      AOwner: TComponent; AConexion: TUniConnection;
+      const ACompararLocal: TFunc<Boolean>): Boolean;
   end;
 
 implementation
@@ -207,7 +219,7 @@ uses
   inLibMsgProcesosAuxiliaresBBDD,
   inLibPlanEjecucionMariaDB, inLibProteccionDatosFacturacion,
   ts.Editor.CodeFormatters,
-  UniDataMetadatosBBDDRepositorio;
+  UniDataMetadatosBBDD, UniDataMetadatosBBDDRepositorio;
 
 {$R *.dfm}
 
@@ -227,15 +239,42 @@ begin
   inherited;
   Caption := SCaptionProcesosAuxiliaresBBDD;
   FNombreContenidoActual := '';
+end;
+
+procedure TfrmModalProcesosAuxiliaresBBDD.InicializarOperaciones;
+var
+  oDatos: TdmMetadatosBBDD;
+begin
   CrearInterfaz;
-  FDataModule := TdmMetadatosBBDD.Create(Self);
-  FCatalogo := CrearCatalogoMetadatosBBDDUniDAC(
-    ConexionPrincipal,
-    FDataModule.unqryMetadatos,
-    FDataModule.unqryEstructura,
-    FDataModule.unqryContenido,
-    FDataModule.unstrdprcRefrescar);
-  tvContenido.DataController.DataSource := FDataModule.dsContenido;
+  oDatos := TdmMetadatosBBDD.Create(Self);
+  FMetadatos := oDatos.unqryMetadatos;
+  FContenido := oDatos.unqryContenido;
+  FCatalogo := CrearCatalogoMetadatosBBDDUniDAC(ConexionPrincipal,
+    FMetadatos, oDatos.unqryEstructura, FContenido, oDatos.unstrdprcRefrescar);
+  tvContenido.DataController.DataSource := oDatos.dsContenido;
+  RefrescarMetadatos;
+end;
+
+procedure TfrmModalProcesosAuxiliaresBBDD.InicializarConsultaTablas(
+  AConexion: TUniConnection);
+var
+  oEstructura: TUniQuery;
+  oFuente: TDataSource;
+begin
+  FSoloConsulta := True;
+  Caption := SCaptionTablasConsultaProcesosAuxiliaresBBDD;
+  CrearInterfaz;
+  FMetadatos := TUniQuery.Create(Self);
+  FMetadatos.Connection := AConexion;
+  FContenido := TUniQuery.Create(Self);
+  FContenido.Connection := AConexion;
+  oEstructura := TUniQuery.Create(Self);
+  oEstructura.Connection := AConexion;
+  FCatalogo := CrearCatalogoMetadatosBBDDUniDAC(AConexion,
+    FMetadatos, oEstructura, FContenido, nil);
+  oFuente := TDataSource.Create(Self);
+  oFuente.DataSet := FContenido;
+  tvContenido.DataController.DataSource := oFuente;
   RefrescarMetadatos;
 end;
 
@@ -248,14 +287,33 @@ end;
 
 class procedure TfrmModalProcesosAuxiliaresBBDD.Ejecutar(
   AOwner: TComponent;
-  const AAnfitrionMantenimiento: IAnfitrionMantenimiento);
+  const AAnfitrionMantenimiento: IAnfitrionMantenimiento;
+  const ACompararEsquema: TProc<TForm>);
 var
   oFormulario: TfrmModalProcesosAuxiliaresBBDD;
 begin
   oFormulario := TfrmModalProcesosAuxiliaresBBDD.Create(AOwner);
   try
     oFormulario.FAnfitrionMantenimiento := AAnfitrionMantenimiento;
+    oFormulario.FCompararEsquema := ACompararEsquema;
+    oFormulario.InicializarOperaciones;
     oFormulario.ShowModal;
+  finally
+    oFormulario.Free;
+  end;
+end;
+
+class function TfrmModalProcesosAuxiliaresBBDD.ConsultarTablas(
+  AOwner: TComponent; AConexion: TUniConnection;
+  const ACompararLocal: TFunc<Boolean>): Boolean;
+var
+  oFormulario: TfrmModalProcesosAuxiliaresBBDD;
+begin
+  oFormulario := TfrmModalProcesosAuxiliaresBBDD.Create(AOwner);
+  try
+    oFormulario.FCompararLocal := ACompararLocal;
+    oFormulario.InicializarConsultaTablas(AConexion);
+    Result := oFormulario.ShowModal = mrOk;
   finally
     oFormulario.Free;
   end;
@@ -300,10 +358,13 @@ begin
   rgTipoObjeto.Properties.Columns := 3;
   oItem := rgTipoObjeto.Properties.Items.Add;
   oItem.Caption := SCaptionTablasProcesosAuxiliaresBBDD;
-  oItem := rgTipoObjeto.Properties.Items.Add;
-  oItem.Caption := SCaptionVistasProcesosAuxiliaresBBDD;
-  oItem := rgTipoObjeto.Properties.Items.Add;
-  oItem.Caption := SCaptionProcedimientosProcesosAuxiliaresBBDD;
+  if not FSoloConsulta then
+  begin
+    oItem := rgTipoObjeto.Properties.Items.Add;
+    oItem.Caption := SCaptionVistasProcesosAuxiliaresBBDD;
+    oItem := rgTipoObjeto.Properties.Items.Add;
+    oItem.Caption := SCaptionProcedimientosProcesosAuxiliaresBBDD;
+  end;
   rgTipoObjeto.ItemIndex := 0;
   rgTipoObjeto.Properties.OnEditValueChanged := rgTipoObjetoChange;
 end;
@@ -413,7 +474,8 @@ begin
     SCaptionSinDatosMostrar;
   lvContenido := grdContenido.Levels.Add;
   lvContenido.GridView := tvContenido;
-  CrearPlanEjecucion;
+  if not FSoloConsulta then
+    CrearPlanEjecucion;
   pcDetalle.ActivePage := tsEstructura;
 end;
 
@@ -584,6 +646,7 @@ end;
 procedure TfrmModalProcesosAuxiliaresBBDD.ConfigurarEdicionContenido(
   AEditar: Boolean);
 begin
+  AEditar := AEditar and not FSoloConsulta;
   if AEditar and
      EsTablaFacturacionProtegida(FNombreContenidoActual) then
     raise EModificacionTablaFacturacionProtegida.Create(
@@ -597,11 +660,11 @@ end;
 
 procedure TfrmModalProcesosAuxiliaresBBDD.CerrarContenidoActual;
 begin
-  if Assigned(FDataModule) then
+  if Assigned(FContenido) then
   begin
-    if FDataModule.unqryContenido.State in [dsEdit, dsInsert] then
-      FDataModule.unqryContenido.Post;
-    FDataModule.unqryContenido.Close;
+    if FContenido.State in [dsEdit, dsInsert] then
+      FContenido.Post;
+    FContenido.Close;
   end;
   FNombreContenidoActual := '';
   ConfigurarEdicionContenido(False);
@@ -620,7 +683,7 @@ begin
   Screen.Cursor := crHourGlass;
   try
     CerrarContenidoActual;
-    FCatalogo.Refrescar(ConexionPrincipal.Database);
+    FCatalogo.Refrescar(FMetadatos.Connection.Database);
     CargarObjetosConSeleccion(
       aSeleccionados,
       sObjetoActivo);
@@ -659,20 +722,20 @@ var
 begin
   sBusqueda := Trim(edtBusqueda.Text);
   lstObjetos.Items.BeginUpdate;
-  FDataModule.unqryMetadatos.DisableControls;
+  FMetadatos.DisableControls;
   try
     lstObjetos.Items.Clear;
-    FDataModule.unqryMetadatos.First;
-    while not FDataModule.unqryMetadatos.Eof do
+    FMetadatos.First;
+    while not FMetadatos.Eof do
     begin
-      sNombre := FDataModule.unqryMetadatos.FieldByName(
+      sNombre := FMetadatos.FieldByName(
         'NOMBRE_META_META').AsString;
       if (sBusqueda = '') or ContainsText(sNombre, sBusqueda) then
         lstObjetos.Items.Add(sNombre);
-      FDataModule.unqryMetadatos.Next;
+      FMetadatos.Next;
     end;
   finally
-    FDataModule.unqryMetadatos.EnableControls;
+    FMetadatos.EnableControls;
     lstObjetos.Items.EndUpdate;
   end;
   synEstructura.Lines.Clear;
@@ -750,7 +813,7 @@ begin
   if Result then
   begin
     ANombre := lstObjetos.Items[iActivo];
-    Result := FDataModule.unqryMetadatos.Locate(
+    Result := FMetadatos.Locate(
       'NOMBRE_META_META',
       ANombre,
       []);
@@ -936,7 +999,7 @@ var
   sNombre: string;
 begin
   btnCopiarSQL.Enabled := Trim(synEstructura.Lines.Text) <> '';
-  btnExportar.Enabled := FDataModule.unqryContenido.Active;
+  btnExportar.Enabled := FContenido.Active;
   bAccionPermitida := OtraAccionSeleccionada(eAccion);
   if bAccionPermitida and (eAccion = toaaEditarTabla) and
      ObjetoActivo(sNombre) then
@@ -950,10 +1013,15 @@ procedure TfrmModalProcesosAuxiliaresBBDD.AgregarOtraAccion(
 var
   iAccion: Integer;
 begin
-  iAccion := Integer(Length(FOtrasAcciones));
-  SetLength(FOtrasAcciones, iAccion + 1);
-  FOtrasAcciones[iAccion] := AAccion;
-  lstOtrasAcciones.Items.Add(ATexto);
+  if not FSoloConsulta or (AAccion in [toaaVerMetadatos,
+      toaaVerEstadoTabla, toaaVerDependencias, toaaExportarDDL,
+      toaaRefrescarMetadatos, toaaCompararAplicarLocal]) then
+  begin
+    iAccion := Integer(Length(FOtrasAcciones));
+    SetLength(FOtrasAcciones, iAccion + 1);
+    FOtrasAcciones[iAccion] := AAccion;
+    lstOtrasAcciones.Items.Add(ATexto);
+  end;
 end;
 
 procedure TfrmModalProcesosAuxiliaresBBDD.ActualizarListaOtrasAcciones;
@@ -1083,6 +1151,13 @@ begin
     AgregarOtraAccion(
       SAccionRefrescarMetadatosProcesosAuxiliaresBBDD,
       toaaRefrescarMetadatos);
+    if (TipoObjetoActivo = tombTabla) and Assigned(FCompararEsquema) then
+      AgregarOtraAccion(
+        SAccionCompararEsquemaProcesosAuxiliaresBBDD,
+        toaaCompararEsquema);
+    if (TipoObjetoActivo = tombTabla) and Assigned(FCompararLocal) then
+      AgregarOtraAccion(SAccionCompararAplicarLocalProcesosAuxiliaresBBDD,
+        toaaCompararAplicarLocal);
   finally
     lstOtrasAcciones.Items.EndUpdate;
   end;
@@ -1511,6 +1586,12 @@ begin
       end;
       toaaRefrescarMetadatos:
         btnRefrescarClick(Self);
+      toaaCompararEsquema:
+        if Assigned(FCompararEsquema) then
+          FCompararEsquema(Self);
+      toaaCompararAplicarLocal:
+        if Assigned(FCompararLocal) and FCompararLocal() then
+          ModalResult := mrOk;
     end;
   end;
 end;
@@ -1687,7 +1768,7 @@ var
   aSeleccionados: TArray<string>;
   sObjetoActivo: string;
 begin
-  if Assigned(FDataModule) and FDataModule.unqryMetadatos.Active then
+  if Assigned(FMetadatos) and FMetadatos.Active then
   begin
     aSeleccionados := ObjetosSeleccionados;
     ObjetoActivo(sObjetoActivo);
@@ -1743,7 +1824,7 @@ begin
   try
     bEditar := not tvContenido.OptionsData.Editing;
     if (pcDetalle.ActivePage <> tsContenido) or
-       not FDataModule.unqryContenido.Active then
+       not FContenido.Active then
       bEditar := True;
     if bEditar then
     begin
@@ -1760,8 +1841,8 @@ begin
         raise EModificacionTablaFacturacionProtegida.Create(
           cOperacionEdicionProcesosAuxiliaresBBDD,
           FNombreContenidoActual);
-      if FDataModule.unqryContenido.State in [dsEdit, dsInsert] then
-        FDataModule.unqryContenido.Post;
+      if FContenido.State in [dsEdit, dsInsert] then
+        FContenido.Post;
       ConfigurarEdicionContenido(False);
       ActualizarListaOtrasAcciones;
       ActualizarAcciones;
@@ -1858,7 +1939,7 @@ end;
 procedure TfrmModalProcesosAuxiliaresBBDD.btnExportarClick(
   Sender: TObject);
 begin
-  if FDataModule.unqryContenido.Active then
+  if FContenido.Active then
     ExportarExcel(
       ParametrosApp,
       grdContenido,

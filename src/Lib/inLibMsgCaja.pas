@@ -1183,6 +1183,10 @@ resourcestring
   SAvisoSustitutivaTicketCobradoCaja =
     'El ticket original %0:s ya se cobró (%1:s: %2:s).' + sLineBreak +
     'Devuelva ese cobro y cobre el nuevo total.';
+  SPreguntaSustitutivaConDiferenciasCaja =
+    'El ticket original %s tiene una rectificativa por diferencias vigente.' +
+    sLineBreak + 'Revise las unidades y lo ya devuelto antes de calcular ' +
+    'el importe a reembolsar. ¿Continuar?';
   STextoIrAArticuloCaja =
     'Ir a artículo';
   STextoIrADepositoCaja =

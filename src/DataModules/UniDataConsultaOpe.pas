@@ -138,7 +138,9 @@ implementation
 
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 
-uses inLibMsgComun, UniDataRectificativasSql, inLibReimpresionOperacionCaja;
+uses
+  inLibMsgComun, UniDataRectificativasSql, inLibReimpresionOperacionCaja,
+  UniDataFacturasListado, UniDataVerifactuEsquema;
 
 const
   // Cliente de mostrador con el que se emiten las ventas anonimas.
@@ -254,7 +256,25 @@ begin
 end;
 
 procedure TdmConsultaOpe.ConfigurarConsultaMaestro;
+const
+  FASE_FACTURA = 'COALESCE(fd.FASE_FAC, fo.FASE_FAC)';
+var
+  sFasePresentacion, sEnlaceCola, sMensaje: string;
 begin
+  sFasePresentacion := FASE_FACTURA;
+  sEnlaceCola := '';
+  if CrearRepositorioEsquemaVerifactuUniDAC(FConexion).
+    ColaDisponible(sMensaje) then
+  begin
+    sFasePresentacion := SQLFaseFiscalPresentacion(FASE_FACTURA);
+    sEnlaceCola :=
+      ' LEFT JOIN fza_verifactu_cola c ON c.ID_VFCOLA = (' +
+      ' SELECT MAX(uc.ID_VFCOLA) FROM fza_verifactu_cola uc ' +
+      ' WHERE uc.SERIE_FAC_VFCOLA = COALESCE(fd.SERIE_FAC, fo.SERIE_FAC) ' +
+      ' AND uc.NUMERO_FAC_VFCOLA = COALESCE(fd.NUMERO_FAC, fo.NUMERO_FAC)) ';
+  end
+  else if sMensaje <> '' then
+    FRegistroLog.RegistrarInformacion(sMensaje);
   // Una fila por numero, agrupando todos sus tipos de operacion.
   qryMaestro.SQL.Text :=
     'SELECT o.CODIGO_EMP_OPCAJA, '                                    +
@@ -279,6 +299,7 @@ begin
     '         MAX(COALESCE(fd.NUMERO_FAC, fo.NUMERO_FAC)), '         +
     '         MAX(o.NUMERO_FAC_OPCAJA)) AS NUMERO_FAC, '              +
     '       MAX(COALESCE(fd.FASE_FAC, fo.FASE_FAC)) AS FASE_FAC, '     +
+    '       MAX(' + sFasePresentacion + ') AS FASE_PRESENTACION_FAC, ' +
     '       MAX(COALESCE(fd.CODIGO_CLI_FAC, '                         +
     '                    fo.CODIGO_CLI_FAC, '                         +
     '                    o.CODIGO_CLI_OPCAJA)) AS CLIENTE, '          +
@@ -303,6 +324,7 @@ begin
     '   AND fo.CODIGO_CAJA_FAC = o.CODIGO_CAJA_OPCAJA '              +
     '   AND fo.NUMERO_OPERACION_FAC = '                              +
     '       o.NUMERO_OPERACION_OPCAJA '                              +
+    sEnlaceCola +
     '  LEFT JOIN fza_clientes cli '                                       +
     '    ON cli.CODIGO_CLI_CLI = '                                   +
     '       COALESCE(fd.CODIGO_CLI_FAC, '                            +

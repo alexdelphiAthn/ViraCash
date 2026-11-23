@@ -124,6 +124,8 @@ type
     class procedure ArchivarFacturaConsolidada(
       ADataModule: TdmFacturas;
       const ASerie, ANumero: string); static;
+    class procedure MostrarPorReferencia(AOwner: TComponent;
+      const ASerie, ANumero: string; AFormatoA4: Boolean = False); static;
     procedure preparar_consulta; override;
     procedure PrepararConsultaTicket(AImprimirLotes: Boolean);
     procedure AvisarReferenciasAusentes(const ASerie, ANumero: string);
@@ -436,6 +438,31 @@ function TfrmPrintFac.TraducirContenidoInforme: Boolean;
 begin
   // Las facturas de venta son documentos fiscales para el mercado español.
   Result := False;
+end;
+
+class procedure TfrmPrintFac.MostrarPorReferencia(AOwner: TComponent;
+  const ASerie, ANumero: string; AFormatoA4: Boolean);
+var
+  Datos: TdmFacturas;
+  Formulario: TfrmPrintFac;
+begin
+  Datos := TdmFacturas.Create(AOwner);
+  try
+    Formulario := TfrmPrintFac.Create(AOwner);
+    try
+      Formulario.ConfigurarDataModule(Datos);
+      Formulario.edtSerie.Text := ASerie;
+      Formulario.edtNroFac.Text := ANumero;
+      Formulario.UsarFormatoOriginal := AFormatoA4;
+      if AFormatoA4 then
+        Formulario.ConfigurarLote(True, nil, nil, nil);
+      Formulario.ShowModal;
+    finally
+      Formulario.Free;
+    end;
+  finally
+    Datos.Free;
+  end;
 end;
 
 class procedure TfrmPrintFac.ArchivarFacturaConsolidada(

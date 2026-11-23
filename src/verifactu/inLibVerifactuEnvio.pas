@@ -130,6 +130,7 @@ implementation
 
 uses
   inLibFormatoDocumento, UniDataFormatoDocumentoRepositorio,
+  inLibFacturasValidacionCabecera,
   System.Classes, System.Types, System.StrUtils, System.Hash,
   System.DateUtils, System.TimeSpan, System.NetEncoding,
   System.Net.HttpClient,
@@ -566,11 +567,17 @@ end;
 
 procedure ConfigurarConsultaAntecesoraRelacion(
   AQry: TUniQuery;
-  const ASerie, ANumero: string);
+  const ASerie, ANumero, ATipoFactura: string);
+var
+  FiltroRelacion: string;
 begin
   AQry.Close;
+  FiltroRelacion := '';
+  if SameText(ATipoFactura, 'NORMAL') then
+    FiltroRelacion := ' AND r.TIPO_RELACION_FACREL = ''SUSTITUYE'' ';
   AQry.SQL.Text :=
     ' SELECT o.SERIE_FAC, o.NUMERO_FAC, o.TIPO_FAC, ' +
+    '        o.TIPO_FACTURA_VERIFACTU_FAC, ' +
     '        DATE_FORMAT(o.FECHA_FAC, ''%d-%m-%Y'') AS FECHA_TXT, ' +
     '        COALESCE(o.TOTAL_BASES_FAC, 0) AS BASE_RECT, ' +
     '        COALESCE(o.TOTAL_IVAN_FAC, 0) + ' +
@@ -587,6 +594,7 @@ begin
     '  AND o.NUMERO_FAC = r.NUMERO_FAC_ORIGEN_FACREL ' +
     ' WHERE r.SERIE_FAC_FACREL = :SERIE ' +
     '   AND r.NUMERO_FAC_FACREL = :NUMERO ' +
+    FiltroRelacion +
     ' ORDER BY r.ID_FACREL DESC LIMIT 1';
   AQry.ParamByName('SERIE').AsString := ASerie;
   AQry.ParamByName('NUMERO').AsString := ANumero;
@@ -598,6 +606,7 @@ begin
     ' SELECT ' + AOrden + ' AS ORDEN, ' +
     AAlias + '.SERIE_FAC, ' + AAlias + '.NUMERO_FAC, ' +
     AAlias + '.TIPO_FAC, ' +
+    AAlias + '.TIPO_FACTURA_VERIFACTU_FAC, ' +
     '        DATE_FORMAT(' + AAlias + '.FECHA_FAC, ''%d-%m-%Y'') ' +
     '          AS FECHA_TXT, ' +
     '        COALESCE(' + AAlias + '.TOTAL_BASES_FAC, 0) AS BASE_RECT, ' +
@@ -623,6 +632,7 @@ begin
   // está en ellas. Se conservan como respaldo para datos antiguos.
   AQry.SQL.Text :=
     ' SELECT ORDEN, SERIE_FAC, NUMERO_FAC, TIPO_FAC, FECHA_TXT, ' +
+    '        TIPO_FACTURA_VERIFACTU_FAC, ' +
     '        BASE_RECT, CUOTA_RECT, CUOTA_RE_RECT ' +
     ' FROM ( ' +
     SqlAntecesoraAbono('0', 'f') +
@@ -664,8 +674,9 @@ begin
     ADatos.RectCuotaRe := AQry.FieldByName('CUOTA_RE_RECT').AsCurrency;
     ADatos.TieneImporteRectificacion := True;
   end
-  else if SameText(
-    AQry.FieldByName('TIPO_FAC').AsString, 'SIMPLIFICADA') then
+  else if EsFacturaSimplificadaFiscal(
+    AQry.FieldByName('TIPO_FAC').AsString,
+    AQry.FieldByName('TIPO_FACTURA_VERIFACTU_FAC').AsString) then
   begin
     ADatos.TipoFactura := 'F3';
     ADatos.RectSerie := AQry.FieldByName('SERIE_FAC').AsString;
@@ -715,7 +726,7 @@ begin
   if SameText(ATipoFactura, 'RECTIFICATIVA') or
      SameText(ATipoFactura, 'NORMAL') then
   begin
-    ConfigurarConsultaAntecesoraRelacion(AQry, ASerie, ANumero);
+    ConfigurarConsultaAntecesoraRelacion(AQry, ASerie, ANumero, ATipoFactura);
     AQry.Open;
     if AQry.IsEmpty then
     begin

@@ -33,15 +33,19 @@ function ValidarIntegridadEsquemaAlArrancar(
   const AFabrica: IFabricaConexionesUniDAC;
   const ARegistroLog: IRegistroLog;
   const AActualizar: TFunc<Boolean> = nil;
-  const AComparar: TFunc<Boolean> = nil): Boolean;
+  const AComparar: TFunc<Boolean> = nil;
+  const ACompararLocal: TFunc<Boolean> = nil): Boolean;
 
 implementation
 
 uses
   System.UITypes,
+  System.Classes,
   System.Diagnostics,
+  Winapi.Windows,
   Vcl.Controls,
   Vcl.Dialogs,
+  Vcl.ExtCtrls,
   cxButtons,
   inLibMensajesVcl,
   inLibVentanaEspera,
@@ -53,7 +57,57 @@ uses
   inLibMsgIntegridadEsquema,
   inLibMsgIntegraciones,
   UniDataHuellaEsquema,
-  inMtoModalMensajeTexto;
+  inMtoModalMensajeTexto, inMtoModalProcesosAuxiliaresBBDD;
+
+const
+  cConsultarEsquema = mrIgnore;
+  cIntervaloMinimoComparacionMs = 1500;
+
+type
+  TComparacionArranque = class(TComponent)
+  private
+    FDialogo: TForm;
+    FTemporizador: TTimer;
+    FClics: Integer;
+    procedure Pulsar(Sender: TObject);
+    procedure VencerIntervalo(Sender: TObject);
+  public
+    constructor Create(ADialogo: TForm; ABoton: TcxButton); reintroduce;
+  end;
+
+constructor TComparacionArranque.Create(
+  ADialogo: TForm; ABoton: TcxButton);
+begin
+  inherited Create(ADialogo);
+  FDialogo := ADialogo;
+  FTemporizador := TTimer.Create(Self);
+  FTemporizador.Enabled := False;
+  FTemporizador.Interval := GetDoubleClickTime;
+  if FTemporizador.Interval < cIntervaloMinimoComparacionMs then
+    FTemporizador.Interval := cIntervaloMinimoComparacionMs;
+  FTemporizador.OnTimer := VencerIntervalo;
+  ABoton.OnClick := Pulsar;
+end;
+
+procedure TComparacionArranque.Pulsar(Sender: TObject);
+begin
+  FTemporizador.Enabled := False;
+  Inc(FClics);
+  if (FClics = 3) or (GetKeyState(VK_CONTROL) < 0) then
+  begin
+    FClics := 0;
+    FDialogo.ModalResult := cConsultarEsquema;
+  end
+  else
+    FTemporizador.Enabled := True;
+end;
+
+procedure TComparacionArranque.VencerIntervalo(Sender: TObject);
+begin
+  FTemporizador.Enabled := False;
+  FClics := 0;
+  FDialogo.ModalResult := mrRetry;
+end;
 
 procedure AnotarFirma(var AComprobacion: TComprobacionIntegridad);
 var
@@ -90,12 +144,58 @@ begin
   end;
 end;
 
+function MostrarInformeArranque(
+  AOwner: TForm; const AInforme: string;
+  const AFabrica: IFabricaConexionesUniDAC;
+  const ACompararLocal: TFunc<Boolean>): Boolean;
+var
+  oInforme: TfrmModalMensajeTexto;
+  oConexion: TUniConnection;
+  oBoton: TcxButton;
+  iAccion: TModalResult;
+begin
+  Result := False;
+  oInforme := TfrmModalMensajeTexto.Create(AOwner);
+  try
+    oInforme.Caption := STituloComprobarIntegridad;
+    oInforme.mTexto.Text := AInforme;
+    oInforme.mTexto.SelStart := 0;
+    if Assigned(ACompararLocal) then
+    begin
+      oBoton := TcxButton.Create(oInforme);
+      oBoton.Parent := oInforme.pnlBotones;
+      oBoton.SetBounds(12 * oInforme.CurrentPPI div 96,
+        oInforme.btnCerrar.Top, 200 * oInforme.CurrentPPI div 96,
+        oInforme.btnCerrar.Height);
+      oBoton.Caption := SIntegridadBotonOperacionesAuxiliares;
+      oBoton.ModalResult := mrYes;
+    end;
+    repeat
+      iAccion := oInforme.ShowModal;
+      if iAccion = mrYes then
+      begin
+        oConexion := AFabrica.CrearConexion(nil);
+        try
+          AFabrica.Conectar(oConexion);
+          Result := TfrmModalProcesosAuxiliaresBBDD.ConsultarTablas(
+            AOwner, oConexion, ACompararLocal);
+        finally
+          oConexion.Free;
+        end;
+      end;
+    until (iAccion <> mrYes) or Result;
+  finally
+    oInforme.Free;
+  end;
+end;
+
 function ValidarIntegridadEsquemaAlArrancar(
   AOwner: TForm;
   const AFabrica: IFabricaConexionesUniDAC;
   const ARegistroLog: IRegistroLog;
   const AActualizar: TFunc<Boolean>;
-  const AComparar: TFunc<Boolean>): Boolean;
+  const AComparar: TFunc<Boolean>;
+  const ACompararLocal: TFunc<Boolean>): Boolean;
 var
   oConexion: TUniConnection;
   oIdeal: TEsquemaIdeal;
@@ -104,6 +204,7 @@ var
   sDetalle: string;
   bPuedeActualizar: Boolean;
   bPuedeComparar: Boolean;
+  bComparacionLocalAplicada: Boolean;
   iAccion: TModalResult;
   oDialogo: TfrmModalMensajeTexto;
   oBoton: TcxButton;
@@ -189,18 +290,27 @@ begin
         oBoton.SetBounds(oBoton.Left, oDialogo.btnCerrar.Top,
           156 * oDialogo.CurrentPPI div 96, oDialogo.btnCerrar.Height);
         oBoton.Caption := SBotonActualizarPorComparacion;
-        oBoton.ModalResult := mrRetry;
+        TComparacionArranque.Create(oDialogo, oBoton);
       end;
-      iAccion := oDialogo.ShowModal;
+      bComparacionLocalAplicada := False;
+      repeat
+        iAccion := oDialogo.ShowModal;
+        if iAccion = cConsultarEsquema then
+          bComparacionLocalAplicada := MostrarInformeArranque(AOwner,
+            TextoInformeIntegridad(oComprobacion), AFabrica, ACompararLocal);
+      until (iAccion <> cConsultarEsquema) or bComparacionLocalAplicada;
     finally
       oDialogo.Free;
     end;
-    if (iAccion = mrYes) and bPuedeActualizar then
+    if bComparacionLocalAplicada then
+      Result := ValidarIntegridadEsquemaAlArrancar(AOwner, AFabrica,
+        ARegistroLog, AActualizar, AComparar, ACompararLocal)
+    else if (iAccion = mrYes) and bPuedeActualizar then
     begin
       if AActualizar() then
         // Si los scripts no bastan, queda disponible la comparación.
         Result := ValidarIntegridadEsquemaAlArrancar(
-          AOwner, AFabrica, ARegistroLog, nil, AComparar);
+          AOwner, AFabrica, ARegistroLog, nil, AComparar, ACompararLocal);
     end
     else if (iAccion = mrRetry) and bPuedeComparar then
     begin

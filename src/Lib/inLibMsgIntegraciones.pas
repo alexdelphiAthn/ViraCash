@@ -383,6 +383,18 @@ resourcestring
     'el detalle o cerrar esta ventana.';
   SBotonReintentarActualizacion = 'Reintentar';
   SBotonCompararModeloActualizacion = 'Comparar con modelo';
+  STituloComparacionLocal = 'Comparar con el modelo local';
+  SErrorModeloLocalNoDisponible =
+    'No se encuentra el modelo local %s.';
+  SErrorComparadorLocalNoDisponible =
+    'No se encuentra el comparador local %s.';
+  SErrorFirmaComparadorLocal =
+    'No se ha podido verificar la firma del comparador local %s.';
+  SErrorComparadorSinReferenciaLocal =
+    'El DBComparer instalado no admite la comparación con una base _ref.';
+  SPreguntaReemplazarReferenciaLocal =
+    'Ya existe la base de referencia %s en %s:%d. ' +
+    '¿Desea borrarla y volver a cargar en ella el modelo local?';
   SBotonDetalleActualizacion = 'Ver detalle';
   SBotonCerrarActualizacion = 'Cerrar';
   SErrorIntegridadEjecutableActualizado =

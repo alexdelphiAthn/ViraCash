@@ -341,6 +341,7 @@ uses
   inLibContadorLineas,
   UniDataContadorLineasRepositorio,
   UniDataFacturasConfiguracion,
+  UniDataFacturasOperaciones,
   inLibFacturasValidacionCabecera,
   inLibFacturasLineasEdicion,
   inLibFacturasValidacionFiscal,
@@ -2259,7 +2260,7 @@ var
   Datos: TDatosValidacionCabeceraFactura;
   NumeroManual: string;
 begin
-  Datos := CrearDatosValidacionCabeceraFactura(unqryTablaG);
+  Datos := CargarDatosValidacionCabeceraFactura(ConexionEscritura, DataSet);
   Datos.SeriePerteneceOtraEmpresa := ExisteSerieEmpresa(
     Datos.Serie, unqryTablaG.FieldByName(fcodemp).AsString,
     CrearConfiguracionDocumento(tdFactura, sdVenta).TipoContador);

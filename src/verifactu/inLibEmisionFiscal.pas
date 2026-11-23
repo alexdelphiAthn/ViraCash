@@ -38,7 +38,8 @@ implementation
 
 uses
   inLibFormatoDocumento, inLibFormatoDocumentoLecturasIntf,
-  System.SysUtils, inLibVerifactuCola, inLibMsgVerifactu;
+  System.SysUtils, inLibVerifactuCola, inLibMsgVerifactu,
+  UniDataFacturasOperaciones, inLibErroresBBDD;
 
 type
   IEstrategiaEmisionFiscal = interface
@@ -201,15 +202,24 @@ function TEstrategiaEmisionFiscalBase.Emitir(
 var
   oSolicitud: TSolicitudEmisionFiscal;
   bTransaccionPropia: Boolean;
+  bAnulacion: Boolean;
+  sMensaje: string;
 begin
   oSolicitud := ASolicitud;
   oSolicitud.FormatoDocumento := FormatoDocumentoFacturaDelProveedor(
     FServicioCola, ASolicitud.Serie, ASolicitud.Numero);
-  bTransaccionPropia := SameText(oSolicitud.TipoOperacion, 'ANULACION') and
-    not Conexion.InTransaction;
+  bAnulacion := SameText(oSolicitud.TipoOperacion, 'ANULACION');
+  bTransaccionPropia := bAnulacion and not Conexion.InTransaction;
   if bTransaccionPropia then
     Conexion.StartTransaction;
   try
+    if bAnulacion then
+    begin
+      sMensaje := MensajeRetiradaOrigenConCanje(Conexion,
+        oSolicitud.Serie, oSolicitud.Numero, True);
+      if sMensaje <> '' then
+        raise EValidacionBBDD.Create(sMensaje);
+    end;
     Ejecutar(oSolicitud);
     if oSolicitud.RegistrarEvento then
       RegistrarEvento(oSolicitud);

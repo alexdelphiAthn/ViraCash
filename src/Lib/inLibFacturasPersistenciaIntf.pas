@@ -30,6 +30,7 @@ type
     Encontrada: Boolean;
     Fase: string;
     TipoFactura: string;
+    TipoFiscal: string;
     NifCliente: string;
     Empresa: string;
     Cliente: string;

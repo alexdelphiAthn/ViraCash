@@ -98,6 +98,7 @@ type
       const AFaltantes: TArray<TScriptFaltante>;
       AHayVersionNueva: Boolean;
       const AVersion: string): TDecisionScriptsActualizacion;
+    function ConfirmarReemplazoReferencia(ANombre: string): Boolean;
     function ConfirmarScriptComparacion(
       const AVersion, ARutaScript, ASalida: string;
       AConAvisos: Boolean): Boolean;
@@ -172,9 +173,10 @@ begin
       AParametros.GetString(
         PARAMETRO_MOTOR_BASE_DATOS,
         MOTOR_BASE_DATOS_MARIADB1213));
-    oFormulario.FContexto.Servicio := CrearServicioActualizaciones(
-      AParametros,
-      oFormulario.Progreso);
+    if AModo <> mpaCompararModeloLocal then
+      oFormulario.FContexto.Servicio := CrearServicioActualizaciones(
+        AParametros,
+        oFormulario.Progreso);
     oFormulario.ShowModal;
     AResultado := oFormulario.FResultado;
     if oFormulario.FErrorMostrado then
@@ -315,11 +317,26 @@ end;
 
 // Antes de tocar la base se enseña lo que ha salido de la comparación,
 // con lo que DBComparer ha dicho (destino detectado y avisos).
+function TfrmModalActualizacion.ConfirmarReemplazoReferencia(
+  ANombre: string): Boolean;
+var
+  iPuerto: Integer;
+begin
+  iPuerto := FContexto.Conexion.Port;
+  if iPuerto <= 0 then
+    iPuerto := 3306;
+  Result := MessageDlg_fza(Self,
+    Format(SPreguntaReemplazarReferenciaLocal, [ANombre,
+      FContexto.Conexion.Server, iPuerto]),
+    mtWarning, [mbYes, mbNo], 0, mbNo) = mrYes;
+end;
+
 function TfrmModalActualizacion.ConfirmarScriptComparacion(
   const AVersion, ARutaScript, ASalida: string;
   AConAvisos: Boolean): Boolean;
 var
   sPregunta: string;
+  ePredeterminado: TMsgDlgBtn;
 begin
   TfrmModalMensajeTexto.Mostrar(
     Self,
@@ -332,8 +349,12 @@ begin
     sPregunta := SPreguntaAplicarScriptComparacionConAvisos
   else
     sPregunta := SPreguntaAplicarScriptComparacion;
-  Result := MessageDlg_fza(
-    Self, sPregunta, mtConfirmation, [mbYes, mbNo], 0, mbYes) = mrYes;
+  if FModo = mpaCompararModeloLocal then
+    ePredeterminado := mbNo
+  else
+    ePredeterminado := mbYes;
+  Result := MessageDlg_fza(Self, sPregunta, mtConfirmation,
+    [mbYes, mbNo], 0, ePredeterminado) = mrYes;
 end;
 
 // La misma ventana que el generador de procesos: cronómetro, se puede
@@ -453,6 +474,7 @@ begin
   Result.CrearVentanaEspera := CrearVentanaEsperaPantalla;
   Result.DecidirModo := DecidirModo;
   Result.ConfirmarScriptComparacion := ConfirmarScriptComparacion;
+  Result.ConfirmarReemplazoReferencia := ConfirmarReemplazoReferencia;
 end;
 
 // Si no se puede preguntar, se sigue con el parámetro: no es motivo para
@@ -666,6 +688,8 @@ begin
           FResultado.Cancelado := True;
           FResultado.Mensaje := SInfoActualizacionCanceladaMotor;
         end;
+      mpaCompararModeloLocal:
+        FResultado := CompararBaseConModeloLocal(FContexto, Interaccion);
       mpaAplicarPendientes:
         FResultado := AplicarScriptsPendientesActualizacion(
           FContexto.Conexion,
@@ -703,6 +727,8 @@ begin
     FIniciado := True;
     if FModo = mpaRevertir then
       Caption := STituloRevertirActualizacion
+    else if FModo = mpaCompararModeloLocal then
+      Caption := STituloComparacionLocal
     else
       Caption := STituloComprobarActualizaciones;
     lblTitulo.Caption := Caption;

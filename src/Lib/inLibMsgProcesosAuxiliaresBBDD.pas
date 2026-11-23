@@ -88,6 +88,12 @@ resourcestring
     'Ejecutar procedimiento';
   SAccionRegenerarProcedimientoProcesosAuxiliaresBBDD =
     'Regenerar procedimiento';
+  SAccionCompararAplicarLocalProcesosAuxiliaresBBDD =
+    'Comparar y aplicar script local…';
+  SCaptionTablasConsultaProcesosAuxiliaresBBDD =
+    'Operaciones auxiliares de tablas (consulta)';
+  SAccionCompararEsquemaProcesosAuxiliaresBBDD =
+    'Comparar esquema con el modelo';
   SAccionRefrescarMetadatosProcesosAuxiliaresBBDD =
     'Refrescar metadatos';
   SCaptionProcedimientoPlanProcesosAuxiliaresBBDD =

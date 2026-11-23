@@ -47,6 +47,7 @@ type
     lblFecha:         TcxLabel;
     lblBuscar:        TcxLabel;
     edtBuscar:        TcxButtonEdit;
+    btnRefrescar:     TcxButton;
     chkVerTodos:      TcxCheckBox;
     chkVerMiniaturas: TcxCheckBox;
     pnlMaestro:       TPanel;
@@ -565,7 +566,11 @@ begin
   begin
     case Key of
       VK_ESCAPE: Close;
-      VK_F5: RecargarMaestro;
+      VK_F5:
+        begin
+          btnRefrescarClick(Sender);
+          Key := 0;
+        end;
       VK_F12:
         if (ssAlt in Shift) and not (ssCtrl in Shift) then
           GuardarLayout
@@ -826,37 +831,14 @@ end;
 
 procedure TfrmConsultaOpe.btnFacturarTicketClick(Sender: TObject);
 var
-  Factura: TFacturaConsultaOperacion;
-  oRes:    TFacturarTicketResult;
   sSerie:  string;
   sNumero: string;
-  bSigue:  Boolean;
 begin
-  //Factura completa (F3) en sustitución del ticket de la operación
-  bSigue  := False;
   if not FacturaSeleccionada(sSerie, sNumero) then
     ShowMessage_fza(SErrorOperacionSinBorrador)
   else
-  begin
-    Factura := FRepositorioFacturas.ConsultarFactura(sSerie, sNumero);
-    if (not Factura.Existe) or
-       (not SameText(Factura.Tipo, 'SIMPLIFICADA')) then
-      ShowMessage_fza(SErrorFacturarTicketRequiereSimplificado)
-    else
-      bSigue := True;
-    if bSigue then
-    begin
-      oRes := TfrmModalFacturarTicket.Ejecutar(Self, sSerie, sNumero,
-                                               FEmpresa, FAlmacen);
-      if oRes.Aceptado then
-        ShowMessage_fza(FormatearMensajeDocumentos(
-          oRes.FormatoDocumento,
-          SInfoBorradorSustitucionTicketCreado,
-          [oRes.SerieNueva, oRes.NumeroNueva,
-          sSerie, sNumero,
-          ModoVerifactuTexto(ParametrosApp)]));
-    end;
-  end;
+    TfrmModalFacturarTicket.Ejecutar(Self, sSerie, sNumero, FEmpresa,
+      FAlmacen, PuedeUsarBoton(PERMISO_CAJA_BUSCAR_REIMPRIMIR));
 end;
 
 procedure TfrmConsultaOpe.btnDevolverAbonarClick(Sender: TObject);
@@ -1382,8 +1364,16 @@ end;
 
 // -----------------------------------------------------------------------------
 procedure TfrmConsultaOpe.btnRefrescarClick(Sender: TObject);
+var
+  sOperacion: string;
 begin
-  RecargarMaestro;
+  sOperacion := '';
+  if FdmConsulta.qryMaestro.Active and not FdmConsulta.qryMaestro.IsEmpty then
+    sOperacion := FdmConsulta.qryMaestro.
+      FieldByName('NUMERO_OPERACION_OPCAJA').AsString;
+  RefrescarOperaciones;
+  if (sOperacion <> '') and FdmConsulta.qryMaestro.Active then
+    FdmConsulta.qryMaestro.Locate('NUMERO_OPERACION_OPCAJA', sOperacion, []);
 end;
 
 procedure TfrmConsultaOpe.dtpFechaPropertiesEditValueChanged(Sender: TObject);

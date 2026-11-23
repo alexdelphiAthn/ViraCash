@@ -88,6 +88,7 @@ type
     // guardado: el nombre del formato ya esta decidido y el guardar va
     // directo a fza_usuarios_perfiles con sElegido y FScopePerfilFijado.
     FFormatoFijado: Boolean;
+    FUsarFormatoOriginal: Boolean;
     FScopePerfilFijado: string;
     FServiciosPersistencia: TServiciosPersistenciaImpresion;
     FRestauracionesGuias: TInterfaceList;
@@ -250,6 +251,8 @@ type
     procedure VistaPreviaCreada(Sender: TObject);
     procedure ReportInicioDocumento(Sender: TObject);
     procedure Consultar_Formularios(bForzarSeleccion: Boolean = False);
+    property UsarFormatoOriginal: Boolean read FUsarFormatoOriginal
+      write FUsarFormatoOriginal;
     // Selecciona un formato sin mostrar el modal. Se usa en procesos
     // automatizados que ya reciben el nombre como argumento.
     function SeleccionarFormatoSinDialogo(
@@ -1907,18 +1910,23 @@ var
   sFormatoGuardado: string;
   bSeleccionAutomatica: Boolean;
 begin
-  sElegido := '';
-  sFichaAccion := '';
-  sFormatoGuardado := PerfilesLectura.ObtenerValorPerfil(
-    Self.Name + '_formato_seleccionado', IdentidadSesion.Usuario, '');
-  bSeleccionAutomatica := False;
-  if (not bForzarSeleccion) and (sFormatoGuardado <> '') then
-    bSeleccionAutomatica := SeleccionarFormatoSinDialogo(sFormatoGuardado);
-  if not bSeleccionAutomatica then
+  if FUsarFormatoOriginal and not bForzarSeleccion then
+    SeleccionarFormatoSinDialogo('Predeterminado')
+  else
   begin
-    // Editar fuerza el selector; un formato retirado también permite elegir.
-    SeleccionarFormato(sFormatoGuardado, sFichaAccion);
-    CargarFormatoElegido(sFichaAccion);
+    sElegido := '';
+    sFichaAccion := '';
+    sFormatoGuardado := PerfilesLectura.ObtenerValorPerfil(
+      Self.Name + '_formato_seleccionado', IdentidadSesion.Usuario, '');
+    bSeleccionAutomatica := False;
+    if (not bForzarSeleccion) and (sFormatoGuardado <> '') then
+      bSeleccionAutomatica := SeleccionarFormatoSinDialogo(sFormatoGuardado);
+    if not bSeleccionAutomatica then
+    begin
+      // Editar fuerza el selector o permite sustituir un formato retirado.
+      SeleccionarFormato(sFormatoGuardado, sFichaAccion);
+      CargarFormatoElegido(sFichaAccion);
+    end;
   end;
 end;
 

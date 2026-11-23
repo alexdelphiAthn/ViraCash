@@ -20,6 +20,7 @@ type
     Serie: string;
     Numero: string;
     TipoFactura: string;
+    TipoFiscal: string;
     Fase: string;
     RazonSocialCliente: string;
     RazonSocialEmpresa: string;
@@ -36,6 +37,8 @@ type
     ControlarCronologia: Boolean;
   end;
 
+function EsFacturaSimplificadaFiscal(
+  const ATipoFactura, ATipoFiscal: string): Boolean;
 function EsCabeceraFacturaValidable(
   const ADatos: TDatosValidacionCabeceraFactura): Boolean;
 procedure ValidarIdentidadCabeceraFactura(
@@ -68,10 +71,12 @@ uses
   inLibMsgFacturas,
   inLibMsgVentas;
 
-function EsFacturaSimplificada(
-  const ADatos: TDatosValidacionCabeceraFactura): Boolean;
+function EsFacturaSimplificadaFiscal(
+  const ATipoFactura, ATipoFiscal: string): Boolean;
 begin
-  Result := SameText(ADatos.TipoFactura, 'SIMPLIFICADA');
+  Result := SameText(Trim(ATipoFactura), 'SIMPLIFICADA') or
+    (SameText(Trim(ATipoFactura), 'RECTIFICATIVA') and
+     SameText(Trim(ATipoFiscal), 'R5'));
 end;
 
 function EsCabeceraFacturaValidable(
@@ -80,7 +85,7 @@ begin
   // La subsanación corrige una factura emitida: pasa de nuevo las
   // validaciones fiscales del borrador (no la cronología, que ya fijó
   // su fecha).
-  Result := not EsFacturaSimplificada(ADatos) and
+  Result := not SameText(Trim(ADatos.TipoFactura), 'SIMPLIFICADA') and
     (SameText(ADatos.Fase, 'BORRADOR') or
      SameText(ADatos.Fase, 'SUBSANACION') or
      (Trim(ADatos.Fase) = ''));
@@ -96,7 +101,7 @@ begin
       cvfSerie);
   end;
   if (ADatos.RazonSocialCliente = '') and
-     not EsFacturaSimplificada(ADatos) then
+     not EsFacturaSimplificadaFiscal(ADatos.TipoFactura, ADatos.TipoFiscal) then
   begin
     raise EValidacionFactura.Create(
       SErrorRazonSocialClienteBorrador,
@@ -114,9 +119,10 @@ begin
       SErrorSerieBorradorObligatoria,
       cvfSerie);
   end;
-  if ((ADatos.CodigoPaisCliente = '') or
-      (ADatos.CodigoPaisEmpresa = '')) and
-     not EsFacturaSimplificada(ADatos) then
+  if not SameText(Trim(ADatos.TipoFactura), 'SIMPLIFICADA') and
+     ((ADatos.CodigoPaisEmpresa = '') or
+      ((ADatos.CodigoPaisCliente = '') and
+       not EsFacturaSimplificadaFiscal(ADatos.TipoFactura, ADatos.TipoFiscal))) then
   begin
     raise EValidacionFactura.Create(
       SErrorPaisClienteEmpresaBorrador,
@@ -136,7 +142,9 @@ procedure ValidarCoherenciaCabeceraFactura(
 begin
   if EsCabeceraFacturaValidable(ADatos) then
   begin
-    if PaisEsEspana(
+    if ((ADatos.RazonSocialCliente <> '') or
+        not EsFacturaSimplificadaFiscal(ADatos.TipoFactura, ADatos.TipoFiscal)) and
+       PaisEsEspana(
          ADatos.CodigoPaisCliente,
          ADatos.NombrePaisCliente) and
        not DocumentoFiscalValido(ADatos.NifCliente) then

@@ -108,8 +108,6 @@ begin
     raise EArgumentNilException.Create('AEstructura');
   if not Assigned(AContenido) then
     raise EArgumentNilException.Create('AContenido');
-  if not Assigned(ARefresco) then
-    raise EArgumentNilException.Create('ARefresco');
   FConexion := AConexion;
   FMetadatos := AMetadatos;
   FEstructura := AEstructura;
@@ -227,15 +225,25 @@ procedure TCatalogoMetadatosBBDDUniDAC.Refrescar(
   const ABaseDatos: string);
 begin
   FMetadatos.Close;
-  FRefresco.ParamByName('pDATABASENAME').AsString := ABaseDatos;
-  FRefresco.ExecProc;
+  if Assigned(FRefresco) then
+  begin
+    FRefresco.ParamByName('pDATABASENAME').AsString := ABaseDatos;
+    FRefresco.ExecProc;
+  end;
 end;
 
 procedure TCatalogoMetadatosBBDDUniDAC.CargarObjetos(
   ATipo: TTipoObjetoMetadatosBBDD);
 begin
   FMetadatos.Close;
-  FMetadatos.ParamByName('pTIPO').AsInteger := Ord(ATipo) + 1;
+  if Assigned(FRefresco) then
+    FMetadatos.ParamByName('pTIPO').AsInteger := Ord(ATipo) + 1
+  else
+    FMetadatos.SQL.Text :=
+      'SELECT TABLE_NAME AS NOMBRE_META_META ' +
+      'FROM information_schema.TABLES ' +
+      'WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = ''BASE TABLE'' ' +
+      'ORDER BY TABLE_NAME';
   FMetadatos.Open;
 end;
 
@@ -276,7 +284,8 @@ var
 begin
   sNombreSeguro := IdentificadorSeguro(ANombre);
   PrepararContenidoLectura;
-  FContenido.ReadOnly := EsTablaFacturacionProtegida(sNombreSeguro);
+  FContenido.ReadOnly := not Assigned(FRefresco) or
+    EsTablaFacturacionProtegida(sNombreSeguro);
   FContenido.SQL.Text :=
     'SELECT * FROM ' + sNombreSeguro + ' LIMIT 1000';
   try

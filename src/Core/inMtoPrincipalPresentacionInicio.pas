@@ -46,6 +46,9 @@ type
     FWindowProcPagina: TWndMethod;
     FModoSDI: Boolean;
     FCompacta: Boolean;
+    FAjustandoAncho: Boolean;
+    FBordeNormal: TFormBorderStyle;
+    FIconosBordeNormal: TBorderIcons;
     FMarcaOscura: Boolean;
     function EsTemaOscuro: Boolean;
     procedure ActualizarPrincipalCompacta;
@@ -77,6 +80,8 @@ type
     procedure CentrarFondo;
     procedure ActualizarFondo;
     procedure ConfigurarModoVentanas(const AModo: string);
+    procedure AjustarAnchoCompacto(AAnchoBarra: Integer);
+    property Compacta: Boolean read FCompacta;
     procedure CerrarSplash(AMinimoMs: Integer);
     procedure AplicarTitulo(
       AFormulario: TForm;
@@ -281,7 +286,7 @@ procedure TPresentacionInicioPrincipal.Configurar(
   const AVersion: string);
 begin
   AplicarTema(AParametros);
-  ConfigurarModoVentanas(AParametros.GetString('appModoVentanas', 'MDI'));
+  ConfigurarModoVentanas(AParametros.GetString('appModoVentanas', 'SDI'));
   CargarFondo;
   FImagenFondo.Parent := FFondoDegradado;
   FImagenFondo.Anchors := [akLeft, akTop];
@@ -471,7 +476,11 @@ begin
       FPagina.Visible := not FCompacta;
       if FCompacta then
       begin
+        FBordeNormal := oPrincipal.BorderStyle;
+        FIconosBordeNormal := oPrincipal.BorderIcons;
         oPrincipal.WindowState := wsNormal;
+        oPrincipal.BorderStyle := bsSingle;
+        oPrincipal.BorderIcons := oPrincipal.BorderIcons - [biMaximize];
         FijarPosicionFormulario(oPrincipal, poDesigned);
         oArea := oPrincipal.Monitor.WorkareaRect;
         oPrincipal.ClientHeight := MulDiv(32, oPrincipal.PixelsPerInch, 96);
@@ -482,8 +491,52 @@ begin
         oPrincipal.Top := oArea.Top;
       end
       else
+      begin
+        oPrincipal.BorderStyle := FBordeNormal;
+        oPrincipal.BorderIcons := FIconosBordeNormal;
         // Dockar sigue disponible: recuperar espacio para la pestaña.
         oPrincipal.WindowState := wsMaximized;
+      end;
+    end;
+  end;
+end;
+
+procedure TPresentacionInicioPrincipal.AjustarAnchoCompacto(
+  AAnchoBarra: Integer);
+var
+  oPrincipal: TForm;
+  oArea, oItem: TRect;
+  hMenuPrincipal: HMENU;
+  iItem, iAnchoMenu, iAncho: Integer;
+begin
+  if FCompacta and not FAjustandoAncho and (AAnchoBarra > 0) and
+     (FOwner is TForm) then
+  begin
+    oPrincipal := TForm(FOwner);
+    if oPrincipal.HandleAllocated and (oPrincipal.WindowState = wsNormal) then
+    begin
+      hMenuPrincipal := GetMenu(oPrincipal.Handle);
+      iAnchoMenu := 0;
+      for iItem := 0 to GetMenuItemCount(hMenuPrincipal) - 1 do
+        if GetMenuItemRect(oPrincipal.Handle, hMenuPrincipal, iItem, oItem) then
+          Inc(iAnchoMenu, oItem.Width);
+      if iAnchoMenu = 0 then
+        iAnchoMenu := oPrincipal.ScaleValue(740);
+      oArea := oPrincipal.Monitor.WorkareaRect;
+      iAncho := Min(oArea.Width, Max(AAnchoBarra,
+        iAnchoMenu + oPrincipal.ScaleValue(16)) +
+        oPrincipal.Width - oPrincipal.ClientWidth);
+      if iAncho <> oPrincipal.Width then
+      begin
+        FAjustandoAncho := True;
+        try
+          oPrincipal.Width := iAncho;
+          oPrincipal.Left := EnsureRange(oPrincipal.Left, oArea.Left,
+            oArea.Right - oPrincipal.Width);
+        finally
+          FAjustandoAncho := False;
+        end;
+      end;
     end;
   end;
 end;

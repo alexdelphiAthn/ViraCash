@@ -29,6 +29,8 @@ type
     FRepositorio: IRepositorioBorradoFactura;
     FServicioVerifactuCola: IServicioVerifactuCola;
     FTransaccionPropia: Boolean;
+    function ValidarBorrado(const ASerie, ANumero, AFase: string;
+      ABloquear: Boolean): TResultadoBorradoFactura;
     procedure BorrarMovimientos(
       const ASerie, ANumero: string);
   public
@@ -51,7 +53,7 @@ type
 implementation
 
 uses
-  System.SysUtils, inLibVerifactuCola;
+  System.SysUtils, inLibVerifactuCola, UniDataFacturasOperaciones;
 
 constructor TServicioBorradoFactura.Create(
   AConexion: TUniConnection;
@@ -78,18 +80,28 @@ end;
 function TServicioBorradoFactura.Validar(
   const ASerie, ANumero, AFase: string
 ): TResultadoBorradoFactura;
+begin
+  Result := ValidarBorrado(ASerie, ANumero, AFase, False);
+end;
+
+function TServicioBorradoFactura.ValidarBorrado(
+  const ASerie, ANumero, AFase: string; ABloquear: Boolean
+): TResultadoBorradoFactura;
 var
   bTieneEfectosCobrados: Boolean;
+  sMensaje: string;
 begin
-  bTieneEfectosCobrados := False;
-  if (Trim(AFase) = '') or SameText(AFase, 'BORRADOR') then
+  sMensaje := MensajeRetiradaOrigenConCanje(FConexion,
+    ASerie, ANumero, ABloquear);
+  if sMensaje <> '' then
+    Result := TResultadoBorradoFactura.Denegar(sMensaje)
+  else
   begin
-    bTieneEfectosCobrados :=
+    bTieneEfectosCobrados := ((Trim(AFase) = '') or
+      SameText(AFase, 'BORRADOR')) and
       FRepositorio.TieneEfectosCobrados(ASerie, ANumero);
+    Result := EvaluarBorradoFactura(AFase, bTieneEfectosCobrados);
   end;
-  Result := EvaluarBorradoFactura(
-    AFase,
-    bTieneEfectosCobrados);
 end;
 
 procedure TServicioBorradoFactura.BorrarMovimientos(
@@ -110,7 +122,7 @@ begin
   if FTransaccionPropia then
     FConexion.StartTransaction;
   try
-    Result := Validar(ASerie, ANumero, AFase);
+    Result := ValidarBorrado(ASerie, ANumero, AFase, True);
     if Result.Permitido then
     begin
       FRepositorio.DesvincularAlbaranes(ASerie, ANumero, AUsuario);

@@ -25,6 +25,8 @@ interface
 uses
   Vcl.ComCtrls;
 
+function AnchoNecesarioBarraEstado(ABarra: TStatusBar): Integer;
+
 // APreferidos: ancho preferido de cada panel a 96 ppp (se escala al de la
 // barra). AOrdenRecorte: índices de los paneles que pueden recortarse, del
 // primero al último en sacrificarse; los que no aparecen no se recortan.
@@ -51,6 +53,19 @@ begin
   Result := ABarra.ScaleValue(MARGEN_TEXTO_PANEL);
   if sTexto <> '' then
     Result := Result + ABarra.Canvas.TextWidth(sTexto);
+end;
+
+function AnchoNecesarioBarraEstado(ABarra: TStatusBar): Integer;
+var
+  iPanel: Integer;
+begin
+  Result := 0;
+  if Assigned(ABarra) and ABarra.HandleAllocated then
+  begin
+    ABarra.Canvas.Font := ABarra.Font;
+    for iPanel := 0 to ABarra.Panels.Count - 1 do
+      Inc(Result, AnchoTextoPanel(ABarra, iPanel));
+  end;
 end;
 
 procedure AjustarPanelesBarraEstado(

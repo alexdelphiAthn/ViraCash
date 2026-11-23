@@ -28,7 +28,6 @@ type
     Aceptado: Boolean;
     SerieNueva: string;
     NumeroNueva: string;
-    FormatoDocumento: string;
   end;
 
   TfrmModalFacturarTicket = class(TfrmBase)
@@ -83,7 +82,8 @@ type
       const ASerieTicket: string;
       const ANumeroTicket: string;
       const AEmpresa: string;
-      const AAlmacen: string): TFacturarTicketResult;
+      const AAlmacen: string;
+      AMostrarImpresion: Boolean): TFacturarTicketResult;
   end;
 
 implementation
@@ -95,7 +95,8 @@ uses
   UniDataNumeracionDocumentos,
   inMtoGenSearch, inLibDocumentoFiscal, inLibFacturasValidacionCabecera,
   inLibMsgFacturas, inLibMsgVentas, inLibMsgOpcionesDocumento,
-  inLibVerifactuTipos,
+  inLibFacturasServiciosIntf,
+  inLibVerifactuTipos, inLibVerifactu, inMtoModalImpFac,
   inLibVentasPantallaIntf,
   UniDataVentasPantallaComposicion,
   inLibClientesAltaRapida, inMtoModalAltaRapidaCliente,
@@ -576,11 +577,13 @@ class function TfrmModalFacturarTicket.Ejecutar(
   const ASerieTicket: string;
   const ANumeroTicket: string;
   const AEmpresa: string;
-  const AAlmacen: string): TFacturarTicketResult;
+  const AAlmacen: string;
+  AMostrarImpresion: Boolean): TFacturarTicketResult;
 var
   oContexto: TContextoFacturacionTicketVentasPantalla;
   oFormulario: TfrmModalFacturarTicket;
   oOpciones: TOpcionesDocumento;
+  sFormatoDocumento: string;
 begin
   Result := Default(TFacturarTicketResult);
   oFormulario := TfrmModalFacturarTicket.Create(AOwner);
@@ -595,12 +598,33 @@ begin
       oFormulario.RegistroLog,
       oContexto);
     oFormulario.FServicioFacturacion := oContexto.Facturacion;
-    if TfrmModalOpcionesDocumento.Solicitar(AOwner,
-         CrearLectorOpcionesDocumentoUniDAC(oFormulario.ConexionPrincipal),
-         oFormulario.Configurar(AAlmacen), oOpciones) then
-      Result := oFormulario.CrearFacturaNormal(oOpciones);
-    Result.FormatoDocumento := CrearFormatoDocumentoLecturas(
-      oFormulario.ConexionPrincipal).LeerFormatoEmpresa(AEmpresa);
+    if not oFormulario.FServicioFacturacion.ResolverOrigenCanje(
+      oFormulario.FSerieTicket, oFormulario.FNumeroTicket, AEmpresa) then
+      ShowMessage_fza(SErrorOrigenCanjeNoDisponible)
+    else if TfrmModalOpcionesDocumento.Solicitar(AOwner,
+      CrearLectorOpcionesDocumentoUniDAC(oFormulario.ConexionPrincipal),
+      oFormulario.Configurar(AAlmacen), oOpciones) then
+    begin
+      try
+        Result := oFormulario.CrearFacturaNormal(oOpciones);
+      except
+        on E: EValidacionFactura do
+          ShowMessage_fza(E.Message);
+      end;
+      if Result.Aceptado then
+      begin
+        sFormatoDocumento := CrearFormatoDocumentoLecturas(
+          oFormulario.ConexionPrincipal).LeerFormatoEmpresa(AEmpresa);
+        ShowMessage_fza(FormatearMensajeDocumentos(sFormatoDocumento,
+          SInfoBorradorSustitucionTicketCreado,
+          [Result.SerieNueva, Result.NumeroNueva, oFormulario.FSerieTicket,
+           oFormulario.FNumeroTicket,
+           ModoVerifactuTexto(oFormulario.ParametrosApp)]));
+        if AMostrarImpresion then
+          TfrmPrintFac.MostrarPorReferencia(oFormulario,
+            Result.SerieNueva, Result.NumeroNueva, True);
+      end;
+    end;
   finally
     oFormulario.FServicioFacturacion := nil;
     FreeAndNil(oFormulario);

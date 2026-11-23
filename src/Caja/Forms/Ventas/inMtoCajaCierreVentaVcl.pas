@@ -263,6 +263,7 @@ function ConfirmarRectificativaCajaVcl(
 var
   sUnidades: string;
   sCobros: string;
+  sTicket: string;
   cTotal: Currency;
 begin
   Result := True;
@@ -279,13 +280,21 @@ begin
     end
     else if AContexto.TipoRectificativa = trcSustitutiva then
     begin
-      sCobros := ResumenCobrosTicketCaja(AContexto.Conexion,
-        AContexto.SerieRectificada, AContexto.NumeroRectificado, cTotal);
-      if sCobros <> '' then
-        ShowMessage_fza(Format(SAvisoSustitutivaTicketCobradoCaja,
-          [FormatearReferenciaFactura(AContexto.Conexion,
-             AContexto.SerieRectificada, AContexto.NumeroRectificado),
-           FormatCurr('#,##0.00', cTotal), sCobros]));
+      sTicket := FormatearReferenciaFactura(AContexto.Conexion,
+        AContexto.SerieRectificada, AContexto.NumeroRectificado);
+      if TieneRectificativaDiferenciasVigenteCaja(AContexto.Conexion,
+        AContexto.SerieRectificada, AContexto.NumeroRectificado) then
+        Result := MessageDlg_fza(
+          Format(SPreguntaSustitutivaConDiferenciasCaja, [sTicket]),
+          mtWarning, [mbYes, mbNo], 0, mbNo) = mrYes
+      else
+      begin
+        sCobros := ResumenCobrosTicketCaja(AContexto.Conexion,
+          AContexto.SerieRectificada, AContexto.NumeroRectificado, cTotal);
+        if sCobros <> '' then
+          ShowMessage_fza(Format(SAvisoSustitutivaTicketCobradoCaja,
+            [sTicket, FormatCurr('#,##0.00', cTotal), sCobros]));
+      end;
     end;
   end;
 end;

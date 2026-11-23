@@ -37,7 +37,7 @@ implementation
 uses
   inLibFormatoDocumentoLecturasIntf,
   System.SysUtils,
-  inLibMsgFacturas, inLibMsgVentas,
+  inLibMsgFacturas, inLibMsgVentas, inLibFacturasValidacionCabecera,
   inLibPrestaShopColaSenal;
 
 type
@@ -122,7 +122,7 @@ begin
   Result := TResultadoOperacionFactura.Correcto;
   // FZ-ISSUE-859: las copias desde otros documentos pueden llegar sin
   // pasar por BeforePost. Consolidar exige el mismo pais que la edicion.
-  if not SameText(Trim(ADatos.TipoFactura), 'SIMPLIFICADA') and
+  if not EsFacturaSimplificadaFiscal(ADatos.TipoFactura, ADatos.TipoFiscal) and
      (Trim(ADatos.CodigoPaisCliente) = '') then
     Result := TResultadoOperacionFactura.Error(
       SErrorPaisClienteEmpresaBorrador)

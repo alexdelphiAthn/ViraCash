@@ -51,6 +51,8 @@ procedure DesempaquetarCopiaSeguridadZipDesdeFichero(
 procedure DescifrarCopiaSeguridadDesdeFichero(
   const ARutaCopia, ARutaScript, AContrasena: string;
   AOnEtapa: TEtapaAperturaCopiaEvent = nil);
+procedure DescifrarModeloDistribucion(
+  const ARutaModelo, ARutaSql: string);
 function DesempaquetarCopiaSeguridadZip(
   const ADatos: TBytes
 ): TBytes;
@@ -1797,6 +1799,14 @@ begin
     EliminarFicheroTemporal(sRutaPlano);
     EliminarFicheroTemporal(sRutaCifrado);
   end;
+end;
+
+procedure DescifrarModeloDistribucion(
+  const ARutaModelo, ARutaSql: string);
+{$I inLibClavesCifrado.local.inc}
+begin
+  DescifrarCopiaSeguridadDesdeFichero(ARutaModelo, ARutaSql,
+    CLAVE_DISTRIBUCION);
 end;
 
 end.

@@ -36,13 +36,15 @@ procedure AsegurarSerieFacturaCaja(AConexion: TUniConnection;
 // ticket, como «Forma importe» separados por «; ». Vacío si no hay cobros.
 function ResumenCobrosTicketCaja(AConexion: TUniConnection;
   const ASerie, ANumero: string; out ATotal: Currency): string;
+function TieneRectificativaDiferenciasVigenteCaja(AConexion: TUniConnection;
+  const ASerie, ANumero: string): Boolean;
 
 implementation
 
 uses
   System.SysUtils, Data.DB, UniDataValoresAutomaticosRepositorio,
   UniDataAlmacenesEmpresaRepositorio, inLibAlmacenesEmpresaPersistenciaIntf,
-  inLibMsgCaja, inLibErroresBBDD;
+  inLibMsgCaja, inLibErroresBBDD, UniDataRectificativasSql;
 
 function FiltroAmbitoCanjeVale(
   const ARestriccion: TRestriccionCanjeVale): string;
@@ -575,6 +577,32 @@ begin
     end;
   finally
     FreeAndNil(oConsulta);
+  end;
+end;
+
+function TieneRectificativaDiferenciasVigenteCaja(AConexion: TUniConnection;
+  const ASerie, ANumero: string): Boolean;
+var
+  oConsulta: TUniQuery;
+begin
+  oConsulta := TUniQuery.Create(nil);
+  try
+    oConsulta.Connection := AConexion;
+    oConsulta.SQL.Text :=
+      'SELECT 1 FROM fza_facturas_relaciones r ' +
+      'JOIN fza_facturas f ON f.SERIE_FAC = r.SERIE_FAC_FACREL ' +
+      ' AND f.NUMERO_FAC = r.NUMERO_FAC_FACREL ' +
+      'WHERE r.SERIE_FAC_ORIGEN_FACREL = :SERIE ' +
+      'AND r.NUMERO_FAC_ORIGEN_FACREL = :NUMERO ' +
+      'AND r.TIPO_RELACION_FACREL = ''RECTIFICA'' ' +
+      'AND f.TIPO_RECTIFICATIVA_FAC = ''I'' ' +
+      SQLRectificativaVigente('f') + ' LIMIT 1';
+    oConsulta.ParamByName('SERIE').AsString := Trim(ASerie);
+    oConsulta.ParamByName('NUMERO').AsString := Trim(ANumero);
+    oConsulta.Open;
+    Result := not oConsulta.IsEmpty;
+  finally
+    oConsulta.Free;
   end;
 end;
 

@@ -337,6 +337,12 @@ resourcestring
   SErrorFacturarTicketRequiereSimplificado =
     'Solo se crea un borrador normal desde un borrador SIMPLIFICADO ' +
     '(ticket).';
+  SErrorOrigenCanjeNoDisponible =
+    'El documento no está disponible para el canje. Seleccione un ticket ' +
+    'o una rectificativa simplificada (R5) consolidada y pendiente de canje.';
+  SErrorRetirarOrigenConCanje =
+    'Primero cancele la factura de canje %s. Después podrá borrar o anular ' +
+    'el documento de origen.';
   SInfoBorradorSustitucionTicketCreado =
     'Creado el borrador %s\%s en sustitución del ticket %s\%s en modo ' +
     'fiscal %s (F3).';

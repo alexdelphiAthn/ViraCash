@@ -35,15 +35,14 @@ uses
   UniDataFacturasOperaciones, UniDataFacturasRecalculoTotales,
   UniDataAlmacenesEmpresaRepositorio,
   UniDataValoresAutomaticosRepositorio, UniDataFaseCobroRepositorio,
-  inLibFacturasProformaIntf;
+  inLibFacturasProformaIntf, UniDataRectificativasSql;
 
 resourcestring
   SErrorNumeroFacturaTicketExistente =
     'Ya existe la factura %s/%s.';
 
 const
-  SQL_TICKET_PENDIENTE =
-    ' AND t.TIPO_FAC = ''SIMPLIFICADA'' ' +
+  SQL_ORIGEN_CANJE_DISPONIBLE =
     ' AND t.ESCONSOLIDADA_FAC = ''S'' ' +
     ' AND COALESCE(t.FASE_FAC, '''') NOT IN ' +
     '(''CANCELADA'', ''VERIFACTU_ANULADA'', ''SIN_VERIF_ANULADA'', ' +
@@ -54,6 +53,10 @@ const
     ' WHERE r.SERIE_FAC_ORIGEN_FACREL = t.SERIE_FAC ' +
     ' AND r.NUMERO_FAC_ORIGEN_FACREL = t.NUMERO_FAC ' +
     ' AND r.TIPO_RELACION_FACREL IN (''SUSTITUYE'', ''RECTIFICA'')) ';
+  SQL_TICKET_PENDIENTE = ' AND t.TIPO_FAC = ''SIMPLIFICADA'' ' +
+    SQL_ORIGEN_CANJE_DISPONIBLE;
+  SQL_ES_R5 = '(t.TIPO_FAC = ''RECTIFICATIVA'' ' +
+    'AND t.TIPO_FACTURA_VERIFACTU_FAC = ''R5'')';
   SQL_TICKET_SIN_CLIENTE =
     '(COALESCE(TRIM(t.CODIGO_CLI_FAC), '''') = '''' ' +
     'OR EXISTS (SELECT 1 FROM fza_clientes c ' +
@@ -526,6 +529,8 @@ type
       const ACodigoCliente: string): TClienteFacturacionTicket;
     function CrearFactura(
       const ASolicitud: TSolicitudFacturacionTicket): string;
+    function ResolverOrigenCanje(var ASerie, ANumero: string;
+      const AEmpresa: string): Boolean;
     procedure LeerClienteTicket(const ASerie, ANumero: string;
       out ACliente, ARazonSocial: string);
     function FechaTicket(const ASerie, ANumero: string): TDateTime;
@@ -783,6 +788,83 @@ begin
   end;
 end;
 
+function SQLOrigenCanjeIndividual: string;
+begin
+  Result := ' AND (t.TIPO_FAC = ''SIMPLIFICADA'' OR (' + SQL_ES_R5 +
+    SQLRectificativaVigente('t') + ')) ' + SQL_ORIGEN_CANJE_DISPONIBLE +
+    ' AND NOT EXISTS (SELECT 1 FROM fza_verifactu_cola q ' +
+    ' WHERE q.SERIE_FAC_VFCOLA = t.SERIE_FAC ' +
+    ' AND q.NUMERO_FAC_VFCOLA = t.NUMERO_FAC ' +
+    ' AND q.TIPO_OPERACION_VFCOLA = ''ANULACION'' ' +
+    ' AND q.ESTADO_VFCOLA IN (''PENDIENTE'', ''PROCESANDO'', ''ENVIADA'')) ';
+end;
+
+function TServicioFacturacionTicketUniDAC.ResolverOrigenCanje(
+  var ASerie, ANumero: string; const AEmpresa: string): Boolean;
+var
+  Consulta: TUniQuery;
+  Serie, Numero: string;
+begin
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := FConexion;
+    Consulta.SQL.Text := 'SELECT t.SERIE_FAC FROM fza_facturas t ' +
+      'WHERE t.SERIE_FAC = :SERIE AND t.NUMERO_FAC = :NUMERO ' +
+      'AND t.CODIGO_EMP_FAC = :EMPRESA ' + SQLOrigenCanjeIndividual;
+    Consulta.ParamByName('SERIE').AsString := ASerie;
+    Consulta.ParamByName('NUMERO').AsString := ANumero;
+    Consulta.ParamByName('EMPRESA').AsString := AEmpresa;
+    Consulta.Open;
+    Result := not Consulta.IsEmpty;
+    if not Result then
+    begin
+      Consulta.Close;
+      // Si queda una única rectificativa vigente y es sustitutiva, el
+      // importe válido es el de esa R5. Las diferencias se eligen aparte.
+      Consulta.SQL.Text :=
+        'SELECT t.SERIE_FAC, t.NUMERO_FAC FROM fza_facturas o ' +
+        'JOIN fza_facturas_relaciones r ' +
+        ' ON r.SERIE_FAC_ORIGEN_FACREL = o.SERIE_FAC ' +
+        ' AND r.NUMERO_FAC_ORIGEN_FACREL = o.NUMERO_FAC ' +
+        ' AND r.TIPO_RELACION_FACREL = ''RECTIFICA'' ' +
+        'JOIN fza_facturas t ON t.SERIE_FAC = r.SERIE_FAC_FACREL ' +
+        ' AND t.NUMERO_FAC = r.NUMERO_FAC_FACREL ' +
+        ' AND t.CODIGO_EMP_FAC = o.CODIGO_EMP_FAC ' +
+        'WHERE o.SERIE_FAC = :SERIE AND o.NUMERO_FAC = :NUMERO ' +
+        ' AND o.CODIGO_EMP_FAC = :EMPRESA AND o.TIPO_FAC = ''SIMPLIFICADA'' ' +
+        ' AND o.ESCONSOLIDADA_FAC = ''S'' ' +
+        ' AND t.TIPO_RECTIFICATIVA_FAC = ''S'' AND ' + SQL_ES_R5 +
+        SQLOrigenCanjeIndividual +
+        ' AND NOT EXISTS (SELECT 1 FROM fza_facturas_relaciones rr ' +
+        ' WHERE rr.SERIE_FAC_ORIGEN_FACREL = o.SERIE_FAC ' +
+        ' AND rr.NUMERO_FAC_ORIGEN_FACREL = o.NUMERO_FAC ' +
+        ' AND rr.TIPO_RELACION_FACREL = ''SUSTITUYE'') ' +
+        ' AND NOT EXISTS (SELECT 1 FROM fza_facturas_relaciones rr ' +
+        ' JOIN fza_facturas f ON f.SERIE_FAC = rr.SERIE_FAC_FACREL ' +
+        ' AND f.NUMERO_FAC = rr.NUMERO_FAC_FACREL ' +
+        ' WHERE rr.SERIE_FAC_ORIGEN_FACREL = o.SERIE_FAC ' +
+        ' AND rr.NUMERO_FAC_ORIGEN_FACREL = o.NUMERO_FAC ' +
+        ' AND rr.TIPO_RELACION_FACREL = ''RECTIFICA'' ' +
+        ' AND rr.ID_FACREL <> r.ID_FACREL ' +
+        SQLRectificativaVigente('f') + ')';
+      Consulta.ParamByName('SERIE').AsString := ASerie;
+      Consulta.ParamByName('NUMERO').AsString := ANumero;
+      Consulta.ParamByName('EMPRESA').AsString := AEmpresa;
+      Consulta.Open;
+      if not Consulta.IsEmpty then
+      begin
+        Serie := Consulta.FieldByName('SERIE_FAC').AsString;
+        Numero := Consulta.FieldByName('NUMERO_FAC').AsString;
+        ASerie := Serie;
+        ANumero := Numero;
+        Result := True;
+      end;
+    end;
+  finally
+    Consulta.Free;
+  end;
+end;
+
 procedure TServicioFacturacionTicketUniDAC.BloquearTicketIndividual(
   const ASolicitud: TSolicitudFacturacionTicket);
 var
@@ -799,15 +881,15 @@ begin
     oConsulta.Close;
     oConsulta.SQL.Text := 'SELECT t.SERIE_FAC FROM fza_facturas t ' +
       'WHERE t.SERIE_FAC = :SERIE AND t.NUMERO_FAC = :NUMERO ' +
-      'AND t.CODIGO_EMP_FAC = :EMPRESA ' + SQL_TICKET_PENDIENTE +
+      'AND t.CODIGO_EMP_FAC = :EMPRESA ' + SQLOrigenCanjeIndividual +
       'FOR UPDATE';
     oConsulta.ParamByName('SERIE').AsString := ASolicitud.SerieTicket;
     oConsulta.ParamByName('NUMERO').AsString := ASolicitud.NumeroTicket;
     oConsulta.ParamByName('EMPRESA').AsString := ASolicitud.Empresa;
     oConsulta.Open;
     if oConsulta.IsEmpty then
-      raise Exception.CreateFmt(SErrorTicketPeriodo,
-        [ASolicitud.SerieTicket, ASolicitud.NumeroTicket]);
+      raise EValidacionFactura.Create(SErrorOrigenCanjeNoDisponible,
+        cvfSerie);
   finally
     FreeAndNil(oConsulta);
   end;

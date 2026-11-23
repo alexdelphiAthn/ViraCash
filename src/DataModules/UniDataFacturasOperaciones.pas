@@ -17,9 +17,15 @@ unit UniDataFacturasOperaciones;
 interface
 
 uses
+  Data.DB,
   inLibFormatoDocumentoLecturasIntf,
+  inLibFacturasValidacionCabecera,
   Uni, inLibFacturasPersistenciaIntf;
 
+function CargarDatosValidacionCabeceraFactura(AConexion: TUniConnection;
+  AFactura: TDataSet): TDatosValidacionCabeceraFactura;
+function MensajeRetiradaOrigenConCanje(AConexion: TUniConnection;
+  const ASerie, ANumero: string; ABloquear: Boolean): string;
 function CrearPersistenciaFacturasUniDAC(
   AConexion: TUniConnection;
   ARestaurarMovimientos: Boolean = False): TPersistenciaFacturas;
@@ -28,8 +34,10 @@ implementation
 
 uses
   inLibMsgFacturas,
+  inLibFacturasValidacionDatos,
+  inLibFormatoDocumento,
   UniDataFormatoDocumentoRepositorio,
-  System.SysUtils, System.Hash, System.IOUtils, Data.DB,
+  System.SysUtils, System.Hash, System.IOUtils,
   UniDataMovimientosAlmacenRecalculo, UniDataMovimientosLote;
 
 type
@@ -113,6 +121,81 @@ type
       const ASerie, ANumero, ARutaPdf, AFormato,
         AUsuario: string): Boolean;
   end;
+
+function CargarDatosValidacionCabeceraFactura(AConexion: TUniConnection;
+  AFactura: TDataSet): TDatosValidacionCabeceraFactura;
+var
+  Consulta: TUniQuery;
+begin
+  Result := CrearDatosValidacionCabeceraFactura(AFactura);
+  // Las vistas de edición no incluyen el tipo fiscal de la rectificativa.
+  if (AFactura.State <> dsInsert) and
+     SameText(Trim(Result.TipoFactura), 'RECTIFICATIVA') then
+  begin
+    Consulta := TUniQuery.Create(nil);
+    try
+      Consulta.Connection := AConexion;
+      Consulta.SQL.Text :=
+        'SELECT TIPO_FACTURA_VERIFACTU_FAC FROM fza_facturas ' +
+        'WHERE SERIE_FAC = :SERIE AND NUMERO_FAC = :NUMERO';
+      Consulta.ParamByName('SERIE').AsString := Result.Serie;
+      Consulta.ParamByName('NUMERO').AsString := Result.Numero;
+      Consulta.Open;
+      if not Consulta.IsEmpty then
+        Result.TipoFiscal := Consulta.Fields[0].AsString;
+    finally
+      Consulta.Free;
+    end;
+  end;
+end;
+
+function MensajeRetiradaOrigenConCanje(AConexion: TUniConnection;
+  const ASerie, ANumero: string; ABloquear: Boolean): string;
+var
+  Consulta: TUniQuery;
+  SerieCanje, NumeroCanje: string;
+begin
+  Result := '';
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := AConexion;
+    if ABloquear then
+    begin
+      // Comparte el bloqueo de cabecera con la creación del canje.
+      Consulta.SQL.Text := 'SELECT SERIE_FAC FROM fza_facturas ' +
+        'WHERE SERIE_FAC = :SERIE AND NUMERO_FAC = :NUMERO FOR UPDATE';
+      Consulta.ParamByName('SERIE').AsString := ASerie;
+      Consulta.ParamByName('NUMERO').AsString := ANumero;
+      Consulta.Open;
+      Consulta.Close;
+    end;
+    Consulta.SQL.Text := 'SELECT f.SERIE_FAC, f.NUMERO_FAC ' +
+      'FROM fza_facturas_relaciones r JOIN fza_facturas f ' +
+      'ON f.SERIE_FAC = r.SERIE_FAC_FACREL ' +
+      'AND f.NUMERO_FAC = r.NUMERO_FAC_FACREL ' +
+      'WHERE r.SERIE_FAC_ORIGEN_FACREL = :SERIE ' +
+      'AND r.NUMERO_FAC_ORIGEN_FACREL = :NUMERO ' +
+      'AND r.TIPO_RELACION_FACREL = ''SUSTITUYE'' ' +
+      'AND COALESCE(f.FASE_FAC, '''') NOT IN (''CANCELADA'', ' +
+      '''SIN_VERIF_ANULADA'', ''VERIFACTU_ANULADA'', ''NOVERIFACTU_ANULADA'') ' +
+      'ORDER BY r.ID_FACREL DESC LIMIT 1';
+    if ABloquear then
+      Consulta.SQL.Add('FOR UPDATE');
+    Consulta.ParamByName('SERIE').AsString := ASerie;
+    Consulta.ParamByName('NUMERO').AsString := ANumero;
+    Consulta.Open;
+    if not Consulta.IsEmpty then
+    begin
+      SerieCanje := Consulta.FieldByName('SERIE_FAC').AsString;
+      NumeroCanje := Consulta.FieldByName('NUMERO_FAC').AsString;
+      Result := Format(SErrorRetirarOrigenConCanje, [FormatearDocumento(
+        CrearFormatoDocumentoLecturas(AConexion).LeerFormatoFactura(
+          SerieCanje, NumeroCanje), SerieCanje, NumeroCanje)]);
+    end;
+  finally
+    Consulta.Free;
+  end;
+end;
 
 function TPersistenciaFacturasUniDAC.LeerFormatoEmpresa(
   const ACodigoEmpresa: string): string;
@@ -460,7 +543,7 @@ begin
   Qry := NuevaConsulta;
   try
     Qry.SQL.Text :=
-      'SELECT FASE_FAC, TIPO_FAC, NIF_CLIENTE_FAC, ' +
+      'SELECT FASE_FAC, TIPO_FAC, TIPO_FACTURA_VERIFACTU_FAC, NIF_CLIENTE_FAC, ' +
       '       CODIGO_EMP_FAC, CODIGO_CLI_FAC, CODIGO_CAJA_FAC, ' +
       '       NUMERO_OPERACION_FAC, FECHA_FAC, ESMUEVE_STOCK_FAC, ' +
       '       TIPO_OPER_VFACTU_FAC, CODIGO_PAI_CLIENTE_FAC, ' +
@@ -485,6 +568,8 @@ begin
     begin
       Result.Fase := Qry.FieldByName('FASE_FAC').AsString;
       Result.TipoFactura := Qry.FieldByName('TIPO_FAC').AsString;
+      Result.TipoFiscal := Qry.FieldByName(
+        'TIPO_FACTURA_VERIFACTU_FAC').AsString;
       Result.NifCliente :=
         Qry.FieldByName('NIF_CLIENTE_FAC').AsString;
       Result.Empresa := Qry.FieldByName('CODIGO_EMP_FAC').AsString;

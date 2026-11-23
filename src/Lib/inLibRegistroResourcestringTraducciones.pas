@@ -6024,6 +6024,10 @@ begin
     @inLibMsgProcesosAuxiliaresBBDD.
       SAccionRegenerarProcedimientoProcesosAuxiliaresBBDD);
   RegistrarTextoProcesosAuxiliaresBBDD(ARegistrar,
+    'SAccionCompararEsquemaProcesosAuxiliaresBBDD',
+    @inLibMsgProcesosAuxiliaresBBDD.
+      SAccionCompararEsquemaProcesosAuxiliaresBBDD);
+  RegistrarTextoProcesosAuxiliaresBBDD(ARegistrar,
     'SAccionRefrescarMetadatosProcesosAuxiliaresBBDD',
     @inLibMsgProcesosAuxiliaresBBDD.
       SAccionRefrescarMetadatosProcesosAuxiliaresBBDD);
@@ -20146,6 +20150,14 @@ begin
     @inLibMsgFacturas.
       SErrorFacturarTicketRequiereSimplificado);
   ARegistrar(
+    'inLibMsgFacturas.SErrorOrigenCanjeNoDisponible',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SErrorOrigenCanjeNoDisponible);
+  ARegistrar(
+    'inLibMsgFacturas.SErrorRetirarOrigenConCanje',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SErrorRetirarOrigenConCanje);
+  ARegistrar(
     'inLibMsgFacturas.' +
     'SInfoBorradorSustitucionTicketCreado',
     'src/Lib/inLibMsgFacturas.pas',
@@ -32539,6 +32551,10 @@ begin
     'inLibMsgCaja.SAvisoSustitutivaTicketCobradoCaja',
     'src/Lib/inLibMsgCaja.pas',
     @inLibMsgCaja.SAvisoSustitutivaTicketCobradoCaja);
+  ARegistrar(
+    'inLibMsgCaja.SPreguntaSustitutivaConDiferenciasCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.SPreguntaSustitutivaConDiferenciasCaja);
   ARegistrar(
     'inLibMsgCaja.SErrorSustitutivaDiaAnteriorCaja',
     'src/Lib/inLibMsgCaja.pas',

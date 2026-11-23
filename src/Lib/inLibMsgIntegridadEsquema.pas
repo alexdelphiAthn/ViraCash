@@ -26,6 +26,7 @@ resourcestring
     'con la intercalación correcta; esta comprobación no modifica datos.';
   SIntegridadIntercalacionBase = 'Intercalación de la base: %s';
   SIntegridadBotonActualizar = 'Comprobar actualizaciones';
+  SIntegridadBotonOperacionesAuxiliares = 'Operaciones auxiliares…';
   SIntegridadActualizacionArranque =
     'Puede pulsar Comprobar actualizaciones o Por comparación para ' +
     'reparar la base antes de entrar, aunque no falten scripts. ' +

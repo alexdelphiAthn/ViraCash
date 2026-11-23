@@ -31,7 +31,8 @@ type
     mpaComprobar,
     mpaAplicarPendientes,
     mpaRevertir,
-    mpaCompararModelo);
+    mpaCompararModelo,
+    mpaCompararModeloLocal);
 
   TDecisionScriptsActualizacion = (
     dsaAplazar,
@@ -85,6 +86,9 @@ type
     const AVersion, ARutaScript, ASalida: string;
     AConAvisos: Boolean): Boolean;
 
+  TConfirmarReemplazoReferencia = reference to function(
+    ANombre: string): Boolean;
+
   TSolicitarCopiaPreviaActualizacion = reference to function(
     out ARutaCopia: string): Boolean;
 
@@ -113,6 +117,7 @@ type
     // script generado se aplica sin enseñarlo.
     DecidirModo: TDecidirModoActualizacion;
     ConfirmarScriptComparacion: TConfirmarScriptComparacion;
+    ConfirmarReemplazoReferencia: TConfirmarReemplazoReferencia;
     function Completa: Boolean;
   end;
 
@@ -134,6 +139,9 @@ function ComprobarEInstalarActualizacion(
 function CompararBaseConModeloPublicado(
   const AContexto: TContextoActualizacion;
   const AInteraccion: TInteraccionActualizacion): TResultadoActualizacion;
+function CompararBaseConModeloLocal(
+  const AContexto: TContextoActualizacion;
+  const AInteraccion: TInteraccionActualizacion): TResultadoActualizacion;
 function AplicarScriptsPendientesActualizacion(
   AConexion: TUniConnection;
   const AInteraccion: TInteraccionActualizacion): TResultadoActualizacion;
@@ -150,7 +158,9 @@ uses
   System.IOUtils,
   System.SysUtils,
   System.Threading,
+  Winapi.Windows,
   inLibActualizacionComparacion,
+  inLibCifradoCopias, inLibFirmaEjecutable,
   inLibActualizacionInstalacion,
   inLibActualizacionPrecedencia,
   inLibActualizacionVersion,
@@ -1186,6 +1196,163 @@ begin
     Estado := PrepararEstadoDeLaBase(AContexto, Manifiesto);
     AplicarFaltantesSinInstalacion(AContexto, Manifiesto,
       AInteraccion, nil, Estado, Result, True);
+  end;
+end;
+
+procedure PrepararModeloComparacionLocal(const AComparador, AModeloLocal,
+  AModelo: string);
+const
+  cModeloComparador = 'VIRACASH_MODELO_LOCAL';
+var
+  hComparador: HMODULE;
+  oRecurso: TResourceStream;
+  sModeloTemporal: string;
+begin
+  hComparador := LoadLibraryEx(PChar(AComparador), 0, LOAD_LIBRARY_AS_DATAFILE);
+  if hComparador = 0 then
+    RaiseLastOSError;
+  try
+    if FindResource(hComparador, cModeloComparador, RT_RCDATA) <> 0 then
+    begin
+      sModeloTemporal := AModelo + '.crypt';
+      oRecurso := TResourceStream.Create(hComparador, cModeloComparador,
+        RT_RCDATA);
+      try
+        oRecurso.SaveToFile(sModeloTemporal);
+        DescifrarModeloDistribucion(sModeloTemporal, AModelo);
+      finally
+        oRecurso.Free;
+        if TFile.Exists(sModeloTemporal) then
+          TFile.Delete(sModeloTemporal);
+      end;
+    end
+    else
+    begin
+      if not TFile.Exists(AModeloLocal) then
+        raise EFileNotFoundException.CreateFmt(SErrorModeloLocalNoDisponible,
+          [AModeloLocal]);
+      DescifrarModeloDistribucion(AModeloLocal, AModelo);
+    end;
+  finally
+    FreeLibrary(hComparador);
+  end;
+end;
+
+function CompararBaseConModeloLocal(
+  const AContexto: TContextoActualizacion;
+  const AInteraccion: TInteraccionActualizacion): TResultadoActualizacion;
+var
+  oComparacion: TResultadoComparacionActualizacion;
+  oEstado: TEstadoActualizacion;
+  oPendiente: TScriptPendienteActualizacion;
+  oFirma: TResultadoFirmaEjecutable;
+  oVentana: IVentanaEspera;
+  sCarpeta, sComparador, sModeloCifrado, sModelo, sScript: string;
+  bReemplazar: Boolean;
+  bCancelar, bCancelado: Boolean;
+  sError: string;
+
+  procedure Generar;
+  begin
+    oVentana := AbrirVentanaEspera(AInteraccion, SFaseGenerandoComparacion);
+    try
+      EsperarEnSuHilo(
+        procedure
+        begin
+          try
+            if not TFile.Exists(sModelo) then
+              PrepararModeloComparacionLocal(sComparador, sModeloCifrado,
+                sModelo);
+            oComparacion := GenerarScriptComparacion(AContexto.Conexion,
+              sComparador, sModelo, sScript, '', True, bReemplazar);
+          except
+            on E: Exception do
+            begin
+              oComparacion := Default(TResultadoComparacionActualizacion);
+              oComparacion.Error := E.ClassName + ': ' + E.Message;
+            end;
+          end;
+        end, nil);
+    finally
+      CerrarVentanaEspera(oVentana);
+    end;
+  end;
+
+begin
+  Result := Default(TResultadoActualizacion);
+  if not Assigned(AInteraccion.ConfirmarScriptComparacion) or
+     not Assigned(AInteraccion.ConfirmarReemplazoReferencia) or
+     not Assigned(AInteraccion.SolicitarCopiaPrevia) then
+    raise EArgumentException.Create(SErrorInteraccionActualizacionIncompleta);
+
+  sCarpeta := ExtractFilePath(AContexto.RutaEjecutable);
+  sComparador := TPath.Combine(sCarpeta, 'DBComparer.exe');
+  sModeloCifrado := TPath.Combine(sCarpeta, 'bbdd\viracash.sql.crypt');
+  if not TFile.Exists(sComparador) then
+    raise EFileNotFoundException.CreateFmt(SErrorComparadorLocalNoDisponible,
+      [sComparador]);
+  oFirma := ComprobarFirmaEjecutable(sComparador);
+  if not oFirma.Correcta then
+    raise Exception.CreateFmt(SErrorFirmaComparadorLocal, [sComparador]);
+
+  Result.Version := AContexto.VersionInstalada;
+  // El descifrado crea otro archivo temporal junto al destino.
+  sCarpeta := TPath.Combine(TPath.GetTempPath,
+    'vc_ref_' + TPath.GetRandomFileName);
+  TDirectory.CreateDirectory(sCarpeta);
+  sModelo := TPath.Combine(sCarpeta, 'modelo_local.sql');
+  sScript := TPath.Combine(sCarpeta, NombreScriptComparacion(Result.Version));
+  bReemplazar := False;
+  bCancelar := False;
+  try
+    Generar;
+    if oComparacion.Codigo = cSalidaReferenciaYaExiste then
+    begin
+      bReemplazar := AInteraccion.ConfirmarReemplazoReferencia(
+        AContexto.Conexion.Database + '_ref');
+      bCancelar := not bReemplazar;
+      if bReemplazar then
+        Generar;
+    end;
+  finally
+    if TFile.Exists(sModelo) then
+      TFile.Delete(sModelo);
+  end;
+
+  if bCancelar then
+  begin
+    Result.Ok := True;
+    Result.Cancelado := True;
+  end
+  else if not oComparacion.Ok then
+    Result.Mensaje := oComparacion.Error
+  else if not AInteraccion.ConfirmarScriptComparacion(
+      Result.Version, oComparacion.RutaScript, oComparacion.Salida,
+      oComparacion.ConAvisos) then
+  begin
+    Result.Ok := True;
+    Result.Cancelado := True;
+    Result.Mensaje := SInfoComparacionNoAplicada;
+  end
+  else if not AInteraccion.SolicitarCopiaPrevia(Result.RutaCopiaPrevia) then
+  begin
+    Result.Ok := True;
+    Result.Cancelado := True;
+    Result.Mensaje := SInfoActualizacionSinCopiaPrevia;
+  end
+  else
+  begin
+    oEstado := Default(TEstadoActualizacion);
+    oPendiente := Default(TScriptPendienteActualizacion);
+    oPendiente.Nombre := ExtractFileName(sScript);
+    oPendiente.Ruta := sScript;
+    oEstado.Pendientes := [oPendiente];
+    Result.Ok := AplicarPendientes(AContexto.Conexion, AInteraccion,
+      oEstado, bCancelado, sError);
+    Result.Cancelado := bCancelado;
+    Result.Mensaje := sError;
+    if Result.Ok and not Result.Cancelado then
+      Result.Mensaje := SInfoScriptsPendientesAplicados;
   end;
 end;
 

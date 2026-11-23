@@ -888,12 +888,14 @@
       end
       object mnuCambioCodigoCliente: TMenuItem
         Caption = 'Cambio de código de cliente'
+        ShortCut = 57459
         OnClick = mnuCambioCodigoClienteClick
       end
       object mnuAjusteMovimientos: TMenuItem
         Caption = 'Ajuste de movimientos'
         object mnuAjusteDepositos: TMenuItem
           Caption = 'Cambiar almacén de depósitos abiertos'
+          ShortCut = 57395
           OnClick = mnuAjusteDepositosClick
         end
       end

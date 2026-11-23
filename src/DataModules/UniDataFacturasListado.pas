@@ -21,15 +21,18 @@ uses
 
 const
   // Solo presentación: la fase persistida sigue siendo la del motor fiscal.
-  SQL_FASE_FISCAL_LISTADO =
-    'CASE WHEN c.SISTEMA_VFCOLA = ''SII'' ' +
-    ' AND v.FASE_FAC LIKE ''VERIFACTU_%'' THEN ' +
-    ' CASE WHEN v.FASE_FAC = ''VERIFACTU_ANULADA'' ' +
+  SQL_FASE_FISCAL_INICIO = 'CASE WHEN c.SISTEMA_VFCOLA = ''SII'' AND ';
+  SQL_FASE_FISCAL_SII = ' LIKE ''VERIFACTU_%'' THEN CASE WHEN ';
+  SQL_FASE_FISCAL_ESTADOS =
+    ' = ''VERIFACTU_ANULADA'' ' +
     '        THEN ''SII_ANULADA'' ' +
     '      WHEN c.ESTADO_VFCOLA = ''ENVIADA'' THEN ''SII_OK'' ' +
     '      WHEN c.ESTADO_VFCOLA = ''ERROR'' THEN ''SII_ERROR'' ' +
-    '      ELSE ''SII_PENDIENTE'' END ' +
-    ' ELSE v.FASE_FAC END AS FASE_PRESENTACION_FAC, ';
+    '      ELSE ''SII_PENDIENTE'' END ELSE ';
+  SQL_FASE_FISCAL_LISTADO =
+    SQL_FASE_FISCAL_INICIO + 'v.FASE_FAC' + SQL_FASE_FISCAL_SII +
+    'v.FASE_FAC' + SQL_FASE_FISCAL_ESTADOS +
+    'v.FASE_FAC END AS FASE_PRESENTACION_FAC, ';
   SQL_ENLACE_COLA_LISTADO =
     ' LEFT JOIN fza_verifactu_cola c ON c.ID_VFCOLA = (' +
     ' SELECT MAX(uc.ID_VFCOLA) FROM fza_verifactu_cola uc ' +
@@ -50,6 +53,7 @@ function CrearPreparadorListadoFacturasUniDAC(
   AConexion: TUniConnection): IPreparadorListadoFacturas;
 
 function SQLFiltroVistaListadoFacturas(const AVista: string): string;
+function SQLFaseFiscalPresentacion(const ACampoFase: string): string;
 
 implementation
 
@@ -58,6 +62,12 @@ uses
   inLibSqlSeguro,
   inLibVerifactuEsquemaIntf,
   UniDataVerifactuEsquema;
+
+function SQLFaseFiscalPresentacion(const ACampoFase: string): string;
+begin
+  Result := SQL_FASE_FISCAL_INICIO + ACampoFase + SQL_FASE_FISCAL_SII +
+    ACampoFase + SQL_FASE_FISCAL_ESTADOS + ACampoFase + ' END';
+end;
 
 const
   // Las vistas por tipo permiten clasificar también el origen rectificado.

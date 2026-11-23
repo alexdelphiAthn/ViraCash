@@ -58,7 +58,7 @@
       Properties.Buttons = <>
       Properties.OnChange = edtBuscarPropertiesChange
       TabOrder = 1
-      Width = 500
+      Width = 460
     end
     object chkVerTodos: TcxCheckBox
       Left = 816
@@ -82,6 +82,21 @@
       TabOrder = 5
       Transparent = True
       Width = 190
+    end
+    object btnRefrescar: TcxButton
+      Left = 764
+      Top = 14
+      Width = 32
+      Height = 28
+      Hint = 'Refrescar operaciones y estado de VERI*FACTU (F5)'
+      Caption = #8635
+      Font.Height = -19
+      Font.Name = 'Segoe UI Symbol'
+      ParentFont = False
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 6
+      OnClick = btnRefrescarClick
     end
   end
   object pnlMaestro: TPanel [2]
@@ -138,7 +153,7 @@
         end
         object colFaseFactura: TcxGridDBColumn
           Caption = 'Fase'
-          DataBinding.FieldName = 'FASE_FAC'
+          DataBinding.FieldName = 'FASE_PRESENTACION_FAC'
           Width = 150
         end
         object colCliente: TcxGridDBColumn
