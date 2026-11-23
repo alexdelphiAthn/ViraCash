@@ -18,7 +18,8 @@ uses
   inLibReparacionesEvidencias in
     'src\Lib\inLibReparacionesEvidencias.pas',
   inLibReparacionesMovimientos in 'src\Lib\inLibReparacionesMovimientos.pas',
-  UniDataReparacionesMovimientos in 'src\DataModules\UniDataReparacionesMovimientos.pas',
+  UniDataReparacionesMovimientos in
+                           'src\DataModules\UniDataReparacionesMovimientos.pas',
   inLibTrabajosCortinas in
     'src\Lib\inLibTrabajosCortinas.pas',
   UniDataTrabajosCortinas in
@@ -45,8 +46,10 @@ uses
     'src\DataModules\UniDataReparacionesFases.pas',
   inMtoModalEvidenciaReparacion in
     'src\Modals\inMtoModalEvidenciaReparacion.pas',
-  inMtoModalMovimientoReparacion in 'src\Modals\inMtoModalMovimientoReparacion.pas',
-  inMtoReparacionesSeguimientoVcl in 'src\Forms\inMtoReparacionesSeguimientoVcl.pas',
+  inMtoModalMovimientoReparacion in
+                                'src\Modals\inMtoModalMovimientoReparacion.pas',
+  inMtoReparacionesSeguimientoVcl in
+                                'src\Forms\inMtoReparacionesSeguimientoVcl.pas',
 
   UniDataRetiradaLotesLecturas in
     'src\DataModules\UniDataRetiradaLotesLecturas.pas',

@@ -74,7 +74,8 @@
         <UWP_DelphiLogo44>$(BDS)\bin\Artwork\Windows\UWP\delphi_UwpDefault_44.png</UWP_DelphiLogo44>
         <UWP_DelphiLogo150>$(BDS)\bin\Artwork\Windows\UWP\delphi_UwpDefault_150.png</UWP_DelphiLogo150>
         <SanitizedProjectName>vcash</SanitizedProjectName>
-        <PreBuildEvent><![CDATA[python -I "$(MSBuildProjectDirectory)\eng\huella\regenerar_huella.py" --solo-recurso]]></PreBuildEvent>
+        <PreBuildEvent><![CDATA[python -I "$(MSBuildProjectDirectory)\eng\huella\regenerar_huella.py" --solo-recurso
+$(PreBuildEvent)]]></PreBuildEvent>
         <PreBuildEventCancelOnError>true</PreBuildEventCancelOnError>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win32)'!=''">
@@ -137,7 +138,7 @@
         <VerInfo_Release>24</VerInfo_Release>
         <VerInfo_Build>0</VerInfo_Build>
         <VerInfo_PreRelease>true</VerInfo_PreRelease>
-        <VerInfo_Keys>CompanyName=Alejandro Laorden Hidalgo;FileDescription=ViraCash;FileVersion=1.0.24.0;InternalName=ViraCash;LegalCopyright=All Rights Reserved;LegalTrademarks=ViraCash;OriginalFilename=vcash.exe;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=ViraCash;ProductVersion=1.0.24.0;Comments=1.0.24.202611222012.beta</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=Alejandro Laorden Hidalgo;FileDescription=ViraCash;FileVersion=1.0.24.0;InternalName=ViraCash;LegalCopyright=All Rights Reserved;LegalTrademarks=ViraCash;OriginalFilename=vcash.exe;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=ViraCash;ProductVersion=1.0.24.0;Comments=1.0.24.202611230733.beta</VerInfo_Keys>
         <AppEnableRuntimeThemes>false</AppEnableRuntimeThemes>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
@@ -157,7 +158,7 @@
         <VerInfo_Build>0</VerInfo_Build>
         <VerInfo_Special>true</VerInfo_Special>
         <VerInfo_Private>true</VerInfo_Private>
-        <VerInfo_Keys>CompanyName=ViraCash;FileDescription=ViraCash;FileVersion=1.0.24.0;InternalName=ViraCash;LegalCopyright=All Rights Reserved;LegalTrademarks=ViraCash;OriginalFilename=vcash.exe;ProductName=ViraCash;ProductVersion=1.0.24.0;Comments=1.0.24.202611222012.beta</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=ViraCash;FileDescription=ViraCash;FileVersion=1.0.24.0;InternalName=ViraCash;LegalCopyright=All Rights Reserved;LegalTrademarks=ViraCash;OriginalFilename=vcash.exe;ProductName=ViraCash;ProductVersion=1.0.24.0;Comments=1.0.24.202611230733.beta</VerInfo_Keys>
         <DCC_MapFile>3</DCC_MapFile>
         <DCC_GenerateStackFrames>true</DCC_GenerateStackFrames>
     </PropertyGroup>
@@ -170,7 +171,7 @@
         <VerInfo_MinorVer>0</VerInfo_MinorVer>
         <VerInfo_Release>24</VerInfo_Release>
         <VerInfo_Build>0</VerInfo_Build>
-        <VerInfo_Keys>CompanyName=ViraCash;FileDescription=ViraCash;FileVersion=1.0.24.0;InternalName=ViraCash;LegalCopyright=All Rights Reserved;LegalTrademarks=ViraCash;OriginalFilename=vcash.exe;ProductName=ViraCash;ProductVersion=1.0.24.0;Comments=1.0.24.202611222012.beta</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=ViraCash;FileDescription=ViraCash;FileVersion=1.0.24.0;InternalName=ViraCash;LegalCopyright=All Rights Reserved;LegalTrademarks=ViraCash;OriginalFilename=vcash.exe;ProductName=ViraCash;ProductVersion=1.0.24.0;Comments=1.0.24.202611230733.beta</VerInfo_Keys>
         <VerInfo_Special>true</VerInfo_Special>
         <VerInfo_Private>true</VerInfo_Private>
         <UWP_DelphiLogo44>icon-verde-48.png</UWP_DelphiLogo44>
@@ -181,6 +182,12 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
+        <DCCReference Include="src\Caja\Lib\Contratos\inLibTpvMvcIntf.pas"/>
+        <DCCReference Include="src\Caja\Lib\Controladores\inLibControladorVentaTpv.pas"/>
+        <DCCReference Include="src\Caja\DataModules\Modelos\UniDataModeloPreparacionVentaTpv.pas"/>
+        <DCCReference Include="src\Lib\inLibMantenimientoMvcIntf.pas"/>
+        <DCCReference Include="src\Lib\inLibControladorMantenimiento.pas"/>
+        <DCCReference Include="src\DataModules\UniDataModeloMantenimiento.pas"/>
         <DCCReference Include="src\Lib\inLibReparacionesEvidencias.pas"/>
         <DCCReference Include="src\Lib\inLibReparacionesMovimientos.pas"/>
         <DCCReference Include="src\DataModules\UniDataReparacionesMovimientos.pas"/>
@@ -818,12 +825,6 @@
         <DCCReference Include="src\Lib\inLibLogonAplicacionIntf.pas"/>
         <DCCReference Include="src\Lib\inLibArranqueAplicacion.pas"/>
         <DCCReference Include="src\Lib\inLibMovimientosAlmacenAplicacion.pas"/>
-        <DCCReference Include="src\Caja\Lib\Contratos\inLibTpvMvcIntf.pas"/>
-        <DCCReference Include="src\Caja\Lib\Controladores\inLibControladorVentaTpv.pas"/>
-        <DCCReference Include="src\Caja\DataModules\Modelos\UniDataModeloPreparacionVentaTpv.pas"/>
-        <DCCReference Include="src\Lib\inLibMantenimientoMvcIntf.pas"/>
-        <DCCReference Include="src\Lib\inLibControladorMantenimiento.pas"/>
-        <DCCReference Include="src\DataModules\UniDataModeloMantenimiento.pas"/>
         <DCCReference Include="src\Lib\inLibMtoGenAplicacion.pas"/>
         <DCCReference Include="src\Lib\inLibMtoGenAplicacionIntf.pas"/>
         <DCCReference Include="src\Lib\inLibWizardEditarPersistenciaIntf.pas"/>
@@ -3313,4 +3314,36 @@
         </PropertyGroup>
         <Copy SourceFiles="$(OrigenWebView2)\Microsoft.WebView2.LICENSE.txt" DestinationFolder="$(DCC_ExeOutput)" SkipUnchangedFiles="true"/>
     </Target>
+    <PropertyGroup Condition="'$(Config)'=='Debug' And '$(Platform)'=='Win32'">
+        <PreBuildEvent>python -I &quot;$(MSBuildProjectDirectory)\eng\huella\regenerar_huella.py&quot; --solo-recurso</PreBuildEvent>
+        <PreBuildEventIgnoreExitCode>False</PreBuildEventIgnoreExitCode>
+        <PreLinkEvent/>
+        <PreLinkEventIgnoreExitCode>False</PreLinkEventIgnoreExitCode>
+        <PostBuildEvent/>
+        <PostBuildEventIgnoreExitCode>False</PostBuildEventIgnoreExitCode>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Config)'=='Debug' And '$(Platform)'=='Win64'">
+        <PreBuildEvent>python -I &quot;$(MSBuildProjectDirectory)\eng\huella\regenerar_huella.py&quot; --solo-recurso</PreBuildEvent>
+        <PreBuildEventIgnoreExitCode>False</PreBuildEventIgnoreExitCode>
+        <PreLinkEvent/>
+        <PreLinkEventIgnoreExitCode>False</PreLinkEventIgnoreExitCode>
+        <PostBuildEvent/>
+        <PostBuildEventIgnoreExitCode>False</PostBuildEventIgnoreExitCode>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Config)'=='Release' And '$(Platform)'=='Win32'">
+        <PreBuildEvent>python -I &quot;$(MSBuildProjectDirectory)\eng\huella\regenerar_huella.py&quot; --solo-recurso</PreBuildEvent>
+        <PreBuildEventIgnoreExitCode>False</PreBuildEventIgnoreExitCode>
+        <PreLinkEvent/>
+        <PreLinkEventIgnoreExitCode>False</PreLinkEventIgnoreExitCode>
+        <PostBuildEvent/>
+        <PostBuildEventIgnoreExitCode>False</PostBuildEventIgnoreExitCode>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Config)'=='Release' And '$(Platform)'=='Win64'">
+        <PreBuildEvent>python -I &quot;$(MSBuildProjectDirectory)\eng\huella\regenerar_huella.py&quot; --solo-recurso</PreBuildEvent>
+        <PreBuildEventIgnoreExitCode>False</PreBuildEventIgnoreExitCode>
+        <PreLinkEvent/>
+        <PreLinkEventIgnoreExitCode>False</PreLinkEventIgnoreExitCode>
+        <PostBuildEvent/>
+        <PostBuildEventIgnoreExitCode>False</PostBuildEventIgnoreExitCode>
+    </PropertyGroup>
 </Project>
