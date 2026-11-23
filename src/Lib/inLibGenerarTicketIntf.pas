@@ -14,6 +14,8 @@ type
       const ACodigoEmpleado: string): string;
     function ObtenerCodigoBarras(
       const ASerie, ANumero: string): string;
+    function ObtenerClienteImpresion(
+      const ASerie, ANumero: string): TDatosClienteImpresion;
     // FZ-ISSUE-200: factura rectificada o sustituida por ASerie/ANumero.
     function ObtenerReferenciaRectificacion(
       const ASerie, ANumero: string): TReferenciaRectificacionTicket;

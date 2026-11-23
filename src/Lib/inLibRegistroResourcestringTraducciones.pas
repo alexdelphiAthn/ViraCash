@@ -25238,6 +25238,10 @@ begin
     @inLibMsgVerifactu.
       SErrorFacturaRegistroFiscalNoEncontrada);
   ARegistrar(
+    'inLibMsgVerifactu.SErrorFacturaYaAnuladaFiscalmente',
+    'src/Lib/inLibMsgVerifactu.pas',
+    @inLibMsgVerifactu.SErrorFacturaYaAnuladaFiscalmente);
+  ARegistrar(
     'inLibMsgVerifactu.' +
     'SAvisoQrPngNoGenerado',
     'src/Lib/inLibMsgVerifactu.pas',

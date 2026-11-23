@@ -307,6 +307,10 @@ begin
 end;
 
 procedure TImpresorTicketVenta.EscribirCabecera;
+var
+  DatosFactura: TDataSet;
+  Cliente, ClienteGuardado: TDatosClienteImpresion;
+  Linea: string;
 begin
   EscribirQRTributario;
   FTicket.SaltarLineas(1);
@@ -340,6 +344,21 @@ begin
     Format(STicketFormatoTienda,
       [LPad(FCodigoEmpresa, 3), LPad(FCodigoAlmacen, 3),
        LPad(FCodigoCaja, 2)]));
+  if not FSinPrecios then
+  begin
+    DatosFactura := FDatosCobro.TotalesFactura.Cabecera;
+    Cliente := LeerClienteImpresion(DatosFactura, '_FAC');
+    if Cliente.Asignado and Assigned(FLecturasTicket) then
+    begin
+      ClienteGuardado := FLecturasTicket.ObtenerClienteImpresion(
+        DatosFactura.FieldByName('SERIE_FAC').AsString,
+        DatosFactura.FieldByName('NUMERO_FAC').AsString);
+      if ClienteGuardado.Asignado then
+        Cliente := ClienteGuardado;
+    end;
+    for Linea in LineasClienteTicket(Cliente, N_CHAR_LIN) do
+      FTicket.EscribirLinea(Linea);
+  end;
 end;
 
 procedure TImpresorTicketVenta.EscribirLoteArticulo;

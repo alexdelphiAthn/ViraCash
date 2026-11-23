@@ -34,7 +34,7 @@ type
     FUsuarioAuditoria: string;
     FUnidadTrabajoActiva: Boolean;
     function ConsultarCobrosVentaOrigen(const AEmpresa, AAlmacen,
-      ASerie, ANumero: string): TUniQuery;
+      ASerie, ANumero: string; AValidarOrigen: Boolean = True): TUniQuery;
     procedure AcumularImporteOperacion(AConsulta, AOrigen: TUniQuery;
       AImporte: Currency);
     procedure RechazarDevolucionOrigen(const AEmpresa, ASerie,
@@ -87,6 +87,8 @@ type
       AConsulta: TUniQuery;
       const AEmpresa, AAlmacen, ASerie, ANumero: string;
       AImporte: Currency);
+    procedure RecalcularDevolucionVentaOrigen(AConsulta: TUniQuery;
+      const AEmpresa, ASerie, ANumero: string);
     procedure MarcarValeCanjeado(
       AConsulta: TUniQuery;
       const ACodigoVale, AEmpresa, AAlmacen, ACaja: string;
@@ -116,7 +118,7 @@ uses
   inLibFormatoDocumento, UniDataFormatoDocumentoRepositorio,
   inLibMsgCaja, inLibMsgPresupuestos, inLibErroresBBDD,
   UniDataFaseCobroRepositorio, UniDataCajaConsultasRepositorio,
-  inLibCajaVentaIntf;
+  inLibCajaVentaIntf, UniDataRectificativasSql;
 
 procedure LimpiarLineasDepositoSinImporteCaja(ALineas: TDataSet);
 var
@@ -437,16 +439,20 @@ begin
 end;
 
 function TPersistenciaCierreVentaCajaUniDAC.ConsultarCobrosVentaOrigen(
-  const AEmpresa, AAlmacen, ASerie, ANumero: string): TUniQuery;
+  const AEmpresa, AAlmacen, ASerie, ANumero: string;
+  AValidarOrigen: Boolean): TUniQuery;
 var
   Documento: TDocumentoOrigenDevolucionCaja;
 begin
-  Documento := ResolverDocumentoDevolucionCajaUniDAC(
-    FConexion, ASerie, ANumero);
-  if (Documento.Serie <> ASerie) or (Documento.Numero <> ANumero) then
-    raise EValidacionBBDD.Create(SErrorDevolucionDocumentoSustituido);
-  if not SameText(Documento.Empresa, AEmpresa) then
-    RechazarDevolucionOrigen(AEmpresa, ASerie, ANumero);
+  if AValidarOrigen then
+  begin
+    Documento := ResolverDocumentoDevolucionCajaUniDAC(
+      FConexion, ASerie, ANumero);
+    if (Documento.Serie <> ASerie) or (Documento.Numero <> ANumero) then
+      raise EValidacionBBDD.Create(SErrorDevolucionDocumentoSustituido);
+    if not SameText(Documento.Empresa, AEmpresa) then
+      RechazarDevolucionOrigen(AEmpresa, ASerie, ANumero);
+  end;
   Result := CrearConsulta;
   try
     // La referencia fiscal sigue siendo la factura. Solo se localizan
@@ -577,6 +583,83 @@ begin
     if Propia and FConexion.InTransaction then
       FConexion.Rollback;
     raise;
+  end;
+end;
+
+procedure TPersistenciaCierreVentaCajaUniDAC.RecalcularDevolucionVentaOrigen(
+  AConsulta: TUniQuery; const AEmpresa, ASerie, ANumero: string);
+var
+  Origenes: TUniQuery;
+  Pendiente, Importe, Total: Currency;
+begin
+  Origenes := ConsultarCobrosVentaOrigen(AEmpresa, '', ASerie, ANumero, False);
+  try
+    if not Origenes.IsEmpty then
+    begin
+      // Una rectificativa por diferencias sólo consume su abono neto.
+      // Las devoluciones comerciales conservan el importe de su operación DV.
+      AConsulta.Close;
+      AConsulta.SQL.Text :=
+        'SELECT COALESCE(SUM(GREATEST(0, -D.IMPORTE_TOTAL_OPCAJA - ' +
+        ' CASE WHEN F.TIPO_RECTIFICATIVA_FAC = ''I'' THEN COALESCE((' +
+        '   SELECT SUM(V.IMPORTE_TOTAL_OPCAJA) FROM fza_caja_operaciones V ' +
+        '   WHERE V.CODIGO_EMP_OPCAJA = D.CODIGO_EMP_OPCAJA ' +
+        '   AND V.CODIGO_ALM_OPCAJA = D.CODIGO_ALM_OPCAJA ' +
+        '   AND V.CODIGO_CAJA_OPCAJA = D.CODIGO_CAJA_OPCAJA ' +
+        '   AND V.NUMERO_OPERACION_OPCAJA = D.NUMERO_OPERACION_OPCAJA ' +
+        '   AND V.SERIE_FAC_OPCAJA = D.SERIE_FAC_OPCAJA ' +
+        '   AND V.NUMERO_FAC_OPCAJA = D.NUMERO_FAC_OPCAJA ' +
+        '   AND V.TIPO_OPERACION_OPCAJA = ''VE''), 0) ELSE 0 END)), 0) ' +
+        'FROM (SELECT :SERIE AS SERIE_DOC, :NUMERO AS NUMERO_DOC ' +
+        ' UNION SELECT R.SERIE_FAC_ORIGEN_FACREL, R.NUMERO_FAC_ORIGEN_FACREL ' +
+        ' FROM fza_facturas_relaciones R WHERE R.SERIE_FAC_FACREL = :SERIE ' +
+        ' AND R.NUMERO_FAC_FACREL = :NUMERO ' +
+        ' AND R.TIPO_RELACION_FACREL = ''SUSTITUYE'') O ' +
+        'JOIN fza_caja_operaciones D ' +
+        ' ON D.SERIE_REF_ORIGEN_OPCAJA = O.SERIE_DOC ' +
+        ' AND D.NUMERO_REF_ORIGEN_OPCAJA = O.NUMERO_DOC ' +
+        'JOIN fza_facturas F ON F.SERIE_FAC = D.SERIE_FAC_OPCAJA ' +
+        ' AND F.NUMERO_FAC = D.NUMERO_FAC_OPCAJA ' +
+        'WHERE D.TIPO_OPERACION_OPCAJA = ''DV'' ' +
+        ' AND COALESCE(F.TIPO_RECTIFICATIVA_FAC, '''') <> ''S'' ' +
+        SQLRectificativaVigente('F');
+      AConsulta.ParamByName('SERIE').AsString := ASerie;
+      AConsulta.ParamByName('NUMERO').AsString := ANumero;
+      AConsulta.Open;
+      Pendiente := AConsulta.Fields[0].AsCurrency;
+      AConsulta.Close;
+
+      AConsulta.SQL.Text :=
+        'UPDATE fza_caja_operaciones ' +
+        'SET IMPORTE_DEVUELTO_ACUM_OPCAJA = :IMPORTE, ' +
+        ' ESTADO_DEVOLUCION_OPCAJA = :ESTADO, ' +
+        ' USUARIO_MODIF = :USUARIO, INSTANTE_MODIF = NOW() ' +
+        'WHERE ID_OPCAJA = :ID ' +
+        ' AND (IMPORTE_DEVUELTO_ACUM_OPCAJA <> :IMPORTE ' +
+        ' OR ESTADO_DEVOLUCION_OPCAJA <> :ESTADO)';
+      AConsulta.ParamByName('USUARIO').AsString := FUsuarioAuditoria;
+      while not Origenes.Eof do
+      begin
+        Total := Origenes.FieldByName('IMPORTE_TOTAL_OPCAJA').AsCurrency;
+        Importe := Pendiente;
+        if Importe > Total then
+          Importe := Total;
+        AConsulta.ParamByName('IMPORTE').AsCurrency := Importe;
+        if Importe = 0 then
+          AConsulta.ParamByName('ESTADO').AsString := 'N'
+        else if Importe = Total then
+          AConsulta.ParamByName('ESTADO').AsString := 'T'
+        else
+          AConsulta.ParamByName('ESTADO').AsString := 'P';
+        AConsulta.ParamByName('ID').AsLargeInt :=
+          Origenes.FieldByName('ID_OPCAJA').AsLargeInt;
+        AConsulta.Execute;
+        Pendiente := Pendiente - Importe;
+        Origenes.Next;
+      end;
+    end;
+  finally
+    Origenes.Free;
   end;
 end;
 

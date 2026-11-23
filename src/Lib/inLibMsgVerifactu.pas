@@ -232,6 +232,8 @@ resourcestring
     'Revisar la ficha de la empresa (NIF de 9 caracteres, sin guiones).';
   SErrorFacturaRegistroFiscalNoEncontrada =
     'Factura %s\%s no encontrada para el registro fiscal';
+  SErrorFacturaYaAnuladaFiscalmente =
+    'La factura ya está anulada fiscalmente.';
   SAvisoQrPngNoGenerado =
     '(QR PNG no generado: %s) ';
   SErrorFacturaEnvioVerifactuNoEncontrada =

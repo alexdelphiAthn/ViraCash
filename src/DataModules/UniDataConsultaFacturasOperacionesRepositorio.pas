@@ -21,7 +21,8 @@ function CrearRepositorioConsultaFacturasOperacionesUniDAC(
 implementation
 
 uses
-  System.SysUtils, Data.DB, UniDataRectificativasSql;
+  System.SysUtils, Data.DB, UniDataRectificativasSql,
+  UniDataVerifactuColaOperaciones;
 
 const
   SQL_CONSULTAR_FACTURA =
@@ -72,6 +73,7 @@ type
     constructor Create(AConexion: TUniConnection);
     function ConsultarFactura(
       const ASerie, ANumero: string): TFacturaConsultaOperacion;
+    procedure ValidarNuevaSustitutiva(const ASerie, ANumero: string);
   end;
 
 constructor TRepositorioConsultaFacturasOperacionesUniDAC.Create(
@@ -126,6 +128,13 @@ begin
   finally
     FreeAndNil(Consulta);
   end;
+end;
+
+procedure TRepositorioConsultaFacturasOperacionesUniDAC.ValidarNuevaSustitutiva(
+  const ASerie, ANumero: string);
+begin
+  TOperacionesVerifactuColaUniDAC.ValidarNuevaSustitutiva(FConexion,
+    ASerie, ANumero);
 end;
 
 function CrearRepositorioConsultaFacturasOperacionesUniDAC(

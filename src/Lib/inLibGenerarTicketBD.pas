@@ -658,6 +658,8 @@ begin
 end;
 
 procedure TGeneradorTicketVenta.EscribirEmpresa;
+var
+  Linea: string;
 begin
   FTicket.Alinear(alCentro);
   FTicket.EscribirLinea(FCabecera.RazonSocialEmpresa);
@@ -682,6 +684,8 @@ begin
       [LPAD(FConfiguracion.CodigoEmpresa, 3),
        LPAD(FConfiguracion.CodigoAlmacen, 3),
        LPAD(FConfiguracion.CodigoCaja, 2)]));
+  for Linea in LineasClienteTicket(FCabecera.ClienteImpresion, N_CHAR_LIN) do
+    FTicket.EscribirLinea(Linea);
 end;
 
 procedure TGeneradorTicketVenta.EscribirLineas;

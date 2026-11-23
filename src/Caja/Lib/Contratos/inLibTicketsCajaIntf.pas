@@ -94,6 +94,7 @@ type
     MovilEmpresa: string;
     TextoLegalEmpresa: string;
     CodigoClienteFactura: string;
+    ClienteImpresion: TDatosClienteImpresion;
     TotalIvaNormal: Currency;
     BaseIvaNormal: Currency;
     PorcentajeIvaNormal: Double;

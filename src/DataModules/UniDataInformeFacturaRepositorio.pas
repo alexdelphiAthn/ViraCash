@@ -12,7 +12,8 @@ function CrearPreparadorInformeFacturaUniDAC(
 implementation
 
 uses
-  Data.DB, UniDataPropiedadesLineasDocumento, UniDataTicketFacturaImpresion;
+  Data.DB, UniDataPropiedadesLineasDocumento, UniDataTicketFacturaImpresion,
+  UniDataGenerarTicketRepositorio;
 
 type
   TPreparadorInformeFacturaUniDAC = class(
@@ -124,8 +125,9 @@ begin
     'SELECT 1 FROM fza_facturas R WHERE R.SERIE_FAC = f.SERIE_FAC ' +
     'AND R.NUMERO_FAC = f.NUMERO_FAC ' +
     'AND R.TIPO_FACTURA_VERIFACTU_FAC = ''R5'')) ' +
-    'THEN ''S'' ELSE ''N'' END AS ES_TICKET_FACTURA ' +
-    'FROM vi_facturas_print f ';
+    'THEN ''S'' ELSE ''N'' END AS ES_TICKET_FACTURA, ' +
+    SQL_CAMPOS_CLIENTE_IMPRESION +
+    'FROM vi_facturas_print f ' + SQL_JOIN_CLIENTE_IMPRESION;
 end;
 
 function SQLJoinOperacionCaja: string;

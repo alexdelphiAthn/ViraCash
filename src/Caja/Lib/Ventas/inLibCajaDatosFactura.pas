@@ -19,6 +19,16 @@ uses
   Data.DB;
 
 type
+  TCampoClienteImpresion = (ciNombre, ciDireccion1, ciDireccion2,
+    ciCodigoPostal, ciPoblacion, ciProvincia, ciNif);
+  TCamposClienteImpresion = set of TCampoClienteImpresion;
+
+  TDatosClienteImpresion = record
+    Codigo: string;
+    Valores: array[TCampoClienteImpresion] of string;
+    function Asignado: Boolean;
+  end;
+
   TDatosCabeceraFactura = record
     Fecha: TDateTime;
     TipoFactura: string;
@@ -95,6 +105,19 @@ type
     Motivo: string;
   end;
 
+const
+  CAMPOS_CLIENTE_IMPRESION: array[TCampoClienteImpresion] of string = (
+    'RAZON_SOCIAL_CLIENTE', 'DIRECCION1_CLIENTE', 'DIRECCION2_CLIENTE',
+    'CODIGO_POSTAL_CLIENTE', 'POBLACION_CLIENTE', 'PROVINCIA_CLIENTE',
+    'NIF_CLIENTE');
+
+function LeerClienteImpresion(ADataSet: TDataSet;
+  const ASufijo: string): TDatosClienteImpresion;
+
+function LineasClienteTicket(const ACliente: TDatosClienteImpresion;
+  AAnchoLinea: Integer; ACamposOmitidos: TCamposClienteImpresion = []):
+  TArray<string>;
+
 // Importe con IVA anterior al descuento, redondeado por linea.
 function ImporteBrutoLineaTicket(ALinea: TDataSet): Currency;
 
@@ -134,6 +157,58 @@ begin
   begin
     ALineas := ALineas + [Copy(sResto, 1, AAnchoLinea)];
     sResto := Trim(Copy(sResto, AAnchoLinea + 1, MaxInt));
+  end;
+end;
+
+function TDatosClienteImpresion.Asignado: Boolean;
+begin
+  Result := (Trim(Codigo) <> '') and (Trim(Codigo) <> '0');
+end;
+
+function LeerClienteImpresion(ADataSet: TDataSet;
+  const ASufijo: string): TDatosClienteImpresion;
+var
+  Campo: TCampoClienteImpresion;
+begin
+  Result := Default(TDatosClienteImpresion);
+  if (ADataSet <> nil) and ADataSet.Active and not ADataSet.IsEmpty then
+  begin
+    Result.Codigo := ADataSet.FieldByName('CODIGO_CLI_FAC').AsString;
+    if Result.Asignado then
+      for Campo := Low(Campo) to High(Campo) do
+        Result.Valores[Campo] := Trim(ADataSet.FieldByName(
+          CAMPOS_CLIENTE_IMPRESION[Campo] + ASufijo).AsString);
+  end;
+end;
+
+function LineasClienteTicket(const ACliente: TDatosClienteImpresion;
+  AAnchoLinea: Integer; ACamposOmitidos: TCamposClienteImpresion):
+  TArray<string>;
+var
+  Localidad: string;
+
+  function Valor(ACampo: TCampoClienteImpresion): string;
+  begin
+    Result := '';
+    if not (ACampo in ACamposOmitidos) then
+      Result := ACliente.Valores[ACampo];
+  end;
+
+begin
+  Result := nil;
+  if ACliente.Asignado and (AAnchoLinea > 0) then
+  begin
+    AnadirTextoPartido(Result, Valor(ciNombre), AAnchoLinea);
+    AnadirTextoPartido(Result, Valor(ciDireccion1), AAnchoLinea);
+    AnadirTextoPartido(Result, Valor(ciDireccion2), AAnchoLinea);
+    Localidad := Trim(Valor(ciCodigoPostal) + ' ' + Valor(ciPoblacion));
+    AnadirTextoPartido(Result, Localidad, AAnchoLinea);
+    AnadirTextoPartido(Result, Valor(ciProvincia), AAnchoLinea);
+    if Valor(ciNif) <> '' then
+      AnadirTextoPartido(Result, Format(STicketCifNif, [Valor(ciNif)]),
+        AAnchoLinea);
+    if Length(Result) > 0 then
+      Result := [STicketCliente] + Result;
   end;
 end;
 

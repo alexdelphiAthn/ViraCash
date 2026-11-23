@@ -90,6 +90,7 @@ type
     FActualizandoEmail: Boolean;
     FEnvioEmailPendiente: Boolean;
     FProcesandoEnvioEmail: Boolean;
+    FUsarClienteImpresion: Boolean;
     procedure AplicarModoSeleccionado;
     procedure ActualizarDisponibilidadCorreo;
     procedure BloquearAccionesCorreo;
@@ -108,6 +109,7 @@ type
     function IntentarObtenerReferenciasLote(
       out AReferencias: TReferenciasComandoFactura): Boolean;
     procedure AjustarSujetosFactura(ABanda: TfrxBand);
+    procedure AplicarClienteImpresion(AInforme: TfrxReport);
     procedure AplicarFormaPagoReport(AReport: TfrxReport);
     procedure PrepararConsultaFactura(AEsFormatoTicket,
       AImprimirLotesTicket: Boolean);
@@ -137,6 +139,7 @@ type
       const AEnviarCorreo: TEnviarCorreoFactura);
     function ObtenerNombreFactura(ADataSet: TDataSet): string;
     procedure AplicarSkuDescripcionReport(AReport: TfrxReport);
+    function LineasClienteFueraDelFormato(AAnchoLinea: Integer): TArray<string>;
   public
     dmFac: TdmFacturas;
   end;
@@ -154,7 +157,8 @@ uses
   UniDataInformeFacturaRepositorio, inLibMsgFacturas,
   inLibCorreoTickets, inLibCorreoDocumentoVcl, inLibInformeDocumento,
   UniDataTicketFacturaImpresion, UniDataFacturasConfiguracion,
-  inLibTrazabilidad, inLibMsgTrazabilidad, inLibTicketLotes;
+  inLibTrazabilidad, inLibMsgTrazabilidad, inLibTicketLotes,
+  inLibCajaDatosFactura;
 
 resourcestring
   SErrorServicioCorreoFacturaNoDisponible =
@@ -514,6 +518,7 @@ begin
   end;
   AplicarSkuDescripcionReport(frxrprt1);
   AplicarFormaPagoReport(frxrprt1);
+  AplicarClienteImpresion(frxrprt1);
   AjustarFormatoBasesFactura(frxrprt1);
   // El QR debe estar en la banda de datos para aparecer en la página
   // preparada por FastReport, incluso con un formato guardado antiguo.
@@ -573,6 +578,76 @@ begin
   end;
 end;
 
+procedure TfrmPrintFac.AplicarClienteImpresion(AInforme: TfrxReport);
+var
+  Objeto: TObject;
+  Memo: TfrxMemoView;
+  Campo: TCampoClienteImpresion;
+  Nombre, Texto: string;
+  Objetos: TList;
+  I: Integer;
+begin
+  if FUsarClienteImpresion then
+  begin
+    Objetos := AInforme.AllObjects;
+    for I := 0 to Objetos.Count - 1 do
+    begin
+      Objeto := TObject(Objetos[I]);
+      if Objeto is TfrxMemoView then
+      begin
+        Memo := TfrxMemoView(Objeto);
+        Texto := Memo.Text;
+        for Campo := Low(Campo) to High(Campo) do
+        begin
+          Nombre := CAMPOS_CLIENTE_IMPRESION[Campo];
+          if SameText(Memo.DataField, Nombre + '_FAC') and
+             (Memo.DataSet = dmFac.fxdsPrintFac) then
+            Memo.DataField := Nombre + '_IMP';
+          Texto := StringReplace(Texto, 'Facturas."' + Nombre + '_FAC"',
+            'Facturas."' + Nombre + '_IMP"', [rfReplaceAll, rfIgnoreCase]);
+        end;
+        Memo.Text := Texto;
+        if SameText(Memo.OnBeforePrint,
+            'FacturasPROVINCIA_CLIENTE_FACTURAOnBeforePrint') then
+          Memo.OnBeforePrint := '';
+      end;
+    end;
+  end;
+end;
+
+function TfrmPrintFac.LineasClienteFueraDelFormato(
+  AAnchoLinea: Integer): TArray<string>;
+var
+  Objetos: TList;
+  I: Integer;
+  Memo: TfrxMemoView;
+  Campo: TCampoClienteImpresion;
+  Campos: TCamposClienteImpresion;
+  Nombre, Texto: string;
+begin
+  Campos := [];
+  Objetos := frxrprt1.AllObjects;
+  for I := 0 to Objetos.Count - 1 do
+    if TObject(Objetos[I]) is TfrxMemoView then
+    begin
+      Memo := TfrxMemoView(Objetos[I]);
+      if Memo.Visible then
+      begin
+        Texto := Memo.Text;
+        for Campo := Low(Campo) to High(Campo) do
+        begin
+          Nombre := CAMPOS_CLIENTE_IMPRESION[Campo] + '_IMP';
+          if ((Memo.DataSet = dmFac.fxdsPrintFac) and
+              SameText(Memo.DataField, Nombre)) or
+             (Pos('Facturas."' + Nombre + '"', Texto) > 0) then
+            Include(Campos, Campo);
+        end;
+      end;
+    end;
+  Result := LineasClienteTicket(LeerClienteImpresion(dmFac.unqryFacPrint,
+    '_IMP'), AAnchoLinea, Campos);
+end;
+
 // Una factura simplificada sin cliente no imprime la caja del receptor
 // ni un 'NIF:' suelto; sin forma de pago no imprime 'Forma de Pago:'.
 // Los objetos se reconocen por su texto, para que valga tambien con los
@@ -588,6 +663,8 @@ var
   bHayNif: Boolean;
   bHayReceptor: Boolean;
   bHayFormaPago: Boolean;
+  Sufijo: string;
+  Cliente: TDatosClienteImpresion;
 begin
   oDatos := nil;
   if dmFac <> nil then
@@ -599,6 +676,14 @@ begin
     bHayNif := Trim(oDatos.FieldByName('NIF_CLIENTE_FAC').AsString) <> '';
     bHayReceptor := bHayNif or (Trim(oDatos.FieldByName(
       'RAZON_SOCIAL_CLIENTE_FAC').AsString) <> '');
+    Sufijo := '_FAC';
+    if FUsarClienteImpresion then
+    begin
+      Sufijo := '_IMP';
+      Cliente := LeerClienteImpresion(oDatos, Sufijo);
+      bHayNif := Cliente.Valores[ciNif] <> '';
+      bHayReceptor := Cliente.Asignado;
+    end;
     bHayFormaPago := True;
     if oDatos.FindField('FORMA_PAGO_IMPRESION') <> nil then
       bHayFormaPago := Trim(oDatos.FieldByName(
@@ -610,9 +695,9 @@ begin
       begin
         oMemo := TfrxMemoView(ABanda.Objects[iObjeto]);
         sTexto := oMemo.Text;
-        if Pos('"RAZON_SOCIAL_CLIENTE_FAC"', sTexto) > 0 then
+        if Pos('"RAZON_SOCIAL_CLIENTE' + Sufijo + '"', sTexto) > 0 then
           oRazon := oMemo
-        else if Pos('"NIF_CLIENTE_FAC"', sTexto) > 0 then
+        else if Pos('"NIF_CLIENTE' + Sufijo + '"', sTexto) > 0 then
           oMemo.Visible := bHayNif
         else if SameText(Trim(sTexto), 'Receptor') then
           oMemo.Visible := bHayReceptor
@@ -957,10 +1042,11 @@ begin
       dmFac.unqryFacPrint,
       dmFac.unqryLinFacPrint);
   FPreparadorInforme.Preparar(criterios);
-  dmFac.PrepararLineasImpresion(AEsFormatoTicket or
-    (dmFac.unqryFacPrint.FieldByName('ES_TICKET_FACTURA').AsString = 'S'),
-    AImprimirLotesTicket);
+  FUsarClienteImpresion := AEsFormatoTicket or
+    (dmFac.unqryFacPrint.FieldByName('ES_TICKET_FACTURA').AsString = 'S');
+  dmFac.PrepararLineasImpresion(FUsarClienteImpresion, AImprimirLotesTicket);
   AbrirDatosTicketImpresion(dmFac, edtSerie.Text, edtNroFac.Text);
+  dmFac.fxdsPrintFac.ResetFieldDefs;
   dmFac.fxdsPrintFac.UpdateBounds;
   ConfigurarNombrePDF;
 end;

@@ -7,6 +7,29 @@ uses
   inLibCajaDatosFactura,
   inLibGenerarTicketIntf;
 
+const
+  // f es la cabecera de factura. El cliente actual completa los campos
+  // ausentes en tickets antiguos que solo guardaron el codigo.
+  SQL_JOIN_CLIENTE_IMPRESION =
+    'LEFT JOIN fza_clientes C ON C.CODIGO_CLI_CLI = f.CODIGO_CLI_FAC ' +
+    'AND f.CODIGO_CLI_FAC <> ''0'' ';
+  SQL_CAMPOS_CLIENTE_IMPRESION =
+    'COALESCE(NULLIF(TRIM(f.RAZON_SOCIAL_CLIENTE_FAC), ''''), ' +
+    'NULLIF(TRIM(C.RAZON_SOCIAL_CLI), ''''), C.NOMBRE_PERSONA_CLIENTE_CLI) ' +
+    'AS RAZON_SOCIAL_CLIENTE_IMP, ' +
+    'COALESCE(NULLIF(TRIM(f.DIRECCION1_CLIENTE_FAC), ''''), ' +
+    'C.DIRECCION1_CLI) AS DIRECCION1_CLIENTE_IMP, ' +
+    'COALESCE(NULLIF(TRIM(f.DIRECCION2_CLIENTE_FAC), ''''), ' +
+    'C.DIRECCION2_CLI) AS DIRECCION2_CLIENTE_IMP, ' +
+    'COALESCE(NULLIF(TRIM(f.CODIGO_POSTAL_CLIENTE_FAC), ''''), ' +
+    'C.CODIGO_POSTAL_CLI) AS CODIGO_POSTAL_CLIENTE_IMP, ' +
+    'COALESCE(NULLIF(TRIM(f.POBLACION_CLIENTE_FAC), ''''), ' +
+    'C.POBLACION_CLI) AS POBLACION_CLIENTE_IMP, ' +
+    'COALESCE(NULLIF(TRIM(f.PROVINCIA_CLIENTE_FAC), ''''), ' +
+    'C.PROVINCIA_CLI) AS PROVINCIA_CLIENTE_IMP, ' +
+    'COALESCE(NULLIF(TRIM(f.NIF_CLIENTE_FAC), ''''), ' +
+    'C.NIF_CLI) AS NIF_CLIENTE_IMP ';
+
 function CrearLecturasImpresionTicket(
   AConexion: TUniConnection): ILecturasImpresionTicket;
 
@@ -48,6 +71,8 @@ type
       const ACodigoEmpleado: string): string;
     function ObtenerCodigoBarras(
       const ASerie, ANumero: string): string;
+    function ObtenerClienteImpresion(
+      const ASerie, ANumero: string): TDatosClienteImpresion;
     function ObtenerReferenciaRectificacion(
       const ASerie, ANumero: string): TReferenciaRectificacionTicket;
     function ObtenerOperacion(
@@ -59,6 +84,26 @@ function CrearLecturasImpresionTicket(
   AConexion: TUniConnection): ILecturasImpresionTicket;
 begin
   Result := TLecturasImpresionTicket.Create(AConexion);
+end;
+
+function TLecturasImpresionTicket.ObtenerClienteImpresion(
+  const ASerie, ANumero: string): TDatosClienteImpresion;
+var
+  Consulta: TUniQuery;
+begin
+  Consulta := NuevaConsulta;
+  try
+    Consulta.SQL.Text := 'SELECT f.CODIGO_CLI_FAC, ' +
+      SQL_CAMPOS_CLIENTE_IMPRESION + 'FROM fza_facturas f ' +
+      SQL_JOIN_CLIENTE_IMPRESION +
+      'WHERE f.SERIE_FAC = :SERIE AND f.NUMERO_FAC = :NUMERO';
+    Consulta.ParamByName('SERIE').AsString := ASerie;
+    Consulta.ParamByName('NUMERO').AsString := ANumero;
+    Consulta.Open;
+    Result := LeerClienteImpresion(Consulta, '_IMP');
+  finally
+    Consulta.Free;
+  end;
 end;
 
 function LeerReferenciaRectificacionTicket(

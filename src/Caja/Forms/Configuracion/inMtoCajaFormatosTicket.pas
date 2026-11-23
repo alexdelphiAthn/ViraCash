@@ -154,7 +154,8 @@ begin
         try
           Ticket.Inicializar;
           if not ComponerTicketDesdeInforme(
-            Formulario.frxrprt1, Ticket, True, sCodigoBarras) then
+            Formulario.frxrprt1, Ticket, True, sCodigoBarras,
+            Formulario.LineasClienteFueraDelFormato(N_CHAR_LIN)) then
             raise Exception.CreateFmt(SFormatoTicketSinPaginas, [sFormato]);
           sRutaPdf := GetUserFolderTickets + 'Ticket_' +
             FormatDateTime('yyyy_mm_dd_hh_nn_ss', Now) + '.pdf';

@@ -206,11 +206,13 @@ const
     'COALESCE(emp.FORMATO_DOCUMENTO_EMP, ' +
     '''Serie.NroDocumento'') AS FORMATO_DOCUMENTO_EMP, ' +
     'COALESCE(NULLIF(TRIM(empl.DIMINUTIVO_TICKET_EMPL), ''''), ' +
-    'o.CODIGO_EMPLEADO_OPCAJA) AS DIMINUTIVO_TICKET_EMPL ' +
+    'o.CODIGO_EMPLEADO_OPCAJA) AS DIMINUTIVO_TICKET_EMPL, ' +
+    SQL_CAMPOS_CLIENTE_IMPRESION +
     'FROM fza_caja_operaciones o ' +
     'LEFT JOIN fza_facturas f ' +
     'ON f.SERIE_FAC = o.SERIE_FAC_OPCAJA ' +
     'AND f.NUMERO_FAC = o.NUMERO_FAC_OPCAJA ' +
+    SQL_JOIN_CLIENTE_IMPRESION +
     'LEFT JOIN fza_empresas emp ' +
     'ON emp.CODIGO_EMP_EMP = COALESCE(f.CODIGO_EMP_FAC, ' +
     'o.CODIGO_EMP_OPCAJA) ' +
@@ -377,7 +379,10 @@ begin
     'TOTAL_RER_FAC,PORCENTAJE_RER_FAC,TOTAL_RES_FAC,' +
     'PORCENTAJE_RES_FAC,TOTAL_REE_FAC,PORCENTAJE_REE_FAC,' +
     'FORMATO_DOCUMENTO_EMP,' +
-    'DIMINUTIVO_TICKET_EMPL');
+    'DIMINUTIVO_TICKET_EMPL,RAZON_SOCIAL_CLIENTE_IMP,' +
+    'DIRECCION1_CLIENTE_IMP,DIRECCION2_CLIENTE_IMP,' +
+    'CODIGO_POSTAL_CLIENTE_IMP,POBLACION_CLIENTE_IMP,' +
+    'PROVINCIA_CLIENTE_IMP,NIF_CLIENTE_IMP');
   Result[8] := DefinicionSql(
     'ListarLineasTicket',
     SQL_LINEAS_TICKET,
@@ -815,6 +820,7 @@ begin
         oQuery.FieldByName('TEXTO_LEGAL_EMPRESA_FAC').AsString;
       Result.CodigoClienteFactura :=
         oQuery.FieldByName('CODIGO_CLI_FAC').AsString;
+      Result.ClienteImpresion := LeerClienteImpresion(oQuery, '_IMP');
       Result.TotalIvaNormal :=
         oQuery.FieldByName('TOTAL_IVAN_FAC').AsCurrency;
       Result.BaseIvaNormal :=

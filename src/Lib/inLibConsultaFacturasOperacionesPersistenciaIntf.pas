@@ -34,6 +34,7 @@ type
     ['{5EAFF815-CB97-4B1B-AEBD-32CEFF997995}']
     function ConsultarFactura(
       const ASerie, ANumero: string): TFacturaConsultaOperacion;
+    procedure ValidarNuevaSustitutiva(const ASerie, ANumero: string);
   end;
 
 implementation

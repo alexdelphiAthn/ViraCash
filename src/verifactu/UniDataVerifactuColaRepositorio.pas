@@ -38,7 +38,7 @@ uses
   inLibFormatoDocumentoLecturasIntf,
   inLibFormatoDocumento, UniDataFormatoDocumentoRepositorio,
   System.SysUtils, inLibParametrosIntf, inLibEmisionFiscalIntf,
-  inLibVerifactu, inLibVentasWsCola, inLibMsgVerifactu,
+  inLibVerifactu, inLibVentasWsCola, inLibMsgVerifactu, inLibErroresBBDD,
   UniDataVerifactuColaOperaciones, UniDataVentasWsCola;
 type
   TServicioVerifactuColaUniDAC = class(
@@ -49,6 +49,7 @@ type
     FQry: TUniQuery;
     FQryPropia: Boolean;
     FRegistroLog: IRegistroLog;
+    procedure ValidarAnulacion(const ASerie, ANumero, ATipoOperacion: string);
   public
     function LeerFormatoEmpresa(const ACodigoEmpresa: string): string;
     function LeerFormatoFactura(const ASerie, ANumero: string): string;
@@ -204,6 +205,29 @@ begin
   end;
 end;
 
+procedure TServicioVerifactuColaUniDAC.ValidarAnulacion(
+  const ASerie, ANumero, ATipoOperacion: string);
+var
+  Consulta: TUniQuery;
+begin
+  if SameText(ATipoOperacion, 'ANULACION') then
+  begin
+    Consulta := TUniQuery.Create(nil);
+    try
+      Consulta.Connection := FConexion;
+      Consulta.SQL.Text := 'SELECT FASE_FAC FROM fza_facturas ' +
+        'WHERE SERIE_FAC = :SERIE AND NUMERO_FAC = :NUMERO FOR UPDATE';
+      Consulta.ParamByName('SERIE').AsString := ASerie;
+      Consulta.ParamByName('NUMERO').AsString := ANumero;
+      Consulta.Open;
+      if EsFaseFacturaAnulada(Consulta.Fields[0].AsString) then
+        raise EValidacionBBDD.Create(SErrorFacturaYaAnuladaFiscalmente);
+    finally
+      Consulta.Free;
+    end;
+  end;
+end;
+
 procedure TServicioVerifactuColaUniDAC.EncolarFactura(
   const AParametrosApp: IParametrosAplicacion;
   const AParametrosCaja: IParametrosCaja;
@@ -217,6 +241,7 @@ var
 begin
   // FQry comparte transacción con la factura: ambas se confirman o
   // deshacen juntas.
+  ValidarAnulacion(ASerie, ANumero, ATipoOperacion);
   ValidarRequisitosFiscalesEmision(AParametrosApp, FConexion,
     ASerie, ANumero);
   // Cada fila recuerda su sistema (VERIFACTU o SII). Sin la columna una
@@ -302,6 +327,7 @@ procedure TServicioVerifactuColaUniDAC.RegistrarFacturaNoVerifactu(
   const AUsuario, ASerie, ANumero, ATipoOperacion: string;
   ABorrarMovimientos: Boolean);
 begin
+  ValidarAnulacion(ASerie, ANumero, ATipoOperacion);
   TOperacionesVerifactuColaUniDAC.RegistrarFacturaNoVerifactu(
     AParametrosApp,
     AParametrosCaja,
@@ -323,6 +349,7 @@ var
 begin
   // Modo transitorio sin Verifactu: emite la factura con fase propia,
   // sin cola AEAT y sin registro NO VERI*FACTU.
+  ValidarAnulacion(ASerie, ANumero, ATipoOperacion);
   ValidarRequisitosFiscalesEmision(AParametrosApp, FConexion,
     ASerie, ANumero);
   if ATipoOperacion = 'ANULACION' then

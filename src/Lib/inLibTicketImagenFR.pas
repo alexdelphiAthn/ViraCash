@@ -32,7 +32,8 @@ const
 // False si el informe no tiene páginas.
 function ComponerTicketDesdeInforme(AInforme: TfrxReport;
   ATicket: TTicketTermico; AAbrirCajon: Boolean = True;
-  const ACodigoBarras: string = ''): Boolean;
+  const ACodigoBarras: string = '';
+  const ALineasCliente: TArray<string> = nil): Boolean;
 
 implementation
 
@@ -60,7 +61,7 @@ end;
 
 function ComponerTicketDesdeInforme(AInforme: TfrxReport;
   ATicket: TTicketTermico; AAbrirCajon: Boolean;
-  const ACodigoBarras: string): Boolean;
+  const ACodigoBarras: string; const ALineasCliente: TArray<string>): Boolean;
 const
   cMargenFinalPuntos = 16;
 var
@@ -68,6 +69,7 @@ var
   rTamano: TPoint;
   dEscala: Double;
   iPagina, iUltima: Integer;
+  Linea: string;
 begin
   Result := (AInforme <> nil) and (AInforme.PreviewPages.Count > 0);
   if not Result then
@@ -97,6 +99,8 @@ begin
       FreeAndNil(oPagina);
     end;
   end;
+  for Linea in ALineasCliente do
+    ATicket.EscribirLinea(Linea);
   if Trim(ACodigoBarras) <> '' then
   begin
     ATicket.SaltarLineas(1);

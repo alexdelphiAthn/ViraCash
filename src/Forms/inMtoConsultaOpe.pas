@@ -231,7 +231,8 @@ uses
   inLibCorreoTickets, UniDataCorreoTicketsRepositorio,
   inLibAtributosPaleta, inLibMsgComun,
   inLibMsgCaja, inLibMsgConfiguracion, inLibMsgFacturas,
-  inLibMsgSubsanacionCaja, inLibCajaEstiloVcl;
+  inLibMsgSubsanacionCaja, inLibCajaEstiloVcl, inLibMsgVerifactu,
+  inLibErroresBBDD;
 
 const
   // Parametro de caja que enciende la columna de miniaturas de la rejilla
@@ -788,7 +789,9 @@ begin
   else
   begin
     Factura := FRepositorioFacturas.ConsultarFactura(sSerie, sNumero);
-    if (not Factura.Existe) or (not Factura.Consolidada) then
+    if EsFaseFacturaAnulada(Factura.Fase) then
+      ShowMessage_fza(SErrorFacturaYaAnuladaFiscalmente)
+    else if (not Factura.Existe) or (not Factura.Consolidada) then
       ShowMessage_fza(FormatearMensajeDocumentos(
         CrearFormatoDocumentoLecturas(ConexionPrincipal)
         .LeerFormatoEmpresa(FEmpresa),
@@ -809,9 +812,14 @@ begin
         'Anulación',
         True,
         'Anulación encolada desde Buscar operaciones');
-      Resultado := FServicioEmisionFiscal.Emitir(Solicitud);
-      ShowMessage_fza(Resultado.Mensaje);
-      RefrescarOperaciones;
+      try
+        Resultado := FServicioEmisionFiscal.Emitir(Solicitud);
+        ShowMessage_fza(Resultado.Mensaje);
+        RefrescarOperaciones;
+      except
+        on E: EValidacionBBDD do
+          ShowMessage_fza(E.Message);
+      end;
     end;
   end;
 end;
@@ -931,6 +939,16 @@ begin
     TratamientoMovimientos := tmrMantenerOriginales;
     if TipoRectificativa = trcSustitutiva then
       TratamientoMovimientos := tmrReemplazarOriginales;
+    if bSigue and (TipoRectificativa = trcSustitutiva) then
+      try
+        FRepositorioFacturas.ValidarNuevaSustitutiva(sSerie, sNumero);
+      except
+        on E: EValidacionBBDD do
+        begin
+          ShowMessage_fza(E.Message);
+          bSigue := False;
+        end;
+      end;
     if bSigue then
     begin
       // Ventana de ventas libre, o una nueva si todas están ocupadas

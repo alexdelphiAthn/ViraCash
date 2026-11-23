@@ -71,6 +71,8 @@ const
 
 // Modo fiscal activo: SIN, VERIFACTU, NO_VERIFACTU o SII.
 // appVerifactuActivo=False fuerza SIN como interruptor maestro.
+function EsFaseFacturaAnulada(const AFase: string): Boolean;
+
 function ModoVerifactu(
   const AParametrosApp: IParametrosAplicacion): TModoVerifactu;
 function ModoVerifactuTexto(
@@ -580,6 +582,13 @@ begin
       end;
     end;
   end;
+end;
+
+function EsFaseFacturaAnulada(const AFase: string): Boolean;
+begin
+  Result := MatchText(Trim(AFase),
+    [cFaseFacturaSinVerifactuAnulada, cFaseFacturaVerifactuAnulada,
+     cFaseFacturaNoVerifactuAnulada]);
 end;
 
 function ModoVerifactuTexto(
