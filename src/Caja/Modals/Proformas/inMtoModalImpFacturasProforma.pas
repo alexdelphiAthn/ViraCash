@@ -21,7 +21,8 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Classes,
   System.Variants, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   Vcl.Menus, Vcl.StdCtrls, Vcl.ExtCtrls, Vcl.ComCtrls, Data.DB,
-  inMtoModalGenImp, cxGraphics, cxLookAndFeels, cxLookAndFeelPainters,
+  inMtoModalGenImp, inLibResumenSeleccionesInforme, cxGraphics,
+  cxLookAndFeels, cxLookAndFeelPainters,
   cxButtons, cxControls, cxContainer, cxEdit, cxLabel, cxStyles,
   cxClasses, cxLocalization, dxCore, dxSkinsForm, JvComponentBase,
   JvEnterTab, System.Actions, Vcl.ActnList, frxClass, frxDBSet, frxDesgn,
@@ -45,6 +46,8 @@ type
     procedure ConstruirExcelNativo(AControl: TdxSpreadSheet); override;
     procedure PrepararDatosEdicion; override;
     function TraducirContenidoInforme: Boolean; override;
+    procedure DescribirSelecciones(
+      AResumen: TResumenSeleccionesInforme); override;
   public
     class procedure Mostrar(
       AOwner: TComponent;
@@ -152,6 +155,23 @@ procedure TfrmPrintFacturasProforma.DoShow;
 begin
   inherited;
   btnExcel.OnClick := btnExcelNativoClick;
+end;
+
+procedure TfrmPrintFacturasProforma.DescribirSelecciones(
+  AResumen: TResumenSeleccionesInforme);
+var
+  Datos: TDataSet;
+begin
+  inherited;
+  Datos := dsProforma.DataSet;
+  if Assigned(Datos) and Datos.Active and not Datos.IsEmpty then
+  begin
+    AResumen.Anadir(STextoNumeroCaja,
+      Datos.FieldByName('SERIE_PROCAJ').AsString + '/' +
+      Datos.FieldByName('NUMERO_PROCAJ').AsString);
+    AResumen.Anadir(STextoEmpresaCaja,
+      Datos.FieldByName('RAZON_SOCIAL_EMPRESA_PROCAJ').AsString);
+  end;
 end;
 
 procedure TfrmPrintFacturasProforma.ConstruirExcelNativo(

@@ -108,7 +108,8 @@ type
     FResultado: IResultadoInformeCaja;
     procedure CargarVales(const AFiltro: string = '');
     procedure ActualizarBotonAceptar;
-    function  ValidarPinYSeleccionar: Boolean;
+    function ValidarAmbitoVale: Boolean;
+    function ValidarPinYSeleccionar: Boolean;
     procedure ConfigurarGrid;
   public
     constructor Create(
@@ -306,6 +307,19 @@ begin
     btnAceptarClick(Sender);
 end;
 
+function TfrmMtoCajaSeleccionVale.ValidarAmbitoVale: Boolean;
+var
+  Empresa, Almacen, Caja: string;
+begin
+  Empresa := FDatos.FieldByName('CODIGO_EMP_EMI_VL').AsString;
+  Almacen := FDatos.FieldByName('CODIGO_ALM_EMI_VL').AsString;
+  Caja := FDatos.FieldByName('CODIGO_CAJA_EMI_VL').AsString;
+  Result := FRestriccionVales.Permite(Empresa, Almacen, Caja);
+  if not Result then
+    ShowMessage_fza(FRestriccionVales.MensajeRechazo(
+      FDatos.FieldByName('CODIGO_VL').AsString, Empresa, Almacen, Caja));
+end;
+
 function TfrmMtoCajaSeleccionVale.ValidarPinYSeleccionar: Boolean;
 var
   PinIntroducido: string;
@@ -319,7 +333,7 @@ begin
   begin
     ShowMessage_fza(SErrorValeCajaNoSeleccionado);
   end
-  else
+  else if ValidarAmbitoVale then
   begin
     bPinObligatorio :=
       ParametrosCaja.GetBool('vgerRecuperaValePIN', False);

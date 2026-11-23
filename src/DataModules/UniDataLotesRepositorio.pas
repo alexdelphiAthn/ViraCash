@@ -202,7 +202,8 @@ begin
     Consulta.SQL.Text :=
       'SELECT LOTE_LOT, FECHA_CADUCIDAD_LOT, FECHA_ENTRADA_LOT ' +
       'FROM fza_articulos_lotes WHERE CODIGO_UNIDAD_LOT = :SKU ' +
-      'AND ESREPOSICION_LOT = ''S'' AND NULLIF(TRIM(LOTE_LOT), '''') ' +
+      'AND ESACTIVO_LOT = ''S'' AND ESREPOSICION_LOT = ''S'' ' +
+      'AND NULLIF(TRIM(LOTE_LOT), '''') ' +
       'IS NOT NULL ORDER BY FECHA_ENTRADA_LOT DESC, LOTE_LOT';
     Consulta.ParamByName('SKU').AsString := ASku;
     Consulta.Open;

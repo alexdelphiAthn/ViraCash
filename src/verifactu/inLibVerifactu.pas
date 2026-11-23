@@ -221,7 +221,7 @@ implementation
 uses
   UniDataFormatoDocumentoRepositorio,
   System.Classes, System.Hash, System.StrUtils,
-  Vcl.Imaging.pngimage,
+  Vcl.Graphics, Vcl.Imaging.pngimage,
   DelphiZXIngQRCode, frxDBSet,
   inLibGlobalVar, inLibFotos, inLibXades, inLibFormatoDocumento,
   inLibMsgFacturas, inLibMsgVerifactu,
@@ -1222,6 +1222,13 @@ begin
       AMemo.Text := 'FACTURA RECTIFICATIVA'
     else
       AMemo.Text := 'FACTURA';
+    if (AMemo.Width > 0) and (Trim(AMemo.Text) <> 'FACTURA') then
+    begin
+      AMemo.WordWrap := False;
+      while (Abs(AMemo.Font.Height) > 9) and
+            (AMemo.CalcWidth > AMemo.Width) do
+        AMemo.Font.Height := -(Abs(AMemo.Font.Height) - 1);
+    end;
     AMemo.Tag := TAG_TITULO_FACTURA_AJUSTADO;
   end;
 end;

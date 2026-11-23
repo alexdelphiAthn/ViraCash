@@ -104,7 +104,7 @@ implementation
 uses
   inLibMsgCaja,
   dxSpreadSheetCore, inLibHojaCalculoIntf, inLibHojaCalculoDevEx,
-  inLibInformeTabular, inLibInformeTabularExcel,
+  inLibInformeTabular, inLibInformeTabularExcel, inLibResumenSeleccionesHoja,
   inMtoModalCajDef, inLibArqueoBitacoraFrx, inLibMsgMeteorologiaCaja;
 
 { TfrmPrintArqueos }
@@ -313,7 +313,9 @@ var
   oMarca: TBookmark;
   iFila: Integer;
   sMeteorologia, sBitacora: string;
+  Selecciones: TArray<string>;
 begin
+  Selecciones := LineasResumenSelecciones;
   ExportarInformeTabularExcel(AControl, dsArqueosPrint.DataSet,
     Caption,
     [ColumnaInforme('CODIGO_ARQ', STextoArqueoCaja, 1),
@@ -329,15 +331,20 @@ begin
      ColumnaInforme('EFECTIVO_DEJADO_CAJA_ARQ', STextoEfectivoDejadoCaja, 1,
        '%n'),
      ColumnaInforme('CONCEPTO_RETIRADA_ARQ', STextoConceptoRetiradaCaja, 1)],
-    LineasResumenSelecciones);
+    Selecciones);
   if chkBitacora.Checked then
   begin
     oHoja := AControl.AddSheet(STextoBitacoraCaja,
       TdxSpreadSheetTableView) as TdxSpreadSheetTableView;
     oServicios := CrearServiciosHojaCalculoDevExTabla(oHoja);
-    oServicios.Escritor.Escribir(0, 0, 'Arqueo');
-    oServicios.Escritor.Escribir(0, 1, STextoMeteorologiaCaja);
-    oServicios.Escritor.Escribir(0, 2, STextoBitacoraCaja);
+    oServicios.Escritor.Combinar(0, 0, 1, 3);
+    oServicios.Escritor.Escribir(0, 0, STextoBitacoraCaja);
+    oServicios.Formateador.Negrita(0, 0);
+    iFila := EscribirResumenSeleccionesHoja(oServicios.Escritor,
+      oServicios.Formateador, 2, 0, Selecciones, 3);
+    oServicios.Escritor.Escribir(iFila, 0, STextoArqueoCaja);
+    oServicios.Escritor.Escribir(iFila, 1, STextoMeteorologiaCaja);
+    oServicios.Escritor.Escribir(iFila, 2, STextoBitacoraCaja);
     oServicios.Formateador.AnchoColumna(0, 160);
     oServicios.Formateador.AnchoColumna(1, 420);
     oServicios.Formateador.AnchoColumna(2, 700);
@@ -346,7 +353,7 @@ begin
     oDatos.DisableControls;
     try
       oDatos.First;
-      iFila := 1;
+      Inc(iFila);
       while not oDatos.Eof do
       begin
         TextosBitacoraArqueoActual(sMeteorologia, sBitacora);

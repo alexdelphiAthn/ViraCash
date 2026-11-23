@@ -204,6 +204,8 @@ type
       AReemplazarCantidad: Boolean;
       AConsulta: TUniQuery);
     function LocalizarLineaRecuento(const ASku, ALote: string): Boolean;
+    function ConsultarCostePartidaInventario(const ASku, ALote: string;
+      out ACoste: Currency): Boolean;
     procedure AsignarLoteLineaCarga(AConsulta: TDataSet);
     function CantidadTeoricaLote(const ASku, ALote: string;
       ACantidadSku: Currency): Currency;
@@ -2163,7 +2165,10 @@ const
     '   AND L.CANTIDAD_FISICA_INVLIN > L.CANTIDAD_TEORICA_INVLIN ' +
     '   AND IFNULL(L.PRECIO_MEDIO_INVLIN, 0) = 0 ' +
     '   AND IFNULL(L.PRECIO_MEDIO_NUEVO_INVLIN, 0) = 0 ' +
-    '   AND IFNULL(L.ESPRECIO_MEDIO_CORREGIDO_INVLIN, ''N'') <> ''S''';
+    '   AND IFNULL(L.ESPRECIO_MEDIO_CORREGIDO_INVLIN, ''N'') <> ''S'' ' +
+    '   AND NOT EXISTS (SELECT 1 FROM fza_articulos_lotes P ' +
+    '     WHERE P.CODIGO_UNIDAD_LOT = L.CODIGO_UNIDAD_INVLIN ' +
+    '       AND P.LOTE_LOT = L.LOTE_INVLIN AND P.ESREPOSICION_LOT = ''S'')';
   SQL_GRABAR_COSTE_SOBRANTE =
     'UPDATE fza_inventarios_lineas ' +
     '   SET PRECIO_MEDIO_NUEVO_INVLIN = :PMP_NUEVO, ' +
@@ -3373,6 +3378,36 @@ begin
   end;
 end;
 
+function TdmInventarios.ConsultarCostePartidaInventario(
+  const ASku, ALote: string; out ACoste: Currency): Boolean;
+var
+  Consulta: TUniQuery;
+begin
+  Result := False;
+  ACoste := 0;
+  if ALote <> '' then
+  begin
+    Consulta := TUniQuery.Create(nil);
+    try
+      Consulta.Connection := ConexionEscritura;
+      Consulta.SQL.Text :=
+        'SELECT FNC_FZA_REPOSICION_COSTE_LOTE(:ALMACEN, :SKU, :LOTE) ' +
+        'FROM fza_articulos_lotes ' +
+        'WHERE CODIGO_UNIDAD_LOT = :SKU AND LOTE_LOT = :LOTE ' +
+        'AND ESREPOSICION_LOT = ''S''';
+      Consulta.ParamByName('ALMACEN').AsString := FCodigoAlmacen;
+      Consulta.ParamByName('SKU').AsString := ASku;
+      Consulta.ParamByName('LOTE').AsString := ALote;
+      Consulta.Open;
+      Result := not Consulta.IsEmpty;
+      if Result then
+        ACoste := Consulta.Fields[0].AsCurrency;
+    finally
+      Consulta.Free;
+    end;
+  end;
+end;
+
 // FZ-ISSUE-341: lote o serie leídos en la celda Artículo. El teórico pasa
 // a ser el de ese lote; el recuento, 1 si es una serie (la unidad está en
 // la mano aunque no conste en stock) o el teórico del lote.
@@ -3381,7 +3416,7 @@ procedure TdmInventarios.EscribirLoteLeidoLinea(
   AFechaCaducidad: TDate;
   AEsSerie: Boolean);
 var
-  Teorica, Fisica: Currency;
+  Teorica, Fisica, Coste: Currency;
 begin
   if not (cdsLineas.State in [dsEdit, dsInsert]) then
     cdsLineas.Edit;
@@ -3391,6 +3426,13 @@ begin
       AFechaCaducidad;
   Teorica := CantidadTeoricaLote(ASku, ALote,
     cdsLineas.FieldByName('CANTIDAD_TEORICA_INVLIN').AsCurrency);
+  if ConsultarCostePartidaInventario(ASku, ALote, Coste) then
+  begin
+    cdsLineas.FieldByName('PRECIO_MEDIO_INVLIN').AsCurrency := Coste;
+    if not SameText(cdsLineas.FieldByName(
+        'ESPRECIO_MEDIO_CORREGIDO_INVLIN').AsString, 'S') then
+      cdsLineas.FieldByName('PRECIO_MEDIO_NUEVO_INVLIN').AsCurrency := Coste;
+  end;
   if AEsSerie then
     Fisica := 1
   else
@@ -3414,8 +3456,9 @@ procedure TdmInventarios.CargarSkuDesdeLista(
   AReemplazarCantidad: Boolean;
   AConsulta: TUniQuery);
 var
-  ArticuloPadre: string;
-  Lote: string;
+  ArticuloPadre, Lote: string;
+  Coste: Currency;
+  EsPartida: Boolean;
 begin
   AConsulta.Close;
   AConsulta.ParamByName('SKU').AsString := ASku;
@@ -3425,13 +3468,13 @@ begin
   begin
     ArticuloPadre := AConsulta.FieldByName(
       'CODIGO_ART_SKU').AsString;
-    // Solo se guarda el lote si el modo efectivo del artículo lo pide con
-    // los interruptores vigentes: un lote leído (GS1) de un artículo sin
-    // trazabilidad, o con su modo apagado, no parte la línea.
-    Lote := '';
-    if RequiereLote(ActivacionVigente.ModoEfectivo(ModoDesdeCadena(
-         AConsulta.FieldByName('TIPO_TRAZABILIDAD_ART').AsString))) then
-      Lote := Trim(ALote);
+    // Las partidas Yeti conservan su identidad aunque no haya trazabilidad.
+    Lote := Trim(ALote);
+    EsPartida := ConsultarCostePartidaInventario(ASku, Lote, Coste);
+    if not EsPartida and not RequiereLote(
+      ActivacionVigente.ModoEfectivo(ModoDesdeCadena(
+        AConsulta.FieldByName('TIPO_TRAZABILIDAD_ART').AsString))) then
+      Lote := '';
     unqryStockActual.Close;
     unqryStockActual.ParamByName(
       'ALMACEN').AsString := FCodigoAlmacen;
@@ -3474,12 +3517,10 @@ begin
           unqryStockActual.FieldByName('CANTIDAD_STK').AsCurrency);
       cdsLineas.FieldByName(
         'CANTIDAD_FISICA_INVLIN').AsCurrency := ACantidad;
-      cdsLineas.FieldByName(
-        'PRECIO_MEDIO_INVLIN').AsCurrency :=
-        unqryStockActual.FieldByName('PRECIO_MEDIO_STK').AsCurrency;
-      cdsLineas.FieldByName(
-        'PRECIO_MEDIO_NUEVO_INVLIN').AsCurrency :=
-        unqryStockActual.FieldByName('PRECIO_MEDIO_STK').AsCurrency;
+      if not EsPartida then
+        Coste := unqryStockActual.FieldByName('PRECIO_MEDIO_STK').AsCurrency;
+      cdsLineas.FieldByName('PRECIO_MEDIO_INVLIN').AsCurrency := Coste;
+      cdsLineas.FieldByName('PRECIO_MEDIO_NUEVO_INVLIN').AsCurrency := Coste;
       if Lote <> '' then
       begin
         cdsLineas.FieldByName('LOTE_INVLIN').AsString := Lote;

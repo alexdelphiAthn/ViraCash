@@ -116,6 +116,8 @@ type
     Numero: string;
     Empresa: string;
     Almacen: string;
+    Lote: string;
+    Caducidad: TDateTime;
   end;
 
 function PedirMotivoDevolucionCajaVcl(
@@ -444,6 +446,8 @@ begin
     ASeleccion.Numero := SeleccionModal.Numero;
     ASeleccion.Empresa := SeleccionModal.Empresa;
     ASeleccion.Almacen := SeleccionModal.Almacen;
+    ASeleccion.Lote := SeleccionModal.Lote;
+    ASeleccion.Caducidad := SeleccionModal.Caducidad;
   end;
 end;
 

@@ -21,14 +21,17 @@ procedure ExportarInformeTabularExcel(AControl: TdxSpreadSheet;
 procedure AnadirHojaInformeTabularExcel(AControl: TdxSpreadSheet;
   ADatos: TDataSet; const ANombre: string;
   const AColumnas: TColumnasInformeTabular;
-  ATotalGeneral: Boolean = False);
+  ATotalGeneral: Boolean = False;
+  const ATituloCabecera: string = '';
+  const AResumenCabecera: TArray<string> = nil);
 
 // Las columnas de texto agrupan; solo se suman las columnas numéricas.
 // ACampoIncluir permite excluir filas del resumen sin filtrar el detalle.
 procedure AnadirResumenInformeTabularExcel(AControl: TdxSpreadSheet;
   ADatos: TDataSet; const ANombre: string;
   const AColumnas: TColumnasInformeTabular;
-  const ACampoIncluir: string = ''; ATotalGeneral: Boolean = True);
+  const ACampoIncluir: string = ''; ATotalGeneral: Boolean = True;
+  const AResumenCabecera: TArray<string> = nil);
 
 procedure AnadirSeleccionInformeExcel(AControl: TdxSpreadSheet;
   const ATitulo: string; const AResumen: TArray<string>);
@@ -39,7 +42,7 @@ uses
   System.SysUtils, System.Variants, System.Generics.Collections,
   Datasnap.DBClient, dxSpreadSheetCore,
   inLibHojaCalculoIntf,
-  inLibHojaCalculoDevEx, inLibMsgInformesCliente;
+  inLibHojaCalculoDevEx, inLibMsgInformesCliente, inLibResumenSeleccionesHoja;
 
 procedure EscribirValor(const AServicios: TServiciosHojaCalculo;
   AFila, AColumna: Integer; ACampo: TField;
@@ -89,8 +92,25 @@ begin
   end;
 end;
 
+function EscribirCabeceraDatos(const AServicios: TServiciosHojaCalculo;
+  const ATitulo: string; const AResumen: TArray<string>;
+  ANumColumnas: Integer): Integer;
+begin
+  Result := 0;
+  if (ATitulo <> '') and (Length(AResumen) > 0) then
+  begin
+    if ANumColumnas > 1 then
+      AServicios.Escritor.Combinar(0, 0, 1, ANumColumnas);
+    AServicios.Escritor.Escribir(0, 0, ATitulo);
+    AServicios.Formateador.Negrita(0, 0);
+    Result := EscribirResumenSeleccionesHoja(AServicios.Escritor,
+      AServicios.Formateador, 2, 0, AResumen, ANumColumnas);
+  end;
+end;
+
 procedure EscribirDatos(const AServicios: TServiciosHojaCalculo;
-  ADatos: TDataSet; const AColumnas: TColumnasInformeTabular);
+  ADatos: TDataSet; const AColumnas: TColumnasInformeTabular;
+  AFilaTitulos: Integer);
 var
   iColumna, iFila: Integer;
   sEtiqueta: string;
@@ -99,13 +119,14 @@ var
 begin
   for iColumna := 0 to High(AColumnas) do
   begin
-    AServicios.Escritor.Escribir(0, iColumna, AColumnas[iColumna].Titulo);
+    AServicios.Escritor.Escribir(AFilaTitulos, iColumna,
+      AColumnas[iColumna].Titulo);
     if AColumnas[iColumna].Numerica or
       (AColumnas[iColumna].Campo = 'FECHA') or
       (AColumnas[iColumna].Campo = 'FECHA_ANT') then
-      AServicios.Formateador.Alinear(0, iColumna, acDerecha);
-    AServicios.Formateador.Negrita(0, iColumna);
-    AServicios.Formateador.FondoCelda(0, iColumna, $00EEEEEE);
+      AServicios.Formateador.Alinear(AFilaTitulos, iColumna, acDerecha);
+    AServicios.Formateador.Negrita(AFilaTitulos, iColumna);
+    AServicios.Formateador.FondoCelda(AFilaTitulos, iColumna, $00EEEEEE);
     AServicios.Formateador.AnchoColumna(iColumna,
       Round(100 * AColumnas[iColumna].Peso + 40));
   end;
@@ -113,7 +134,7 @@ begin
   ADatos.DisableControls;
   try
     ADatos.First;
-    iFila := 1;
+    iFila := AFilaTitulos + 1;
     while not ADatos.Eof do
     begin
       sEtiqueta := ADatos.FieldByName(AColumnas[0].Campo).AsString;
@@ -143,11 +164,13 @@ end;
 procedure AnadirHojaInformeTabularExcel(AControl: TdxSpreadSheet;
   ADatos: TDataSet; const ANombre: string;
   const AColumnas: TColumnasInformeTabular;
-  ATotalGeneral: Boolean);
+  ATotalGeneral: Boolean;
+  const ATituloCabecera: string;
+  const AResumenCabecera: TArray<string>);
 var
   oHoja: TdxSpreadSheetTableView;
   oServicios: TServiciosHojaCalculo;
-  iFila, iColumna, iIndice: Integer;
+  iFila, iFilaTitulos, iColumna, iIndice: Integer;
   sColumna: string;
 begin
   oHoja := AControl.AddSheet(ANombre,
@@ -155,10 +178,12 @@ begin
   oServicios := CrearServiciosHojaCalculoDevExTabla(oHoja);
   oServicios.Escritor.IniciarLote;
   try
-    EscribirDatos(oServicios, ADatos, AColumnas);
+    iFilaTitulos := EscribirCabeceraDatos(oServicios, ATituloCabecera,
+      AResumenCabecera, Length(AColumnas));
+    EscribirDatos(oServicios, ADatos, AColumnas, iFilaTitulos);
     if ATotalGeneral then
     begin
-      iFila := ADatos.RecordCount + 1;
+      iFila := iFilaTitulos + ADatos.RecordCount + 1;
       oServicios.Escritor.Escribir(iFila, 0, SInformeTotalGeneral);
       for iColumna := 0 to High(AColumnas) do
       begin
@@ -173,9 +198,10 @@ begin
             sColumna := Char(Ord('A') + iIndice mod 26) + sColumna;
             iIndice := iIndice div 26;
           end;
-          if iFila > 1 then
+          if iFila > iFilaTitulos + 1 then
             oServicios.Escritor.EscribirFormula(iFila, iColumna,
-              Format('=SUM(%s2:%s%d)', [sColumna, sColumna, iFila]))
+              Format('=SUM(%s%d:%s%d)',
+                [sColumna, iFilaTitulos + 2, sColumna, iFila]))
           else
             oServicios.Escritor.Escribir(iFila, iColumna, 0);
           if AColumnas[iColumna].Formato = '%g' then
@@ -195,7 +221,8 @@ end;
 procedure AnadirResumenInformeTabularExcel(AControl: TdxSpreadSheet;
   ADatos: TDataSet; const ANombre: string;
   const AColumnas: TColumnasInformeTabular;
-  const ACampoIncluir: string; ATotalGeneral: Boolean);
+  const ACampoIncluir: string; ATotalGeneral: Boolean;
+  const AResumenCabecera: TArray<string>);
 var
   oIndice: TDictionary<string, Integer>;
   oFilas: TList<TArray<Variant>>;
@@ -268,7 +295,7 @@ begin
       oResumen.Post;
     end;
     AnadirHojaInformeTabularExcel(AControl, oResumen, ANombre,
-      AColumnas, ATotalGeneral);
+      AColumnas, ATotalGeneral, ANombre, AResumenCabecera);
   finally
     oResumen.Free;
     oFilas.Free;
@@ -300,8 +327,8 @@ procedure ExportarInformeTabularExcel(AControl: TdxSpreadSheet;
   const AResumen: TArray<string>; ATotalGeneral: Boolean);
 begin
   AControl.ClearAll;
-  AnadirHojaInformeTabularExcel(AControl, ADatos,
-    SInformeHojaDatos, AColumnas, ATotalGeneral);
+  AnadirHojaInformeTabularExcel(AControl, ADatos, SInformeHojaDatos,
+    AColumnas, ATotalGeneral, ATitulo, AResumen);
   AnadirSeleccionInformeExcel(AControl, ATitulo, AResumen);
 end;
 

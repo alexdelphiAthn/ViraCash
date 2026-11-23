@@ -60,7 +60,6 @@ implementation
 
 uses
   System.SysUtils, System.UITypes, Vcl.Forms, Vcl.Dialogs,
-  Datasnap.DBClient,
   inMtoModalImpFac, inLibCajaParam, inLibFacturasComposicion,
   inLibMensajesVcl, inLibFTicket, inLibTicketImagenFR, inLibTicketLotes,
   inLibDir,
@@ -119,7 +118,6 @@ var
   DatosFactura: TdmFacturas;
   Formulario: TfrmPrintFac;
   Ticket: TTicketTermico;
-  LineasTicket: TClientDataSet;
   oLecturas: ILecturasImpresionTicket;
   sCodigoBarras: string;
   sFormato: string;
@@ -131,7 +129,6 @@ begin
   begin
     Formulario := nil;
     DatosFactura := nil;
-    LineasTicket := nil;
     try
       try
         DatosFactura := CrearDatosImpresionFactura(
@@ -140,14 +137,10 @@ begin
         Formulario.edtSerie.Text := ASerie;
         Formulario.edtNroFac.Text := ANumero;
         Formulario.ConfigurarDataModule(DatosFactura);
-        Formulario.preparar_consulta;
+        Formulario.PrepararConsultaTicket(
+          FParametrosCaja.GetBool(PARAMETRO_IMPRIMIR_LOTES_TICKET, False));
         if not Formulario.SeleccionarFormatoSinDialogo(sFormato) then
           raise Exception.CreateFmt(SFormatoTicketNoEncontrado, [sFormato]);
-        LineasTicket := PrepararLineasTicket(
-          DatosFactura.unqryLinFacPrint,
-          FParametrosCaja.GetBool(PARAMETRO_IMPRIMIR_LOTES_TICKET, False));
-        DatosFactura.fxdstPrintLinFac.DataSet := LineasTicket;
-        DatosFactura.fxdstPrintLinFac.ResetFieldDefs;
         // AfterReportLoaded rellena 'qrverifactu' solo con Verifactu activo.
         if not Formulario.PrepararPaginasSinImprimir then
           raise Exception.CreateFmt(SFormatoTicketSinPaginas, [sFormato]);
@@ -183,7 +176,6 @@ begin
     finally
       FreeAndNil(Formulario);
       FreeAndNil(DatosFactura);
-      FreeAndNil(LineasTicket);
     end;
   end;
 end;

@@ -14326,6 +14326,8 @@ begin
     'src/Lib/inLibMsgCaja.pas',
     @inLibMsgCaja.
       SAvisoDevolucionTicketOtraEmpresa);
+  ARegistrar('inLibMsgCaja.SAvisoDevolucionTicketVariasPartidas',
+    'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.SAvisoDevolucionTicketVariasPartidas);
   ARegistrar('inLibMsgCaja.SCajaAuxiliarCaja', 'src/Lib/inLibMsgCaja.pas',
     @inLibMsgCaja.SCajaAuxiliarCaja);
   ARegistrar('inLibMsgCaja.SReferenciaOperacionDevolucionOtraEmpresa',
@@ -14333,6 +14335,8 @@ begin
     @inLibMsgCaja.SReferenciaOperacionDevolucionOtraEmpresa);
   ARegistrar('inLibMsgCaja.SConceptoCompensacionEfectivoCaja',
     'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.SConceptoCompensacionEfectivoCaja);
+  ARegistrar('inLibMsgCaja.SConceptoTraspasoDevolucionCaja',
+    'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.SConceptoTraspasoDevolucionCaja);
   ARegistrar('inLibMsgCaja.SErrorSerieAuxiliarDevolucionCaja',
     'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.SErrorSerieAuxiliarDevolucionCaja);
   ARegistrar('inLibMsgCaja.SErrorEmisorDevolucionCajaIncompleto',

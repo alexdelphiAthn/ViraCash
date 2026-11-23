@@ -12,6 +12,7 @@ uses
   System.Types,
   Vcl.Controls, cxCheckBox, cxLabel, Data.DB, Uni,
   frxClass, frxDBSet, cxTextEdit, cxCheckListBox, inMtoModalGenImp,
+  inLibResumenSeleccionesInforme,
   inLibCorreoTickets;
 
 type
@@ -29,6 +30,7 @@ type
     FExportar: Boolean;
     FInicializado: Boolean;
     FIdsCargas: TArray<Int64>;
+    FCargasConsultadas: TArray<Int64>;
     edtViaje: TcxTextEdit;
     clbCargas: TcxCheckListBox;
     procedure CrearSeleccionViaje;
@@ -39,6 +41,8 @@ type
     procedure ConstruirExcelNativo(AControl: TdxSpreadSheet); override;
     procedure DoCreate; override;
     procedure DoShow; override;
+    procedure DescribirSelecciones(
+      AResumen: TResumenSeleccionesInforme); override;
     procedure Resize; override;
     procedure AvisarAntesDeConsulta; override;
     procedure EnviarCorreoDocumento(
@@ -682,8 +686,9 @@ end;
 procedure TfrmPrintHojaRutaTransito.preparar_consulta;
 begin
   FreeAndNil(FDatos);
+  FCargasConsultadas := CargasSeleccionadas;
   FDatos := ConsultarHojaRutaTransito(Self, FConexion, FTransito,
-    CargasSeleccionadas);
+    FCargasConsultadas);
   FDataset.DataSet := FDatos;
   if FDatos.IsEmpty then
   begin
@@ -703,9 +708,31 @@ begin
   frxrprt1.Variables['VIAJE'] := QuotedStr(Trim(edtViaje.Text));
 end;
 
+procedure TfrmPrintHojaRutaTransito.DescribirSelecciones(
+  AResumen: TResumenSeleccionesInforme);
+var
+  Cargas: TStringList;
+  Id: Int64;
+begin
+  inherited;
+  AResumen.Anadir(STextoTransitoComun, FTransito);
+  AResumen.Anadir(SCaptionViajeHojaRuta, Trim(edtViaje.Text));
+  Cargas := TStringList.Create;
+  try
+    for Id in FCargasConsultadas do
+      Cargas.Add(IntToStr(Id));
+    AResumen.AnadirLista(STextoCargaComun, Cargas);
+  finally
+    Cargas.Free;
+  end;
+end;
+
 procedure TfrmPrintHojaRutaTransito.ConstruirExcelNativo(
   AControl: TdxSpreadSheet);
+var
+  Selecciones: TArray<string>;
 begin
+  Selecciones := LineasResumenSelecciones;
   ExportarInformeTabularExcel(AControl, FDatos,
     Caption,
     [ColumnaInforme('TRANSITO', STextoTransitoComun, 1),
@@ -721,7 +748,7 @@ begin
      ColumnaInforme('LOTE', STextoLoteComun, 1),
      ColumnaInforme('DESCRIPCION', STextoDescripcionComun, 3),
      ColumnaInforme('UNIDADES', STextoUnidadesComun, 1, '%g')],
-    LineasResumenSelecciones);
+    Selecciones);
   AnadirResumenInformeTabularExcel(AControl, FDatos,
     'Totales por carga',
     [ColumnaInforme('TRANSITO', STextoTransitoComun, 1),
@@ -732,7 +759,8 @@ begin
      ColumnaInforme('ID_CARGA', STextoCargaComun, 1),
      ColumnaInforme('DOCUMENTO', STextoDocumentoComun, 1),
      ColumnaInforme('OPERACION', STextoOperacionComun, 1),
-     ColumnaInforme('UNIDADES', STextoUnidadesComun, 1, '%g')]);
+     ColumnaInforme('UNIDADES', STextoUnidadesComun, 1, '%g')],
+    '', True, Selecciones);
 end;
 
 end.

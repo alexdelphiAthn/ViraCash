@@ -22,7 +22,8 @@ function ImprimirIdentificacionTicket(AImprimirLotes, AEsSerie: Boolean):
   Boolean;
 function ClaveAgrupacionTicket(ALinea: TDataSet): string;
 function PrepararLineasTicket(ALineas: TDataSet;
-  AImprimirLotes: Boolean): TClientDataSet;
+  AImprimirLotes: Boolean;
+  ADescripcionSinLote: Boolean = False): TClientDataSet;
 function AgruparLotesTicket(const ALineas: TArray<TLineaTicketCaja>;
   AImprimirLotes: Boolean): TArray<TLineaTicketCaja>;
 
@@ -76,7 +77,7 @@ begin
 end;
 
 function PrepararLineasTicket(ALineas: TDataSet;
-  AImprimirLotes: Boolean): TClientDataSet;
+  AImprimirLotes, ADescripcionSinLote: Boolean): TClientDataSet;
 var
   Campo: TField;
   Marca: TBookmark;
@@ -126,7 +127,8 @@ begin
         if Agrupar then
         begin
           Result.FieldByName('LOTE_FACLIN').Clear;
-          if Result.FindField('DESCRIPCION_PRINT_FACLIN') <> nil then
+          if not ADescripcionSinLote and
+             (Result.FindField('DESCRIPCION_PRINT_FACLIN') <> nil) then
             Result.FieldByName('DESCRIPCION_PRINT_FACLIN').AsString :=
               Result.FieldByName('DESCRIPCION_ARTICULO_FACLIN').AsString +
               sLineBreak +

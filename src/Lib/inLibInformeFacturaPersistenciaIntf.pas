@@ -5,6 +5,8 @@ interface
 type
   TCriteriosInformeFactura = record
     FacturaActual: Boolean;
+    EsFormatoTicket: Boolean;
+    ImprimirLotesTicket: Boolean;
     Serie: string;
     Numero: string;
     FechaDesde: TDateTime;

@@ -272,7 +272,9 @@ procedure TfrmPrintDepositos.ConstruirExcelNativo(
   AControl: TdxSpreadSheet);
 var
   aColumnas: TColumnasInformeTabular;
+  Selecciones: TArray<string>;
 begin
+  Selecciones := LineasResumenSelecciones;
   if not FEsCuenta then
   begin
     ExportarInformeTabularExcel(AControl, dsDepositosPrint.DataSet,
@@ -288,7 +290,7 @@ begin
        ColumnaInforme('IMPORTE_ANTICIPO_DEP', STextoAnticipoCaja, 1, '%n'),
        ColumnaInforme('ESTADO_DEP', STextoEstadoCaja, 1),
        ColumnaInforme('NUMERO_OPERACION_DEP', STextoOperacionCaja, 1)],
-      LineasResumenSelecciones);
+      Selecciones);
   end
   else
   begin
@@ -316,12 +318,13 @@ begin
          ColumnaInforme('ENTREGADO', STextoEntregadoCaja, 1, '%n'),
          ColumnaInforme('PENDIENTE', STextoPendienteCaja, 1, '%n')];
     ExportarInformeTabularExcel(AControl, dsDepositosPrint.DataSet,
-      Caption, aColumnas, LineasResumenSelecciones);
+      Caption, aColumnas, Selecciones);
     AnadirResumenInformeTabularExcel(AControl, dsDepositosPrint.DataSet,
       STextoTotalesPorClienteCaja,
       [ColumnaInforme('CLIENTE', STextoClienteCaja, 1),
        ColumnaInforme('NOMBRE', STextoNombreCaja, 1),
-       ColumnaInforme('PENDIENTE', STextoPendienteCaja, 1, '%n')]);
+       ColumnaInforme('PENDIENTE', STextoPendienteCaja, 1, '%n')],
+      '', True, Selecciones);
   end;
 end;
 

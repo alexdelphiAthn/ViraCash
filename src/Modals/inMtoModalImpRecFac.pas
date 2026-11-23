@@ -29,7 +29,8 @@ uses
   cxStyles, dxSkinsForm, cxClasses, cxLocalization, JvComponentBase, JvEnterTab,
   System.Actions, Vcl.ActnList, frxSmartMemo, frLocalization, frLanguageSpanish,
   frxExportBaseImageSettingsDialog, frCoreClasses,
-  inLibInformeRecibosFacturaPersistenciaIntf, frxDBSet;
+  inLibInformeRecibosFacturaPersistenciaIntf, frxDBSet,
+  inLibResumenSeleccionesInforme;
 
 type
   TfrmPrintRecFac = class(TfrmPrint)
@@ -44,6 +45,7 @@ type
     procedure rbRangoFechasClick(Sender: TObject);
   private
     FPreparadorInforme: IPreparadorInformeRecibosFactura;
+    FCriteriosConsultados: TCriteriosInformeRecibosFactura;
     FEsEfectosVenta: Boolean;
     FEfectos: string;
     FConsultaPagos: TUniQuery;
@@ -52,6 +54,8 @@ type
     procedure DoShow; override;
     procedure ConstruirExcelNativo(AControl: TdxSpreadSheet); override;
     procedure PrepararDatosEdicion; override;
+    procedure DescribirSelecciones(
+      AResumen: TResumenSeleccionesInforme); override;
   public
     procedure preparar_consulta; override;
     procedure AfterReportLoaded; override;
@@ -210,6 +214,7 @@ begin
     FPreparadorInforme := CrearPreparadorInformeRecibosFacturaUniDAC(
       dmFac.unqryRecibosPrint);
   FPreparadorInforme.Preparar(criterios);
+  FCriteriosConsultados := criterios;
   if Assigned(FDatasetPagos) then
     FDatasetPagos.UpdateBounds
   else
@@ -236,11 +241,29 @@ begin
   btnExcel.OnClick := btnExcelNativoClick;
 end;
 
+procedure TfrmPrintRecFac.DescribirSelecciones(
+  AResumen: TResumenSeleccionesInforme);
+begin
+  inherited;
+  AResumen.Anadir(STextoFacturaFacturas,
+    FCriteriosConsultados.Serie + '/' + FCriteriosConsultados.NumeroFactura);
+  if FCriteriosConsultados.ReciboActual then
+  begin
+    if FCriteriosConsultados.EsEfectosCompra or
+       FCriteriosConsultados.EsEfectosVenta then
+      AResumen.Anadir(rbActual.Caption, FCriteriosConsultados.Efectos)
+    else
+      AResumen.Anadir(STextoPlazoFacturas, FCriteriosConsultados.NumeroRecibo);
+  end;
+end;
+
 procedure TfrmPrintRecFac.ConstruirExcelNativo(
   AControl: TdxSpreadSheet);
 var
   oDatos: TDataSet;
+  Selecciones: TArray<string>;
 begin
+  Selecciones := LineasResumenSelecciones;
   if Assigned(FConsultaPagos) then
     oDatos := FConsultaPagos
   else
@@ -262,12 +285,13 @@ begin
      ColumnaInforme('FECHA_VENCIMIENTO_RECIBO_REC', STextoVencimientoFacturas,
        1),
      ColumnaInforme('EUROS_RECIBO_REC', STextoImporteFacturas, 1, '%n')],
-    LineasResumenSelecciones);
+    Selecciones);
   AnadirResumenInformeTabularExcel(AControl, oDatos,
     STextoTotalesPorTerceroFacturas,
     [ColumnaInforme('CODIGO_CLI_REC', STextoCodigoTerceroFacturas, 1),
      ColumnaInforme('RAZON_SOCIAL_CLI_REC', STextoNombreTerceroFacturas, 3),
-     ColumnaInforme('EUROS_RECIBO_REC', STextoImporteFacturas, 1, '%n')]);
+     ColumnaInforme('EUROS_RECIBO_REC', STextoImporteFacturas, 1, '%n')],
+    '', True, Selecciones);
 end;
 
 end.

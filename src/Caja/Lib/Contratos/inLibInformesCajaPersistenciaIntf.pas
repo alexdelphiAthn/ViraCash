@@ -54,10 +54,12 @@ type
     NombreAtributo: string;
     ValorAtributo: string;
     CodigoArqueo: string;
+    CodigoEmpleado: string;
   end;
 
   TFiltroOperacionesVentaCaja = (
-    fovTalla, fovColor, fovCopa, fovAtributo, fovValorAtributo, fovTurno
+    fovTalla, fovColor, fovCopa, fovAtributo, fovValorAtributo, fovTurno,
+    fovEmpleado
   );
 
   TEstadosSolicitudTraspasoCaja = TArray<string>;

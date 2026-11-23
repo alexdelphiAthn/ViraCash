@@ -3729,7 +3729,7 @@ begin
       FQuery, sEmpresaOrigen, FAlmacenOrigenDevolucion,
       CAJA_AUXILIAR_DEVOLUCION, sNumOperacion, sTipoDoc, cTotal, FUsuario, FFechaOperacion,
       sNumeroDoc, sSerieDoc, '',
-      'Traspaso por devolución · ' + ReferenciaCajaDevolucion,
+      SConceptoTraspasoDevolucionCaja + ' · ' + ReferenciaCajaDevolucion,
       FSerieOrigenDevolucion, FNumeroOrigenDevolucion, '',
       sEmpContra, FAlmacen, 'S');
   end;

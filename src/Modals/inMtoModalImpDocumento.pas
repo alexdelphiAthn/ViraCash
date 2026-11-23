@@ -15,7 +15,8 @@ uses
   dxSpreadSheet,
   inLibMsgPresupuestos,
   System.Classes, Data.DB, frxClass,
-  inMtoModalGenImp, inLibDocumentoIntf, UniDataInformeDocumento;
+  inMtoModalGenImp, inLibDocumentoIntf, UniDataInformeDocumento,
+  inLibResumenSeleccionesInforme;
 
 type
   TfrmPrintDocumento = class(TfrmPrint)
@@ -30,6 +31,8 @@ type
     procedure DoShow; override;
     procedure ConstruirExcelNativo(AControl: TdxSpreadSheet); override;
     procedure PrepararDatosEdicion; override;
+    procedure DescribirSelecciones(
+      AResumen: TResumenSeleccionesInforme); override;
   public
     procedure preparar_consulta; override;
     procedure AfterReportLoaded; override;
@@ -252,6 +255,26 @@ procedure TfrmPrintDocumento.DoShow;
 begin
   inherited;
   btnExcel.OnClick := btnExcelNativoClick;
+end;
+
+procedure TfrmPrintDocumento.DescribirSelecciones(
+  AResumen: TResumenSeleccionesInforme);
+var
+  Datos: TDataSet;
+begin
+  inherited;
+  if Assigned(FDatos.Cabecera) then
+  begin
+    Datos := FDatos.Cabecera.DataSet;
+    if not Datos.IsEmpty then
+    begin
+      AResumen.Anadir(STextoNumeroFacturas2,
+        Datos.FieldByName('SERIE').AsString + '/' +
+        Datos.FieldByName('NUMERO').AsString);
+      AResumen.Anadir(STextoEmpresaFacturas2,
+        Datos.FieldByName('EMPRESA').AsString);
+    end;
+  end;
 end;
 
 procedure TfrmPrintDocumento.ConstruirExcelNativo(

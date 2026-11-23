@@ -41,6 +41,8 @@ type
     Almacen: string;
     Caja: string;
     NumeroOperacion: string;
+    Lote: string;
+    Caducidad: TDateTime;
   end;
   TfrmModalSeleccionVentaOrigen = class(TfrmBase)
     pnlPrincipal: TPanel;
@@ -59,6 +61,7 @@ type
     colAlmacen: TcxGridDBColumn;
     colCaja: TcxGridDBColumn;
     colUds: TcxGridDBColumn;
+    colLote: TcxGridDBColumn;
     colTotalLinea: TcxGridDBColumn;
     colTotalTicket: TcxGridDBColumn;
     dsVentas: TDataSource;
@@ -97,7 +100,7 @@ implementation
 
 uses
   inLibMensajesVcl,
-  inLibMsgCaja;
+  inLibMsgCaja, inLibMsgTrazabilidad;
 
 procedure ForceReferenceToClass(C: TClass); begin end;
 
@@ -144,6 +147,10 @@ begin
   FMemVentas.FieldDefs.Add('CODIGO_CAJA_FAC', ftString, 10);
   FMemVentas.FieldDefs.Add('NUMERO_OPERACION_FAC', ftString, 20);
   FMemVentas.FieldDefs.Add('CANTIDAD', ftFloat);
+  FMemVentas.FieldDefs.Add('LOTE', ftString, 50);
+  FMemVentas.FieldDefs.Add('VARIOS_LOTES', ftBoolean);
+  FMemVentas.FieldDefs.Add('CADUCIDAD', ftDateTime);
+  colLote.Caption := SCaptionColumnaLoteSerie;
   FMemVentas.FieldDefs.Add('TOTAL_LINEA', ftCurrency);
   FMemVentas.FieldDefs.Add('TOTAL_TICKET', ftCurrency);
   FMemVentas.Open;
@@ -201,6 +208,15 @@ begin
         oDatos.FieldByName('NUMERO_OPERACION_FAC').AsString;
       FMemVentas.FieldByName('CANTIDAD').AsFloat :=
         oDatos.FieldByName('CANTIDAD_FACLIN').AsFloat;
+      FMemVentas.FieldByName('VARIOS_LOTES').AsBoolean :=
+        oDatos.FieldByName('NUM_LOTES').AsInteger > 1;
+      if not FMemVentas.FieldByName('VARIOS_LOTES').AsBoolean then
+      begin
+        FMemVentas.FieldByName('LOTE').AsString :=
+          oDatos.FieldByName('LOTE_FACLIN').AsString;
+        FMemVentas.FieldByName('CADUCIDAD').Value :=
+          oDatos.FieldByName('FECHA_CADUCIDAD_FACLIN').Value;
+      end;
       FMemVentas.FieldByName('TOTAL_LINEA').AsCurrency :=
         oDatos.FieldByName('TOTAL_FACLIN').AsCurrency;
       FMemVentas.FieldByName('TOTAL_TICKET').AsCurrency :=
@@ -219,7 +235,11 @@ function TfrmModalSeleccionVentaOrigen.SeleccionarVentaActual:
   Boolean;
 begin
   Result := False;
-  if not FMemVentas.IsEmpty then
+  if FMemVentas.IsEmpty then
+    Result := False
+  else if FMemVentas.FieldByName('VARIOS_LOTES').AsBoolean then
+    ShowMessage_fza(SAvisoDevolucionTicketVariasPartidas)
+  else
   begin
     FSeleccion.Encontrada := True;
     FSeleccion.Serie :=
@@ -234,6 +254,8 @@ begin
       FMemVentas.FieldByName('CODIGO_CAJA_FAC').AsString;
     FSeleccion.NumeroOperacion :=
       FMemVentas.FieldByName('NUMERO_OPERACION_FAC').AsString;
+    FSeleccion.Lote := FMemVentas.FieldByName('LOTE').AsString;
+    FSeleccion.Caducidad := FMemVentas.FieldByName('CADUCIDAD').AsDateTime;
     Result := True;
   end;
 end;

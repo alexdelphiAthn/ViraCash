@@ -12,7 +12,7 @@ function CrearPreparadorInformeFacturaUniDAC(
 implementation
 
 uses
-  Data.DB, UniDataPropiedadesLineasDocumento;
+  Data.DB, UniDataPropiedadesLineasDocumento, UniDataTicketFacturaImpresion;
 
 type
   TPreparadorInformeFacturaUniDAC = class(
@@ -44,7 +44,7 @@ end;
 // Descripcion del articulo y, debajo, el SKU (el formato de factura no
 // tiene columna de codigo). Antes el SKU iba delante y partia la
 // descripcion. F-LOTEC-016: con las etiquetas, el lote o la serie (y su
-// caducidad) en otra linea.
+// caducidad) en otra linea. Las partidas de reposicion son de uso interno.
 function SQLDescripcionLinea: string;
 begin
   Result :=
@@ -53,8 +53,15 @@ begin
     'NULLIF(TRIM(L.CODIGO_UNIDAD_FACLIN), ''''), ' +
     SqlPropiedadesLinea('L.CODIGO_ART_FACLIN',
       'L.CODIGO_UNIDAD_FACLIN') + ', ' +
-    'CASE WHEN :ETIQUETA_LOTE <> '''' AND ' +
-    'TRIM(IFNULL(L.LOTE_FACLIN, '''')) <> '''' THEN CONCAT(' +
+    'CASE WHEN :ETIQUETA_LOTE <> '''' ' +
+    'AND TRIM(IFNULL(L.LOTE_FACLIN, '''')) <> '''' ' +
+    'AND (:ES_TICKET OR NOT EXISTS(SELECT 1 FROM fza_articulos_lotes P ' +
+    'WHERE P.CODIGO_UNIDAD_LOT = L.CODIGO_UNIDAD_FACLIN ' +
+    'AND P.LOTE_LOT = L.LOTE_FACLIN AND P.ESREPOSICION_LOT = ''S'')) ' +
+    'AND (:MOSTRAR_LOTES OR EXISTS(SELECT 1 FROM fza_articulos A ' +
+    'WHERE A.CODIGO_ART_ART = L.CODIGO_ART_FACLIN ' +
+    'AND A.TIPO_TRAZABILIDAD_ART = ''SERIE'')) ' +
+    'THEN CONCAT(' +
     'IF(EXISTS(SELECT 1 FROM fza_articulos A ' +
     'WHERE A.CODIGO_ART_ART = L.CODIGO_ART_FACLIN ' +
     'AND A.TIPO_TRAZABILIDAD_ART = ''SERIE''), :ETIQUETA_SERIE, ' +
@@ -70,8 +77,11 @@ begin
 end;
 
 procedure AsignarEtiquetasLote(AConsulta: TUniQuery;
-  const ACriterios: TCriteriosInformeFactura);
+  const ACriterios: TCriteriosInformeFactura; AEsTicket: Boolean);
 begin
+  AConsulta.Params.ParamByName('ES_TICKET').AsInteger := Ord(AEsTicket);
+  AConsulta.Params.ParamByName('MOSTRAR_LOTES').AsInteger :=
+    Ord(not AEsTicket or ACriterios.ImprimirLotesTicket);
   AConsulta.Params.ParamByName('ETIQUETA_LOTE').AsString :=
     ACriterios.EtiquetaLote;
   AConsulta.Params.ParamByName('ETIQUETA_LOTE_TEXTO').AsString :=
@@ -90,14 +100,15 @@ begin
     '(SELECT GROUP_CONCAT(FP.DESCRIPCION_FORMA_PAGO_CFP ' +
     'ORDER BY FP.ORDEN_VISUAL_FORMA_PAGO_CFP, FP.CODIGO_FP_CFP ' +
     'SEPARATOR '', '') FROM fza_caja_formas_pago FP ' +
-    'WHERE (SELECT SUM(P.IMPORTE_ENTREGADO_PAGO - ' +
-    'P.IMPORTE_CAMBIO_PAGO) FROM fza_caja_pagos P ' +
-    'WHERE P.CODIGO_FP_CFP = FP.CODIGO_FP_CFP ' +
-    'AND P.CODIGO_EMP_PAGO = V.CODIGO_EMP_FAC ' +
-    'AND P.CODIGO_ALM_PAGO = V.CODIGO_ALM_FAC ' +
-    'AND P.CODIGO_CAJA_PAGO = V.CODIGO_CAJA_FAC ' +
-    'AND P.NUMERO_OPERACION_PAGO = V.NUMERO_OPERACION_FAC ' +
-    'AND P.SERIE_OPERACION_PAGO IN (V.SERIE_FAC, '''')) <> 0)';
+    'WHERE (SELECT SUM(p.IMPORTE_ENTREGADO_PAGO - ' +
+    'p.IMPORTE_CAMBIO_PAGO) FROM fza_caja_pagos p ' +
+    'WHERE p.CODIGO_FP_CFP = FP.CODIGO_FP_CFP ' +
+    'AND ((p.CODIGO_EMP_PAGO = f.CODIGO_EMP_FAC ' +
+    'AND p.CODIGO_ALM_PAGO = f.CODIGO_ALM_FAC ' +
+    'AND p.CODIGO_CAJA_PAGO = f.CODIGO_CAJA_FAC ' +
+    'AND p.NUMERO_OPERACION_PAGO = f.NUMERO_OPERACION_FAC ' +
+    'AND p.SERIE_OPERACION_PAGO IN (f.SERIE_FAC, '''')) OR (' +
+    SQL_PAGO_DEVOLUCION_INTEREMPRESA + '))) <> 0)';
 end;
 
 // FORMA_PAGO_IMPRESION: la forma de pago del documento o, si no tiene
@@ -105,10 +116,16 @@ end;
 function SQLCabeceraFactura: string;
 begin
   Result :=
-    'SELECT V.*, COALESCE(' +
-    'NULLIF(TRIM(V.DESCRIPCION_FORMA_PAGO_FP), ''''), ' +
-    SQLFormasPagoCobroCaja + ', '''') AS FORMA_PAGO_IMPRESION ' +
-    'FROM vi_facturas_print V ';
+    'SELECT f.*, COALESCE(' +
+    'NULLIF(TRIM(f.DESCRIPCION_FORMA_PAGO_FP), ''''), ' +
+    SQLFormasPagoCobroCaja + ', '''') AS FORMA_PAGO_IMPRESION, ' +
+    'CASE WHEN f.TIPO_FAC = ''SIMPLIFICADA'' OR ' +
+    '(f.TIPO_FAC = ''RECTIFICATIVA'' AND EXISTS(' +
+    'SELECT 1 FROM fza_facturas R WHERE R.SERIE_FAC = f.SERIE_FAC ' +
+    'AND R.NUMERO_FAC = f.NUMERO_FAC ' +
+    'AND R.TIPO_FACTURA_VERIFACTU_FAC = ''R5'')) ' +
+    'THEN ''S'' ELSE ''N'' END AS ES_TICKET_FACTURA ' +
+    'FROM vi_facturas_print f ';
 end;
 
 function SQLJoinOperacionCaja: string;
@@ -143,6 +160,8 @@ end;
 
 procedure TPreparadorInformeFacturaUniDAC.PrepararActual(
   const ACriterios: TCriteriosInformeFactura);
+var
+  EsTicket: Boolean;
 begin
   FConsultaFactura.Close;
   FConsultaFactura.Params.Clear;
@@ -152,6 +171,8 @@ begin
   FConsultaFactura.Params.ParamByName('numfac').Value := ACriterios.Numero;
   FConsultaFactura.Params.ParamByName('serie').Value := ACriterios.Serie;
   FConsultaFactura.Open;
+  EsTicket := ACriterios.EsFormatoTicket or
+    (FConsultaFactura.FieldByName('ES_TICKET_FACTURA').AsString = 'S');
   FConsultaLineas.Close;
   FConsultaLineas.Params.Clear;
   FConsultaLineas.SQL.Text :=
@@ -165,7 +186,7 @@ begin
     'L.LINEA_FACLIN';
   FConsultaLineas.Params.ParamByName('numfac').Value := ACriterios.Numero;
   FConsultaLineas.Params.ParamByName('serie').Value := ACriterios.Serie;
-  AsignarEtiquetasLote(FConsultaLineas, ACriterios);
+  AsignarEtiquetasLote(FConsultaLineas, ACriterios, EsTicket);
   FConsultaLineas.Open;
 end;
 
@@ -204,7 +225,7 @@ begin
   FConsultaLineas.Params.ParamByName('fecha_fin').DataType := ftDate;
   FConsultaLineas.Params.ParamByName('fecha_fin').Value :=
     ACriterios.FechaHasta;
-  AsignarEtiquetasLote(FConsultaLineas, ACriterios);
+  AsignarEtiquetasLote(FConsultaLineas, ACriterios, False);
   FConsultaLineas.Open;
 end;
 

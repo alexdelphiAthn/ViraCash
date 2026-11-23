@@ -138,7 +138,9 @@ procedure TfrmPrintCaducidades.ConstruirExcelNativo(
   AControl: TdxSpreadSheet);
 var
   aColumnas: TColumnasInformeTabular;
+  Selecciones: TArray<string>;
 begin
+  Selecciones := LineasResumenSelecciones;
   aColumnas := [
     ColumnaInforme('CODIGO_ALM_STK', STextoAlmacenComun, 1),
     ColumnaInforme('NOMBRE_ALM_ALM', STextoNombreAlmacenComun, 2),
@@ -155,13 +157,14 @@ begin
     ColumnaInforme('CANTIDAD_STK', STextoCantidadComun, 1, '%g'),
     ColumnaInforme('VALOR_TOTAL_STK', STextoValorTotalComun, 1, '%n')];
   ExportarInformeTabularExcel(AControl, dsCaducidadesPrint.DataSet,
-    Caption, aColumnas, LineasResumenSelecciones);
+    Caption, aColumnas, Selecciones);
   AnadirResumenInformeTabularExcel(AControl, dsCaducidadesPrint.DataSet,
     STextoTotalesPorAlmacenComun,
     [ColumnaInforme('CODIGO_ALM_STK', STextoAlmacenComun, 1),
      ColumnaInforme('NOMBRE_ALM_ALM', STextoNombreAlmacenComun, 2),
      ColumnaInforme('CANTIDAD_STK', STextoCantidadComun, 1, '%g'),
-     ColumnaInforme('VALOR_TOTAL_STK', STextoValorTotalComun, 1, '%n')]);
+     ColumnaInforme('VALOR_TOTAL_STK', STextoValorTotalComun, 1, '%n')],
+    '', True, Selecciones);
 end;
 
 end.

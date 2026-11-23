@@ -288,6 +288,26 @@
         TabOrder = 12
         Width = 236
       end
+      object lblFiltroEmpleado: TcxLabel
+        Left = 264
+        Top = 182
+        Caption = 'Empleado'
+        TabOrder = 13
+        Transparent = True
+      end
+      object edtFiltroEmpleado: TcxButtonEdit
+        Tag = 6
+        Properties.Buttons = <
+          item
+            Default = True
+            Kind = bkEllipsis
+          end>
+        Properties.OnButtonClick = BuscarFiltroButtonClick
+        Left = 264
+        Top = 206
+        TabOrder = 14
+        Width = 237
+      end
     end
   end
   inherited frxrprt1: TfrxReport

@@ -32,7 +32,7 @@ uses
   JvComponentBase, JvEnterTab, Vcl.Menus, System.Actions, Vcl.ActnList,
   inLibInformesCajaPersistenciaIntf, inLibCajaPantallaInyeccion,
   inLibResumenSeleccionesInforme, inLibInformeTabular,
-  inLibBalanceCantidades;
+  inLibBalanceCantidades, dxSpreadSheet;
 
 type
   TfrmPrintOperacionesVenta = class(TfrmPrint)
@@ -45,6 +45,7 @@ type
     lblNombreAtributo: TcxLabel;
     lblValorAtributo: TcxLabel;
     lblCodigoArqueo: TcxLabel;
+    lblFiltroEmpleado: TcxLabel;
     lblFiltrosOpcionales: TcxLabel;
     edtFiltroTalla: TcxButtonEdit;
     edtFiltroColor: TcxButtonEdit;
@@ -52,6 +53,7 @@ type
     edtNombreAtributo: TcxButtonEdit;
     edtValorAtributo: TcxButtonEdit;
     edtCodigoArqueo: TcxButtonEdit;
+    edtFiltroEmpleado: TcxButtonEdit;
     lblFechas: TcxLabel;
     lblDesde: TcxLabel;
     dteDesde: TcxDateEdit;
@@ -85,6 +87,7 @@ type
     FRestringido: Boolean;
     FRepositorioPersistencia: IRepositorioInformesCaja;
     FResultado: IResultadoInformeCaja;
+    FSolicitudConsultada: TSolicitudOperacionesVentaCaja;
     FDatos: TDataSet;
     FIndiceCantidades: TIndiceCantidadesBalance;
     FFechaGrupoCantidad: string;
@@ -116,6 +119,7 @@ type
   protected
     procedure DoShow; override;
     procedure EjecutarInforme(Sender: TObject); virtual;
+    procedure ConstruirExcelNativo(AControl: TdxSpreadSheet); override;
     procedure DescribirSelecciones(
       AResumen: TResumenSeleccionesInforme); override;
     procedure ReportBeforePrintConColor(
@@ -240,8 +244,7 @@ begin
     Preview.DialogoGuardar.InitialDir :=
       ParametrosApp.GetPath('appDirExcel');
     Preview.DialogoGuardar.FileName := 'Operaciones_venta.xlsx';
-    ExportarInformeTabularExcel(Preview.dxSpreadSheet1, FDatos,
-      Caption, ColumnasExcel, LineasResumenSelecciones);
+    ConstruirExcelNativo(Preview.dxSpreadSheet1);
     TerminarEspera;
     Preview.ShowModal;
   finally
@@ -249,6 +252,13 @@ begin
     Preview.Free;
     Screen.Cursor := CursorAnterior;
   end;
+end;
+
+procedure TfrmPrintOperacionesVenta.ConstruirExcelNativo(
+  AControl: TdxSpreadSheet);
+begin
+  ExportarInformeTabularExcel(AControl, FDatos, Caption, ColumnasExcel,
+    LineasResumenSelecciones);
 end;
 
 function TfrmPrintOperacionesVenta.CloseQuery: Boolean;
@@ -615,7 +625,8 @@ const
   NOMBRES_BUSQUEDA: array[TFiltroOperacionesVentaCaja] of string = (
     'OperacionesVentaBuscarTalla', 'OperacionesVentaBuscarColor',
     'OperacionesVentaBuscarCopa', 'OperacionesVentaBuscarAtributo',
-    'OperacionesVentaBuscarValor', 'OperacionesVentaBuscarTurno'
+    'OperacionesVentaBuscarValor', 'OperacionesVentaBuscarTurno',
+    'OperacionesVentaBuscarEmpleado'
   );
 var
   Opciones: IResultadoInformeCaja;
@@ -642,10 +653,15 @@ begin
       Datos.FieldByName('DESDE').DisplayLabel := lblDesde.Caption;
       Datos.FieldByName('HASTA').DisplayLabel := lblHasta.Caption;
     end;
+    if AFiltro = fovEmpleado then
+      Campo.DisplayLabel := STextoCodigoCaja;
     Campo := Datos.FindField('DESCRIPCION');
     if Assigned(Campo) then
     begin
-      Campo.DisplayLabel := SColumnaDescripcionFiltroVentas;
+      if AFiltro = fovEmpleado then
+        Campo.DisplayLabel := STextoNombreCaja
+      else
+        Campo.DisplayLabel := SColumnaDescripcionFiltroVentas;
       Campo.DisplayWidth := 32;
     end;
     Result := BusquedaVisual.EjecutarBusquedaDataSet(
@@ -672,6 +688,7 @@ begin
   Etiquetas[fovAtributo] := lblNombreAtributo;
   Etiquetas[fovValorAtributo] := lblValorAtributo;
   Etiquetas[fovTurno] := lblCodigoArqueo;
+  Etiquetas[fovEmpleado] := lblFiltroEmpleado;
   if (Filtro = fovValorAtributo) and (Trim(edtNombreAtributo.Text) = '') then
     BuscarFiltroButtonClick(edtNombreAtributo, 0);
   if (Filtro <> fovValorAtributo) or (Trim(edtNombreAtributo.Text) <> '') then
@@ -864,6 +881,7 @@ begin
   end;
   FDatos := NuevoResultado.DataSet;
   FResultado := NuevoResultado;
+  FSolicitudConsultada := Solicitud;
   PrepararCantidadesInforme(FDatos);
 end;
 
@@ -914,7 +932,10 @@ begin
   inherited;
   // La misma solicitud que la consulta: sin ubicaciones marcadas (o con
   // la restricción activa) se consulta la de la sesión.
-  oSolicitud := ConstruirSolicitud;
+  if Assigned(FResultado) then
+    oSolicitud := FSolicitudConsultada
+  else
+    oSolicitud := ConstruirSolicitud;
   AResumen.AnadirRangoFechas(
     lblFechas.Caption, oSolicitud.FechaDesde, oSolicitud.FechaHasta);
   AnadirUbicacionesInformeCaja(
@@ -929,6 +950,8 @@ begin
     AResumen.Anadir(oSolicitud.NombreAtributo, oSolicitud.ValorAtributo);
   if oSolicitud.CodigoArqueo <> '' then
     AResumen.Anadir(lblCodigoArqueo.Caption, oSolicitud.CodigoArqueo);
+  if oSolicitud.CodigoEmpleado <> '' then
+    AResumen.Anadir(lblFiltroEmpleado.Caption, oSolicitud.CodigoEmpleado);
 end;
 
 function TfrmPrintOperacionesVenta.ConstruirSolicitud:
@@ -950,6 +973,7 @@ begin
   Result.NombreAtributo := Trim(edtNombreAtributo.Text);
   Result.ValorAtributo := Trim(edtValorAtributo.Text);
   Result.CodigoArqueo := Trim(edtCodigoArqueo.Text);
+  Result.CodigoEmpleado := Trim(edtFiltroEmpleado.Text);
   SetLength(Result.Ubicaciones, 0);
   if FRestringido or (NumeroUbicacionesMarcadas = 0) then
   begin

@@ -1036,14 +1036,15 @@ function TRepositorioInformesCajaUniDAC.ConstruirSqlOperacionesVenta(
 var
   slSQL: TStringList;
   FiltroUbicaciones: string;
-  FiltrarEjes: Boolean;
+  FiltrarDetalle: Boolean;
 begin
   FiltroUbicaciones := ConstruirFiltroUbicaciones(ASolicitud.Ubicaciones);
-  FiltrarEjes := (ASolicitud.Talla <> '') or
-    (ASolicitud.Color <> '') or (ASolicitud.Copa <> '');
+  FiltrarDetalle := (ASolicitud.Talla <> '') or
+    (ASolicitud.Color <> '') or (ASolicitud.Copa <> '') or
+    (ASolicitud.CodigoEmpleado <> '');
   slSQL := TStringList.Create;
   try
-    if FiltrarEjes then
+    if FiltrarDetalle then
       slSQL.Add('SELECT * FROM (');
     AnadirCabeceraOperacionesVenta(slSQL);
     AnadirAtributosOperacionesVenta(slSQL);
@@ -1057,7 +1058,7 @@ begin
     if ASolicitud.CodigoArqueo <> '' then
       slSQL.Add(' AND o.CODIGO_ARQUEO_OPCAJA = :pARQUEO');
     AnadirPrestamosOperacionesVenta(slSQL, FiltroUbicaciones, ASolicitud);
-    if FiltrarEjes then
+    if FiltrarDetalle then
     begin
       slSQL.Add(') detalle WHERE 1 = 1');
       if ASolicitud.Talla <> '' then
@@ -1066,6 +1067,8 @@ begin
         slSQL.Add(' AND TRIM(COLOR) = :pCOLOR');
       if ASolicitud.Copa <> '' then
         slSQL.Add(' AND TRIM(COPA) = :pCOPA');
+      if ASolicitud.CodigoEmpleado <> '' then
+        slSQL.Add(' AND TRIM(VENDEDOR) = :pEMPLEADO');
     end;
     slSQL.Add(' ORDER BY FECHA_DIA, CODIGO_EMP_OPCAJA,');
     // FZ-ISSUE-1126: el informe subtotaliza por vendedor dentro de la caja.
@@ -1121,6 +1124,8 @@ begin
     end;
     if ASolicitud.CodigoArqueo <> '' then
       oConsulta.ParamByName('pARQUEO').AsString := ASolicitud.CodigoArqueo;
+    if ASolicitud.CodigoEmpleado <> '' then
+      oConsulta.ParamByName('pEMPLEADO').AsString := ASolicitud.CodigoEmpleado;
     VincularPeriodoYUbicacionesVenta(oConsulta, ASolicitud);
     oConsulta.Open;
     Result := TResultadoInformeCajaUniDAC.Create(oConsulta);
@@ -1193,6 +1198,13 @@ begin
             ' ORDER BY HASTA DESC, VALOR DESC';
           VincularPeriodoYUbicacionesVenta(Consulta, ASolicitud);
         end;
+      fovEmpleado:
+        Consulta.SQL.Text :=
+          'SELECT CODIGO_EMPL AS VALOR, ' +
+          'COALESCE(NULLIF(TRIM(NOMBRE_EMPL), ''''), ' +
+          'NULLIF(TRIM(DIMINUTIVO_TICKET_EMPL), ''''), CODIGO_EMPL) ' +
+          'AS DESCRIPCION FROM fza_empleados ' +
+          'WHERE TRIM(CODIGO_EMPL) <> '''' ORDER BY DESCRIPCION, VALOR';
     end;
     Consulta.Open;
     Result := TResultadoInformeCajaUniDAC.Create(Consulta);
@@ -1471,7 +1483,7 @@ begin
     'SELECT CODIGO_VL, PIN_SEGURIDAD_VL, ESTADO_VL, ' +
     '       IMPORTE_NOMINAL_VL, FECHA_EMISION_VL, ' +
     '       FECHA_CADUCIDAD_VL, OBSERVACIONES_VL, ' +
-    '       CODIGO_EMP_EMI_VL, CODIGO_ALM_EMI_VL ' +
+    '       CODIGO_EMP_EMI_VL, CODIGO_ALM_EMI_VL, CODIGO_CAJA_EMI_VL ' +
     '  FROM fza_caja_vales ' +
     ' WHERE ESTADO_VL = ''PENDIENTE''' +
     // La caducidad la fija la emisora; se respeta siempre (FZ-362)
@@ -1485,8 +1497,11 @@ begin
   begin
     sSql := sSql + ' AND PIN_SEGURIDAD_VL = :PIN';
   end;
-  sSql := sSql + FiltroAmbitoCanjeVale(ARestriccion) +
-    ' ORDER BY FECHA_EMISION_VL DESC';
+  // TODOS permite localizar el vale de otra empresa y explicar
+  // la restricción al seleccionarlo. El permiso de canje sigue vigente.
+  if ARestriccion.Ambito <> acvTodos then
+    sSql := sSql + FiltroAmbitoCanjeVale(ARestriccion);
+  sSql := sSql + ' ORDER BY FECHA_EMISION_VL DESC';
   oConsulta := TUniQuery.Create(nil);
   try
     oConsulta.Connection := FConexion;
@@ -1499,7 +1514,8 @@ begin
     begin
       oConsulta.ParamByName('PIN').AsString := APin;
     end;
-    AsignarAmbitoCanjeVale(oConsulta, ARestriccion);
+    if ARestriccion.Ambito <> acvTodos then
+      AsignarAmbitoCanjeVale(oConsulta, ARestriccion);
     oConsulta.Open;
     Result := TResultadoInformeCajaUniDAC.Create(oConsulta);
     oConsulta := nil;

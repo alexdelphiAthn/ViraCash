@@ -27,7 +27,7 @@ function EscribirResumenSeleccionesHoja(
   const AEscritor: IEscritorHojaCalculo;
   const AFormateador: IFormateadorHojaCalculo;
   AFila, AColumna: Integer;
-  const ALineas: TArray<string>): Integer;
+  const ALineas: TArray<string>; AColumnas: Integer = 1): Integer;
 
 implementation
 
@@ -38,13 +38,15 @@ function EscribirResumenSeleccionesHoja(
   const AEscritor: IEscritorHojaCalculo;
   const AFormateador: IFormateadorHojaCalculo;
   AFila, AColumna: Integer;
-  const ALineas: TArray<string>): Integer;
+  const ALineas: TArray<string>; AColumnas: Integer): Integer;
 var
   i: Integer;
 begin
   Result := AFila;
   for i := 0 to High(ALineas) do
   begin
+    if AColumnas > 1 then
+      AEscritor.Combinar(Result, AColumna, 1, AColumnas);
     AEscritor.Escribir(Result, AColumna, ALineas[i]);
     AFormateador.TamanoFuente(Result, AColumna, TAMANO_FUENTE_RESUMEN);
     AFormateador.Negrita(Result, AColumna, i = 0);

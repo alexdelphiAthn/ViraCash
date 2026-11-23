@@ -534,6 +534,7 @@ type
     FEmpresaOrigenDev: string;
     FAlmacenOrigenDev: string;
     FSkuPendienteVentaOrigen: string;
+    FLineaPendienteVentaOrigen: string;
     FPreguntandoVentaOrigen: Boolean;
     FEditorLineas: TEditorLineasCajaVcl;
     FPresentacion: TVentanaOperacionCajaVcl;
@@ -3098,7 +3099,11 @@ begin
           DatosCaja.cdsLineas.FieldByName(
             'CODIGO_ART_FACLIN').AsString);
       if FSkuPendienteVentaOrigen <> '' then
+      begin
+        FLineaPendienteVentaOrigen := DatosCaja.cdsLineas.FieldByName(
+          'LINEA_FACLIN').AsString;
         PostMessage(Handle, WM_PREGUNTAR_VENTA_ORIGEN, 0, 0);
+      end;
     end;
     end;
   end;
@@ -3992,13 +3997,16 @@ end;
 procedure TfrmMtoOpeCaja.WMPreguntarVentaOrigen(var Msg: TMessage);
 var
   Seleccion: TOrigenDevolucionCajaVcl;
-  sSku: string;
+  sSku, sLinea: string;
+  Lineas: TClientDataSet;
 begin
   // Devolución sin código de barras: al meter una prenda en negativo se
   // proponen las ventas que la contienen para elegir el ticket de
   // origen. El parámetro de caja decide si se puede cerrar sin él.
   sSku := FSkuPendienteVentaOrigen;
+  sLinea := FLineaPendienteVentaOrigen;
   FSkuPendienteVentaOrigen := '';
+  FLineaPendienteVentaOrigen := '';
   if (sSku <> '') and
      (FNumeroRectifica = '') and
      (Trim(FSerieOrigenDev) = '') and
@@ -4020,8 +4028,34 @@ begin
         FAlmacenOrigenDev := Seleccion.Almacen;
         if not SameText(Seleccion.Empresa, FCodigoEmpresa) then
           ShowMessage_fza(SAvisoDevolucionTicketOtraEmpresa);
-        // Rectificativa por diferencias del ticket elegido: solo se
-        // marca la referencia; las líneas las decide el usuario.
+        if Trim(Seleccion.Lote) <> '' then
+        begin
+          if tvLineasOpe.Controller.EditingController.IsEditing then
+            tvLineasOpe.Controller.EditingController.HideEdit(True);
+          DatosCaja.cdsLineas.CheckBrowseMode;
+          Lineas := TClientDataSet.Create(nil);
+          try
+            Lineas.CloneCursor(DatosCaja.cdsLineas, True);
+            if Lineas.Locate('LINEA_FACLIN', sLinea, []) and
+               SameText(Lineas.FieldByName('CODIGO_UNIDAD_FACLIN').AsString,
+                 sSku) and (Lineas.FieldByName('CANTIDAD_FACLIN').AsFloat < 0)
+            then
+            begin
+              Lineas.Edit;
+              Lineas.FieldByName('LOTE_FACLIN').AsString := Seleccion.Lote;
+              Lineas.FieldByName('FECHA_CADUCIDAD_FACLIN').Clear;
+              if Seleccion.Caducidad > 0 then
+                Lineas.FieldByName('FECHA_CADUCIDAD_FACLIN').AsDateTime :=
+                  Seleccion.Caducidad;
+              Lineas.Post;
+            end;
+          finally
+            Lineas.Free;
+          end;
+          if Assigned(FLotesCaja) then
+            FLotesCaja.MarcarSeries;
+        end;
+        // Mantener las líneas elegidas por el usuario y enlazar el ticket.
         FSerieRectifica := Seleccion.Serie;
         FNumeroRectifica := Seleccion.Numero;
         FTipoRectificativa := trcDiferencias;
@@ -4525,6 +4559,7 @@ begin
   FEmpresaOrigenDev := '';
   FAlmacenOrigenDev := '';
   FSkuPendienteVentaOrigen := '';
+  FLineaPendienteVentaOrigen := '';
   if AResultado.AvisoTrasGrabacion <> '' then
   begin
     MessageDlg_fza(Format(

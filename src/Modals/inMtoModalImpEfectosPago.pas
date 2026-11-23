@@ -458,7 +458,9 @@ procedure TfrmPrintEfectosPago.ConstruirExcelNativo(
 var
   aGrupos, aImportes: TColumnasInformeTabular;
   iNivel, iNiveles: Integer;
+  Selecciones: TArray<string>;
 begin
+  Selecciones := LineasResumenSelecciones;
   AControl.ClearAll;
   if (FchkSoloTotales = nil) or (not FchkSoloTotales.Checked) then
     AnadirHojaInformeTabularExcel(AControl, FResultadoEfectos.DataSet,
@@ -480,7 +482,8 @@ begin
        ColumnaInforme('IMPORTE_COMPENSADO_EFEC', STextoCompensadoComun, 1,
          '%n'),
        ColumnaInforme('REMESA_EFEC', STextoRemesaComun, 1),
-       ColumnaInforme('BANCO_REMESA_EFEC', STextoBancoRemesaComun, 1)]);
+       ColumnaInforme('BANCO_REMESA_EFEC', STextoBancoRemesaComun, 1)],
+      False, Caption, Selecciones);
   aImportes :=
     [ColumnaInforme('IMPORTE_EFEC', STextoImporteComun, 1, '%n'),
      ColumnaInforme('IMPORTE_PAGADO_EFEC', STextoPagadoComun, 1, '%n'),
@@ -496,9 +499,10 @@ begin
       Format('GRUPO%d_ETIQ', [iNivel]),
       Format('Grupo %d', [iNivel]), 2)];
     AnadirResumenInformeTabularExcel(AControl, FResultadoEfectos.DataSet,
-      Format(STextoTotalesNivelDComun, [iNivel]), aGrupos + aImportes);
+      Format(STextoTotalesNivelDComun, [iNivel]), aGrupos + aImportes,
+      '', True, Selecciones);
   end;
-  AnadirSeleccionInformeExcel(AControl, Caption, LineasResumenSelecciones);
+  AnadirSeleccionInformeExcel(AControl, Caption, Selecciones);
 end;
 
 end.

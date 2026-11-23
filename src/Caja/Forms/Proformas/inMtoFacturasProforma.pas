@@ -125,6 +125,8 @@ type
 resourcestring
   SCaptionConciliacionEfectivoCaja = 'Conciliación de efectivo';
   SConciliacionCajaSoloConsulta = 'Consulta de movimientos no facturables.';
+  SConciliacionCabeceraPeriodo = 'Período del %s al %s';
+  SConciliacionCabeceraEmpresas = 'Empresa origen %s · Empresa destino %s';
   SErrorConciliacionCajaEmpresas =
     'Seleccione dos empresas distintas y un periodo válido.';
   SInfoConciliacionCajaVacia =
@@ -1003,7 +1005,13 @@ begin
               ColumnaInforme('FASE_FAC', 'Fase', 1.2),
               ColumnaInforme('EFECTIVO', 'Efectivo (EUR)', 1.1, '#,##0.00'),
               ColumnaInforme('CONCEPTO', 'Concepto', 3)],
-            [SConciliacionCajaSoloConsulta]);
+            [Format(SConciliacionCabeceraPeriodo,
+               [FormatDateTime('dd/mm/yyyy', Solicitud.FechaDesde),
+                FormatDateTime('dd/mm/yyyy', Solicitud.FechaHasta)]),
+             Format(SConciliacionCabeceraEmpresas,
+               [Solicitud.CodigoEmpresaOrigen,
+                Solicitud.CodigoEmpresaDestino]),
+             SConciliacionCajaSoloConsulta]);
           Vista.ShowModal;
         finally
           Vista.Free;

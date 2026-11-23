@@ -103,6 +103,10 @@
           DataBinding.FieldName = 'CANTIDAD'
           Width = 70
         end
+        object colLote: TcxGridDBColumn
+          DataBinding.FieldName = 'LOTE'
+          Width = 185
+        end
         object colTotalLinea: TcxGridDBColumn
           Caption = 'Total art'#237'culo'
           DataBinding.FieldName = 'TOTAL_LINEA'

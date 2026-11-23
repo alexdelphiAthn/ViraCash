@@ -30,7 +30,7 @@ uses
   frxExportXLSX, frxExportBaseDialog, frxExportPDF, frxSmartMemo,
   frLocalization, frLanguageSpanish, frxExportBaseImageSettingsDialog,
   frCoreClasses,
-  inLibInformePropuestasTraspaso;
+  inLibInformePropuestasTraspaso, inLibResumenSeleccionesInforme;
 
 type
   TfrmPrintPropuestasTraspaso = class(TfrmPrint)
@@ -54,6 +54,8 @@ type
     procedure DoShow; override;
     procedure ConstruirExcelNativo(AControl: TdxSpreadSheet); override;
     procedure DoCreate; override;
+    procedure DescribirSelecciones(
+      AResumen: TResumenSeleccionesInforme); override;
   public
     class procedure Mostrar(
       AOwner: TComponent;
@@ -226,9 +228,21 @@ begin
   btnExcel.OnClick := btnExcelNativoClick;
 end;
 
+procedure TfrmPrintPropuestasTraspaso.DescribirSelecciones(
+  AResumen: TResumenSeleccionesInforme);
+begin
+  inherited;
+  if FIdDocumento > 0 then
+    AResumen.Anadir(STextoDocumentoDistribucionTiendas,
+      IntToStr(FIdDocumento));
+end;
+
 procedure TfrmPrintPropuestasTraspaso.ConstruirExcelNativo(
   AControl: TdxSpreadSheet);
+var
+  Selecciones: TArray<string>;
 begin
+  Selecciones := LineasResumenSelecciones;
   ExportarInformeTabularExcel(AControl, cdsLineas,
     Caption,
     [ColumnaInforme('NUMERO', STextoPropuestaDistribucionTiendas, 1),
@@ -242,13 +256,14 @@ begin
      ColumnaInforme('COLOR', STextoColorDistribucionTiendas, 1),
      ColumnaInforme('TALLAS', STextoTallasDistribucionTiendas, 3),
      ColumnaInforme('UNIDADES', STextoUnidadesDistribucionTiendas, 1, '%g')],
-    LineasResumenSelecciones);
+    Selecciones);
   AnadirResumenInformeTabularExcel(AControl, cdsLineas,
     STextoTotalesPorPropuestaDistribucionTiendas,
     [ColumnaInforme('NUMERO', STextoPropuestaDistribucionTiendas, 1),
      ColumnaInforme('ORIGEN', STextoOrigenDistribucionTiendas, 2),
      ColumnaInforme('DESTINO', STextoDestinoDistribucionTiendas, 2),
-     ColumnaInforme('UNIDADES', STextoUnidadesDistribucionTiendas, 1, '%g')]);
+     ColumnaInforme('UNIDADES', STextoUnidadesDistribucionTiendas, 1, '%g')],
+    '', True, Selecciones);
 end;
 
 end.

@@ -123,6 +123,7 @@ end;
 procedure TfrmPrintPagos.ExportarExcelNativo(Sender: TObject);
 var
   oPreview: TfrmMtoPreviewExcel;
+  Selecciones: TArray<string>;
   oCursor: TCursor;
 begin
   oPreview := nil;
@@ -139,6 +140,7 @@ begin
       ParametrosApp.GetPath('appDirExcel');
     oPreview.DialogoGuardar.FileName := 'Historico_pagos.xlsx';
     IniciarEspera(SCaptionEsperaGenerandoHojaCalculo);
+    Selecciones := LineasResumenSelecciones;
     ExportarInformeTabularExcel(oPreview.dxSpreadSheet1,
       dsPagosPrint.DataSet, Caption,
       [ColumnaInforme('NUMERO_OPERACION_PAGO', STextoOperacionCaja, 1),
@@ -151,7 +153,7 @@ begin
        ColumnaInforme('IMPORTE_ENTREGADO_PAGO', STextoEntregadoCaja, 1, '%n'),
        ColumnaInforme('IMPORTE_CAMBIO_PAGO', STextoCambioCaja, 1, '%n'),
        ColumnaInforme('REFERENCIA_FACPAG', STextoReferenciaCaja, 2)],
-      LineasResumenSelecciones);
+      Selecciones);
     AnadirHojaInformeTabularExcel(oPreview.dxSpreadSheet1,
       dsTotalesPagosPrint.DataSet, STextoTotalesPorFormaDePagoCaja,
       [ColumnaInforme('CODIGO_FP_CFP', STextoFormaPagoCaja, 0.8),
@@ -159,7 +161,8 @@ begin
        ColumnaInforme('NUMERO_PAGOS_INF', STextoPagosCaja, 0.6, '%g'),
        ColumnaInforme('ENTREGADO_INF', STextoEntregadoCaja, 1, '%n'),
        ColumnaInforme('CAMBIO_INF', STextoCambioCaja, 1, '%n'),
-       ColumnaInforme('NETO_INF', STextoNetoCaja, 1, '%n')], True);
+       ColumnaInforme('NETO_INF', STextoNetoCaja, 1, '%n')], True,
+      STextoTotalesPorFormaDePagoCaja, Selecciones);
     oPreview.dxSpreadSheet1.ActiveSheetIndex := 0;
     TerminarEspera;
     Screen.Cursor := oCursor;

@@ -215,7 +215,10 @@ end;
 
 procedure TfrmPrintDocsProveedor.ConstruirExcelNativo(
   AControl: TdxSpreadSheet);
+var
+  Selecciones: TArray<string>;
 begin
+  Selecciones := LineasResumenSelecciones;
   ExportarInformeTabularExcel(AControl, FResultadoDocumentos.DataSet,
     Caption,
     [ColumnaInforme('TIPO_DOC_NOMBRE', STextoTipoDeDocumentoCompras, 1),
@@ -232,7 +235,7 @@ begin
      ColumnaInforme('TOTAL_IVA_DOC', STextoIvaCompras2, 1, '%n'),
      ColumnaInforme('TOTAL_RE_DOC', STextoRecargoCompras, 1, '%n'),
      ColumnaInforme('TOTAL_LIQUIDO_DOC', STextoTotalLiquidoCompras2, 1, '%n')],
-    LineasResumenSelecciones);
+    Selecciones);
   AnadirResumenInformeTabularExcel(AControl, FResultadoDocumentos.DataSet,
     STextoTotalesPorTipoYProveedorCompras,
     [ColumnaInforme('TIPO_DOC_NOMBRE', STextoTipoDeDocumentoCompras, 1),
@@ -243,7 +246,7 @@ begin
      ColumnaInforme('TOTAL_IVA_DOC', STextoIvaCompras2, 1, '%n'),
      ColumnaInforme('TOTAL_RE_DOC', STextoRecargoCompras, 1, '%n'),
      ColumnaInforme('TOTAL_LIQUIDO_DOC', STextoTotalLiquidoCompras2, 1, '%n')],
-    '', False);
+    '', False, Selecciones);
   AnadirResumenInformeTabularExcel(AControl, FResultadoDocumentos.DataSet,
     STextoComprasNetasCompras,
     [ColumnaInforme('TIPO_DOC_NOMBRE', STextoTipoDeDocumentoCompras, 1),
@@ -254,7 +257,7 @@ begin
      ColumnaInforme('TOTAL_IVA_DOC', STextoIvaCompras2, 1, '%n'),
      ColumnaInforme('TOTAL_RE_DOC', STextoRecargoCompras, 1, '%n'),
      ColumnaInforme('TOTAL_LIQUIDO_DOC', STextoTotalLiquidoCompras2, 1, '%n')],
-    'COMPRA_NETA_DOC');
+    'COMPRA_NETA_DOC', True, Selecciones);
 end;
 
 end.

@@ -68,6 +68,7 @@ type
     pnlTop           : TPanel;
     btnToggle        : TcxButton;
     btnDescargarNube : TcxButton;
+    btnFijarPosicion  : TcxButton;
     lblOrigen        : TcxLabel;
     btnMarcarPredeterminada: TcxButton;
     btnFotoAnterior  : TcxButton;
@@ -97,6 +98,7 @@ type
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure rgResolucionPropertiesEditValueChanged(Sender: TObject);
     procedure btnToggleClick(Sender: TObject);
+    procedure btnFijarPosicionClick(Sender: TObject);
     procedure btnDescargarNubeClick(Sender: TObject);
     procedure btnCambiarArtClick(Sender: TObject);
     procedure btnCambiarSkuClick(Sender: TObject);
@@ -134,6 +136,12 @@ type
     FFotosColeccion         : TArray<TFotoInfo>;
     FIndiceFoto             : Integer;
     FInicializacionCompleta : Boolean;
+    FPosicionFijada         : Boolean;
+    procedure ActualizarBotonFijarPosicion;
+    procedure WMSysCommand(var Mensaje: TWMSysCommand);
+      message WM_SYSCOMMAND;
+    procedure WMWindowPosChanging(var Mensaje: TWMWindowPosChanging);
+      message WM_WINDOWPOSCHANGING;
     procedure AplicarAspectoBotonesCompactos;
     procedure AjustarBarraSuperior;
     procedure AjustarPanelControles;
@@ -212,6 +220,7 @@ type
 /// pasado. Si el formulario ya estaba abierto, lo refresca y lo trae al
 /// frente. Llamar desde el handler de Ctrl+F de los Mtos.
 function FotoFlotanteActual: TfrmFotoArticulo;
+procedure ElevarFotoFlotanteSinActivar;
 procedure MostrarFotoFlotante(AOwner: TComponent;
                                const ACodArt, ACodSku: string);
 procedure MostrarFotoSesionFlotante(AOwner: TComponent;
@@ -245,7 +254,9 @@ type
     ifRotarIzquierda,
     ifRotarDerecha,
     ifEliminar,
-    ifGuardarLayout);
+    ifGuardarLayout,
+    ifPinLibre,
+    ifPinFijado);
 
   TSelectorFotoVariacion = class(TForm)
   private
@@ -325,6 +336,13 @@ begin
       Result :=
         '<path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14' +
         'M10 11v6M14 11v6"/>';
+    ifPinLibre:
+      Result :=
+        '<path d="M15 3l6 6-3 1-3 3v3l-7-7h3l3-3zM9 15l-6 6"/>';
+    ifPinFijado:
+      Result :=
+        '<path d="M8 4h8l-1 6 3 4H6l3-4z" fill="#505050"/>' +
+        '<path d="M12 14v7"/>';
     ifGuardarLayout:
       Result :=
         '<path d="M4 3h13l3 3v15H4zM7 3v7h9V3M7 21v-7h10v7"/>';
@@ -575,6 +593,18 @@ begin
     Result := nil;
 end;
 
+procedure ElevarFotoFlotanteSinActivar;
+var
+  Formulario: TfrmFotoArticulo;
+begin
+  Formulario := FotoFlotanteActual;
+  if Assigned(Formulario) and Formulario.Visible and
+     Formulario.HandleAllocated and (Formulario.WindowState <> wsMinimized)
+  then
+    SetWindowPos(Formulario.Handle, HWND_TOP, 0, 0, 0, 0,
+      SWP_NOMOVE or SWP_NOSIZE or SWP_NOACTIVATE or SWP_NOOWNERZORDER);
+end;
+
 procedure TfrmFotoArticulo.FormCreate(Sender: TObject);
 var
   loaderRes: TLayoutLoader;
@@ -683,6 +713,7 @@ begin
 
   btnToggle.Hint := SHintMostrarControlesFoto;
   btnDescargarNube.Hint := SHintBajarFotosServidor;
+  ActualizarBotonFijarPosicion;
   btnMarcarPredeterminada.Hint := SHintFotoPredeterminada;
   btnFotoAnterior.Hint := SHintFotoAnterior;
   btnFotoSiguiente.Hint := SHintFotoSiguiente;
@@ -728,14 +759,14 @@ begin
   iAltoBoton := iAnchoBoton;
   iAnchoContador := MulDiv(24, CurrentPPI,
     USER_DEFAULT_SCREEN_DPI);
-  iAnchoNecesario := (6 * iAnchoBoton) + iAnchoContador +
-    (6 * iSeparacion) + (2 * iMargen);
+  iAnchoNecesario := (7 * iAnchoBoton) + iAnchoContador +
+    (7 * iSeparacion) + (2 * iMargen);
   if iAnchoNecesario > pnlTop.ClientWidth then
   begin
     iAnchoContador := MulDiv(22, CurrentPPI,
       USER_DEFAULT_SCREEN_DPI);
     iAnchoBoton := (pnlTop.ClientWidth - iAnchoContador -
-      (6 * iSeparacion) - (2 * iMargen)) div 6;
+      (7 * iSeparacion) - (2 * iMargen)) div 7;
     if iAnchoBoton < MulDiv(14, CurrentPPI,
       USER_DEFAULT_SCREEN_DPI) then
       iAnchoBoton := MulDiv(14, CurrentPPI,
@@ -750,6 +781,9 @@ begin
     iAnchoBoton, iAltoBoton);
   Inc(iIzquierda, iAnchoBoton + iSeparacion);
   btnDescargarNube.SetBounds(iIzquierda, iMargen,
+    iAnchoBoton, iAltoBoton);
+  Inc(iIzquierda, iAnchoBoton + iSeparacion);
+  btnFijarPosicion.SetBounds(iIzquierda, iMargen,
     iAnchoBoton, iAltoBoton);
 
   iIzquierdaGaleria := pnlTop.ClientWidth - iMargen -
@@ -772,8 +806,8 @@ begin
   btnAnadirFoto.SetBounds(
     iIzquierdaGaleria, iMargen, iAnchoBoton, iAltoBoton);
 
-  lblOrigen.Left := btnDescargarNube.Left +
-    btnDescargarNube.Width + iSeparacion;
+  lblOrigen.Left := btnFijarPosicion.Left +
+    btnFijarPosicion.Width + iSeparacion;
   lblOrigen.Top := (pnlTop.ClientHeight - lblOrigen.Height) div 2;
   iAnchoNecesario := btnMarcarPredeterminada.Left -
     lblOrigen.Left - iSeparacion;
@@ -883,15 +917,18 @@ begin
   // guardo con Alt+F12. Se llama desde FormShow y desde MostrarFotoFlotante
   // (antes de mostrar) para que el tamaño se aplique de forma fiable aunque
   // la ventana se muestre con SW_SHOWNOACTIVATE. Si no hay layout, centra.
-  if not Assigned(FLayoutLoader) then
-    FLayoutLoader := TLayoutLoader.Create(
-      Self.Name, ContextoSesion, PerfilesLectura);
-  if FLayoutLoader.Disponible then
-    FLayoutLoader.RestaurarGeometria(Self)
-  else
+  if not FPosicionFijada then
   begin
-    Self.Left := (Screen.Width  - Self.Width)  div 2;
-    Self.Top  := (Screen.Height - Self.Height) div 2;
+    if not Assigned(FLayoutLoader) then
+      FLayoutLoader := TLayoutLoader.Create(
+        Self.Name, ContextoSesion, PerfilesLectura);
+    if FLayoutLoader.Disponible then
+      FLayoutLoader.RestaurarGeometria(Self)
+    else
+    begin
+      Self.Left := (Screen.Width - Self.Width) div 2;
+      Self.Top := (Screen.Height - Self.Height) div 2;
+    end;
   end;
 end;
 
@@ -925,7 +962,51 @@ procedure TfrmFotoArticulo.FormClose(Sender: TObject;
 begin
   inherited;
   DesengancharDataChange;
-  Action := caFree;
+  if FPosicionFijada and (Owner = Application) and
+     not (fsModal in FormState) then
+    Action := caHide
+  else
+    Action := caFree;
+end;
+
+procedure TfrmFotoArticulo.ActualizarBotonFijarPosicion;
+begin
+  if FPosicionFijada then
+  begin
+    AsignarIconoFoto(btnFijarPosicion, ifPinFijado);
+    btnFijarPosicion.Hint := SHintSoltarPosicionFoto;
+  end
+  else
+  begin
+    AsignarIconoFoto(btnFijarPosicion, ifPinLibre);
+    btnFijarPosicion.Hint := SHintFijarPosicionFoto;
+  end;
+end;
+
+procedure TfrmFotoArticulo.btnFijarPosicionClick(Sender: TObject);
+begin
+  FPosicionFijada := not FPosicionFijada;
+  ActualizarBotonFijarPosicion;
+end;
+
+procedure TfrmFotoArticulo.WMSysCommand(var Mensaje: TWMSysCommand);
+begin
+  if FPosicionFijada and
+     (WindowState = wsNormal) and
+     ((Mensaje.CmdType and $FFF0 = SC_MOVE) or
+      (Mensaje.CmdType and $FFF0 = SC_SIZE) or
+      (Mensaje.CmdType and $FFF0 = SC_MAXIMIZE)) then
+    Mensaje.Result := 0
+  else
+    inherited;
+end;
+
+procedure TfrmFotoArticulo.WMWindowPosChanging(
+  var Mensaje: TWMWindowPosChanging);
+begin
+  if FPosicionFijada and (WindowState = wsNormal) then
+    Mensaje.WindowPos^.flags := Mensaje.WindowPos^.flags or SWP_NOMOVE;
+  inherited;
 end;
 
 procedure TfrmFotoArticulo.FormKeyDown(Sender: TObject; var Key: Word;
@@ -2125,6 +2206,7 @@ begin
      (hwndPrev <> Formulario.Handle) and
      (GetForegroundWindow = Formulario.Handle) then
     SetForegroundWindow(hwndPrev);
+  ElevarFotoFlotanteSinActivar;
 end;
 
 procedure MostrarFotoSesionFlotante(AOwner: TComponent;
@@ -2154,6 +2236,7 @@ begin
      (hwndPrev <> Formulario.Handle) and
      (GetForegroundWindow = Formulario.Handle) then
     SetForegroundWindow(hwndPrev);
+  ElevarFotoFlotanteSinActivar;
 end;
 
 end.

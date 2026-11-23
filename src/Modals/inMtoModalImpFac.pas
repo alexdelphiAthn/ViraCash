@@ -109,6 +109,8 @@ type
       out AReferencias: TReferenciasComandoFactura): Boolean;
     procedure AjustarSujetosFactura(ABanda: TfrxBand);
     procedure AplicarFormaPagoReport(AReport: TfrxReport);
+    procedure PrepararConsultaFactura(AEsFormatoTicket,
+      AImprimirLotesTicket: Boolean);
   protected
     procedure PrepararDatosEdicion; override;
     procedure AvisarAntesDeConsulta; override;
@@ -121,6 +123,7 @@ type
       ADataModule: TdmFacturas;
       const ASerie, ANumero: string); static;
     procedure preparar_consulta; override;
+    procedure PrepararConsultaTicket(AImprimirLotes: Boolean);
     procedure AvisarReferenciasAusentes(const ASerie, ANumero: string);
     procedure AfterReportLoaded; override;
     procedure ConfigurarDataModule(ADataModule: TdmFacturas);
@@ -151,7 +154,7 @@ uses
   UniDataInformeFacturaRepositorio, inLibMsgFacturas,
   inLibCorreoTickets, inLibCorreoDocumentoVcl, inLibInformeDocumento,
   UniDataTicketFacturaImpresion, UniDataFacturasConfiguracion,
-  inLibTrazabilidad, inLibMsgTrazabilidad;
+  inLibTrazabilidad, inLibMsgTrazabilidad, inLibTicketLotes;
 
 resourcestring
   SErrorServicioCorreoFacturaNoDisponible =
@@ -918,10 +921,27 @@ end;
 
 procedure TfrmPrintFac.preparar_consulta;
 var
+  ImprimirLotes: Boolean;
+begin
+  ImprimirLotes := Assigned(ParametrosCaja) and
+    ParametrosCaja.GetBool(PARAMETRO_IMPRIMIR_LOTES_TICKET, False);
+  PrepararConsultaFactura(False, ImprimirLotes);
+end;
+
+procedure TfrmPrintFac.PrepararConsultaTicket(AImprimirLotes: Boolean);
+begin
+  PrepararConsultaFactura(True, AImprimirLotes);
+end;
+
+procedure TfrmPrintFac.PrepararConsultaFactura(AEsFormatoTicket,
+  AImprimirLotesTicket: Boolean);
+var
   criterios: TCriteriosInformeFactura;
 begin
   criterios := Default(TCriteriosInformeFactura);
   criterios.FacturaActual := True;
+  criterios.EsFormatoTicket := AEsFormatoTicket;
+  criterios.ImprimirLotesTicket := AImprimirLotesTicket;
   criterios.Serie := edtSerie.Text;
   criterios.Numero := edtNroFac.Text;
   // F-LOTEC-016: el lote o la serie se imprimen con los interruptores.
@@ -937,13 +957,11 @@ begin
       dmFac.unqryFacPrint,
       dmFac.unqryLinFacPrint);
   FPreparadorInforme.Preparar(criterios);
+  dmFac.PrepararLineasImpresion(AEsFormatoTicket or
+    (dmFac.unqryFacPrint.FieldByName('ES_TICKET_FACTURA').AsString = 'S'),
+    AImprimirLotesTicket);
   AbrirDatosTicketImpresion(dmFac, edtSerie.Text, edtNroFac.Text);
-  // FieldDefs era una fotografia de diseno. La consulta de impresion
-  // incorpora campos calculados, por lo que FastReport debe reconstruir
-  // su catalogo desde los TField reales despues de cada apertura.
-  dmFac.fxdstPrintLinFac.ResetFieldDefs;
   dmFac.fxdsPrintFac.UpdateBounds;
-  dmFac.fxdstPrintLinFac.UpdateBounds;
   ConfigurarNombrePDF;
 end;
 

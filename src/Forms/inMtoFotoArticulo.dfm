@@ -45,15 +45,26 @@
       TabOrder = 1
       OnClick = btnDescargarNubeClick
     end
-    object lblOrigen: TcxLabel
+    object btnFijarPosicion: TcxButton
       Left = 50
+      Top = 2
+      Width = 22
+      Height = 22
+      Hint = 'Fijar la posici'#243'n de la ventana de fotos'
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 8
+      OnClick = btnFijarPosicionClick
+    end
+    object lblOrigen: TcxLabel
+      Left = 74
       Top = 3
       Anchors = [akLeft, akTop, akRight]
       Caption = 'Sin foto'
       Properties.WordWrap = True
       TabOrder = 2
       Visible = False
-      Width = 346
+      Width = 322
       Transparent = True
     end
     object btnMarcarPredeterminada: TcxButton

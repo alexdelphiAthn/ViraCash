@@ -527,7 +527,18 @@ begin
     '       f.TOTAL_IMPUESTOS_FAC, '                                  +
     '       f.TOTAL_LIQUIDO_FAC '                                     +
     '  FROM fza_facturas f '                                              +
-    ' WHERE f.CODIGO_EMP_FAC = :PEMP '                                +
+    ' WHERE ( ' +
+    '        f.CODIGO_EMP_FAC = :PEMP OR ( ' +
+    '          f.CODIGO_CAJA_FAC = ''99'' ' +
+    '          AND f.TIPO_FAC = ''RECTIFICATIVA'' AND EXISTS ( ' +
+    '            SELECT 1 FROM fza_caja_operaciones o ' +
+    '            WHERE o.CODIGO_EMP_OPCAJA = :PEMP ' +
+    '              AND o.CODIGO_ALM_OPCAJA = :PALM ' +
+    '              AND o.CODIGO_CAJA_OPCAJA = :PCAJA ' +
+    '              AND o.NUMERO_OPERACION_OPCAJA = :PNUMOP ' +
+    '              AND o.TIPO_OPERACION_OPCAJA = ''DV'' ' +
+    '              AND o.SERIE_FAC_OPCAJA = f.SERIE_FAC ' +
+    '              AND o.NUMERO_FAC_OPCAJA = f.NUMERO_FAC))) ' +
     '   AND ( '                                                        +
     '        (TRIM(COALESCE(:PSERIE, '''')) <> '''' '                 +
     '         AND TRIM(COALESCE(:PNROFAC, '''')) <> '''' '            +
@@ -536,6 +547,7 @@ begin
     '        OR '                                                      +
     '        ((TRIM(COALESCE(:PSERIE, '''')) = '''' '                 +
     '          OR TRIM(COALESCE(:PNROFAC, '''')) = '''') '            +
+    '         AND f.CODIGO_EMP_FAC = :PEMP '                          +
     '         AND f.CODIGO_ALM_FAC = :PALM '                          +
     '         AND f.CODIGO_CAJA_FAC = :PCAJA '                        +
     '         AND f.NUMERO_OPERACION_FAC = :PNUMOP) '                 +

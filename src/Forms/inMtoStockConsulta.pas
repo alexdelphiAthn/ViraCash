@@ -193,6 +193,7 @@ type
     procedure AgregarLineaADocumentoTrabajo(
       const ALinea: TDocTrabajoLineaOrigen); virtual;
     procedure AvisarCeldaDocumentoTrabajo(const AMensaje: string); virtual;
+    procedure Activate; override;
     procedure CreateParams(var Params: TCreateParams); override;
     procedure CreateWnd; override;
     procedure DestroyWnd; override;
@@ -226,7 +227,7 @@ uses
   inLibVentanaBarraTareas,
   inLibStockConsultaPresentacionEstados,
   inLibTraspasosPendientesTexto, UniDataTraspasosPendientesConsulta,
-  inMtoModalMensajeTexto,
+  inMtoModalMensajeTexto, inMtoFotoArticulo,
   inLibShowMto, inLibMsgLotesConsultas;
 
 {$R *.dfm}
@@ -325,6 +326,7 @@ begin
   SetForegroundWindow(Formulario.Handle);
   if Formulario.btnArt.CanFocus then
     Formulario.btnArt.SetFocus;
+  ElevarFotoFlotanteSinActivar;
 end;
 
 procedure DesvincularPerfilesStockConsulta;
@@ -345,6 +347,12 @@ end;
 // sobrevive al minimizar el programa y se alterna con ella desde la
 // barra. A cambio, al volver a la ventana principal queda detras: se
 // recupera por su boton.
+procedure TfrmStockConsulta.Activate;
+begin
+  inherited;
+  ElevarFotoFlotanteSinActivar;
+end;
+
 procedure TfrmStockConsulta.CreateParams(var Params: TCreateParams);
 begin
   inherited;

@@ -54,6 +54,8 @@ resourcestring
     'Rotar la foto visible a la izquierda';
   SHintRotarFotoDerecha =
     'Rotar la foto visible a la derecha';
+  SHintFijarPosicionFoto = 'Fijar la posición de la ventana de fotos';
+  SHintSoltarPosicionFoto = 'Desfijar la posición de la ventana de fotos';
   SHintGuardarLayoutFoto =
     'Guardar posición, tamaño, resolución y transparencia';
   SCaptionGaleriaConFotos =

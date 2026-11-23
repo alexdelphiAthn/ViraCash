@@ -169,7 +169,7 @@ resourcestring
   SAvisoPdfTicketCaja =
     'No se pudo guardar el PDF del ticket: %s';
   SErrorAmbitoCanjeValeNoValido =
-    'El ámbito de canje de vales debe ser TODOS, ALMACEN o CAJA.';
+    'El ámbito de canje de vales debe ser TODOS, ALMACEN, CAJA o GRUPO.';
   SErrorUbicacionCanjeValeNoConfigurada =
     'Configure la ubicación de la caja antes de restringir el canje de vales.';
   SCanjeValeMismoAlmacen =
@@ -912,10 +912,14 @@ resourcestring
   SAvisoDevolucionTicketOtraEmpresa =
     'El ticket es de otra empresa: la rectificativa se emitirá en la ' +
     'caja 99 del almacén de origen. El reembolso se hará en esta caja.';
+  SAvisoDevolucionTicketVariasPartidas =
+    'El artículo se vendió en varias partidas en este ticket. Cancele ' +
+    'la operación y cargue la devolución con F4 para elegir sus líneas.';
   SCajaAuxiliarCaja = 'Caja auxiliar';
   SReferenciaOperacionDevolucionOtraEmpresa =
     'Operación de caja %s/%s/%s/%s';
   SConceptoCompensacionEfectivoCaja = 'Compensación de efectivo';
+  SConceptoTraspasoDevolucionCaja = 'Traspaso por devolución';
   SErrorSerieAuxiliarDevolucionCaja =
     'La caja 99 del almacén de origen necesita una serie rectificativa.';
   SErrorEmisorDevolucionCajaIncompleto =
