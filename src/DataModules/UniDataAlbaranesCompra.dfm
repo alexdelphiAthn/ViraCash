@@ -171,7 +171,7 @@
       '  FROM fza_propiedades_valores'
       ' WHERE ID_PROP_PV = '#39'TEMPORADA'#39
       '   AND ESACTIVO_PV = '#39'S'#39
-      ' ORDER BY PV')
+      ' ORDER BY ORDEN_PV IS NULL, ORDEN_PV, PV, ID_PV_ARTPROP')
     Left = 256
     Top = 160
   end

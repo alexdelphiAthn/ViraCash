@@ -32,6 +32,7 @@ const
   cMargenMiniaturaGrid  = 4;
   cHuecoMiniaturaGrid   = 4;
   cAnchoRestoMiniaturas = 24;
+  cAnchoFotoPrincipalGrid = 54;
   cMaximoMiniaturasGrid = 3;
   // Lado de las fotos del desplegable (el "+N") y cuántas caben por fila.
   cLadoMiniaturaDesplegada  = 96;
@@ -88,6 +89,7 @@ type
     FClave         : TClaveDeFilaFotos;
     FLado          : Integer;
     FMaximo        : Integer;
+    FSoloFotoPrincipal: Boolean;
     FRutas         : TDictionary<string, TArray<string>>;
     FMiniaturas    : TObjectDictionary<string, Vcl.Graphics.TBitmap>;
     FDesplegado    : TForm;
@@ -133,7 +135,8 @@ type
       AArticulos: TArticulosDeFilaFotos;
       AClave: TClaveDeFilaFotos = nil;
       ALado: Integer = cLadoMiniaturaGrid;
-      AMaximo: Integer = cMaximoMiniaturasGrid);
+      AMaximo: Integer = cMaximoMiniaturasGrid;
+      ASoloFotoPrincipal: Boolean = False);
     destructor Destroy; override;
     // Tira las cachés: se llama cuando se recarga la pantalla, para que una
     // foto añadida o rotada desde otro sitio se vea sin reabrir.
@@ -284,7 +287,8 @@ constructor TTiraMiniaturasFotosGrid.Create(AVista: TcxGridDBTableView;
   AArticulos: TArticulosDeFilaFotos;
   AClave: TClaveDeFilaFotos;
   ALado: Integer;
-  AMaximo: Integer);
+  AMaximo: Integer;
+  ASoloFotoPrincipal: Boolean);
 begin
   inherited Create;
   FVista := AVista;
@@ -293,6 +297,7 @@ begin
   FClave := AClave;
   FLado := ALado;
   FMaximo := AMaximo;
+  FSoloFotoPrincipal := ASoloFotoPrincipal;
   if FMaximo < 1 then
     FMaximo := 1;
   FRutas := TDictionary<string, TArray<string>>.Create;
@@ -332,11 +337,15 @@ begin
   FColumna.Options.Grouping := False;
   FColumna.Options.Sorting := False;
   FColumna.HeaderAlignmentHorz := taCenter;
-  FColumna.Width := Escalar(
-    2 * cMargenMiniaturaGrid +
-    FMaximo * FLado +
-    (FMaximo - 1) * cHuecoMiniaturaGrid +
-    cAnchoRestoMiniaturas);
+  if FSoloFotoPrincipal then
+    FColumna.Width := Escalar(Max(cAnchoFotoPrincipalGrid,
+      FLado + 2 * cMargenMiniaturaGrid))
+  else
+    FColumna.Width := Escalar(
+      2 * cMargenMiniaturaGrid +
+      FMaximo * FLado +
+      (FMaximo - 1) * cHuecoMiniaturaGrid +
+      cAnchoRestoMiniaturas);
   FColumna.OnCustomDrawCell := DibujarCelda;
 end;
 
@@ -383,6 +392,7 @@ function TTiraMiniaturasFotosGrid.RutasDeArticulos(
   const AArticulos: TArticulosFotoFila): TArray<string>;
 var
   aFotos    : TArray<TFotoInfo>;
+  oPrincipal: TFotoInfo;
   sRuta     : string;
   iArticulo : Integer;
   iFoto     : Integer;
@@ -391,26 +401,41 @@ begin
   SetLength(Result, 0);
   iRutas := 0;
   try
-    for iArticulo := 0 to High(AArticulos) do
+    if FSoloFotoPrincipal and (Length(AArticulos) > 0) then
     begin
-      if iRutas >= cMaximoFotosPorFila then
-        Break;
-      aFotos := FFotos.ResolverColeccion(
-        AArticulos[iArticulo].Articulo,
-        AArticulos[iArticulo].Sku);
-      SetLength(Result, iRutas + Length(aFotos));
-      for iFoto := 0 to High(aFotos) do
+      oPrincipal := FFotos.Resolver(AArticulos[0].Articulo, AArticulos[0].Sku);
+      sRuta := FFotos.RutaFoto(oPrincipal, frPx300);
+      if sRuta = '' then
+        sRuta := FFotos.RutaFoto(oPrincipal, frPx600);
+      if sRuta = '' then
+        sRuta := FFotos.RutaFoto(oPrincipal, frReal);
+      if sRuta <> '' then
+      begin
+        Result := [sRuta];
+        iRutas := 1;
+      end;
+    end
+    else
+      for iArticulo := 0 to High(AArticulos) do
       begin
         if iRutas >= cMaximoFotosPorFila then
           Break;
-        sRuta := FFotos.RutaFoto(aFotos[iFoto], frPx300);
-        if sRuta <> '' then
+        aFotos := FFotos.ResolverColeccion(
+          AArticulos[iArticulo].Articulo,
+          AArticulos[iArticulo].Sku);
+        SetLength(Result, iRutas + Length(aFotos));
+        for iFoto := 0 to High(aFotos) do
         begin
-          Result[iRutas] := sRuta;
-          Inc(iRutas);
+          if iRutas >= cMaximoFotosPorFila then
+            Break;
+          sRuta := FFotos.RutaFoto(aFotos[iFoto], frPx300);
+          if sRuta <> '' then
+          begin
+            Result[iRutas] := sRuta;
+            Inc(iRutas);
+          end;
         end;
       end;
-    end;
   except
     // Un fallo de consulta no puede repetirse en cada repintado ni
     // tumbar la rejilla: la fila se queda sin fotos y se cachea asi.
@@ -536,6 +561,8 @@ begin
   sClave := ARuta + '|' + IntToStr(ALado);
   if not FMiniaturas.TryGetValue(sClave, Result) then
   begin
+    if FMiniaturas.Count >= cMaximoCacheMiniaturas then
+      FMiniaturas.Clear;
     try
       Result := CrearMiniaturaFotoPng(ARuta, ALado);
     except
@@ -554,18 +581,31 @@ procedure TTiraMiniaturasFotosGrid.CalcularAltoCelda(
   ACellViewInfo: TcxGridTableDataCellViewInfo;
   var AHeight: Integer);
 var
+  aRutas: TArray<string>;
   iAlto: Integer;
+  iLado: Integer;
+  iMargen: Integer;
 begin
   if Assigned(FAltoCeldaPrev) then
     FAltoCeldaPrev(Sender, ARecord, AItem, ACellViewInfo, AHeight);
   // Solo crecen las filas que tienen fotos; las demas se quedan con el
   // alto normal de la rejilla.
-  if (AItem = FColumna) and
-     (Length(RutasDeRegistro(ARecord)) > 0) then
+  if AItem = FColumna then
   begin
-    iAlto := Escalar(FLado + 2 * cMargenMiniaturaGrid);
-    if AHeight < iAlto then
-      AHeight := iAlto;
+    aRutas := RutasDeRegistro(ARecord);
+    if Length(aRutas) > 0 then
+    begin
+      iAlto := Escalar(FLado + 2 * cMargenMiniaturaGrid);
+      if FSoloFotoPrincipal then
+      begin
+        iMargen := Escalar(cMargenMiniaturaGrid);
+        iLado := Min(Escalar(FLado), FColumna.Width - 2 * iMargen);
+        iAlto := 0;
+        if (iLado > 0) and Assigned(Miniatura(aRutas[0], iLado)) then
+          iAlto := iLado + 2 * iMargen;
+      end;
+      AHeight := Max(AHeight, iAlto);
+    end;
   end;
 end;
 
@@ -588,8 +628,6 @@ begin
     // pintamos nosotros entera (sin texto).
     ACanvas.FillRect(rCelda, AViewInfo.Params.Color);
     ADone := True;
-    if FMiniaturas.Count >= cMaximoCacheMiniaturas then
-      FMiniaturas.Clear;
     aRutas := RutasDeRegistro(AViewInfo.GridRecord);
     iMargen := Escalar(cMargenMiniaturaGrid);
     iLado := Escalar(FLado);
@@ -597,6 +635,8 @@ begin
     // con el.
     if iLado > rCelda.Height - 2 * iMargen then
       iLado := rCelda.Height - 2 * iMargen;
+    if FSoloFotoPrincipal then
+      iLado := Min(iLado, rCelda.Width - 2 * iMargen);
     if (Length(aRutas) > 0) and (iLado > 0) then
       DibujarTira(ACanvas, AViewInfo, aRutas, iLado);
   end;
@@ -626,6 +666,8 @@ begin
   if iVisibles > FMaximo then
     iVisibles := FMaximo;
   iIzq := rCelda.Left + iMargen;
+  if FSoloFotoPrincipal then
+    iIzq := rCelda.Left + (rCelda.Width - ALado) div 2;
   iCentro := (rCelda.Top + rCelda.Bottom) div 2;
   for iMiniatura := 0 to iVisibles - 1 do
   begin

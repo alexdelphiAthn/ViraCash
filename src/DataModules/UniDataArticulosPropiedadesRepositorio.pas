@@ -497,7 +497,7 @@ begin
       '  FROM fza_propiedades_valores ' +
       ' WHERE ID_PROP_PV = :PROPIEDAD ' +
       '   AND ESACTIVO_PV = ''S'' ' +
-      ' ORDER BY PV';
+      ' ORDER BY ORDEN_PV IS NULL, ORDEN_PV, PV, ID_PV_ARTPROP';
     oConsulta.ParamByName('PROPIEDAD').AsString := ACodigoPropiedad;
     oConsulta.Open;
     while not oConsulta.Eof do

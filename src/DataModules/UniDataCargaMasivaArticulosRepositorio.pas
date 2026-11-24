@@ -83,12 +83,14 @@ const
     'FROM fza_propiedades_valores v JOIN fza_propiedades p ' +
     'ON p.CODIGO_PROP_ARTPROP = v.ID_PROP_PV ' +
     'WHERE v.ESACTIVO_PV = ''S'' AND p.TIPO_VALOR_PROP = ''LISTA'' ' +
-    'ORDER BY p.NOMBRE_PROP_PROP, v.PV';
+    'ORDER BY p.NOMBRE_PROP_PROP, v.ID_PROP_PV, ' +
+    'v.ORDEN_PV IS NULL, v.ORDEN_PV, v.PV, v.ID_PV_ARTPROP';
   SQL_VALORES_PROPIEDAD =
     'SELECT v.ID_PV_ARTPROP, v.ID_PROP_PV, p.NOMBRE_PROP_PROP, v.PV ' +
     'FROM fza_propiedades_valores v JOIN fza_propiedades p ' +
     'ON p.CODIGO_PROP_ARTPROP = v.ID_PROP_PV ' +
-    'WHERE v.ESACTIVO_PV = ''S'' AND v.ID_PROP_PV = :PROP ORDER BY v.PV';
+    'WHERE v.ESACTIVO_PV = ''S'' AND v.ID_PROP_PV = :PROP ' +
+    'ORDER BY v.ORDEN_PV IS NULL, v.ORDEN_PV, v.PV, v.ID_PV_ARTPROP';
   SQL_ALMACENES =
     'SELECT CODIGO_ALM_ALM, NOMBRE_ALM_ALM FROM fza_almacenes ' +
     'WHERE ESACTIVO_ALM = ''S'' AND (TIPO_USO_ALM IN ' +

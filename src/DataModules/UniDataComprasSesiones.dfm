@@ -807,7 +807,7 @@
     SQL.Strings = (
       'SELECT ID_PV_ARTPROP, ID_PROP_PV, PV'
       '  FROM fza_propiedades_valores'
-      'ORDER BY ID_PROP_PV, PV')
+      'ORDER BY ID_PROP_PV, ORDEN_PV IS NULL, ORDEN_PV, PV, ID_PV_ARTPROP')
     Left = 672
     Top = 232
   end
@@ -893,7 +893,7 @@
       '  FROM fza_propiedades_valores'
       ' WHERE ID_PROP_PV = '#39'TEMPORADA'#39
       '   AND ESACTIVO_PV = '#39'S'#39
-      ' ORDER BY PV')
+      ' ORDER BY ORDEN_PV IS NULL, ORDEN_PV, PV, ID_PV_ARTPROP')
     Left = 496
     Top = 344
   end

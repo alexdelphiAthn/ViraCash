@@ -22,7 +22,8 @@ function CrearRepositorioBusquedaDatosUniDAC(
 implementation
 
 uses
-  System.SysUtils, Data.DB, UniDataProveedoresTexto;
+  System.SysUtils, Data.DB, UniDataProveedoresTexto,
+  UniDataSeleccionFamiliaRepositorio;
 
 const
   SQL_LISTAR_FAMILIAS =
@@ -44,7 +45,7 @@ const
     'FROM fza_propiedades_valores ' +
     'WHERE ID_PROP_PV = ''TEMPORADA'' ' +
     'AND IFNULL(ESACTIVO_PV, ''S'') = ''S'' ' +
-    'ORDER BY PV';
+    'ORDER BY ORDEN_PV IS NULL, ORDEN_PV, PV, ID_PV_ARTPROP';
   SQL_LISTAR_COLORES_PALETA =
     'SELECT NOMBRE_ATB FROM fza_atributos_basicos ' +
     'WHERE ID_VA_ATB = ''CO'' AND ESACTIVO_ATB = ''S'' ' +
@@ -163,6 +164,7 @@ type
   public
     constructor Create(AConexion: TUniConnection);
     function ListarFamiliasArbol: TFamiliasArbol;
+    function LeerRutaFamilia(const ACodigoFamilia: string): string;
     function ConsultarProveedores: IResultadoBusquedaDatos;
     function ListarTemporadas: TOpcionesBusquedaDatos;
     function ListarColoresPaleta: TCadenasBusquedaDatos;
@@ -220,6 +222,12 @@ begin
   finally
     FreeAndNil(oConsulta);
   end;
+end;
+
+function TRepositorioBusquedaDatosUniDAC.LeerRutaFamilia(
+  const ACodigoFamilia: string): string;
+begin
+  Result := LeerRutaFamiliaUniDAC(FConexion, ACodigoFamilia);
 end;
 
 function TRepositorioBusquedaDatosUniDAC.ListarFamiliasArbol:

@@ -27,13 +27,13 @@
         inherited cxGrdPrincipal: TcxGrid
           Top = 172
           Width = 1092
-          Height = 430
+          Height = 353
           TabOrder = 1
           ExplicitTop = 172
           ExplicitWidth = 1090
-          ExplicitHeight = 422
+          ExplicitHeight = 345
           inherited cxGrdDBTabPrin: TcxGridDBTableView
-            FilterRow.Visible = True
+            OptionsView.CellTextMaxLineCount = 1
             OptionsView.GroupByBox = True
           end
         end
@@ -251,6 +251,62 @@
             Properties.DropDownListStyle = lsFixedList
             TabOrder = 19
             Width = 220
+          end
+        end
+        object pnlDatosArticulo: TcxGroupBox
+          Left = 0
+          Top = 525
+          Align = alBottom
+          PanelStyle.Active = True
+          Style.BorderStyle = ebsNone
+          Transparent = True
+          TabOrder = 2
+          OnResize = pnlDatosArticuloResize
+          Height = 77
+          Width = 1092
+          object lblProveedorArticulo: TcxLabel
+            Left = 8
+            Top = 8
+            Caption = 'Proveedor'
+            Transparent = True
+          end
+          object edtProveedorArticulo: TcxTextEdit
+            Left = 83
+            Top = 6
+            Properties.ReadOnly = True
+            TabStop = False
+            Width = 450
+          end
+          object lblTemporadaArticulo: TcxLabel
+            Left = 550
+            Top = 8
+            Caption = 'Temporada'
+            Transparent = True
+          end
+          object edtTemporadaArticulo: TcxTextEdit
+            Left = 633
+            Top = 6
+            Properties.ReadOnly = True
+            TabStop = False
+            Width = 451
+          end
+          object lblFamiliaArticulo: TcxLabel
+            Left = 8
+            Top = 42
+            Caption = 'Familia'
+            Transparent = True
+          end
+          object memFamiliaArticulo: TcxMemo
+            Left = 67
+            Top = 36
+            ParentShowHint = False
+            ShowHint = True
+            Properties.ReadOnly = True
+            Properties.ScrollBars = ssVertical
+            Properties.WordWrap = True
+            TabStop = False
+            Height = 35
+            Width = 1017
           end
         end
       end

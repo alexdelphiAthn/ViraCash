@@ -262,6 +262,14 @@
                     Properties.ValueUnchecked = 'N'
                     Width = 80
                   end
+                  object tvValoresORDEN_PV: TcxGridDBColumn
+                    Caption = 'Orden'
+                    DataBinding.FieldName = 'ORDEN_PV'
+                    PropertiesClassName = 'TcxSpinEditProperties'
+                    Properties.UseNullString = True
+                    HeaderAlignmentHorz = taRightJustify
+                    Width = 80
+                  end
                   object tvValoresINSTANTEALTA: TcxGridDBColumn
                     DataBinding.FieldName = 'INSTANTE_ALTA'
                     Visible = False

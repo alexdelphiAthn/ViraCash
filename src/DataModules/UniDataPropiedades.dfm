@@ -91,9 +91,11 @@
   object unqryValores: TUniQuery
     SQLInsert.Strings = (
       'INSERT INTO `fza_propiedades_valores`'
-      '  (`ID_PROP_PV`, `PV`, `DESCRIPCION_PV`, `ESACTIVO_PV`, `INSTANTE_MODIF`, `INSTANTE_ALTA`, `USUARIO_ALTA`, `USUARIO_MODIF`)'
+      '  (`ID_PROP_PV`, `PV`, `DESCRIPCION_PV`, `ESACTIVO_PV`, `ORDEN_PV`,'
+      '   `INSTANTE_MODIF`, `INSTANTE_ALTA`, `USUARIO_ALTA`, `USUARIO_MODIF`)'
       'VALUES'
-      '  (:`ID_PROP_PV`, :`PV`, :`DESCRIPCION_PV`, :`ESACTIVO_PV`, :`INSTANTE_MODIF`, :`INSTANTE_ALTA`, :`USUARIO_ALTA`, :`USUARIO_MODIF`)')
+      '  (:`ID_PROP_PV`, :`PV`, :`DESCRIPCION_PV`, :`ESACTIVO_PV`, :`ORDEN_PV`,'
+      '   :`INSTANTE_MODIF`, :`INSTANTE_ALTA`, :`USUARIO_ALTA`, :`USUARIO_MODIF`)')
     SQLDelete.Strings = (
       'DELETE FROM `fza_propiedades_valores`'
       'WHERE'
@@ -105,6 +107,7 @@
       '  `PV` = :`PV`,'
       '  `DESCRIPCION_PV` = :`DESCRIPCION_PV`,'
       '  `ESACTIVO_PV` = :`ESACTIVO_PV`,'
+      '  `ORDEN_PV` = :`ORDEN_PV`,'
       '  `INSTANTE_MODIF` = :`INSTANTE_MODIF`,'
       '  `INSTANTE_ALTA` = :`INSTANTE_ALTA`,'
       '  `USUARIO_ALTA` = :`USUARIO_ALTA`,'
@@ -119,7 +122,7 @@
     SQL.Strings = (
       'SELECT * FROM fza_propiedades_valores'
       'WHERE ID_PROP_PV = :CODIGO_PROP_ARTPROP'
-      'ORDER BY PV')
+      'ORDER BY ORDEN_PV IS NULL, ORDEN_PV, PV, ID_PV_ARTPROP')
     MasterSource = frmMtoPropiedades.dsTablaG
     BeforePost = unqryValoresBeforePost
     AfterPost = unqryValoresAfterPost

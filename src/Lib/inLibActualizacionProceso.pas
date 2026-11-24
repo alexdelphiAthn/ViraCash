@@ -577,15 +577,32 @@ function EjecutarScriptEnSuHilo(
 var
   bOk: Boolean;
   sError: string;
+  Conexion: TUniConnection;
 begin
   bOk := False;
   sError := '';
-  EsperarEnSuHilo(
-    procedure
-    begin
-      bOk := EjecutarScriptActualizacion(AConexion, ARuta, '', sError);
-    end,
-    nil);
+  Conexion := CrearConexionScriptsActualizacion(AConexion);
+  try
+    EsperarEnSuHilo(
+      procedure
+      begin
+        try
+          Conexion.Connect;
+        except
+          on E: Exception do
+            sError := E.ClassName + ': ' + E.Message;
+        end;
+        if Conexion.Connected then
+        try
+          bOk := EjecutarScriptActualizacion(Conexion, ARuta, '', sError);
+        finally
+          Conexion.Disconnect;
+        end;
+      end,
+      nil);
+  finally
+    FreeAndNil(Conexion);
+  end;
   AError := sError;
   Result := bOk;
 end;

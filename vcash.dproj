@@ -58,7 +58,6 @@
         <Cfg_2>true</Cfg_2>
         <Base>true</Base>
     </PropertyGroup>
-    <Import Project="$(MSBuildProjectDirectory)\eng\ViraCash.Dependencias.props"/>
     <PropertyGroup Condition="'$(Base)'!=''">
         <DCC_DcuOutput>.\build\dcus\$(Platform)\$(Config)</DCC_DcuOutput>
         <DCC_ExeOutput>.\$(Platform)\$(Config)</DCC_ExeOutput>
@@ -178,6 +177,7 @@ $(PreBuildEvent)]]></PreBuildEvent>
         <UWP_DelphiLogo150>icon-verde-128.png</UWP_DelphiLogo150>
         <DCC_MapFile>3</DCC_MapFile>
     </PropertyGroup>
+    <Import Project="$(MSBuildProjectDirectory)\eng\ViraCash.Dependencias.props"/>
     <ItemGroup>
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>

@@ -40,6 +40,9 @@ type
 // Lee un .sql sin dar por hecho que viene en UTF-8: los scripts antiguos
 // pueden estar en la pagina de codigos del equipo.
 function LeerTextoScriptSql(const ARuta: string): string;
+// Copia la configuración para abrir y cerrar la sesión en el hilo de trabajo.
+function CrearConexionScriptsActualizacion(
+  AOrigen: TUniConnection): TUniConnection;
 function CrearConsultaScriptsFaltantes(
   AConexion: TUniConnection;
   const ASqlComprobacion: string): IConsultaScriptsFaltantes;
@@ -116,6 +119,23 @@ begin
   end;
 end;
 
+function CrearConexionScriptsActualizacion(
+  AOrigen: TUniConnection): TUniConnection;
+begin
+  Result := TUniConnection.Create(nil);
+  try
+    Result.Assign(AOrigen);
+    Result.LoginPrompt := False;
+    Result.Pooling := False;
+    Result.BeforeConnect := nil;
+    Result.AfterConnect := AOrigen.AfterConnect;
+    Result.OnError := nil;
+  except
+    Result.Free;
+    raise;
+  end;
+end;
+
 { TConsultaScriptsFaltantes }
 
 constructor TConsultaScriptsFaltantes.Create(
@@ -123,13 +143,15 @@ constructor TConsultaScriptsFaltantes.Create(
   const ASqlComprobacion: string);
 begin
   inherited Create;
-  FConexion := AConexion;
   FSql := ASqlComprobacion;
   FSeccion := TCriticalSection.Create;
+  if Assigned(AConexion) then
+    FConexion := CrearConexionScriptsActualizacion(AConexion);
 end;
 
 destructor TConsultaScriptsFaltantes.Destroy;
 begin
+  FConexion.Free;
   FSeccion.Free;
   inherited Destroy;
 end;
@@ -187,6 +209,7 @@ begin
     oConsulta := TUniQuery.Create(nil);
     try
       try
+        FConexion.Connect;
         oConsulta.Connection := FConexion;
         oConsulta.SQL.Text := FSql;
         AnotarConsulta(oConsulta);
@@ -211,7 +234,11 @@ begin
       end;
     finally
       AnotarConsulta(nil);
-      oConsulta.Free;
+      try
+        oConsulta.Free;
+      finally
+        FConexion.Disconnect;
+      end;
     end;
   end;
 end;

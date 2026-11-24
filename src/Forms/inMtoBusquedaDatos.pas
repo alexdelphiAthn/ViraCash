@@ -19,8 +19,9 @@ interface
 uses
   Winapi.Windows, System.SysUtils, System.Classes, System.Diagnostics,
   System.Variants, System.UITypes, Vcl.Controls, Vcl.Forms, Vcl.ExtCtrls,
-  Vcl.Graphics, Data.DB,
-  cxControls, cxContainer, cxEdit, cxLabel, cxTextEdit, cxCheckBox,
+  Vcl.Graphics, Data.DB, System.Generics.Collections, System.Math,
+  cxControls, cxContainer, cxEdit, cxGroupBox, cxLabel, cxMemo, cxTextEdit,
+  cxCheckBox,
   cxButtons, cxMaskEdit, cxDropDownEdit, cxButtonEdit, cxGridDBTableView,
   inMtoGenSearch, cxGraphics, cxLookAndFeels, cxLookAndFeelPainters, cxStyles,
   cxDBData, Vcl.Menus, cxBlobEdit, System.Actions,
@@ -29,7 +30,8 @@ uses
   Vcl.Buttons, cxGridCustomTableView, cxGridTableView, cxGridLevel, cxClasses,
   cxGridCustomView, cxGrid, cxPC, cxLookupEdit, cxDBLookupEdit,
   cxDBLookupComboBox, inLibDocumentosTrabajo, inLibFamiliasArbol,
-  inLibArticulosResolverIntf, inLibBusquedaDatosPersistenciaIntf;
+  inLibArticulosResolverIntf, inLibBusquedaDatosPersistenciaIntf,
+  inLibFotoMiniaturaMtoVcl, inLibFotosMiniaturasGridVcl;
 
 type
   TDependenciasBusquedaDatos = record
@@ -66,6 +68,13 @@ type
     cbbProveedor: TcxLookupComboBox;
     lblTemporada: TcxLabel;
     cbbTemporada: TcxComboBox;
+    pnlDatosArticulo: TcxGroupBox;
+    lblProveedorArticulo: TcxLabel;
+    edtProveedorArticulo: TcxTextEdit;
+    lblTemporadaArticulo: TcxLabel;
+    edtTemporadaArticulo: TcxTextEdit;
+    lblFamiliaArticulo: TcxLabel;
+    memFamiliaArticulo: TcxMemo;
     dsProveedoresBusqueda: TDataSource;
     procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
@@ -73,6 +82,7 @@ type
     procedure btnLimpiarClick(Sender: TObject);
     procedure btnPerfilesClick(Sender: TObject);
     procedure btnOcultarClick(Sender: TObject);
+    procedure pnlDatosArticuloResize(Sender: TObject);
     procedure edtValorKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
     procedure cbbCampoPropertiesChange(Sender: TObject);
@@ -101,6 +111,9 @@ type
     FResultadoProveedores: IResultadoBusquedaDatos;
     FRepositoriosDocumentos: TRepositoriosDocumentosTrabajo;
     FResolverArticulos: IArticulosResolver;
+    FFotoLateral: TMiniaturaFotoMto;
+    FFotosRejilla: TTiraMiniaturasFotosGrid;
+    FRutasFamilia: TDictionary<string, string>;
     procedure InicializarListas;
     procedure CargarFiltrosPrecarga;
     procedure CargarCombo(
@@ -112,6 +125,11 @@ type
     procedure FamiliasDblClick(Sender: TObject);
     procedure ActualizarInterfazCampo;
     procedure ActualizarColumnasColor;
+    procedure CrearColumnaFotos;
+    procedure ActualizarArticuloEnFoco(Sender: TcxCustomGridTableView;
+      APrevFocusedRecord, AFocusedRecord: TcxCustomGridRecord;
+      ANewItemRecordFocusingChanged: Boolean);
+    procedure ActualizarDatosArticulo(ARegistro: TcxCustomGridRecord);
     procedure ConfigurarMenuContextual;
     procedure PopupGridPopup(Sender: TObject);
     procedure MenuAgregarDocumentoClick(Sender: TObject);
@@ -143,6 +161,7 @@ type
       AOwner: TComponent;
       const ADependencias: TDependenciasBusquedaDatos); reintroduce;
       overload;
+    destructor Destroy; override;
     class procedure Ejecutar(AOwner: TComponent;
       AParentForm: TCustomForm = nil); overload;
     class procedure Ejecutar(
@@ -151,6 +170,8 @@ type
       AParentForm: TCustomForm = nil); overload;
     procedure CrearTablaPrincipal; override;
     procedure AplicarEtiquetas; override;
+    procedure AplicarTraduccionActual; override;
+    procedure ResolverArtSkuActivo(out ACodArt, ACodSku: string); override;
     /// Articulo de la fila aceptada. Se toma al cerrar, porque el
     /// formulario base suelta el conjunto de datos de la rejilla en su
     /// OnClose y despues ya no hay de donde leerlo.
@@ -214,6 +235,15 @@ begin
   FRepositoriosDocumentos := ADependencias.Documentos;
   FResolverArticulos := ADependencias.ResolverArticulos;
   inherited Create(AOwner);
+end;
+
+destructor TfrmMtoBusquedaDatos.Destroy;
+begin
+  if Assigned(cxGrdDBTabPrin) then
+    cxGrdDBTabPrin.OnFocusedRecordChanged := nil;
+  FreeAndNil(FRutasFamilia);
+  FreeAndNil(FFotosRejilla);
+  inherited;
 end;
 
 class procedure TfrmMtoBusquedaDatos.Ejecutar(AOwner: TComponent;
@@ -312,6 +342,11 @@ end;
 
 procedure TfrmMtoBusquedaDatos.FormCreate(Sender: TObject);
 begin
+  // La barra común descubre la foto al inicializar el mantenimiento.
+  if Assigned(FotosArticulos) then
+    FFotoLateral := TMiniaturaFotoMto.Create(Self, pButtonRightBar,
+      pButtonBDStat, FotosArticulos, ResolverArtSkuActivo,
+      DataSourcesParaFoto, actFotoArticulo);
   inherited;
   ValidarDependencias;
   dsTablaG.DataSet := nil;
@@ -328,8 +363,10 @@ begin
   edtFamilias.ShowHint := True;
   ActualizarResumenFamilias;
   InicializarListas;
-  cxGrdDBTabPrin.FilterRow.Visible := True;
-  cxGrdDBTabPrin.OptionsView.GroupByBox := True;
+  FRutasFamilia := TDictionary<string, string>.Create;
+  memFamiliaArticulo.Style.Font.Size := Font.Size - 1;
+  pnlDatosArticuloResize(pnlDatosArticulo);
+  cxGrdDBTabPrin.OnFocusedRecordChanged := ActualizarArticuloEnFoco;
   ConfigurarMenuContextual;
   FTimerPrecarga := TTimer.Create(Self);
   FTimerPrecarga.Enabled := False;
@@ -551,6 +588,7 @@ begin
   begin
     dsTablaG.DataSet.Close;
   end;
+  ActualizarDatosArticulo(nil);
   lblResultados.Caption := SCaptionSeleccioneFiltrosBuscar;
 end;
 
@@ -758,13 +796,11 @@ begin
   if bMostrar then
   begin
     pnlCriterios.Height := FAltoCriterios;
-    btnOcultar.Top := 78;
     btnOcultar.Caption := SCaptionOcultarCriterios;
   end
   else
   begin
     pnlCriterios.Height := 30;
-    btnOcultar.Top := 3;
     btnOcultar.Caption := SCaptionMostrarCriterios;
   end;
 end;
@@ -813,6 +849,7 @@ begin
       swTramo := TStopwatch.StartNew;
       ActualizarColumnasColor;
       ActualizarContador;
+      ActualizarDatosArticulo(cxGrdDBTabPrin.Controller.FocusedRecord);
       msInterfaz := swTramo.ElapsedMilliseconds;
     end;
   finally
@@ -884,6 +921,10 @@ begin
     oCriterios.Verde := iVerde;
     oCriterios.Azul := iAzul;
     dsTablaG.DataSet := nil;
+    ActualizarDatosArticulo(nil);
+    FRutasFamilia.Clear;
+    if Assigned(FFotosRejilla) then
+      FFotosRejilla.Limpiar;
     FResultadoBusqueda :=
       FRepositorioPersistencia.PrepararBusqueda(oCriterios);
     dsTablaG.DataSet := FResultadoBusqueda.DataSet;
@@ -1070,16 +1111,186 @@ begin
   ConfigurarColumna('ESACTIVO_ART', SCaptionBusquedaArticuloActivo, 90, False);
   ConfigurarColumna('ESACTIVO_SKU', SCaptionBusquedaSkuActivo, 80, False);
   ActualizarColumnasColor;
+  CrearColumnaFotos;
+end;
+
+procedure TfrmMtoBusquedaDatos.CrearColumnaFotos;
+var
+  oArticulo: TcxGridDBColumn;
+  oSku: TcxGridDBColumn;
+begin
+  if Assigned(FotosArticulos) and not Assigned(FFotosRejilla) then
+  begin
+    oArticulo := cxGrdDBTabPrin.GetColumnByFieldName('CODIGO_ART_ART');
+    oSku := cxGrdDBTabPrin.GetColumnByFieldName('CODIGO_UNIDAD_SKU');
+    if Assigned(oArticulo) and Assigned(oSku) then
+    begin
+      FFotosRejilla := TTiraMiniaturasFotosGrid.Create(cxGrdDBTabPrin,
+        FotosArticulos, 'colBusquedaFoto', SCaptionColumnaFotos,
+        function(ARegistro: TcxCustomGridRecord;
+          out AClave: string): TArticulosFotoFila
+        var
+          sArticulo: string;
+          sSku: string;
+        begin
+          Result := nil;
+          AClave := '';
+          if ARegistro.IsData then
+          begin
+            sArticulo := VarToStr(ARegistro.Values[oArticulo.Index]);
+            sSku := VarToStr(ARegistro.Values[oSku.Index]);
+            if sArticulo <> '' then
+            begin
+              AClave := sArticulo + '|' + sSku;
+              Result := [TArticuloFotoFila.Crear(sArticulo, sSku)];
+            end;
+          end;
+        end, nil, cLadoMiniaturaGrid, 1, True);
+      FFotosRejilla.Columna.FixedKind := fkLeft;
+      FFotosRejilla.Columna.Options.Moving := False;
+    end;
+  end;
+end;
+
+procedure TfrmMtoBusquedaDatos.ResolverArtSkuActivo(
+  out ACodArt, ACodSku: string);
+var
+  oRegistro: TcxCustomGridRecord;
+begin
+  oRegistro := cxGrdDBTabPrin.Controller.FocusedRecord;
+  if Assigned(oRegistro) and oRegistro.IsData then
+    inherited
+  else
+  begin
+    ACodArt := '';
+    ACodSku := '';
+  end;
+end;
+
+procedure TfrmMtoBusquedaDatos.ActualizarArticuloEnFoco(
+  Sender: TcxCustomGridTableView;
+  APrevFocusedRecord, AFocusedRecord: TcxCustomGridRecord;
+  ANewItemRecordFocusingChanged: Boolean);
+begin
+  if Assigned(FFotoLateral) then
+    FFotoLateral.Actualizar;
+  ActualizarDatosArticulo(AFocusedRecord);
+end;
+
+procedure TfrmMtoBusquedaDatos.ActualizarDatosArticulo(
+  ARegistro: TcxCustomGridRecord);
+var
+  sCodigoFamilia, sRuta: string;
+
+  function Valor(const ACampo: string): string;
+  var
+    oColumna: TcxGridDBColumn;
+  begin
+    Result := '';
+    if Assigned(ARegistro) and ARegistro.IsData then
+    begin
+      oColumna := cxGrdDBTabPrin.GetColumnByFieldName(ACampo);
+      if Assigned(oColumna) then
+        Result := VarToStr(ARegistro.Values[oColumna.Index]);
+    end;
+  end;
+
+begin
+  edtProveedorArticulo.Text := Valor('RAZON_SOCIAL_PRV');
+  edtTemporadaArticulo.Text := Valor('PROP_TEMPORADA');
+  sCodigoFamilia := Valor('CODIGO_FAM_ART');
+  sRuta := '';
+  if sCodigoFamilia <> '' then
+  begin
+    if not FRutasFamilia.TryGetValue(sCodigoFamilia, sRuta) then
+    begin
+      sRuta := FRepositorioPersistencia.LeerRutaFamilia(sCodigoFamilia);
+      FRutasFamilia.Add(sCodigoFamilia, sRuta);
+    end;
+    if sRuta = '' then
+      sRuta := Valor('NOMBRE_FAM_FAM');
+  end;
+  memFamiliaArticulo.Text := sRuta;
+  memFamiliaArticulo.Hint := sRuta;
+end;
+
+procedure TfrmMtoBusquedaDatos.pnlDatosArticuloResize(Sender: TObject);
+var
+  iMargen, iSeparacion, iAncho, iAltoFila: Integer;
+
+  procedure Colocar(AEtiqueta: TcxLabel; ACampo: TcxTextEdit;
+    AColumna: Integer);
+  var
+    iInicio, iFin: Integer;
+  begin
+    iInicio := iMargen + iAncho * AColumna div 2;
+    iFin := iMargen + iAncho * (AColumna + 1) div 2 - iSeparacion;
+    AEtiqueta.Left := iInicio;
+    AEtiqueta.Top := (iAltoFila - AEtiqueta.Height) div 2;
+    ACampo.Left := iInicio + AEtiqueta.Width + iSeparacion;
+    ACampo.Top := (iAltoFila - ACampo.Height) div 2;
+    ACampo.Width := Max(0, iFin - ACampo.Left);
+  end;
+
+begin
+  if Assigned(memFamiliaArticulo) then
+  begin
+    iMargen := MulDiv(8, CurrentPPI, USER_DEFAULT_SCREEN_DPI);
+    iSeparacion := MulDiv(6, CurrentPPI, USER_DEFAULT_SCREEN_DPI);
+    iAltoFila := MulDiv(36, CurrentPPI, USER_DEFAULT_SCREEN_DPI);
+    iAncho := pnlDatosArticulo.ClientWidth - iMargen;
+    Colocar(lblProveedorArticulo, edtProveedorArticulo, 0);
+    Colocar(lblTemporadaArticulo, edtTemporadaArticulo, 1);
+    lblFamiliaArticulo.Left := iMargen;
+    lblFamiliaArticulo.Top := iAltoFila + iSeparacion;
+    memFamiliaArticulo.Left := iMargen + lblFamiliaArticulo.Width +
+      iSeparacion;
+    memFamiliaArticulo.Top := iAltoFila;
+    memFamiliaArticulo.Width := Max(0, iAncho - memFamiliaArticulo.Left);
+    memFamiliaArticulo.Height := Max(0, pnlDatosArticulo.ClientHeight -
+      iAltoFila - iSeparacion);
+  end;
 end;
 
 procedure TfrmMtoBusquedaDatos.AplicarEtiquetas;
+const
+  CamposPanelArticulo: array[0..4] of string = (
+    'CODIGO_PRV_PRV', 'RAZON_SOCIAL_PRV', 'PROP_TEMPORADA',
+    'CODIGO_FAM_ART', 'NOMBRE_FAM_FAM');
 var
+  Campo: string;
   Columna: TcxGridDBColumn;
 begin
   inherited;
-  Columna := cxGrdDBTabPrin.GetColumnByFieldName('DESCRIPCION_ART');
-  if Assigned(Columna) then
-    Columna.Caption := SCaptionBusquedaDescripcion;
+  cxGrdDBTabPrin.BeginUpdate;
+  try
+    Columna := cxGrdDBTabPrin.GetColumnByFieldName('DESCRIPCION_ART');
+    if Assigned(Columna) then
+      Columna.Caption := SCaptionBusquedaDescripcion;
+    if Assigned(FFotosRejilla) then
+      FFotosRejilla.Columna.Index := 0;
+    for Campo in CamposPanelArticulo do
+    begin
+      Columna := cxGrdDBTabPrin.GetColumnByFieldName(Campo);
+      if Assigned(Columna) then
+        Columna.Index := cxGrdDBTabPrin.ColumnCount - 1;
+    end;
+    cxGrdDBTabPrin.OptionsCustomize.ColumnGrouping := True;
+    cxGrdDBTabPrin.OptionsView.GroupByBox := True;
+  finally
+    cxGrdDBTabPrin.EndUpdate;
+  end;
+end;
+
+procedure TfrmMtoBusquedaDatos.AplicarTraduccionActual;
+begin
+  inherited;
+  lblProveedorArticulo.Caption := SCaptionBusquedaProveedor;
+  lblTemporadaArticulo.Caption := SCaptionBusquedaTemporada;
+  lblFamiliaArticulo.Caption := SCaptionBusquedaFamilia;
+  pnlDatosArticuloResize(pnlDatosArticulo);
+  if Assigned(FFotosRejilla) then
+    FFotosRejilla.Columna.Caption := SCaptionColumnaFotos;
 end;
 
 procedure TfrmMtoBusquedaDatos.ActualizarColumnasColor;

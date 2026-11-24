@@ -70,6 +70,7 @@ type
     tvValoresPV: TcxGridDBColumn;
     tvValoresDESCRIPCION_PV: TcxGridDBColumn;
     tvValoresESACTIVO_PV: TcxGridDBColumn;
+    tvValoresORDEN_PV: TcxGridDBColumn;
     tvValoresINSTANTEALTA: TcxGridDBColumn;
     tvValoresUSUARIOALTA: TcxGridDBColumn;
 

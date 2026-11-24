@@ -325,7 +325,10 @@ begin
   Formulario.BringToFront;
   SetForegroundWindow(Formulario.Handle);
   if Formulario.btnArt.CanFocus then
+  begin
     Formulario.btnArt.SetFocus;
+    Formulario.btnArt.SelectAll;
+  end;
   ElevarFotoFlotanteSinActivar;
 end;
 
@@ -1144,6 +1147,9 @@ begin
   FVista.ActualizandoArticulo := True;
   try
     btnArt.Text := ACodArt;
+    // La siguiente lectura sustituye el codigo mostrado desde su inicio.
+    if btnArt.Focused then
+      btnArt.SelectAll;
   finally
     FVista.ActualizandoArticulo := False;
   end;

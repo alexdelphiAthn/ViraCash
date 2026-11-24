@@ -70,6 +70,7 @@ type
     ['{4B8BEED3-A565-4CD9-933C-DB3A218D4488}']
     // Familias activas con su padre, para pintarlas como arbol.
     function ListarFamiliasArbol: TFamiliasArbol;
+    function LeerRutaFamilia(const ACodigoFamilia: string): string;
     function ConsultarProveedores: IResultadoBusquedaDatos;
     function ListarTemporadas: TOpcionesBusquedaDatos;
     function ListarColoresPaleta: TCadenasBusquedaDatos;

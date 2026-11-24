@@ -43,7 +43,7 @@ const
     'FROM fza_propiedades_valores ' +
     'WHERE ID_PROP_PV = ''TEMPORADA'' ' +
     'AND IFNULL(ESACTIVO_PV, ''S'') = ''S'' ' +
-    'ORDER BY PV';
+    'ORDER BY ORDEN_PV IS NULL, ORDEN_PV, PV, ID_PV_ARTPROP';
 
 type
   TConsultaListadoVentasUniDAC = class(
