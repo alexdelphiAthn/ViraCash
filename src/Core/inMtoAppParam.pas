@@ -129,6 +129,7 @@ type
       AItem: TJvCustomInspectorItem;
       const ANombre: string);
     procedure ValidarFormulaCodigoArticulo;
+    procedure ValidarPatronLoteRecepcion;
     procedure AgregarParametroInspector(const AParametro: TParamInfo);
     procedure ConfigurarVisibilidadParametro(
       AItem: TJvCustomInspectorItem);
@@ -216,6 +217,8 @@ type
                                   Strings: TStrings);
     procedure GetModosVerifactuList(Sender: TJvCustomInspectorItem;
                                     Strings: TStrings);
+    procedure GetPatronesLoteRecepcionList(Sender: TJvCustomInspectorItem;
+      Strings: TStrings);
     // Handler para el botón de selección de carpeta
 //    procedure OnDirButtonClick(Sender: TObject;
 //                               Index: Integer);
@@ -249,6 +252,7 @@ uses
    UniDataTraduccionesDescargaRepositorio,
    UniDataPrestaShopEncolado, inLibResplandorBordesVcl,
    inLibMotorBaseDatos, inLibTrazabilidad, inLibReparaciones,
+   inLibMsgTrazabilidad, inLibErroresBBDD,
    inLibTraduccionesFastReport,
    inLibMargenTarifa, inLibListasRegalos, inLibMsgListasRegalos;
 
@@ -626,7 +630,12 @@ begin
     AItem.OnGetValueList := GetNifsEmpresasList;
   end
   else if StartsText('appDir', ANombre) then
-    AItem.Flags := AItem.Flags + [iifEditButton];
+    AItem.Flags := AItem.Flags + [iifEditButton]
+  else if SameText(ANombre, PARAMETRO_PATRON_LOTE_RECEPCION) then
+  begin
+    AItem.Flags := AItem.Flags + [iifValueList, iifAllowNonListValues];
+    AItem.OnGetValueList := GetPatronesLoteRecepcionList;
+  end;
 end;
 
 procedure TfrmMtoAppParam.ValidarFormulaCodigoArticulo;
@@ -638,6 +647,17 @@ begin
     CLAVE_FORMULA_CODIGO_ARTICULO_SESION);
   if Assigned(oItem) and Assigned(oItem.Data) then
     TFormulaCodigoArticuloSesion.Validar(oItem.Data.AsString);
+end;
+
+procedure TfrmMtoAppParam.ValidarPatronLoteRecepcion;
+var
+  oItem: TJvCustomInspectorItem;
+begin
+  oItem := BuscarItemPorNombre(JvInspector1.Root,
+    PARAMETRO_PATRON_LOTE_RECEPCION);
+  if Assigned(oItem) and Assigned(oItem.Data) and
+     not PatronLoteRecepcionValido(oItem.Data.AsString) then
+    raise EValidacionBBDD.Create(SErrorPatronLoteRecepcionNoValido);
 end;
 
 procedure TfrmMtoAppParam.AgregarParametroInspector(
@@ -979,6 +999,17 @@ begin
   Strings.Add(cModoVerifactuVerifactu);
   Strings.Add(cModoVerifactuNoVerifactu);
   Strings.Add(cModoVerifactuSii);
+end;
+
+procedure TfrmMtoAppParam.GetPatronesLoteRecepcionList(
+  Sender: TJvCustomInspectorItem; Strings: TStrings);
+begin
+  Strings.Clear;
+  Strings.Add(PATRON_LOTE_RECEPCION_DEFECTO);
+  Strings.Add(PATRON_LOTE_RECEPCION_REFERENCIA);
+  Strings.Add('{COD_PROV}-' + PATRON_LOTE_RECEPCION_REFERENCIA);
+  Strings.Add(PATRON_LOTE_RECEPCION_PREGUNTAR);
+  Strings.Add(PATRON_LOTE_RECEPCION_PREGUNTAR + PATRON_LOTE_RECEPCION_DEFECTO);
 end;
 
 procedure TfrmMtoAppParam.GetModosVentanasList(
@@ -1567,6 +1598,7 @@ begin
       SCaptionCargandoDatosEspere);
   JvInspector1.SaveValues;
   ValidarFormulaCodigoArticulo;
+  ValidarPatronLoteRecepcion;
   if not PuedeAbrirParametrosAplicacion(Permisos) then
     ShowMessage_fza(SErrorPermisoGuardarParametros)
   else if not FCargaCorrecta then

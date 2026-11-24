@@ -29,6 +29,10 @@ const
   PARAMETRO_GARANTIAS = 'appGarantias';
   // Parámetros que solo se muestran con su interruptor encendido.
   PARAMETRO_GENERAR_CODIGO_LOTE = 'appGenerarCodigoBarrasLote';
+  PARAMETRO_PATRON_LOTE_RECEPCION = 'appPatronLoteRecepcion';
+  PATRON_LOTE_RECEPCION_DEFECTO = '{COD_PROV}-{FECHA_RECEP}';
+  PATRON_LOTE_RECEPCION_REFERENCIA = '{REF_PROV_ALB}';
+  PATRON_LOTE_RECEPCION_PREGUNTAR = '{ASK_USER}';
   PARAMETRO_CADUCIDAD_DIAS_AVISO = 'appCaducidadDiasAviso';
   PARAMETRO_CADUCIDAD_AVISO_ARRANQUE = 'appCaducidadAvisoArranque';
   PARAMETRO_CAJA_LOTE_ASIGNAR_FEFO = 'vgerLoteAsignarFefo';
@@ -74,6 +78,10 @@ type
 
 function GeneracionCodigosLoteActiva(
   const AParametros: IParametros): Boolean;
+function PatronLoteRecepcionValido(const APatron: string): Boolean;
+function PatronLoteRecepcionPideConfirmacion(const APatron: string): Boolean;
+function AplicarPatronLoteRecepcion(const APatron, ACodigoProveedor,
+  AReferenciaProveedor: string; AFechaRecepcion: TDateTime): string;
 
 function InterruptorDeModo(
   AModo: TModoTrazabilidad): TInterruptorTrazabilidad;
@@ -210,7 +218,8 @@ implementation
 
 uses
   System.SysUtils, System.Math, System.Generics.Defaults,
-  System.Generics.Collections, inLibMsgTrazabilidad;
+  System.Generics.Collections, System.RegularExpressions,
+  inLibMsgTrazabilidad;
 
 var
   GActivacionVigente: TActivacionTrazabilidad;
@@ -235,6 +244,67 @@ end;
 function ActivacionVigente: TActivacionTrazabilidad;
 begin
   Result := GActivacionVigente;
+end;
+
+const
+  VARIABLES_LOTE_RECEPCION =
+    '\{(COD_PROV|FECHA_RECEP|REF_PROV_ALB|ASK_USER)\}';
+
+function PatronLoteRecepcionValido(const APatron: string): Boolean;
+var
+  sPatron, sLiteral: string;
+begin
+  sPatron := UpperCase(Trim(APatron));
+  sLiteral := TRegEx.Replace(sPatron, VARIABLES_LOTE_RECEPCION, '');
+  Result := (sPatron = '') or ((sLiteral <> sPatron) and
+    (Pos('{', sLiteral) = 0) and (Pos('}', sLiteral) = 0));
+end;
+
+function PatronLoteRecepcionPideConfirmacion(const APatron: string): Boolean;
+begin
+  Result := Pos(PATRON_LOTE_RECEPCION_PREGUNTAR, UpperCase(APatron)) > 0;
+end;
+
+function AplicarPatronLoteRecepcion(const APatron, ACodigoProveedor,
+  AReferenciaProveedor: string; AFechaRecepcion: TDateTime): string;
+var
+  sPatron, sValor: string;
+  Coincidencia: TMatch;
+  iInicio: Integer;
+  bFaltaDato: Boolean;
+begin
+  Result := '';
+  sPatron := Trim(APatron);
+  if sPatron = '' then
+    sPatron := PATRON_LOTE_RECEPCION_DEFECTO;
+  if PatronLoteRecepcionValido(sPatron) then
+  begin
+    bFaltaDato := False;
+    iInicio := 1;
+    for Coincidencia in TRegEx.Matches(sPatron, VARIABLES_LOTE_RECEPCION,
+      [roIgnoreCase]) do
+    begin
+      sValor := '';
+      if not SameText(Coincidencia.Value,
+        PATRON_LOTE_RECEPCION_PREGUNTAR) then
+      begin
+        if SameText(Coincidencia.Value, '{COD_PROV}') then
+          sValor := UpperCase(Trim(ACodigoProveedor))
+        else if SameText(Coincidencia.Value,
+          PATRON_LOTE_RECEPCION_REFERENCIA) then
+          sValor := Trim(AReferenciaProveedor)
+        else if AFechaRecepcion > 0 then
+          sValor := FormatDateTime('yyyymmdd', AFechaRecepcion);
+        bFaltaDato := bFaltaDato or (sValor = '');
+      end;
+      Result := Result + Copy(sPatron, iInicio,
+        Coincidencia.Index - iInicio) + sValor;
+      iInicio := Coincidencia.Index + Coincidencia.Length;
+    end;
+    Result := Trim(Result + Copy(sPatron, iInicio, MaxInt));
+    if bFaltaDato then
+      Result := '';
+  end;
 end;
 
 function GeneracionCodigosLoteActiva(

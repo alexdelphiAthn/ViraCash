@@ -46,6 +46,7 @@ type
     FArrastre: TArrastrePestanas;
     FConsultandoCierre: Boolean;
     FModoSDI: Boolean;
+    FMaximizarMantenimientos: Boolean;
     FMenuPestana: TPopupMenu;
     FMenuSeparar: TMenuItem;
     FMenuAbiertas: TMenuItem;
@@ -110,6 +111,8 @@ type
     function RecorrerVentanas(AAnterior: Boolean): Boolean;
     function ProcesarCambioVentana(const AMensaje: TMsg): Boolean;
     property ModoSDI: Boolean read FModoSDI write FModoSDI;
+    property MaximizarMantenimientos: Boolean read FMaximizarMantenimientos
+      write FMaximizarMantenimientos;
   end;
 
 implementation
@@ -124,6 +127,7 @@ constructor TEmbeddedFormManager.Create(APageControl: TcxPageControl);
 begin
   inherited Create(APageControl);   // Owner = PageControl para autoliberación
   FPageControl := APageControl;
+  FMaximizarMantenimientos := True;
   FForms := TList<TForm>.Create;
   FExternas := TList<TForm>.Create;
   FClaves := TDictionary<string, TForm>.Create;
@@ -167,6 +171,7 @@ procedure TEmbeddedFormManager.EmbedForm(AForm: TForm;
 var
   NewTab: TcxTabSheet;
   oRegistro: TRegistroVentanaGestionada;
+  oPrincipal: TCustomForm;
   bRedibujar: Boolean;
 begin
   if AClave <> '' then
@@ -197,6 +202,10 @@ begin
       FijarPosicionFormulario(AForm, poScreenCenter);
       if AForm.HandleAllocated then
         AForm.Perform(CM_RECREATEWND, 0, 0);
+      if FMaximizarMantenimientos then
+        AForm.WindowState := wsMaximized
+      else
+        AForm.WindowState := wsNormal;
       if Assigned(FPageControl.Images) and (AIconoPestana >= 0) then
         FPageControl.Images.GetIcon(AIconoPestana, AForm.Icon);
     end
@@ -207,6 +216,12 @@ begin
       AForm.Parent := NewTab;
       AForm.SetBounds(0, 0, NewTab.ClientWidth, NewTab.ClientHeight);
       AForm.Align := alClient;
+      if FMaximizarMantenimientos and not FModoSDI then
+      begin
+        oPrincipal := GetParentForm(FPageControl);
+        if Assigned(oPrincipal) then
+          oPrincipal.WindowState := wsMaximized;
+      end;
     end;
     FForms.Add(AForm);
     AForm.FreeNotification(Self);    // <-- CLAVE: nos avisarán si lo liberan

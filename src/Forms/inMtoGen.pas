@@ -300,6 +300,7 @@ type
     // crea el suyo en código la pide antes de usar ConexionTrabajo
     // (FZ-ISSUE-536).
     procedure AsegurarConexionTrabajo;
+    procedure ComprobarPermisoGrabar;
     procedure PrepararGuardado; virtual;
   public
     tdmDataModule:TObject;
@@ -523,12 +524,18 @@ begin
   CargarPerfilesParticulares;
 end;
 
+procedure TfrmMtoGen.ComprobarPermisoGrabar;
+begin
+  FGuardianBorrado.ComprobarPermisoGrabar(dsTablaG.State);
+end;
+
 procedure TfrmMtoGen.PrepararGuardado;
 begin
 end;
 
 procedure TfrmMtoGen.btnGrabarClick(Sender: TObject);
 var
+  Datos: TdmBase;
   Resultado: TResultadoGuardadoMtoGen;
   Ediciones: TEdicionesDataSetsPendientes;
   bTransaccionExterior: Boolean;
@@ -538,13 +545,14 @@ begin
   inherited;
   if tdmDataModule <> nil then
   begin
+    Datos := TdmBase(tdmDataModule);
+    ComprobarPermisoGrabar;
     PrepararGuardado;
-    FGuardianBorrado.ComprobarPermisoGrabar(dsTablaG.State);
     if FCasoUsoGuardado = nil then
       FCasoUsoGuardado := CrearCasoUsoGuardadoMtoGenUniDAC(
         ConexionTrabajo);
     bTransaccionExterior := ConexionTrabajo.InTransaction;
-    Ediciones := CapturarEdicionesDataSets(tdmDataModule as TDataModule);
+    Ediciones := CapturarEdicionesDataSets(Datos);
     Serie := '';
     for i := 0 to dsTablaG.DataSet.FieldCount - 1 do
       if (Serie = '') and
@@ -557,6 +565,7 @@ begin
         EjecutarConReintentoBloqueoBBDD(
           procedure
           begin
+            Resultado := rgmAbortado;
             try
               EjecutarConEsperaBloqueoCorta(ConexionTrabajo,
                 procedure
@@ -567,19 +576,20 @@ begin
                       Resultado := FCasoUsoGuardado.Ejecutar(
                         procedure
                         begin
-                          GrabarDatasets(tdmDataModule as TDataModule);
-                          TdmBase(tdmDataModule).AplicarCambiosDiferidos;
+                          GrabarDatasets(Datos, Datos.ObtenerTablaPrincipal);
+                          Datos.AplicarCambiosDiferidos;
                         end);
                     end,
                     procedure
                     begin
+                      Datos.RestaurarCambiosDiferidos;
                       RestaurarEdicionesDataSets(Ediciones);
                     end);
-                end, TdmBase(tdmDataModule).RegistroLog);
+                end, Datos.RegistroLog);
             except
               on E: Exception do
               begin
-                TdmBase(tdmDataModule).RestaurarCambiosDiferidos;
+                Datos.RestaurarCambiosDiferidos;
                 if E is EBloqueoBBDDTemporal then
                 begin
                   // La transaccion exterior pertenece al llamador.
@@ -587,7 +597,7 @@ begin
                     raise Exception.Create(E.Message);
                 end;
                 if (E is EBloqueoBBDDTemporal) or
-                   TdmBase(tdmDataModule).UsaCambiosDiferidos then
+                   Datos.UsaCambiosDiferidos then
                   RestaurarEdicionesDataSets(Ediciones);
                 raise;
               end;
@@ -605,12 +615,12 @@ begin
         if Resultado = rgmGuardado then
         begin
           if not bTransaccionExterior then
-            TdmBase(tdmDataModule).ConfirmarCambiosDiferidos;
+            Datos.ConfirmarCambiosDiferidos;
           ShowMessage_fza(SInfoDatosGuardados);
         end
-        else if TdmBase(tdmDataModule).UsaCambiosDiferidos then
+        else if Datos.UsaCambiosDiferidos then
         begin
-          TdmBase(tdmDataModule).RestaurarCambiosDiferidos;
+          Datos.RestaurarCambiosDiferidos;
           RestaurarEdicionesDataSets(Ediciones);
         end;
       except
@@ -629,6 +639,8 @@ begin
     finally
       Screen.Cursor := crDefault;
     end;
+    if Resultado <> rgmGuardado then
+      Abort;
   end;
 end;
 

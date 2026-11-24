@@ -360,7 +360,7 @@ begin
   try
     oConsulta.Connection := FConexion;
     oConsulta.SQL.Text :=
-      'SELECT L.TIPO_LOT, P.PV AS TEMPORADA, ' +
+      'SELECT L.TIPO_LOT, L.FECHA_ENTRADA_LOT, P.PV AS TEMPORADA, ' +
       'COALESCE(NULLIF(TRIM(' + SQL_NOMBRE_MOSTRADO_PRV + '), ''''), ' +
       'L.CODIGO_PRV_LOT) AS NOMBRE_PROVEEDOR_LOTE ' +
       'FROM fza_articulos_lotes L LEFT JOIN fza_propiedades_valores P ' +
@@ -374,6 +374,8 @@ begin
       oConsulta.ParamByName('LOTE').AsString := ALotes[iLote].Lote;
       oConsulta.Open;
       ALotes[iLote].TipoLote := oConsulta.FieldByName('TIPO_LOT').AsString;
+      ALotes[iLote].FechaRecepcion :=
+        oConsulta.FieldByName('FECHA_ENTRADA_LOT').AsDateTime;
       ALotes[iLote].Temporada := oConsulta.FieldByName('TEMPORADA').AsString;
       ALotes[iLote].NombreProveedor :=
         oConsulta.FieldByName('NOMBRE_PROVEEDOR_LOTE').AsString;

@@ -95,8 +95,10 @@ const
   PERMISO_PEDIDO_COMPRA_CANCELAR_PENDIENTE =
     'compras.pedidos.cancelarPendiente';
   PERMISO_CAJA_CAMBIAR_FECHA = 'caja.cambiarFecha';
+  PERMISO_CAJA_CAMBIAR_HORA = 'caja.cambiarHora';
   PERMISO_CAJA_VER_COSTE = 'caja.verCoste';
   PERMISO_CAJA_ABRIR_CAJON = 'caja.abrirCajon';
+  PERMISO_MENU_DISTRIBUCION_TIENDAS = 'menu.DistribucionTiendas';
   // Desbloquear una carga en transito desde la caja del origen: solo
   // el administrador o quien tenga la concesion (FZ-ISSUE-256).
   PERMISO_CAJA_TRANSITO_DESBLOQUEAR = 'caja.transito.desbloquear';
@@ -114,6 +116,7 @@ const
   PERMISO_CAJA_BUSCAR_ANULAR_FISCAL = 'caja.buscar.anularFiscal';
   PERMISO_CAJA_BUSCAR_CONVERTIR_NORMAL = 'caja.buscar.convertirNormal';
   PERMISO_CAJA_BUSCAR_SUBSANAR = 'caja.buscar.subsanar';
+  PERMISO_CAJA_BUSCAR_OTROS_DIAS = 'caja.buscar.otrosDias';
 
   // Pantallas de administración (FZ-ISSUE-028): un usuario que no es
   // administrador solo entra con concesión expresa a su usuario o grupo.
@@ -156,6 +159,9 @@ function PuedeAbrirParametrosAplicacion(
 // FZ-ISSUE-1128: costes, márgenes y reconstrucción de stock. Administrador
 // siempre; el resto, solo con concesión de 'caja.verCoste'.
 function PuedeVerCostes(const APermisos: IPermisosAplicacion): Boolean;
+function PuedeCambiarHoraCaja(const APermisos: IPermisosAplicacion): Boolean;
+function PuedeTraspasarDesdeCaja(
+  const APermisos: IPermisosAplicacion): Boolean;
 
 implementation
 
@@ -228,6 +234,8 @@ begin
   if EsPermisoAdministracion(ACodigo) or
      SameText(ACodigo, PERMISO_PEDIDO_COMPRA_CANCELAR_PENDIENTE) then
     Result := paExigirConcesion
+  else if SameText(ACodigo, PERMISO_CAJA_CAMBIAR_HORA) then
+    Result := paDenegar
   else
     Result := paPermitir;
 end;
@@ -245,6 +253,19 @@ function PuedeVerCostes(const APermisos: IPermisosAplicacion): Boolean;
 begin
   Result := Assigned(APermisos) and
             APermisos.TienePermiso(PERMISO_CAJA_VER_COSTE, paDenegar);
+end;
+
+function PuedeCambiarHoraCaja(const APermisos: IPermisosAplicacion): Boolean;
+begin
+  Result := Assigned(APermisos) and APermisos.TienePermiso(
+    PERMISO_CAJA_CAMBIAR_HORA, PermisoAusenteCodigo(PERMISO_CAJA_CAMBIAR_HORA));
+end;
+
+function PuedeTraspasarDesdeCaja(
+  const APermisos: IPermisosAplicacion): Boolean;
+begin
+  Result := Assigned(APermisos) and APermisos.TienePermiso(
+    PERMISO_MENU_DISTRIBUCION_TIENDAS, paDenegar);
 end;
 
 end.

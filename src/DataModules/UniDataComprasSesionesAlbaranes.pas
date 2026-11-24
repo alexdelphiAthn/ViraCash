@@ -39,6 +39,7 @@ uses
   UniDataAlbaranesCompraMovimientos, inLibMsgCompras,
   UniDataComprasSesionesArticulos, UniDataComprasSesionesColores,
   UniDataComprasSesionesDocumentosComun, UniDataComprasSesionesOperaciones,
+  UniDataPedidosCompraAlbaranComun,
   inLibTrazabilidad;
 
 const
@@ -404,132 +405,6 @@ end;
 // Recalcula los totales de la cabecera del albaran a partir de sus
 // lineas. Lo llamamos justo despues de insertar todas las lineas para
 // no tener que mantener acumuladores en codigo cliente.
-procedure RecalcularTotalesAlbaranCompra(AConn: TUniConnection;
-                                          const ASerieAlbc, ANumAlbc: string);
-var
-  q: TUniQuery;
-begin
-  q := TUniQuery.Create(nil);
-  try
-    q.Connection := AConn;
-    q.SQL.Text :=
-      'UPDATE fza_albaranes_compra C ' +
-      '  JOIN ( ' +
-      '       SELECT NUMERO_ALBC_ALBCLIN, SERIE_ALBC_ALBCLIN, ' +
-      '              IFNULL(SUM(L.TOTAL_ALBCLIN), 0) AS BASE, ' +
-      '              IFNULL(SUM(CASE WHEN L.TIPO_IVA_ARTICULO_ALBCLIN = ' +
-      '''N'' THEN L.TOTAL_ALBCLIN ELSE 0 END), 0) AS BASE_N, ' +
-      '              IFNULL(SUM(CASE WHEN L.TIPO_IVA_ARTICULO_ALBCLIN = ' +
-      '''R'' THEN L.TOTAL_ALBCLIN ELSE 0 END), 0) AS BASE_R, ' +
-      '              IFNULL(SUM(CASE WHEN L.TIPO_IVA_ARTICULO_ALBCLIN = ' +
-      '''S'' THEN L.TOTAL_ALBCLIN ELSE 0 END), 0) AS BASE_S, ' +
-      '              IFNULL(SUM(CASE WHEN L.TIPO_IVA_ARTICULO_ALBCLIN = ' +
-      '''E'' THEN L.TOTAL_ALBCLIN ELSE 0 END), 0) AS BASE_E, ' +
-      '              IFNULL(SUM(CASE WHEN L.TIPO_IVA_ARTICULO_ALBCLIN = ' +
-      '''N'' THEN L.TOTAL_ALBCLIN * L.PORCENTAJE_IVA_ALBCLIN / 100 ELSE 0 ' +
-      'END), 0) AS IVA_N, ' +
-      '              IFNULL(SUM(CASE WHEN L.TIPO_IVA_ARTICULO_ALBCLIN = ' +
-      '''R'' THEN L.TOTAL_ALBCLIN * L.PORCENTAJE_IVA_ALBCLIN / 100 ELSE 0 ' +
-      'END), 0) AS IVA_R, ' +
-      '              IFNULL(SUM(CASE WHEN L.TIPO_IVA_ARTICULO_ALBCLIN = ' +
-      '''S'' THEN L.TOTAL_ALBCLIN * L.PORCENTAJE_IVA_ALBCLIN / 100 ELSE 0 ' +
-      'END), 0) AS IVA_S, ' +
-      '              IFNULL(SUM(CASE WHEN L.TIPO_IVA_ARTICULO_ALBCLIN = ' +
-      '''E'' THEN L.TOTAL_ALBCLIN * L.PORCENTAJE_IVA_ALBCLIN / 100 ELSE 0 ' +
-      'END), 0) AS IVA_E, ' +
-      '              IFNULL(SUM(CASE WHEN ' +
-      'IFNULL(H.ESIVA_EXENTO_INTRACOMUNITARIO_ALBC, ''N'') <> ''S'' AND ' +
-      'IFNULL(H.ESIVA_RECARGO_COMPRAS_ALBC, ''N'') = ''S'' AND ' +
-      'L.TIPO_IVA_ARTICULO_ALBCLIN = ''N'' THEN ' +
-      'L.TOTAL_ALBCLIN * IFNULL(V.PORCENTAJE_NORMAL_RE_IVA, 0) / 100 ELSE 0 ' +
-      'END), 0) AS RE_N, ' +
-      '              IFNULL(SUM(CASE WHEN ' +
-      'IFNULL(H.ESIVA_EXENTO_INTRACOMUNITARIO_ALBC, ''N'') <> ''S'' AND ' +
-      'IFNULL(H.ESIVA_RECARGO_COMPRAS_ALBC, ''N'') = ''S'' AND ' +
-      'L.TIPO_IVA_ARTICULO_ALBCLIN = ''R'' THEN ' +
-      'L.TOTAL_ALBCLIN * IFNULL(V.PORCENTAJE_REDUCIDO_RE_IVA, 0) / 100 ELSE ' +
-      '0 END), 0) AS RE_R, ' +
-      '              IFNULL(SUM(CASE WHEN ' +
-      'IFNULL(H.ESIVA_EXENTO_INTRACOMUNITARIO_ALBC, ''N'') <> ''S'' AND ' +
-      'IFNULL(H.ESIVA_RECARGO_COMPRAS_ALBC, ''N'') = ''S'' AND ' +
-      'L.TIPO_IVA_ARTICULO_ALBCLIN = ''S'' THEN ' +
-      'L.TOTAL_ALBCLIN * IFNULL(V.PORCENTAJE_SUPERREDUCIDO_RE_IVA, 0) / 100 ' +
-      'ELSE 0 END), 0) AS RE_S, ' +
-      '              IFNULL(SUM(CASE WHEN ' +
-      'IFNULL(H.ESIVA_EXENTO_INTRACOMUNITARIO_ALBC, ''N'') <> ''S'' AND ' +
-      'IFNULL(H.ESIVA_RECARGO_COMPRAS_ALBC, ''N'') = ''S'' AND ' +
-      'L.TIPO_IVA_ARTICULO_ALBCLIN = ''E'' THEN ' +
-      'L.TOTAL_ALBCLIN * IFNULL(V.PORCENTAJE_EXENTO_RE_IVA, 0) / 100 ELSE 0 ' +
-      'END), 0) AS RE_E, ' +
-      '              COUNT(*) AS NLIN ' +
-      '         FROM fza_albaranes_compra_lineas L ' +
-      '         JOIN fza_albaranes_compra H ' +
-      '           ON H.NUMERO_ALBC = L.NUMERO_ALBC_ALBCLIN ' +
-      '          AND H.SERIE_ALBC = L.SERIE_ALBC_ALBCLIN ' +
-      '         LEFT JOIN fza_ivas V ON V.CODIGO_IVA = H.CODIGO_IVA_ALBC ' +
-      '        WHERE L.NUMERO_ALBC_ALBCLIN = :n ' +
-      '          AND L.SERIE_ALBC_ALBCLIN  = :s ' +
-      '        GROUP BY NUMERO_ALBC_ALBCLIN, SERIE_ALBC_ALBCLIN) AS T ' +
-      '    ON T.NUMERO_ALBC_ALBCLIN = C.NUMERO_ALBC ' +
-      '   AND T.SERIE_ALBC_ALBCLIN  = C.SERIE_ALBC ' +
-      '   SET C.TOTAL_BASEI_IVAN_ALBC = T.BASE_N * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_ALBC, 0) / 100), ' +
-      '       C.TOTAL_BASEI_IVAR_ALBC = T.BASE_R * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_ALBC, 0) / 100), ' +
-      '       C.TOTAL_BASEI_IVAS_ALBC = T.BASE_S * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_ALBC, 0) / 100), ' +
-      '       C.TOTAL_BASEI_IVAE_ALBC = T.BASE_E * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_ALBC, 0) / 100), ' +
-      '       C.TOTAL_IVAN_ALBC = T.IVA_N * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_ALBC, 0) / 100), ' +
-      '       C.TOTAL_IVAR_ALBC = T.IVA_R * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_ALBC, 0) / 100), ' +
-      '       C.TOTAL_IVAS_ALBC = T.IVA_S * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_ALBC, 0) / 100), ' +
-      '       C.TOTAL_IVAE_ALBC = T.IVA_E * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_ALBC, 0) / 100), ' +
-      '       C.TOTAL_REN_ALBC = T.RE_N * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_ALBC, 0) / 100), ' +
-      '       C.TOTAL_RER_ALBC = T.RE_R * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_ALBC, 0) / 100), ' +
-      '       C.TOTAL_RES_ALBC = T.RE_S * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_ALBC, 0) / 100), ' +
-      '       C.TOTAL_REE_ALBC = T.RE_E * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_ALBC, 0) / 100), ' +
-      '       C.TOTAL_BRUTO_ALBC = T.BASE, ' +
-      '       C.TOTAL_DTO_COMERCIAL_ALBC = T.BASE - T.BASE * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_ALBC, 0) / 100), ' +
-      '       C.TOTAL_DTO_FINANCIERO_ALBC = T.BASE * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_ALBC, 0) / 100) * ' +
-      'IFNULL(C.PORCENTAJE_DTO_FINANCIERO_ALBC, 0) / 100, ' +
-      '       C.TOTAL_BASES_ALBC = T.BASE * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_ALBC, 0) / 100), ' +
-      '       C.TOTAL_RETENCION_ALBC = T.BASE * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_ALBC, 0) / 100) * ' +
-      'IFNULL(C.PORCENTAJE_RETENCION_ALBC, 0) / 100, ' +
-      '       C.TOTAL_IMPUESTOS_ALBC = (T.IVA_N + T.IVA_R + T.IVA_S + ' +
-      'T.IVA_E + T.RE_N + T.RE_R + T.RE_S + T.RE_E) * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_ALBC, 0) / 100), ' +
-      '       C.TOTAL_LIQUIDO_ALBC = T.BASE * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_ALBC, 0) / 100) ' +
-      '+ (T.IVA_N + T.IVA_R + T.IVA_S + T.IVA_E + T.RE_N + T.RE_R + T.RE_S + ' +
-      'T.RE_E) * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_ALBC, 0) / 100) - T.BASE * ' +
-      'GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_ALBC, 0) / 100) * ' +
-      'IFNULL(C.PORCENTAJE_RETENCION_ALBC, 0) / 100 - T.BASE ' +
-      '* GREATEST(0, 1 - IFNULL(C.PORCENTAJE_DTO_COMERCIAL_ALBC, 0) / 100) * ' +
-      'IFNULL(C.PORCENTAJE_DTO_FINANCIERO_ALBC, 0) / 100, ' +
-      '       C.CONTADOR_LINEAS_ALBC = LPAD(T.NLIN * 10, 8, ''0'') ' +
-      ' WHERE C.NUMERO_ALBC = :n AND C.SERIE_ALBC = :s';
-    q.ParamByName('n').AsString := ANumAlbc;
-    q.ParamByName('s').AsString := ASerieAlbc;
-    q.ExecSQL;
-  finally
-    FreeAndNil(q);
-  end;
-end;
-
 // Itera celdas de la sesion agrupadas por (SKU, almacen) y crea una
 // linea en fza_albaranes_compra_lineas por cada combinacion con
 // cantidad > 0. LINEA_ALBCLIN se asigna secuencial (010, 020, 030...).
@@ -759,10 +634,14 @@ begin
     AConexion,
     Result.Serie,
     Result.Numero);
-  RecalcularTotalesAlbaranCompra(
+  // FZ-ISSUE-1170: los totales con los redondeos del motor fiscal (los del
+  // albarán creado desde un pedido, FZ-ISSUE-207). La copia local los
+  // grababa sin redondear (RE 31,668 y líquido 768,558).
+  UniDataPedidosCompraAlbaranComun.RecalcularTotalesAlbaranCompra(
     AConexion,
     Result.Serie,
-    Result.Numero);
+    Result.Numero,
+    AUsuario);
   rActivacion := ActivacionConLotesAsignados(AConexion,
     ADM.ActivacionTrazabilidad, Result.Serie, Result.Numero);
   Result.LineasSinLote := PrepararLotesAlbaranMaterializado(AConexion,

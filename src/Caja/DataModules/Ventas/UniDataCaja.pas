@@ -236,16 +236,16 @@ type
     // ANumeroOperacion: operacion de caja (venta o devolucion) que lo
     // cierra; se guarda en los campos *_CANCEL_DEP (FZ-ISSUE-1125).
     procedure CerrarDepositoCliente(QryTrx: TUniQuery;
-                                    const AIdDeposito, AEmpresa,
-                                          AAlmacen, ACaja,
-                                          AUsuario,
+                                    const AIdDeposito, AEmpresa, ACliente,
+                                          AAlmacen, ACaja, AUsuario,
                                           ANumeroOperacion: string;
-                                    AFechaOperacion: TDateTime);
+                                    AFechaOperacion: TDateTime;
+                                    AAnticipoPrevio: Currency;
+                                    AValidarAnticipo: Boolean);
     procedure AumentarAnticipoDeposito(QryTrx: TUniQuery;
-                                       const AIdDeposito, AEmpresa,
-                                             AAlmacen, ACaja,
+                                       const AIdDeposito, AEmpresa, ACliente,
                                              AUsuario: string;
-                                       ANuevoAbono: Currency);
+                                       AAnticipoPrevio, ANuevoAbono: Currency);
     procedure InsertarCabeceraFactura(
       AConsulta: TUniQuery;
       const ASerie, ANumero: string;
@@ -293,10 +293,8 @@ type
       read FConfirmarContador write FConfirmarContador;
     property Conexion: TUniConnection read FConexion;
     property RegistroLog: IRegistroLog read FRegistroLog write FRegistroLog;
-    // Cuenta del cliente por fecha de operacion (lo mas antiguo arriba).
-    // AIncluirCerrados anade el historico: depositos ya cerrados, solo
-    // para consulta (VIENE_DE_DEPOSITO = 'H', no suman ni se cobran).
-    function DeudaClienteOtrasTiendas(const ACliente: string): string;
+    // La autocarga se limita a pendientes de la empresa de la caja.
+    // La cuenta completa (F2) incluye el histórico y las demás empresas.
     procedure CargarDepositosCliente(const ACodigoCliente: string;
       AIncluirCerrados: Boolean = False);
     function BuscarApartadoTicket(
@@ -414,8 +412,7 @@ uses
      UniDataCajaCierreVenta, UniDataNumeracionDocumentos,
      UniDataTraspaso,
      inLibPrestaShopColaSenal,
-     inLibCajaDepositos, inLibInformesCajaPersistenciaIntf,
-     UniDataInformesCajaRepositorio, inLibTarifasPeriodicidad,
+     inLibCajaDepositos, inLibCajaVentaCliente, inLibTarifasPeriodicidad,
      UniDataTarifasPeriodicidadRepositorio,
      inLibRectificativas,
      UniDataRectificativasSql, UniDataArqueoPersistencia,
@@ -786,6 +783,7 @@ end;
 const
   SQL_DEPOSITOS_PENDIENTES_CAJA =
     'SELECT d.ID_DEPOSITO_DEP, ' +
+    '       d.CODIGO_EMP_DEP, d.CODIGO_ALM_DEP, d.CODIGO_CAJA_DEP, ' +
     '       d.CODIGO_ART_DEP, ' +
     '       d.CODIGO_UNIDAD_DEP, d.LOTE_DEP, d.FECHA_CADUCIDAD_DEP, ' +
     '       d.CANTIDAD_PENDIENTE_DEP, ' +
@@ -796,7 +794,10 @@ const
     '       d.ESIMP_INCL_DEP, ' +
     '       d.FECHA_CREACION_DEP, ' +
     '       d.ESTADO_DEP, ' +
-    '       a.DESCRIPCION_ART, ' +
+    '       COALESCE(NULLIF(TRIM(a.DESCRIPCION_ART), ''''), ' +
+    '         NULLIF(TRIM(d.CODIGO_ART_DEP), ''''), ' +
+    '         NULLIF(TRIM(d.CODIGO_UNIDAD_DEP), ''''), ' +
+    '         d.ID_DEPOSITO_DEP) AS DESCRIPCION_ART, ' +
     '       a.TIPO_ART, ' +
     '       a.TIPO_CANTIDAD_ART, ' +
     '       a.CODIGO_FAM_ART, ' +
@@ -807,6 +808,11 @@ const
     '    ON a.CODIGO_ART_ART = d.CODIGO_ART_DEP ' +
     '  LEFT JOIN fza_articulos_familias fam ' +
     '    ON fam.CODIGO_FAM_FAM = a.CODIGO_FAM_ART ';
+  SQL_DEPOSITO_CLIENTE_PENDIENTE =
+    ' WHERE ID_DEPOSITO_DEP = :ID ' +
+    '   AND CODIGO_EMP_DEP = :EMPRESA ' +
+    '   AND CODIGO_CLI_DEP = :CLIENTE ' +
+    '   AND ESTADO_DEP = ''PENDIENTE'' ';
   // Los apartados se localizan por cualquier ticket que les haya cobrado
   // algo: el de la entrega inicial (DE) o el de un abono posterior (CB).
   SQL_FILTRO_APARTADO_TICKET =
@@ -824,28 +830,26 @@ const
 procedure ConfigurarConsultaDepositosCliente(
   AConsulta: TUniQuery;
   AConexion: TUniConnection;
-  const ACodigoCliente: string;
-  const AUbicacion: TUbicacionSesion;
+  const ACodigoCliente, AEmpresa: string;
   AIncluirCerrados: Boolean);
-var
-  sFiltroEstado: string;
 begin
-  sFiltroEstado := '   AND d.ESTADO_DEP = ''PENDIENTE'' ';
-  if AIncluirCerrados then
-    sFiltroEstado := '';
   AConsulta.Connection := AConexion;
-  AConsulta.SQL.Text :=
-    SQL_DEPOSITOS_PENDIENTES_CAJA +
-    ' WHERE d.CODIGO_CLI_DEP = :CLI ' +
-    '   AND d.CODIGO_EMP_DEP = :EMPRESA ' +
-    '   AND d.CODIGO_ALM_DEP = :ALMACEN ' +
-    '   AND d.CODIGO_CAJA_DEP = :CAJA ' +
-    sFiltroEstado +
-    ' ORDER BY d.FECHA_CREACION_DEP, d.ID_DEPOSITO_DEP';
+  AConsulta.SQL.Text := SQL_DEPOSITOS_PENDIENTES_CAJA +
+    ' WHERE d.CODIGO_CLI_DEP = :CLI ';
+  if not AIncluirCerrados then
+    AConsulta.SQL.Add('AND d.CODIGO_EMP_DEP = :EMPRESA ' +
+      'AND d.ESTADO_DEP = ''PENDIENTE''');
+  AConsulta.SQL.Add('ORDER BY d.FECHA_CREACION_DEP, d.ID_DEPOSITO_DEP');
   AConsulta.ParamByName('CLI').AsString := ACodigoCliente;
-  AConsulta.ParamByName('EMPRESA').AsString := AUbicacion.Empresa;
-  AConsulta.ParamByName('ALMACEN').AsString := AUbicacion.Almacen;
-  AConsulta.ParamByName('CAJA').AsString := AUbicacion.Caja;
+  if not AIncluirCerrados then
+    AConsulta.ParamByName('EMPRESA').AsString := AEmpresa;
+end;
+
+function OrigenCuentaDeposito(AConsulta: TDataSet): string;
+begin
+  Result := AConsulta.FieldByName('CODIGO_EMP_DEP').AsString + '/' +
+    AConsulta.FieldByName('CODIGO_ALM_DEP').AsString + '/' +
+    AConsulta.FieldByName('CODIGO_CAJA_DEP').AsString;
 end;
 
 // La prenda entró en el almacén de depósitos con un traspaso: si el
@@ -879,6 +883,8 @@ begin
     AConsulta.FieldByName('CANTIDAD_PENDIENTE_DEP').AsFloat;
   ALineas.Append;
   ALineas.FieldByName('ID_DEPOSITO_DEP').AsString := sIdDeposito;
+  ALineas.FieldByName('ORIGEN_CUENTA_DEP').AsString :=
+    OrigenCuentaDeposito(AConsulta);
   ALineas.FieldByName('CODIGO_ART_FACLIN').AsString :=
     AConsulta.FieldByName('CODIGO_ART_DEP').AsString;
   ALineas.FieldByName('CODIGO_UNIDAD_FACLIN').AsString :=
@@ -983,9 +989,10 @@ end;
 // La prenda cerrada entra con cantidad e importes a 0: el calculo de
 // totales recorre todas las lineas y asi no suma. El precio y la cantidad
 // reales quedan en PRECIO_ORIGINAL_DEP y CANTIDAD_HISTORICO_DEP.
-procedure IncorporarPrendaCerrada(
+procedure IncorporarPrendaConsulta(
   AConsulta: TUniQuery;
-  ALineas: TClientDataSet);
+  ALineas: TClientDataSet;
+  APendiente: Boolean);
 begin
   ALineas.Append;
   ALineas.FieldByName('ID_DEPOSITO_DEP').AsString :=
@@ -1000,7 +1007,12 @@ begin
     AConsulta.FieldByName('FECHA_CADUCIDAD_DEP').Value;
   ALineas.FieldByName('DESCRIPCION_ARTICULO_FACLIN').AsString :=
     AConsulta.FieldByName('DESCRIPCION_ART').AsString;
-  ALineas.FieldByName('VIENE_DE_DEPOSITO').AsString := 'H';
+  if APendiente then
+    ALineas.FieldByName('VIENE_DE_DEPOSITO').AsString := 'X'
+  else
+    ALineas.FieldByName('VIENE_DE_DEPOSITO').AsString := 'H';
+  ALineas.FieldByName('ORIGEN_CUENTA_DEP').AsString :=
+    OrigenCuentaDeposito(AConsulta);
   ALineas.FieldByName('ESMARCADA_DEP').AsString := 'N';
   ALineas.FieldByName('FECHA_DEPOSITO_DEP').AsString :=
     FormatDateTime(
@@ -1017,6 +1029,11 @@ begin
     AConsulta.FieldByName('CANTIDAD_PENDIENTE_DEP').AsFloat;
   ALineas.FieldByName('PRECIO_ORIGINAL_DEP').AsCurrency :=
     AConsulta.FieldByName('PRECIO_VENTA_DEP').AsCurrency;
+  if APendiente then
+    ALineas.FieldByName('SALDO_CONSULTA_DEP').AsCurrency :=
+      AConsulta.FieldByName('PRECIO_VENTA_DEP').AsCurrency *
+      AConsulta.FieldByName('CANTIDAD_PENDIENTE_DEP').AsFloat -
+      AConsulta.FieldByName('IMPORTE_ANTICIPO_DEP').AsCurrency;
   ALineas.FieldByName('PRECIO_SALIDA_FACLIN').AsCurrency := 0;
   ALineas.FieldByName(
     'PRECIO_VENTA_CIVA_ARTICULO_FACLIN').AsCurrency := 0;
@@ -1033,10 +1050,17 @@ end;
 // prenda (y su abono a cuenta justo debajo); el cerrado, como historico.
 procedure IncorporarDepositoCliente(
   AConsulta: TUniQuery;
-  ALineas: TClientDataSet);
+  ALineas: TClientDataSet;
+  const AEmpresaCaja: string);
+var
+  Pendiente: Boolean;
 begin
-  if Trim(AConsulta.FieldByName('ESTADO_DEP').AsString) <> 'PENDIENTE' then
-    IncorporarPrendaCerrada(AConsulta, ALineas)
+  Pendiente := Trim(AConsulta.FieldByName('ESTADO_DEP').AsString) =
+    'PENDIENTE';
+  if not Pendiente or
+     not SameText(AConsulta.FieldByName('CODIGO_EMP_DEP').AsString,
+       AEmpresaCaja) then
+    IncorporarPrendaConsulta(AConsulta, ALineas, Pendiente)
   else
   begin
     IncorporarPrendaDeposito(AConsulta, ALineas);
@@ -1048,13 +1072,14 @@ end;
 procedure IncorporarDepositosCliente(
   AConsulta: TUniQuery;
   ALineas: TClientDataSet;
+  const AEmpresaCaja: string;
   const ARecalcularLineas: TRecalcularLineasEvent);
 begin
   ALineas.DisableControls;
   try
     while not AConsulta.Eof do
     begin
-      IncorporarDepositoCliente(AConsulta, ALineas);
+      IncorporarDepositoCliente(AConsulta, ALineas, AEmpresaCaja);
       AConsulta.Next;
     end;
   finally
@@ -1064,50 +1089,28 @@ begin
     ARecalcularLineas;
 end;
 
-function TdmCajaOpe.DeudaClienteOtrasTiendas(
-  const ACliente: string): string;
-var
-  Repositorio: IRepositorioInformesCaja;
-  Cuenta: IRepositorioCuentaClientes;
-  Resultado: IResultadoInformeCaja;
-  Datos: TDataSet;
-  Ubicacion: TUbicacionSesion;
-begin
-  Result := '';
-  Ubicacion := UbicacionCaja;
-  Repositorio := CrearRepositorioInformesCajaUniDAC(FConexion);
-  if Supports(Repositorio, IRepositorioCuentaClientes, Cuenta) then
-  begin
-    Resultado := Cuenta.ConsultarCuentaClientes(ACliente, True);
-    Datos := Resultado.DataSet;
-    Result := DescribirDeudaOtrasTiendas(Datos,
-      Ubicacion.Empresa, Ubicacion.Almacen);
-  end;
-end;
-
 procedure TdmCajaOpe.CargarDepositosCliente(
   const ACodigoCliente: string;
   AIncluirCerrados: Boolean);
 var
   oConsulta: TUniQuery;
-  oUbicacion: TUbicacionSesion;
 begin
   if not Assigned(FContextoSesion) then
     raise Exception.Create(SErrorContextoSesionCajaNoConfigurado);
-  oUbicacion := UbicacionCaja;
   oConsulta := TUniQuery.Create(nil);
   try
     ConfigurarConsultaDepositosCliente(
       oConsulta,
       FConexion,
       ACodigoCliente,
-      oUbicacion,
+      UbicacionCaja.Empresa,
       AIncluirCerrados);
     oConsulta.Open;
     if not oConsulta.IsEmpty then
       IncorporarDepositosCliente(
         oConsulta,
         cdsLineas,
+        UbicacionCaja.Empresa,
         FOnRecalcularLineas);
   finally
     FreeAndNil(oConsulta);
@@ -1186,6 +1189,7 @@ begin
       IncorporarDepositosCliente(
         oConsulta,
         cdsLineas,
+        oUbicacion.Empresa,
         FOnRecalcularLineas);
   finally
     FreeAndNil(oConsulta);
@@ -1299,16 +1303,11 @@ begin
 end;
 
 procedure TdmCajaOpe.CerrarDepositoCliente(QryTrx: TUniQuery;
-                                           const AIdDeposito,
-                                                 AEmpresa,
-                                                 AAlmacen,
-                                                 ACaja,
-                                                 AUsuario,
-                                                 ANumeroOperacion: string;
-                                           AFechaOperacion: TDateTime);
+  const AIdDeposito, AEmpresa, ACliente, AAlmacen, ACaja, AUsuario,
+  ANumeroOperacion: string; AFechaOperacion: TDateTime;
+  AAnticipoPrevio: Currency; AValidarAnticipo: Boolean);
 var
   Consulta: TUniQuery;
-  Cliente: string;
   DeudaAnterior: Currency;
   EsApartado: Boolean;
 begin
@@ -1316,25 +1315,22 @@ begin
   try
     Consulta.Connection := QryTrx.Connection;
     Consulta.SQL.Text :=
-      'SELECT CODIGO_CLI_DEP, ESAPARTADO_DEP, ' +
+      'SELECT ESAPARTADO_DEP, IMPORTE_ANTICIPO_DEP, ' +
       '       (PRECIO_VENTA_DEP * ' +
       '        COALESCE(CANTIDAD_PENDIENTE_DEP, 1)) - ' +
       '       COALESCE(IMPORTE_ANTICIPO_DEP, 0) AS DEUDA_ANTERIOR ' +
-      'FROM fza_depositos_cliente ' +
-      'WHERE ID_DEPOSITO_DEP = :ID ' +
-      'AND CODIGO_EMP_DEP = :EMPRESA ' +
-      'AND CODIGO_ALM_DEP = :ALMACEN ' +
-      'AND CODIGO_CAJA_DEP = :CAJA ' +
-      'AND ESTADO_DEP = ''PENDIENTE'' ' +
+      'FROM fza_depositos_cliente ' + SQL_DEPOSITO_CLIENTE_PENDIENTE +
       'FOR UPDATE';
     Consulta.ParamByName('ID').AsString := AIdDeposito;
     Consulta.ParamByName('EMPRESA').AsString := AEmpresa;
-    Consulta.ParamByName('ALMACEN').AsString := AAlmacen;
-    Consulta.ParamByName('CAJA').AsString := ACaja;
+    Consulta.ParamByName('CLIENTE').AsString := ACliente;
     Consulta.Open;
     if not Consulta.IsEmpty then
     begin
-      Cliente := Consulta.FieldByName('CODIGO_CLI_DEP').AsString;
+      if AValidarAnticipo and
+         (Consulta.FieldByName('IMPORTE_ANTICIPO_DEP').AsCurrency <>
+          AAnticipoPrevio) then
+        raise EValidacionBBDD.Create(SErrorCuentaClienteCajaCambiada);
       DeudaAnterior :=
         Consulta.FieldByName('DEUDA_ANTERIOR').AsCurrency;
       EsApartado := Consulta.FieldByName('ESAPARTADO_DEP').AsString = 'S';
@@ -1352,11 +1348,7 @@ begin
         '    CAJA_CANCEL_DEP = :CAJA, ' +
         '    NUMERO_OPERACION_CANCEL_DEP = :NUMERO_OPERACION, ' +
         '    USUARIO_MODIF = :USUARIO, INSTANTE_MODIF = NOW() ' +
-        'WHERE ID_DEPOSITO_DEP = :ID ' +
-        'AND CODIGO_EMP_DEP = :EMPRESA ' +
-        'AND CODIGO_ALM_DEP = :ALMACEN ' +
-        'AND CODIGO_CAJA_DEP = :CAJA ' +
-        'AND ESTADO_DEP = ''PENDIENTE''';
+        SQL_DEPOSITO_CLIENTE_PENDIENTE;
       Consulta.ParamByName('FECHA_ENTREGA').AsDate :=
         Trunc(AFechaOperacion);
       Consulta.ParamByName('NUMERO_OPERACION').AsString := ANumeroOperacion;
@@ -1365,11 +1357,12 @@ begin
       Consulta.ParamByName('EMPRESA').AsString := AEmpresa;
       Consulta.ParamByName('ALMACEN').AsString := AAlmacen;
       Consulta.ParamByName('CAJA').AsString := ACaja;
+      Consulta.ParamByName('CLIENTE').AsString := ACliente;
       Consulta.Execute;
-      DescontarDeudaDeposito(Consulta, Cliente, DeudaAnterior, EsApartado);
+      DescontarDeudaDeposito(Consulta, ACliente, DeudaAnterior, EsApartado);
     end
     else
-      raise Exception.Create(SErrorOperacionCajaNoEncontrada);
+      raise EValidacionBBDD.Create(SErrorCuentaClienteCajaCambiada);
   finally
     FreeAndNil(Consulta);
   end;
@@ -1577,15 +1570,10 @@ begin
 end;
 
 procedure TdmCajaOpe.AumentarAnticipoDeposito(QryTrx: TUniQuery;
-                                              const AIdDeposito,
-                                                    AEmpresa,
-                                                    AAlmacen,
-                                                    ACaja,
-                                                    AUsuario: string;
-                                              ANuevoAbono: Currency);
+  const AIdDeposito, AEmpresa, ACliente, AUsuario: string;
+  AAnticipoPrevio, ANuevoAbono: Currency);
 var
   Consulta: TUniQuery;
-  Cliente: string;
   EsApartado: Boolean;
 begin
   if ANuevoAbono > 0 then
@@ -1594,22 +1582,18 @@ begin
     try
       Consulta.Connection := QryTrx.Connection;
       Consulta.SQL.Text :=
-        'SELECT CODIGO_CLI_DEP, ESAPARTADO_DEP ' +
-        'FROM fza_depositos_cliente ' +
-        'WHERE ID_DEPOSITO_DEP = :ID ' +
-        'AND CODIGO_EMP_DEP = :EMPRESA ' +
-        'AND CODIGO_ALM_DEP = :ALMACEN ' +
-        'AND CODIGO_CAJA_DEP = :CAJA ' +
-        'AND ESTADO_DEP = ''PENDIENTE'' ' +
+        'SELECT ESAPARTADO_DEP, IMPORTE_ANTICIPO_DEP ' +
+        'FROM fza_depositos_cliente ' + SQL_DEPOSITO_CLIENTE_PENDIENTE +
         'FOR UPDATE';
       Consulta.ParamByName('ID').AsString := AIdDeposito;
       Consulta.ParamByName('EMPRESA').AsString := AEmpresa;
-      Consulta.ParamByName('ALMACEN').AsString := AAlmacen;
-      Consulta.ParamByName('CAJA').AsString := ACaja;
+      Consulta.ParamByName('CLIENTE').AsString := ACliente;
       Consulta.Open;
       if not Consulta.IsEmpty then
       begin
-        Cliente := Consulta.FieldByName('CODIGO_CLI_DEP').AsString;
+        if Consulta.FieldByName('IMPORTE_ANTICIPO_DEP').AsCurrency <>
+           AAnticipoPrevio then
+          raise EValidacionBBDD.Create(SErrorCuentaClienteCajaCambiada);
         EsApartado :=
           Consulta.FieldByName('ESAPARTADO_DEP').AsString = 'S';
         Consulta.Close;
@@ -1618,23 +1602,18 @@ begin
           'SET IMPORTE_ANTICIPO_DEP = ' +
           '    COALESCE(IMPORTE_ANTICIPO_DEP, 0) + :ABONO, ' +
           '    USUARIO_MODIF = :USUARIO, INSTANTE_MODIF = NOW() ' +
-          'WHERE ID_DEPOSITO_DEP = :ID ' +
-          'AND CODIGO_EMP_DEP = :EMPRESA ' +
-          'AND CODIGO_ALM_DEP = :ALMACEN ' +
-          'AND CODIGO_CAJA_DEP = :CAJA ' +
-          'AND ESTADO_DEP = ''PENDIENTE''';
+          SQL_DEPOSITO_CLIENTE_PENDIENTE;
         Consulta.ParamByName('ABONO').AsCurrency := ANuevoAbono;
         Consulta.ParamByName('USUARIO').AsString := AUsuario;
         Consulta.ParamByName('ID').AsString := AIdDeposito;
         Consulta.ParamByName('EMPRESA').AsString := AEmpresa;
-        Consulta.ParamByName('ALMACEN').AsString := AAlmacen;
-        Consulta.ParamByName('CAJA').AsString := ACaja;
+        Consulta.ParamByName('CLIENTE').AsString := ACliente;
         Consulta.Execute;
         DescontarDeudaDeposito(
-          Consulta, Cliente, ANuevoAbono, EsApartado);
+          Consulta, ACliente, ANuevoAbono, EsApartado);
       end
       else
-        raise Exception.Create(SErrorOperacionCajaNoEncontrada);
+        raise EValidacionBBDD.Create(SErrorCuentaClienteCajaCambiada);
     finally
       FreeAndNil(Consulta);
     end;
@@ -2465,8 +2444,8 @@ begin
   if ALinea.AccionDeposito = 'AUMENTAR_DEP' then
   begin
     FDataModule.AumentarAnticipoDeposito(
-      FQuery, ALinea.IdDeposito, FEmpresa, FAlmacen,
-      FCaja, FUsuario, ALinea.TotalCIva);
+      FQuery, ALinea.IdDeposito, FEmpresa, FCabecera.CodigoCliente,
+      FUsuario, ALinea.AnticipoPrevio, ALinea.TotalCIva);
     if ALinea.TotalCIva > 0 then
       FPersistencia.GuardarOperacion(
         FQuery, FEmpresa, FAlmacen, FCaja, FNumeroOperacion,
@@ -2542,8 +2521,9 @@ begin
   begin
     sIdDeposito := ALinea.IdDeposito;
     FDataModule.CerrarDepositoCliente(
-      FQuery, sIdDeposito, FEmpresa, FAlmacen,
-      FCaja, FUsuario, FNumeroOperacion, FFechaOperacion);
+      FQuery, sIdDeposito, FEmpresa, FCabecera.CodigoCliente,
+      FAlmacen, FCaja, FUsuario, FNumeroOperacion, FFechaOperacion,
+      ALinea.AnticipoPrevio, ALinea.AccionDeposito <> 'CANCELAR');
     Custodia := LeerCustodiaDeposito(
       FQuery.Connection, FEmpresa, sIdDeposito);
     Result := Custodia.Almacen;
@@ -2750,20 +2730,23 @@ begin
     while not FDataModule.cdsLineas.Eof do
     begin
       Linea := LeerLineaActual(FDataModule.cdsLineas);
-      Linea.Vendedor := Trim(Linea.Vendedor);
-      if Linea.Vendedor = '' then
-        Linea.Vendedor := FUsuario;
-      if Linea.VieneDeDeposito = 'A' then
-        ProcesarAnticipoPrevio(Linea)
-      else if (Linea.AccionDeposito = 'NUEVO_DEP') or
-              (Linea.AccionDeposito = 'AUMENTAR_DEP') then
-        ProcesarNuevoDeposito(Linea)
-      else
+      if not EsLineaConsultaDeposito(Linea.VieneDeDeposito) then
       begin
-        ProcesarVenta(Linea);
-        if Linea.VieneDeDeposito = 'S' then
-          AnotarServicioDeposito(Linea, Linea.IdDeposito,
-            FServiciosDesdeDeposito);
+        Linea.Vendedor := Trim(Linea.Vendedor);
+        if Linea.Vendedor = '' then
+          Linea.Vendedor := FUsuario;
+        if Linea.VieneDeDeposito = 'A' then
+          ProcesarAnticipoPrevio(Linea)
+        else if (Linea.AccionDeposito = 'NUEVO_DEP') or
+                (Linea.AccionDeposito = 'AUMENTAR_DEP') then
+          ProcesarNuevoDeposito(Linea)
+        else
+        begin
+          ProcesarVenta(Linea);
+          if Linea.VieneDeDeposito = 'S' then
+            AnotarServicioDeposito(Linea, Linea.IdDeposito,
+              FServiciosDesdeDeposito);
+        end;
       end;
       FDataModule.cdsLineas.Next;
     end;
@@ -4030,23 +4013,27 @@ var
 begin
   if DataSet.FieldByName('DESCRIPCION_ARTICULO_FACLIN').AsString = '' then
     Abort;
-  Pendiente := PrimerAtributoPendienteLineaCaja(DataSet);
-  Requeridos :=
-    DataSet.FieldByName('NUM_ATRIBUTOS_REQ_FACTURA_LINEA').AsInteger;
-  Resueltos := AtributosResueltosSkuCaja(Trim(
-    DataSet.FieldByName('CODIGO_UNIDAD_FACLIN').AsString));
-  if (Pendiente = 0) and (Resueltos < Requeridos) then
-    Pendiente := Resueltos + 1;
-  if Pendiente > 0 then
+  if not EsLineaConsultaDeposito(
+    DataSet.FieldByName('VIENE_DE_DEPOSITO').AsString) then
   begin
-    if Assigned(FOnAtributoPendiente) then
-      FOnAtributoPendiente(Pendiente);
-    Abort;
+    Pendiente := PrimerAtributoPendienteLineaCaja(DataSet);
+    Requeridos :=
+      DataSet.FieldByName('NUM_ATRIBUTOS_REQ_FACTURA_LINEA').AsInteger;
+    Resueltos := AtributosResueltosSkuCaja(Trim(
+      DataSet.FieldByName('CODIGO_UNIDAD_FACLIN').AsString));
+    if (Pendiente = 0) and (Resueltos < Requeridos) then
+      Pendiente := Resueltos + 1;
+    if Pendiente > 0 then
+    begin
+      if Assigned(FOnAtributoPendiente) then
+        FOnAtributoPendiente(Pendiente);
+      Abort;
+    end;
+    if Assigned(FValidarStockLinea) then
+      FValidarStockLinea(DataSet);
+    if Assigned(FValidarLoteLinea) then
+      FValidarLoteLinea(DataSet);
   end;
-  if Assigned(FValidarStockLinea) then
-    FValidarStockLinea(DataSet);
-  if Assigned(FValidarLoteLinea) then
-    FValidarLoteLinea(DataSet);
 end;
 
 procedure TdmCajaOpe.ConfigurarEstructuraCabecera;
@@ -4173,6 +4160,8 @@ begin
   cdsLineas.FieldDefs.Clear;
   cdsLineas.IndexDefs.Clear;
   Add('VIENE_DE_DEPOSITO', ftString, 1);
+    Add('ORIGEN_CUENTA_DEP', ftString, 50);
+    Add('SALDO_CONSULTA_DEP', ftCurrency);
     Add('ID_DEPOSITO_DEP', ftString, 20);
     Add('PRECIO_ORIGINAL_DEP', ftCurrency);
     Add('ACCION_DEPOSITO', ftString, 15); // Valores: 'COBRAR' o 'CANCELAR'

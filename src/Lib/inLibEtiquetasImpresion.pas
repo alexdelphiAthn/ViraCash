@@ -103,6 +103,7 @@ begin
       SCaptionColLotesTemporadaRecepcion, 1),
     ColumnaInforme('LOTE_ETI', STextoLoteSerieComun, 1),
     ColumnaInforme('CADUCIDAD_ETI', STextoCaducidadComun, 1),
+    ColumnaInforme('FECHA_RECEPCION_ETI', 'Fecha de recepción', 1),
     ColumnaInforme('TEXTO_LOTE_ETI', STextoDetalleLoteComun, 2),
     ColumnaInforme('PRECIO_UNIDAD_TEXTO', STextoPrecioPorUnidadComun, 2),
     ColumnaInforme('FECHA_APLICACION', STextoFechaAplicacionComun, 1)];

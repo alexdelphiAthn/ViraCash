@@ -81,6 +81,9 @@ const
     '         WHERE TIPO_DOC_CON = :TIP ' +
     '           AND ESACTIVO_CON = ''S'' ' +
     '           AND EMPRESA_CON IN (:EMP, ''-'') ' +
+    // Las facturas normales con subtipo explícito solo usan series
+    // vigentes configuradas en la empresa, aunque haya otros contadores.
+    '           AND NOT (:TIP = ''FC'' AND :SUB = ''NORMAL'') ' +
     // Un contador de simplificadas no puede colarse como serie normal.
     '           AND NOT EXISTS (SELECT 1 FROM vi_empresas_series X ' +
     '             WHERE X.CODIGO_EMP_EMPSER = :EMP ' +

@@ -131,6 +131,7 @@ type
     procedure AvisarReferenciasAusentes(const ASerie, ANumero: string);
     procedure AfterReportLoaded; override;
     procedure ConfigurarDataModule(ADataModule: TdmFacturas);
+    procedure ConfigurarRotulosFacturaEmitida;
     procedure ConfigurarNombrePDF;
     procedure ConfigurarLote(
       APuedeUsarActual: Boolean;
@@ -174,6 +175,20 @@ resourcestring
     'correo electrónico.';
 
 { TfrmPrintFac }
+
+procedure TfrmPrintFac.ConfigurarRotulosFacturaEmitida;
+  function Rotulo(const AClave, ATexto: string): string;
+  begin
+    Result := ATexto;
+    if Assigned(Traducciones) then
+      Result := Traducciones.Traducir('inMtoModalImpFac.FacturaEmitida.' +
+        AClave, ATexto);
+  end;
+begin
+  Caption := Rotulo('Titulo', 'Imprimir factura');
+  lblcxlbl1.Caption := Rotulo('Numero', 'Número de factura');
+  rbActual.Caption := Rotulo('Actual', 'Imprimir factura actual');
+end;
 
 procedure TfrmPrintFac.ConfigurarDataModule(ADataModule: TdmFacturas);
 begin

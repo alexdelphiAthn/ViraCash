@@ -157,7 +157,10 @@ end;
 procedure TfrmMtoComprasPlantillas.btnGrabarClick(Sender: TObject);
 begin
   if dsTablaG.State in dsEditModes then
+  begin
+    ComprobarPermisoGrabar;
     dsTablaG.DataSet.Post;
+  end;
   inherited;
 end;
 

@@ -2053,9 +2053,11 @@ begin
   Ejecutar(
     'INSERT INTO `fza_articulos_skus_costes` ' +
     '(`CODIGO_UNIDAD_SKU_SKUC`, `PRECIO_ULT_COMPRA_SKUC`, ' +
+    '`PRECIO_ULT_COMPRA_NETO_SKUC`, ' +
     '`FECHA_ULT_COMPRA_SKUC`, `INSTANTE_MODIF`, `INSTANTE_ALTA`, ' +
     '`USUARIO_ALTA`, `USUARIO_MODIF`) SELECT mapa.`DESTINO`, ' +
     'origen.`PRECIO_ULT_COMPRA_SKUC`, ' +
+    'origen.`PRECIO_ULT_COMPRA_NETO_SKUC`, ' +
     'origen.`FECHA_ULT_COMPRA_SKUC`, CURRENT_TIMESTAMP, ' +
     'CURRENT_TIMESTAMP, :USUARIO, :USUARIO FROM ' +
     '`fza_articulos_skus_costes` origen JOIN `' + TABLA_TEMPORAL +

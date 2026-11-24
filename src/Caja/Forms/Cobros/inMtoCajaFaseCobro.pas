@@ -648,9 +648,7 @@ const
   TIPO_FACTURA_COMPLETA_CAJA = 'NORMAL';
   TIPO_FACTURA_TICKET_CAJA = 'SIMPLIFICADA';
 
-// Dialogo comun: serie de factura completa (por defecto la del almacen de
-// la caja) y fecha. El numero sale del contador y la forma de pago son
-// los cobros de esta pantalla.
+// El diálogo propone la serie normal de la empresa emisora.
 function SolicitarSerieFechaFacturaCaja(AOwner: TComponent;
   AConexion: TUniConnection; const AEmpresa, AAlmacen: string;
   out AOpciones: TOpcionesDocumento): Boolean;
@@ -660,7 +658,7 @@ var
 begin
   oTipo := Default(TTipoOpcionesDocumento);
   oTipo.Codigo := 'FC';
-  oTipo.Nombre := SNombreFacturaVentaOpcionesDocumento;
+  oTipo.Subtipo := TIPO_FACTURA_COMPLETA_CAJA;
   oConfig := Default(TConfiguracionOpcionesDocumento);
   oConfig.Titulo := STituloFacturaCajaOpcionesDocumento;
   oConfig.Tipos := [oTipo];
@@ -670,6 +668,7 @@ begin
   oConfig.Propuesta.Fecha := Date;
   oConfig.Visibles := [codEmpresa, codSerie, codFecha];
   oConfig.Fijos := [codEmpresa];
+  oConfig.SerieSoloLista := True;
   Result := TfrmModalOpcionesDocumento.Solicitar(AOwner,
     CrearLectorOpcionesDocumentoUniDAC(AConexion), oConfig, AOpciones);
 end;
@@ -727,7 +726,7 @@ var
   oDatos: TOpcionesDocumento;
 begin
   Result := SolicitarSerieFechaFacturaCaja(Self, ConexionPrincipal,
-    FCodigoEmpresa, FCodigoAlmacen, oDatos);
+    FEmpresaEmisora, FAlmacenEmision, oDatos);
   if Result then
     Result := SerieAdmiteFecha(oDatos.Serie, oDatos.Fecha, 'NORMAL');
   if Result then
@@ -905,6 +904,7 @@ begin
       oConfig.Propuesta.Fecha := Trunc(AFecha);
       oConfig.Visibles := [codEmpresa, codSerie, codFecha];
       oConfig.Fijos := [codEmpresa, codFecha];
+      oConfig.SerieSoloLista := SameText(ASubtipo, TIPO_FACTURA_COMPLETA_CAJA);
       oConfig.Validar :=
         function(const AOpciones: TOpcionesDocumento;
           out AMensaje: string): Boolean

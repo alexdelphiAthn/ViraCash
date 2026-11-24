@@ -50,14 +50,11 @@ function CambiarTarifaVentaCaja(ALineas, ACabecera: TDataSet;
   const ATarifa, ARespaldo: string; const AResolver: IArticulosResolver;
   out AError: string; out ARespaldadas: TArray<string>): Boolean;
 
-// Una linea vino de deposito cuando VIENE_DE_DEPOSITO es 'S', 'A' o 'H'
-// (historico). La misma regla protege el borrado por atajo en la ventana
-// de caja.
 function EsLineaDeposito(const AVieneDeDeposito: string): Boolean;
 
-// Deposito ya cerrado cargado solo para consulta (Ver historico en F2):
-// no se edita, no suma y no pasa al cobro.
 function EsLineaHistoricoDeposito(const AVieneDeDeposito: string): Boolean;
+// Cerrados y pendientes de otra empresa: solo consulta.
+function EsLineaConsultaDeposito(const AVieneDeDeposito: string): Boolean;
 
 // Cierra la linea pendiente (cancela la vacia, graba la que tiene
 // articulo) y borra las lineas de deposito del cliente anterior.
@@ -229,12 +226,18 @@ end;
 function EsLineaDeposito(const AVieneDeDeposito: string): Boolean;
 begin
   Result := (AVieneDeDeposito = 'S') or (AVieneDeDeposito = 'A') or
-    EsLineaHistoricoDeposito(AVieneDeDeposito);
+    EsLineaConsultaDeposito(AVieneDeDeposito);
 end;
 
 function EsLineaHistoricoDeposito(const AVieneDeDeposito: string): Boolean;
 begin
   Result := Trim(AVieneDeDeposito) = 'H';
+end;
+
+function EsLineaConsultaDeposito(const AVieneDeDeposito: string): Boolean;
+begin
+  Result := EsLineaHistoricoDeposito(AVieneDeDeposito) or
+    (Trim(AVieneDeDeposito) = 'X');
 end;
 
 procedure LimpiarLineasDeposito(ALineas: TDataSet);

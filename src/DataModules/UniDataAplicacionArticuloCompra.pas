@@ -75,7 +75,8 @@ end;
 function SqlCostePropuestoSkuCompra: string;
 begin
   Result :=
-    'SELECT SC.PRECIO_ULT_COMPRA_SKUC AS COSTE, ' +
+    'SELECT COALESCE(SC.PRECIO_ULT_COMPRA_NETO_SKUC, ' +
+    'SC.PRECIO_ULT_COMPRA_SKUC) AS COSTE, ' +
     'SC.FECHA_ULT_COMPRA_SKUC AS FECHA_COSTE, 0 AS PRIORIDAD, ' +
     '0 AS LONGITUD, ' +
     'SC.FECHA_ULT_COMPRA_SKUC AS FECHA_ORDEN, 0 AS ID_ORDEN ' +
@@ -84,7 +85,8 @@ begin
     'AND SC.PRECIO_ULT_COMPRA_SKUC IS NOT NULL ' +
     SqlHistoricoSkuDelProveedor +
     'UNION ALL ' +
-    'SELECT PT.PRECIO_COSTE_ARTTAR, PT.FECHA_ULT_COMPRA_ARTTAR, ' +
+    'SELECT COALESCE(PT.PRECIO_COSTE_NETO_ARTTAR, PT.PRECIO_COSTE_ARTTAR), ' +
+    'PT.FECHA_ULT_COMPRA_ARTTAR, ' +
     // FZ-ISSUE-786 (observación de FZ-782): la tarifa general del
     // artículo (sin unidad) es el último recurso; antes un SKU sin compras
     // ni tarifa propia proponía 0,00.

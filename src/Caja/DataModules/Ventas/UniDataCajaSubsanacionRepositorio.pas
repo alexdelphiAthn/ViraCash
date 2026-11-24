@@ -645,12 +645,16 @@ begin
   end;
 end;
 
+// FZ-ISSUE-1171: subsanar depende del permiso de la acción en Buscar /
+// Modificar (caja.buscar.subsanar), con la misma política que el botón.
+// Antes exigía además CajaPagosHist.modificar, el permiso de tabla del
+// Histórico de pagos, que un perfil de venta sin históricos no tiene.
 function TServicioSubsanacionCajaUniDAC.Permitida: Boolean;
 begin
   Result := (Trim(FDependencias.Usuario) <> '') and
     FDependencias.Permisos.Disponible and
-    FDependencias.Permisos.TienePermiso(
-      CodigoPermisoMto('CajaPagosHist', apmModificar), paPermitir);
+    FDependencias.Permisos.TienePermiso(PERMISO_CAJA_BUSCAR_SUBSANAR,
+      PermisoAusenteCodigo(PERMISO_CAJA_BUSCAR_SUBSANAR));
 end;
 
 procedure TServicioSubsanacionCajaUniDAC.ExigirPermiso;

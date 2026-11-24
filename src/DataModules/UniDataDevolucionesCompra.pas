@@ -80,8 +80,12 @@ type
     FDesempaquetandoAtributos: Boolean;
     // F-LOTEC-013: lote de las líneas (nil = como siempre).
     FLotesLineas: TLotesLineasDocumento;
-    FTransaccionOrigenPropia: Boolean;
-    procedure CancelarTransaccionOrigen;
+    FTransaccionLineaPropia: Boolean;
+    FNivelPostLinea: Integer;
+    FBorrandoLinea: Boolean;
+    procedure IniciarTransaccionLinea;
+    procedure ConfirmarTransaccionLinea;
+    procedure CancelarTransaccionLinea;
     procedure ErrorPostLinea(DataSet: TDataSet; E: EDatabaseError;
       var Action: TDataAction);
     procedure CancelarLineaVaciaDiferida;
@@ -91,10 +95,12 @@ type
     procedure PrepararSQLCabeceraPrint;
     function ObtenerSkusDevolucionCsv(const ASerie, ANumero: string): string;
     procedure RefrescarMovimientosProveedor;
-    procedure ValidarAlmacenSalida;
+    procedure ValidarAltaLinea(DataSet: TDataSet);
+    procedure IniciarBorradoLinea(DataSet: TDataSet);
     function LineaTieneCeldasPivote(DataSet: TDataSet): Boolean;
   public
     destructor Destroy; override;
+    procedure ValidarCabeceraDevolucion;
     procedure ConfigurarLotesLineas(
       const AConfig: TConfiguracionLotesLineas);
     // Documento actual para el lote de las líneas (tipo DC).
@@ -164,7 +170,8 @@ uses
   UniDataArticulosValidadorRepositorio,
   inLibMsgCompras, inLibDocumento, inLibDocumentoIntf,
   UniDataDatosProveedorDocumento, UniDataInformeDocumento,
-  UniDataDevolucionesCompraRepositorio, inLibFiltroUsuario;
+  UniDataDevolucionesCompraRepositorio, inLibFiltroUsuario,
+  UniDataReposicionAutomatica, inLibPrestaShopColaSenal;
 
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 
@@ -193,9 +200,12 @@ begin
   unqryTablaG.OnDeleteError := ErrorBorradoTransaccional;
   unqryTablaG.Connection                := ConexionPrincipal;
   unqryDevolucionesCompraLineas.Connection := ConexionPrincipal;
+  unqryDevolucionesCompraLineas.BeforeInsert := ValidarAltaLinea;
+  unqryDevolucionesCompraLineas.BeforeDelete := IniciarBorradoLinea;
   unqryDevolucionesCompraLineas.KeyFields :=
     'SERIE_DEVC_DEVCLIN;NUMERO_DEVC_DEVCLIN;LINEA_DEVCLIN';
   unqryDevolucionesCompraLineas.OnPostError := ErrorPostLinea;
+  unqryDevolucionesCompraLineas.OnDeleteError := ErrorPostLinea;
   unqryDevolucionesCompraLineas.SQLDelete.Text :=
     'DELETE FROM fza_devoluciones_compra_lineas ' +
     ' WHERE SERIE_DEVC_DEVCLIN = :Old_SERIE_DEVC_DEVCLIN ' +
@@ -308,10 +318,18 @@ begin
       'CODIGO_EMP_DEVC', 'CODIGO_ALM_DEVC');
 end;
 
-procedure TdmDevolucionesCompra.ValidarAlmacenSalida;
+procedure TdmDevolucionesCompra.ValidarCabeceraDevolucion;
 begin
-  if Trim(unqryTablaG.FieldByName('CODIGO_ALM_DEVC').AsString) = '' then
-    raise Exception.Create(SErrorAlmacenSalidaDevolucionCompra);
+  ExigirProveedorDevolucionCompra(
+    unqryTablaG.FieldByName('CODIGO_PRV_DEVC').AsString);
+  ExigirAlmacenSalidaDevolucionCompra(ConexionEscritura,
+    unqryTablaG.FieldByName('CODIGO_EMP_DEVC').AsString,
+    unqryTablaG.FieldByName('CODIGO_ALM_DEVC').AsString);
+end;
+
+procedure TdmDevolucionesCompra.ValidarAltaLinea(DataSet: TDataSet);
+begin
+  ValidarCabeceraDevolucion;
 end;
 
 procedure TdmDevolucionesCompra.unqryTablaGAfterInsert(DataSet: TDataSet);
@@ -396,7 +414,11 @@ begin
     raise Exception.Create(SErrorOrigenRecepcionNoDisponible);
   SincronizarInstanteMovimientoDocumento(
     DataSet, 'FECHA_DEVC', 'INSTANTE_MOVIMIENTO_DEVC');
-  ValidarAlmacenSalida;
+  // Poder retirar la última salida de una devolución antigua inválida.
+  if not FBorrandoLinea or HayLineasMovimiento(
+    DataSet.FieldByName('SERIE_DEVC').AsString,
+    DataSet.FieldByName('NUMERO_DEVC').AsString) then
+    ValidarCabeceraDevolucion;
   if (DataSet.FindField('ESPIVOTE_HORIZONTAL_DEVC') <> nil) and
      (Trim(DataSet.FieldByName('ESPIVOTE_HORIZONTAL_DEVC').AsString) = '')
   then
@@ -543,7 +565,7 @@ end;
 procedure TdmDevolucionesCompra.unqryDevolucionesCompraLineasBeforePost(
                                                        DataSet: TDataSet);
 var
-  sSku, sArt: string;
+  sSku, sArt, Empresa, AlmacenLinea: string;
   function FieldByName(const ANombre: string): TField;
   begin
     Result := unqryDevolucionesCompraLineas.FieldByName(ANombre);
@@ -571,7 +593,13 @@ begin
     TThread.ForceQueue(nil, CancelarLineaVaciaDiferida);
     Abort;
   end;
-  AsignarNumeroLineaDevolucionCompra(DataSet);
+  ValidarCabeceraDevolucion;
+  Empresa := unqryTablaG.FieldByName('CODIGO_EMP_DEVC').AsString;
+  AlmacenLinea := Trim(FieldByName('CODIGO_ALMACEN_DEVCLIN').AsString);
+  if (AlmacenLinea <> '') and not SameText(AlmacenLinea,
+    unqryTablaG.FieldByName('CODIGO_ALM_DEVC').AsString) then
+    ExigirAlmacenSalidaDevolucionCompra(ConexionEscritura,
+      Empresa, AlmacenLinea);
   // Acepta articulo, SKU, codigo de barras o referencia de proveedor.
   NormalizarArticuloSkuEnDataSet(ConexionEscritura,
       unqryDevolucionesCompraLineas, 'CODIGO_ART_DEVCLIN',
@@ -581,6 +609,11 @@ begin
   if Assigned(FLotesLineas) and not TieneOrigenRecepcionDevolucion(DataSet) then
     FLotesLineas.AntesDePostLinea(unqryDevolucionesCompraLineas,
       DocumentoLotes);
+  if (Trim(FieldByName('CODIGO_UNIDAD_DEVCLIN').AsString) <> '') and
+     (FieldByName('CANTIDAD_DEVCLIN').AsFloat > 0) then
+    ExigirLoteSalidaDevolucionCompra(
+      EmpresaReposicionActiva(ConexionEscritura, Empresa),
+      FieldByName('LOTE_DEVCLIN').AsString);
     // TOTAL_UNIDADES acompaña a CANTIDAD, igual que en el albarán de
     // compra: «Nº de prendas» lo prefiere y se quedaba con el valor del
     // alta al cambiar la cantidad (FZ-ISSUE-447). Solo se respeta el
@@ -637,30 +670,51 @@ begin
         unqrySkusDevc.Close;
       end;
     end;
-  if TieneOrigenRecepcionDevolucion(DataSet) then
-  begin
-    FTransaccionOrigenPropia := not ConexionEscritura.InTransaction;
-    if FTransaccionOrigenPropia then
-      ConexionEscritura.StartTransaction;
-  end;
+  IniciarTransaccionLinea;
   try
+    AsignarNumeroLineaDevolucionCompra(DataSet);
     if TieneOrigenRecepcionDevolucion(DataSet) then
       ValidarOrigenRecepcionDevolucion(ConexionEscritura, unqryTablaG,
         DataSet, AlmacenRestringido(ContextoSesion, ParametrosApp));
     PrepararLineaFiscalCompra(CrearLecturasImpuestos(ConexionEscritura),
       unqryTablaG, DataSet, 'DEVC', 'DEVCLIN', 'TOTAL_DEVCLIN');
   except
-    CancelarTransaccionOrigen;
+    CancelarTransaccionLinea;
     raise;
   end;
   end;
 end;
 
-procedure TdmDevolucionesCompra.CancelarTransaccionOrigen;
+procedure TdmDevolucionesCompra.IniciarTransaccionLinea;
 begin
-  if FTransaccionOrigenPropia then
+  if not ConexionEscritura.InTransaction then
   begin
-    FTransaccionOrigenPropia := False;
+    ConexionEscritura.StartTransaction;
+    FTransaccionLineaPropia := True;
+  end;
+  Inc(FNivelPostLinea);
+end;
+
+procedure TdmDevolucionesCompra.ConfirmarTransaccionLinea;
+begin
+  if FNivelPostLinea > 0 then
+  begin
+    Dec(FNivelPostLinea);
+    if (FNivelPostLinea = 0) and FTransaccionLineaPropia then
+    begin
+      ConexionEscritura.Commit;
+      FTransaccionLineaPropia := False;
+      SolicitarProcesadoPrestaShop;
+    end;
+  end;
+end;
+
+procedure TdmDevolucionesCompra.CancelarTransaccionLinea;
+begin
+  FNivelPostLinea := 0;
+  if FTransaccionLineaPropia then
+  begin
+    FTransaccionLineaPropia := False;
     if ConexionEscritura.InTransaction then
       ConexionEscritura.Rollback;
   end;
@@ -669,7 +723,7 @@ end;
 procedure TdmDevolucionesCompra.ErrorPostLinea(DataSet: TDataSet;
   E: EDatabaseError; var Action: TDataAction);
 begin
-  CancelarTransaccionOrigen;
+  CancelarTransaccionLinea;
   Action := daFail;
 end;
 
@@ -798,26 +852,39 @@ begin
       unqryTablaG.Post
     else
       SincronizarMovimientos;
-    if FTransaccionOrigenPropia then
-    begin
-      ConexionEscritura.Commit;
-      FTransaccionOrigenPropia := False;
-    end;
+    if not FDesempaquetandoAtributos then
+      ConfirmarTransaccionLinea;
   except
-    CancelarTransaccionOrigen;
+    CancelarTransaccionLinea;
     raise;
   end;
 end;
 
-procedure TdmDevolucionesCompra.unqryDevolucionesCompraLineasAfterDelete(
-                                                       DataSet: TDataSet);
+procedure TdmDevolucionesCompra.IniciarBorradoLinea(DataSet: TDataSet);
 begin
-  inherited;
-  CalcularTotalesDevolucionCompra;
-  if unqryTablaG.State in dsEditModes then
-    unqryTablaG.Post
-  else
-    SincronizarMovimientos;
+  IniciarTransaccionLinea;
+end;
+
+procedure TdmDevolucionesCompra.unqryDevolucionesCompraLineasAfterDelete(
+  DataSet: TDataSet);
+begin
+  try
+    inherited;
+    FBorrandoLinea := True;
+    try
+      CalcularTotalesDevolucionCompra;
+      if unqryTablaG.State in dsEditModes then
+        unqryTablaG.Post
+      else
+        SincronizarMovimientos;
+    finally
+      FBorrandoLinea := False;
+    end;
+    ConfirmarTransaccionLinea;
+  except
+    CancelarTransaccionLinea;
+    raise;
+  end;
 end;
 
 procedure TdmDevolucionesCompra.GetCodigoAutoDevolucionCompra;

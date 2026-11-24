@@ -1090,4 +1090,10 @@
     Left = 840
     Top = 16
   end
+  object tmrCambioDia: TTimer
+    Enabled = False
+    OnTimer = tmrCambioDiaTimer
+    Left = 888
+    Top = 16
+  end
 end

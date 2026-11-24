@@ -26,6 +26,14 @@ resourcestring
   SErrorLoteReposicionVacio = 'Indique el lote de la recepción.';
   SErrorLoteReposicionLargo =
     'El lote de la recepción admite como máximo %d caracteres.';
+  SErrorPatronLoteRecepcionNoValido =
+    'Use {COD_PROV}, {FECHA_RECEP} o {REF_PROV_ALB} en el patrón del lote. ' +
+    'Añada {ASK_USER} para confirmar la propuesta al grabar.';
+  SErrorDatoPatronLoteRecepcion =
+    'Complete los datos que pide el patrón del lote, como la referencia ' +
+    'del proveedor, o indique el lote al grabar.';
+  SErrorLoteRecepcionRequiereConfirmacion =
+    'Esta recepción requiere indicar el lote en ViraCash.';
   // FZ-ISSUE-1051: %s = lote.
   SErrorLoteReposicionOcupado =
     'El lote %s ya pertenece a otra recepción. Indique otro lote.';

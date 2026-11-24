@@ -410,6 +410,10 @@ begin
     'Generar código de barras por lote o serie',
     'src/Lib/inLibAppParam.pas');
   ARegistrar(
+    'inMtoAppParam.Parametros.appPatronLoteRecepcion.Descripcion',
+    'Patrón del lote automático de recepción',
+    'src/Lib/inLibAppParam.pas');
+  ARegistrar(
     'inMtoAppParam.Parametros.appTrazabilidadSeries.Descripci' +
     'on',
     'Activar números de serie por unidad',

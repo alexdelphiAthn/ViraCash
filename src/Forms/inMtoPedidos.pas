@@ -843,11 +843,6 @@ begin
                  mtWarning, [mbYes, mbNo], 0) = mrYes) then
   begin
     inherited;
-    if dsTablaG.State in dsEditModes then
-    begin
-      dmmPedidos.CalcularTotalesPedido;
-      dsTablaG.DataSet.Post;
-    end;
   end;
 end;
 

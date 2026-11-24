@@ -41,6 +41,7 @@ type
   TLineaArticuloMaterializacion = record
     Linea: Integer;
     PrecioCosteProveedor: Double;
+    FactorCosteRecargo: Double;
     AccionDuplicado: string;
     CodigoArticuloReusar: string;
     CodigoArticuloTentativo: string;

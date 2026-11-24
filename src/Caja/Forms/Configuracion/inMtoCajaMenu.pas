@@ -152,7 +152,7 @@ uses
   inMtoModalArqueo, inMtoModalEntradaCambio, inMtoModalGastoCaja,
   inLibMsgCaja, inLibTraducciones, inLibVentanaBarraTareas,
   inMtoModalMeteorologiaCaja, inMtoModalObservacionesCaja,
-  inLibMeteorologiaCajaIntf;
+  inLibMeteorologiaCajaIntf, inLibMsgConfiguracion;
 
 const
   // Identificador de aplicación propio: botón separado en la barra de
@@ -511,19 +511,20 @@ var
   dtHora: TDateTime;
   dtFechaBase: TDateTime;
 begin
-  dtFechaBase := FFechaCaja;
-  if dtFechaBase = 0 then
-    dtFechaBase := Now;
-  sHora := FormatDateTime('hh:nn', dtFechaBase);
-  if InputQuery_fza(STituloHoraCaja, SSolicitudHoraCaja, sHora) then
+  if PuedeCambiarHoraCaja(Permisos) then
   begin
-    if TryStrToTime(sHora, dtHora) then
-      ActualizarFechaCaja(DateOf(dtFechaBase) + Frac(dtHora))
-    else
-      ShowMessage_fza(SErrorHoraCajaNoValida);
-  end
-  else
-    ActualizarFechaCaja(Now);
+    dtFechaBase := FFechaCaja;
+    if dtFechaBase = 0 then
+      dtFechaBase := Now;
+    sHora := FormatDateTime('hh:nn', dtFechaBase);
+    if InputQuery_fza(STituloHoraCaja, SSolicitudHoraCaja, sHora) then
+    begin
+      if TryStrToTime(sHora, dtHora) then
+        ActualizarFechaCaja(DateOf(dtFechaBase) + Frac(dtHora))
+      else
+        ShowMessage_fza(SErrorHoraCajaNoValida);
+    end;
+  end;
 end;
 
 procedure TfrmMtoMenuCaja.AbrirBuscarModificar;
@@ -690,6 +691,7 @@ begin
   Agregar(3, lblF6, lblEntradaCambio, 'MNUCAJAPAGOSHIST');
   Agregar(4, lblF7, lblGastosCaja, 'FORMASDEPAGOCAJA1');
   Agregar(5, lblF3, lblTraspasos, 'MNUCAJASOLICITUDESTRASPASOHIST');
+  FTarjetas[5].Visible := PuedeTraspasarDesdeCaja(Permisos);
   Agregar(6, lblESC, lblSalir, 'SALIR1');
 end;
 
@@ -750,12 +752,22 @@ end;
 
 procedure TfrmMtoMenuCaja.SetSelectedIndex(NewIndex: Integer);
 var
-  Cnt, I: Integer;
+  Cnt, I, Paso: Integer;
 begin
   Cnt := Length(FTarjetas);
   if Cnt > 0 then
   begin
+    if NewIndex < FSelectedIndex then
+      Paso := -1
+    else
+      Paso := 1;
     NewIndex := ((NewIndex mod Cnt) + Cnt) mod Cnt;
+    for I := 1 to Cnt - 1 do
+    begin
+      if FTarjetas[NewIndex].Visible then
+        Break;
+      NewIndex := (NewIndex + Paso + Cnt) mod Cnt;
+    end;
     if NewIndex <> FSelectedIndex then
     begin
       FSelectedIndex := NewIndex;
@@ -768,6 +780,7 @@ end;
 procedure TfrmMtoMenuCaja.ExecuteSelectedItem;
 begin
   if (FSelectedIndex >= 0) and (FSelectedIndex < Length(FTarjetas)) and
+     FTarjetas[FSelectedIndex].Visible and
      Assigned(FTarjetas[FSelectedIndex].OnClick) then
     FTarjetas[FSelectedIndex].OnClick(FTarjetas[FSelectedIndex]);
 end;
@@ -878,7 +891,10 @@ procedure TfrmMtoMenuCaja.lblTraspasosClick(Sender: TObject);
 var
   frmTraspaso: TfrmMtoOpeTraspaso;
 begin
-  if (FEmpresa = '') or (FAlmacen = '') or (FCaja = '') then
+  if not PuedeTraspasarDesdeCaja(Permisos) then
+    ShowMessage_fza(Format(SErrorPermisoAbrirPantalla,
+      [lblTraspasos.Caption]))
+  else if (FEmpresa = '') or (FAlmacen = '') or (FCaja = '') then
     ShowMessage_fza(SErrorUbicacionCajaTraspasoNoAsignada)
   else
   begin

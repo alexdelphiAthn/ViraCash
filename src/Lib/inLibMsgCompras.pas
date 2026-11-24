@@ -160,6 +160,13 @@ resourcestring
     'PRC_GET_NEXT_CONT.';
   SErrorAlmacenSalidaDevolucionCompra =
     'Debe seleccionar el almacén de salida de la devolución.';
+  SErrorProveedorDevolucionCompraObligatorio =
+    'Selecciona un proveedor antes de grabar la devolución.';
+  SErrorAlmacenDepositoDevolucionCompra =
+    'El almacén %s es de depósitos de clientes y no admite devoluciones ' +
+    'a proveedor.';
+  SErrorLoteSalidaDevolucionCompra =
+    'Selecciona el lote de salida antes de devolver existencias al proveedor.';
   SAvisoDevolucionCompraFacturada =
     'No se puede borrar la devolución de compra: ya está facturada. Borra ' +
     'o deshaz primero la factura de compra vinculada.';

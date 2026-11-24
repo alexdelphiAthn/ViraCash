@@ -40,6 +40,11 @@ uses
   Uni, inLibDevolucionesCompraMovimientosIntf;
 function CrearMovimientosDevolucionCompraUniDAC(
   AConexion: TUniConnection): IMovimientosDevolucionCompra;
+procedure ExigirProveedorDevolucionCompra(const AProveedor: string);
+procedure ExigirAlmacenSalidaDevolucionCompra(AConexion: TUniConnection;
+  const AEmpresa, AAlmacen: string);
+procedure ExigirLoteSalidaDevolucionCompra(AEmpresaConPartidas: Boolean;
+  const ALote: string);
 implementation
 uses
   System.SysUtils, Data.DB, DBAccess, inLibDocumento,
@@ -47,7 +52,8 @@ uses
   inLibMsgCompras, UniDataMovimientosAlmacenRecalculo,
   UniDataDevolucionesCompraMovimientosSql,
   inLibPrestaShopColaSenal,
-  inLibDevolucionesCompraMovimientos, UniDataMovimientosLote;
+  inLibDevolucionesCompraMovimientos, UniDataMovimientosLote,
+  UniDataReposicionAutomatica, inLibErroresBBDD;
 type
   TUnidadTrabajoMovimientosDevolucionCompraUniDAC = class(
     TInterfacedObject,
@@ -82,6 +88,47 @@ begin
   Result := CrearEstrategiaDocumento(
     CrearConfiguracionDocumento(tdDevolucion, sdCompra));
 end;
+
+procedure ExigirProveedorDevolucionCompra(const AProveedor: string);
+begin
+  if (Trim(AProveedor) = '') or (Trim(AProveedor) = '0') then
+    raise EValidacionBBDD.Create(SErrorProveedorDevolucionCompraObligatorio);
+end;
+
+procedure ExigirAlmacenSalidaDevolucionCompra(AConexion: TUniConnection;
+  const AEmpresa, AAlmacen: string);
+var
+  Consulta: TUniQuery;
+begin
+  if Trim(AAlmacen) = '' then
+    raise EValidacionBBDD.Create(SErrorAlmacenSalidaDevolucionCompra);
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := AConexion;
+    Consulta.SQL.Text := 'SELECT UPPER(TRIM(TIPO_USO_ALM)) ' +
+      'IN (''DEPOSITO'', ''DEPÓSITO'') AS ES_DEPOSITO ' +
+      'FROM fza_almacenes WHERE CODIGO_EMP_ALM = :EMPRESA ' +
+      'AND CODIGO_ALM_ALM = :ALMACEN';
+    Consulta.ParamByName('EMPRESA').AsString := Trim(AEmpresa);
+    Consulta.ParamByName('ALMACEN').AsString := Trim(AAlmacen);
+    Consulta.Open;
+    if Consulta.IsEmpty then
+      raise EValidacionBBDD.Create(SErrorAlmacenSalidaDevolucionCompra);
+    if Consulta.FieldByName('ES_DEPOSITO').AsInteger <> 0 then
+      raise EValidacionBBDD.CreateFmt(SErrorAlmacenDepositoDevolucionCompra,
+        [AAlmacen]);
+  finally
+    Consulta.Free;
+  end;
+end;
+
+procedure ExigirLoteSalidaDevolucionCompra(AEmpresaConPartidas: Boolean;
+  const ALote: string);
+begin
+  if AEmpresaConPartidas and (Trim(ALote) = '') then
+    raise EValidacionBBDD.Create(SErrorLoteSalidaDevolucionCompra);
+end;
+
 // Carga los datos minimos del devolucion necesarios para construir los
 // movimientos: empresa (para el parametro p_CODIGO_EMPRESA_MOV) y
 // almacen por defecto de la cabecera (fallback cuando linea/celda no
@@ -100,7 +147,7 @@ begin
   try
     q.Connection := AConn;
     q.SQL.Text :=
-      'SELECT CODIGO_EMP_DEVC, CODIGO_ALM_DEVC, ' +
+      'SELECT CODIGO_EMP_DEVC, CODIGO_ALM_DEVC, CODIGO_PRV_DEVC, ' +
       '       COALESCE(INSTANTE_MOVIMIENTO_DEVC, ' +
       '                CAST(FECHA_DEVC AS datetime), NOW()) ' +
       '         AS INSTANTE_MOVIMIENTO ' +
@@ -114,7 +161,10 @@ begin
         SErrorDevolucionCompraMovimientosNoEncontrada,
         [ASerieDevc, ANumDevc]);
     ACodigoEmp    := q.FieldByName('CODIGO_EMP_DEVC').AsString;
-    ACodigoAlmCab := q.FieldByName('CODIGO_ALM_DEVC').AsString;
+    ACodigoAlmCab := Trim(q.FieldByName('CODIGO_ALM_DEVC').AsString);
+    ExigirProveedorDevolucionCompra(
+      q.FieldByName('CODIGO_PRV_DEVC').AsString);
+    ExigirAlmacenSalidaDevolucionCompra(AConn, ACodigoEmp, ACodigoAlmCab);
     AInstanteMovimiento :=
       q.FieldByName('INSTANTE_MOVIMIENTO').AsDateTime;
   finally
@@ -156,7 +206,8 @@ var
   spIns: TUniStoredProc;
   spInsLote: TUniStoredProc;
   sCodigoEmp, sCodigoAlmCab, sCodigoAlm, sCodigoSku, sCodigoArt,
-  sNumeroMov, sLinea: string;
+  sNumeroMov, sLinea, sLote: string;
+  bEmpresaConPartidas: Boolean;
   iCount: Integer;
   dtInstanteMovimiento: TDateTime;
   rCantidad, rPrecio, rTotal: Double;
@@ -167,6 +218,7 @@ begin
                          sCodigoEmp,
                          sCodigoAlmCab,
                          dtInstanteMovimiento);
+  bEmpresaConPartidas := EmpresaReposicionActiva(AConn, sCodigoEmp);
   // Sanidad: bloquear doble generacion. Si ya hay movs de la devolucion, no
   // generamos otra vez. La reversion debe llamarse explicita antes.
   qChk := TUniQuery.Create(nil);
@@ -214,15 +266,19 @@ begin
     begin
       sCodigoSku := qSrc.FieldByName('SKU').AsString;
       sCodigoArt := qSrc.FieldByName('ARTICULO').AsString;
-      sCodigoAlm := qSrc.FieldByName('ALMACEN').AsString;
+      sCodigoAlm := Trim(qSrc.FieldByName('ALMACEN').AsString);
+      sLote := Trim(qSrc.FieldByName('LOTE').AsString);
       rCantidad  := qSrc.FieldByName('CANTIDAD').AsFloat;
       rPrecio    := qSrc.FieldByName('PRECIO').AsFloat;
       rTotal     := rCantidad * rPrecio;
       // Lineas sin SKU no pueden mover stock; las saltamos. No es
       // fatal porque pueden ser lineas de servicio o lineas en
-      // construccion. Lo mismo para sin almacen efectivo.
-      if (sCodigoSku <> '') and (sCodigoAlm <> '') then
+      // construccion.
+      if Trim(sCodigoSku) <> '' then
       begin
+        if not SameText(sCodigoAlm, sCodigoAlmCab) then
+          ExigirAlmacenSalidaDevolucionCompra(AConn, sCodigoEmp, sCodigoAlm);
+        ExigirLoteSalidaDevolucionCompra(bEmpresaConPartidas, sLote);
         sNumeroMov := ObtenerSiguienteContador(
           AConn, 'MV', AUsuario);
       // LINEA_DEVCLIN ya viene en formato '0010', '0020', etc. Lo
@@ -250,10 +306,9 @@ begin
       spIns.ParamByName('p_CODCLIENTE').AsString          := '';
       spIns.ParamByName('p_CODARTICULO').AsString         := sCodigoArt;
       // F-LOTEC-013: con lote o serie, ..._INSERT_LOTE.
-      EjecutarMovimientoConLote(spIns, spInsLote,
-        qSrc.FieldByName('LOTE').AsString,
+      EjecutarMovimientoConLote(spIns, spInsLote, sLote,
         FechaCaducidadMovimiento(qSrc),
-        qSrc.FieldByName('VINCULADA').AsInteger <> 0);
+        bEmpresaConPartidas or (qSrc.FieldByName('VINCULADA').AsInteger <> 0));
         Inc(iCount);
       end;
       qSrc.Next;

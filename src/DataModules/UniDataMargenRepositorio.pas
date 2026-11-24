@@ -23,7 +23,7 @@ implementation
 
 uses
   System.SysUtils, Data.DB, inLibMsgArticulos,
-  UniDataPrestaShopEncolado,
+  UniDataPrestaShopEncolado, UniDataAlbaranesCompraMovimientosSql,
   inLibPrestaShopColaSenal, inLibMargenTarifa;
 
 const
@@ -39,19 +39,10 @@ const
     'S.CODIGO_VAR_SKU AND EJ452.EJE_VA = ''P'') ' +
     'WHERE ATS.CODIGO_UNIDAD_SKU_SA = S.CODIGO_UNIDAD_SKU ' +
     'AND F.UNI = CONCAT(F.ART, ''/*/'', TAL.AV))) ';
-  // Las importaciones antiguas conservan las compras, aunque aún no
-  // exista su resumen por SKU. El coste neto sigue el panel de proveedores.
+  // Las importaciones antiguas pueden no tener resumen por SKU.
   SQL_COSTE_COMPRA_ALBARAN =
-    'SELECT CAST((L.PRECIO_COMPRA_SIVA_ARTICULO_ALBCLIN * ' +
-    '(1 - IFNULL(L.PORCENTAJE_DTO_ALBCLIN, 0) / 100)) * ' +
-    'CASE WHEN IFNULL(A.TOTAL_BRUTO_ALBC, 0) > 0 THEN ' +
-    'GREATEST(0, 1 - CASE ' +
-    'WHEN IFNULL(A.TOTAL_DTO_COMERCIAL_ALBC, 0) <> 0 THEN ' +
-    'IFNULL(A.TOTAL_DTO_COMERCIAL_ALBC, 0) / A.TOTAL_BRUTO_ALBC ' +
-    'ELSE IFNULL(A.PORCENTAJE_DTO_COMERCIAL_ALBC, 0) / 100 END) ' +
-    'ELSE GREATEST(0, 1 - ' +
-    'IFNULL(A.PORCENTAJE_DTO_COMERCIAL_ALBC, 0) / 100) END ' +
-    'AS DECIMAL(19,6)) AS COSTE, ' +
+    'SELECT ' + SQL_COSTE_UNITARIO_ALBARAN + ' AS COSTE, ' +
+    SQL_PRECIO_NETO_ALBARAN + ' AS NETO, ' +
     'A.FECHA_ALBC AS FECHA, A.CODIGO_PRV_ALBC AS PROVEEDOR ' +
     'FROM (SELECT :ARTICULO AS ART, :UNIDAD AS UNI) F ' +
     'JOIN fza_articulos_skus S ON S.CODIGO_ART_SKU = F.ART ' +
@@ -61,6 +52,7 @@ const
     'JOIN fza_albaranes_compra A ' +
     'ON A.SERIE_ALBC = L.SERIE_ALBC_ALBCLIN ' +
     'AND A.NUMERO_ALBC = L.NUMERO_ALBC_ALBCLIN ' +
+    'LEFT JOIN fza_ivas V ON V.CODIGO_IVA = A.CODIGO_IVA_ALBC ' +
     'WHERE IFNULL(L.CANTIDAD_ALBCLIN, 0) > 0 ' +
     'AND IFNULL(L.PRECIO_COMPRA_SIVA_ARTICULO_ALBCLIN * ' +
     '(1 - IFNULL(L.PORCENTAJE_DTO_ALBCLIN, 0) / 100), 0) > 0 ' +
@@ -85,6 +77,7 @@ const
   // el del albarán de compra del SKU con la fecha de esa última compra.
   SQL_COSTE_ULTIMA_COMPRA =
     'SELECT C.PRECIO_ULT_COMPRA_SKUC AS COSTE, ' +
+    'C.PRECIO_ULT_COMPRA_NETO_SKUC AS NETO, ' +
     'C.FECHA_ULT_COMPRA_SKUC AS FECHA, ' +
     '(SELECT A.CODIGO_PRV_ALBC FROM fza_albaranes_compra_lineas L ' +
     'JOIN fza_albaranes_compra A ON A.SERIE_ALBC = L.SERIE_ALBC_ALBCLIN ' +
@@ -106,6 +99,9 @@ const
     'S.CODIGO_UNIDAD_SKU LIMIT 1';
   SQL_GUARDAR_PRECIO_SALIDA =
     'UPDATE fza_articulos_tarifas SET ' +
+    'PRECIO_COSTE_NETO_ARTTAR = COALESCE(:p_neto, ' +
+    'IF(PRECIO_COSTE_ARTTAR <=> :p_coste, PRECIO_COSTE_NETO_ARTTAR, ' +
+    'NULL)), ' +
     'PRECIO_COSTE_ARTTAR = :p_coste, ' +
     'PRECIO_SALIDA_ARTTAR = :p_salida, ' +
     'PRECIO_FINAL_ARTTAR = :p_salida - COALESCE(PRECIO_DTO_ARTTAR, 0), ' +
@@ -144,6 +140,9 @@ end;
 procedure TRepositorioMargenUniDAC.GuardarPrecio(
   AConsulta: TUniQuery;
   const ASolicitud: TSolicitudPersistenciaMargen);
+var
+  bPrecioDeCompra: Boolean;
+  rNeto: Double;
 begin
   AConsulta.SQL.Text :=
     'SELECT CODIGO_UNICO_ARTTAR FROM fza_articulos_tarifas ' +
@@ -155,8 +154,25 @@ begin
   AConsulta.Open;
   if AConsulta.IsEmpty then
     raise EDatabaseError.Create(SErrorPrecioTarifaNoGuardado);
+  AbrirCompra(AConsulta, SQL_COSTE_ULTIMA_COMPRA,
+    ASolicitud.CodigoArticulo, ASolicitud.CodigoUnidad);
+  if AConsulta.IsEmpty then
+    AbrirCompra(AConsulta, SQL_COSTE_COMPRA_ALBARAN,
+      ASolicitud.CodigoArticulo, ASolicitud.CodigoUnidad);
+  bPrecioDeCompra := not AConsulta.IsEmpty and
+    not AConsulta.FieldByName('NETO').IsNull and
+    (Abs(AConsulta.FieldByName('COSTE').AsFloat -
+      ASolicitud.PrecioCoste) < 0.000001);
+  rNeto := 0;
+  if bPrecioDeCompra then
+    rNeto := AConsulta.FieldByName('NETO').AsFloat;
   AConsulta.Close;
   AConsulta.SQL.Text := SQL_GUARDAR_PRECIO_SALIDA;
+  AConsulta.ParamByName('p_neto').DataType := ftFloat;
+  if bPrecioDeCompra then
+    AConsulta.ParamByName('p_neto').AsFloat := rNeto
+  else
+    AConsulta.ParamByName('p_neto').Clear;
   AConsulta.ParamByName('p_salida').AsFloat := ASolicitud.PrecioSalida;
   AConsulta.ParamByName('p_coste').AsFloat := ASolicitud.PrecioCoste;
   AConsulta.ParamByName('p_usuario').AsString := ASolicitud.Usuario;

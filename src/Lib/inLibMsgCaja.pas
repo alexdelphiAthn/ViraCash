@@ -117,6 +117,8 @@ resourcestring
     'Los parámetros de caja no ofrecen el contrato de edición.';
   SErrorOperacionCajaNoEncontrada =
     'No se ha encontrado la operación en la caja especificada.';
+  SErrorCuentaClienteCajaCambiada =
+    'La cuenta del cliente ha cambiado. Vuelve a cargarla con F2.';
   STituloOperacionesCajaStock = 'Operaciones de caja';
   SErrorConexionOperacionesCajaSkuNoDisponible =
     'No hay una conexión disponible para la consulta.';
@@ -284,15 +286,13 @@ resourcestring
     'No hay empresa/almacén/caja asignados. Selecciona una caja antes de ' +
     'hacer traspasos.';
   SErrorRectificacionCajaNoAdmiteBorrador =
-    'Una rectificación se cierra como ticket rectificativo, no como ' +
-    'borrador normal.';
+    'Cierre esta rectificación con un ticket rectificativo.';
   SErrorTotalCajaNoAdmiteBorrador =
-    'No se puede emitir un borrador en una devolución o con total cero.';
+    'No se puede emitir una factura con una devolución o con total cero.';
   SErrorClienteBorradorCajaNoAsignado =
-    'Asigne un cliente a la operación para emitir borrador.';
+    'Asigne un cliente a la operación para emitir la factura.';
   SErrorNifClienteBorradorCajaNoIndicado =
-    'El cliente no tiene NIF: complételo en su ficha para poder emitir ' +
-    'borrador normal.';
+    'Complete el NIF en la ficha del cliente para emitir la factura.';
   // FZ-ISSUE-369
   SAvisoTotalCobroCambiaTipoFactura =
     'El total a cobrar pasa de %s a %s: la factura completa lleva el ' +
@@ -794,8 +794,6 @@ resourcestring
   SPreguntaPasarArticuloTarasCaja =
     '¿Desea pasar el artículo a almacén de Taras?';
   SCaptionVentaContado = 'VENTA CONTADO';
-  SCaptionVerHistoricoCaja = 'Ver histórico';
-  SCaptionOcultarHistoricoCaja = 'Ocultar histórico';
   SCaptionTotalCero = 'Total 0,00 €';
   SCaptionTotalImporte = 'Total %m';
   SCaptionRectificativaTipo = 'RECTIFICATIVA' + sLineBreak + '%s';

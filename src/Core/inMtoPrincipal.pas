@@ -479,7 +479,7 @@ uses
   inLibMsgTrazabilidad,
   inLibTrazabilidad, inLibReparaciones, inLibMsgReparaciones,
   inLibListasRegalos,
-  inLibCajaParam,
+  inLibCajaParam, inLibAppParam,
   inLibMsgLotesConsultas,
   UniDataLotesConsultas,
   inLibMsgLogon,
@@ -976,7 +976,6 @@ end;
 
 procedure TfrmMtoPrincipal.ConfigurarPresentacionPrincipal;
 begin
-  AplicarPermisosMenu;
   AplicarInterruptoresTrazabilidad;
   AplicarInterruptorTransito;
   AplicarInterruptorListasRegalos;
@@ -986,6 +985,7 @@ begin
     mnuEjecutarScript.Visible := False;
     mnuEjecutarScript.Enabled := False;
   end;
+  AplicarPermisosMenu;
   // Visibilidad inicial del panel de monitor SQL: ya no la decide solo el
   // {$IFDEF DEBUG}. AplicarModosDepuracion la sincronizará con los flags
   // appModoDebug / appModoDebugSQL que acaba de cargar el servicio.
@@ -1145,12 +1145,9 @@ end;
 procedure TfrmMtoPrincipal.AplicarPermisosMenu;
 var
   i: Integer;
-  // Las pantallas registradas quedan visibles y desactivadas. Los menús
-  // directos de la rama "Menús no visibles" se ocultan por completo.
   function ProcesarItem(AItem: TMenuItem): Boolean;
   var
     j: Integer;
-    sCall, sCodigo: string;
     bHayHijoVisible: Boolean;
   begin
     if AItem.Caption = '-' then
@@ -1170,25 +1167,13 @@ var
     end
     else
     begin
-      sCodigo := FComposicion.RegistroPantallas.CodigoMenu(AItem);
       if not PuedeAbrirMenu(AItem) then
       begin
-        sCall := FComposicion.RegistroPantallas.CallRegistrado(AItem);
+        AItem.Visible := False;
         AItem.Enabled := False;
-        if sCall <> '' then
-        begin
-          AItem.Visible := True;
-          RegistroLog.RegistrarInformacion(Format(
-            'Permiso %s denegado: menú desactivado',
-            [sCodigo]));
-        end
-        else
-        begin
-          AItem.Visible := False;
-          RegistroLog.RegistrarInformacion(Format(
-            'Permiso %s denegado: menú oculto',
-            [sCodigo]));
-        end;
+        RegistroLog.RegistrarInformacion(Format(
+          'Permiso %s denegado: menú oculto',
+          [FComposicion.RegistroPantallas.CodigoMenu(AItem)]));
       end;
       Result := AItem.Visible;
     end;
@@ -1201,9 +1186,9 @@ end;
 
 procedure TfrmMtoPrincipal.AplicarInterruptorTransito;
 begin
-  mnuCargasTransito.Visible := UsarAlmacenesTransito(ParametrosCaja);
-  mnuCargasTransito.Enabled := mnuCargasTransito.Visible and
+  mnuCargasTransito.Visible := UsarAlmacenesTransito(ParametrosCaja) and
     PuedeAbrirMenu(mnuCargasTransito);
+  mnuCargasTransito.Enabled := mnuCargasTransito.Visible;
 end;
 
 procedure TfrmMtoPrincipal.mnuAlmacenClick(Sender: TObject);
@@ -1229,13 +1214,11 @@ end;
 // en Parámetros surte efecto sin reiniciar. Encendido, el permiso del menú
 // sigue decidiendo si se puede abrir.
 procedure TfrmMtoPrincipal.AplicarInterruptorListasRegalos;
-var
-  bActivo: Boolean;
 begin
-  bActivo := ParametrosApp.GetBool(PARAMETRO_LISTAS_REGALOS, False);
-  mnuListasRegalosPrestaShop.Visible := bActivo;
-  mnuListasRegalosPrestaShop.Enabled := bActivo and
+  mnuListasRegalosPrestaShop.Visible :=
+    ParametrosApp.GetBool(PARAMETRO_LISTAS_REGALOS, False) and
     PuedeAbrirMenu(mnuListasRegalosPrestaShop);
+  mnuListasRegalosPrestaShop.Enabled := mnuListasRegalosPrestaShop.Visible;
 end;
 
 procedure TfrmMtoPrincipal.mnuVentasMayorClick(Sender: TObject);
@@ -2876,9 +2859,14 @@ end;
 
 // --- IAnfitrionPantallas -------------------------------------------
 function TfrmMtoPrincipal.GestorVentanas: TEmbeddedFormManager;
+var
+  Parametros: IParametrosAplicacion;
 begin
   if FormManager = nil then
     FormManager := TEmbeddedFormManager.Create(pcPrincipal);
+  Parametros := ParametrosApp;
+  FormManager.MaximizarMantenimientos := not Assigned(Parametros) or
+    Parametros.GetBool(PARAMETRO_MAXIMIZAR_MANTENIMIENTOS, True);
   Result := FormManager;
 end;
 

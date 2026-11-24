@@ -1881,9 +1881,7 @@ end;
 // Última compra por SKU (y por artículo como respaldo) de las líneas
 // guardadas del inventario: coste del SKU y, si no consta, el del proveedor
 // principal. Las claves son 'S:' + SKU y 'A:' + artículo.
-// El último precio de compra se guarda sin impuestos (FZ-ISSUE-381): para
-// valorar el stock de una empresa en recargo se le suman el IVA y el
-// recargo, que no deduce, igual que hace su PMP.
+// Partir del neto para aplicar los impuestos de la empresa del inventario.
 function CargarUltimasComprasInventario(
   AConexion: TUniConnection;
   const AEmpresa, AAlmacen, ASerie, ANumero: string):
@@ -1903,7 +1901,8 @@ begin
     oConsulta.SQL.Text :=
       'SELECT DISTINCT L.CODIGO_UNIDAD_INVLIN AS SKU, ' +
       '       L.CODIGO_ART_INVLIN AS ARTICULO, ' +
-      '       (SELECT C.PRECIO_ULT_COMPRA_SKUC ' +
+      '       (SELECT COALESCE(C.PRECIO_ULT_COMPRA_NETO_SKUC, ' +
+      '                        C.PRECIO_ULT_COMPRA_SKUC) ' +
       '          FROM fza_articulos_skus_costes C ' +
       '         WHERE C.CODIGO_UNIDAD_SKU_SKUC = L.CODIGO_UNIDAD_INVLIN) ' +
       '         * ' + SQL_FACTOR_COSTE_INVENTARIO +
@@ -2141,7 +2140,8 @@ const
     '         WHERE AL.CODIGO_EMP_ALM = L.CODIGO_EMP_INVLIN ' +
     '           AND S.CODIGO_UNIDAD_STK = L.CODIGO_UNIDAD_INVLIN), 0) ' +
     '         AS PMP_EMPRESA, ' +
-    '       COALESCE((SELECT T.PRECIO_COSTE_ARTTAR ' +
+    '       COALESCE((SELECT COALESCE(T.PRECIO_COSTE_NETO_ARTTAR, ' +
+    '                                 T.PRECIO_COSTE_ARTTAR) ' +
     '          FROM fza_articulos_tarifas T ' +
     '         WHERE T.CODIGO_ART_ARTTAR = L.CODIGO_ART_INVLIN ' +
     '           AND (T.CODIGO_UNIDAD_ARTTAR = L.CODIGO_UNIDAD_INVLIN ' +

@@ -631,8 +631,7 @@ begin
   end;
 end;
 
-// Serie de la factura normal: la del almacén del ticket o la primera de la
-// empresa; fecha, la de hoy; cliente, el del ticket; forma de pago, contado.
+// Propone la serie normal general de la empresa antes que la del almacén.
 function TfrmModalFacturarTicket.Configurar(
   const AAlmacen: string): TConfiguracionOpcionesDocumento;
 var
@@ -641,6 +640,7 @@ var
 begin
   oTipo := Default(TTipoOpcionesDocumento);
   oTipo.Codigo := 'FC';
+  oTipo.Subtipo := 'NORMAL';
   oTipo.Nombre := SNombreFacturaVentaOpcionesDocumento;
   oCliente := Default(TCampoAdicionalOpcionesDocumento);
   oCliente.Clave := CLAVE_CLIENTE;
@@ -655,8 +655,8 @@ begin
     oCliente.Alta := AltaRapidaCliente;
   oCliente.Resolver := ResolverCliente;
   Result := Default(TConfiguracionOpcionesDocumento);
-  Result.Titulo := STituloFacturarTicketOpcionesDocumento;
-  Result.Aviso := Format(SAvisoFacturarTicketOpcionesDocumento,
+  Result.Titulo := STituloFacturacionTicketOpcionesDocumento;
+  Result.Aviso := Format(SAvisoBorradorSustitucionTicketOpcionesDocumento,
     [FormatearDocumento(
       CrearFormatoDocumentoLecturas(ConexionPrincipal).LeerFormatoEmpresa(
         FEmpresa), FSerieTicket, FNumeroTicket)]);
@@ -676,6 +676,7 @@ begin
   Result.Propuesta.Adicionales := [oCliente];
   Result.Visibles := [codEmpresa, codSerie, codNumero, codFecha,
     codFormaPago];
+  Result.SerieSoloLista := True;
   Result.PermiteNumeroManual := True;
   Result.Validar := ComprobarFacturaNormal;
 end;

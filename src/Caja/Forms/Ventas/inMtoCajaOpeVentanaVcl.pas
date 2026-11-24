@@ -256,29 +256,26 @@ var
   Hora: TDateTime;
   Fecha: TDateTime;
 begin
-  Fecha := FContexto.ObtenerFecha();
-  if Fecha = 0 then
-    Fecha := Now;
-  HoraTexto := FormatDateTime('hh:nn', Fecha);
-  if InputQuery_fza(STituloHoraCaja, SSolicitudHoraCaja, HoraTexto) then
+  if PuedeCambiarHoraCaja(FContexto.Permisos) then
   begin
-    if TryStrToTime(HoraTexto, Hora) then
-      Fecha := Trunc(Fecha) + Frac(Hora)
-    else
+    Fecha := FContexto.ObtenerFecha();
+    if Fecha = 0 then
+      Fecha := Now;
+    HoraTexto := FormatDateTime('hh:nn', Fecha);
+    if InputQuery_fza(STituloHoraCaja, SSolicitudHoraCaja, HoraTexto) then
     begin
-      ShowMessage_fza(SErrorHoraCajaNoValida);
-      HoraTexto := '';
+      if TryStrToTime(HoraTexto, Hora) then
+      begin
+        Fecha := Trunc(Fecha) + Frac(Hora);
+        FContexto.EstablecerFecha(Fecha);
+        ReiniciarReloj;
+        FContexto.EtiquetaFecha.Caption := FContexto.FormatearFecha(Fecha);
+        FContexto.EscribirFechaCabecera(Fecha);
+        FContexto.NotificarFecha(Fecha);
+      end
+      else
+        ShowMessage_fza(SErrorHoraCajaNoValida);
     end;
-  end
-  else
-    Fecha := Now;
-  if HoraTexto <> '' then
-  begin
-    FContexto.EstablecerFecha(Fecha);
-    ReiniciarReloj;
-    ActualizarReloj;
-    FContexto.EscribirFechaCabecera(FContexto.ObtenerFecha());
-    FContexto.NotificarFecha(FContexto.ObtenerFecha());
   end;
 end;
 

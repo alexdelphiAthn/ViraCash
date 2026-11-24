@@ -29,7 +29,7 @@ type
     MensajeError: string;
   end;
 
-  // Última compra entre los SKU de una fila de tarifa: coste sin impuestos
+  // Última compra entre los SKU de una fila de tarifa: coste valorado
   // (0 si no hay compra), su fecha (0 si no hay) y el proveedor del albarán
   // de esa fecha ('' si no se encuentra, p. ej. una factura sin albarán).
   TUltimaCompraTarifa = record

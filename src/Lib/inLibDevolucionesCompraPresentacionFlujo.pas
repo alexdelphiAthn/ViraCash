@@ -246,6 +246,7 @@ begin
     AContexto.Cabecera, 'CODIGO_PRV_DEVC');
   Result.CodigoAlmacen := LeerTexto(
     AContexto.Cabecera, 'CODIGO_ALM_DEVC');
+  Result.CodigoEmpresa := LeerTexto(AContexto.Cabecera, 'CODIGO_EMP_DEVC');
   Result.CodigoArticulo := AContexto.CodigoArticulo;
   Result.Usuario := AContexto.Usuario;
   AContexto.ObtenerColor(

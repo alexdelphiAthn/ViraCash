@@ -998,15 +998,11 @@ begin
                         [sLineasSinSku]),
                  mtWarning, [mbYes, mbNo], 0) = mrYes) then
   begin
+    ComprobarPermisoGrabar;
     if Assigned(FPivote) and FPivote.Activo and
        not FPivote.Expandido then
       FPivote.PersistirCantidadesPendientes;
     inherited;
-    if dsTablaG.State in dsEditModes then
-    begin
-      dmmFacturasCompra.CalcularTotalesFacturaCompra;
-      dsTablaG.DataSet.Post;
-    end;
     if Assigned(FPivote) and FPivote.Activo then
       FPivote.RecargarYRepublicar;
   end;

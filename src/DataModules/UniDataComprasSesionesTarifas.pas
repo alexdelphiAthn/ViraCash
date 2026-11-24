@@ -23,8 +23,30 @@ uses
   inLibComprasSesionesIntf,
   inLibComprasSesionesPreciosTalla;
 
-// Filas activas del artículo en la tarifa que están vigentes en AFecha;
-// de cada clave, la que empieza más tarde.
+const
+  SQL_IVA_COSTE_SESION =
+    ' LEFT JOIN vi_ivas_empresa V ' +
+    '   ON V.CODIGO_EMP_EMP = S.CODIGO_EMP_SES ' +
+    '  AND V.ESDEFAULT_IVA_IVAGRP = ''S'' ';
+
+  SQL_FACTOR_COSTE_SESION =
+    'CASE WHEN IFNULL(S.ESIVA_EXENTO_INTRACOMUNITARIO_SES, ''N'') <> ''S'' ' +
+    'AND IFNULL(S.ESIVA_RECARGO_COMPRAS_SES, ''N'') = ''S'' THEN ' +
+    '1 + (CASE (CASE WHEN IFNULL(S.ESVARIOS_TIPOS_IVA_SES, ''N'') = ''S'' ' +
+    'THEN COALESCE(NULLIF(L.TIPO_IVA_SESLIN, ''''), ' +
+    'NULLIF(S.TIPO_IVA_SES, ''''), ''N'') ' +
+    'ELSE COALESCE(NULLIF(S.TIPO_IVA_SES, ''''), ''N'') END) ' +
+    'WHEN ''N'' THEN IFNULL(V.PORCENTAJE_NORMAL_IVA, 0) + ' +
+    'IFNULL(V.PORCENTAJE_NORMAL_RE_IVA, 0) ' +
+    'WHEN ''R'' THEN IFNULL(V.PORCENTAJE_REDUCIDO_IVA, 0) + ' +
+    'IFNULL(V.PORCENTAJE_REDUCIDO_RE_IVA, 0) ' +
+    'WHEN ''S'' THEN IFNULL(V.PORCENTAJE_SUPERREDUCIDO_IVA, 0) + ' +
+    'IFNULL(V.PORCENTAJE_SUPERREDUCIDO_RE_IVA, 0) ' +
+    'WHEN ''E'' THEN IFNULL(V.PORCENTAJE_EXENTO_IVA, 0) + ' +
+    'IFNULL(V.PORCENTAJE_EXENTO_RE_IVA, 0) ' +
+    'ELSE 0 END) / 100 ELSE 1 END';
+
+// Filas activas y vigentes, con el coste neto para comparar el patrón.
 function LeerFilasVigentesTarifa(AConexion: TUniConnection;
   const ACodigoArticulo, ACodigoTarifa: string;
   AFecha: TDateTime): TFilasPrecioTarifa;
@@ -34,7 +56,7 @@ function LeerFilasVigentesTarifa(AConexion: TUniConnection;
 procedure GrabarFilasPrecioTarifa(AConexion: TUniConnection;
   const ACodigoArticulo, ACodigoTarifa, AUsuario: string;
   const AFilas: TFilasPrecioTarifa;
-  const AOpciones: TOpcionesTarifaSesion);
+  const AOpciones: TOpcionesTarifaSesion; AFactorCoste: Double);
 // Vista previa, sin escribir: artículos de la sesión con precios por
 // talla, color o SKU, o con filas vigentes en la tarifa.
 function CalcularPreciosTarifaSesion(AConexion: TUniConnection;
@@ -51,13 +73,14 @@ implementation
 
 uses
   System.SysUtils,
-  inLibGeneracionSkus;
+  inLibGeneracionSkus, inLibRedondeo;
 
 const
   SQL_FILAS_VIGENTES =
     'SELECT T.CODIGO_UNICO_ARTTAR, T.CODIGO_UNIDAD_ARTTAR, ' +
     '       T.FECHA_DESDE_ARTTAR, ' +
-    '       COALESCE(T.PRECIO_COSTE_ARTTAR, 0) AS COSTE, ' +
+    '       COALESCE(T.PRECIO_COSTE_NETO_ARTTAR, ' +
+    '         T.PRECIO_COSTE_ARTTAR, 0) AS COSTE, ' +
     '       COALESCE(T.PRECIO_FINAL_ARTTAR, 0) AS PVP ' +
     '  FROM fza_articulos_tarifas T ' +
     ' WHERE T.CODIGO_ART_ARTTAR = :ART ' +
@@ -74,6 +97,7 @@ const
     '   SET PRECIO_SALIDA_ARTTAR = :PVP, ' +
     '       PRECIO_FINAL_ARTTAR = :PVP, ' +
     '       PRECIO_COSTE_ARTTAR = :COSTE, ' +
+    '       PRECIO_COSTE_NETO_ARTTAR = :NETO, ' +
     '       ESACTIVO_ARTTAR = ''S'', ' +
     '       INSTANTE_MODIF = NOW(), ' +
     '       USUARIO_MODIF = :USUARIO ' +
@@ -88,9 +112,9 @@ const
     'INSERT INTO fza_articulos_tarifas ' +
     '  (CODIGO_ART_ARTTAR, CODIGO_UNIDAD_ARTTAR, CODIGO_TAR_ARTTAR, ' +
     '   ESACTIVO_ARTTAR, PRECIO_SALIDA_ARTTAR, PRECIO_FINAL_ARTTAR, ' +
-    '   PRECIO_COSTE_ARTTAR, FECHA_DESDE_ARTTAR, ' +
+    '   PRECIO_COSTE_ARTTAR, PRECIO_COSTE_NETO_ARTTAR, FECHA_DESDE_ARTTAR, ' +
     '   INSTANTE_ALTA, USUARIO_ALTA, INSTANTE_MODIF, USUARIO_MODIF) ' +
-    'VALUES (:ART, :UNIDAD, :TAR, ''S'', :PVP, :PVP, :COSTE, :DESDE, ' +
+    'VALUES (:ART, :UNIDAD, :TAR, ''S'', :PVP, :PVP, :COSTE, :NETO, :DESDE, ' +
     '        NOW(), :USUARIO, NOW(), :USUARIO)';
   // Una fila por SKU con cantidad de las líneas de matriz.
   SQL_PRECIOS_SKUS_SESION =
@@ -114,6 +138,7 @@ const
     '       IFNULL(S.PORCENTAJE_DTO_COMERCIAL_SES, 0) / 100) ' +
     '       * (1 - IFNULL(L.PORCENTAJE_DTO_SESLIN, 0) / 100) ' +
     '       AS COSTE_LINEA, ' +
+    '       ' + SQL_FACTOR_COSTE_SESION + ' AS FACTOR_COSTE_RE, ' +
     '       COALESCE(L.PRECIO_VENTA_SESLIN, 0) AS PVP_LINEA, ' +
     '       COALESCE(P.PRECIO_COMPRA_SESLINSKU, L.PRECIO_COMPRA_SESLIN, 0) ' +
     '       * GREATEST(0, 1 - IFNULL(S.PORCENTAJE_DTO_COMERCIAL_SES, 0) ' +
@@ -125,6 +150,7 @@ const
     '  JOIN fza_compras_sesiones S ' +
     '    ON S.SERIE_SES = L.SERIE_SES_SESLIN ' +
     '   AND S.NUMERO_SES = L.NUMERO_SES_SESLIN ' +
+    SQL_IVA_COSTE_SESION +
     '  LEFT JOIN fza_compras_sesiones_celdas C ' +
     '    ON C.SERIE_SES_SESCEL = L.SERIE_SES_SESLIN ' +
     '   AND C.NUMERO_SES_SESCEL = L.NUMERO_SES_SESLIN ' +
@@ -149,6 +175,7 @@ type
   // Artículo de la vista previa mientras se recorren sus SKU.
   TArticuloVistaPrevia = record
     CodigoArticulo: string;
+    FactorCosteRecargo: Double;
     Referencia: TFilaPrecioTarifa;
     Precios: TPreciosSkuSesion;
   end;
@@ -261,12 +288,22 @@ begin
   end;
 end;
 
+function CosteTarifaSesion(ANeto, AFactorCoste: Double): Double;
+begin
+  Result := ANeto;
+  if AFactorCoste > 1 then
+    Result := RedondearACentimos(ANeto * AFactorCoste);
+end;
+
 procedure EjecutarActualizarFila(AConsulta: TUniQuery; ACodigo: Integer;
-  const AFila: TFilaPrecioTarifa; const AUsuario: string);
+  const AFila: TFilaPrecioTarifa; const AUsuario: string;
+  AFactorCoste: Double);
 begin
   AConsulta.SQL.Text := SQL_ACTUALIZAR_FILA;
   AConsulta.ParamByName('PVP').AsFloat := AFila.Pvp;
-  AConsulta.ParamByName('COSTE').AsFloat := AFila.Coste;
+  AConsulta.ParamByName('COSTE').AsFloat :=
+    CosteTarifaSesion(AFila.Coste, AFactorCoste);
+  AConsulta.ParamByName('NETO').AsFloat := AFila.Coste;
   AConsulta.ParamByName('USUARIO').AsString := AUsuario;
   AConsulta.ParamByName('CODIGO').AsInteger := ACodigo;
   AConsulta.ExecSQL;
@@ -275,14 +312,16 @@ end;
 procedure EjecutarInsertarFila(AConsulta: TUniQuery;
   const ACodigoArticulo, ACodigoTarifa: string;
   const AFila: TFilaPrecioTarifa; ADesde: TDateTime;
-  const AUsuario: string);
+  const AUsuario: string; AFactorCoste: Double);
 begin
   AConsulta.SQL.Text := SQL_INSERTAR_FILA;
   AConsulta.ParamByName('ART').AsString := ACodigoArticulo;
   AConsulta.ParamByName('UNIDAD').AsString := AFila.Clave;
   AConsulta.ParamByName('TAR').AsString := ACodigoTarifa;
   AConsulta.ParamByName('PVP').AsFloat := AFila.Pvp;
-  AConsulta.ParamByName('COSTE').AsFloat := AFila.Coste;
+  AConsulta.ParamByName('COSTE').AsFloat :=
+    CosteTarifaSesion(AFila.Coste, AFactorCoste);
+  AConsulta.ParamByName('NETO').AsFloat := AFila.Coste;
   AConsulta.ParamByName('DESDE').AsDate := ADesde;
   AConsulta.ParamByName('USUARIO').AsString := AUsuario;
   AConsulta.ExecSQL;
@@ -301,7 +340,7 @@ end;
 procedure GrabarFilasPrecioTarifa(AConexion: TUniConnection;
   const ACodigoArticulo, ACodigoTarifa, AUsuario: string;
   const AFilas: TFilasPrecioTarifa;
-  const AOpciones: TOpcionesTarifaSesion);
+  const AOpciones: TOpcionesTarifaSesion; AFactorCoste: Double);
 var
   oConsulta: TUniQuery;
   oFila: TFilaPrecioTarifa;
@@ -319,17 +358,18 @@ begin
         ACodigoTarifa, oFila.Clave, dtDesde, dtVigente);
       if iCodigo = 0 then
         EjecutarInsertarFila(oConsulta, ACodigoArticulo, ACodigoTarifa,
-          oFila, dtDesde, AUsuario)
+          oFila, dtDesde, AUsuario, AFactorCoste)
       else if (AOpciones.Modo = mteNuevaDesde) and
               (Int(dtVigente) < dtDesde) then
       begin
         // La fila anterior se conserva hasta el día antes de la nueva.
         EjecutarCerrarFila(oConsulta, iCodigo, dtDesde - 1, AUsuario);
         EjecutarInsertarFila(oConsulta, ACodigoArticulo, ACodigoTarifa,
-          oFila, dtDesde, AUsuario);
+          oFila, dtDesde, AUsuario, AFactorCoste);
       end
       else
-        EjecutarActualizarFila(oConsulta, iCodigo, oFila, AUsuario);
+        EjecutarActualizarFila(oConsulta, iCodigo, oFila, AUsuario,
+          AFactorCoste);
     end;
   finally
     FreeAndNil(oConsulta);
@@ -376,6 +416,8 @@ begin
         iArticulo := Length(Result);
         SetLength(Result, iArticulo + 1);
         Result[iArticulo].CodigoArticulo := sArticulo;
+        Result[iArticulo].FactorCosteRecargo :=
+          oConsulta.FieldByName('FACTOR_COSTE_RE').AsFloat;
         Result[iArticulo].Referencia.Clave := '';
         Result[iArticulo].Referencia.Coste :=
           oConsulta.FieldByName('COSTE_LINEA').AsFloat;
@@ -411,6 +453,7 @@ var
   oArticulo: TArticuloVistaPrevia;
   oVigentes: TFilasPrecioTarifa;
   oPrecios: TArticuloPreciosTarifa;
+  iFila: Integer;
 begin
   SetLength(Result, 0);
   if Trim(ACodigoTarifa) <> '' then
@@ -424,6 +467,9 @@ begin
       oPrecios.TieneVigentes := Length(oVigentes) > 0;
       oPrecios.Filas := CalcularFilasPrecioTarifa(oArticulo.CodigoArticulo,
         oArticulo.Precios, oArticulo.Referencia, oVigentes);
+      for iFila := 0 to High(oPrecios.Filas) do
+        oPrecios.Filas[iFila].Coste := CosteTarifaSesion(
+          oPrecios.Filas[iFila].Coste, oArticulo.FactorCosteRecargo);
       // Sin PVP la sesión no toca la tarifa del artículo.
       if (oPrecios.Filas[0].Pvp > 0) and
          (TienePreciosPorTalla(oPrecios.Filas) or oPrecios.TieneVigentes) then

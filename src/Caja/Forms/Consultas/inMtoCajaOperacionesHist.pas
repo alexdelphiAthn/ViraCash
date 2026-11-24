@@ -444,9 +444,14 @@ begin
   FdmConsulta := TdmConsultaOpe.Create(
     Self,
     ConexionPrincipal,
-    RegistroLog);
+    RegistroLog,
+    PuedeVerCostes(Permisos));
   CrearAccionesFicha;
   CrearFichaDetalle;
+  if not PuedeVerCostes(Permisos) then
+    RestringirColumnas([
+      FtvDetalleMovimientos.GetColumnByFieldName('PRECIO_MEDIO_MOV'),
+      FtvDetalleMovimientos.GetColumnByFieldName('TOTAL_COSTE_MOV')]);
   CrearColumnaFotosOperacion;
   // El check solo aparece si hay columna de miniaturas; arranca con lo
   // ultimo que grabo el usuario en su perfil, y marcado si no hay nada.

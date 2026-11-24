@@ -135,6 +135,7 @@ begin
     FPropietario, FConexion, FParametrosCaja);
   try
     Formulario := TfrmPrintFac.Create(Application);
+    Formulario.ConfigurarRotulosFacturaEmitida;
     Formulario.edtSerie.Text := ASerie;
     Formulario.edtNroFac.Text := ANumero;
     Formulario.ConfigurarDataModule(DatosFactura);

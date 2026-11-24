@@ -86,6 +86,7 @@ type
     // True si alguna operacion del maestro cargado va a un cliente
     // distinto del generico de caja.
     FHayClienteIdentificado: Boolean;
+    FMostrarCostes: Boolean;
     FOnNotificarMensaje: TNotificarMensajeDatosEvent;
     procedure ConectarConsultas;
     procedure ConfigurarConsultaMaestro;
@@ -102,7 +103,8 @@ type
     constructor Create(
       AOwner: TComponent;
       AConexion: TUniConnection;
-      const ARegistroLog: IRegistroLog); reintroduce;
+      const ARegistroLog: IRegistroLog;
+      AMostrarCostes: Boolean); reintroduce;
     procedure CargarMaestro(AFecha:     TDate;
                             const AEmp,
                                   AAlm,
@@ -152,12 +154,14 @@ const
 constructor TdmConsultaOpe.Create(
   AOwner: TComponent;
   AConexion: TUniConnection;
-  const ARegistroLog: IRegistroLog);
+  const ARegistroLog: IRegistroLog;
+  AMostrarCostes: Boolean);
 begin
   if not Assigned(ARegistroLog) then
     raise EArgumentNilException.Create('ARegistroLog');
   FConexion := AConexion;
   FRegistroLog := ARegistroLog;
+  FMostrarCostes := AMostrarCostes;
   inherited Create(AOwner);
 end;
 
@@ -445,7 +449,13 @@ begin
 end;
 
 procedure TdmConsultaOpe.ConfigurarConsultasMovimientoCliente;
+var
+  sColumnasCoste: string;
 begin
+  if FMostrarCostes then
+    sColumnasCoste := 'm.PRECIO_MEDIO_MOV, m.TOTAL_COSTE_MOV '
+  else
+    sColumnasCoste := 'NULL AS PRECIO_MEDIO_MOV, NULL AS TOTAL_COSTE_MOV ';
   qryMovimientos.SQL.Text :=
     'SELECT m.NUMERO_MOV, '                                               +
     '       m.TIPO_DOC_MOV, '                                             +
@@ -459,8 +469,7 @@ begin
     '       a.DESCRIPCION_ART, '                                     +
     '       m.TIPO_MOV, '                                      +
     '       m.CANTIDAD_MOV, '                                             +
-    '       m.PRECIO_MEDIO_MOV, '                                         +
-    '       m.TOTAL_COSTE_MOV '                                           +
+    '       ' + sColumnasCoste +
     '  FROM fza_movimientos_almacen m '                                   +
     '  LEFT JOIN fza_articulos a '                                        +
     '    ON a.CODIGO_ART_ART = m.CODIGO_ART_MOV '                   +

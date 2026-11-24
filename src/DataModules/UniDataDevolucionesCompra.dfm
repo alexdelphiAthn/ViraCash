@@ -114,6 +114,8 @@
       '  FROM fza_almacenes'
       ' WHERE ESACTIVO_ALM = '#39'S'#39
       '   AND COALESCE(TIPO_USO_ALM, '#39#39') NOT IN ('#39'TR'#193'NSITO'#39', '#39'TRANSITO'#39')'
+      '   AND UPPER(TRIM(COALESCE(TIPO_USO_ALM, '#39#39'))) NOT IN '
+      '       ('#39'DEP'#211'SITO'#39', '#39'DEPOSITO'#39')'
       '   AND (CODIGO_EMP_ALM = :EMPRESA OR :EMPRESA = '#39#39')'
       ' ORDER BY ORDEN_ALM, CODIGO_ALM_ALM')
     Left = 160

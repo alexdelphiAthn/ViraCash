@@ -551,13 +551,13 @@ begin
     'src/Lib/inLibMsgOpcionesDocumento.pas',
     @inLibMsgOpcionesDocumento.SCaptionUnDocumentoPorAlmacenOpcionesDocumento);
   ARegistrar(
-    'inLibMsgOpcionesDocumento.STituloFacturarTicketOpcionesDocumento',
+    'inLibMsgOpcionesDocumento.STituloFacturacionTicketOpcionesDocumento',
     'src/Lib/inLibMsgOpcionesDocumento.pas',
-    @inLibMsgOpcionesDocumento.STituloFacturarTicketOpcionesDocumento);
+    @inLibMsgOpcionesDocumento.STituloFacturacionTicketOpcionesDocumento);
   ARegistrar(
-    'inLibMsgOpcionesDocumento.SAvisoFacturarTicketOpcionesDocumento',
+    'inLibMsgOpcionesDocumento.SAvisoBorradorSustitucionTicketOpcionesDocumento',
     'src/Lib/inLibMsgOpcionesDocumento.pas',
-    @inLibMsgOpcionesDocumento.SAvisoFacturarTicketOpcionesDocumento);
+    @inLibMsgOpcionesDocumento.SAvisoBorradorSustitucionTicketOpcionesDocumento);
   ARegistrar(
     'inLibMsgOpcionesDocumento.SCaptionClienteOpcionesDocumento',
     'src/Lib/inLibMsgOpcionesDocumento.pas',
@@ -4466,6 +4466,18 @@ begin
     'inLibMsgTrazabilidad.SErrorLoteReposicionLargo',
     'src/Lib/inLibMsgTrazabilidad.pas',
     @inLibMsgTrazabilidad.SErrorLoteReposicionLargo);
+  ARegistrar(
+    'inLibMsgTrazabilidad.SErrorPatronLoteRecepcionNoValido',
+    'src/Lib/inLibMsgTrazabilidad.pas',
+    @inLibMsgTrazabilidad.SErrorPatronLoteRecepcionNoValido);
+  ARegistrar(
+    'inLibMsgTrazabilidad.SErrorDatoPatronLoteRecepcion',
+    'src/Lib/inLibMsgTrazabilidad.pas',
+    @inLibMsgTrazabilidad.SErrorDatoPatronLoteRecepcion);
+  ARegistrar(
+    'inLibMsgTrazabilidad.SErrorLoteRecepcionRequiereConfirmacion',
+    'src/Lib/inLibMsgTrazabilidad.pas',
+    @inLibMsgTrazabilidad.SErrorLoteRecepcionRequiereConfirmacion);
   ARegistrar(
     'inLibMsgTrazabilidad.SErrorLoteReposicionOcupado',
     'src/Lib/inLibMsgTrazabilidad.pas',
@@ -12300,6 +12312,8 @@ begin
     'src/Lib/inLibMsgCaja.pas',
     @inLibMsgCaja.
       SErrorOperacionCajaNoEncontrada);
+  ARegistrar('inLibMsgCaja.SErrorCuentaClienteCajaCambiada',
+    'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.SErrorCuentaClienteCajaCambiada);
   ARegistrar(
     'inLibMsgCaja.' +
     'STituloOperacionesCajaStock',
@@ -14428,6 +14442,15 @@ begin
     'src/Lib/inLibMsgCompras.pas',
     @inLibMsgCompras.
       SErrorAlmacenSalidaDevolucionCompra);
+  ARegistrar('inLibMsgCompras.SErrorProveedorDevolucionCompraObligatorio',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SErrorProveedorDevolucionCompraObligatorio);
+  ARegistrar('inLibMsgCompras.SErrorAlmacenDepositoDevolucionCompra',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SErrorAlmacenDepositoDevolucionCompra);
+  ARegistrar('inLibMsgCompras.SErrorLoteSalidaDevolucionCompra',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SErrorLoteSalidaDevolucionCompra);
   ARegistrar(
     'inLibMsgCompras.' +
     'SAvisoDevolucionCompraFacturada',
@@ -31283,18 +31306,6 @@ begin
     'src/Lib/inLibMsgArticulos.pas',
     @inLibMsgArticulos.
       SErrorLineasSinPrecioNuevoSesionTarifa);
-  ARegistrar(
-    'inLibMsgCaja.' +
-    'SCaptionVerHistoricoCaja',
-    'src/Lib/inLibMsgCaja.pas',
-    @inLibMsgCaja.
-      SCaptionVerHistoricoCaja);
-  ARegistrar(
-    'inLibMsgCaja.' +
-    'SCaptionOcultarHistoricoCaja',
-    'src/Lib/inLibMsgCaja.pas',
-    @inLibMsgCaja.
-      SCaptionOcultarHistoricoCaja);
   ARegistrar(
     'inLibMsgCaja.' +
     'SErrorVentaOrigenDevolucionCajaNoActualizada',

@@ -208,23 +208,6 @@
       AnchorX = 1223
       AnchorY = 45
     end
-    object btnVerHistorico: TcxButton
-      Left = 554
-      Top = 2
-      Width = 200
-      Height = 26
-      Caption = 'Ver hist'#243'rico'
-      Font.Charset = ANSI_CHARSET
-      Font.Color = clWindowText
-      Font.Height = -14
-      Font.Name = 'Source Sans 3'
-      Font.Style = []
-      ParentFont = False
-      TabOrder = 10
-      TabStop = False
-      Visible = False
-      OnClick = btnVerHistoricoClick
-    end
   end
   object pnlCli: TPanel [1]
     Left = 0
@@ -712,6 +695,13 @@
             Options.Editing = False
             Width = 120
           end
+          object tvOrigenCuentaDeposito: TcxGridDBColumn
+            Caption = 'Empresa/Alm./Caja'
+            DataBinding.FieldName = 'ORIGEN_CUENTA_DEP'
+            Visible = False
+            Options.Editing = False
+            Width = 120
+          end
           object tvMarcaDeposito: TcxGridDBColumn
             Caption = 'Cobrar'
             DataBinding.FieldName = 'ESMARCADA_DEP'
@@ -732,6 +722,11 @@
           end
           object tvCantidadHistorico: TcxGridDBColumn
             DataBinding.FieldName = 'CANTIDAD_HISTORICO_DEP'
+            Visible = False
+            VisibleForCustomization = False
+          end
+          object tvSaldoConsultaDeposito: TcxGridDBColumn
+            DataBinding.FieldName = 'SALDO_CONSULTA_DEP'
             Visible = False
             VisibleForCustomization = False
           end

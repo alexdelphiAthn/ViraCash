@@ -97,6 +97,7 @@ type
     btnReimprimirOtros: TcxButton;
     btnCerrar:        TcxButton;
     tmrBusqueda:      TTimer;
+    tmrCambioDia:     TTimer;
     btnDevolverAbonar: TcxButton;
     btnAnularVerifactu: TcxButton;
     btnFacturarTicket: TcxButton;
@@ -106,6 +107,8 @@ type
     colFaseFactura: TcxGridDBColumn;
     colMovColor: TcxGridDBColumn;
     colMovTalla: TcxGridDBColumn;
+    colMovPMP: TcxGridDBColumn;
+    colMovCoste: TcxGridDBColumn;
     procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
@@ -114,6 +117,7 @@ type
     procedure chkVerTodosPropertiesChange(Sender: TObject);
     procedure chkVerMiniaturasPropertiesChange(Sender: TObject);
     procedure tmrBusquedaTimer(Sender: TObject);
+    procedure tmrCambioDiaTimer(Sender: TObject);
     procedure btnReimprimirClick(Sender: TObject);
     procedure btnReimprimirOtrosClick(Sender: TObject);
     procedure btnCerrarClick(Sender: TObject);
@@ -136,6 +140,7 @@ type
     FEmpresa:    string;
     FAlmacen:    string;
     FCaja:       string;
+    FSoloDiaActual: Boolean;
     FRepositorioFacturas: IRepositorioConsultaFacturasOperaciones;
     FRepositorioVentasCalendario: IRepositorioVentasCalendario;
     FServicioEmisionFiscal: IServicioEmisionFiscal;
@@ -316,13 +321,23 @@ begin
 end;
 
 procedure TfrmConsultaOpe.FormCreate(Sender: TObject);
+var
+  bMostrarCostes: Boolean;
 begin
   inherited;
   ValidarDependencias;
+  FSoloDiaActual := not PuedeUsarBoton(PERMISO_CAJA_BUSCAR_OTROS_DIAS);
+  dtpFecha.Enabled := not FSoloDiaActual;
+  bMostrarCostes := PuedeVerCostes(Permisos);
+  colMovPMP.Visible := bMostrarCostes;
+  colMovPMP.VisibleForCustomization := bMostrarCostes;
+  colMovCoste.Visible := bMostrarCostes;
+  colMovCoste.VisibleForCustomization := bMostrarCostes;
   FdmConsulta := TdmConsultaOpe.Create(
     Self,
     ConexionPrincipal,
-    RegistroLog);
+    RegistroLog,
+    bMostrarCostes);
   FdmConsulta.OnNotificarMensaje := NotificarMensajeDesdeDM;
   FLayout := TLayoutLoader.Create(
     Self.Name, ContextoSesion, PerfilesLectura);
@@ -443,7 +458,8 @@ procedure TfrmConsultaOpe.dtpFechaGetDayState(Sender: TObject;
   ADate: TDateTime; AState: TCustomDrawState; AFont: TFont;
   var ABackgroundColor: TColor);
 begin
-  FVentasCal.AplicarEstiloDia(ADate, AFont, ABackgroundColor);
+  if not FSoloDiaActual then
+    FVentasCal.AplicarEstiloDia(ADate, AFont, ABackgroundColor);
 end;
 
 procedure TfrmConsultaOpe.PrepararValores(const AEmpresa,
@@ -454,7 +470,10 @@ begin
   FEmpresa := AEmpresa;
   FAlmacen := AAlmacen;
   FCaja    := ACaja;
-  dtpFecha.Date := AFecha;
+  if FSoloDiaActual then
+    dtpFecha.Date := Date
+  else
+    dtpFecha.Date := AFecha;
   FVentasCal.Reconfigurar(AEmpresa, AAlmacen, ACaja);
 end;
 
@@ -482,6 +501,7 @@ begin
     [FEmpresa, FAlmacen, FCaja]);
   AplicarPermisosBotones;
   RecargarMaestro;
+  tmrCambioDia.Enabled := FSoloDiaActual;
   pcHijos.ActivePage := tsMovimientos;
   RestaurarLayout;
   ColumnaFormaPago := cxViewMaestro.GetColumnByFieldName('FORMAS_PAGO');
@@ -1238,21 +1258,30 @@ begin
 end;
 
 procedure TfrmConsultaOpe.RecargarMaestro;
+var
+  dFechaConsulta: TDate;
 begin
   if (FEmpresa = '') or (FAlmacen = '') or (FCaja = '') then
     RegistroLog.RegistrarInformacion(
       'RecargarMaestro: SKIP (contexto vacio)')
   else
   begin
+    dFechaConsulta := dtpFecha.Date;
+    if FSoloDiaActual then
+    begin
+      dFechaConsulta := Date;
+      if dtpFecha.Date <> dFechaConsulta then
+        dtpFecha.Date := dFechaConsulta;
+    end;
     RegistroLog.RegistrarInformacion(
       Format('RecargarMaestro: emp="%s" alm="%s" caja="%s" ' +
         'fecha=%s txt="%s"',
-        [FEmpresa, FAlmacen, FCaja, DateToStr(dtpFecha.Date),
+        [FEmpresa, FAlmacen, FCaja, DateToStr(dFechaConsulta),
          Trim(edtBuscar.Text)]));
     Screen.Cursor := crHourGlass;
     try
       FdmConsulta.CargarMaestro(
-        dtpFecha.Date, FEmpresa, FAlmacen, FCaja, Trim(edtBuscar.Text),
+        dFechaConsulta, FEmpresa, FAlmacen, FCaja, Trim(edtBuscar.Text),
         chkVerTodos.Checked);
       // Recargar es el momento de tirar la cache de fotos: asi una foto
       // anadida o rotada desde otra pantalla se ve sin reabrir.
@@ -1384,7 +1413,8 @@ begin
   // maestro dos veces seguidas con los mismos parametros porque tanto
   // OnChange como OnEditValueChanged se activan al setear dtpFecha.Date.
   // Eliminado el handler OnChange; este (OnEditValueChanged) es suficiente.
-  RecargarMaestro;
+  if not FSoloDiaActual then
+    RecargarMaestro;
 end;
 
 procedure TfrmConsultaOpe.dtpFechaPropertiesGetDayState(Sender: TObject;
@@ -1392,7 +1422,7 @@ procedure TfrmConsultaOpe.dtpFechaPropertiesGetDayState(Sender: TObject;
   var ABackgroundColor: TColor);
 begin
   inherited;
-  FVentasCal.AplicarEstiloDia(ADate, AFont, ABackgroundColor);
+  dtpFechaGetDayState(Sender, ADate, AState, AFont, ABackgroundColor);
 end;
 
 procedure TfrmConsultaOpe.edtBuscarPropertiesChange(Sender: TObject);
@@ -1405,6 +1435,12 @@ procedure TfrmConsultaOpe.tmrBusquedaTimer(Sender: TObject);
 begin
   tmrBusqueda.Enabled := False;
   RecargarMaestro;
+end;
+
+procedure TfrmConsultaOpe.tmrCambioDiaTimer(Sender: TObject);
+begin
+  if dtpFecha.Date <> Date then
+    RecargarMaestro;
 end;
 
 procedure TfrmConsultaOpe.btnReimprimirClick(Sender: TObject);

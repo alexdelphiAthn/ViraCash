@@ -628,7 +628,7 @@
           Top = 149
           Width = 155
           Height = 51
-          Caption = '&Pr'#233'stamo'
+          Caption = '&A cuenta / cr'#233'dito'
           Colors.Default = clBtnFace
           Colors.Normal = clBtnFace
           Colors.Hot = clSilver
@@ -697,7 +697,7 @@
           Top = 198
           Width = 155
           Height = 51
-          Caption = '&Borrador'
+          Caption = '&Facturar'
           Colors.Default = clBtnFace
           Colors.Normal = clBtnFace
           Colors.Hot = clSilver
@@ -1853,12 +1853,12 @@
       OnExecute = actSinPreciosExecute
     end
     object actDepositoCliente: TAction
-      Caption = 'DepositoCliente'
+      Caption = 'A cuenta / cr'#233'dito'
       ShortCut = 118
       OnExecute = actDepositoClienteExecute
     end
     object actFactura: TAction
-      Caption = 'Borrador'
+      Caption = 'Facturar'
       ShortCut = 119
       OnExecute = actFacturaExecute
     end

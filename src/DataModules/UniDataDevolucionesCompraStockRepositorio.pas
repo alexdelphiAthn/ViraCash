@@ -20,7 +20,7 @@ uses
   System.SysUtils,
   Data.DB,
   DBAccess,
-  UniDataReposicionAutomatica;
+  UniDataReposicionAutomatica, UniDataDevolucionesCompraMovimientos;
 
 type
   TServicioStockDevolucionCompra = class
@@ -28,6 +28,7 @@ type
     FConexion: TUniConnection;
     FParametros: TParametrosStockDevolucionCompra;
     FConsulta: TUniQuery;
+    FEmpresaConPartidas: Boolean;
     function SQLJoinColorLinea: string;
     function SQLCondicionGrupo: string;
     function SQLStockDisponible: string;
@@ -75,6 +76,8 @@ begin
   FParametros := AParametros;
   FConsulta := TUniQuery.Create(nil);
   FConsulta.Connection := FConexion;
+  FEmpresaConPartidas := EmpresaReposicionActiva(
+    FConexion, FParametros.CodigoEmpresa);
 end;
 
 destructor TServicioStockDevolucionCompra.Destroy;
@@ -135,7 +138,7 @@ begin
   sColor := '';
   sProveedor := '  JOIN ';
   sFiltro := ' AND ART.CODIGO_ART_ART = :art ';
-  if FParametros.Modo <> msdcFila then
+  if (FParametros.Modo <> msdcFila) or FEmpresaConPartidas then
   begin
     sCamposLote := '       STK.LOTE_STK AS LOTE, ' +
       '       MAX(STK.FECHA_CADUCIDAD_STK) AS CADUCIDAD, ';
@@ -190,7 +193,8 @@ begin
     '                    IN (''N'', ''R'', ''S'', ''E'') ' +
     '                THEN UPPER(ART.TIPO_IVA_ART) ' +
     '                ELSE ''N'' END) AS TIPO_IVA_ART, ' +
-    '       MAX(COALESCE(SKUC.PRECIO_ULT_COMPRA_SKUC, ' +
+    '       MAX(COALESCE(SKUC.PRECIO_ULT_COMPRA_NETO_SKUC, ' +
+    '                    SKUC.PRECIO_ULT_COMPRA_SKUC, ' +
     '                    AP.PRECIO_ULT_COMPRA_AP, 0)) AS PRECIO_COMPRA, ' +
     '       MIN(COALESCE(ART.ORDEN_ART, 999999)) AS ORDEN_ART ' +
     '  FROM fza_articulos_stockactual STK ' +
@@ -327,14 +331,26 @@ begin
 end;
 
 function TServicioStockDevolucionCompra.ContarStockDisponible: Integer;
+var
+  Resumen: string;
 begin
+  Resumen := '';
+  if FEmpresaConPartidas then
+    Resumen := ', MAX(CASE WHEN COALESCE(TRIM(X.LOTE), '''') = '''' ' +
+      'THEN 1 ELSE 0 END) AS SIN_LOTE';
   FConsulta.Close;
-  FConsulta.SQL.Text :=
-    'SELECT COUNT(*) AS N FROM (' + SQLStockDisponible + ') X';
+  FConsulta.SQL.Text := 'SELECT COUNT(*) AS N' + Resumen +
+    ' FROM (' + SQLStockDisponible + ') X';
   AsignarParametrosStock;
   FConsulta.Open;
-  Result := FConsulta.FieldByName('N').AsInteger;
-  FConsulta.Close;
+  try
+    Result := FConsulta.FieldByName('N').AsInteger;
+    if FEmpresaConPartidas and
+       (FConsulta.FieldByName('SIN_LOTE').AsInteger <> 0) then
+      ExigirLoteSalidaDevolucionCompra(True, '');
+  finally
+    FConsulta.Close;
+  end;
 end;
 
 function TServicioStockDevolucionCompra.ObtenerLineaBase: Integer;
@@ -386,7 +402,7 @@ begin
   sCamposLote := '';
   sValoresLote := '';
   sOrden := 'Y.ORDEN_ART, Y.ART, Y.SKU_STOCK';
-  if FParametros.Modo <> msdcFila then
+  if (FParametros.Modo <> msdcFila) or FEmpresaConPartidas then
   begin
     sCamposLote := 'LOTE_DEVCLIN, FECHA_CADUCIDAD_DEVCLIN, ';
     sValoresLote := 'Y.LOTE, Y.CADUCIDAD, ';
@@ -459,11 +475,12 @@ begin
           (FParametros.IdColor = 0) and ArticuloTieneColores then
     Result := esdcRequiereColor
   else if (FParametros.Modo = msdcLote) and
-          ((FParametros.Lote = '') or not EmpresaReposicionActiva(
-            FConexion, FParametros.CodigoEmpresa)) then
+          ((FParametros.Lote = '') or not FEmpresaConPartidas) then
     Result := esdcSinStock
   else
   begin
+    ExigirAlmacenSalidaDevolucionCompra(
+      FConexion, FParametros.CodigoEmpresa, FParametros.CodigoAlmacen);
     ALineasDisponibles := ContarStockDisponible;
     if ALineasDisponibles = 0 then
       Result := esdcSinStock
@@ -500,7 +517,7 @@ begin
       if FParametros.Modo = msdcFila then
         BorrarGrupo;
       iLineaBase := ObtenerLineaBase;
-      if (FParametros.Modo <> msdcFila) and
+      if ((FParametros.Modo <> msdcFila) or FEmpresaConPartidas) and
          (iLineaBase + iLineasDisponibles * 10 > 9999) then
         AEstado := esdcSinEspacioLineas
       else

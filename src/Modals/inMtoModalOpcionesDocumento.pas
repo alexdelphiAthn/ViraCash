@@ -191,6 +191,8 @@ procedure TfrmModalOpcionesDocumento.Preparar(
 begin
   FLector := ALector;
   FConfiguracion := AConfiguracion;
+  if FConfiguracion.SerieSoloLista then
+    cbbSerie.Properties.DropDownListStyle := lsFixedList;
   FAceptado := False;
   FCargando := True;
   try
@@ -620,6 +622,13 @@ var
 begin
   oResultado := ValidarOpcionesDocumento(FConfiguracion, OpcionesElegidas,
     chkNumeroAutomatico.Checked);
+  if oResultado.EsValido and FConfiguracion.SerieSoloLista and
+     (cbbSerie.Properties.Items.IndexOf(Trim(cbbSerie.Text)) < 0) then
+  begin
+    oResultado.EsValido := False;
+    oResultado.Campo := codSerie;
+    oResultado.Mensaje := SErrorSerieOpcionesDocumento;
+  end;
   Result := oResultado.EsValido;
   if Result and Assigned(FConfiguracion.Validar) and
      (not FConfiguracion.Validar(OpcionesElegidas, sMensaje)) then

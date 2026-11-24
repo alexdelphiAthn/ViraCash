@@ -667,7 +667,7 @@ begin
       ALineas.First;
       while (not ALineas.Eof) and (not Result) do
       begin
-        if EsLineaHistoricoDeposito(
+        if EsLineaConsultaDeposito(
              ALineas.FieldByName('VIENE_DE_DEPOSITO').AsString) then
           Result := True
         else
@@ -679,7 +679,7 @@ begin
   end;
 end;
 
-// El historico (depositos cerrados) nunca pasa al cobro. Las prendas sin
+// Las líneas de consulta nunca pasan al cobro. Las prendas sin
 // marcar y su abono, solo cuando hay alguna marcada.
 function DebeApartarseLineaVenta(
   ALineas: TDataSet;
@@ -690,7 +690,7 @@ var
 begin
   sVieneDeDep := Trim(ALineas.FieldByName('VIENE_DE_DEPOSITO').AsString);
   Result :=
-    EsLineaHistoricoDeposito(sVieneDeDep) or
+    EsLineaConsultaDeposito(sVieneDeDep) or
     (AHayMarcadas and
      (EsDepositoQueSeAparta(ALineas) or
       ((sVieneDeDep = 'A') and
@@ -754,7 +754,7 @@ begin
       ALineas.First;
       while not ALineas.Eof do
       begin
-        if EsLineaHistoricoDeposito(
+        if EsLineaConsultaDeposito(
              ALineas.FieldByName('VIENE_DE_DEPOSITO').AsString) then
           ALineas.Delete
         else

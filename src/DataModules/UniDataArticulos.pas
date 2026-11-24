@@ -461,6 +461,7 @@ const
     '       CAST('''' AS CHAR(100)) AS COD_TEMPORADA_LOTE,' +
     '       CAST('''' AS CHAR(50)) AS LOTE_ETI,'                              +
     '       CAST('''' AS CHAR(10)) AS CADUCIDAD_ETI,'                         +
+    '       CAST('''' AS CHAR(10)) AS FECHA_RECEPCION_ETI, ' +
     // FZ-ISSUE-603: «Lote L1 cad. 24/10/26», «S/N …» o la temporada.
     '       CAST('''' AS CHAR(80)) AS TEXTO_LOTE_ETI'                         +
     '  FROM vi_articulos_skus_etiquetas eti ' +
@@ -976,6 +977,9 @@ begin
         'VALUES (:SKU, :PRECIO, :FECHA, ' +
         '        CURRENT_TIMESTAMP, :USR, :USR) ' +
         'ON DUPLICATE KEY UPDATE ' +
+        '   PRECIO_ULT_COMPRA_NETO_SKUC = IF(PRECIO_ULT_COMPRA_SKUC <=> ' +
+        '     VALUES(PRECIO_ULT_COMPRA_SKUC), PRECIO_ULT_COMPRA_NETO_SKUC, ' +
+        '     NULL), ' +
         '   PRECIO_ULT_COMPRA_SKUC = VALUES(PRECIO_ULT_COMPRA_SKUC), ' +
         '   FECHA_ULT_COMPRA_SKUC  = VALUES(FECHA_ULT_COMPRA_SKUC), ' +
         '   USUARIO_MODIF          = VALUES(USUARIO_MODIF)';

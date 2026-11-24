@@ -72,7 +72,7 @@ implementation
 uses
   System.SysUtils, System.Variants, UniDataCodigosBarrasLote,
   UniDataAppParamRepositorio, inLibAppParamPersistenciaIntf,
-  inLibMsgTrazabilidad;
+  inLibMsgTrazabilidad, inLibErroresBBDD;
 
 function EsPartidaReposicion(AConexion: TUniConnection;
   const ASku, ALote: string): Boolean;
@@ -168,7 +168,10 @@ begin
     oReserva.ParamByName('p_SERIE').AsString := ARecepcion.Serie;
     oReserva.ParamByName('p_NUMERO').AsString := ARecepcion.Numero;
     oReserva.ParamByName('p_SKU').AsString := ARecepcion.Sku;
-    oReserva.ParamByName('p_TEMPORADA').AsString := ARecepcion.Temporada;
+    if Trim(ARecepcion.Temporada) = '' then
+      oReserva.ParamByName('p_TEMPORADA').Clear
+    else
+      oReserva.ParamByName('p_TEMPORADA').AsString := ARecepcion.Temporada;
     if Trim(ARecepcion.LoteSolicitado) = '' then
       oReserva.ParamByName('p_LOTE_SOLICITADO').Value := Null
     else
@@ -250,6 +253,89 @@ begin
   end;
 end;
 
+procedure LeerDatosPatronReposicion(AConexion: TUniConnection;
+  const ARecepcion: TRecepcionReposicion;
+  out ACodigoProveedor, AReferencia: string);
+var
+  oConsulta: TUniQuery;
+begin
+  oConsulta := TUniQuery.Create(nil);
+  try
+    oConsulta.Connection := AConexion;
+    if ARecepcion.TipoDocumento = 'FP' then
+      oConsulta.SQL.Text := 'SELECT CODIGO_PRV_FACC AS PROVEEDOR, ' +
+        'REF_PROVEEDOR_FACC AS REFERENCIA FROM fza_facturas_compra ' +
+        'WHERE SERIE_FACC = :SERIE AND NUMERO_FACC = :NUMERO'
+    else
+      oConsulta.SQL.Text := 'SELECT CODIGO_PRV_ALBC AS PROVEEDOR, ' +
+        'REF_PROVEEDOR_ALBC AS REFERENCIA FROM fza_albaranes_compra ' +
+        'WHERE SERIE_ALBC = :SERIE AND NUMERO_ALBC = :NUMERO';
+    oConsulta.ParamByName('SERIE').AsString := ARecepcion.Serie;
+    oConsulta.ParamByName('NUMERO').AsString := ARecepcion.Numero;
+    oConsulta.Open;
+    ACodigoProveedor := oConsulta.FieldByName('PROVEEDOR').AsString;
+    AReferencia := oConsulta.FieldByName('REFERENCIA').AsString;
+  finally
+    FreeAndNil(oConsulta);
+  end;
+end;
+
+function ElegirLoteRecepcion(AConexion: TUniConnection;
+  const ARecepcion: TRecepcionReposicion;
+  const APropuesta: TPropuestaReposicion; const APatron: string): string;
+var
+  sProveedor, sReferencia, sBase, sSufijo: string;
+  iSufijo: Integer;
+  bPreguntar: Boolean;
+begin
+  if not PatronLoteRecepcionValido(APatron) then
+    raise EValidacionBBDD.Create(SErrorPatronLoteRecepcionNoValido);
+  bPreguntar := PatronLoteRecepcionPideConfirmacion(APatron);
+  if SameText(Trim(APatron), PATRON_LOTE_RECEPCION_PREGUNTAR) then
+    sBase := APropuesta.Propuesta
+  else
+  begin
+    LeerDatosPatronReposicion(AConexion, ARecepcion, sProveedor, sReferencia);
+    sBase := AplicarPatronLoteRecepcion(APatron, sProveedor, sReferencia,
+      APropuesta.FechaEntrada);
+  end;
+  if (sBase = '') and not bPreguntar then
+    raise EValidacionBBDD.Create(SErrorDatoPatronLoteRecepcion);
+  if Length(sBase) > LONGITUD_MAXIMA_LOTE_REPOSICION then
+  begin
+    if not bPreguntar then
+      raise EValidacionBBDD.CreateFmt(SErrorLoteReposicionLargo,
+        [LONGITUD_MAXIMA_LOTE_REPOSICION]);
+    sBase := '';
+  end;
+  Result := sBase;
+  iSufijo := 0;
+  while (Result <> '') and LoteReposicionOcupado(AConexion,
+    ARecepcion.TipoDocumento, ARecepcion.Serie, ARecepcion.Numero,
+    Result) do
+  begin
+    Inc(iSufijo);
+    sSufijo := '-' + IntToStr(iSufijo);
+    Result := Copy(sBase, 1, LONGITUD_MAXIMA_LOTE_REPOSICION -
+      Length(sSufijo)) + sSufijo;
+  end;
+  if bPreguntar then
+  begin
+    if not Assigned(ConfirmacionLoteReposicion) then
+      raise EValidacionBBDD.Create(SErrorLoteRecepcionRequiereConfirmacion);
+    if not ConfirmacionLoteReposicion(ARecepcion.Sku,
+      APropuesta.FechaEntrada, Result,
+      function(const ALote: string): string
+      begin
+        Result := '';
+        if LoteReposicionOcupado(AConexion, ARecepcion.TipoDocumento,
+          ARecepcion.Serie, ARecepcion.Numero, ALote) then
+          Result := Format(SErrorLoteReposicionOcupado, [ALote]);
+      end) then
+      Abort;
+  end;
+end;
+
 procedure PrepararReposicionLinea(AConexion: TUniConnection;
   ALinea: TDataSet; const ASufijo, AUsuario: string;
   const AParametros: IParametros);
@@ -284,32 +370,15 @@ begin
       ALinea.FieldByName('CODIGO_UNIDAD_' + ASufijo).AsString;
     Recepcion.Temporada := AParametros.GetString('appTemporadaDefecto');
     Recepcion.Usuario := AUsuario;
-    // FZ-ISSUE-1042: la primera línea de la recepción pide el lote con la
-    // propuesta PROVEEDOR-AAAAMMDD-n; las siguientes usan el ya fijado.
     Propuesta := ProponerPartidaReposicion(AConexion, sTipo,
       Recepcion.Serie, Recepcion.Numero, Recepcion.Sku);
     if Propuesta.Aplica and (Propuesta.LoteActual = '') then
     begin
       sLote := Trim(ALinea.FieldByName('LOTE_' + ASufijo).AsString);
       if sLote = '' then
-        sLote := Propuesta.Propuesta;
-      // FZ-ISSUE-1065: el diálogo se abre dentro del Post de la línea, con
-      // la rejilla bloqueada; si la ventana se repinta (p. ej. al cambiar
-      // su tamaño) no puede dibujarse y queda en negro. Las vistas de
-      // líneas de albarán y factura de compra muestran la imagen de la
-      // rejilla mientras dura el Post (ShowLockedStateImageOptions.Posting
-      // = lsimPending en sus DFM).
-      if Assigned(ConfirmacionLoteReposicion) and
-         not ConfirmacionLoteReposicion(Recepcion.Sku,
-           Propuesta.FechaEntrada, sLote,
-           function(const ALote: string): string
-           begin
-             Result := '';
-             if LoteReposicionOcupado(AConexion, sTipo, Recepcion.Serie,
-                  Recepcion.Numero, ALote) then
-               Result := Format(SErrorLoteReposicionOcupado, [ALote]);
-           end) then
-        Abort;
+        sLote := ElegirLoteRecepcion(AConexion, Recepcion, Propuesta,
+          AParametros.GetString(PARAMETRO_PATRON_LOTE_RECEPCION,
+            PATRON_LOTE_RECEPCION_DEFECTO));
       Recepcion.LoteSolicitado := Trim(sLote);
     end;
     sLote := PrepararPartidaReposicion(AConexion, Recepcion);
@@ -318,8 +387,8 @@ begin
   end;
 end;
 
-function TemporadaUsuario(AConexion: TUniConnection;
-  const AUsuario: string): string;
+procedure LeerParametrosRecepcion(AConexion: TUniConnection;
+  const AUsuario: string; out ATemporada, APatron: string);
 var
   oConsulta: TUniQuery;
   sGrupo: string;
@@ -337,12 +406,15 @@ begin
   finally
     FreeAndNil(oConsulta);
   end;
-  Result := '';
+  ATemporada := '';
+  APatron := PATRON_LOTE_RECEPCION_DEFECTO;
   Valores := CrearRepositorioAppParamUniDAC(AConexion).CargarValores(
     AUsuario, sGrupo, 'frmMtoAppParam');
   for Valor in Valores do
     if SameText(Valor.Subclave, 'appTemporadaDefecto') then
-      Result := Valor.Valor;
+      ATemporada := Valor.Valor
+    else if SameText(Valor.Subclave, PARAMETRO_PATRON_LOTE_RECEPCION) then
+      APatron := Valor.Valor;
 end;
 
 function EsRecepcionAutomatica(AProcedimiento: TUniStoredProc;
@@ -414,8 +486,9 @@ end;
 procedure PrepararReposicionMovimiento(AProcedimiento: TUniStoredProc;
   var ALote: string);
 var
-  sTipo: string;
+  sTipo, sPatron: string;
   Recepcion: TRecepcionReposicion;
+  Propuesta: TPropuestaReposicion;
 begin
   sTipo := AProcedimiento.ParamByName('p_TIPO_DOC_MOV').AsString;
   if (Trim(ALote) = '') and ((sTipo = 'AC') or (sTipo = 'FP')) and
@@ -432,8 +505,15 @@ begin
     Recepcion.Sku :=
       AProcedimiento.ParamByName('p_CODIGO_UNIDAD_MOV').AsString;
     Recepcion.Usuario := AProcedimiento.ParamByName('p_USUARIO').AsString;
-    Recepcion.Temporada := TemporadaUsuario(AProcedimiento.Connection,
-      Recepcion.Usuario);
+    Propuesta := ProponerPartidaReposicion(AProcedimiento.Connection, sTipo,
+      Recepcion.Serie, Recepcion.Numero, Recepcion.Sku);
+    if Propuesta.Aplica and (Propuesta.LoteActual = '') then
+    begin
+      LeerParametrosRecepcion(AProcedimiento.Connection, Recepcion.Usuario,
+        Recepcion.Temporada, sPatron);
+      Recepcion.LoteSolicitado := ElegirLoteRecepcion(
+        AProcedimiento.Connection, Recepcion, Propuesta, sPatron);
+    end;
     ALote := PrepararPartidaReposicion(AProcedimiento.Connection, Recepcion);
     if ALote <> '' then
       GrabarPartidaLineas(AProcedimiento, ALote, sTipo);

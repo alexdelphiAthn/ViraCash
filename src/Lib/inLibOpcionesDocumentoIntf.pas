@@ -165,6 +165,8 @@ type
     // Serie vacía admitida: cada documento toma la de su almacén (varios
     // documentos de almacenes distintos creados de una vez).
     SerieOpcional: Boolean;
+    // Para emisiones que deben usar las series ofrecidas por el lector.
+    SerieSoloLista: Boolean;
     Validar: TValidarOpcionesDocumento;
     // True propone una forma de pago al cambiar el tercero; False conserva
     // la elección manual del usuario al modificar otros campos.

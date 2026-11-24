@@ -27,6 +27,7 @@ uses
 const
   CAMPO_LOTE_ETIQUETA = 'LOTE_ETI';
   CAMPO_CADUCIDAD_ETIQUETA = 'CADUCIDAD_ETI';
+  CAMPO_RECEPCION_ETIQUETA = 'FECHA_RECEPCION_ETI';
   // TextoLoteEtiqueta ya compuesto; vacío en las etiquetas sin lote.
   CAMPO_TEXTO_LOTE_ETIQUETA = 'TEXTO_LOTE_ETI';
 
@@ -37,6 +38,7 @@ type
     Lote: string;
     TipoLote: string;
     Caducidad: TDateTime;
+    FechaRecepcion: TDate;
     Copias: Integer;
     CodigoBarras: string;
     Temporada: string;
@@ -103,6 +105,7 @@ begin
   Result.Lote := ALote.Lote;
   Result.TipoLote := TipoCatalogoDeModo(ALote.Modo);
   Result.Caducidad := ALote.FechaCaducidad;
+  Result.FechaRecepcion := ALote.FechaEntrada;
   Result.Temporada := ALote.Temporada;
   Result.NombreProveedor := ALote.NombreProveedor;
   Result.Copias := 1;
@@ -148,6 +151,11 @@ begin
       if ALote.Caducidad > 0 then
         AsignarCampo(ADataSet, CAMPO_CADUCIDAD_ETIQUETA,
           FormatDateTime('dd/mm/yyyy', ALote.Caducidad));
+      if (ALote.FechaRecepcion > 0) and
+         (Pos(FormatDateTime('yyyymmdd', ALote.FechaRecepcion),
+           ALote.Lote) = 0) then
+        AsignarCampo(ADataSet, CAMPO_RECEPCION_ETIQUETA,
+          FormatDateTime('dd/mm/yyyy', ALote.FechaRecepcion));
       AsignarCampo(ADataSet, CAMPO_TEXTO_LOTE_ETIQUETA,
         TextoLoteEtiqueta(ALote));
       if ALote.Temporada <> '' then

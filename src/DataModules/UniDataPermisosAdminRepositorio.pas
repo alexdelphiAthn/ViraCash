@@ -18,6 +18,8 @@ uses
 resourcestring
   SPermisoCancelarPendienteCompra =
     'Pedidos de compra: cancelar cantidades pendientes';
+  SPermisoConsultarVentasOtrosDias = 'Consultar ventas de otros días (F10)';
+  SPermisoCambiarHoraCaja = 'Cambiar hora de operación en caja';
 
 type
   TRepositorioPermisosAdmin = class(
@@ -131,8 +133,12 @@ var
   Consulta: TUniQuery;
   Permiso: TPermisoCodigo;
   IncluidoCancelarPendiente: Boolean;
+  IncluidoConsultarOtrosDias: Boolean;
+  IncluidoCambiarHoraCaja: Boolean;
 begin
   IncluidoCancelarPendiente := False;
+  IncluidoConsultarOtrosDias := False;
+  IncluidoCambiarHoraCaja := False;
   Lista := TList<TPermisoCodigo>.Create;
   try
     if (FConexion <> nil) and FConexion.Connected then
@@ -154,6 +160,16 @@ begin
           if SameText(Permiso.Codigo,
              PERMISO_PEDIDO_COMPRA_CANCELAR_PENDIENTE) then
             IncluidoCancelarPendiente := True;
+          if SameText(Permiso.Codigo, PERMISO_CAJA_BUSCAR_OTROS_DIAS) then
+          begin
+            IncluidoConsultarOtrosDias := True;
+            Permiso.Descripcion := SPermisoConsultarVentasOtrosDias;
+          end;
+          if SameText(Permiso.Codigo, PERMISO_CAJA_CAMBIAR_HORA) then
+          begin
+            IncluidoCambiarHoraCaja := True;
+            Permiso.Descripcion := SPermisoCambiarHoraCaja;
+          end;
           Lista.Add(Permiso);
           Consulta.Next;
         end;
@@ -165,6 +181,18 @@ begin
     begin
       Permiso.Codigo := PERMISO_PEDIDO_COMPRA_CANCELAR_PENDIENTE;
       Permiso.Descripcion := SPermisoCancelarPendienteCompra;
+      Lista.Add(Permiso);
+    end;
+    if not IncluidoConsultarOtrosDias then
+    begin
+      Permiso.Codigo := PERMISO_CAJA_BUSCAR_OTROS_DIAS;
+      Permiso.Descripcion := SPermisoConsultarVentasOtrosDias;
+      Lista.Add(Permiso);
+    end;
+    if not IncluidoCambiarHoraCaja then
+    begin
+      Permiso.Codigo := PERMISO_CAJA_CAMBIAR_HORA;
+      Permiso.Descripcion := SPermisoCambiarHoraCaja;
       Lista.Add(Permiso);
     end;
     Result := Lista.ToArray;

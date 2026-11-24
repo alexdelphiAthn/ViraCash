@@ -21,6 +21,9 @@ uses
   inLibParametrosIntf, inLibParametrosBase, inLibPerfilesUsuarioIntf,
   inLibLicenciaAplicacion, inLibLogIntf, inLibDeteccionImpresora;
 
+const
+  PARAMETRO_MAXIMIZAR_MANTENIMIENTOS = 'appMaximizarMantenimientos';
+
 type
   TParametrosAplicacion = class(
     TParametrosBase,
@@ -245,6 +248,9 @@ begin
     'Activar lotes y fecha de caducidad', tpBoolean, 'False');
   RegistrarParametro('Trazabilidad', 'appGenerarCodigoBarrasLote',
     'Generar código de barras por lote o serie', tpBoolean, 'False');
+  RegistrarParametro('Trazabilidad', PARAMETRO_PATRON_LOTE_RECEPCION,
+    'Patrón del lote automático de recepción', tpString,
+    PATRON_LOTE_RECEPCION_DEFECTO);
   RegistrarParametro('Trazabilidad', 'appTrazabilidadSeries',
     'Activar números de serie por unidad', tpBoolean, 'False');
   RegistrarParametro('Trazabilidad', 'appGarantias',
@@ -431,6 +437,8 @@ begin
   RegistrarParametro('Apariencia', 'appModoVentanas',
     'Modo de ventanas: MDI o SDI sin fondo (requiere reiniciar)',
     tpString, 'SDI');
+  RegistrarParametro('Apariencia', PARAMETRO_MAXIMIZAR_MANTENIMIENTOS,
+    'Abrir los mantenimientos maximizados', tpBoolean, 'True');
   RegistrarParametro('Apariencia', 'appTema',
     'Tema de interfaz (DevExpress)', tpString, 'Office2019Colorful');
   // Valores y dibujo en inLibResplandorBordesVcl.

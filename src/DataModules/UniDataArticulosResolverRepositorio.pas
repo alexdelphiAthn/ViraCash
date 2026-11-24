@@ -195,7 +195,8 @@ const
     'ON tar.CODIGO_TAR_ARTTAR = t.CODIGO_TAR_ARTTAR ' +
     'WHERE t.CODIGO_UNICO_ARTTAR = ({PRECIO_TARIFA})';
   SQL_COSTE_SKU =
-    'SELECT PRECIO_ULT_COMPRA_SKUC, FECHA_ULT_COMPRA_SKUC ' +
+    'SELECT COALESCE(PRECIO_ULT_COMPRA_NETO_SKUC, PRECIO_ULT_COMPRA_SKUC) ' +
+    'AS PRECIO_NETO_SKU, FECHA_ULT_COMPRA_SKUC ' +
     'FROM fza_articulos_skus_costes ' +
     'WHERE CODIGO_UNIDAD_SKU_SKUC = :sku LIMIT 1';
   SQL_COSTE_PROVEEDOR =
@@ -334,7 +335,7 @@ begin
     'ObtenerCosteSku',
     SQL_COSTE_SKU,
     'sku',
-    'PRECIO_ULT_COMPRA_SKUC,FECHA_ULT_COMPRA_SKUC');
+    'PRECIO_NETO_SKU,FECHA_ULT_COMPRA_SKUC');
   Result[4] := DefinicionSql(
     'ObtenerCosteProveedor',
     SQL_COSTE_PROVEEDOR,
@@ -768,10 +769,9 @@ begin
           FIncidenciasSql);
         if not oConsulta.IsEmpty then
         begin
-          if not oConsulta.FieldByName(
-                   'PRECIO_ULT_COMPRA_SKUC').IsNull then
+          if not oConsulta.FieldByName('PRECIO_NETO_SKU').IsNull then
             Result.PrecioUltCompra := oConsulta.FieldByName(
-              'PRECIO_ULT_COMPRA_SKUC').AsFloat;
+              'PRECIO_NETO_SKU').AsFloat;
           if not oConsulta.FieldByName(
                    'FECHA_ULT_COMPRA_SKUC').IsNull then
             Result.FechaValidezCompra := oConsulta.FieldByName(

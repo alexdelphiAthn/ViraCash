@@ -54,7 +54,8 @@ procedure AsignarCampoCalculadoEnCliente(ACampo: TField; AValor: Double);
 // Transfiere el editor al registro solo si existe una edicion pendiente.
 // Devuelve True cuando el llamador debe guardar esa edicion.
 function ActualizarRegistroEnEdicion(ADataSet: TDataSet): Boolean;
-procedure GrabarDatasets(AModulo: TDataModule);
+procedure GrabarDatasets(AModulo: TDataModule;
+  ACabecera: TDataSet = nil);
 procedure CancelarDatasets(AModulo: TDataModule); overload;
 procedure CancelarDatasets(AModulo: TDataModule;
   APrincipal: TDataSet); overload;
@@ -459,7 +460,7 @@ begin
     ADataSet.UpdateRecord;
 end;
 
-procedure GrabarDatasets(AModulo: TDataModule);
+procedure GrabarDatasets(AModulo: TDataModule; ACabecera: TDataSet);
 var
   i: Integer;
   oDataSet: TDataSet;
@@ -478,6 +479,9 @@ begin
           oDataSet.Post;
       end;
     end;
+    // Los eventos de un detalle pueden dejar la cabecera editada de nuevo.
+    if Assigned(ACabecera) and (ACabecera.State in dsEditModes) then
+      ACabecera.Post;
   end;
 end;
 

@@ -195,6 +195,18 @@
       '    EtiqTemporada.Top := 168;'
       '    EtiqTemporada.Width := 150;'
       '  end;'
+      '  EtiqRecepcion.Visible :='
+      '    VarToStr(<EtiquetasArt."FECHA_RECEPCION_ETI">) <> '#39#39';'
+      '  if EtiqRecepcion.Visible then'
+      '  begin'
+      '    EtiqProveedor.Left := 264;'
+      '    EtiqProveedor.Width := 126;'
+      '  end'
+      '  else'
+      '  begin'
+      '    EtiqProveedor.Left := 160;'
+      '    EtiqProveedor.Width := 230;'
+      '  end;'
       '  EtiqProveedor.Visible :='
       '    VarToStr(<EtiquetasArt."NOMBRE_PRV">) <> '#39#39';'
       'end;'
@@ -473,6 +485,26 @@
           Frame.Typ = []
           ParentFont = False
         end
+        object EtiqRecepcion: TfrxMemoView
+          AllowVectorExport = True
+          Left = 160.000000000000000000
+          Top = 168.0
+          Width = 100.000000000000000000
+          Height = 13.000000000000000000
+          DataSet = dmArticulos.fxdsEtiquetasArt
+          DataSetName = 'EtiquetasArt'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -11
+          Font.Name = 'Arial'
+          Font.Style = []
+          Frame.Typ = []
+          Memo.UTF8W = (
+            'Rec.: [EtiquetasArt."FECHA_RECEPCION_ETI"]')
+          ParentFont = False
+          Visible = False
+          WordWrap = False
+        end
         object EtiqProveedor: TfrxMemoView
           AllowVectorExport = True
           Left = 160.000000000000000000
@@ -644,6 +676,18 @@
       '    EtiqTemporada.Left := 8;'
       '    EtiqTemporada.Top := 168;'
       '    EtiqTemporada.Width := 150;'
+      '  end;'
+      '  EtiqRecepcion.Visible :='
+      '    VarToStr(<EtiquetasArt."FECHA_RECEPCION_ETI">) <> '#39#39';'
+      '  if EtiqRecepcion.Visible then'
+      '  begin'
+      '    EtiqProveedor.Left := 264;'
+      '    EtiqProveedor.Width := 126;'
+      '  end'
+      '  else'
+      '  begin'
+      '    EtiqProveedor.Left := 160;'
+      '    EtiqProveedor.Width := 230;'
       '  end;'
       '  EtiqProveedor.Visible :='
       '    VarToStr(<EtiquetasArt."NOMBRE_PRV">) <> '#39#39';'
@@ -925,6 +969,26 @@
           HightQuality = False
           Transparent = False
           TransparentColor = clWhite
+        end
+        object EtiqRecepcion: TfrxMemoView
+          AllowVectorExport = True
+          Left = 160.000000000000000000
+          Top = 168.0
+          Width = 100.000000000000000000
+          Height = 13.000000000000000000
+          DataSet = dmArticulos.fxdsEtiquetasArt
+          DataSetName = 'EtiquetasArt'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -11
+          Font.Name = 'Arial'
+          Font.Style = []
+          Frame.Typ = []
+          Memo.UTF8W = (
+            'Rec.: [EtiquetasArt."FECHA_RECEPCION_ETI"]')
+          ParentFont = False
+          Visible = False
+          WordWrap = False
         end
         object EtiqProveedor: TfrxMemoView
           AllowVectorExport = True

@@ -200,8 +200,7 @@ begin
   else if Assigned(AContexto.Pantalla.mnMenuItem) and
           (not AContexto.Pantalla.mnMenuItem.Enabled) then
   begin
-    // AplicarPermisosMenu deja visibles y desactivadas las pantallas
-    // denegadas; el atajo de teclado no pasa por el menú (FZ-ISSUE-028).
+    // Los atajos pueden abrir pantallas sin pasar por el menú.
     AContexto.RegistroLog.RegistrarAviso(
       'Intento de acceso a menú desactivado: ' + ACall);
     ShowMessageFmt_fza(

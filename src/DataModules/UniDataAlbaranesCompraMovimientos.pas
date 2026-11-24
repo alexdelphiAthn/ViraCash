@@ -347,33 +347,21 @@ begin
     q.SQL.Text :=
       'INSERT INTO fza_articulos_skus_costes ' +
       '  (CODIGO_UNIDAD_SKU_SKUC, PRECIO_ULT_COMPRA_SKUC, ' +
-      '   FECHA_ULT_COMPRA_SKUC, INSTANTE_ALTA, USUARIO_ALTA, ' +
+      '   PRECIO_ULT_COMPRA_NETO_SKUC, FECHA_ULT_COMPRA_SKUC, ' +
+      '   INSTANTE_ALTA, USUARIO_ALTA, ' +
       '   INSTANTE_MODIF, USUARIO_MODIF) ' +
-      'SELECT X.CODIGO_SKU, X.PRECIO, X.FECHA_ALBC, ' +
+      'SELECT X.CODIGO_SKU, X.COSTE, X.PRECIO_NETO, X.FECHA_ALBC, ' +
       '       NOW(), :u1, NOW(), :u2 ' +
       '  FROM ( ' +
       '        SELECT L.CODIGO_UNIDAD_ALBCLIN AS CODIGO_SKU, ' +
       '               COALESCE(A.FECHA_ALBC, CURRENT_DATE) AS FECHA_ALBC, ' +
-      // FZ-ISSUE-381: precio del proveedor neto de descuento y sin
-      // impuestos, igual para todas las empresas. El IVA y el recargo no
-      // deducibles solo son coste de stock (PMP) de la empresa en recargo.
-      '               (L.PRECIO_COMPRA_SIVA_ARTICULO_ALBCLIN * ' +
-    '(1 - IFNULL(L.PORCENTAJE_DTO_ALBCLIN, 0) / 100)) * ' +
-      '               CASE WHEN IFNULL(A.TOTAL_BRUTO_ALBC, 0) > 0 THEN ' +
-      '                      GREATEST(0, 1 - CASE ' +
-      '                        WHEN IFNULL(A.TOTAL_DTO_COMERCIAL_ALBC, 0) <> 0 '
-        +
-      '                        THEN IFNULL(A.TOTAL_DTO_COMERCIAL_ALBC, 0) / ' +
-      'A.TOTAL_BRUTO_ALBC ' +
-      '                        ELSE IFNULL(A.PORCENTAJE_DTO_COMERCIAL_ALBC, ' +
-      '0) / 100 END) ' +
-      '                    ELSE GREATEST(0, 1 - ' +
-      'IFNULL(A.PORCENTAJE_DTO_COMERCIAL_ALBC, 0) / 100) ' +
-      '               END AS PRECIO ' +
+      '               ' + SQL_COSTE_UNITARIO_ALBARAN + ' AS COSTE, ' +
+      '               ' + SQL_PRECIO_NETO_ALBARAN + ' AS PRECIO_NETO ' +
       '          FROM fza_albaranes_compra_lineas L ' +
       '          JOIN fza_albaranes_compra A ' +
       '            ON A.SERIE_ALBC  = L.SERIE_ALBC_ALBCLIN ' +
       '           AND A.NUMERO_ALBC = L.NUMERO_ALBC_ALBCLIN ' +
+      '          LEFT JOIN fza_ivas V ON V.CODIGO_IVA = A.CODIGO_IVA_ALBC ' +
       '         WHERE L.SERIE_ALBC_ALBCLIN  = :s ' +
       '           AND L.NUMERO_ALBC_ALBCLIN = :n ' +
       '           AND COALESCE(TRIM(L.CODIGO_UNIDAD_ALBCLIN), '''') <> '''' ' +
@@ -413,6 +401,9 @@ begin
       '  PRECIO_ULT_COMPRA_SKUC = IF(VALUES(FECHA_ULT_COMPRA_SKUC) >= ' +
       '    IFNULL(FECHA_ULT_COMPRA_SKUC, ''1000-01-01''), ' +
       '    VALUES(PRECIO_ULT_COMPRA_SKUC), PRECIO_ULT_COMPRA_SKUC), ' +
+      '  PRECIO_ULT_COMPRA_NETO_SKUC = IF(VALUES(FECHA_ULT_COMPRA_SKUC) >= ' +
+      '    IFNULL(FECHA_ULT_COMPRA_SKUC, ''1000-01-01''), ' +
+      '    VALUES(PRECIO_ULT_COMPRA_NETO_SKUC), PRECIO_ULT_COMPRA_NETO_SKUC), ' +
       '  FECHA_ULT_COMPRA_SKUC = GREATEST(' +
       '    IFNULL(FECHA_ULT_COMPRA_SKUC, ''1000-01-01''), ' +
       '    VALUES(FECHA_ULT_COMPRA_SKUC)), ' +

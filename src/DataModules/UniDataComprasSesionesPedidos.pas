@@ -388,8 +388,34 @@ end;
 
 procedure RecalcularTotalesPedidoCompra(AConn: TUniConnection;
                                          const ASeriePedc, ANumPedc: string);
+const
+  // Factor del descuento comercial de la cabecera.
+  FACTOR = 'GREATEST(0, 1 - IFNULL(C.PORCENTAJE_DTO_COMERCIAL_PEDC, 0) / 100)';
+  BASE_NETA = 'ROUND(T.BASE * ' + FACTOR + ', 2)';
+  // FZ-ISSUE-1169: cada importe por tipo se redondea a céntimos y los
+  // totales suman los importes ya redondeados, como la sesión y los
+  // albaranes. Antes el RE y el líquido quedaban con 3-4 decimales
+  // (41,028 / 995,718) y solo el IVA, por su columna, salía redondeado.
+  IMPUESTOS =
+    'ROUND(T.IVA_N * ' + FACTOR + ', 2) + ROUND(T.IVA_R * ' + FACTOR +
+    ', 2) + ROUND(T.IVA_S * ' + FACTOR + ', 2) + ROUND(T.IVA_E * ' +
+    FACTOR + ', 2) + ROUND(T.RE_N * ' + FACTOR + ', 2) + ROUND(T.RE_R * ' +
+    FACTOR + ', 2) + ROUND(T.RE_S * ' + FACTOR + ', 2) + ROUND(T.RE_E * ' +
+    FACTOR + ', 2)';
+  RETENCION =
+    'ROUND(' + BASE_NETA + ' * IFNULL(C.PORCENTAJE_RETENCION_PEDC, 0) / ' +
+    '100, 2)';
+  DTO_FINANCIERO =
+    'ROUND(' + BASE_NETA + ' * IFNULL(C.PORCENTAJE_DTO_FINANCIERO_PEDC, 0) ' +
+    '/ 100, 2)';
 var
   q: TUniQuery;
+
+  function Importe(const ACampo: string): string;
+  begin
+    Result := 'ROUND(T.' + ACampo + ' * ' + FACTOR + ', 2)';
+  end;
+
 begin
   q := TUniQuery.Create(nil);
   try
@@ -454,54 +480,27 @@ begin
       '        GROUP BY NUMERO_PEDC_PEDCLIN, SERIE_PEDC_PEDCLIN) AS T ' +
       '    ON T.NUMERO_PEDC_PEDCLIN = C.NUMERO_PEDC ' +
       '   AND T.SERIE_PEDC_PEDCLIN  = C.SERIE_PEDC ' +
-      '   SET C.TOTAL_BASEI_IVAN_PEDC = T.BASE_N * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_PEDC, 0) / 100), ' +
-      '       C.TOTAL_BASEI_IVAR_PEDC = T.BASE_R * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_PEDC, 0) / 100), ' +
-      '       C.TOTAL_BASEI_IVAS_PEDC = T.BASE_S * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_PEDC, 0) / 100), ' +
-      '       C.TOTAL_BASEI_IVAE_PEDC = T.BASE_E * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_PEDC, 0) / 100), ' +
-      '       C.TOTAL_IVAN_PEDC = T.IVA_N * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_PEDC, 0) / 100), ' +
-      '       C.TOTAL_IVAR_PEDC = T.IVA_R * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_PEDC, 0) / 100), ' +
-      '       C.TOTAL_IVAS_PEDC = T.IVA_S * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_PEDC, 0) / 100), ' +
-      '       C.TOTAL_IVAE_PEDC = T.IVA_E * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_PEDC, 0) / 100), ' +
-      '       C.TOTAL_REN_PEDC = T.RE_N * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_PEDC, 0) / 100), ' +
-      '       C.TOTAL_RER_PEDC = T.RE_R * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_PEDC, 0) / 100), ' +
-      '       C.TOTAL_RES_PEDC = T.RE_S * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_PEDC, 0) / 100), ' +
-      '       C.TOTAL_REE_PEDC = T.RE_E * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_PEDC, 0) / 100), ' +
-      '       C.TOTAL_BRUTO_PEDC = T.BASE, ' +
-      '       C.TOTAL_DTO_COMERCIAL_PEDC = T.BASE - T.BASE * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_PEDC, 0) / 100), ' +
-      '       C.TOTAL_DTO_FINANCIERO_PEDC = T.BASE * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_PEDC, 0) / 100) * ' +
-      'IFNULL(C.PORCENTAJE_DTO_FINANCIERO_PEDC, 0) / 100, ' +
-      '       C.TOTAL_BASES_PEDC = T.BASE * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_PEDC, 0) / 100), ' +
-      '       C.TOTAL_RETENCION_PEDC = T.BASE * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_PEDC, 0) / 100) * ' +
-      'IFNULL(C.PORCENTAJE_RETENCION_PEDC, 0) / 100, ' +
-      '       C.TOTAL_IMPUESTOS_PEDC = (T.IVA_N + T.IVA_R + T.IVA_S + ' +
-      'T.IVA_E + T.RE_N + T.RE_R + T.RE_S + T.RE_E) * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_PEDC, 0) / 100), ' +
-      '       C.TOTAL_LIQUIDO_PEDC = T.BASE * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_PEDC, 0) / 100) ' +
-      '+ (T.IVA_N + T.IVA_R + T.IVA_S + T.IVA_E + T.RE_N + T.RE_R + T.RE_S + ' +
-      'T.RE_E) * GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_PEDC, 0) / 100) - T.BASE * ' +
-      'GREATEST(0, 1 - ' +
-      'IFNULL(C.PORCENTAJE_DTO_COMERCIAL_PEDC, 0) / 100) * ' +
-      'IFNULL(C.PORCENTAJE_RETENCION_PEDC, 0) / 100 - T.BASE ' +
-      '* GREATEST(0, 1 - IFNULL(C.PORCENTAJE_DTO_COMERCIAL_PEDC, 0) / 100) * ' +
-      'IFNULL(C.PORCENTAJE_DTO_FINANCIERO_PEDC, 0) / 100, ' +
+      '   SET C.TOTAL_BASEI_IVAN_PEDC = ' + Importe('BASE_N') + ', ' +
+      '       C.TOTAL_BASEI_IVAR_PEDC = ' + Importe('BASE_R') + ', ' +
+      '       C.TOTAL_BASEI_IVAS_PEDC = ' + Importe('BASE_S') + ', ' +
+      '       C.TOTAL_BASEI_IVAE_PEDC = ' + Importe('BASE_E') + ', ' +
+      '       C.TOTAL_IVAN_PEDC = ' + Importe('IVA_N') + ', ' +
+      '       C.TOTAL_IVAR_PEDC = ' + Importe('IVA_R') + ', ' +
+      '       C.TOTAL_IVAS_PEDC = ' + Importe('IVA_S') + ', ' +
+      '       C.TOTAL_IVAE_PEDC = ' + Importe('IVA_E') + ', ' +
+      '       C.TOTAL_REN_PEDC = ' + Importe('RE_N') + ', ' +
+      '       C.TOTAL_RER_PEDC = ' + Importe('RE_R') + ', ' +
+      '       C.TOTAL_RES_PEDC = ' + Importe('RE_S') + ', ' +
+      '       C.TOTAL_REE_PEDC = ' + Importe('RE_E') + ', ' +
+      '       C.TOTAL_BRUTO_PEDC = ROUND(T.BASE, 2), ' +
+      '       C.TOTAL_DTO_COMERCIAL_PEDC = ROUND(T.BASE, 2) - ' + BASE_NETA +
+      ', ' +
+      '       C.TOTAL_DTO_FINANCIERO_PEDC = ' + DTO_FINANCIERO + ', ' +
+      '       C.TOTAL_BASES_PEDC = ' + BASE_NETA + ', ' +
+      '       C.TOTAL_RETENCION_PEDC = ' + RETENCION + ', ' +
+      '       C.TOTAL_IMPUESTOS_PEDC = ' + IMPUESTOS + ', ' +
+      '       C.TOTAL_LIQUIDO_PEDC = ' + BASE_NETA + ' + ' + IMPUESTOS +
+      ' - ' + RETENCION + ' - ' + DTO_FINANCIERO + ', ' +
       '       C.CONTADOR_LINEAS_PEDC = LPAD(T.NLIN * 10, 8, ''0'') ' +
       ' WHERE C.NUMERO_PEDC = :n AND C.SERIE_PEDC = :s';
     q.ParamByName('n').AsString := ANumPedc;

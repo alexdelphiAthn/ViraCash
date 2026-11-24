@@ -140,10 +140,10 @@ resourcestring
     'Tarifa de venta:';
   SCaptionUnDocumentoPorAlmacenOpcionesDocumento =
     'Un documento por almacén';
-  STituloFacturarTicketOpcionesDocumento =
-    'Crear factura normal del ticket';
-  SAvisoFacturarTicketOpcionesDocumento =
-    'Factura normal en sustitución del ticket %s.';
+  STituloFacturacionTicketOpcionesDocumento =
+    'Facturación del ticket';
+  SAvisoBorradorSustitucionTicketOpcionesDocumento =
+    'Se creará un borrador en sustitución del ticket %s.';
   SCaptionClienteOpcionesDocumento =
     'Cliente:';
   STituloFacturaCajaOpcionesDocumento =

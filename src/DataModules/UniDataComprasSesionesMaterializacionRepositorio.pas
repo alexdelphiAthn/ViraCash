@@ -107,7 +107,7 @@ uses
   inLibCatalogoSqlEjecucion,
   inLibComprasSesionesReglas,
   inLibResolucionSku,
-  UniDataResolucionSku;
+  UniDataResolucionSku, UniDataComprasSesionesTarifas;
 
 const
   REPOSITORIO = 'RepositorioMaterializacionComprasSesiones';
@@ -298,18 +298,18 @@ const
     '       L.PRECIO_VENTA_SESLIN, L.CODIGO_VAR_SESLIN, ' +
     // Precio neto del proveedor: lleva el mismo descuento comercial de
     // cabecera que los pedidos y albaranes de la sesion aplican al precio
-    // de linea. Sin impuestos (FZ-ISSUE-381): es el ultimo precio de
-    // compra de la ficha, comun a todas las empresas. El IVA y el recargo
-    // no deducibles solo cuentan en el coste de stock.
+    // de línea. Se conserva sin impuestos para los documentos de compra.
     ' L.PRECIO_COMPRA_SESLIN * ' +
     ' (1 - IFNULL(L.PORCENTAJE_DTO_SESLIN, 0) / 100) * ' +
     ' GREATEST(0, 1 - ' +
     ' IFNULL(S.PORCENTAJE_DTO_COMERCIAL_SES, 0) / 100) ' +
-    ' AS PRECIO_COSTE_PROVEEDOR ' +
+    ' AS PRECIO_COSTE_PROVEEDOR, ' +
+    SQL_FACTOR_COSTE_SESION + ' AS FACTOR_COSTE_RE ' +
     ' FROM fza_compras_sesiones_lineas L ' +
     ' JOIN fza_compras_sesiones S ' +
     ' ON S.SERIE_SES = L.SERIE_SES_SESLIN ' +
     ' AND S.NUMERO_SES = L.NUMERO_SES_SESLIN ' +
+    SQL_IVA_COSTE_SESION +
     ' WHERE L.SERIE_SES_SESLIN = :s ' +
     ' AND L.NUMERO_SES_SESLIN = :n ' +
     ' ORDER BY L.LINEA_SESLIN';
@@ -835,7 +835,7 @@ begin
     'LINEA_SESLIN,ACCION_DUPLICADO_SESLIN,' +
     'CODIGO_ART_REUSAR_SESLIN,CODIGO_ART_TENTATIVO_SESLIN,' +
     'TIPO_LINEA_SESLIN,REF_PRV_SESLIN,PRECIO_VENTA_SESLIN,' +
-    'CODIGO_VAR_SESLIN,PRECIO_COSTE_PROVEEDOR');
+    'CODIGO_VAR_SESLIN,PRECIO_COSTE_PROVEEDOR,FACTOR_COSTE_RE');
 end;
 
 function DefinicionLineasDocumento: TDefinicionSql;
@@ -1366,6 +1366,8 @@ begin
           aResultado[iIndice].PrecioCosteProveedor :=
             oConsulta.FieldByName(
               'PRECIO_COSTE_PROVEEDOR').AsFloat;
+          aResultado[iIndice].FactorCosteRecargo :=
+            oConsulta.FieldByName('FACTOR_COSTE_RE').AsFloat;
           aResultado[iIndice].AccionDuplicado :=
             oConsulta.FieldByName(
               'ACCION_DUPLICADO_SESLIN').AsString;

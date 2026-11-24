@@ -1327,35 +1327,17 @@ begin
 end;
 
 procedure TfrmMtoAlbaranesCompra.btnGrabarClick(Sender: TObject);
-var
-  sLineasSinSku: string;
 begin
   if RegistroLog <> nil then
     RegistroLog.RegistrarInformacion('AlbaranesCompra.btnGrabarClick: INICIO');
-  // Aviso: lineas con articulo con variaciones y sin SKU asignado
-  // (no mueven stock).
-  sLineasSinSku := LineasSinSkuRequerido(
-    FValidadorArticulos,
-    dmmAlbaranesCompra.unqryAlbaranesCompraLineas, 'ALBCLIN');
-  if (sLineasSinSku = '') or
-     (MessageDlg_fza(Format(SPreguntaGrabarAlbaranCompraSinSku,
-                  [sLineasSinSku]),
-                  mtWarning, [mbYes, mbNo], 0) = mrYes) then
-  begin
-    if Assigned(FPivote) and FPivote.Activo and
-       not FPivote.Expandido then
-      FPivote.PersistirCantidadesPendientes;
-    inherited;
-    if dsTablaG.State in dsEditModes then
-    begin
-      dmmAlbaranesCompra.CalcularTotalesAlbaranCompra;
-      dsTablaG.DataSet.Post;
-    end;
-    if Assigned(FPivote) and FPivote.Activo then
-      FPivote.RecargarYRepublicar;
-    if not CheckOpenDatasets(dmmAlbaranesCompra) then
-      ConfirmarRecepcion;
-  end;
+  ComprobarPermisoGrabar;
+  if Assigned(FPivote) and FPivote.Activo and not FPivote.Expandido then
+    FPivote.PersistirCantidadesPendientes;
+  inherited;
+  if Assigned(FPivote) and FPivote.Activo then
+    FPivote.RecargarYRepublicar;
+  if not CheckOpenDatasets(dmmAlbaranesCompra) then
+    ConfirmarRecepcion;
 end;
 
 // Actualiza la cabecera y delega el modo al navegar entre albaranes.

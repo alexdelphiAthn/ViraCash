@@ -65,6 +65,7 @@ type
   // líneas; al final dan su patrón de tarifa (FZ-ISSUE-638).
   TPreciosArticuloSesion = record
     CodigoArticulo: string;
+    FactorCosteRecargo: Double;
     // Coste neto y PVP de su primera línea con PVP.
     Referencia: TFilaPrecioTarifa;
     Precios: TPreciosSkuSesion;
@@ -656,7 +657,7 @@ end;
 
 // El SKU de varias líneas cuenta una vez: la primera.
 procedure AcumularPreciosArticulo(var AArticulos: TPreciosArticulosSesion;
-  const ACodigoArticulo: string; ACoste, APvp: Double;
+  const ACodigoArticulo: string; ACoste, APvp, AFactorCoste: Double;
   const APrecios: TPreciosSkuSesion);
 var
   iArticulo: Integer;
@@ -673,6 +674,7 @@ begin
     iArticulo := Length(AArticulos);
     SetLength(AArticulos, iArticulo + 1);
     AArticulos[iArticulo].CodigoArticulo := ACodigoArticulo;
+    AArticulos[iArticulo].FactorCosteRecargo := AFactorCoste;
     AArticulos[iArticulo].Referencia.Clave := '';
     AArticulos[iArticulo].Referencia.Coste := ACoste;
     AArticulos[iArticulo].Referencia.Pvp := APvp;
@@ -680,6 +682,7 @@ begin
   end
   else if AArticulos[iArticulo].Referencia.Pvp <= 0 then
   begin
+    AArticulos[iArticulo].FactorCosteRecargo := AFactorCoste;
     AArticulos[iArticulo].Referencia.Coste := ACoste;
     AArticulos[iArticulo].Referencia.Pvp := APvp;
   end;
@@ -749,7 +752,7 @@ begin
       if oFilas[0].Pvp > 0 then
       begin
         GrabarFilasPrecioTarifa(AConn, oArticulo.CodigoArticulo, ACodigoTar,
-          AUsuario, oFilas, oOpciones);
+          AUsuario, oFilas, oOpciones, oArticulo.FactorCosteRecargo);
         EncolarPrecioPrestaShop(AConn, oArticulo.CodigoArticulo, AUsuario);
       end;
       if Length(oArticulo.Precios) > 0 then
@@ -930,7 +933,8 @@ begin
         AUsuario,
         rPrecio);
       AcumularPreciosArticulo(oArticulos, sCodigoArt, rPrecio,
-        oLineas[iIndice].PrecioVenta, oPreciosLinea);
+        oLineas[iIndice].PrecioVenta, oLineas[iIndice].FactorCosteRecargo,
+        oPreciosLinea);
     end;
   end;
   GrabarTarifasArticulosSesion(AConexion, oArticulos, sCodigoTarifa,

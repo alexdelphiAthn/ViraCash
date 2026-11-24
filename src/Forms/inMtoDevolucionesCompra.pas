@@ -316,7 +316,7 @@ type
                 AButtonIndex: Integer);
     procedure AsegurarPrimeraLineaDevolucionCompra;
     procedure RefrescarAlmacenesCabecera;
-    procedure ValidarAlmacenSalidaParaLineas;
+    procedure ValidarCabeceraParaLineas;
     procedure AsegurarCabeceraPersistidaParaLineas;
     function PuedeActivarTallasHorizontal(var AMensaje: string): Boolean;
     procedure DispararBusquedaArticuloConTecla(var Key: Word;
@@ -1032,17 +1032,26 @@ begin
     end;
   end;
 end;
-procedure TfrmMtoDevolucionesCompra.ValidarAlmacenSalidaParaLineas;
+procedure TfrmMtoDevolucionesCompra.ValidarCabeceraParaLineas;
+var
+  Proveedor: string;
 begin
-  if (dmmDevolucionesCompra.unqryTablaG.FindField(
-    'CODIGO_ALM_DEVC') <> nil) and
-     (Trim(dmmDevolucionesCompra.unqryTablaG.FieldByName(
-      'CODIGO_ALM_DEVC').AsString) = '') then
-  begin
-    pcCab.ActivePage := tsCabecera;
-    if cbbCODIGO_ALM_DEVC.CanFocus then
-      cbbCODIGO_ALM_DEVC.SetFocus;
-    raise Exception.Create(SErrorAlmacenSalidaDevolucionCompra);
+  Proveedor := ValorTextoDataSetCompra(dsTablaG.DataSet, 'CODIGO_PRV_DEVC');
+  try
+    dmmDevolucionesCompra.ValidarCabeceraDevolucion;
+  except
+    on E: EValidacionBBDD do
+    begin
+      pcCab.ActivePage := tsCabecera;
+      if (Proveedor = '') or (Proveedor = '0') then
+      begin
+        if cbbCODIGO_PRV_DEVC.CanFocus then
+          cbbCODIGO_PRV_DEVC.SetFocus;
+      end
+      else if cbbCODIGO_ALM_DEVC.CanFocus then
+        cbbCODIGO_ALM_DEVC.SetFocus;
+      raise;
+    end;
   end;
 end;
 
@@ -1053,7 +1062,7 @@ begin
       dmmDevolucionesCompra.unqryTablaG,
       dmmDevolucionesCompra.unqryDevolucionesCompraLineas,
       ConfiguracionTallasDocumento,
-      ValidarAlmacenSalidaParaLineas);
+      ValidarCabeceraParaLineas);
 end;
 
 function TfrmMtoDevolucionesCompra.PuedeActivarTallasHorizontal(
@@ -1602,15 +1611,7 @@ procedure TfrmMtoDevolucionesCompra.btnGrabarClick(Sender: TObject);
 var
   sLineasSinSku: string;
 begin
-  if (dsTablaG.DataSet <> nil) and dsTablaG.DataSet.Active and
-     (dsTablaG.DataSet.FindField('CODIGO_ALM_DEVC') <> nil) and
-     (Trim(dsTablaG.DataSet.FieldByName('CODIGO_ALM_DEVC').AsString) = '') then
-  begin
-    pcCab.ActivePage := tsCabecera;
-    if cbbCODIGO_ALM_DEVC.CanFocus then
-      cbbCODIGO_ALM_DEVC.SetFocus;
-    raise Exception.Create(SErrorAlmacenSalidaDevolucionCompra);
-  end;
+  ValidarCabeceraParaLineas;
   // Aviso: lineas con articulo con variaciones y sin SKU asignado
   // (no mueven stock).
   sLineasSinSku := LineasSinSkuRequerido(
@@ -1621,15 +1622,11 @@ begin
                         [sLineasSinSku]),
                  mtWarning, [mbYes, mbNo], 0) = mrYes) then
   begin
+    ComprobarPermisoGrabar;
     if Assigned(FPivote) and FPivote.Activo and
        not FPivote.Expandido then
       FPivote.PersistirCantidadesPendientes;
     inherited;
-    if dsTablaG.State in dsEditModes then
-    begin
-      dmmDevolucionesCompra.CalcularTotalesDevolucionCompra;
-      dsTablaG.DataSet.Post;
-    end;
     if Assigned(FPivote) and FPivote.Activo then
       FPivote.RecargarYRepublicar;
   end;

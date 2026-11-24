@@ -94,6 +94,7 @@ type
     FNivelEscrituraRecepcion: Integer;
     FTransaccionEscrituraPropia: Boolean;
     FRevisionesConfirmadas: TDictionary<string, Int64>;
+    FRevisionesPendientes: TDictionary<string, Int64>;
     FClaveRevisionEnCurso: string;
     FRevisionEnCurso: Int64;
     FClaveRecepcionObsoleta: string;
@@ -107,6 +108,7 @@ type
     function LineaTieneCeldasPivote(DataSet: TDataSet): Boolean;
     function ObtenerSkusAlbaranCsv(const ASerie, ANumero: string): string;
     procedure RefrescarMovimientosProveedor;
+    procedure GuardarTotalesTrasCambiarLineas;
     procedure CopiarEmpresaaAlbaranCompra(DataSet: TDataSet);
     procedure ValidarAlmacenCabecera;
     procedure ValidarEdicionRecepcion(DataSet: TDataSet);
@@ -121,6 +123,9 @@ type
   public
     procedure LineaCircuitoBeforeDelete(DataSet: TDataSet);
     destructor Destroy; override;
+    function UsaCambiosDiferidos: Boolean; override;
+    procedure ConfirmarCambiosDiferidos; override;
+    procedure RestaurarCambiosDiferidos; override;
     // F-LOTEC-013: lo llama el formulario con los interruptores leídos.
     procedure ConfigurarLotesLineas(const AConfig: TConfiguracionLotesLineas);
     // Documento actual para el lote de las líneas (tipo AC).
@@ -381,6 +386,7 @@ procedure TdmAlbaranesCompra.DataModuleCreate(Sender: TObject);
 begin
   inherited;
   FRevisionesConfirmadas := TDictionary<string, Int64>.Create;
+  FRevisionesPendientes := TDictionary<string, Int64>.Create;
   unqryTablaG.BeforeEdit := ValidarEdicionRecepcion;
   unqryAlbaranesCompraLineas.BeforeEdit := ValidarEdicionRecepcion;
   unqryAlbaranesCompraLineas.BeforeInsert := ValidarEdicionRecepcion;
@@ -970,6 +976,8 @@ begin
     // FZ-ISSUE-520: un SKU dado de baja no recibe existencias.
     ExigirSkuActivoEnDataSet(ConexionEscritura, unqryAlbaranesCompraLineas,
       'CODIGO_ART_ALBCLIN', 'CODIGO_UNIDAD_ALBCLIN', SErrorSkuCompraNoActivo);
+    ExigirSkuCompletoEnDataSet(ConexionEscritura, DataSet,
+      'CODIGO_ART_ALBCLIN', 'CODIGO_UNIDAD_ALBCLIN');
     PrepararReposicionLinea(ConexionEscritura, unqryAlbaranesCompraLineas,
       'ALBCLIN', IdentidadSesion.Usuario, ParametrosApp);
     // F-LOTEC-013: antes de los totales (una serie deja la línea en 1).
@@ -1081,6 +1089,7 @@ end;
 
 destructor TdmAlbaranesCompra.Destroy;
 begin
+  FreeAndNil(FRevisionesPendientes);
   FreeAndNil(FRevisionesConfirmadas);
   FreeAndNil(FLotesLineas);
   inherited;
@@ -1124,15 +1133,7 @@ begin
       'ALBCLIN', IdentidadSesion.Usuario, ParametrosApp);
     if Assigned(FLotesLineas) then
       FLotesLineas.DespuesDePostLinea;
-    CalcularTotalesAlbaranCompra;
-    // Si los totales han dejado la cabecera en edicion, su Post ejecutara
-    // unqryTablaGAfterPost y reconstruira los movimientos una sola vez. Si
-    // los importes no han cambiado (p. ej. cambia un SKU manteniendo cantidad
-    // y precio), la cabecera sigue en Browse y hay que sincronizar aqui.
-    if unqryTablaG.State in dsEditModes then
-      unqryTablaG.Post
-    else
-      SincronizarMovimientos;
+    GuardarTotalesTrasCambiarLineas;
     ConfirmarEscrituraRecepcion(DataSet);
   except
     CancelarEscrituraRecepcion(DataSet);
@@ -1145,11 +1146,7 @@ procedure TdmAlbaranesCompra.unqryAlbaranesCompraLineasAfterDelete(
 begin
   try
     inherited;
-    CalcularTotalesAlbaranCompra;
-    if unqryTablaG.State in dsEditModes then
-      unqryTablaG.Post
-    else
-      SincronizarMovimientos;
+    GuardarTotalesTrasCambiarLineas;
     ConfirmarEscrituraRecepcion(DataSet);
   except
     CancelarEscrituraRecepcion(DataSet);
@@ -1195,6 +1192,7 @@ end;
 
 procedure TdmAlbaranesCompra.CalcularTotalesAlbaranCompra;
 var
+  oLineasGrabadas: TUniQuery;
   oCampoPrendas: TField;
   rPrendas: Double;
 begin
@@ -1205,27 +1203,60 @@ begin
     // Reorganizacion en bloque en curso: un unico recalculo al Finalizar.
     if FReorganizandoLineas > 0 then
       FReorganizacionPendiente := True
-    else
+    else if unqryTablaG.Active and
+      ((unqryTablaG.State = dsInsert) or not unqryTablaG.IsEmpty) then
     begin
-      CalcularTotalesDocumentoCompra(
-        CrearLecturasImpuestos(unqryTablaG.Connection), unqryTablaG,
-        unqryAlbaranesCompraLineas, 'ALBC', 'TOTAL_ALBCLIN',
-        'TIPO_IVA_ARTICULO_ALBCLIN', 'PORCENTAJE_IVA_ALBCLIN');
-      // La vista calcula prendas al abrir; aqui se actualizan en cliente.
-      oCampoPrendas := unqryTablaG.FindField('TOTAL_PRENDAS_ALBC');
-      if oCampoPrendas <> nil then
-      begin
-        rPrendas := TotalPrendasLineasCompra(unqryAlbaranesCompraLineas,
-          'TIPO_IVA_ARTICULO_ALBCLIN', 'TOTAL_UNIDADES_ALBCLIN',
-          UnidadesMedida);
-        if oCampoPrendas.IsNull or
-           (Abs(oCampoPrendas.AsFloat - rPrendas) > 0.000001) then
+      // Recorrer el detalle del grid puede publicar una línea pendiente
+      // y volver a grabar la cabecera desde AfterPost.
+      oLineasGrabadas := TUniQuery.Create(nil);
+      try
+        oLineasGrabadas.Connection := ConexionEscritura;
+        oLineasGrabadas.SQL.Text := unqryAlbaranesCompraLineas.SQL.Text;
+        oLineasGrabadas.ParamByName('SERIE_ALBC').AsString :=
+          unqryTablaG.FieldByName('SERIE_ALBC').AsString;
+        oLineasGrabadas.ParamByName('NUMERO_ALBC').AsString :=
+          unqryTablaG.FieldByName('NUMERO_ALBC').AsString;
+        oLineasGrabadas.Open;
+        CalcularTotalesDocumentoCompra(
+          CrearLecturasImpuestos(ConexionEscritura), unqryTablaG,
+          oLineasGrabadas, 'ALBC', 'TOTAL_ALBCLIN',
+          'TIPO_IVA_ARTICULO_ALBCLIN', 'PORCENTAJE_IVA_ALBCLIN');
+        oCampoPrendas := unqryTablaG.FindField('TOTAL_PRENDAS_ALBC');
+        if oCampoPrendas <> nil then
         begin
-          if not (unqryTablaG.State in [dsEdit, dsInsert]) then
-            unqryTablaG.Edit;
-          oCampoPrendas.AsFloat := rPrendas;
+          rPrendas := TotalPrendasLineasCompra(oLineasGrabadas,
+            'TIPO_IVA_ARTICULO_ALBCLIN', 'TOTAL_UNIDADES_ALBCLIN',
+            UnidadesMedida);
+          if oCampoPrendas.IsNull or
+             (Abs(oCampoPrendas.AsFloat - rPrendas) > 0.000001) then
+          begin
+            if not (unqryTablaG.State in dsEditModes) then
+              unqryTablaG.Edit;
+            oCampoPrendas.AsFloat := rPrendas;
+          end;
         end;
+      finally
+        FreeAndNil(oLineasGrabadas);
       end;
+    end;
+  end;
+end;
+
+procedure TdmAlbaranesCompra.GuardarTotalesTrasCambiarLineas;
+begin
+  if not FDesempaquetandoAtributos then
+  begin
+    if FReorganizandoLineas > 0 then
+      FReorganizacionPendiente := True
+    else if unqryTablaG.Active and not unqryTablaG.IsEmpty then
+    begin
+      // La cabecera visible puede tener ya los importes tras un reintento.
+      // Escribirlos dentro de la transacción de la línea en cualquier caso.
+      if not (unqryTablaG.State in dsEditModes) then
+        unqryTablaG.Edit;
+      // BeforePost recalcula desde las líneas grabadas y AfterPost
+      // sincroniza los movimientos en la misma conexión.
+      unqryTablaG.Post;
     end;
   end;
 end;
@@ -1382,11 +1413,7 @@ begin
     if FReorganizacionPendiente then
     begin
       FReorganizacionPendiente := False;
-      CalcularTotalesAlbaranCompra;
-      if unqryTablaG.State in dsEditModes then
-        unqryTablaG.Post
-      else
-        SincronizarMovimientos;
+      GuardarTotalesTrasCambiarLineas;
     end;
   end;
 end;
@@ -1590,14 +1617,20 @@ end;
 function TdmAlbaranesCompra.RevisionCargada(
   const ASerie, ANumero: string): Int64;
 var
-  Confirmada: Int64;
+  Clave: string;
+  Revision: Int64;
 begin
+  Clave := ASerie + #0 + ANumero;
   Result := unqryTablaG.FieldByName('REVISION_EDICION').AsLargeInt;
-  // El Post de una línea puede confirmar una revisión sin volver a
-  // cargar la cabecera del navegador. Las lecturas más recientes mandan.
-  if FRevisionesConfirmadas.TryGetValue(ASerie + #0 + ANumero, Confirmada)
-     and (Confirmada > Result) then
-    Result := Confirmada;
+  // La cabecera en memoria puede conservar la revisión con la que se abrió.
+  // Usar las revisiones propias, incluidas las de la transacción en curso.
+  if FRevisionesConfirmadas.TryGetValue(Clave, Revision) and
+     (Revision > Result) then
+    Result := Revision;
+  if ConexionEscritura.InTransaction and
+     FRevisionesPendientes.TryGetValue(Clave, Revision) and
+     (Revision > Result) then
+    Result := Revision;
 end;
 
 procedure TdmAlbaranesCompra.ClaveRecepcionCargada(out ASerie, ANumero: string);
@@ -1702,12 +1735,35 @@ begin
         ConexionEscritura.Commit;
         FRevisionesConfirmadas.AddOrSetValue(
           FClaveRevisionEnCurso, FRevisionEnCurso);
-      end;
+      end
+      else
+        // Grabar del mantenimiento confirma la transacción después del Post.
+        FRevisionesPendientes.AddOrSetValue(
+          FClaveRevisionEnCurso, FRevisionEnCurso);
       FEscrituraRecepcion := nil;
       if FTransaccionEscrituraPropia then
         SolicitarProcesadoPrestaShop;
     end;
   end;
+end;
+
+function TdmAlbaranesCompra.UsaCambiosDiferidos: Boolean;
+begin
+  Result := True;
+end;
+
+procedure TdmAlbaranesCompra.ConfirmarCambiosDiferidos;
+var
+  Revision: TPair<string, Int64>;
+begin
+  for Revision in FRevisionesPendientes do
+    FRevisionesConfirmadas.AddOrSetValue(Revision.Key, Revision.Value);
+  FRevisionesPendientes.Clear;
+end;
+
+procedure TdmAlbaranesCompra.RestaurarCambiosDiferidos;
+begin
+  FRevisionesPendientes.Clear;
 end;
 
 procedure TdmAlbaranesCompra.CancelarEscrituraRecepcion(DataSet: TDataSet);
