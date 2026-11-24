@@ -22,6 +22,8 @@ function CrearServicioVerifactuSubsanacionUniDAC(
   AConexion: TUniConnection): IServicioVerifactuSubsanacion;
 function CrearServicioVerifactuCorreccionRegistroUniDAC(
   AConexion: TUniConnection): IServicioVerifactuCorreccionRegistro;
+function CrearServicioCorreccionImportesRegistroUniDAC(
+  AConexion: TUniConnection): IServicioCorreccionImportesRegistro;
 
 implementation
 
@@ -29,7 +31,9 @@ uses
   System.SysUtils, inLibMsgVerifactu, inLibParametrosIntf,
   inLibVentasWsCola, inLibVerifactu, UniDataVentasWsCola,
   UniDataVerifactuSubsanacionResultados, UniDataVerifactuColaOperaciones,
-  UniDataVerifactuColaRepositorio;
+  UniDataVerifactuColaRepositorio, UniDataFacturasSubsanacion,
+  inLibFacturasSubsanacionComparacion, inLibFacturasSubsanacionReglas,
+  inLibMsgFacturas;
 
 type
   TSolicitudEncoladoSubsanacion = record
@@ -39,9 +43,11 @@ type
     Motivo: string;
     EsCorreccionRegistro: Boolean;
     EsNoVerifactu: Boolean;
+    SoloImportesRegistro: Boolean;
   end;
   TServicioVerifactuSubsanacionUniDAC = class(TInterfacedObject,
-    IServicioVerifactuSubsanacion, IServicioVerifactuCorreccionRegistro)
+    IServicioVerifactuSubsanacion, IServicioVerifactuCorreccionRegistro,
+    IServicioCorreccionImportesRegistro)
   private
     FConexion: TUniConnection;
     function CrearConsulta: TUniQuery;
@@ -62,6 +68,10 @@ type
       const AEntrada: TSolicitudEncoladoSubsanacion);
   public
     constructor Create(AConexion: TUniConnection);
+    function Diferencias(const ASerie, ANumero: string): string;
+    procedure EncolarImportes(
+      const AParametrosApp: IParametrosAplicacion;
+      const AUsuario, ASerie, ANumero, AMotivo, ADiferencias: string);
     procedure Encolar(
       const AParametrosApp: IParametrosAplicacion;
       const AParametrosCaja: IParametrosCaja;
@@ -80,6 +90,12 @@ end;
 
 function CrearServicioVerifactuCorreccionRegistroUniDAC(
   AConexion: TUniConnection): IServicioVerifactuCorreccionRegistro;
+begin
+  Result := TServicioVerifactuSubsanacionUniDAC.Create(AConexion);
+end;
+
+function CrearServicioCorreccionImportesRegistroUniDAC(
+  AConexion: TUniConnection): IServicioCorreccionImportesRegistro;
 begin
   Result := TServicioVerifactuSubsanacionUniDAC.Create(AConexion);
 end;
@@ -107,12 +123,15 @@ begin
   oConsulta := CrearConsulta;
   try
     oConsulta.SQL.Text :=
-      ' SELECT SERIE_FAC FROM fza_facturas ' +
+      ' SELECT FASE_FAC, ESCONSOLIDADA_FAC FROM fza_facturas ' +
       ' WHERE SERIE_FAC = :SERIE AND NUMERO_FAC = :NUMERO FOR UPDATE';
     oConsulta.ParamByName('SERIE').AsString := AEntrada.Serie;
     oConsulta.ParamByName('NUMERO').AsString := AEntrada.Numero;
     oConsulta.Open;
-    if oConsulta.Eof then
+    if oConsulta.Eof or (AEntrada.SoloImportesRegistro and
+       ((oConsulta.FieldByName('ESCONSOLIDADA_FAC').AsString <> 'S') or
+        (oConsulta.FieldByName('FASE_FAC').AsString <>
+         cFaseFacturaVerifactuOk))) then
       raise EArgumentException.Create(SErrorSubsanacionRegistroNoVigente);
   finally
     FreeAndNil(oConsulta);
@@ -187,7 +206,8 @@ begin
       if oConsulta.FieldByName('TIPO_OPERACION_VFCOLA').AsString =
          'ANULACION' then
         raise EArgumentException.Create(SErrorSubsanacionRegistroNoVigente);
-      bReintento := not AEntrada.EsCorreccionRegistro and
+      bReintento := (not AEntrada.EsCorreccionRegistro or
+        AEntrada.SoloImportesRegistro) and
         (oConsulta.FieldByName('TIPO_OPERACION_VFCOLA').AsString =
          'SUBSANACION') and
         (oConsulta.FieldByName('ESTADO_VFCOLA').AsString = 'ERROR') and
@@ -305,9 +325,10 @@ begin
       InsertarCola(AEntrada)
     else
       ReintentarCola(iReintento, AEntrada);
-    TVentasWsCola.RegistrarFactura(AParametrosCaja,
-      CrearRepositorioVentasWsColaUniDAC(FConexion), AEntrada.Usuario,
-      AEntrada.Serie, AEntrada.Numero, 'SUBSANACION');
+    if not AEntrada.SoloImportesRegistro then
+      TVentasWsCola.RegistrarFactura(AParametrosCaja,
+        CrearRepositorioVentasWsColaUniDAC(FConexion), AEntrada.Usuario,
+        AEntrada.Serie, AEntrada.Numero, 'SUBSANACION');
     if bTransaccionPropia then
       FConexion.Commit;
   except
@@ -350,6 +371,46 @@ begin
     RegistrarCorreccionNoVerifactu(AParametrosApp, AParametrosCaja, oEntrada)
   else
     EncolarSolicitud(AParametrosApp, AParametrosCaja, oEntrada);
+end;
+
+function TServicioVerifactuSubsanacionUniDAC.Diferencias(
+  const ASerie, ANumero: string): string;
+begin
+  Result := DiferenciasImportesConRegistro(
+    CrearRepositorioSubsanacionFacturaUniDAC(FConexion).
+      CargarComparacionRegistro(ASerie, ANumero));
+end;
+
+procedure TServicioVerifactuSubsanacionUniDAC.EncolarImportes(
+  const AParametrosApp: IParametrosAplicacion;
+  const AUsuario, ASerie, ANumero, AMotivo, ADiferencias: string);
+var
+  Entrada: TSolicitudEncoladoSubsanacion;
+begin
+  if not (VerifactuActivo(AParametrosApp) or SiiActivo(AParametrosApp)) then
+    raise EArgumentException.Create(SErrorSubsanacionRegistroNoVigente);
+  if FConexion.InTransaction then
+    raise EInvalidOpException.Create(
+      SErrorCorreccionImportesOperacionPendiente);
+  Entrada := Default(TSolicitudEncoladoSubsanacion);
+  Entrada.Usuario := AUsuario;
+  Entrada.Serie := ASerie;
+  Entrada.Numero := ANumero;
+  Entrada.Motivo := Trim(AMotivo);
+  Entrada.EsCorreccionRegistro := True;
+  Entrada.SoloImportesRegistro := True;
+  FConexion.StartTransaction;
+  try
+    BloquearFactura(Entrada);
+    ValidarRegistro(Entrada);
+    if (ADiferencias = '') or (Diferencias(ASerie, ANumero) <> ADiferencias) then
+      raise EArgumentException.Create(SErrorCorreccionImportesRegistroCambio);
+    EncolarSolicitud(AParametrosApp, nil, Entrada);
+    FConexion.Commit;
+  except
+    FConexion.Rollback;
+    raise;
+  end;
 end;
 
 procedure TServicioVerifactuSubsanacionUniDAC.RegistrarCorreccionNoVerifactu(

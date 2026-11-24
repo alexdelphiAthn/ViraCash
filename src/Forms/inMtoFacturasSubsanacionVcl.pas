@@ -24,7 +24,8 @@ uses
   cxButtons,
   inLibFacturasSubsanacionIntf,
   inLibLogIntf,
-  inLibParametrosIntf;
+  inLibParametrosIntf,
+  inLibVerifactuSubsanacionIntf;
 
 type
   TAccionSubsanacionFacturaVcl = reference to procedure;
@@ -32,6 +33,8 @@ type
     Propietario: TComponent;
     Cabecera: TDataSet;
     Servicio: IServicioSubsanacionFactura;
+    CorreccionImportes: IServicioCorreccionImportesRegistro;
+    Usuario: string;
     ParametrosApp: IParametrosAplicacion;
     RegistroLog: IRegistroLog;
     // Graba la cabecera y las líneas en edición antes de registrar.
@@ -50,6 +53,11 @@ procedure ActualizarBotonesSubsanacionVcl(
   const AParametrosApp: IParametrosAplicacion);
 procedure SubsanarFacturaVcl(
   const AContexto: TContextoSubsanacionFacturaVcl);
+function OfrecerCorreccionImportesRegistroVcl(
+  const AServicio: IServicioCorreccionImportesRegistro;
+  const AParametrosApp: IParametrosAplicacion;
+  const AUsuario, ASerie, ANumero: string;
+  out AEnviada: Boolean): Boolean;
 procedure CancelarSubsanacionFacturaVcl(
   const AContexto: TContextoSubsanacionFacturaVcl);
 
@@ -166,6 +174,39 @@ begin
     AMotivo := Trim(oValores[0]);
 end;
 
+function OfrecerCorreccionImportesRegistroVcl(
+  const AServicio: IServicioCorreccionImportesRegistro;
+  const AParametrosApp: IParametrosAplicacion;
+  const AUsuario, ASerie, ANumero: string;
+  out AEnviada: Boolean): Boolean;
+var
+  Diferencias, Motivo: string;
+  Respuesta: TModalResult;
+begin
+  AEnviada := False;
+  Result := False;
+  if Assigned(AServicio) and
+     (VerifactuActivo(AParametrosApp) or SiiActivo(AParametrosApp)) then
+  begin
+    Diferencias := AServicio.Diferencias(ASerie, ANumero);
+    if Diferencias <> '' then
+    begin
+      Respuesta := MessageDlg_fza(
+        Format(SPreguntaCorregirImportesRegistro, [Diferencias]),
+        mtConfirmation, [mbYes, mbNo, mbCancel], 0, mbCancel);
+      Result := Respuesta <> mrNo;
+      if (Respuesta = mrYes) and PedirMotivoSubsanacionVcl(Motivo) then
+      begin
+        AServicio.EncolarImportes(AParametrosApp, AUsuario, ASerie,
+          ANumero, Motivo, Diferencias);
+        AEnviada := True;
+        ShowMessage_fza(FormatearMensajeDocumentos('',
+          SInfoSubsanacionFacturaEncolada, [ASerie, ANumero]));
+      end;
+    end;
+  end;
+end;
+
 procedure RegistrarSubsanacionVcl(
   const AContexto: TContextoSubsanacionFacturaVcl;
   const ASerie, ANumero: string);
@@ -189,6 +230,7 @@ var
   sSerie: string;
   sNumero: string;
   sReferencia: string;
+  bEnviada: Boolean;
 begin
   if CabeceraViva(AContexto.Cabecera) and Assigned(AContexto.Servicio) then
   begin
@@ -201,6 +243,14 @@ begin
         sSerie, sNumero);
       if EnSubsanacion(AContexto.Cabecera) then
         RegistrarSubsanacionVcl(AContexto, sSerie, sNumero)
+      else if (AContexto.Cabecera.State = dsBrowse) and
+        OfrecerCorreccionImportesRegistroVcl(AContexto.CorreccionImportes,
+          AContexto.ParametrosApp, AContexto.Usuario, sSerie, sNumero,
+          bEnviada) then
+      begin
+        if bEnviada then
+          AContexto.Cabecera.Refresh;
+      end
       else
         IniciarSubsanacionVcl(AContexto, sSerie, sNumero);
     except

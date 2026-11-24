@@ -31,5 +31,12 @@ type
       const AParametrosCaja: IParametrosCaja;
       const AUsuario, ASerie, ANumero, AMotivo: string);
   end;
+  IServicioCorreccionImportesRegistro = interface
+    ['{E2C0CC57-F9AC-4725-B18B-558DE1B75965}']
+    function Diferencias(const ASerie, ANumero: string): string;
+    procedure EncolarImportes(
+      const AParametrosApp: IParametrosAplicacion;
+      const AUsuario, ASerie, ANumero, AMotivo, ADiferencias: string);
+  end;
 implementation
 end.

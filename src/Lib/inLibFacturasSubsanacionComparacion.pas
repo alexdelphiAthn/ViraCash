@@ -25,15 +25,16 @@ uses
 // False si no hay registro con importes con el que comparar.
 function RegistroComparable(const ADatos: TDatosComparacionSubsanacion):
   Boolean;
-// Texto con las diferencias («importe 96,80; registrado 108,90»...);
-// vacío si la factura coincide con el registro o no es comparable.
+function DiferenciasImportesConRegistro(
+  const ADatos: TDatosComparacionSubsanacion): string;
+// Vacío si la factura coincide con el registro o no es comparable.
 function DiferenciasConRegistro(
   const ADatos: TDatosComparacionSubsanacion): string;
 
 implementation
 
 uses
-  System.SysUtils, System.StrUtils,
+  System.SysUtils, System.StrUtils, System.RegularExpressions,
   inLibMsgFacturas;
 
 const
@@ -154,16 +155,50 @@ begin
        Trim(sNif + ' ' + sNombre)]));
 end;
 
+function DiferenciasImportesConRegistro(
+  const ADatos: TDatosComparacionSubsanacion): string;
+var
+  FacturaSii: string;
+  Cuotas: TMatchCollection;
+  Coincidencia: TMatch;
+  Valor, CuotaSii: Currency;
+  CuotaSiiValida: Boolean;
+begin
+  Result := '';
+  CompararImporte(Result, ADatos.RegistroXml, 'ImporteTotal',
+    SDetalleSubsanacionImporte, ADatos.ImporteTotal);
+  FacturaSii := BloqueEtiqueta(ADatos.RegistroXml, 'FacturaExpedida');
+  if FacturaSii = '' then
+    CompararImporte(Result, ADatos.RegistroXml, 'CuotaTotal',
+      SDetalleSubsanacionCuota, ADatos.CuotaTotal)
+  else
+  begin
+    // El SII comunica la cuota y el recargo por tipo, sin una cuota total.
+    CuotaSii := 0;
+    CuotaSiiValida := True;
+    Cuotas := TRegEx.Matches(FacturaSii,
+      '<(?:\w+:)?(?:CuotaRepercutida|CuotaRecargoEquivalencia)>([^<]+)<');
+    for Coincidencia in Cuotas do
+      if TryStrToCurr(Coincidencia.Groups[1].Value, Valor,
+        TFormatSettings.Invariant) then
+        CuotaSii := CuotaSii + Valor
+      else
+        CuotaSiiValida := False;
+    if CuotaSiiValida and (Cuotas.Count > 0) and
+       (Abs(ADatos.CuotaTotal - CuotaSii) >= cToleranciaImporte) then
+      AnadirDiferencia(Result, Format(SDetalleSubsanacionCuota,
+        [FormatFloat('#,##0.00', ADatos.CuotaTotal),
+         FormatFloat('#,##0.00', CuotaSii)]));
+  end;
+end;
+
 function DiferenciasConRegistro(
   const ADatos: TDatosComparacionSubsanacion): string;
 begin
   Result := '';
   if RegistroComparable(ADatos) then
   begin
-    CompararImporte(Result, ADatos.RegistroXml, 'ImporteTotal',
-      SDetalleSubsanacionImporte, ADatos.ImporteTotal);
-    CompararImporte(Result, ADatos.RegistroXml, 'CuotaTotal',
-      SDetalleSubsanacionCuota, ADatos.CuotaTotal);
+    Result := DiferenciasImportesConRegistro(ADatos);
     CompararDestinatario(Result, ADatos);
   end;
 end;

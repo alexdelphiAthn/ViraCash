@@ -87,6 +87,8 @@ function TRepositorioCajaOperacionesHistUniDAC.ConstruirWhere(
   const AFiltros: TFiltrosCajaOperacionesHist): string;
 var
   Anyo: string;
+  NumeroAnyo: Integer;
+  RangoAnyo: string;
   Almacen: string;
   sAnyos: string;
   sAlmacenes: string;
@@ -94,11 +96,25 @@ begin
   sAnyos := '';
   for Anyo in AFiltros.Anyos do
   begin
+    if not TryStrToInt(Anyo, NumeroAnyo) or
+       (NumeroAnyo < 0) or (NumeroAnyo > 9999) then
+      raise EArgumentException.CreateFmt('Año de operaciones inválido: %s',
+        [Anyo]);
+    if NumeroAnyo = 0 then
+      RangoAnyo := 'YEAR(o.FECHA_OPERACION_OPCAJA) = 0'
+    else
+    begin
+      RangoAnyo := 'o.FECHA_OPERACION_OPCAJA >= ' +
+        QuotedStr(Format('%.4d-01-01', [NumeroAnyo]));
+      if NumeroAnyo < 9999 then
+        RangoAnyo := '(' + RangoAnyo + ' AND o.FECHA_OPERACION_OPCAJA < ' +
+          QuotedStr(Format('%.4d-01-01', [NumeroAnyo + 1])) + ')';
+    end;
     if sAnyos <> '' then
     begin
-      sAnyos := sAnyos + ', ';
+      sAnyos := sAnyos + ' OR ';
     end;
-    sAnyos := sAnyos + Anyo;
+    sAnyos := sAnyos + RangoAnyo;
   end;
   sAlmacenes := '';
   for Almacen in AFiltros.Almacenes do
@@ -112,8 +128,7 @@ begin
   Result := ' WHERE 1 = 1';
   if sAnyos <> '' then
   begin
-    Result := Result +
-      ' AND YEAR(o.FECHA_OPERACION_OPCAJA) IN (' + sAnyos + ')';
+    Result := Result + ' AND (' + sAnyos + ')';
   end;
   if sAlmacenes <> '' then
   begin
@@ -130,7 +145,37 @@ end;
 function TRepositorioCajaOperacionesHistUniDAC.ConstruirSql(
   const AFiltros: TFiltrosCajaOperacionesHist): string;
 begin
+  // UNION conserva cada factura una vez cuando coincide por ambas vías.
+  // El LEFT JOIN exterior conserva las líneas que no tienen factura.
+  // STRAIGHT_JOIN consulta el índice de factura desde la operación filtrada.
   Result :=
+    'WITH operaciones AS ( ' +
+    '  SELECT o.ID_OPCAJA, o.CODIGO_EMP_OPCAJA, o.CODIGO_ALM_OPCAJA, ' +
+    '         o.CODIGO_CAJA_OPCAJA, o.NUMERO_OPERACION_OPCAJA, ' +
+    '         o.FECHA_OPERACION_OPCAJA, o.TIPO_OPERACION_OPCAJA, ' +
+    '         o.CONCEPTO_GASTO_INGRESO_OPCAJA, o.IMPORTE_TOTAL_OPCAJA, ' +
+    '         o.SERIE_FAC_OPCAJA, o.NUMERO_FAC_OPCAJA, ' +
+    '         o.CODIGO_CLI_OPCAJA, o.CODIGO_EMPLEADO_OPCAJA ' +
+    '    FROM fza_caja_operaciones o ' + ConstruirWhere(AFiltros) +
+    '), facturas_operacion AS ( ' +
+    '  SELECT o.ID_OPCAJA, f.SERIE_FAC, f.NUMERO_FAC, ' +
+    '         f.TOTAL_LIQUIDO_FAC, f.CODIGO_CLI_FAC ' +
+    '    FROM operaciones o ' +
+    '    STRAIGHT_JOIN fza_facturas f ' +
+    '      ON f.CODIGO_EMP_FAC = o.CODIGO_EMP_OPCAJA ' +
+    '     AND f.CODIGO_ALM_FAC = o.CODIGO_ALM_OPCAJA ' +
+    '     AND f.CODIGO_CAJA_FAC = o.CODIGO_CAJA_OPCAJA ' +
+    '     AND f.NUMERO_OPERACION_FAC = o.NUMERO_OPERACION_OPCAJA ' +
+    '  UNION ' +
+    '  SELECT o.ID_OPCAJA, f.SERIE_FAC, f.NUMERO_FAC, ' +
+    '         f.TOTAL_LIQUIDO_FAC, f.CODIGO_CLI_FAC ' +
+    '    FROM operaciones o ' +
+    '    JOIN fza_facturas f ' +
+    '      ON f.SERIE_FAC = o.SERIE_FAC_OPCAJA ' +
+    '     AND f.NUMERO_FAC = o.NUMERO_FAC_OPCAJA ' +
+    '   WHERE f.CODIGO_CAJA_FAC = ''99'' ' +
+    '     AND o.TIPO_OPERACION_OPCAJA = ''DV'' ' +
+    ') ' +
     'SELECT o.CODIGO_EMP_OPCAJA, ' +
     '       o.CODIGO_ALM_OPCAJA, ' +
     '       o.CODIGO_CAJA_OPCAJA, ' +
@@ -152,20 +197,11 @@ begin
     '         AS CLIENTE, ' +
     '       MAX(cli.RAZON_SOCIAL_CLI) AS RAZON_SOCIAL_CLI, ' +
     '       MAX(o.CODIGO_EMPLEADO_OPCAJA) AS EMPLEADO ' +
-    '  FROM fza_caja_operaciones o ' +
-    '  LEFT JOIN fza_facturas f ' +
-    '    ON f.CODIGO_EMP_FAC = o.CODIGO_EMP_OPCAJA ' +
-    '   AND f.CODIGO_ALM_FAC = o.CODIGO_ALM_OPCAJA ' +
-    '   AND f.CODIGO_CAJA_FAC = o.CODIGO_CAJA_OPCAJA ' +
-    '   AND f.NUMERO_OPERACION_FAC = o.NUMERO_OPERACION_OPCAJA ' +
-    '    OR (f.CODIGO_CAJA_FAC = ''99'' ' +
-    '      AND o.TIPO_OPERACION_OPCAJA = ''DV'' ' +
-    '      AND f.SERIE_FAC = o.SERIE_FAC_OPCAJA ' +
-    '      AND f.NUMERO_FAC = o.NUMERO_FAC_OPCAJA) ' +
+    '  FROM operaciones o ' +
+    '  LEFT JOIN facturas_operacion f ON f.ID_OPCAJA = o.ID_OPCAJA ' +
     '  LEFT JOIN fza_clientes cli ' +
     '    ON cli.CODIGO_CLI_CLI = COALESCE(f.CODIGO_CLI_FAC, ' +
     '                                     o.CODIGO_CLI_OPCAJA) ' +
-    ConstruirWhere(AFiltros) +
     ' GROUP BY o.CODIGO_EMP_OPCAJA, ' +
     '          o.CODIGO_ALM_OPCAJA, ' +
     '          o.CODIGO_CAJA_OPCAJA, ' +

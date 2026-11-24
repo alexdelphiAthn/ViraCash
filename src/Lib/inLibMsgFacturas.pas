@@ -421,6 +421,16 @@ resourcestring
     'No se puede cancelar la subsanación: regístrela, o deje la factura ' +
     'como estaba y vuelva a cancelar.';
   SDetalleSubsanacionImporte = 'importe %s; registrado %s';
+  SPreguntaCorregirImportesRegistro =
+    'La factura y el registro fiscal tienen importes distintos.' +
+    sLineBreak + '%s' + sLineBreak + sLineBreak +
+    'Si la factura emitida es correcta, pulse Sí para corregir solo el ' +
+    'registro fiscal con los datos de esa factura.' + sLineBreak +
+    'Pulse No para seguir por la subsanación habitual.';
+  SErrorCorreccionImportesRegistroCambio =
+    'La diferencia de importes ha cambiado. Vuelva a revisar la factura.';
+  SErrorCorreccionImportesOperacionPendiente =
+    'Finalice la operación pendiente antes de corregir el registro fiscal.';
   SDetalleSubsanacionCuota = 'cuota %s; registrada %s';
   SDetalleSubsanacionDestinatario = 'destinatario %s; registrado %s';
   SErrorFacturaSinAlmacenStock =

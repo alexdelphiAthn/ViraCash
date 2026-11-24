@@ -233,6 +233,7 @@ uses
      inLibFotos, inMtoFotoArticulo,
      inLibTraspasoTicket, inLibShowMto, inLibReimpresionOperacionCaja,
      inLibVerifactu, inLibVerifactuTipos, inMtoModalFacturarTicket,
+  inMtoFacturasSubsanacionVcl, UniDataVerifactuSubsanacionRepositorio,
   inMtoCajaFormatosTicket,
   inLibCorreoTickets, UniDataCorreoTicketsRepositorio,
   inLibAtributosPaleta, inLibMsgComun,
@@ -745,6 +746,7 @@ var
   rClave: TClaveOperacionSubsanacionCaja;
   rFactura: TFacturaConsultaOperacion;
   bPuedeSubsanar: Boolean;
+  bEnviada: Boolean;
   sMotivoRechazo: string;
 begin
   rClave := ClaveOperacionSubsanacion;
@@ -770,8 +772,19 @@ begin
   if not bPuedeSubsanar then
     raise EInvalidOpException.CreateFmt(sMotivoRechazo,
       [rClave.SerieFactura, rClave.NumeroFactura, rFactura.Fase]);
-  rOperacion := FServicioSubsanacion.Cargar(rClave);
-  AbrirOperacionSubsanacion(rOperacion);
+  if OfrecerCorreccionImportesRegistroVcl(
+    CrearServicioCorreccionImportesRegistroUniDAC(ConexionPrincipal),
+    ParametrosApp, IdentidadSesion.Usuario,
+    rClave.SerieFactura, rClave.NumeroFactura, bEnviada) then
+  begin
+    if bEnviada then
+      RefrescarOperaciones;
+  end
+  else
+  begin
+    rOperacion := FServicioSubsanacion.Cargar(rClave);
+    AbrirOperacionSubsanacion(rOperacion);
+  end;
 end;
 
 procedure TfrmConsultaOpe.btnSubsanarClick(Sender: TObject);

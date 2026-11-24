@@ -31923,6 +31923,18 @@ begin
     @inLibMsgFacturas.
       SDetalleSubsanacionImporte);
   ARegistrar(
+    'inLibMsgFacturas.SPreguntaCorregirImportesRegistro',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SPreguntaCorregirImportesRegistro);
+  ARegistrar(
+    'inLibMsgFacturas.SErrorCorreccionImportesRegistroCambio',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SErrorCorreccionImportesRegistroCambio);
+  ARegistrar(
+    'inLibMsgFacturas.SErrorCorreccionImportesOperacionPendiente',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SErrorCorreccionImportesOperacionPendiente);
+  ARegistrar(
     'inLibMsgFacturas.' +
     'SDetalleSubsanacionCuota',
     'src/Lib/inLibMsgFacturas.pas',

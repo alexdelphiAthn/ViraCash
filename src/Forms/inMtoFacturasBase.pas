@@ -688,6 +688,7 @@ uses
   inLibArticulosResolverIntf,
   inMtoGenSearch,
   inLibVerifactu,
+  UniDataVerifactuSubsanacionRepositorio,
   inLibFacturasAplicacion,
   inMtoFacturasVistaVcl,
   inMtoFacturasConsolidacionVcl,
@@ -2455,6 +2456,9 @@ begin
   Result.Propietario := Self;
   Result.Cabecera := dsTablaG.DataSet;
   Result.Servicio := FDependenciasInyeccion.Subsanacion;
+  Result.CorreccionImportes :=
+    CrearServicioCorreccionImportesRegistroUniDAC(ConexionPrincipal);
+  Result.Usuario := IdentidadSesion.Usuario;
   Result.ParametrosApp := ParametrosApp;
   Result.RegistroLog := RegistroLog;
   Result.GuardarPendiente :=

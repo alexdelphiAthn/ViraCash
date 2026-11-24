@@ -148,7 +148,10 @@ begin
     Qry.SQL.Text :=
       ' SELECT f.TOTAL_BASES_FAC, f.TOTAL_IMPUESTOS_FAC, ' +
       '        f.NIF_CLIENTE_FAC, f.RAZON_SOCIAL_CLIENTE_FAC, ' +
-      '        (SELECT c.REGISTRO_XML_FACCON ' +
+      '        (SELECT CASE WHEN LEFT(c.ESTADO_FACCON, 4) = ''SII_'' ' +
+      '          THEN COALESCE(NULLIF(c.REGISTRO_XML_FACCON, ''''), ' +
+      '                        c.PETICION_COMPLETA_FACCON) ' +
+      '          ELSE c.REGISTRO_XML_FACCON END ' +
       '           FROM fza_facturas_consolidaciones c ' +
       '          WHERE c.SERIE_FAC_FACCON = f.SERIE_FAC ' +
       '            AND c.NUMERO_FAC_FACCON = f.NUMERO_FAC ' +
