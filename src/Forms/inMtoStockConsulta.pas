@@ -155,6 +155,11 @@ type
     FEventosLector: TApplicationEvents;
     FArticuloConPartidas: Boolean;
     FMostrarPorLote: Boolean;
+    FTemporizadorCargaDiferida: TTimer;
+    FUnidadFotoPendiente: string;
+    FFotoPendiente: Boolean;
+    FBusquedaRelacionadosPendiente: Boolean;
+    FPropsPorColorCargadas: Boolean;
     procedure MensajeLector(var Msg: TMsg; var Handled: Boolean);
     procedure FormKeyPress(Sender: TObject; var Key: Char);
     procedure FormShortCut(var Msg: TWMKey; var Handled: Boolean);
@@ -167,6 +172,9 @@ type
     procedure ActualizarLetreroColor;
     procedure AjustarFotoCabecera;
     procedure CargarFoto(const ACodUnidad: string);
+    procedure ProgramarFoto(const ACodUnidad: string);
+    procedure ProgramarBusquedaRelacionados;
+    procedure CargarDiferido(Sender: TObject);
     procedure CargarInfoCabecera;
     function  BuscarArticulo: string;
     function  ResolverCodigoSkuDocumentoTrabajo(
@@ -423,6 +431,10 @@ begin
   FDependencias.Lector.OnCodigoLeido := LectorCodigoLeido;
   FEventosLector := TApplicationEvents.Create(Self);
   FEventosLector.OnMessage := MensajeLector;
+  FTemporizadorCargaDiferida := TTimer.Create(Self);
+  FTemporizadorCargaDiferida.Enabled := False;
+  FTemporizadorCargaDiferida.Interval := 1;
+  FTemporizadorCargaDiferida.OnTimer := CargarDiferido;
   btnPorLote.Caption := SCaptionStockPorLote;
   CrearPresentadores;
   FFiltrosLista.CargarAlmacenes;
@@ -525,7 +537,8 @@ begin
     begin
       if Trim(ACodigoArticulo) <> '' then
         SetArticuloSku(ACodigoArticulo, '');
-    end);
+    end,
+    ProgramarBusquedaRelacionados);
   FEstados := TPresentadorEstadosStock.Create(
     Self, cbbEstado, pnlFiltros, pnlLeyenda, cbbEstado,
     SCaptionModoSimplificado, SCaptionModoDesglosado,
@@ -542,6 +555,7 @@ end;
 
 procedure TfrmStockConsulta.FormDestroy(Sender: TObject);
 begin
+  FreeAndNil(FTemporizadorCargaDiferida);
   FreeAndNil(FEventosLector);
   if FPivote <> nil then
     FPivote.Limpiar;
@@ -559,6 +573,9 @@ end;
 procedure TfrmStockConsulta.FormClose(Sender: TObject;
   var Action: TCloseAction);
 begin
+  FTemporizadorCargaDiferida.Enabled := False;
+  FFotoPendiente := False;
+  FBusquedaRelacionadosPendiente := False;
   Action := caHide;
 end;
 
@@ -1119,6 +1136,11 @@ begin
     iSeleccion := lstColores.ItemIndex;
     if (iSeleccion >= 0) and (iSeleccion < lstColores.Items.Count) then
       sColor := lstColores.Items[iSeleccion];
+    if (sColor <> '') and not FPropsPorColorCargadas then
+    begin
+      CargarPropsPorColor;
+      FPropsPorColorCargadas := True;
+    end;
     if (sColor <> '') and FPropsPorColor.TieneColor(sColor) then
     begin
       lblLetreroTemp.Caption := LetreroPropiedadesColorStock(
@@ -1143,6 +1165,17 @@ var
   Dimension: TDimensionFotos;
   bArticuloEncontrado: Boolean;
 begin
+  FTemporizadorCargaDiferida.Enabled := False;
+  FFotoPendiente := False;
+  FBusquedaRelacionadosPendiente := False;
+  imgFoto.Picture.Assign(nil);
+  mInfoCabecera.Lines.Clear;
+  edtProveedorArticulo.Clear;
+  edtTemporadaArticulo.Clear;
+  memFamiliaArticulo.Clear;
+  memFamiliaArticulo.Hint := '';
+  FPropsPorColorCargadas := False;
+  FPropsPorColor.Limpiar;
   FVista.FijarArticulo(ACodArt, ACodSku);
   FVista.ActualizandoArticulo := True;
   try
@@ -1177,14 +1210,11 @@ begin
     if bArticuloEncontrado then
       lblDescr.Caption := sDescripcion;
   end;
-  // Errores de carga (foto / cabecera / colores) por encima de la ventana.
+  // Prepara los filtros de color y el detalle por lote antes del pivote.
   try
-    CargarInfoCabecera;
-    CargarFoto(FVista.CodigoSku);
     FFiltrosLista.CargarColores(
       FVista.CodigoArticulo,
       FVista.CodigoSku);
-    CargarPropsPorColor;
     if bArticuloEncontrado then
       FArticuloConPartidas :=
         FDependencias.Pivote.HayPartidasArticulo(ACodArt);
@@ -1202,6 +1232,14 @@ begin
   if not FArticuloConPartidas then
     FMostrarPorLote := False;
   RecargarConsulta;
+  try
+    CargarInfoCabecera;
+  except
+    on E: Exception do
+      MostrarError(E.Message);
+  end;
+  if bArticuloEncontrado then
+    ProgramarFoto(ACodSku);
 end;
 
 procedure TfrmStockConsulta.AjustarFotoCabecera;
@@ -1255,7 +1293,6 @@ var
   sRuta: string;
   Png: TPngImage;
 begin
-  imgFoto.Picture.Assign(nil);
   if FVista.HayArticulo then
   begin
     Info := FotosArticulos.Resolver(FVista.CodigoArticulo, ACodUnidad);
@@ -1273,6 +1310,47 @@ begin
   end;
 end;
 
+procedure TfrmStockConsulta.ProgramarFoto(const ACodUnidad: string);
+begin
+  imgFoto.Picture.Assign(nil);
+  FUnidadFotoPendiente := ACodUnidad;
+  FFotoPendiente := FVista.HayArticulo;
+  if FFotoPendiente then
+    FTemporizadorCargaDiferida.Enabled := True;
+end;
+
+procedure TfrmStockConsulta.ProgramarBusquedaRelacionados;
+begin
+  FBusquedaRelacionadosPendiente := True;
+  FTemporizadorCargaDiferida.Enabled := True;
+end;
+
+// El temporizador deja que Windows pinte la consulta antes de cargar fotos.
+procedure TfrmStockConsulta.CargarDiferido(Sender: TObject);
+begin
+  FTemporizadorCargaDiferida.Enabled := False;
+  if Visible then
+  begin
+    try
+      if FBusquedaRelacionadosPendiente then
+      begin
+        FBusquedaRelacionadosPendiente := False;
+        FFotos.CargarSiProcede;
+      end
+      else if FFotoPendiente then
+      begin
+        FFotoPendiente := False;
+        CargarFoto(FUnidadFotoPendiente);
+      end;
+    except
+      on E: Exception do
+        MostrarError(E.Message);
+    end;
+    FTemporizadorCargaDiferida.Enabled := Visible and
+      (FBusquedaRelacionadosPendiente or FFotoPendiente);
+  end;
+end;
+
 // Bloque de info de la cabecera (propiedades + tarifas vigentes +
 // proveedores). El formato lo decide inLibStockConsultaInfo.
 procedure TfrmStockConsulta.CargarInfoCabecera;
@@ -1280,11 +1358,6 @@ var
   Info: TInfoCabeceraStock;
   Proveedor: TProveedorInfoStock;
 begin
-  mInfoCabecera.Lines.Clear;
-  edtProveedorArticulo.Clear;
-  edtTemporadaArticulo.Clear;
-  memFamiliaArticulo.Clear;
-  memFamiliaArticulo.Hint := '';
   if FVista.HayArticulo then
   begin
     Info := FDependencias.InfoCabecera.Cargar(FVista.CodigoArticulo,
@@ -1325,15 +1398,11 @@ begin
   if bVistaFotos then
   begin
     FFotos.MostrarVista(True);
-    try
-      FFotos.CargarSiProcede;
-    except
-      on E: Exception do
-        MostrarError(E.Message);
-    end;
+    ProgramarBusquedaRelacionados;
   end
   else
   begin
+    FBusquedaRelacionadosPendiente := False;
     FFotos.MostrarVista(False);
     bPorColor := pcVistas.ActivePage = tsPorColor;
     // Cursor de espera: el pivote en modo "Todos los estados" puede tardar y
@@ -1359,12 +1428,14 @@ begin
           FFiltrosLista.AlmacenesSeleccionados,
           FFiltrosLista.ColoresSeleccionados);
         if FVista.HayArticulo then
+        begin
           FPestanas.Mostrar(FDependencias.Pivote.ConsultarPestanas(
-            Solicitud))
+            Solicitud));
+          Solicitud.Pestana := FPestanas.CodigoSeleccionado;
+          FPivote.Consultar(Solicitud, Tallas, FMostrarPorLote);
+        end
         else
           FPestanas.Ocultar;
-        Solicitud.Pestana := FPestanas.CodigoSeleccionado;
-        FPivote.Consultar(Solicitud, Tallas, FMostrarPorLote);
       except
         on E: Exception do
         begin
@@ -1473,7 +1544,6 @@ var
   iColor: Integer;
   sCodUnidad: string;
 begin
-  ActualizarLetreroColor;
   sCodUnidad := FVista.CodigoSku;
   iColor := lstColores.ItemIndex;
   // La clave ARTICULO/COLOR permite resolver primero la foto propia del
@@ -1481,13 +1551,14 @@ begin
   if (iColor >= 0) and (iColor < lstColores.Items.Count) and
      lstColores.Selected[iColor] then
     sCodUnidad := FVista.ClaveUnidadColor(lstColores.Items[iColor]);
+  RecargarConsulta;
   try
-    CargarFoto(sCodUnidad);
+    ActualizarLetreroColor;
   except
     on E: Exception do
       MostrarError(E.Message);
   end;
-  RecargarConsulta;
+  ProgramarFoto(sCodUnidad);
 end;
 
 procedure TfrmStockConsulta.pcVistasChange(Sender: TObject);

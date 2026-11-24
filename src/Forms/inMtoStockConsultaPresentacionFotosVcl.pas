@@ -19,7 +19,7 @@ unit inMtoStockConsultaPresentacionFotosVcl;
 interface
 
 uses
-  System.Classes, System.Generics.Collections,
+  System.Classes, System.SysUtils, System.Generics.Collections,
   Vcl.Controls, Vcl.ExtCtrls, Vcl.StdCtrls, Vcl.Graphics, Vcl.Forms,
   Vcl.Imaging.pngimage,
   Data.DB,
@@ -45,6 +45,7 @@ type
     FLector: ILectorCatalogosStockConsulta;
     FFotos: TFotosArticulos;
     FNavegar: TNavegarArticuloRelacionado;
+    FAlCambiarFiltro: TProc;
     FCodigoArticulo: string;
     procedure BotonFiltroClick(Sender: TObject);
     procedure TarjetaDblClick(Sender: TObject);
@@ -66,7 +67,8 @@ type
             ACaptionTemporada: string;
       const ALector: ILectorCatalogosStockConsulta;
       AFotos: TFotosArticulos;
-      const ANavegar: TNavegarArticuloRelacionado);
+      const ANavegar: TNavegarArticuloRelacionado;
+      const AAlCambiarFiltro: TProc);
     destructor Destroy; override;
     function DimensionActiva(out ADimension: TDimensionFotos): Boolean;
     procedure FijarArticulo(const ACodigoArticulo: string);
@@ -82,7 +84,6 @@ implementation
 
 uses
   inLibMsgFotos,
-  System.SysUtils,
   inLibMsgArticulos;
 
 const
@@ -108,7 +109,8 @@ constructor TPresentadorFotosRelacionadasStock.Create(
         ACaptionTemporada: string;
   const ALector: ILectorCatalogosStockConsulta;
   AFotos: TFotosArticulos;
-  const ANavegar: TNavegarArticuloRelacionado);
+  const ANavegar: TNavegarArticuloRelacionado;
+  const AAlCambiarFiltro: TProc);
 var
   Dimension: TDimensionFotos;
   Pestana: TcxTabSheet;
@@ -120,6 +122,7 @@ begin
   FLector := ALector;
   FFotos := AFotos;
   FNavegar := ANavegar;
+  FAlCambiarFiltro := AAlCambiarFiltro;
   for Dimension := Low(TDimensionFotos) to High(TDimensionFotos) do
   begin
     Pestana := TcxTabSheet.Create(AOwner);
@@ -155,6 +158,7 @@ destructor TPresentadorFotosRelacionadasStock.Destroy;
 begin
   LimpiarTarjetas;
   FNavegar := nil;
+  FAlCambiarFiltro := nil;
   FLector := nil;
   FFotos := nil;
   FreeAndNil(FEstado);
@@ -189,7 +193,11 @@ var
   Dimension: TDimensionFotos;
 begin
   if DimensionActiva(Dimension) then
+  begin
     FEstado.Reiniciar(Dimension);
+    LimpiarTarjetas;
+    ConfigurarFiltros(Dimension);
+  end;
 end;
 
 // Las tarjetas y la rejilla comparten hueco: solo una de las dos esta
@@ -275,8 +283,9 @@ begin
   begin
     Filtro := TDimensionFotos(TcxButton(Sender).Tag);
     FEstado.AlternarFiltro(Dimension, Filtro);
+    LimpiarTarjetas;
     ConfigurarFiltros(Dimension);
-    Cargar(Dimension);
+    FAlCambiarFiltro();
   end;
 end;
 
