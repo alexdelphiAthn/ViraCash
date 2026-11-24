@@ -43,7 +43,7 @@ type
     procedure ConfirmarEdicion;
     function LeerLineas: TLineasSubsanacionCaja;
   public
-    // Forma de pago y descuento global se editan en la pantalla de Cobro.
+    // La forma de pago se corrige en la pantalla de Cobro.
     constructor Create(const AControles: TControlesSubsanacionCaja;
       const AOriginales: TLineasSubsanacionCaja);
     destructor Destroy; override;
@@ -89,6 +89,7 @@ begin
   FControles.Vista.OptionsData.Appending := False;
   FControles.Vista.OptionsData.Inserting := False;
   FControles.Vista.OptionsData.Deleting := False;
+  FControles.Vista.OptionsData.Editing := False;
   FControles.Vista.OptionsView.NewItemRow := False;
   for i := 0 to FControles.Vista.ColumnCount - 1 do
     FControles.Vista.Columns[i].Options.Editing :=

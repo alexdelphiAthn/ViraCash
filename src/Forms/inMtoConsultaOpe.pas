@@ -152,9 +152,10 @@ type
     // Columna "Fotos" de la rejilla maestra (nil si el parametro de caja
     // la apaga o no hay servicio de fotos).
     FFotosOperacion: TTiraMiniaturasFotosGrid;
-    procedure SubsanarOperacion;
+    function SubsanarOperacion(const AClave: TClaveOperacionSubsanacionCaja;
+      ACerrarConsulta: Boolean): Boolean;
     procedure AbrirOperacionSubsanacion(
-      const AOperacion: TOperacionSubsanacionCaja);
+      const AOperacion: TOperacionSubsanacionCaja; ACerrarConsulta: Boolean);
     function ClaveOperacionSubsanacion: TClaveOperacionSubsanacionCaja;
     procedure ValidarDependencias;
     // Factura de la operación seleccionada (pestaña Factura)
@@ -166,7 +167,8 @@ type
     function SeleccionarTipoRectificativa(
       const ASerie, ANumero: string;
       out ATipoRectificativa: TTipoRectificativaCaja): Boolean;
-    procedure ActivarOperacionCaja(AFormularioCaja: TCustomForm);
+    procedure ActivarOperacionCaja(AFormularioCaja: TCustomForm;
+      ACerrarConsulta: Boolean = True);
     procedure RecargarMaestro;
     procedure AjustarVisibilidadColumnasCliente;
     procedure GuardarLayout;
@@ -207,6 +209,8 @@ type
       reintroduce; overload;
     function IsShortCut(var Message: TWMKey): Boolean; override;
     function FormularioConsultaCaja: TCustomForm;
+    function SubsanarFactura(const AClave: TClaveOperacionSubsanacionCaja):
+      Boolean;
     procedure PrepararValores(const AEmpresa,
                                     AAlmacen,
                                     ACaja: string;
@@ -715,7 +719,7 @@ begin
 end;
 
 procedure TfrmConsultaOpe.AbrirOperacionSubsanacion(
-  const AOperacion: TOperacionSubsanacionCaja);
+  const AOperacion: TOperacionSubsanacionCaja; ACerrarConsulta: Boolean);
 var
   oAnfitrion: IAnfitrionCajaVentanas;
   oOperacion: IOperacionCaja;
@@ -737,21 +741,29 @@ begin
       raise;
     end;
   end;
-  ActivarOperacionCaja(oFormulario);
+  ActivarOperacionCaja(oFormulario, ACerrarConsulta);
 end;
 
-procedure TfrmConsultaOpe.SubsanarOperacion;
+function TfrmConsultaOpe.SubsanarFactura(
+  const AClave: TClaveOperacionSubsanacionCaja): Boolean;
+begin
+  Result := SubsanarOperacion(AClave, False);
+end;
+
+function TfrmConsultaOpe.SubsanarOperacion(
+  const AClave: TClaveOperacionSubsanacionCaja;
+  ACerrarConsulta: Boolean): Boolean;
 var
   rOperacion: TOperacionSubsanacionCaja;
-  rClave: TClaveOperacionSubsanacionCaja;
   rFactura: TFacturaConsultaOperacion;
   bPuedeSubsanar: Boolean;
-  bEnviada: Boolean;
   sMotivoRechazo: string;
 begin
-  rClave := ClaveOperacionSubsanacion;
+  if not FServicioSubsanacion.Permitida or
+     not PuedeUsarBoton(PERMISO_CAJA_BUSCAR_SUBSANAR) then
+    raise EInvalidOpException.Create(SSubsanacionNoPermitida);
   rFactura := FRepositorioFacturas.ConsultarFactura(
-    rClave.SerieFactura, rClave.NumeroFactura);
+    AClave.SerieFactura, AClave.NumeroFactura);
   if not rFactura.Existe then
     raise EInvalidOpException.Create(SSubsanacionNoPermitida);
   case ModoVerifactu(ParametrosApp) of
@@ -771,19 +783,17 @@ begin
   end;
   if not bPuedeSubsanar then
     raise EInvalidOpException.CreateFmt(sMotivoRechazo,
-      [rClave.SerieFactura, rClave.NumeroFactura, rFactura.Fase]);
-  if OfrecerCorreccionImportesRegistroVcl(
+      [AClave.SerieFactura, AClave.NumeroFactura, rFactura.Fase]);
+  if not OfrecerCorreccionImportesRegistroVcl(
     CrearServicioCorreccionImportesRegistroUniDAC(ConexionPrincipal),
     ParametrosApp, IdentidadSesion.Usuario,
-    rClave.SerieFactura, rClave.NumeroFactura, bEnviada) then
+    AClave.SerieFactura, AClave.NumeroFactura, Result) and
+    (MessageDlg_fza(SAvisoUsoSubsanacion + sLineBreak + sLineBreak +
+      SPreguntaAbrirCorreccionCobro, mtConfirmation, [mbYes, mbNo], 0,
+      mbNo) = mrYes) then
   begin
-    if bEnviada then
-      RefrescarOperaciones;
-  end
-  else
-  begin
-    rOperacion := FServicioSubsanacion.Cargar(rClave);
-    AbrirOperacionSubsanacion(rOperacion);
+    rOperacion := FServicioSubsanacion.Cargar(AClave);
+    AbrirOperacionSubsanacion(rOperacion, ACerrarConsulta);
   end;
 end;
 
@@ -791,7 +801,8 @@ procedure TfrmConsultaOpe.btnSubsanarClick(Sender: TObject);
 begin
   // Las validaciones de negocio se informan con un aviso, no como error.
   try
-    SubsanarOperacion;
+    if SubsanarOperacion(ClaveOperacionSubsanacion, True) then
+      RefrescarOperaciones;
   except
     on E: EInvalidOpException do
       ShowMessage_fza(E.Message);
@@ -801,16 +812,18 @@ begin
 end;
 
 procedure TfrmConsultaOpe.ActivarOperacionCaja(
-  AFormularioCaja: TCustomForm);
+  AFormularioCaja: TCustomForm; ACerrarConsulta: Boolean);
 begin
   if AFormularioCaja.WindowState = wsMinimized then
     AFormularioCaja.WindowState := wsNormal;
   AFormularioCaja.Show;
   // Buscar operaciones puede ser un popup de esta misma operacion. Mientras
   // siga visible, Windows impide que su ventana propietaria quede por encima.
-  Hide;
+  if ACerrarConsulta then
+    Hide;
   AFormularioCaja.BringToFront;
-  Close;
+  if ACerrarConsulta then
+    Close;
 end;
 
 procedure TfrmConsultaOpe.btnAnularVerifactuClick(Sender: TObject);

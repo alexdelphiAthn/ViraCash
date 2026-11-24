@@ -217,6 +217,10 @@ procedure RegistrarEventoVerifactu(
                                    const ADatosAdicionales: string = '';
                                    const ASerieFac: string = '';
                                    const ANumeroFac: string = '');
+procedure RegistrarEventoVerifactuEnModo(
+  AModo: TModoVerifactu; const AParametrosApp: IParametrosAplicacion;
+  AConn: TUniConnection; const AUsuario: string; ATipoEvento: Integer;
+  const ADescripcion, ADatosAdicionales, ASerieFac, ANumeroFac: string);
 
 implementation
 
@@ -1576,6 +1580,16 @@ procedure RegistrarEventoVerifactu(
                                    const ADatosAdicionales: string;
                                    const ASerieFac: string;
                                    const ANumeroFac: string);
+begin
+  RegistrarEventoVerifactuEnModo(ModoVerifactu(AParametrosApp),
+    AParametrosApp, AConn, AUsuario, ATipoEvento, ADescripcion,
+    ADatosAdicionales, ASerieFac, ANumeroFac);
+end;
+
+procedure RegistrarEventoVerifactuEnModo(
+  AModo: TModoVerifactu; const AParametrosApp: IParametrosAplicacion;
+  AConn: TUniConnection; const AUsuario: string; ATipoEvento: Integer;
+  const ADescripcion, ADatosAdicionales, ASerieFac, ANumeroFac: string);
 var
   oFirmador: IFirmadorRegistroEventosVerifactu;
   oRegistro: IRegistroEventosVerifactu;
@@ -1585,10 +1599,9 @@ var
 begin
   // En SII y SIN no hay registro de eventos del SIF (ni productor
   // del software que firmar); el llamante deja constancia en su log.
-  if not DebeRegistrarEventoSif(ModoVerifactu(AParametrosApp),
-                                ATipoEvento) then
+  if not DebeRegistrarEventoSif(AModo, ATipoEvento) then
     Exit;
-  oSolicitud.EsNoVerifactu := NoVerifactuActivo(AParametrosApp);
+  oSolicitud.EsNoVerifactu := AModo = mvNoVerifactu;
   oSolicitud.FirmarCertificado :=
     VerifactuFirmaCertificado(AParametrosApp);
   oSolicitud.InstanteRegistro := Now;

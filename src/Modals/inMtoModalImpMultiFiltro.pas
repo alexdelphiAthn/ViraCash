@@ -183,6 +183,7 @@ type
     function  NivelesAgrupacion: TArray<string>;
     function  NivelFamilia: Integer;
     procedure SeleccionarAgrupaciones(const ACodigos: array of string);
+    procedure AgrupacionesCambiadas; virtual;
     // Para que el descendiente añada controles propios (modo/detalle) sobre
     // la pestaña de fechas o gestione su habilitado.
     property TabFechas: TcxTabSheet read FtsFechas;
@@ -873,6 +874,7 @@ begin
     end;
     if ANewState <> cbsChecked then
       FAgrupItems[AIndex].Marcado := False;
+    AgrupacionesCambiadas;
   end;
 end;
 
@@ -929,6 +931,10 @@ begin
       FseNivelFam.Value := 0;
     AgrupRefrescar;
   end;
+end;
+
+procedure TfrmPrintMultiFiltro.AgrupacionesCambiadas;
+begin
 end;
 
 function TfrmPrintMultiFiltro.NivelesAgrupacion: TArray<string>;

@@ -163,7 +163,6 @@ uses
   System.Variants, Vcl.Dialogs, cxDropDownEdit, cxTextEdit,
   inLibDevExp,
   inLibFacturas,
-  inLibFacturasSubsanacionReglas,
   inLibMsgFacturas,
   inLibPresentacionDocumento,
   inLibVerifactu;
@@ -696,16 +695,6 @@ begin
       cFaseFacturaSubsanacion);
 end;
 
-// Sólo las columnas ligadas a cantidad o precios; las del pivote de
-// tallas (sin campo) y el resto quedan bloqueadas.
-function ColumnaEditableEnSubsanacion(
-  AItem: TcxCustomGridTableItem): Boolean;
-begin
-  Result := (AItem is TcxGridDBColumn) and
-    CampoLineaEditableEnSubsanacion(
-      TcxGridDBColumn(AItem).DataBinding.FieldName);
-end;
-
 procedure TPresentadorLineasFacturaVcl.PermitirEdicion(
   Sender: TcxCustomGridTableView;
   AItem: TcxCustomGridTableItem;
@@ -724,10 +713,8 @@ begin
   end
   else
     RestaurarEnterSku(Sender);
-  // En subsanación (registro ya aceptado) sólo se corrigen cantidades y
-  // precios, como en Caja: la estructura de la línea queda fija.
-  if AAllow and CabeceraEnSubsanacion(FContexto.Cabecera) then
-    AAllow := ColumnaEditableEnSubsanacion(AItem);
+  if CabeceraEnSubsanacion(FContexto.Cabecera) then
+    AAllow := False;
 end;
 
 procedure TPresentadorLineasFacturaVcl.EnvolverEdicionModo(
@@ -744,10 +731,8 @@ procedure TPresentadorLineasFacturaVcl.PermitirEdicionModo(
 begin
   if Assigned(FEdicionModo) then
     FEdicionModo(Sender, AItem, AAllow);
-  // FZ-ISSUE-129: en subsanación sólo cantidades y precios, sea cual
-  // sea el modo de entrada.
-  if AAllow and CabeceraEnSubsanacion(FContexto.Cabecera) then
-    AAllow := ColumnaEditableEnSubsanacion(AItem);
+  if CabeceraEnSubsanacion(FContexto.Cabecera) then
+    AAllow := False;
 end;
 
 procedure TPresentadorLineasFacturaVcl.IniciarEdicion(

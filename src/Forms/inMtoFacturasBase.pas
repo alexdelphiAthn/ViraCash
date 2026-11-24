@@ -26,6 +26,7 @@ uses
   System.Generics.Collections,
   inMtoFacturasIncidenciaFiscalVcl,
   inMtoFacturasSubsanacionVcl,
+  inLibCajaSubsanacionIntf,
   inMtoModalMensajeTexto,
   cxCheckBox, cxTextEdit, cxGridLevel, cxClasses,
   cxGridCustomView, cxGridCustomTableView, cxGridTableView,
@@ -644,6 +645,9 @@ type
     procedure PcDetailChange(Sender: TObject);
     // Subsanación del registro fiscal (fase SUBSANACION).
     procedure ActualizarBotonesSubsanacion;
+    function LeerClaveSubsanacionCaja(
+      out AClave: TClaveOperacionSubsanacionCaja): Boolean;
+    procedure SubsanarFacturaDeCaja;
     function CrearContextoSubsanacion: TContextoSubsanacionFacturaVcl;
     // Identidad (fecha, emisor) y resto de la cabecera bloqueados
     // mientras se subsana: sólo datos del cliente, cantidades y precios.
@@ -688,6 +692,7 @@ uses
   inLibArticulosResolverIntf,
   inMtoGenSearch,
   inLibVerifactu,
+  inLibCajaVentanasIntf, inLibMsgSubsanacionCaja,
   UniDataVerifactuSubsanacionRepositorio,
   inLibFacturasAplicacion,
   inMtoFacturasVistaVcl,
@@ -1115,7 +1120,7 @@ begin
       begin
         if Assigned(AFormulario.dmmFacturas) then
           AFormulario.dmmFacturas.unqryLinFac.ReadOnly :=
-            not AEstado.Editable;
+            not AEstado.Editable or AEstado.Subsanando;
         // En subsanación la estructura de las líneas no cambia.
         AFormulario.btnAnadirLinea.Enabled :=
           AEstado.Editable and not AEstado.Subsanando;
@@ -2437,6 +2442,11 @@ begin
     Correccion);
 end;
 procedure TfrmMtoFacturasBase.ActualizarBotonesSubsanacion;
+var
+  Clave: TClaveOperacionSubsanacionCaja;
+  Fase: string;
+  UltimoBoton: TcxButton;
+  Separacion: Integer;
 begin
   ActualizarBotonesSubsanacionVcl(
     btnVerifactuSubsanar,
@@ -2444,11 +2454,81 @@ begin
     TipoFacturaFiltro,
     dsTablaG.DataSet,
     ParametrosApp);
+  if SameText(TipoFacturaFiltro, 'SIMPLIFICADA') then
+  begin
+    btnVerifactuSubsanar.Caption := SSubsanacionBoton;
+    btnVerifactuSubsanar.Visible := LeerClaveSubsanacionCaja(Clave) and
+      Assigned(Permisos) and Permisos.TienePermiso(
+        PERMISO_CAJA_BUSCAR_SUBSANAR,
+        PermisoAusenteCodigo(PERMISO_CAJA_BUSCAR_SUBSANAR));
+    if btnVerifactuSubsanar.Visible then
+    begin
+      Fase := dsTablaG.DataSet.FieldByName(ffasefac).AsString;
+      btnVerifactuSubsanar.Visible := not EsFaseFacturaAnulada(Fase) and
+        not MatchText(Fase, ['RECTIFICADA', 'CANCELADA']);
+    end;
+  end;
   // Mientras se subsana no cabe otra corrección del registro: la
   // incidencia se resuelve al registrar la subsanación.
   if btnVerifactuCancelarSubsanacion.Visible then
     btnVerifactuResolverIncidencia.Visible := False;
+  UltimoBoton := btnVerifactuAnular;
+  if btnVerifactuFacturar.Visible then
+    UltimoBoton := btnVerifactuFacturar;
+  if btnVerifactuResolverIncidencia.Visible then
+    UltimoBoton := btnVerifactuResolverIncidencia;
+  Separacion := btnVerifactuAnular.Top - btnVolverBorrador.Top -
+    btnVolverBorrador.Height;
+  btnVerifactuSubsanar.Top := UltimoBoton.Top + UltimoBoton.Height + Separacion;
+  btnVerifactuCancelarSubsanacion.Top := btnVerifactuSubsanar.Top +
+    btnVerifactuSubsanar.Height + Separacion;
 end;
+
+function TfrmMtoFacturasBase.LeerClaveSubsanacionCaja(
+  out AClave: TClaveOperacionSubsanacionCaja): Boolean;
+var
+  Factura: TDataSet;
+begin
+  AClave := Default(TClaveOperacionSubsanacionCaja);
+  Factura := dsTablaG.DataSet;
+  Result := Assigned(Factura) and Factura.Active and
+    (Factura.State = dsBrowse) and not Factura.IsEmpty and
+    SameText(Factura.FieldByName(ftipofac).AsString, 'SIMPLIFICADA');
+  if Result then
+  begin
+    AClave.SerieFactura := Factura.FieldByName(fseriefac).AsString;
+    AClave.NumeroFactura := Factura.FieldByName(fnrofac).AsString;
+    AClave.Empresa := Factura.FieldByName('CODIGO_EMP_FAC').AsString;
+    AClave.Almacen := Factura.FieldByName('CODIGO_ALM_FAC').AsString;
+    AClave.Caja := Factura.FieldByName('CODIGO_CAJA_FAC').AsString;
+    AClave.NumeroOperacion :=
+      Factura.FieldByName('NUMERO_OPERACION_FAC').AsString;
+    Result := (AClave.Empresa <> '') and (AClave.Almacen <> '') and
+      (AClave.Caja <> '') and (AClave.NumeroOperacion <> '');
+  end;
+end;
+
+procedure TfrmMtoFacturasBase.SubsanarFacturaDeCaja;
+var
+  Clave: TClaveOperacionSubsanacionCaja;
+  Consulta: IConsultaOperacionesCaja;
+  Formulario: TCustomForm;
+begin
+  if LeerClaveSubsanacionCaja(Clave) then
+  begin
+    Consulta := ExigirAnfitrionCaja(Application.MainForm).
+      CrearConsultaOperacionesCaja(Application, Permisos);
+    Formulario := Consulta.FormularioConsultaCaja;
+    try
+      if Consulta.SubsanarFactura(Clave) then
+        dsTablaG.DataSet.Refresh;
+    finally
+      Consulta := nil;
+      Formulario.Free;
+    end;
+  end;
+end;
+
 function TfrmMtoFacturasBase.CrearContextoSubsanacion:
   TContextoSubsanacionFacturaVcl;
 begin
@@ -2478,12 +2558,8 @@ end;
 procedure TfrmMtoFacturasBase.AplicarBloqueoSubsanacion(
   ASubsanando: Boolean);
 begin
-  // El registro de subsanación conserva la identidad de la factura
-  // (número, fecha de expedición y emisor) y, como en Caja, sólo admite
-  // corregir los datos del cliente y las cantidades y precios de las
-  // líneas. El resto de la cabecera se bloquea aquí (el data module lo
-  // vuelve a comprobar al grabar) y las columnas de las líneas las
-  // filtra el presentador al entrar en edición.
+  // El usuario puede corregir los datos del cliente para el registro.
+  // El presentador y el data module protegen las líneas y los importes.
   dteFECHA_FACTURA.Properties.ReadOnly := ASubsanando;
   btnCODIGO_EMPRESA_FACTURA.Properties.ReadOnly := ASubsanando;
   btnUpdateEmpresa.Enabled := not ASubsanando;
@@ -2496,7 +2572,17 @@ begin
 end;
 procedure TfrmMtoFacturasBase.btnVerifactuSubsanarClick(Sender: TObject);
 begin
-  SubsanarFacturaVcl(CrearContextoSubsanacion);
+  if SameText(TipoFacturaFiltro, 'SIMPLIFICADA') then
+  begin
+    try
+      SubsanarFacturaDeCaja;
+    except
+      on E: EInvalidOpException do
+        ShowMessage_fza(E.Message);
+    end;
+  end
+  else
+    SubsanarFacturaVcl(CrearContextoSubsanacion);
 end;
 procedure TfrmMtoFacturasBase.btnVerifactuCancelarSubsanacionClick(
   Sender: TObject);
@@ -2587,7 +2673,10 @@ procedure TfrmMtoFacturasBase.dsTablaGStateChange(Sender: TObject);
 begin
   inherited;
   if Assigned(FPresentadorCabecera) then
+  begin
     FPresentadorCabecera.AplicarEstadoDatos;
+    ActualizarBotonesSubsanacion;
+  end;
 end;
 
 procedure TfrmMtoFacturasBase.ActualizarDesgloseRecargo;

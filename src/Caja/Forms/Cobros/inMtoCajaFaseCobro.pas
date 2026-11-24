@@ -1814,7 +1814,7 @@ function TfrmMtoCajaFaseCobro.PuedeAplicarDescuentoGlobal: Boolean;
 begin
   Result := Assigned(FDatosCobro);
   if Result then
-    Result := not FHayLineasDeposito and
+    Result := not FModoSubsanacion and not FHayLineasDeposito and
       (FDatosCobro.ImporteAntesDescuento > 0) and
       ParametrosCaja.GetBool('vgerDescuentos', True);
 end;

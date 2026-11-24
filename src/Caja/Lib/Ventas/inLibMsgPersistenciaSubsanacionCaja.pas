@@ -63,7 +63,7 @@ resourcestring
   SSubsanacionReferenciaInvalida =
     'La forma de pago requiere referencia o supera los 100 caracteres.';
   SSubsanacionSinCambios =
-    'No se han modificado los importes ni la forma de pago.';
+    'No se ha modificado la forma de pago.';
   SSubsanacionTotalInvalido =
     'El importe corregido de esta venta no puede ser negativo.';
   SSubsanacionTransaccionActiva =

@@ -19,6 +19,8 @@ uses
   System.SysUtils;
 
 type
+  TModoTiraCaja = (mtcNormal, mtcSoloOperaciones, mtcSoloArticulos);
+
   TEmpresaTiraCajaTicket = record
     Encontrada: Boolean;
     RazonSocial: string;
@@ -31,8 +33,13 @@ type
 
   TLineaVentaTiraCaja = record
     CodigoUnidad: string;
+    CodigoArticulo: string;
     Descripcion: string;
+    Variacion: string;
     Cantidad: Double;
+    PrecioSalida: Currency;
+    PorcentajeDescuento: Double;
+    ImporteDescuento: Currency;
     Total: Currency;
   end;
 
@@ -65,6 +72,7 @@ type
     Almacen: string;
     Caja: string;
     NumeroOperacion: string;
+    TipoOperacion: string;
     FechaOperacion: TDateTime;
     SerieFactura: string;
     NumeroFactura: string;

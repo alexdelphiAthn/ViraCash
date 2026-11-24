@@ -31,14 +31,8 @@ function EstadoRegistroAdmiteSubsanacion(
 // Fase a la que vuelve la factura al registrar o cancelar.
 function FaseTrasSubsanacionFactura(
   const AEstadoRegistro: string): string;
-// En subsanación la factura conserva su identidad y la estructura de
-// sus líneas, como en la subsanación de Caja: en la cabecera sólo
-// cambian los datos del cliente y en las líneas cantidades y precios.
+// En subsanación la factura conserva su identidad y sus importes.
 function CampoCabeceraEditableEnSubsanacion(const ACampo: string): Boolean;
-function CampoLineaEditableEnSubsanacion(const ACampo: string): Boolean;
-// Lo que identifica la línea y su tratamiento fiscal: artículo, SKU,
-// descripción, unidad de cantidad y tipo de IVA.
-function CampoLineaFijoEnSubsanacion(const ACampo: string): Boolean;
 function EvaluarInicioSubsanacionFactura(
   const ADatos: TDatosSubsanacionFactura;
   AModo: TModoVerifactu): TResultadoOperacionFactura;
@@ -94,29 +88,10 @@ var
   sCampo: string;
 begin
   sCampo := UpperCase(Trim(ACampo));
-  // Datos del cliente y lo que su cambio arrastra (forma de pago y
-  // tarifa), más la auditoría y los totales que recalcula el motor.
+  // Datos del cliente, su forma de pago y los campos de auditoría.
   Result := ContainsText(sCampo, 'CLIENTE') or
     MatchText(sCampo, ['CODIGO_CLI_FAC', 'FORMA_PAGO_FAC',
-      'CONTADOR_LINEAS_FAC', 'INSTANTE_MODIF', 'USUARIO_MODIF']) or
-    StartsText('TOTAL_', sCampo) or StartsText('PORCENTAJE_', sCampo);
-end;
-
-function CampoLineaEditableEnSubsanacion(const ACampo: string): Boolean;
-begin
-  Result := MatchText(UpperCase(Trim(ACampo)),
-    ['CANTIDAD_FACLIN', 'PRECIO_SALIDA_FACLIN', 'PORCENTAJE_DTO_FACLIN',
-     'PRECIO_DTO_FACLIN', 'PRECIO_VENTA_SIVA_ARTICULO_FACLIN',
-     'PRECIO_VENTA_CIVA_ARTICULO_FACLIN', 'TOTAL_FACLIN',
-     'TOTAL_FAC_SIVA_FACLIN']);
-end;
-
-function CampoLineaFijoEnSubsanacion(const ACampo: string): Boolean;
-begin
-  Result := MatchText(UpperCase(Trim(ACampo)),
-    ['CODIGO_ART_FACLIN', 'CODIGO_UNIDAD_FACLIN',
-     'DESCRIPCION_ARTICULO_FACLIN', 'TIPO_CANTIDAD_ARTICULO_FACLIN',
-     'TIPO_IVA_ARTICULO_FACLIN']);
+      'CONTADOR_LINEAS_FAC', 'INSTANTE_MODIF', 'USUARIO_MODIF']);
 end;
 
 function EvaluarInicioSubsanacionFactura(

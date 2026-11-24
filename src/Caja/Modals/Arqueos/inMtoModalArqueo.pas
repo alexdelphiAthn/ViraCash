@@ -1038,6 +1038,7 @@ procedure TfrmModalArqueo.actTiraCajaExecute(Sender: TObject);
 var
   Series, SeleccionSeries: TArray<string>;
   bQR, bVerifactu, bCronologico, bExcel: Boolean;
+  Modo: TModoTiraCaja;
   bIncluirTraspasos: Boolean;
   bIncluirIngresos: Boolean;
   bIncluirGastos: Boolean;
@@ -1069,7 +1070,7 @@ begin
       Permisos.TienePermiso(PERMISO_CAJA_VER_COSTE, paDenegar);
     bContinuar := TfrmModalTiraCaja.Ejecutar(
       Self, FCaja, Series, bVerifactu,
-      SeleccionSeries, bQR, bCronologico, bExcel,
+      SeleccionSeries, bQR, bCronologico, bExcel, Modo,
       bIncluirTraspasos, bIncluirIngresos,
       bIncluirGastos, bIncluirCredito);
   end;
@@ -1092,7 +1093,7 @@ begin
           FechaDesdeSeleccionada, FechaHastaSeleccionada,
           SeleccionSeries, bQR, ParametrosCaja.ImpresoraCaja,
           bCronologico, bIncluirTraspasos, bIncluirIngresos,
-          bIncluirGastos, bIncluirCredito, bVerCoste);
+          bIncluirGastos, bIncluirCredito, bVerCoste, Modo);
     finally
       Screen.Cursor := crDefault;
     end;

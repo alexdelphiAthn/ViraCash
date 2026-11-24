@@ -1963,14 +1963,28 @@
   object unqryErrores: TUniQuery
     Connection = dmConn.conUni
     SQL.Strings = (
-      'SELECT *'
-      'FROM fza_verifactu_eventos'
-      'WHERE NUMERO_FAC_LOG = :NUMERO_FAC'
-      '  AND SERIE_FAC_LOG  = :SERIE_FAC'
-      'ORDER BY ID_LOG DESC')
+      'SELECT TIMESTAMP_LOG, DESCRIPCION_LOG, DATOS_ADICIONALES_LOG,'
+      '       NUMERO_FAC_LOG, SERIE_FAC_LOG'
+      'FROM ('
+      '  SELECT e.TIMESTAMP_LOG, e.DESCRIPCION_LOG, e.DATOS_ADICIONALES_LOG,'
+      '         e.NUMERO_FAC_LOG, e.SERIE_FAC_LOG, e.ID_LOG AS ID_ENTRADA,'
+      '         0 AS ORIGEN'
+      '  FROM fza_verifactu_eventos e'
+      '  WHERE e.NUMERO_FAC_LOG = :NUMERO_FAC AND e.SERIE_FAC_LOG = :SERIE_FAC'
+      '  UNION ALL'
+      '  SELECT COALESCE(q.INSTANTE_MODIF, q.INSTANTE_ENVIO_VFCOLA, q.INSTANTE_ALTA),'
+      '         CONCAT(q.TIPO_OPERACION_VFCOLA, '#39' - '#39', q.ESTADO_VFCOLA),'
+      '         CONCAT_WS('#39' | '#39', CONCAT('#39'#'#39', q.ID_VFCOLA),'
+      '           NULLIF(q.MOTIVO_VFCOLA, '#39#39'),'
+      '           NULLIF(q.MENSAJE_ERROR_VFCOLA, '#39#39')),'
+      '         q.NUMERO_FAC_VFCOLA, q.SERIE_FAC_VFCOLA, q.ID_VFCOLA, 1'
+      '  FROM fza_verifactu_cola q'
+      '  WHERE q.NUMERO_FAC_VFCOLA = :NUMERO_FAC'
+      '    AND q.SERIE_FAC_VFCOLA = :SERIE_FAC'
+      ') registro'
+      'ORDER BY TIMESTAMP_LOG DESC, ORIGEN DESC, ID_ENTRADA DESC')
     MasterSource = frmMtoFacturasBase.dsTablaG
     MasterFields = 'NUMERO_FAC;SERIE_FAC'
-    DetailFields = 'NUMERO_FAC_LOG;SERIE_FAC_LOG'
     ReadOnly = True
     AutoCalcFields = False
     Left = 1155

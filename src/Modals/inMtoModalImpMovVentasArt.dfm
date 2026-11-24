@@ -170,7 +170,7 @@
         end
         object MemoHImpVta: TfrxMemoView
           AllowVectorExport = True
-          Left = 482.000000000000000000
+          Left = 386.000000000000000000
           Top = 2.000000000000000000
           Width = 64.000000000000000000
           Height = 16.000000000000000000
@@ -187,7 +187,7 @@
         end
         object MemoHPSalida: TfrxMemoView
           AllowVectorExport = True
-          Left = 386.000000000000000000
+          Left = 950.000000000000000000
           Top = 2.000000000000000000
           Width = 48.000000000000000000
           Height = 16.000000000000000000
@@ -204,7 +204,7 @@
         end
         object MemoHPvp: TfrxMemoView
           AllowVectorExport = True
-          Left = 434.000000000000000000
+          Left = 998.000000000000000000
           Top = 2.000000000000000000
           Width = 48.000000000000000000
           Height = 16.000000000000000000
@@ -221,7 +221,7 @@
         end
         object MemoHImpCos: TfrxMemoView
           AllowVectorExport = True
-          Left = 546.000000000000000000
+          Left = 450.000000000000000000
           Top = 2.000000000000000000
           Width = 64.000000000000000000
           Height = 16.000000000000000000
@@ -238,7 +238,7 @@
         end
         object MemoHBenef: TfrxMemoView
           AllowVectorExport = True
-          Left = 610.000000000000000000
+          Left = 514.000000000000000000
           Top = 2.000000000000000000
           Width = 64.000000000000000000
           Height = 16.000000000000000000
@@ -255,7 +255,7 @@
         end
         object MemoHPctBnf: TfrxMemoView
           AllowVectorExport = True
-          Left = 674.000000000000000000
+          Left = 578.000000000000000000
           Top = 2.000000000000000000
           Width = 44.000000000000000000
           Height = 16.000000000000000000
@@ -272,7 +272,7 @@
         end
         object MemoHVtaEnt: TfrxMemoView
           AllowVectorExport = True
-          Left = 718.000000000000000000
+          Left = 622.000000000000000000
           Top = 2.000000000000000000
           Width = 64.000000000000000000
           Height = 16.000000000000000000
@@ -289,7 +289,7 @@
         end
         object MemoHVentEnt: TfrxMemoView
           AllowVectorExport = True
-          Left = 782.000000000000000000
+          Left = 686.000000000000000000
           Top = 2.000000000000000000
           Width = 52.000000000000000000
           Height = 16.000000000000000000
@@ -306,7 +306,7 @@
         end
         object MemoHMarg1: TfrxMemoView
           AllowVectorExport = True
-          Left = 834.000000000000000000
+          Left = 738.000000000000000000
           Top = 2.000000000000000000
           Width = 52.000000000000000000
           Height = 16.000000000000000000
@@ -323,7 +323,7 @@
         end
         object MemoHMarg2: TfrxMemoView
           AllowVectorExport = True
-          Left = 886.000000000000000000
+          Left = 790.000000000000000000
           Top = 2.000000000000000000
           Width = 52.000000000000000000
           Height = 16.000000000000000000
@@ -340,7 +340,7 @@
         end
         object MemoHPctVdto: TfrxMemoView
           AllowVectorExport = True
-          Left = 938.000000000000000000
+          Left = 842.000000000000000000
           Top = 2.000000000000000000
           Width = 52.000000000000000000
           Height = 16.000000000000000000
@@ -357,7 +357,7 @@
         end
         object MemoHPctVlast: TfrxMemoView
           AllowVectorExport = True
-          Left = 990.000000000000000000
+          Left = 894.000000000000000000
           Top = 2.000000000000000000
           Width = 56.000000000000000000
           Height = 16.000000000000000000
@@ -566,7 +566,7 @@
         end
         object MemoImpVta: TfrxMemoView
           AllowVectorExport = True
-          Left = 482.000000000000000000
+          Left = 386.000000000000000000
           Top = 1.000000000000000000
           Width = 64.000000000000000000
           Height = 32.000000000000000000
@@ -589,7 +589,7 @@
         end
         object MemoPSalida: TfrxMemoView
           AllowVectorExport = True
-          Left = 386.000000000000000000
+          Left = 950.000000000000000000
           Top = 1.000000000000000000
           Width = 48.000000000000000000
           Height = 32.000000000000000000
@@ -613,7 +613,7 @@
         end
         object MemoPvp: TfrxMemoView
           AllowVectorExport = True
-          Left = 434.000000000000000000
+          Left = 998.000000000000000000
           Top = 1.000000000000000000
           Width = 48.000000000000000000
           Height = 32.000000000000000000
@@ -637,7 +637,7 @@
         end
         object MemoImpCos: TfrxMemoView
           AllowVectorExport = True
-          Left = 546.000000000000000000
+          Left = 450.000000000000000000
           Top = 1.000000000000000000
           Width = 64.000000000000000000
           Height = 32.000000000000000000
@@ -660,7 +660,7 @@
         end
         object MemoBenef: TfrxMemoView
           AllowVectorExport = True
-          Left = 610.000000000000000000
+          Left = 514.000000000000000000
           Top = 1.000000000000000000
           Width = 64.000000000000000000
           Height = 32.000000000000000000
@@ -683,7 +683,7 @@
         end
         object MemoPctBnf: TfrxMemoView
           AllowVectorExport = True
-          Left = 674.000000000000000000
+          Left = 578.000000000000000000
           Top = 1.000000000000000000
           Width = 44.000000000000000000
           Height = 32.000000000000000000
@@ -706,7 +706,7 @@
         end
         object MemoVtaEnt: TfrxMemoView
           AllowVectorExport = True
-          Left = 718.000000000000000000
+          Left = 622.000000000000000000
           Top = 1.000000000000000000
           Width = 64.000000000000000000
           Height = 32.000000000000000000
@@ -729,7 +729,7 @@
         end
         object MemoVentEnt: TfrxMemoView
           AllowVectorExport = True
-          Left = 782.000000000000000000
+          Left = 686.000000000000000000
           Top = 1.000000000000000000
           Width = 52.000000000000000000
           Height = 32.000000000000000000
@@ -752,7 +752,7 @@
         end
         object MemoMarg1: TfrxMemoView
           AllowVectorExport = True
-          Left = 834.000000000000000000
+          Left = 738.000000000000000000
           Top = 1.000000000000000000
           Width = 52.000000000000000000
           Height = 32.000000000000000000
@@ -775,7 +775,7 @@
         end
         object MemoMarg2: TfrxMemoView
           AllowVectorExport = True
-          Left = 886.000000000000000000
+          Left = 790.000000000000000000
           Top = 1.000000000000000000
           Width = 52.000000000000000000
           Height = 32.000000000000000000
@@ -798,7 +798,7 @@
         end
         object MemoPctVdto: TfrxMemoView
           AllowVectorExport = True
-          Left = 938.000000000000000000
+          Left = 842.000000000000000000
           Top = 1.000000000000000000
           Width = 52.000000000000000000
           Height = 32.000000000000000000
@@ -821,7 +821,7 @@
         end
         object MemoPctVlast: TfrxMemoView
           AllowVectorExport = True
-          Left = 990.000000000000000000
+          Left = 894.000000000000000000
           Top = 1.000000000000000000
           Width = 56.000000000000000000
           Height = 32.000000000000000000
@@ -929,7 +929,7 @@
         end
         object MemoGF3ImpVta: TfrxMemoView
           AllowVectorExport = True
-          Left = 482.000000000000000000
+          Left = 386.000000000000000000
           Top = 1.000000000000000000
           Width = 64.000000000000000000
           Height = 16.000000000000000000
@@ -949,7 +949,7 @@
         end
         object MemoGF3ImpCos: TfrxMemoView
           AllowVectorExport = True
-          Left = 546.000000000000000000
+          Left = 450.000000000000000000
           Top = 1.000000000000000000
           Width = 64.000000000000000000
           Height = 16.000000000000000000
@@ -969,7 +969,7 @@
         end
         object MemoGF3Benef: TfrxMemoView
           AllowVectorExport = True
-          Left = 610.000000000000000000
+          Left = 514.000000000000000000
           Top = 1.000000000000000000
           Width = 64.000000000000000000
           Height = 16.000000000000000000
@@ -989,7 +989,7 @@
         end
         object MemoGF3PctBnf: TfrxMemoView
           AllowVectorExport = True
-          Left = 674.000000000000000000
+          Left = 578.000000000000000000
           Top = 1.000000000000000000
           Width = 44.000000000000000000
           Height = 16.000000000000000000
@@ -1012,7 +1012,7 @@
         end
         object MemoGF3VtaEnt: TfrxMemoView
           AllowVectorExport = True
-          Left = 718.000000000000000000
+          Left = 622.000000000000000000
           Top = 1.000000000000000000
           Width = 64.000000000000000000
           Height = 16.000000000000000000
@@ -1032,7 +1032,7 @@
         end
         object MemoGF3VentEnt: TfrxMemoView
           AllowVectorExport = True
-          Left = 782.000000000000000000
+          Left = 686.000000000000000000
           Top = 1.000000000000000000
           Width = 52.000000000000000000
           Height = 16.000000000000000000
@@ -1055,7 +1055,7 @@
         end
         object MemoGF3Marg1: TfrxMemoView
           AllowVectorExport = True
-          Left = 834.000000000000000000
+          Left = 738.000000000000000000
           Top = 1.000000000000000000
           Width = 52.000000000000000000
           Height = 16.000000000000000000
@@ -1078,7 +1078,7 @@
         end
         object MemoGF3Marg2: TfrxMemoView
           AllowVectorExport = True
-          Left = 886.000000000000000000
+          Left = 790.000000000000000000
           Top = 1.000000000000000000
           Width = 52.000000000000000000
           Height = 16.000000000000000000
@@ -1101,7 +1101,7 @@
         end
         object MemoGF3PctVdto: TfrxMemoView
           AllowVectorExport = True
-          Left = 938.000000000000000000
+          Left = 842.000000000000000000
           Top = 1.000000000000000000
           Width = 52.000000000000000000
           Height = 16.000000000000000000
@@ -1124,7 +1124,7 @@
         end
         object MemoGF3PctVlast: TfrxMemoView
           AllowVectorExport = True
-          Left = 990.000000000000000000
+          Left = 894.000000000000000000
           Top = 1.000000000000000000
           Width = 56.000000000000000000
           Height = 16.000000000000000000
@@ -1194,7 +1194,7 @@
         end
         object MemoGF2ImpVta: TfrxMemoView
           AllowVectorExport = True
-          Left = 482.000000000000000000
+          Left = 386.000000000000000000
           Top = 1.000000000000000000
           Width = 64.000000000000000000
           Height = 16.000000000000000000
@@ -1214,7 +1214,7 @@
         end
         object MemoGF2Benef: TfrxMemoView
           AllowVectorExport = True
-          Left = 610.000000000000000000
+          Left = 514.000000000000000000
           Top = 1.000000000000000000
           Width = 64.000000000000000000
           Height = 16.000000000000000000
@@ -1234,7 +1234,7 @@
         end
         object MemoGF2VtaEnt: TfrxMemoView
           AllowVectorExport = True
-          Left = 718.000000000000000000
+          Left = 622.000000000000000000
           Top = 1.000000000000000000
           Width = 64.000000000000000000
           Height = 16.000000000000000000
@@ -1254,7 +1254,7 @@
         end
         object MemoGF2Marg1: TfrxMemoView
           AllowVectorExport = True
-          Left = 834.000000000000000000
+          Left = 738.000000000000000000
           Top = 1.000000000000000000
           Width = 52.000000000000000000
           Height = 16.000000000000000000
@@ -1277,7 +1277,7 @@
         end
         object MemoGF2Marg2: TfrxMemoView
           AllowVectorExport = True
-          Left = 886.000000000000000000
+          Left = 790.000000000000000000
           Top = 1.000000000000000000
           Width = 52.000000000000000000
           Height = 16.000000000000000000
@@ -1338,7 +1338,7 @@
         end
         object MemoGF2ImpCos: TfrxMemoView
           AllowVectorExport = True
-          Left = 546.000000000000000000
+          Left = 450.000000000000000000
           Top = 1.000000000000000000
           Width = 64.000000000000000000
           Height = 16.000000000000000000
@@ -1358,7 +1358,7 @@
         end
         object MemoGF2PctBnf: TfrxMemoView
           AllowVectorExport = True
-          Left = 674.000000000000000000
+          Left = 578.000000000000000000
           Top = 1.000000000000000000
           Width = 44.000000000000000000
           Height = 16.000000000000000000
@@ -1381,7 +1381,7 @@
         end
         object MemoGF2VentEnt: TfrxMemoView
           AllowVectorExport = True
-          Left = 782.000000000000000000
+          Left = 686.000000000000000000
           Top = 1.000000000000000000
           Width = 52.000000000000000000
           Height = 16.000000000000000000
@@ -1404,7 +1404,7 @@
         end
         object MemoGF2PctVdto: TfrxMemoView
           AllowVectorExport = True
-          Left = 938.000000000000000000
+          Left = 842.000000000000000000
           Top = 1.000000000000000000
           Width = 52.000000000000000000
           Height = 16.000000000000000000
@@ -1427,7 +1427,7 @@
         end
         object MemoGF2PctVlast: TfrxMemoView
           AllowVectorExport = True
-          Left = 990.000000000000000000
+          Left = 894.000000000000000000
           Top = 1.000000000000000000
           Width = 56.000000000000000000
           Height = 16.000000000000000000
@@ -1496,7 +1496,7 @@
         end
         object MemoGF1ImpVta: TfrxMemoView
           AllowVectorExport = True
-          Left = 482.000000000000000000
+          Left = 386.000000000000000000
           Top = 2.000000000000000000
           Width = 64.000000000000000000
           Height = 16.000000000000000000
@@ -1516,7 +1516,7 @@
         end
         object MemoGF1Benef: TfrxMemoView
           AllowVectorExport = True
-          Left = 610.000000000000000000
+          Left = 514.000000000000000000
           Top = 2.000000000000000000
           Width = 64.000000000000000000
           Height = 16.000000000000000000
@@ -1536,7 +1536,7 @@
         end
         object MemoGF1VtaEnt: TfrxMemoView
           AllowVectorExport = True
-          Left = 718.000000000000000000
+          Left = 622.000000000000000000
           Top = 2.000000000000000000
           Width = 64.000000000000000000
           Height = 16.000000000000000000
@@ -1556,7 +1556,7 @@
         end
         object MemoGF1Marg1: TfrxMemoView
           AllowVectorExport = True
-          Left = 834.000000000000000000
+          Left = 738.000000000000000000
           Top = 2.000000000000000000
           Width = 52.000000000000000000
           Height = 16.000000000000000000
@@ -1579,7 +1579,7 @@
         end
         object MemoGF1Marg2: TfrxMemoView
           AllowVectorExport = True
-          Left = 886.000000000000000000
+          Left = 790.000000000000000000
           Top = 2.000000000000000000
           Width = 52.000000000000000000
           Height = 16.000000000000000000
@@ -1640,7 +1640,7 @@
         end
         object MemoGF1ImpCos: TfrxMemoView
           AllowVectorExport = True
-          Left = 546.000000000000000000
+          Left = 450.000000000000000000
           Top = 2.000000000000000000
           Width = 64.000000000000000000
           Height = 16.000000000000000000
@@ -1660,7 +1660,7 @@
         end
         object MemoGF1PctBnf: TfrxMemoView
           AllowVectorExport = True
-          Left = 674.000000000000000000
+          Left = 578.000000000000000000
           Top = 2.000000000000000000
           Width = 44.000000000000000000
           Height = 16.000000000000000000
@@ -1683,7 +1683,7 @@
         end
         object MemoGF1VentEnt: TfrxMemoView
           AllowVectorExport = True
-          Left = 782.000000000000000000
+          Left = 686.000000000000000000
           Top = 2.000000000000000000
           Width = 52.000000000000000000
           Height = 16.000000000000000000
@@ -1706,7 +1706,7 @@
         end
         object MemoGF1PctVdto: TfrxMemoView
           AllowVectorExport = True
-          Left = 938.000000000000000000
+          Left = 842.000000000000000000
           Top = 2.000000000000000000
           Width = 52.000000000000000000
           Height = 16.000000000000000000
@@ -1729,7 +1729,7 @@
         end
         object MemoGF1PctVlast: TfrxMemoView
           AllowVectorExport = True
-          Left = 990.000000000000000000
+          Left = 894.000000000000000000
           Top = 2.000000000000000000
           Width = 56.000000000000000000
           Height = 16.000000000000000000
@@ -1836,7 +1836,7 @@
         end
         object MemoRSImpVta: TfrxMemoView
           AllowVectorExport = True
-          Left = 482.000000000000000000
+          Left = 386.000000000000000000
           Top = 2.000000000000000000
           Width = 64.000000000000000000
           Height = 16.000000000000000000
@@ -1856,7 +1856,7 @@
         end
         object MemoRSImpCos: TfrxMemoView
           AllowVectorExport = True
-          Left = 546.000000000000000000
+          Left = 450.000000000000000000
           Top = 2.000000000000000000
           Width = 64.000000000000000000
           Height = 16.000000000000000000
@@ -1876,7 +1876,7 @@
         end
         object MemoRSBenef: TfrxMemoView
           AllowVectorExport = True
-          Left = 610.000000000000000000
+          Left = 514.000000000000000000
           Top = 2.000000000000000000
           Width = 64.000000000000000000
           Height = 16.000000000000000000
@@ -1896,7 +1896,7 @@
         end
         object MemoRSPctBnf: TfrxMemoView
           AllowVectorExport = True
-          Left = 674.000000000000000000
+          Left = 578.000000000000000000
           Top = 2.000000000000000000
           Width = 44.000000000000000000
           Height = 16.000000000000000000
@@ -1919,7 +1919,7 @@
         end
         object MemoRSVtaEnt: TfrxMemoView
           AllowVectorExport = True
-          Left = 718.000000000000000000
+          Left = 622.000000000000000000
           Top = 2.000000000000000000
           Width = 64.000000000000000000
           Height = 16.000000000000000000
@@ -1939,7 +1939,7 @@
         end
         object MemoRSVentEnt: TfrxMemoView
           AllowVectorExport = True
-          Left = 782.000000000000000000
+          Left = 686.000000000000000000
           Top = 2.000000000000000000
           Width = 52.000000000000000000
           Height = 16.000000000000000000
@@ -1962,7 +1962,7 @@
         end
         object MemoRSMarg1: TfrxMemoView
           AllowVectorExport = True
-          Left = 834.000000000000000000
+          Left = 738.000000000000000000
           Top = 2.000000000000000000
           Width = 52.000000000000000000
           Height = 16.000000000000000000
@@ -1985,7 +1985,7 @@
         end
         object MemoRSMarg2: TfrxMemoView
           AllowVectorExport = True
-          Left = 886.000000000000000000
+          Left = 790.000000000000000000
           Top = 2.000000000000000000
           Width = 52.000000000000000000
           Height = 16.000000000000000000
@@ -2008,7 +2008,7 @@
         end
         object MemoRSPctVdto: TfrxMemoView
           AllowVectorExport = True
-          Left = 938.000000000000000000
+          Left = 842.000000000000000000
           Top = 2.000000000000000000
           Width = 52.000000000000000000
           Height = 16.000000000000000000
@@ -2031,7 +2031,7 @@
         end
         object MemoRSPctVlast: TfrxMemoView
           AllowVectorExport = True
-          Left = 990.000000000000000000
+          Left = 894.000000000000000000
           Top = 2.000000000000000000
           Width = 56.000000000000000000
           Height = 16.000000000000000000

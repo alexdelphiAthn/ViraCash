@@ -65,7 +65,8 @@ implementation
 uses
   inLibMsgArticulos,
   inLibMsgComun,
-  System.Generics.Collections, inLibResumenSeleccionesHoja;
+  System.Generics.Collections, System.StrUtils,
+  inLibResumenSeleccionesHoja;
 
 const
   COL_FOTO    = 0;                 // miniatura del artículo
@@ -73,20 +74,19 @@ const
   COL_UNIENT  = 2;
   COL_IMPENT  = 3;
   COL_UDSVTA  = 4;
-  // Precios de la tarifa de caja con IVA, solo en el detalle (FZ-086).
-  COL_PSALIDA = 5;
-  COL_PVP     = 6;
-  COL_IMPVTA  = 7;
-  COL_IMPCOS  = 8;
-  COL_BENEF   = 9;
-  COL_PCTBNF  = 10;
-  COL_VTAENT  = 11;
-  COL_VENTENT = 12;
-  COL_MARG1   = 13;
-  COL_MARG2   = 14;
-  COL_PCTVDTO = 15;
-  COL_PCTVLAST = 16;
-  COL_MAX     = COL_PCTVLAST;      // 16
+  COL_IMPVTA  = 5;
+  COL_IMPCOS  = 6;
+  COL_BENEF   = 7;
+  COL_PCTBNF  = 8;
+  COL_VTAENT  = 9;
+  COL_VENTENT = 10;
+  COL_MARG1   = 11;
+  COL_MARG2   = 12;
+  COL_PCTVDTO = 13;
+  COL_PCTVLAST = 14;
+  COL_PSALIDA = 15;
+  COL_PVP     = 16;
+  COL_MAX     = COL_PVP;
   // Miniatura: caja de la imagen en píxeles.
   ANCHO_FOTO  = 40;
   ALTO_FOTO   = 40;
@@ -108,6 +108,11 @@ type
     eemvEscribirDetalles,
     eemvFinalizar,
     eemvFinalizada);
+  TAcumuladorPrecio = record
+    Suma: Double;
+    Cantidad: Integer;
+    procedure Agregar(ACampo: TField);
+  end;
   TAcum = record
     UniEnt: Double;
     ImpEnt: Double;
@@ -118,8 +123,10 @@ type
     ImpCos: Double;
     Benef: Double;
     VtaEnt: Double;
+    PrecioSalida: TAcumuladorPrecio;
+    PrecioFinal: TAcumuladorPrecio;
     procedure Reset;
-    procedure Add(const Q: TDataSet);
+    procedure Add(const Q: TDataSet; APromediarPrecios: Boolean);
   end;
   TExportadorMovVentasArt = class(
     TInterfacedObject,
@@ -148,6 +155,7 @@ type
     FTotalAcumulado: TAcum;
     FAgrupaPorArticulo: Boolean;
     FResumenAgrupado: Boolean;
+    FPromediarPrecios: Boolean;
     FNivelDetalle: Integer;
     FNivelTalla: Integer;
     FLoteIniciado: Boolean;
@@ -196,19 +204,28 @@ type
     procedure Ejecutar;
   end;
 
-procedure TAcum.Reset;
+procedure TAcumuladorPrecio.Agregar(ACampo: TField);
+var
+  dPrecio: Double;
 begin
-  UniEnt := 0;
-  ImpEnt := 0;
-  UdsVta := 0;
-  ImpVta := 0;
-  ImpVtaReg := 0;
-  ImpCos := 0;
-  Benef := 0;
-  VtaEnt := 0;
+  if Assigned(ACampo) then
+  begin
+    dPrecio := ACampo.AsFloat;
+    // Cero representa un precio no disponible o variable en el informe.
+    if dPrecio <> 0 then
+    begin
+      Suma := Suma + dPrecio;
+      Inc(Cantidad);
+    end;
+  end;
 end;
 
-procedure TAcum.Add(const Q: TDataSet);
+procedure TAcum.Reset;
+begin
+  Self := Default(TAcum);
+end;
+
+procedure TAcum.Add(const Q: TDataSet; APromediarPrecios: Boolean);
 var
   oVentaRegimen: TField;
 begin
@@ -224,6 +241,11 @@ begin
   ImpCos := ImpCos + Q.FieldByName('IMP_COSTE').AsFloat;
   Benef := Benef + Q.FieldByName('BENEFICIO').AsFloat;
   VtaEnt := VtaEnt + Q.FieldByName('VENTA_ENT').AsFloat;
+  if APromediarPrecios then
+  begin
+    PrecioSalida.Agregar(Q.FindField('PRECIO_SALIDA_ART'));
+    PrecioFinal.Agregar(Q.FindField('PVP_ART'));
+  end;
 end;
 
 constructor TExportadorMovVentasArt.Create(
@@ -269,6 +291,8 @@ begin
   end;
   FResumenAgrupado :=
     (FNivelDetalle > 0) and (not FAgrupaPorArticulo);
+  FPromediarPrecios := (Length(ANivelesAgrupacion) = 1) and
+    MatchText(ANivelesAgrupacion[0], ['PRV', 'FAM']);
   FDesplazamientoColumnas := 0;
   if FResumenAgrupado or not Assigned(FImagenes) then
     FDesplazamientoColumnas := -1;
@@ -353,8 +377,6 @@ begin
     SCabeceraMovVentasUnidadesEntrada,
     SCabeceraMovVentasImporteEntrada,
     SCabeceraMovVentasUnidadesVenta,
-    SCabeceraMovVentasPrecioSalida,
-    SCabeceraMovVentasPrecioFinal,
     SCabeceraMovVentasImporteVenta,
     SCabeceraMovVentasImporteCoste,
     SCabeceraMovVentasBeneficio,
@@ -364,13 +386,15 @@ begin
     SCabeceraMovVentasMargenPrimero,
     SCabeceraMovVentasMargenSegundo,
     SCabeceraMovVentasPorcentajeVendido,
-    SCabeceraMovVentasPorcentajeVentas);
+    SCabeceraMovVentasPorcentajeVentas,
+    SCabeceraMovVentasPrecioSalida,
+    SCabeceraMovVentasPrecioFinal);
   EscribirValor(COL_FOTO, '', True);
   EscribirValor(COL_ART, TituloColumnaDetalle, True);
   for iColumna := -FDesplazamientoColumnas to COL_MAX do
   begin
     if iColumna > COL_ART then
-      EscribirValor(iColumna, TITULOS[iColumna], True);
+      EscribirValor(iColumna, Titulos[iColumna - COL_UNIENT], True);
     if iColumna > COL_ART then
       FFormateador.Alinear(FFila, ColumnaExcel(iColumna), acDerecha);
     if FEscritor.CeldaExiste(FFila, ColumnaExcel(iColumna)) then
@@ -437,6 +461,14 @@ begin
   if AVentasUnidadesPadre <> 0 then
     EscribirNumero(COL_PCTVLAST,
       AAcumulado.UdsVta / AVentasUnidadesPadre * 100, FMT_PCT, False);
+  if AAcumulado.PrecioSalida.Cantidad > 0 then
+    EscribirNumero(COL_PSALIDA,
+      AAcumulado.PrecioSalida.Suma / AAcumulado.PrecioSalida.Cantidad,
+      FMT_EUR, False);
+  if AAcumulado.PrecioFinal.Cantidad > 0 then
+    EscribirNumero(COL_PVP,
+      AAcumulado.PrecioFinal.Suma / AAcumulado.PrecioFinal.Cantidad,
+      FMT_EUR, False);
   for iColumna := -FDesplazamientoColumnas to COL_MAX do
   begin
     if FEscritor.CeldaExiste(FFila, ColumnaExcel(iColumna)) then
@@ -692,9 +724,6 @@ begin
     FDatos.FieldByName('IMP_ENT_TOT').AsFloat, FMT_EUR, True);
   EscribirNumero(COL_UDSVTA,
     FDatos.FieldByName('UDS_VENTA').AsFloat, FMT_NUM, True);
-  EscribirNumero(COL_PSALIDA, CampoNumero('PRECIO_SALIDA_ART'), FMT_EUR,
-    True);
-  EscribirNumero(COL_PVP, CampoNumero('PVP_ART'), FMT_EUR, True);
   EscribirNumero(COL_IMPVTA,
     FDatos.FieldByName('IMP_VENTA').AsFloat, FMT_EUR, True);
   EscribirNumero(COL_IMPCOS,
@@ -715,13 +744,16 @@ begin
     FDatos.FieldByName('PCT_VDTO').AsFloat, FMT_PCT, True);
   EscribirNumero(COL_PCTVLAST,
     FDatos.FieldByName('PCT_VLAST').AsFloat, FMT_PCT, True);
+  EscribirNumero(COL_PSALIDA, CampoNumero('PRECIO_SALIDA_ART'), FMT_EUR,
+    True);
+  EscribirNumero(COL_PVP, CampoNumero('PVP_ART'), FMT_EUR, True);
 end;
 
 procedure TExportadorMovVentasArt.AcumularFila;
 var
   iNivel: Integer;
 begin
-  FTotalAcumulado.Add(FDatos);
+  FTotalAcumulado.Add(FDatos, FPromediarPrecios);
   for iNivel := 1 to N_NIVELES do
   begin
     if FGrupoUsado[iNivel] then
@@ -729,7 +761,7 @@ begin
       if FGrupoNumeroDetalles[iNivel] = 0 then
         FGrupoFilaDetalle[iNivel] := FFila;
       Inc(FGrupoNumeroDetalles[iNivel]);
-      FGrupoAcumulado[iNivel].Add(FDatos);
+      FGrupoAcumulado[iNivel].Add(FDatos, FPromediarPrecios);
     end;
   end;
 end;

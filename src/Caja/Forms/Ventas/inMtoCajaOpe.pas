@@ -4764,11 +4764,6 @@ begin
   oControles.Contenedor := Self;
   oControles.Lineas := DatosCaja.cdsLineas;
   oControles.Vista := tvLineasOpe;
-  // Mismo criterio que la subsanación de venta mayor: unidades y precios
-  // de las líneas existentes, sin añadir ni quitar líneas.
-  oControles.ColumnasEditables := [tvUds, tvPrecioUni, tvDescuento,
-    tvDescuentoMenos, tvTotal];
-  oControles.ColumnaCantidad := tvUds;
   oControles.Recalcular := ActualizarTotalSubsanacion;
   FSubsanacion := TModoSubsanacionCajaVcl.Create(oControles,
     AOperacion.Lineas);
@@ -4875,30 +4870,17 @@ function TfrmMtoOpeCaja.ConfirmarSubsanacion(
   out AImprimirTicket: Boolean): Boolean;
 var
   oSolicitud: TSolicitudSubsanacionCaja;
-  oResultado: TResultadoSubsanacionCaja;
-  oLineas: TLineasSubsanacionCaja;
-  dDescuento: Currency;
 begin
   AImprimirTicket := True;
-  // Valida la edición antes de abrir el cobro; la forma de pago y el
-  // descuento global se deciden en la pantalla de Cobro. En la rejilla sólo
-  // se edita el total: se recalculan los precios para que el cobro parta
-  // del importe corregido y no del precio original.
-  SincronizarPreciosSubsanacion(DatosCaja.cdsLineas,
-    FSubsanacion.LineasCorregidas);
   oSolicitud := Default(TSolicitudSubsanacionCaja);
   oSolicitud.Original := FOperacionSubsanacion;
+  oSolicitud.Lineas := FOperacionSubsanacion.Lineas;
   Result := TCoordinadorCierreVentaCajaVcl.EjecutarCobroSubsanacion(
     CrearContextoCierreVentaCajaVcl(Self), FOperacionSubsanacion.Pagos,
     HayLineasFijasSubsanacion(FOperacionSubsanacion.Lineas),
-    dDescuento, oSolicitud.Pagos, AImprimirTicket);
+    oSolicitud.Pagos, AImprimirTicket);
   if Result then
   begin
-    oLineas := FSubsanacion.LineasCorregidas;
-    if dDescuento <> 0 then
-      oLineas := RepartirTotalSubsanacion(oLineas,
-        TotalSubsanacion(oLineas) - dDescuento);
-    oSolicitud.Lineas := oLineas;
     Result := FSubsanacion.PedirMotivo(oSolicitud.Motivo);
     if Result then
       Result := ConfirmarCambioArqueoVentaVcl(ConexionPrincipal, Permisos,
@@ -4909,22 +4891,10 @@ begin
   end;
   if not Result then
     Exit;
-  oResultado := FServicioSubsanacion.Guardar(oSolicitud);
-  if dDescuento <> 0 then
-  begin
-    SincronizarPreciosSubsanacion(DatosCaja.cdsLineas, oLineas);
-    ActualizarTotalSubsanacion;
-  end;
+  FServicioSubsanacion.Guardar(oSolicitud);
   FSubsanacion.MarcarGuardada;
-  if oResultado.EncoladaVerifactu then
-    MostrarAvisoSubsanacion(SSubsanacionEtiquetaGuardada,
-      SSubsanacionGuardada)
-  else if oResultado.RegistradaNoVerifactu then
-    MostrarAvisoSubsanacion(SSubsanacionEtiquetaGuardada,
-      SSubsanacionGuardadaNoVerifactu)
-  else
-    MostrarAvisoSubsanacion(SSubsanacionEtiquetaGuardada,
-      SSubsanacionGuardadaLocal);
+  MostrarAvisoSubsanacion(SSubsanacionEtiquetaGuardada,
+    SSubsanacionGuardadaLocal);
   lblCobro.Caption := SSubsanacionReimprimir;
   RefrescarConsultasOperacionesCaja;
 end;

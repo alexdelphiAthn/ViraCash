@@ -107,7 +107,6 @@ type
       const AContexto: TContextoCierreVentaCajaVcl;
       const APagos: TPagosSubsanacionCaja;
       AHayLineasFijas: Boolean;
-      out ADescuentoGlobal: Currency;
       out APagosNuevos: TPagosSubsanacionCaja;
       out AImprimirTicket: Boolean): Boolean; static;
   end;
@@ -733,14 +732,12 @@ class function TCoordinadorCierreVentaCajaVcl.EjecutarCobroSubsanacion(
   const AContexto: TContextoCierreVentaCajaVcl;
   const APagos: TPagosSubsanacionCaja;
   AHayLineasFijas: Boolean;
-  out ADescuentoGlobal: Currency;
   out APagosNuevos: TPagosSubsanacionCaja;
   out AImprimirTicket: Boolean): Boolean;
 var
   oFormulario: TfrmMtoCajaFaseCobro;
   oTotales: TFacturaTotales;
 begin
-  ADescuentoGlobal := 0;
   APagosNuevos := nil;
   AImprimirTicket := True;
   oFormulario := nil;
@@ -761,7 +758,6 @@ begin
     Result := oFormulario.ShowModal = mrOk;
     if Result then
     begin
-      ADescuentoGlobal := oFormulario.DatosCobro.ImporteDescuentoGlobal;
       APagosNuevos := oFormulario.PagosSubsanacion;
       AImprimirTicket := oFormulario.TipoImpresion <> tiSinTicket;
     end;

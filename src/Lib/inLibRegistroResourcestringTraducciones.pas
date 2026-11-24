@@ -14247,6 +14247,22 @@ begin
     @inLibMsgCaja.
       STituloTiraCajaNumero);
   ARegistrar(
+    'inLibMsgCaja.SCaptionModoTiraCaja',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.SCaptionModoTiraCaja);
+  ARegistrar(
+    'inLibMsgCaja.SCaptionModoTiraCajaNormal',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.SCaptionModoTiraCajaNormal);
+  ARegistrar(
+    'inLibMsgCaja.SCaptionModoTiraCajaSoloOperaciones',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.SCaptionModoTiraCajaSoloOperaciones);
+  ARegistrar(
+    'inLibMsgCaja.SCaptionModoTiraCajaSoloArticulos',
+    'src/Lib/inLibMsgCaja.pas',
+    @inLibMsgCaja.SCaptionModoTiraCajaSoloArticulos);
+  ARegistrar(
     'inLibMsgCaja.SCaptionAgrupamientoPorTipoDocumento',
     'src/Lib/inLibMsgCaja.pas',
     @inLibMsgCaja.SCaptionAgrupamientoPorTipoDocumento);
@@ -22935,6 +22951,22 @@ begin
     @inLibMsgTickets.
       STicketArqueoCajaHora);
   ARegistrar(
+    'inLibMsgTickets.STicketArqueoCajaDia',
+    'src/Lib/inLibMsgTickets.pas',
+    @inLibMsgTickets.STicketArqueoCajaDia);
+  ARegistrar(
+    'inLibMsgTickets.STicketArqueoTotalDia',
+    'src/Lib/inLibMsgTickets.pas',
+    @inLibMsgTickets.STicketArqueoTotalDia);
+  ARegistrar(
+    'inLibMsgTickets.STicketArqueoImporte',
+    'src/Lib/inLibMsgTickets.pas',
+    @inLibMsgTickets.STicketArqueoImporte);
+  ARegistrar(
+    'inLibMsgTickets.STicketArqueoDto',
+    'src/Lib/inLibMsgTickets.pas',
+    @inLibMsgTickets.STicketArqueoDto);
+  ARegistrar(
     'inLibMsgTickets.' +
     'STicketDel',
     'src/Lib/inLibMsgTickets.pas',
@@ -29425,6 +29457,10 @@ begin
     @inLibMsgTickets.
       STicketAPedir);
   ARegistrar(
+    'inLibMsgVentas.SCaptionModoAgrupacionMovimientosVentas',
+    'src/Lib/inLibMsgVentas.pas',
+    @inLibMsgVentas.SCaptionModoAgrupacionMovimientosVentas);
+  ARegistrar(
     'inLibMsgVentas.' +
     'SCaptionArticuloAgrupacionMovimientosVentas',
     'src/Lib/inLibMsgVentas.pas',
@@ -31922,6 +31958,14 @@ begin
     'src/Lib/inLibMsgFacturas.pas',
     @inLibMsgFacturas.
       SDetalleSubsanacionImporte);
+  ARegistrar(
+    'inLibMsgFacturas.SAvisoUsoSubsanacion',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SAvisoUsoSubsanacion);
+  ARegistrar(
+    'inLibMsgFacturas.SPreguntaAbrirCorreccionCobro',
+    'src/Lib/inLibMsgFacturas.pas',
+    @inLibMsgFacturas.SPreguntaAbrirCorreccionCobro);
   ARegistrar(
     'inLibMsgFacturas.SPreguntaCorregirImportesRegistro',
     'src/Lib/inLibMsgFacturas.pas',

@@ -139,11 +139,11 @@ begin
   oValidacion := AContexto.Servicio.ValidarInicio(ASerie, ANumero);
   if not oValidacion.Exito then
     ShowMessage_fza(oValidacion.Mensaje)
-  else if MessageDlg_fza(
+  else if MessageDlg_fza(SAvisoUsoSubsanacion + sLineBreak + sLineBreak +
             FormatearMensajeDocumentos(
               sFormatoDocumento,
               SPreguntaIniciarSubsanacionFactura, [ASerie, ANumero]),
-            mtConfirmation, [mbYes, mbNo], 0) = mrYes then
+            mtConfirmation, [mbYes, mbNo], 0, mbNo) = mrYes then
   begin
     AContexto.Servicio.Iniciar(ASerie, ANumero);
     AContexto.Cabecera.Refresh;

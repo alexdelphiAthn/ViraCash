@@ -92,7 +92,9 @@ function SqlLineasVenta: string;
 begin
   Result :=
     'SELECT CODIGO_UNIDAD_FACLIN, DESCRIPCION_ARTICULO_FACLIN, ' +
-    'CANTIDAD_FACLIN, TOTAL_FACLIN ' +
+    'CODIGO_ART_FACLIN, DESCRIPCION_VARIACION_FACLIN, ' +
+    'CANTIDAD_FACLIN, PRECIO_SALIDA_FACLIN, PORCENTAJE_DTO_FACLIN, ' +
+    'PRECIO_DTO_FACLIN, TOTAL_FACLIN ' +
     'FROM fza_facturas_lineas ' +
     'WHERE CODIGO_EMP_FACLIN = :pEMP ' +
     'AND CODIGO_ALM_FACLIN = :pALM ' +
@@ -170,7 +172,8 @@ begin
   Result :=
     'SELECT o.CODIGO_EMP_OPCAJA, o.CODIGO_ALM_OPCAJA, ' +
     'o.CODIGO_CAJA_OPCAJA, o.NUMERO_OPERACION_OPCAJA, ' +
-    'o.FECHA_OPERACION_OPCAJA, o.SERIE_FAC_OPCAJA, ' +
+    'o.TIPO_OPERACION_OPCAJA, o.FECHA_OPERACION_OPCAJA, ' +
+    'o.SERIE_FAC_OPCAJA, ' +
     'o.NUMERO_FAC_OPCAJA, o.IMPORTE_TOTAL_OPCAJA, ' +
     'o.CONCEPTO_GASTO_INGRESO_OPCAJA, ' +
     'o.CODIGO_ALM_CONTRA_OPCAJA, ' +
@@ -300,7 +303,9 @@ begin
     SqlLineasVenta,
     PARAMETROS_OPERACION,
     'CODIGO_UNIDAD_FACLIN,DESCRIPCION_ARTICULO_FACLIN,' +
-    'CANTIDAD_FACLIN,TOTAL_FACLIN');
+    'CODIGO_ART_FACLIN,DESCRIPCION_VARIACION_FACLIN,' +
+    'CANTIDAD_FACLIN,PRECIO_SALIDA_FACLIN,PORCENTAJE_DTO_FACLIN,' +
+    'PRECIO_DTO_FACLIN,TOTAL_FACLIN');
   Result[2] := DefinicionSql(
     'ListarFormasPago',
     SqlFormasPago,
@@ -326,7 +331,8 @@ begin
     'pINCLUIR_TRASPASOS,pINCLUIR_INGRESOS,pINCLUIR_GASTOS,' +
     'pINCLUIR_CREDITO,pCRONOLOGICO',
     'CODIGO_EMP_OPCAJA,CODIGO_ALM_OPCAJA,CODIGO_CAJA_OPCAJA,' +
-    'NUMERO_OPERACION_OPCAJA,FECHA_OPERACION_OPCAJA,' +
+    'NUMERO_OPERACION_OPCAJA,TIPO_OPERACION_OPCAJA,' +
+    'FECHA_OPERACION_OPCAJA,' +
     'SERIE_FAC_OPCAJA,NUMERO_FAC_OPCAJA,IMPORTE_TOTAL_OPCAJA,' +
     'CONCEPTO_GASTO_INGRESO_OPCAJA,CODIGO_ALM_CONTRA_OPCAJA,' +
     'TOTAL_BASES_FAC,TOTAL_IMPUESTOS_FAC,' +
@@ -475,8 +481,18 @@ begin
           oQuery.FieldByName('CODIGO_UNIDAD_FACLIN').AsString;
         oLinea.Descripcion :=
           oQuery.FieldByName('DESCRIPCION_ARTICULO_FACLIN').AsString;
+        oLinea.CodigoArticulo :=
+          oQuery.FieldByName('CODIGO_ART_FACLIN').AsString;
+        oLinea.Variacion :=
+          oQuery.FieldByName('DESCRIPCION_VARIACION_FACLIN').AsString;
         oLinea.Cantidad :=
           oQuery.FieldByName('CANTIDAD_FACLIN').AsFloat;
+        oLinea.PrecioSalida :=
+          oQuery.FieldByName('PRECIO_SALIDA_FACLIN').AsCurrency;
+        oLinea.PorcentajeDescuento :=
+          oQuery.FieldByName('PORCENTAJE_DTO_FACLIN').AsFloat;
+        oLinea.ImporteDescuento :=
+          oQuery.FieldByName('PRECIO_DTO_FACLIN').AsCurrency;
         oLinea.Total :=
           oQuery.FieldByName('TOTAL_FACLIN').AsCurrency;
         oLista.Add(oLinea);
@@ -734,6 +750,8 @@ begin
           oQuery.FieldByName('CODIGO_CAJA_OPCAJA').AsString;
         oLinea.NumeroOperacion :=
           oQuery.FieldByName('NUMERO_OPERACION_OPCAJA').AsString;
+        oLinea.TipoOperacion :=
+          oQuery.FieldByName('TIPO_OPERACION_OPCAJA').AsString;
         oLinea.FechaOperacion :=
           oQuery.FieldByName('FECHA_OPERACION_OPCAJA').AsDateTime;
         oLinea.SerieFactura :=

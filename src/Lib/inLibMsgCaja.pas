@@ -862,6 +862,10 @@ resourcestring
   SCaptionRetirarSobranteRecuento = 'Retirar sobrante del recuento';
   SCaptionTpvRestringido = 'TPV restringido:';
   STituloTiraCajaNumero = 'Tira de Caja · Caja %s';
+  SCaptionModoTiraCaja = 'Modo';
+  SCaptionModoTiraCajaNormal = 'Normal';
+  SCaptionModoTiraCajaSoloOperaciones = 'Solo operaciones';
+  SCaptionModoTiraCajaSoloArticulos = 'Solo artículos';
   SCaptionTodasLasSeries = '(todas las series)';
   SCaptionAgrupamientoPorTipoDocumento =
     'Por tipo de documento';

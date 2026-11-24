@@ -9,7 +9,7 @@
 {  Copyright (c) Alejandro Laorden Hidalgo.                                    }
 {  SPDX-License-Identifier: MPL-2.0                                            }
 {  Descripción:                                                                }
-{    Guarda unidades, importes, stock, cobro, auditoría y registro fiscal.     }
+{    Corrige la forma de pago de un ticket y conserva su auditoría.           }
 {******************************************************************************}
 unit UniDataCajaSubsanacionRepositorio;
 
@@ -17,14 +17,12 @@ interface
 
 uses
   Uni, inLibCajaSubsanacionIntf, inLibParametrosIntf,
-  inLibPermisosIntf, inLibLogIntf, inLibVerifactuSubsanacionIntf;
+  inLibPermisosIntf, inLibLogIntf;
 
 type
   TDependenciasSubsanacionCaja = record
     ParametrosApp: IParametrosAplicacion;
-    ParametrosCaja: IParametrosCaja;
     Permisos: IPermisosAplicacion;
-    Fiscal: IServicioVerifactuCorreccionRegistro;
     RegistroLog: IRegistroLog;
     Usuario: string;
   end;
@@ -40,8 +38,8 @@ uses
   System.Diagnostics, System.Generics.Collections, Data.DB,
   Datasnap.DBClient, Datasnap.Provider,
   inLibCajaSubsanacion, inLibFacturas,
-  inLibMsgPersistenciaSubsanacionCaja, UniDataCajaSubsanacionImportes,
-  UniDataMovimientosAlmacenRecalculo, inLibPrestaShopColaSenal,
+  inLibMsgPersistenciaSubsanacionCaja, inLibMsgSubsanacionCaja,
+  UniDataCajaSubsanacionImportes,
   inLibVerifactu, System.Math, inLibArqueoPersistencia,
   UniDataArqueoPersistencia;
 
@@ -95,22 +93,11 @@ const
     'PRECIO_VENTA_SIVA_ARTICULO_FACLIN,' +
     'PRECIO_VENTA_CIVA_ARTICULO_FACLIN,' +
     'TOTAL_FAC_SIVA_FACLIN,TOTAL_FACLIN';
-  // Campos que graba la subsanación en cada línea corregida: las unidades
-  // y los importes que se derivan de ellas.
-  CAMPOS_GUARDADO_LINEA = 'CANTIDAD_FACLIN,' + CAMPOS_IMPORTES_LINEA;
   CAMPOS_LINEAS =
     'LINEA_FACLIN,CODIGO_ART_FACLIN,CODIGO_UNIDAD_FACLIN,' +
     'DESCRIPCION_ARTICULO_FACLIN,CANTIDAD_FACLIN,NUMERO_MOV_FACLIN,' +
     'ESIMP_INCL_TARIFA_FACLIN,TIPO_IVA_ARTICULO_FACLIN,' +
     'PORCENTAJE_IVA_FACLIN,INSTANTE_MODIF,' + CAMPOS_IMPORTES_LINEA;
-  // Salidas de stock del ticket, por su documento de venta.
-  TIPO_DOC_MOVIMIENTO_VENTA = 'VE';
-  CAMPOS_MOVIMIENTO =
-    'NUMERO_MOV,LINEA_MOV,CODIGO_EMP_MOV,CODIGO_ALM_MOV,' +
-    'CODIGO_ALM_CONTRA_MOV,CODIGO_UNIDAD_MOV,CODIGO_ART_MOV,TIPO_MOV,' +
-    'CANTIDAD_MOV,PRECIO_MEDIO_MOV,FECHA_MOV,CODIGO_ALM_DOC_MOV,' +
-    'NUMERO_OPERACION_DOC_MOV,CODIGO_CAJA_DOC_MOV,CODIGO_CLI_MOV,' +
-    'ESACTIVO_MOV';
 
 type
   // Papel de cada fila de fza_caja_operaciones de la venta.
@@ -170,27 +157,7 @@ type
     procedure ValidarPago(ADatos: TDatosSubsanacionCaja);
     procedure ValidarMedio(const ASolicitud: TSolicitudSubsanacionCaja);
     procedure ValidarSolicitud(const ASolicitud: TSolicitudSubsanacionCaja;
-      const AActual: TOperacionSubsanacionCaja;
-      ADatos: TDatosSubsanacionCaja);
-    procedure GuardarOperacionesVenta(ADatos: TDatosSubsanacionCaja;
-      const ASolicitud: TSolicitudSubsanacionCaja);
-    procedure Recalcular(ADatos: TDatosSubsanacionCaja;
-      const ASolicitud: TSolicitudSubsanacionCaja);
-    procedure ValidarLineasCalculadas(ADatos: TDatosSubsanacionCaja;
-      AOriginales: TDataSet; const ALineas: TLineasSubsanacionCaja);
-    procedure GuardarImportes(ADatos: TDatosSubsanacionCaja;
-      const ASolicitud: TSolicitudSubsanacionCaja);
-    function LeerMovimientosVenta(
-      const AClave: TClaveOperacionSubsanacionCaja): TClientDataSet;
-    procedure ValidarMovimientosVenta(AMovimientos: TDataSet;
-      ACorregidas: TDictionary<string, TLineaSubsanacionCaja>);
-    procedure BorrarMovimientosVenta(
-      const AClave: TClaveOperacionSubsanacionCaja);
-    procedure ReinsertarMovimientosVenta(AMovimientos: TDataSet;
-      ACorregidas: TDictionary<string, TLineaSubsanacionCaja>;
-      const AClave: TClaveOperacionSubsanacionCaja);
-    function RegenerarMovimientosStock(ADatos: TDatosSubsanacionCaja;
-      const ASolicitud: TSolicitudSubsanacionCaja): Integer;
+      const AActual: TOperacionSubsanacionCaja);
     procedure GuardarCobro(ADatos: TDatosSubsanacionCaja;
       const ASolicitud: TSolicitudSubsanacionCaja);
     procedure InsertarCompensacion(const AClave: TClaveOperacionSubsanacionCaja;
@@ -203,9 +170,6 @@ type
       const ASolicitud: TSolicitudSubsanacionCaja);
     procedure GuardarAuditoria(const ASolicitud: TSolicitudSubsanacionCaja;
       const AAntes, ADespues: string);
-    procedure ActualizarCampos(const ATabla, ACondicion,
-      ACampos: string; AOrigen: TDataSet;
-      const AClave: TClaveOperacionSubsanacionCaja);
   public
     constructor Create(AConexion: TUniConnection;
       const ADependencias: TDependenciasSubsanacionCaja);
@@ -487,16 +451,6 @@ begin
     raise EArgumentException.Create(SSubsanacionPagosInvalidos);
 end;
 
-function HayImportesModificados(const ALineas: TLineasSubsanacionCaja):
-  Boolean;
-var
-  oLinea: TLineaSubsanacionCaja;
-begin
-  Result := False;
-  for oLinea in ALineas do
-    Result := Result or LineaSubsanacionModificada(oLinea);
-end;
-
 function DatosComoJson(AOrigen: TDataSet): TJSONArray;
 var
   oFila: TJSONObject;
@@ -574,9 +528,7 @@ begin
   if not Assigned(AConexion) then
     raise EArgumentNilException.Create('AConexion');
   if not Assigned(ADependencias.Permisos) or
-     not Assigned(ADependencias.Fiscal) or
      not Assigned(ADependencias.ParametrosApp) or
-     not Assigned(ADependencias.ParametrosCaja) or
      not Assigned(ADependencias.RegistroLog) then
     raise EArgumentNilException.Create('ADependencias');
   FConexion := AConexion;
@@ -1174,13 +1126,11 @@ end;
 
 procedure TServicioSubsanacionCajaUniDAC.ValidarSolicitud(
   const ASolicitud: TSolicitudSubsanacionCaja;
-  const AActual: TOperacionSubsanacionCaja;
-  ADatos: TDatosSubsanacionCaja);
+  const AActual: TOperacionSubsanacionCaja);
 var
   oLineas: TDictionary<string, TLineaSubsanacionCaja>;
   oLinea, oActual: TLineaSubsanacionCaja;
   bCambio: Boolean;
-  dAnticipo: Currency;
 begin
   if (Trim(ASolicitud.Motivo) = '') or
      (Length(ASolicitud.Motivo) > 500) then
@@ -1188,7 +1138,6 @@ begin
   if (ASolicitud.Original.Version = '') or
      (ASolicitud.Original.Version <> AActual.Version) then
     raise EInvalidOpException.Create(SSubsanacionConflicto);
-  ValidarImportesSubsanacion(ASolicitud.Lineas);
   if Length(ASolicitud.Lineas) <> Length(AActual.Lineas) then
     raise EInvalidOpException.Create(SSubsanacionConflicto);
   if TotalSubsanacion(ASolicitud.Lineas) < 0 then
@@ -1209,22 +1158,8 @@ begin
          (oLinea.ImporteOriginal <> oActual.ImporteOriginal) or
          (oLinea.PrecioSalidaOriginal <> oActual.PrecioSalidaOriginal) then
         raise EInvalidOpException.Create(SSubsanacionConflicto);
-      // El abono a cuenta y el anticipo ya se declararon en su ticket.
-      if ADatos.LineasFijas.ContainsKey(oLinea.Numero) and
-         LineaSubsanacionModificada(oLinea) then
-        raise EArgumentException.CreateFmt(SSubsanacionLineaFija,
-          [oLinea.Numero]);
-      // La prenda de un depósito conserva las unidades del depósito; se
-      // decide con los datos leídos, no con la marca de la solicitud.
-      if oActual.CantidadFija and CantidadSubsanacionModificada(oLinea) then
-        raise EArgumentException.CreateFmt(
-          SSubsanacionCantidadPrendaDeposito, [oLinea.Numero]);
-      // La prenda de un depósito no puede bajar del anticipo ya consumido.
-      if ADatos.AnticipoLinea.TryGetValue(oLinea.Numero, dAnticipo) and
-         (oLinea.Importe < dAnticipo) then
-        raise EArgumentException.CreateFmt(SSubsanacionPrendaBajoAnticipo,
-          [oLinea.Numero, CurrToStrF(dAnticipo, ffCurrency, 2)]);
-      bCambio := bCambio or LineaSubsanacionModificada(oLinea);
+      if LineaSubsanacionModificada(oLinea) then
+        raise EArgumentException.Create(SSubsanacionLineasFijas);
       oLineas.Remove(oLinea.Numero);
     end;
   finally
@@ -1262,377 +1197,6 @@ begin
     end;
   finally
     FreeAndNil(oConsulta);
-  end;
-end;
-
-procedure TServicioSubsanacionCajaUniDAC.Recalcular(
-  ADatos: TDatosSubsanacionCaja;
-  const ASolicitud: TSolicitudSubsanacionCaja);
-var
-  oTotales: TFacturaTotales;
-  oOriginales: TClientDataSet;
-begin
-  oOriginales := TClientDataSet.Create(nil);
-  oTotales := nil;
-  try
-    oOriginales.Data := ADatos.Lineas.Data;
-    AplicarImportesSubsanacion(ADatos.Lineas, ASolicitud.Lineas);
-    oTotales := TFacturaTotales.Create(nil, nil,
-      ADatos.Cabecera, ADatos.Lineas, nil, FDependencias.RegistroLog);
-    if not oTotales.ProcesarFacturaCompleta then
-      raise EInvalidOpException.CreateFmt(SSubsanacionCalculoInvalido,
-        [oTotales.MensajeError]);
-    if ADatos.Cabecera.State in dsEditModes then
-      ADatos.Cabecera.Post;
-    if ADatos.Cabecera.FieldByName(ftotal).AsCurrency <>
-       TotalSubsanacion(ASolicitud.Lineas) then
-      raise EInvalidOpException.CreateFmt(SSubsanacionCalculoInvalido,
-        [SSubsanacionTotalFiscalDistinto]);
-    ValidarLineasCalculadas(ADatos, oOriginales, ASolicitud.Lineas);
-    ADatos.Lineas.First;
-  finally
-    FreeAndNil(oTotales);
-    FreeAndNil(oOriginales);
-  end;
-end;
-
-procedure TServicioSubsanacionCajaUniDAC.ValidarLineasCalculadas(
-  ADatos: TDatosSubsanacionCaja; AOriginales: TDataSet;
-  const ALineas: TLineasSubsanacionCaja);
-var
-  oLinea: TLineaSubsanacionCaja;
-  sCampo: string;
-begin
-  for oLinea in ALineas do
-  begin
-    if not AOriginales.Locate('LINEA_FACLIN', oLinea.Numero, []) or
-       not ADatos.Lineas.Locate('LINEA_FACLIN', oLinea.Numero, []) then
-      raise EInvalidOpException.Create(SSubsanacionConflicto);
-    if (ADatos.Lineas.FieldByName('TIPO_IVA_ARTICULO_FACLIN').AsString <>
-          AOriginales.FieldByName('TIPO_IVA_ARTICULO_FACLIN').AsString) or
-       (ADatos.Lineas.FieldByName('PORCENTAJE_IVA_FACLIN').AsCurrency <>
-          AOriginales.FieldByName('PORCENTAJE_IVA_FACLIN').AsCurrency) then
-      raise EInvalidOpException.Create(SSubsanacionDatosFiscales);
-    if ADatos.Lineas.FieldByName('TOTAL_FACLIN').AsCurrency <>
-       oLinea.Importe then
-      raise EInvalidOpException.CreateFmt(SSubsanacionCalculoInvalido,
-        [SSubsanacionTotalFiscalDistinto]);
-    if not SameValue(ADatos.Lineas.FieldByName('CANTIDAD_FACLIN').AsFloat,
-         oLinea.Cantidad, 0.000001) then
-      raise EInvalidOpException.CreateFmt(SSubsanacionCalculoInvalido,
-        [Format(SSubsanacionCantidadNoAplicada, [oLinea.Numero])]);
-    if not LineaSubsanacionModificada(oLinea) then
-      for sCampo in CAMPOS_GUARDADO_LINEA.Split([',']) do
-        if ADatos.Lineas.FieldByName(sCampo).AsCurrency <>
-           AOriginales.FieldByName(sCampo).AsCurrency then
-          raise EInvalidOpException.CreateFmt(SSubsanacionCalculoInvalido,
-            [SSubsanacionLineaIntactaDistinta]);
-  end;
-end;
-
-procedure TServicioSubsanacionCajaUniDAC.ActualizarCampos(
-  const ATabla, ACondicion, ACampos: string; AOrigen: TDataSet;
-  const AClave: TClaveOperacionSubsanacionCaja);
-var
-  oConsulta: TUniQuery;
-  sCampo, sSql: string;
-begin
-  sSql := 'UPDATE ' + ATabla + ' SET ';
-  for sCampo in ACampos.Split([',']) do
-    sSql := sSql + sCampo + ' = :' + sCampo + ',';
-  sSql := sSql + 'INSTANTE_MODIF = NOW(),USUARIO_MODIF = :USUARIO ' +
-    'WHERE ' + ACondicion;
-  oConsulta := Consulta(sSql, AClave);
-  try
-    for sCampo in ACampos.Split([',']) do
-      oConsulta.ParamByName(sCampo).Value := AOrigen.FieldByName(sCampo).Value;
-    if Assigned(oConsulta.Params.FindParam('LINEA')) then
-      oConsulta.ParamByName('LINEA').AsString :=
-        AOrigen.FieldByName('LINEA_FACLIN').AsString;
-    oConsulta.Execute;
-  finally
-    FreeAndNil(oConsulta);
-  end;
-end;
-
-procedure TServicioSubsanacionCajaUniDAC.GuardarImportes(
-  ADatos: TDatosSubsanacionCaja;
-  const ASolicitud: TSolicitudSubsanacionCaja);
-var
-  oLinea: TLineaSubsanacionCaja;
-  oClave: TClaveOperacionSubsanacionCaja;
-begin
-  oClave := ASolicitud.Original.Clave;
-  for oLinea in ASolicitud.Lineas do
-  begin
-    if LineaSubsanacionModificada(oLinea) then
-    begin
-      if not ADatos.Lineas.Locate('LINEA_FACLIN', oLinea.Numero, []) then
-        raise EInvalidOpException.Create(SSubsanacionConflicto);
-      ActualizarCampos('fza_facturas_lineas',
-        'SERIE_FAC_FACLIN = :SERIE AND NUMERO_FAC_FACLIN = :NUMERO ' +
-        'AND LINEA_FACLIN = :LINEA',
-        CAMPOS_GUARDADO_LINEA, ADatos.Lineas, oClave);
-    end;
-  end;
-  ActualizarCampos('fza_facturas',
-    'SERIE_FAC = :SERIE AND NUMERO_FAC = :NUMERO',
-    CAMPOS_TOTALES, ADatos.Cabecera, oClave);
-  GuardarOperacionesVenta(ADatos, ASolicitud);
-end;
-
-function TServicioSubsanacionCajaUniDAC.LeerMovimientosVenta(
-  const AClave: TClaveOperacionSubsanacionCaja): TClientDataSet;
-begin
-  Result := LeerCopia('SELECT ' + CAMPOS_MOVIMIENTO +
-    ' FROM fza_movimientos_almacen WHERE TIPO_DOC_MOV = ''' +
-    TIPO_DOC_MOVIMIENTO_VENTA + ''' AND SERIE_DOC_MOV = :SERIE ' +
-    'AND NUMERO_DOC_MOV = :NUMERO ORDER BY NUMERO_MOV', AClave, True);
-end;
-
-// Cada línea con unidades corregidas debe conservar su salida de stock con
-// las unidades vendidas; un ticket con movimientos anulados se deja estar.
-procedure TServicioSubsanacionCajaUniDAC.ValidarMovimientosVenta(
-  AMovimientos: TDataSet;
-  ACorregidas: TDictionary<string, TLineaSubsanacionCaja>);
-var
-  oPar: TPair<string, TLineaSubsanacionCaja>;
-begin
-  AMovimientos.First;
-  while not AMovimientos.Eof do
-  begin
-    if AMovimientos.FieldByName('ESACTIVO_MOV').AsString <> 'S' then
-      raise EInvalidOpException.Create(SSubsanacionStockInactivo);
-    AMovimientos.Next;
-  end;
-  for oPar in ACorregidas do
-  begin
-    if not AMovimientos.Locate('NUMERO_MOV', oPar.Key, []) or
-       (AMovimientos.FieldByName('TIPO_MOV').AsString <> 'S') or
-       not SameValue(AMovimientos.FieldByName('CANTIDAD_MOV').AsFloat,
-         oPar.Value.CantidadOriginal, 0.000001) then
-      raise EInvalidOpException.CreateFmt(SSubsanacionStockInconsistente,
-        [oPar.Value.Numero]);
-  end;
-  AMovimientos.First;
-end;
-
-procedure TServicioSubsanacionCajaUniDAC.BorrarMovimientosVenta(
-  const AClave: TClaveOperacionSubsanacionCaja);
-var
-  oConsulta: TUniQuery;
-begin
-  // El mismo procedimiento que la anulación: retira el stock y los
-  // acumulados de los movimientos del ticket y recalcula desde su fecha.
-  oConsulta := Consulta(
-    'CALL PRC_FZA_MOVIMIENTOS_ALMACEN_DELETE_DOC(:TIPO, :SERIE, :NUMERO)',
-    AClave);
-  try
-    oConsulta.ParamByName('TIPO').AsString := TIPO_DOC_MOVIMIENTO_VENTA;
-    oConsulta.Execute;
-  finally
-    FreeAndNil(oConsulta);
-  end;
-end;
-
-// Vuelve a dar de alta cada salida con su mismo número, fecha y datos,
-// cambiando sólo las unidades corregidas, por el procedimiento que mantiene
-// el stock y sus acumulados (igual que la venta en caja).
-procedure TServicioSubsanacionCajaUniDAC.ReinsertarMovimientosVenta(
-  AMovimientos: TDataSet;
-  ACorregidas: TDictionary<string, TLineaSubsanacionCaja>;
-  const AClave: TClaveOperacionSubsanacionCaja);
-var
-  oAlta: TUniStoredProc;
-  oFecha: TUniQuery;
-  oLinea: TLineaSubsanacionCaja;
-  sNumero: string;
-  dCantidad: Double;
-  procedure ParametroTexto(const ANombre, ACampo: string);
-  begin
-    oAlta.ParamByName(ANombre).AsString :=
-      AMovimientos.FieldByName(ACampo).AsString;
-  end;
-begin
-  oFecha := nil;
-  oAlta := TUniStoredProc.Create(nil);
-  try
-    oAlta.Connection := FConexion;
-    oAlta.StoredProcName := 'PRC_FZA_MOVIMIENTOS_ALMACEN_INSERT';
-    oAlta.Prepare;
-    oFecha := TUniQuery.Create(nil);
-    oFecha.Connection := FConexion;
-    oFecha.SQL.Text :=
-      'UPDATE fza_movimientos_almacen SET FECHA_MOV = :FECHA ' +
-      'WHERE NUMERO_MOV = :NUMMOV';
-    AMovimientos.First;
-    while not AMovimientos.Eof do
-    begin
-      sNumero := AMovimientos.FieldByName('NUMERO_MOV').AsString;
-      dCantidad := AMovimientos.FieldByName('CANTIDAD_MOV').AsFloat;
-      if ACorregidas.TryGetValue(sNumero, oLinea) then
-        dCantidad := oLinea.Cantidad;
-      oAlta.ParamByName('p_NUMERO_MOV').AsString := sNumero;
-      oAlta.ParamByName('p_TIPO_DOC_MOV').AsString :=
-        TIPO_DOC_MOVIMIENTO_VENTA;
-      oAlta.ParamByName('p_SERIE_DOC_MOV').AsString := AClave.SerieFactura;
-      oAlta.ParamByName('p_NRO_DOC_MOV').AsString := AClave.NumeroFactura;
-      ParametroTexto('p_LINEA_MOV', 'LINEA_MOV');
-      ParametroTexto('p_CODIGO_EMPRESA_MOV', 'CODIGO_EMP_MOV');
-      ParametroTexto('p_CODIGO_ALMACEN_MOV', 'CODIGO_ALM_MOV');
-      if Trim(AMovimientos.FieldByName('CODIGO_ALM_CONTRA_MOV').AsString)
-         = '' then
-        oAlta.ParamByName('p_CODIGO_ALMACEN_CONTRA_MOV').Clear
-      else
-        ParametroTexto('p_CODIGO_ALMACEN_CONTRA_MOV', 'CODIGO_ALM_CONTRA_MOV');
-      ParametroTexto('p_CODIGO_UNIDAD_MOV', 'CODIGO_UNIDAD_MOV');
-      ParametroTexto('p_TIPO_MOVIMIENTO_MOV', 'TIPO_MOV');
-      oAlta.ParamByName('p_CANTIDAD_MOV').AsFloat := Abs(dCantidad);
-      oAlta.ParamByName('p_PRECIO_MEDIO_MOV').AsCurrency :=
-        AMovimientos.FieldByName('PRECIO_MEDIO_MOV').AsCurrency;
-      oAlta.ParamByName('p_TOTAL_COSTE_MOV').AsCurrency :=
-        AMovimientos.FieldByName('PRECIO_MEDIO_MOV').AsCurrency *
-        Abs(dCantidad);
-      oAlta.ParamByName('p_USUARIO').AsString := FDependencias.Usuario;
-      ParametroTexto('p_ALMACEN_DOC', 'CODIGO_ALM_DOC_MOV');
-      ParametroTexto('p_NUMOP_DOC', 'NUMERO_OPERACION_DOC_MOV');
-      ParametroTexto('p_CODIGO_CAJA_DOC_MOV', 'CODIGO_CAJA_DOC_MOV');
-      ParametroTexto('p_CODCLIENTE', 'CODIGO_CLI_MOV');
-      ParametroTexto('p_CODARTICULO', 'CODIGO_ART_MOV');
-      oAlta.Execute;
-      // El alta fecha el movimiento con NOW(): se devuelve a su fecha para
-      // que el recálculo cronológico lo sitúe donde estaba.
-      if not AMovimientos.FieldByName('FECHA_MOV').IsNull then
-      begin
-        oFecha.ParamByName('FECHA').AsDateTime :=
-          AMovimientos.FieldByName('FECHA_MOV').AsDateTime;
-        oFecha.ParamByName('NUMMOV').AsString := sNumero;
-        oFecha.Execute;
-      end;
-      AMovimientos.Next;
-    end;
-  finally
-    FreeAndNil(oFecha);
-    FreeAndNil(oAlta);
-  end;
-end;
-
-// Las unidades corregidas se reflejan en el stock regenerando las salidas
-// del ticket, sólo cuando cambia alguna línea con movimiento. Devuelve los
-// movimientos regenerados.
-function TServicioSubsanacionCajaUniDAC.RegenerarMovimientosStock(
-  ADatos: TDatosSubsanacionCaja;
-  const ASolicitud: TSolicitudSubsanacionCaja): Integer;
-var
-  oCorregidas: TDictionary<string, TLineaSubsanacionCaja>;
-  oMovimientos: TClientDataSet;
-  oLinea: TLineaSubsanacionCaja;
-  sMovimiento: string;
-begin
-  Result := 0;
-  oCorregidas := TDictionary<string, TLineaSubsanacionCaja>.Create;
-  try
-    for oLinea in ASolicitud.Lineas do
-      if CantidadSubsanacionModificada(oLinea) then
-      begin
-        if not ADatos.Lineas.Locate('LINEA_FACLIN', oLinea.Numero, []) then
-          raise EInvalidOpException.Create(SSubsanacionConflicto);
-        // Sin movimiento (servicios o caja sin stock) no hay nada que
-        // regenerar.
-        sMovimiento := Trim(
-          ADatos.Lineas.FieldByName('NUMERO_MOV_FACLIN').AsString);
-        if sMovimiento <> '' then
-        begin
-          if oCorregidas.ContainsKey(sMovimiento) then
-            raise EInvalidOpException.CreateFmt(
-              SSubsanacionStockInconsistente, [oLinea.Numero]);
-          oCorregidas.Add(sMovimiento, oLinea);
-        end;
-      end;
-    if oCorregidas.Count > 0 then
-    begin
-      oMovimientos := LeerMovimientosVenta(ASolicitud.Original.Clave);
-      try
-        ValidarMovimientosVenta(oMovimientos, oCorregidas);
-        BorrarMovimientosVenta(ASolicitud.Original.Clave);
-        ReinsertarMovimientosVenta(oMovimientos, oCorregidas,
-          ASolicitud.Original.Clave);
-        Result := oMovimientos.RecordCount;
-      finally
-        FreeAndNil(oMovimientos);
-      end;
-      // Recálculo cronológico de stock y PMP desde la fecha del ticket; va
-      // a la cola del lote si el usuario aplaza los recálculos.
-      EncolarORecalcularMovimientosDocumento(FConexion,
-        TIPO_DOC_MOVIMIENTO_VENTA, ASolicitud.Original.Clave.SerieFactura,
-        ASolicitud.Original.Clave.NumeroFactura,
-        FormatearMensajeDocumentos(
-          CrearFormatoDocumentoLecturas(FConexion).LeerFormatoEmpresa(
-            ASolicitud.Original.Clave.Empresa),
-          SSubsanacionMotivoRecalculoStock,
-          [ASolicitud.Original.Clave.SerieFactura,
-          ASolicitud.Original.Clave.NumeroFactura]),
-        FDependencias.Usuario);
-    end;
-  finally
-    FreeAndNil(oCorregidas);
-  end;
-end;
-
-procedure TServicioSubsanacionCajaUniDAC.GuardarOperacionesVenta(
-  ADatos: TDatosSubsanacionCaja;
-  const ASolicitud: TSolicitudSubsanacionCaja);
-var
-  oImportes: TDictionary<Integer, Currency>;
-  oLinea: TLineaSubsanacionCaja;
-  oPar: TPair<Integer, Currency>;
-  oConsulta: TUniQuery;
-  iId: Integer;
-  dNormal: Currency;
-begin
-  // Cada fila de venta toma el importe de sus líneas: la de la prenda de
-  // depósito, el de su línea; la venta normal, la suma del resto. El
-  // cierre del depósito, el consumo de anticipo, los anticipos y los vales
-  // no cambian.
-  oImportes := TDictionary<Integer, Currency>.Create;
-  try
-    dNormal := 0;
-    for oLinea in ASolicitud.Lineas do
-    begin
-      if ADatos.VentaDepositoLinea.TryGetValue(oLinea.Numero, iId) then
-        oImportes.Add(iId, oLinea.Importe)
-      else if not ADatos.LineasFijas.ContainsKey(oLinea.Numero) then
-        dNormal := dNormal + oLinea.Importe;
-    end;
-    if ADatos.IdVentaNormal <> 0 then
-      oImportes.Add(ADatos.IdVentaNormal, dNormal)
-    else if dNormal <> 0 then
-      raise EInvalidOpException.Create(SSubsanacionConflicto);
-    oConsulta := Consulta(
-      'UPDATE fza_caja_operaciones SET IMPORTE_TOTAL_OPCAJA = :IMPORTE,' +
-      'INSTANTE_MODIF = NOW(),USUARIO_MODIF = :USUARIO ' +
-      'WHERE ID_OPCAJA = :ID AND ' + SQL_CLAVE_OPE,
-      ASolicitud.Original.Clave);
-    try
-      for oPar in oImportes do
-      begin
-        if not ADatos.Operacion.Locate('ID_OPCAJA', oPar.Key, []) then
-          raise EInvalidOpException.Create(SSubsanacionConflicto);
-        if ADatos.Operacion.FieldByName(ftotalope).AsCurrency <>
-           oPar.Value then
-        begin
-          oConsulta.ParamByName('ID').AsInteger := oPar.Key;
-          oConsulta.ParamByName('IMPORTE').AsCurrency := oPar.Value;
-          oConsulta.Execute;
-          if oConsulta.RowsAffected <> 1 then
-            raise EInvalidOpException.Create(SSubsanacionConflicto);
-        end;
-      end;
-    finally
-      FreeAndNil(oConsulta);
-    end;
-  finally
-    FreeAndNil(oImportes);
   end;
 end;
 
@@ -1720,10 +1284,7 @@ var
   sSerie, sSerieNueva, sObservacion: string;
   iLinea: Integer;
 begin
-  // Como la corrección de forma de pago: sólo si cambia el cobro, se
-  // compensan en negativo los cobros vigentes y se añaden los nuevos.
-  if not CobrosDistintos(ASolicitud.Original.Pagos, ASolicitud.Pagos) then
-    Exit;
+  // Se compensan los cobros vigentes y se añaden los nuevos.
   sObservacion := Copy(Format(SSubsanacionObservacionPago,
     [Trim(ASolicitud.Motivo)]), 1, 255);
   oPagos := ADatos.Pagos;
@@ -1861,7 +1422,6 @@ var
   oActual: TOperacionSubsanacionCaja;
   sAntes: string;
   oReloj: TStopwatch;
-  iMovimientos: Integer;
 begin
   ExigirPermiso;
   ValidarClave(ASolicitud.Original.Clave);
@@ -1877,7 +1437,7 @@ begin
       oDatos := LeerDatos(ASolicitud.Original.Clave, True);
       ValidarDatos(oDatos, ASolicitud.Original.Clave);
       oActual := CrearSnapshot(ASolicitud.Original.Clave, oDatos);
-      ValidarSolicitud(ASolicitud, oActual, oDatos);
+      ValidarSolicitud(ASolicitud, oActual);
       ValidarMedio(ASolicitud);
       sAntes := oDatos.ComoJson;
       InvalidarArqueosCambioVenta(FConexion,
@@ -1886,24 +1446,8 @@ begin
         TotalSubsanacion(ASolicitud.Lineas), mcavSubsanacion,
         EsRootParaCambiarArqueo(FDependencias.Permisos),
         ASolicitud.ArqueosConfirmados);
-      iMovimientos := 0;
-      if HayImportesModificados(ASolicitud.Lineas) then
-      begin
-        Recalcular(oDatos, ASolicitud);
-        GuardarImportes(oDatos, ASolicitud);
-        iMovimientos := RegenerarMovimientosStock(oDatos, ASolicitud);
-      end;
       GuardarCobro(oDatos, ASolicitud);
       Result := Default(TResultadoSubsanacionCaja);
-      Result.EncoladaVerifactu := VerifactuActivo(FDependencias.ParametrosApp)
-        or SiiActivo(FDependencias.ParametrosApp);
-      Result.RegistradaNoVerifactu :=
-        NoVerifactuActivo(FDependencias.ParametrosApp);
-      if not EsSinVerifactu then
-        FDependencias.Fiscal.EncolarCorreccionRegistro(
-          FDependencias.ParametrosApp, FDependencias.ParametrosCaja,
-          FDependencias.Usuario, ASolicitud.Original.Clave.SerieFactura,
-          ASolicitud.Original.Clave.NumeroFactura, ASolicitud.Motivo);
       oDespues := LeerDatos(ASolicitud.Original.Clave, False);
       GuardarAuditoria(ASolicitud, sAntes, oDespues.ComoJson);
       Result.Clave := ASolicitud.Original.Clave;
@@ -1916,16 +1460,6 @@ begin
         ASolicitud.Original.Clave.NumeroFactura,
         ModoVerifactuTexto(FDependencias.ParametrosApp),
         Trim(ASolicitud.Motivo)]));
-      if iMovimientos > 0 then
-      begin
-        FDependencias.RegistroLog.RegistrarInformacion(FormatearMensajeDocumentos(
-          CrearFormatoDocumentoLecturas(FConexion).LeerFormatoEmpresa(
-            ASolicitud.Original.Clave.Empresa),
-          SSubsanacionStockRegenerado,
-          [ASolicitud.Original.Clave.SerieFactura,
-          ASolicitud.Original.Clave.NumeroFactura, iMovimientos]));
-        SolicitarProcesadoPrestaShop;
-      end;
     except
       on E: Exception do
       begin

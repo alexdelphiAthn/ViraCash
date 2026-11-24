@@ -413,20 +413,31 @@ resourcestring
     'En subsanación no se añaden ni borran líneas: sólo se corrigen ' +
     'cantidades y precios. Para otros cambios emita una rectificativa.';
   SErrorSubsanacionLineaCampoFijo =
-    'En subsanación sólo se corrigen cantidades y precios de las ' +
-    'líneas; el campo %s no se puede cambiar.';
+    'El campo %s está bloqueado durante la subsanación. Si la línea ' +
+    'de la factura emitida es incorrecta, emita una rectificativa.';
   SErrorCancelarSubsanacionConCambios =
     'La factura %s\%s ya no coincide con el registro aceptado por la ' +
     'AEAT (%s).' + sLineBreak + sLineBreak +
     'No se puede cancelar la subsanación: regístrela, o deje la factura ' +
     'como estaba y vuelva a cancelar.';
   SDetalleSubsanacionImporte = 'importe %s; registrado %s';
+  SAvisoUsoSubsanacion =
+    'Use «Subsanar» solo si el error está en el registro fiscal.' +
+    sLineBreak + sLineBreak +
+    'Si solo se equivocó en la forma de pago, corrija el cobro. ' +
+    'Ese cambio no se comunica por VERI*FACTU.' + sLineBreak + sLineBreak +
+    'Si la factura o el ticket emitido tiene un error en el precio, ' +
+    'las cantidades, el descuento, el IVA o los datos fiscales del cliente, ' +
+    'emita una factura rectificativa.';
+  SPreguntaAbrirCorreccionCobro =
+    '¿Abrir la operación para corregir la forma de pago?';
   SPreguntaCorregirImportesRegistro =
     'La factura y el registro fiscal tienen importes distintos.' +
     sLineBreak + '%s' + sLineBreak + sLineBreak +
     'Si la factura emitida es correcta, pulse Sí para corregir solo el ' +
     'registro fiscal con los datos de esa factura.' + sLineBreak +
-    'Pulse No para seguir por la subsanación habitual.';
+    'Si los importes están mal en la factura emitida, cancele y emita ' +
+    'una factura rectificativa. Pulse No para ver las demás opciones.';
   SErrorCorreccionImportesRegistroCambio =
     'La diferencia de importes ha cambiado. Vuelva a revisar la factura.';
   SErrorCorreccionImportesOperacionPendiente =
@@ -445,12 +456,9 @@ resourcestring
     'antes de %s.';
   SPreguntaIniciarSubsanacionFactura =
     '¿Abrir la factura %s\%s para subsanar su registro fiscal?' +
-    sLineBreak +
-    'Podrá corregir los datos del cliente y las cantidades y precios ' +
-    'de las líneas; no se añaden ni borran líneas ni cambian número, ' +
-    'fecha o emisor. Al pulsar "Registrar subsanación" se enviará a la ' +
-    'AEAT un registro corregido con el mismo número de factura y se ' +
-    'regenerarán sus movimientos de stock.';
+    sLineBreak + sLineBreak +
+    'Revise los datos del cliente contra la factura original. Las líneas ' +
+    'y los importes quedan bloqueados.';
   SInfoSubsanacionFacturaIniciada =
     'Factura %s\%s en subsanación. Corrija los datos, grabe y pulse ' +
     '"Registrar subsanación".';

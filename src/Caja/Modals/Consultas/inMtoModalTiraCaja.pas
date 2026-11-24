@@ -28,13 +28,15 @@ uses
   cxGraphics, cxControls, cxLookAndFeels, cxLookAndFeelPainters,
   cxContainer, cxEdit, cxTextEdit, cxMaskEdit, cxDropDownEdit,
   cxCheckBox, cxCheckComboBox, cxLabel, cxButtons, cxClasses, cxStyles,
-  inMtoFrmBase;
+  inMtoFrmBase, inLibTiraCajaTicketIntf;
 
 type
   TfrmModalTiraCaja = class(TfrmBase)
     lblTitulo: TcxLabel;
     lblSerie: TcxLabel;
     ccbSerie: TcxCheckComboBox;
+    lblModo: TcxLabel;
+    cbModo: TcxComboBox;
     lblAgrupamiento: TcxLabel;
     cbAgrupamiento: TcxComboBox;
     chkQR: TcxCheckBox;
@@ -46,6 +48,7 @@ type
     btnExcel: TcxButton;
     btnCancelar: TcxButton;
     procedure FormCreate(Sender: TObject);
+    procedure ModoChange(Sender: TObject);
   private
     FVerifactu: Boolean;
   public
@@ -64,6 +67,7 @@ type
                             out AImprimirQR: Boolean;
                             out ACronologico: Boolean;
                             out AExcel: Boolean;
+                            out AModo: TModoTiraCaja;
                             out AIncluirTraspasos: Boolean;
                             out AIncluirIngresos: Boolean;
                             out AIncluirGastos: Boolean;
@@ -89,6 +93,7 @@ class function TfrmModalTiraCaja.Ejecutar(AOwner: TComponent;
                                           out AImprimirQR: Boolean;
                                           out ACronologico: Boolean;
                                           out AExcel: Boolean;
+                                          out AModo: TModoTiraCaja;
                                           out AIncluirTraspasos: Boolean;
                                           out AIncluirIngresos: Boolean;
                                           out AIncluirGastos: Boolean;
@@ -104,6 +109,7 @@ begin
   AImprimirQR       := False;
   ACronologico      := False;
   AExcel            := False;
+  AModo             := mtcNormal;
   AIncluirTraspasos := False;
   AIncluirIngresos  := False;
   AIncluirGastos    := False;
@@ -139,6 +145,7 @@ begin
     Frm.chkIngresos.Checked  := False;
     Frm.chkGastos.Checked    := False;
     Frm.chkCredito.Checked   := False;
+    Frm.ModoChange(Frm.cbModo);
     // Imprimir -> mrOk; Ver Excel -> mrYes. Ambos devuelven las selecciones.
     iResultado := Frm.ShowModal;
     if (iResultado = mrOk) or (iResultado = mrYes) then
@@ -152,7 +159,8 @@ begin
         end;
       ACronologico      := Frm.cbAgrupamiento.ItemIndex = 1;
       AExcel            := iResultado = mrYes;
-      AImprimirQR       := Frm.chkQR.Checked and AVerifactu;
+      AModo             := TModoTiraCaja(Frm.cbModo.ItemIndex);
+      AImprimirQR       := Frm.chkQR.Enabled and Frm.chkQR.Checked;
       AIncluirTraspasos := Frm.chkTraspasos.Checked;
       AIncluirIngresos  := Frm.chkIngresos.Checked;
       AIncluirGastos    := Frm.chkGastos.Checked;
@@ -168,6 +176,26 @@ procedure TfrmModalTiraCaja.FormCreate(Sender: TObject);
 begin
   inherited;
   Self.Position := poScreenCenter;
+  lblModo.Caption := SCaptionModoTiraCaja;
+  cbModo.Properties.Items.Add(SCaptionModoTiraCajaNormal);
+  cbModo.Properties.Items.Add(SCaptionModoTiraCajaSoloOperaciones);
+  cbModo.Properties.Items.Add(SCaptionModoTiraCajaSoloArticulos);
+  cbModo.ItemIndex := Ord(mtcNormal);
+end;
+
+procedure TfrmModalTiraCaja.ModoChange(Sender: TObject);
+var
+  bNormal: Boolean;
+begin
+  bNormal := cbModo.ItemIndex = Ord(mtcNormal);
+  lblAgrupamiento.Enabled := bNormal;
+  cbAgrupamiento.Enabled := bNormal;
+  chkQR.Enabled := bNormal and FVerifactu;
+  chkTraspasos.Enabled := bNormal;
+  chkIngresos.Enabled := bNormal;
+  chkGastos.Enabled := bNormal;
+  chkCredito.Enabled := bNormal;
+  btnExcel.Enabled := bNormal;
 end;
 
 initialization

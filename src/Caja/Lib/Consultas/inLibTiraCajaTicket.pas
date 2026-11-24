@@ -117,7 +117,8 @@ type
                              AIncluirIngresos: Boolean = False;
                              AIncluirGastos: Boolean = False;
                              AIncluirCredito: Boolean = False;
-                             AValorarTraspasos: Boolean = False);
+                             AValorarTraspasos: Boolean = False;
+                             AModo: TModoTiraCaja = mtcNormal);
     // Vuelca las mismas operaciones de la tira a una hoja de cálculo y la abre
     // en el visor de Excel (TfrmMtoPreviewExcel), con detalle por línea y el
     // mismo orden / agrupamiento que la impresión.
@@ -141,7 +142,7 @@ type
 implementation
 
 uses
-  Vcl.Forms,
+  System.DateUtils, Vcl.Forms,
   dxSpreadSheet, dxSpreadSheetCore, dxSpreadSheetGraphics,
   dxSpreadSheetTypes, dxSpreadSheetStyles, dxHashUtils,
   inLibDir, inLibFormatoDocumento, inLibVerifactu,
@@ -168,6 +169,7 @@ type
     FIncluirGastos    : Boolean;
     FIncluirCredito   : Boolean;
     FVerCoste         : Boolean;
+    FModo             : TModoTiraCaja;
     FTicket           : TTicketTermico;
     FGrupoAnterior    : string;
     FNumeroVentas     : Integer;
@@ -193,7 +195,8 @@ type
       AImprimirQR: Boolean;
       const ANombreImpresora: string;
       ACronologico, AIncluirTraspasos, AIncluirIngresos,
-        AIncluirGastos, AIncluirCredito, AValorarTraspasos: Boolean);
+        AIncluirGastos, AIncluirCredito, AValorarTraspasos: Boolean;
+      AModo: TModoTiraCaja);
     function RotuloGrupo(const AGrupo: string): string;
     function NumeroOperaciones: Integer;
     procedure InicializarAcumuladores;
@@ -204,6 +207,14 @@ type
       const AOperacion: TOperacionTiraCaja);
     procedure EscribirOperaciones;
     procedure EscribirCierre;
+    procedure EscribirCabeceraDia(const ARazonSocial, AHora: string;
+      ADia: TDate);
+    procedure EscribirTotalDia(ADia: TDate; ATotal: Currency);
+    procedure EscribirOperacionCompacta(
+      const AOperacion: TOperacionTiraCaja);
+    procedure EscribirArticulosCompactos(
+      const AOperacion: TOperacionTiraCaja);
+    procedure EscribirTiraCompacta;
     procedure Emitir;
   public
     procedure Ejecutar;
@@ -617,7 +628,8 @@ constructor TImpresorTiraCajaTicket.Create(
   AImprimirQR: Boolean;
   const ANombreImpresora: string;
   ACronologico, AIncluirTraspasos, AIncluirIngresos,
-    AIncluirGastos, AIncluirCredito, AValorarTraspasos: Boolean);
+    AIncluirGastos, AIncluirCredito, AValorarTraspasos: Boolean;
+  AModo: TModoTiraCaja);
 begin
   inherited Create;
   FParametrosApp := AParametrosApp;
@@ -637,6 +649,7 @@ begin
   FIncluirGastos := AIncluirGastos;
   FIncluirCredito := AIncluirCredito;
   FVerCoste := AValorarTraspasos;
+  FModo := AModo;
 end;
 
 function TImpresorTiraCajaTicket.RotuloGrupo(
@@ -918,6 +931,133 @@ begin
   FTicket.CortarPapel;
 end;
 
+procedure TImpresorTiraCajaTicket.EscribirCabeceraDia(
+  const ARazonSocial, AHora: string; ADia: TDate);
+begin
+  FTicket.Alinear(alIzquierda);
+  if ARazonSocial <> '' then
+    FTicket.EscribirLinea(ARazonSocial);
+  FTicket.SaltarLineas(1);
+  FTicket.EscribirLinea(Format(STicketArqueoCajaDia,
+    [TTiraCajaTicket.LPad(FCaja, 2), FormatDateTime('dd/mm/yy', ADia),
+     AHora]));
+  FTicket.SaltarLineas(1);
+end;
+
+procedure TImpresorTiraCajaTicket.EscribirTotalDia(ADia: TDate;
+  ATotal: Currency);
+begin
+  FTicket.SaltarLineas(1);
+  FTicket.TextoColumnas(
+    Format(STicketArqueoTotalDia, [FormatDateTime('dd/mm/yyyy', ADia)]),
+    TTiraCajaTicket.FmtImp(ATotal));
+end;
+
+procedure TImpresorTiraCajaTicket.EscribirOperacionCompacta(
+  const AOperacion: TOperacionTiraCaja);
+var
+  sReferencia: string;
+begin
+  sReferencia := Trim(AOperacion.NumeroOperacion);
+  if AOperacion.TipoOperacion <> '' then
+    sReferencia := AOperacion.TipoOperacion + '-' + sReferencia;
+  FTicket.TextoColumnas(
+    Format('%-23s %s', [sReferencia, STicketArqueoImporte]),
+    TTiraCajaTicket.FmtImp(AOperacion.TotalLiquido));
+end;
+
+procedure TImpresorTiraCajaTicket.EscribirArticulosCompactos(
+  const AOperacion: TOperacionTiraCaja);
+var
+  aLineas: TArray<TLineaVentaTiraCaja>;
+  oLinea: TLineaVentaTiraCaja;
+  sCodigo, sDetalle, sImporte, sDescuento, sPrecio: string;
+begin
+  aLineas := FRepositorio.ListarLineasVenta(AOperacion.Empresa,
+    AOperacion.Almacen, AOperacion.Caja, AOperacion.NumeroOperacion);
+  for oLinea in aLineas do
+  begin
+    sCodigo := Trim(oLinea.CodigoArticulo);
+    if sCodigo = '' then
+      sCodigo := Trim(oLinea.CodigoUnidad);
+    sDetalle := Trim(sCodigo + ' ' + Trim(oLinea.Variacion));
+    if Trim(oLinea.Descripcion) <> '' then
+    begin
+      if sDetalle <> '' then
+        sDetalle := sDetalle + ' (' + Trim(oLinea.Descripcion) + ')'
+      else
+        sDetalle := Trim(oLinea.Descripcion);
+    end;
+    FTicket.EscribirLinea(WrapText(sDetalle, #13#10, [' '], N_CHAR_LIN));
+    if oLinea.PorcentajeDescuento <> 0 then
+      sDescuento := FormatFloat('0.##', oLinea.PorcentajeDescuento) + '%'
+    else
+      sDescuento := TTiraCajaTicket.FmtImp(oLinea.ImporteDescuento);
+    sPrecio := Format('%7s %10s',
+      [FormatFloat('0.######', oLinea.Cantidad),
+       TTiraCajaTicket.FmtImp(oLinea.PrecioSalida)]);
+    sDescuento := STicketArqueoDto + ' ' + sDescuento;
+    sImporte := TTiraCajaTicket.FmtImp(oLinea.Total);
+    if Length(sPrecio) + Length(sDescuento) + Length(sImporte) + 2 <=
+      N_CHAR_LIN then
+      FTicket.TextoColumnas(sPrecio + ' ' + sDescuento, sImporte)
+    else
+    begin
+      FTicket.EscribirLinea(sPrecio);
+      FTicket.TextoColumnas(sDescuento, sImporte);
+    end;
+  end;
+end;
+
+procedure TImpresorTiraCajaTicket.EscribirTiraCompacta;
+var
+  aOperaciones: TArray<TOperacionTiraCaja>;
+  oEmpresa: TEmpresaTiraCajaTicket;
+  oOperacion: TOperacionTiraCaja;
+  dDia, dDiaOperacion: TDate;
+  cTotal: Currency;
+  i: Integer;
+  sHora: string;
+begin
+  aOperaciones := FRepositorio.ListarOperaciones(
+    FEmpresa, FAlmacen, FCaja, FFechaDesde, FFechaHasta, FSeries,
+    True, False, False, False, False);
+  oEmpresa := FRepositorio.ObtenerEmpresa(FEmpresa);
+  sHora := FormatDateTime('hh:nn', Now);
+  if Length(aOperaciones) = 0 then
+  begin
+    EscribirCabeceraDia(oEmpresa.RazonSocial, sHora, FFechaDesde);
+    FTicket.EscribirLinea(STicketSinOperaciones);
+  end
+  else
+  begin
+    dDia := DateOf(aOperaciones[0].FechaOperacion);
+    cTotal := 0;
+    EscribirCabeceraDia(oEmpresa.RazonSocial, sHora, dDia);
+    for i := 0 to High(aOperaciones) do
+    begin
+      oOperacion := aOperaciones[i];
+      dDiaOperacion := DateOf(oOperacion.FechaOperacion);
+      if dDiaOperacion <> dDia then
+      begin
+        EscribirTotalDia(dDia, cTotal);
+        FTicket.SaltarLineas(2);
+        dDia := dDiaOperacion;
+        cTotal := 0;
+        EscribirCabeceraDia(oEmpresa.RazonSocial, sHora, dDia);
+      end;
+      if FModo = mtcSoloOperaciones then
+        EscribirOperacionCompacta(oOperacion)
+      else
+        EscribirArticulosCompactos(oOperacion);
+      cTotal := cTotal + oOperacion.TotalLiquido;
+    end;
+    EscribirTotalDia(dDia, cTotal);
+  end;
+  FTicket.SaltarLineas(2);
+  FTicket.CortarPapel;
+end;
+
 procedure TImpresorTiraCajaTicket.Emitir;
 var
   sComandos, sRutaPDF: string;
@@ -935,9 +1075,14 @@ begin
   FTicket := TTicketTermico.Create(FNombreImpresora);
   try
     FTicket.Inicializar;
-    EscribirCabecera;
-    EscribirOperaciones;
-    EscribirCierre;
+    if FModo = mtcNormal then
+    begin
+      EscribirCabecera;
+      EscribirOperaciones;
+      EscribirCierre;
+    end
+    else
+      EscribirTiraCompacta;
     Emitir;
   finally
     FreeAndNil(FTicket);
@@ -958,7 +1103,8 @@ class procedure TTiraCajaTicket.Imprimir(
   AIncluirIngresos: Boolean;
   AIncluirGastos: Boolean;
   AIncluirCredito: Boolean;
-  AValorarTraspasos: Boolean);
+  AValorarTraspasos: Boolean;
+  AModo: TModoTiraCaja);
 var
   Impresor: TImpresorTiraCajaTicket;
 begin
@@ -967,7 +1113,7 @@ begin
     AEmpresa, AAlmacen, ACaja, AFechaDesde, AFechaHasta, ASeries,
     AImprimirQR, ANombreImpresora, ACronologico,
     AIncluirTraspasos, AIncluirIngresos, AIncluirGastos,
-    AIncluirCredito, AValorarTraspasos);
+    AIncluirCredito, AValorarTraspasos, AModo);
   try
     Impresor.Ejecutar;
   finally

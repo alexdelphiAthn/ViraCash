@@ -98,7 +98,6 @@ uses
   inMtoModalImpOperacionesVenta,
   inMtoCajaFormatosTicket,
   UniDataCajaSubsanacionRepositorio,
-  UniDataVerifactuSubsanacionRepositorio,
   UniDataMeteorologiaCaja, inLibMeteorologiaCajaHttp, inLibViraCashApi;
 
 procedure NormalizarOwnerPantallaCaja(
@@ -225,10 +224,7 @@ var
 begin
   rDependencias := Default(TDependenciasSubsanacionCaja);
   rDependencias.ParametrosApp := FComposicion.ParametrosApp;
-  rDependencias.ParametrosCaja := FComposicion.ParametrosCaja;
   rDependencias.Permisos := APermisos;
-  rDependencias.Fiscal := CrearServicioVerifactuCorreccionRegistroUniDAC(
-    FComposicion.Conexiones.ConexionPrincipal);
   rDependencias.RegistroLog := FComposicion.RegistroLog;
   rDependencias.Usuario := FComposicion.ContextoSesion.Identidad.Usuario;
   Result := CrearServicioSubsanacionCajaUniDAC(

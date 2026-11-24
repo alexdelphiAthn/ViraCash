@@ -22,10 +22,9 @@ resourcestring
   SSubsanacionEtiqueta = 'SUBSANACIÓN';
   SSubsanacionEtiquetaGuardada = 'SUBSANADA';
   SSubsanacionModo =
-    'Corrija el precio, el descuento o el total de cada línea; se ' +
-    'conservan los artículos y las cantidades. F12 abre el cobro: ' +
-    'forma de pago y descuento global.';
-  SSubsanacionTituloCobro = 'Subsanación: forma de pago y descuento global';
+    'Pulse F12 para corregir la forma de pago en ViraCash sin enviar ' +
+    'un registro fiscal. Para corregir los importes, emita una rectificativa.';
+  SSubsanacionTituloCobro = 'Corregir forma de pago';
   SSubsanacionCobroExacto =
     'El cobro debe cuadrar con el total, sin cambio, vales nuevos ni ' +
     'importes a cuenta. Los vales del ticket se conservan tal cual.';
@@ -34,8 +33,8 @@ resourcestring
     'corregir: cambie únicamente la forma de pago.';
   SSubsanacionMotivo = 'Motivo de la corrección';
   SSubsanacionLineasFijas =
-    'En Subsanación no se pueden añadir ni quitar líneas: corrija sus ' +
-    'unidades, precios o importes.';
+    'Las líneas están bloqueadas. Si el ticket emitido es incorrecto, ' +
+    'emita una factura rectificativa.';
   SSubsanacionMotivoObligatorio = 'Indique el motivo de la subsanación.';
   SSubsanacionBoton = 'Subsanar';
   SSubsanacionBotonSinTicket = 'Subsanar sin ticket';
@@ -54,7 +53,8 @@ resourcestring
     'Sólo se subsanan tickets simplificados que no estén anulados, ' +
     'rectificados ni cancelados.';
   SSubsanacionGuardada = 'Subsanación guardada y encolada para VeriFactu.';
-  SSubsanacionGuardadaLocal = 'Subsanación guardada.';
+  SSubsanacionGuardadaLocal =
+    'Forma de pago corregida. No se ha enviado ningún registro fiscal.';
   SSubsanacionGuardadaNoVerifactu =
     'Subsanación guardada y registrada en NO VERI*FACTU.';
   SSubsanacionTituloOperacion = 'Subsanación de %s / %s';

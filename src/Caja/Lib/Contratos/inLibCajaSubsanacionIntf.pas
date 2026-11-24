@@ -54,8 +54,7 @@ type
 
   TSolicitudSubsanacionCaja = record
     Original: TOperacionSubsanacionCaja;
-    // Las mismas líneas de Original con unidades, precios e importes
-    // corregidos: no se añaden ni se quitan líneas.
+    // Las líneas de la factura deben coincidir con los datos originales.
     Lineas: TLineasSubsanacionCaja;
     // Si difieren de Original.Pagos se compensan los vigentes y se dan de
     // alta estos, como en la corrección de forma de pago.
@@ -67,8 +66,6 @@ type
   TResultadoSubsanacionCaja = record
     Clave: TClaveOperacionSubsanacionCaja;
     Total: Currency;
-    EncoladaVerifactu: Boolean;
-    RegistradaNoVerifactu: Boolean;
   end;
 
   IServicioSubsanacionCaja = interface

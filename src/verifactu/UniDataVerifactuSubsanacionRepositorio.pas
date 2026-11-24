@@ -33,7 +33,7 @@ uses
   UniDataVerifactuSubsanacionResultados, UniDataVerifactuColaOperaciones,
   UniDataVerifactuColaRepositorio, UniDataFacturasSubsanacion,
   inLibFacturasSubsanacionComparacion, inLibFacturasSubsanacionReglas,
-  inLibMsgFacturas;
+  inLibMsgFacturas, inLibVerifactuTipos;
 
 type
   TSolicitudEncoladoSubsanacion = record
@@ -55,7 +55,8 @@ type
     procedure ValidarRegistro(const AEntrada: TSolicitudEncoladoSubsanacion);
     function BloquearColas(
       const AEntrada: TSolicitudEncoladoSubsanacion): Int64;
-    procedure InsertarCola(const AEntrada: TSolicitudEncoladoSubsanacion);
+    procedure InsertarCola(const AEntrada: TSolicitudEncoladoSubsanacion;
+      const ASistema: string);
     procedure ReintentarCola(AId: Int64;
       const AEntrada: TSolicitudEncoladoSubsanacion);
     procedure EncolarSolicitud(
@@ -224,19 +225,15 @@ begin
 end;
 
 procedure TServicioVerifactuSubsanacionUniDAC.InsertarCola(
-  const AEntrada: TSolicitudEncoladoSubsanacion);
+  const AEntrada: TSolicitudEncoladoSubsanacion; const ASistema: string);
 var
   oConsulta: TUniQuery;
-  bSistema: Boolean;
   sColumna: string;
   sValor: string;
 begin
-  // La subsanación va por el sistema del alta: en el SII es una
-  // modificación (A1); sin la columna todo es VERI*FACTU (FZ-ISSUE-292)
-  bSistema := ColaVerifactuTieneSistema(FConexion);
   sColumna := '';
   sValor := '';
-  if bSistema then
+  if ASistema <> '' then
   begin
     sColumna := ', SISTEMA_VFCOLA';
     sValor := ', :SISTEMA';
@@ -260,9 +257,8 @@ begin
     oConsulta.ParamByName('NUMERO').AsString := AEntrada.Numero;
     oConsulta.ParamByName('MOTIVO').AsString := AEntrada.Motivo;
     oConsulta.ParamByName('USUARIO').AsString := AEntrada.Usuario;
-    if bSistema then
-      oConsulta.ParamByName('SISTEMA').AsString := SistemaColaAltaFactura(
-        FConexion, AEntrada.Serie, AEntrada.Numero, cSistemaColaVerifactu);
+    if ASistema <> '' then
+      oConsulta.ParamByName('SISTEMA').AsString := ASistema;
     oConsulta.Execute;
   finally
     FreeAndNil(oConsulta);
@@ -302,6 +298,7 @@ var
   bTransaccionPropia: Boolean;
   iReintento: Int64;
   oContexto: TContextoSubsanacionFiscal;
+  sSistema, sEvento: string;
 begin
   if AEntrada.Motivo = '' then
     raise EArgumentException.Create(SErrorIncidenciaMotivoObligatorio);
@@ -321,10 +318,25 @@ begin
     oContexto.Numero := AEntrada.Numero;
     oContexto.Usuario := AEntrada.Usuario;
     ConservarHistorialSubsanacion(FConexion, oContexto);
+    // Conservamos el sistema del alta aunque haya cambiado el modo general.
+    sSistema := '';
+    if ColaVerifactuTieneSistema(FConexion) then
+      sSistema := SistemaColaAltaFactura(FConexion, AEntrada.Serie,
+        AEntrada.Numero, cSistemaColaVerifactu);
     if iReintento = 0 then
-      InsertarCola(AEntrada)
+    begin
+      InsertarCola(AEntrada, sSistema);
+      sEvento := 'Subsanación encolada';
+    end
     else
+    begin
       ReintentarCola(iReintento, AEntrada);
+      sEvento := 'Reintento de subsanación encolado';
+    end;
+    if not SameText(sSistema, cSistemaColaSii) then
+      RegistrarEventoVerifactuEnModo(mvVerifactu, AParametrosApp,
+        FConexion, AEntrada.Usuario, cEventoVerifactuEncolado,
+        sEvento, AEntrada.Motivo, AEntrada.Serie, AEntrada.Numero);
     if not AEntrada.SoloImportesRegistro then
       TVentasWsCola.RegistrarFactura(AParametrosCaja,
         CrearRepositorioVentasWsColaUniDAC(FConexion), AEntrada.Usuario,

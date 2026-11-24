@@ -256,6 +256,10 @@ resourcestring
   STicketSubtotalCobrado = 'SUBTOTAL COBRADO';
   STicketTotalVentasSinSigno = 'TOTAL VENTAS';
   STicketArqueoCajaHora = '-ARQUEO CAJA %s HORA %s-';
+  STicketArqueoCajaDia = '-ARQUEO CAJA %s DIA %s HORA %s-';
+  STicketArqueoTotalDia = 'TOTAL DIA %s';
+  STicketArqueoImporte = 'IMPORTE';
+  STicketArqueoDto = 'DTO';
   STicketDel = 'DEL %s';
   STicketAl = 'AL  %s';
   STicketTodasSeries = 'TODAS LAS SERIES';

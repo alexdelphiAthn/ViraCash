@@ -66,11 +66,14 @@ type
     FchkConImpuestos: TcxCheckBox;
     FclbOrden: TcxCheckListBox;
     FrgSentidoOrden: TcxRadioGroup;
+    FrgModoAgrupacion: TcxRadioGroup;
+    FSincronizandoModo: Boolean;
     // Crea el control de "Inicio compras" sobre la pestaña de fechas.
     procedure CrearControlesPropios;
     procedure CrearControlesOrdenacion;
-    procedure CrearAccesosRanking;
-    procedure AplicarRanking(Sender: TObject);
+    procedure CrearSelectorAgrupacion;
+    procedure CambiarModoAgrupacion(Sender: TObject);
+    procedure AplicarCriteriosRanking;
     procedure chkIniComprasChange(Sender: TObject);
     procedure chkEntradasGlobalesChange(Sender: TObject);
     procedure AjustarEntradasGlobales;
@@ -85,6 +88,7 @@ type
     // Handler de OnBeforePrint: fotos + ocultar bandas de grupo inactivas.
     procedure ReportBeforePrint(Component: TfrxReportComponent);
     procedure CompletarSubtotales;
+    procedure CompletarPromediosPrecios;
     procedure ActualizarFormulasPorcentajes;
     procedure IncluirDetalleOcultoEnAcumulados;
     procedure PrepararMovimientosEnSegundoPlano(
@@ -98,6 +102,7 @@ type
   protected
     function FiltrosUsados: TFiltrosReport; override;
     procedure AlmacenesCambiados; override;
+    procedure AgrupacionesCambiadas; override;
     procedure DescribirSelecciones(
       AResumen: TResumenSeleccionesInforme); override;
     procedure DoShow; override;
@@ -114,7 +119,6 @@ implementation
 {$R *.dfm}
 
 uses
-  inLibMsgInformesCliente,
   System.Math, System.StrUtils, System.Threading,
   inLibMovVentasArtExcel, inLibMsgVentas,
   inLibMsgComun, inLibConexionesIntf,
@@ -128,6 +132,9 @@ const
   // Registros por lote al generar la hoja de cálculo; entre lotes se
   // refresca el detalle de la ventana de espera.
   FILAS_POR_LOTE_EXCEL = 200;
+
+type
+  TModoAgrupacionMovVentas = (mamArticulos, mamProveedores, mamFamilias);
 
 { TfrmPrintMovVentasArt }
 
@@ -228,35 +235,73 @@ begin
      SCaptionColorAgrupacionMovimientosVentas,
      SCaptionCopaAgrupacionMovimientosVentas,
      SCaptionTallaAgrupacionMovimientosVentas], True);
-  CrearAccesosRanking;
+  CrearSelectorAgrupacion;
 end;
 
-procedure TfrmPrintMovVentasArt.CrearAccesosRanking;
-var
-  oBoton: TcxButton;
+procedure TfrmPrintMovVentasArt.CrearSelectorAgrupacion;
 begin
-  oBoton := TcxButton.Create(Self);
-  oBoton.Parent := TabFechas;
-  oBoton.SetBounds(620, 16, 260, 30);
-  oBoton.Caption := SInformeRankingProveedor;
-  oBoton.Tag := 0;
-  oBoton.OnClick := AplicarRanking;
-  oBoton := TcxButton.Create(Self);
-  oBoton.Parent := TabFechas;
-  oBoton.SetBounds(620, 56, 260, 30);
-  oBoton.Caption := SInformeRankingFamilia;
-  oBoton.Tag := 1;
-  oBoton.OnClick := AplicarRanking;
+  FrgModoAgrupacion := TcxRadioGroup.Create(Self);
+  FrgModoAgrupacion.Parent := TabFechas;
+  FrgModoAgrupacion.SetBounds(620, 16, 260, 100);
+  FrgModoAgrupacion.Caption := SCaptionModoAgrupacionMovimientosVentas;
+  FrgModoAgrupacion.Properties.Items.Add.Caption :=
+    SCaptionArticulosFiltroInforme;
+  FrgModoAgrupacion.Properties.Items.Add.Caption :=
+    SCaptionProveedoresFiltroInforme;
+  FrgModoAgrupacion.Properties.Items.Add.Caption := SCaptionTabFamilias;
+  FrgModoAgrupacion.ItemIndex := Ord(mamArticulos);
+  FrgModoAgrupacion.Properties.OnEditValueChanged := CambiarModoAgrupacion;
 end;
 
-procedure TfrmPrintMovVentasArt.AplicarRanking(Sender: TObject);
+procedure TfrmPrintMovVentasArt.CambiarModoAgrupacion(Sender: TObject);
+begin
+  if not FSincronizandoModo then
+    case FrgModoAgrupacion.ItemIndex of
+      Ord(mamArticulos):
+        SeleccionarAgrupaciones([]);
+      Ord(mamProveedores):
+        begin
+          SeleccionarAgrupaciones(['PRV']);
+          AplicarCriteriosRanking;
+        end;
+      Ord(mamFamilias):
+        begin
+          SeleccionarAgrupaciones(['FAM']);
+          AplicarCriteriosRanking;
+        end;
+    end;
+end;
+
+procedure TfrmPrintMovVentasArt.AgrupacionesCambiadas;
+var
+  aNiveles: TArray<string>;
+  Modo: TModoAgrupacionMovVentas;
+begin
+  inherited;
+  if Assigned(FrgModoAgrupacion) then
+  begin
+    aNiveles := NivelesAgrupacion;
+    Modo := mamArticulos;
+    if Length(aNiveles) = 1 then
+    begin
+      if SameText(aNiveles[0], 'PRV') then
+        Modo := mamProveedores
+      else if SameText(aNiveles[0], 'FAM') then
+        Modo := mamFamilias;
+    end;
+    FSincronizandoModo := True;
+    try
+      FrgModoAgrupacion.ItemIndex := Ord(Modo);
+    finally
+      FSincronizandoModo := False;
+    end;
+  end;
+end;
+
+procedure TfrmPrintMovVentasArt.AplicarCriteriosRanking;
 var
   i: Integer;
 begin
-  if TComponent(Sender).Tag = 0 then
-    SeleccionarAgrupaciones(['PRV'])
-  else
-    SeleccionarAgrupaciones(['FAM']);
   FchkIniCompras.Checked := True;
   FdteIniCompras.Date := DteDesde.Date;
   // El ranking vuelve al criterio por defecto segun los almacenes elegidos.
@@ -570,6 +615,7 @@ begin
   frxrprt1.DataSets.Add(fxdsMovVentas);
   ConfigurarDetalleArticuloAtributos;
   CompletarSubtotales;
+  CompletarPromediosPrecios;
   ActualizarFormulasPorcentajes;
   IncluirDetalleOcultoEnAcumulados;
   // Sustituimos el OnBeforePrint del base (fotos) por el nuestro, que encadena
@@ -616,6 +662,59 @@ begin
         end;
       end;
   end;
+end;
+
+procedure TfrmPrintMovVentasArt.CompletarPromediosPrecios;
+var
+  aNiveles: TArray<string>;
+  bPromediar: Boolean;
+  procedure ConfigurarPromedio(const APrefijo, ANombreDetalle, ACampo: string);
+  var
+    bMostrar: Boolean;
+    oDetalle: TfrxComponent;
+    oTotal: TfrxComponent;
+    oComponente: TfrxComponent;
+    oMemo: TfrxMemoView;
+    sNombre: string;
+  begin
+    sNombre := APrefijo + ANombreDetalle;
+    oComponente := frxrprt1.FindObject(sNombre);
+    oDetalle := frxrprt1.FindObject('Memo' + ANombreDetalle);
+    oTotal := frxrprt1.FindObject(APrefijo + 'ImpVta');
+    bMostrar := bPromediar and (oDetalle is TfrxMemoView) and
+      (oTotal is TfrxMemoView) and
+      Assigned(fxdsMovVentas.DataSet.FindField(ACampo));
+    if bMostrar and (oComponente = nil) then
+    begin
+      oComponente := TfrxMemoView.Create(oTotal.Parent);
+      oComponente.Assign(oTotal);
+      oComponente.Parent := oTotal.Parent;
+      oComponente.Name := sNombre;
+    end;
+    if oComponente is TfrxMemoView then
+    begin
+      oMemo := TfrxMemoView(oComponente);
+      oMemo.Visible := bMostrar;
+      if bMostrar then
+      begin
+        oMemo.Left := oDetalle.Left;
+        oMemo.Width := oDetalle.Width;
+        oMemo.HideZeros := True;
+        // Cero representa un precio no disponible o variable.
+        oMemo.Memo.Text := Format(
+          '[AVG(IIF(<MovVentas."%0:s">=0,Null,<MovVentas."%0:s">),' +
+          'MasterData1)]', [ACampo]);
+      end;
+    end;
+  end;
+begin
+  aNiveles := NivelesAgrupacion;
+  bPromediar := (Length(aNiveles) = 1) and
+    MatchText(aNiveles[0], ['PRV', 'FAM']);
+  ConfigurarPromedio('MemoGF1', 'PSalida', 'PRECIO_SALIDA_ART');
+  ConfigurarPromedio('MemoGF1', 'Pvp', 'PVP_ART');
+  ConfigurarPromedio('MemoRS', 'PSalida', 'PRECIO_SALIDA_ART');
+  ConfigurarPromedio('MemoRS', 'Pvp', 'PVP_ART');
 end;
 
 procedure TfrmPrintMovVentasArt.ActualizarFormulasPorcentajes;

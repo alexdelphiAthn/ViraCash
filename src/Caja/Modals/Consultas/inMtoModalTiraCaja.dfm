@@ -3,7 +3,7 @@
   Top = 0
   BorderStyle = bsDialog
   Caption = 'Tira de Caja'
-  ClientHeight = 404
+  ClientHeight = 466
   ClientWidth = 470
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -40,86 +40,100 @@
     TabOrder = 0
     Width = 430
   end
-  object lblAgrupamiento: TcxLabel
+  object lblModo: TcxLabel
     Left = 20
     Top = 110
+    Caption = 'Modo'
+    Transparent = True
+  end
+  object cbModo: TcxComboBox
+    Left = 20
+    Top = 134
+    Properties.DropDownListStyle = lsFixedList
+    Properties.OnChange = ModoChange
+    TabOrder = 1
+    Width = 430
+  end
+  object lblAgrupamiento: TcxLabel
+    Left = 20
+    Top = 172
     Caption = 'Agrupamiento:'
     Transparent = True
   end
   object cbAgrupamiento: TcxComboBox
     Left = 20
-    Top = 134
+    Top = 196
     Properties.DropDownListStyle = lsFixedList
-    TabOrder = 1
+    TabOrder = 2
     Width = 430
   end
   object chkQR: TcxCheckBox
     Left = 20
-    Top = 178
+    Top = 240
     Caption = 'Imprimir QR Verifactu'
-    TabOrder = 2
+    TabOrder = 3
     Transparent = True
     Width = 430
   end
   object chkTraspasos: TcxCheckBox
     Left = 20
-    Top = 208
+    Top = 270
     Caption = 'Incluir traspasos salientes (origen)'
-    TabOrder = 3
+    TabOrder = 4
     Transparent = True
     Width = 430
   end
   object chkIngresos: TcxCheckBox
     Left = 20
-    Top = 236
+    Top = 298
     Caption = 'Incluir ingresos por caja'
-    TabOrder = 4
+    TabOrder = 5
     Transparent = True
     Width = 430
   end
   object chkGastos: TcxCheckBox
     Left = 20
-    Top = 264
+    Top = 326
     Caption = 'Incluir gastos por caja'
-    TabOrder = 5
+    TabOrder = 6
     Transparent = True
     Width = 430
   end
   object chkCredito: TcxCheckBox
     Left = 20
-    Top = 292
+    Top = 354
     Caption = 'Incluir ventas a crédito (depósitos)'
-    TabOrder = 6
+    TabOrder = 7
     Transparent = True
     Width = 430
   end
   object btnImprimir: TcxButton
     Left = 12
-    Top = 344
+    Top = 406
     Width = 140
     Height = 40
     Caption = 'Imprimir'
     Default = True
     ModalResult = 1
-    TabOrder = 7
+    TabOrder = 8
   end
   object btnExcel: TcxButton
     Left = 162
-    Top = 344
+    Top = 406
     Width = 140
     Height = 40
     Caption = 'Ver Excel'
     ModalResult = 6
-    TabOrder = 8
+    TabOrder = 9
   end
   object btnCancelar: TcxButton
     Left = 312
-    Top = 344
+    Top = 406
     Width = 145
     Height = 40
     Cancel = True
     Caption = 'Cancelar (ESC)'
     ModalResult = 2
-    TabOrder = 9
+    TabOrder = 10
   end
 end

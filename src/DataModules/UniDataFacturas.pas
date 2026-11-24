@@ -760,7 +760,7 @@ var
   bReadOnlyLineas: Boolean;
 begin
   Result := TResultadoOperacionFactura.Correcto;
-  if not FCalculandoFactura then
+  if not FCalculandoFactura and not FacturaEnSubsanacion then
   begin
     RequerirServiciosFactura;
     FCalculandoFactura := True;
@@ -1002,7 +1002,6 @@ begin
   begin
     sFase := Trim(oCampoFase.AsString);
     Result := (sFase = '') or SameText(sFase, 'BORRADOR') or
-              SameText(sFase, cFaseFacturaSubsanacion) or
               (SinVerifactuActivo(ParametrosApp) and
                SameText(sFase, cFaseFacturaSinVerifactu));
   end;
@@ -1260,21 +1259,21 @@ end;
 procedure TdmFacturas.AsegurarErroresAbierta;
 var swQ: TStopwatch;
 begin
-  if not unqryErrores.Active then
-  begin
-    swQ := TStopwatch.StartNew;
-    try
-      RellenarParamsDesdeMaestro(unqryErrores);
+  swQ := TStopwatch.StartNew;
+  try
+    RellenarParamsDesdeMaestro(unqryErrores);
+    if unqryErrores.Active then
+      unqryErrores.Refresh
+    else
       unqryErrores.Open;
-      RegistroLog.RegistrarRendimiento('Facturas.Lazy', 'unqryErrores OK',
-        swQ.ElapsedMilliseconds);
-    except
-      on E: Exception do
-      begin
-        RegistroLog.RegistrarRendimiento('Facturas.Lazy',
-          'unqryErrores ERROR=' + E.Message, swQ.ElapsedMilliseconds);
-        raise;
-      end;
+    RegistroLog.RegistrarRendimiento('Facturas.Lazy', 'unqryErrores OK',
+      swQ.ElapsedMilliseconds);
+  except
+    on E: Exception do
+    begin
+      RegistroLog.RegistrarRendimiento('Facturas.Lazy',
+        'unqryErrores ERROR=' + E.Message, swQ.ElapsedMilliseconds);
+      raise;
     end;
   end;
 end;
@@ -1821,11 +1820,7 @@ procedure TdmFacturas.ValidarLineaSubsanacion(DataSet: TDataSet);
 var
   i: Integer;
 begin
-  // El recálculo de totales y el desempaquetado ATTR no tocan la
-  // estructura. En subsanación sólo cambian cantidades y precios: no se
-  // añaden líneas ni cambia lo que identifica cada una (artículo, SKU,
-  // descripción, unidad o tipo de IVA). El stock se regenera al
-  // registrar la subsanación.
+  // Las líneas de una factura emitida quedan bloqueadas al subsanar.
   if FacturaEnSubsanacion and (not FCalculandoFactura) and
      (not FDesempaquetandoAtributos) then
   begin
@@ -1833,8 +1828,7 @@ begin
       raise EValidacionFactura.Create(
         SErrorSubsanacionEstructuraLineas, cvfNinguno);
     for i := 0 to DataSet.FieldCount - 1 do
-      if CampoLineaFijoEnSubsanacion(DataSet.Fields[i].FieldName) and
-         CampoDatosModificado(DataSet.Fields[i]) then
+      if CampoDatosModificado(DataSet.Fields[i]) then
         raise EValidacionFactura.Create(Format(
           SErrorSubsanacionLineaCampoFijo,
           [DataSet.Fields[i].DisplayName]), cvfNinguno);

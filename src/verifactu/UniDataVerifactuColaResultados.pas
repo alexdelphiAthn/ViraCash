@@ -30,7 +30,7 @@ type
       AConexion: TUniConnection; const AParametrosApp: IParametrosAplicacion;
       const AParametrosCaja: IParametrosCaja; const AUsuario: string;
       AIdCola: Int64; const ASerie, ANumero, AMensaje: string;
-      AIntentos: Integer;
+      AIntentos: Integer; AFilaSii: Boolean;
       const ARegistroLog: IRegistroLog;
       ANoConsumirIntento: Boolean = False;
       AEsperaSinIntentoSegundos: Integer = 0;
@@ -41,25 +41,25 @@ uses
   System.SysUtils, inLibVerifactu, inLibVentasWsCola,
   UniDataVentasWsCola, UniDataVerifactuResultadosEnvioOperacion,
   UniDataVerifactuResultadosEnvioPersistencia,
-  UniDataVerifactuColaOperaciones;
+  UniDataVerifactuColaOperaciones, inLibVerifactuTipos;
 
 // FZ-ISSUE-311: el SII queda fuera del reglamento de SIF y no tiene
-// registro de eventos. Con el modo SII, o con una fila del SII aunque el
-// modo ya sea otro, el resultado va al log de la aplicación como INFO.
+// registro de eventos. El resultado de una fila SII va al log de aplicación.
 procedure RegistrarEventoCola(
   const AParametrosApp: IParametrosAplicacion; AConexion: TUniConnection;
   const ARegistroLog: IRegistroLog; AFilaSii: Boolean;
   const AUsuario: string; ATipoEvento: Integer;
   const ADescripcion, ADatosAdicionales, ASerie, ANumero: string);
 begin
-  if AFilaSii or SiiActivo(AParametrosApp) then
+  if AFilaSii then
   begin
     if Assigned(ARegistroLog) then
       ARegistroLog.RegistrarInformacion(TextoSucesoColaSii(
         ADescripcion, ADatosAdicionales, ASerie, ANumero));
   end
   else
-    RegistrarEventoVerifactu(AParametrosApp, AConexion, AUsuario,
+    RegistrarEventoVerifactuEnModo(mvVerifactu, AParametrosApp, AConexion,
+      AUsuario,
       ATipoEvento, ADescripcion, ADatosAdicionales, ASerie, ANumero);
 end;
 
@@ -126,7 +126,7 @@ class procedure TResultadosVerifactuColaUniDAC.GuardarEnvioError(
   AConexion: TUniConnection; const AParametrosApp: IParametrosAplicacion;
   const AParametrosCaja: IParametrosCaja; const AUsuario: string;
   AIdCola: Int64; const ASerie, ANumero, AMensaje: string;
-  AIntentos: Integer;
+  AIntentos: Integer; AFilaSii: Boolean;
   const ARegistroLog: IRegistroLog;
   ANoConsumirIntento: Boolean;
   AEsperaSinIntentoSegundos: Integer;
@@ -155,7 +155,7 @@ begin
     FreeAndNil(oOperacion);
   end;
   if ANoConsumirIntento then
-    RegistrarEventoCola(AParametrosApp, AConexion, ARegistroLog, False,
+    RegistrarEventoCola(AParametrosApp, AConexion, ARegistroLog, AFilaSii,
       AUsuario,
       cEventoVerifactuInfo,
       'Envío Verifactu aplazado por falta de conexión; ' +
@@ -164,13 +164,13 @@ begin
   else
   begin
     if ARechazoDefinitivo then
-      RegistrarEventoCola(AParametrosApp, AConexion, ARegistroLog, False,
+      RegistrarEventoCola(AParametrosApp, AConexion, ARegistroLog, AFilaSii,
         AUsuario,
         cEventoVerifactuEnvioError,
         'Registro rechazado por la AEAT; no se reintenta. Corrija los ' +
         'datos y relance la factura: ' + AMensaje, '', ASerie, ANumero)
     else
-      RegistrarEventoCola(AParametrosApp, AConexion, ARegistroLog, False,
+      RegistrarEventoCola(AParametrosApp, AConexion, ARegistroLog, AFilaSii,
         AUsuario,
         cEventoVerifactuEnvioError,
         'Error de envío Verifactu (intento ' + IntToStr(AIntentos + 1) +

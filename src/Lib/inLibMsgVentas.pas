@@ -652,6 +652,7 @@ resourcestring
   SCaptionFiltrarInicioCompras = 'Calcular entradas desde';
   SCaptionEntradasGlobalesMovimientosVentas = 'Entradas globales';
   SCaptionSoloArticulosConVentas = 'Solo artículos con ventas';
+  SCaptionModoAgrupacionMovimientosVentas = 'Modo de agrupación';
   SCaptionArticuloAgrupacionMovimientosVentas = 'Artículo';
   SCaptionColorAgrupacionMovimientosVentas = 'Color';
   SCaptionTallaAgrupacionMovimientosVentas = 'Talla';

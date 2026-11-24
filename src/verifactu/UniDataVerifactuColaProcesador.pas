@@ -624,7 +624,7 @@ begin
               FContexto.Usuario,
               AIdCola, ASerie, ANumero,
               'Aceptado por la AEAT pero falló la persistencia ' +
-              'local: ' + E.Message, AIntentos, FContexto.RegistroLog);
+              'local: ' + E.Message, AIntentos, bSii, FContexto.RegistroLog);
             Result := CResultadoFilaSinConexion;
           end;
         end;
@@ -646,7 +646,7 @@ begin
         TResultadosVerifactuColaUniDAC.GuardarEnvioError(
           FConn, FContexto.ParametrosApp, FContexto.ParametrosCaja,
           FContexto.Usuario,
-          AIdCola, ASerie, ANumero, oResultado.MensajeError, AIntentos,
+          AIdCola, ASerie, ANumero, oResultado.MensajeError, AIntentos, bSii,
           FContexto.RegistroLog, False, 0, bRechazoDefinitivo);
         LiberarRegistroEnVuelo(AIdCola);
       end;
@@ -669,7 +669,7 @@ begin
         TResultadosVerifactuColaUniDAC.GuardarEnvioError(
           FConn, FContexto.ParametrosApp, FContexto.ParametrosCaja,
           FContexto.Usuario,
-          AIdCola, ASerie, ANumero, E.Message, AIntentos,
+          AIdCola, ASerie, ANumero, E.Message, AIntentos, bSii,
           FContexto.RegistroLog, True,
           CSegundosReintentoSinConexion);
         Result := CResultadoFilaSinConexion;
@@ -683,7 +683,7 @@ begin
         TResultadosVerifactuColaUniDAC.GuardarEnvioError(
           FConn, FContexto.ParametrosApp, FContexto.ParametrosCaja,
           FContexto.Usuario,
-          AIdCola, ASerie, ANumero, E.Message, AIntentos,
+          AIdCola, ASerie, ANumero, E.Message, AIntentos, bSii,
           FContexto.RegistroLog, True,
           CSegundosReintentoInterrumpido);
         Result := CResultadoFilaSinConexion;
@@ -702,7 +702,7 @@ begin
         TResultadosVerifactuColaUniDAC.GuardarEnvioError(
           FConn, FContexto.ParametrosApp, FContexto.ParametrosCaja,
           FContexto.Usuario,
-          AIdCola, ASerie, ANumero, E.Message, AIntentos,
+          AIdCola, ASerie, ANumero, E.Message, AIntentos, bSii,
           FContexto.RegistroLog, True,
           CSegundosReintentoBloqueo);
         Result := CResultadoFilaBloqueoBBDD;
@@ -722,7 +722,7 @@ begin
           TResultadosVerifactuColaUniDAC.GuardarEnvioError(
             FConn, FContexto.ParametrosApp, FContexto.ParametrosCaja,
             FContexto.Usuario,
-            AIdCola, ASerie, ANumero, E.Message, AIntentos,
+            AIdCola, ASerie, ANumero, E.Message, AIntentos, bSii,
             FContexto.RegistroLog, True,
             CSegundosReintentoInterrumpido);
           Result := CResultadoFilaSinConexion;
@@ -734,7 +734,7 @@ begin
           TResultadosVerifactuColaUniDAC.GuardarEnvioError(
             FConn, FContexto.ParametrosApp, FContexto.ParametrosCaja,
             FContexto.Usuario,
-            AIdCola, ASerie, ANumero, E.Message, AIntentos,
+            AIdCola, ASerie, ANumero, E.Message, AIntentos, bSii,
             FContexto.RegistroLog);
           LiberarRegistroEnVuelo(AIdCola);
         end;

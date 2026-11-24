@@ -107,6 +107,8 @@ type
       const AEmpresa, AAlmacen, ACaja: string;
       AFecha: TDateTime);
     procedure RefrescarOperaciones;
+    function SubsanarFactura(const AClave: TClaveOperacionSubsanacionCaja):
+      Boolean;
   end;
 
   IReceptorFechaCaja = interface
