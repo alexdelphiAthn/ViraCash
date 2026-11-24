@@ -208,8 +208,8 @@ begin
     FchkConImpuestos.Caption := SCaptionConImpuestosMovimientosVentas;
     // Por defecto con impuestos solo si la empresa está en recargo de
     // equivalencia (el IVA es coste y el PVP se mira con IVA); si no, sin
-    // impuestos. El usuario puede cambiarlo. Solo el importe de venta sigue
-    // al check; PVP y precio de salida van siempre con IVA.
+    // impuestos. La selección determina el importe de venta y el beneficio.
+    // El PVP y el precio de salida llevan siempre IVA.
     FchkConImpuestos.Checked :=
       ObtenerRecargoComprasEmpresa(
         CrearLecturasImpuestos(ConexionPrincipal),
@@ -650,7 +650,7 @@ var
   procedure PonerFormulas(const APrefijo: string);
   begin
     PonerFormula(APrefijo + 'PctBnf',
-      Porcentaje(Suma('BENEFICIO'), Suma(sVentaRegimen)));
+      Porcentaje(Suma('BENEFICIO'), Suma('IMP_VENTA')));
     PonerFormula(APrefijo + 'VentEnt',
       Porcentaje(Suma(sVentaRegimen), Suma('IMP_ENT_TOT')));
     PonerFormula(APrefijo + 'Marg1',
@@ -659,9 +659,7 @@ var
       Porcentaje(Suma('VENTA_ENT'), Suma('IMP_ENT_TOT')));
   end;
 begin
-  // El beneficio sale de la venta según el régimen de IVA de la empresa
-  // (IMP_VENTA_REGIMEN, FZ-ISSUE-084), no de la casilla «Con impuestos».
-  // Sin el script 743 el procedimiento no la devuelve: IMP_VENTA.
+  // El porcentaje de ventas sobre entradas usa la base del régimen fiscal.
   sVentaRegimen := 'IMP_VENTA';
   if Assigned(fxdsMovVentas.DataSet) and
     Assigned(fxdsMovVentas.DataSet.FindField('IMP_VENTA_REGIMEN')) then

@@ -113,8 +113,7 @@ type
     ImpEnt: Double;
     UdsVta: Double;
     ImpVta: Double;
-    // Venta según el régimen de IVA de la empresa: base de % Bnf y
-    // VentEnt% (FZ-ISSUE-084).
+    // Venta según el régimen de IVA de la empresa: base de VentEnt%.
     ImpVtaReg: Double;
     ImpCos: Double;
     Benef: Double;
@@ -418,9 +417,9 @@ begin
   EscribirNumero(COL_IMPVTA, AAcumulado.ImpVta, FMT_EUR_HZ, False);
   EscribirNumero(COL_IMPCOS, AAcumulado.ImpCos, FMT_EUR_HZ, False);
   EscribirNumero(COL_BENEF, AAcumulado.Benef, FMT_EUR_HZ, False);
-  if AAcumulado.ImpVtaReg <> 0 then
+  if AAcumulado.ImpVta <> 0 then
     EscribirNumero(COL_PCTBNF,
-      AAcumulado.Benef / AAcumulado.ImpVtaReg * 100, FMT_PCT, False);
+      AAcumulado.Benef / AAcumulado.ImpVta * 100, FMT_PCT, False);
   EscribirNumero(COL_VTAENT, AAcumulado.VtaEnt, FMT_EUR_HZ, False);
   if AAcumulado.ImpEnt <> 0 then
   begin

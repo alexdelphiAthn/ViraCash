@@ -268,7 +268,8 @@ type
     procedure MostrarControl(AControl: TWinControl);
     procedure EnfocarCampo(ACampo: TField);
     function FocoEnEditorTexto: Boolean;
-    function PuedeCambiarRegistroPorTecla: Boolean;
+    function PuedeCambiarRegistroPorTecla(
+      ADesdeFicha: Boolean = False): Boolean;
     procedure MoverFocoGridBloque(AAvanzar: Boolean);
     procedure EnfocarPrimerControlFicha;
     procedure ActivarFichaDesdeDM(Sender: TObject);
@@ -2469,13 +2470,27 @@ begin
   end;
 end;
 
-function TfrmMtoGen.PuedeCambiarRegistroPorTecla: Boolean;
+function TfrmMtoGen.PuedeCambiarRegistroPorTecla(
+  ADesdeFicha: Boolean): Boolean;
+var
+  oControl: TWinControl;
 begin
   Result := Assigned(dsTablaG.DataSet) and
             dsTablaG.DataSet.Active and
             (dsTablaG.State = dsBrowse) and
-            PermitirNavegacionTeclas and
-            not FocoEnEditorTexto;
+            PermitirNavegacionTeclas;
+  if Result then
+  begin
+    if ADesdeFicha and (pcPantalla.ActivePage = tsFicha) then
+    begin
+      oControl := ControlConFoco;
+      Result := not FocoEnRejillaSecundaria(oControl) and
+                not EsDesplegableAbierto(oControl) and
+                not HayDetalleEnEdicion;
+    end
+    else
+      Result := not FocoEnEditorTexto;
+  end;
 end;
 
 function TfrmMtoGen.FiltroGridActivo: Boolean;
@@ -2550,29 +2565,27 @@ procedure TfrmMtoGen.actNavBrowseUpdate(Sender: TObject);
 var
   bPermitido: Boolean;
 begin
-  bPermitido := True;
-  // Ins dentro de una rejilla de detalle es de esa rejilla: no da de alta
-  // otra cabecera.
-  if Sender = actInsertarRegistro then
-    bPermitido := ControladorMantenimiento.PuedeInsertar and
-      not FocoEnRejillaSecundaria(ControlConFoco)
-  else if Sender = actEditarRegistro then
-    bPermitido := ControladorMantenimiento.PuedeEditar and
-      not FocoEnRejillaSecundaria(ControlConFoco)
-  else if (Sender = actRegistroAnterior) or
-          (Sender = actRegistroSiguiente) or
-          (Sender = actPrimerRegistro) or
-          (Sender = actUltimoRegistro) then
-    // Deshabilitadas, sus atajos (RePag/AvPag) llegan al editor o a la
-    // rejilla de lineas con el foco. Primero/ultimo van con Ctrl+Inicio y
-    // Ctrl+Fin en FormKeyDown: Inicio y Fin sueltos son del editor.
-    bPermitido := not FocoEnEditorTexto;
-  TAction(Sender).Enabled :=
-    Assigned(dsTablaG.DataSet) and
-    dsTablaG.DataSet.Active and
-    (dsTablaG.State = dsBrowse) and
-    PermitirNavegacionTeclas and
-    bPermitido;
+  if (Sender = actRegistroAnterior) or (Sender = actRegistroSiguiente) then
+    TAction(Sender).Enabled := PuedeCambiarRegistroPorTecla(True)
+  else if (Sender = actPrimerRegistro) or (Sender = actUltimoRegistro) then
+    TAction(Sender).Enabled := PuedeCambiarRegistroPorTecla
+  else
+  begin
+    bPermitido := True;
+    // Ins dentro de una rejilla de detalle no da de alta otra cabecera.
+    if Sender = actInsertarRegistro then
+      bPermitido := ControladorMantenimiento.PuedeInsertar and
+        not FocoEnRejillaSecundaria(ControlConFoco)
+    else if Sender = actEditarRegistro then
+      bPermitido := ControladorMantenimiento.PuedeEditar and
+        not FocoEnRejillaSecundaria(ControlConFoco);
+    TAction(Sender).Enabled :=
+      Assigned(dsTablaG.DataSet) and
+      dsTablaG.DataSet.Active and
+      (dsTablaG.State = dsBrowse) and
+      PermitirNavegacionTeclas and
+      bPermitido;
+  end;
 end;
 
 procedure TfrmMtoGen.actEliminarRegistroUpdate(Sender: TObject);
@@ -2590,13 +2603,13 @@ end;
 
 procedure TfrmMtoGen.actRegistroAnteriorExecute(Sender: TObject);
 begin
-  if PuedeCambiarRegistroPorTecla then
+  if PuedeCambiarRegistroPorTecla(True) then
     nvNavegador.Buttons.Prior.Click;
 end;
 
 procedure TfrmMtoGen.actRegistroSiguienteExecute(Sender: TObject);
 begin
-  if PuedeCambiarRegistroPorTecla then
+  if PuedeCambiarRegistroPorTecla(True) then
     nvNavegador.Buttons.Next.Click;
 end;
 
