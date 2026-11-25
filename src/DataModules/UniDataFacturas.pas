@@ -257,6 +257,7 @@ public
     // Carga perezosa de sub-pestañas detail de la ficha de factura.
     procedure AsegurarRecibosAbierta;
     procedure AsegurarEfectosVentaAbierta;
+    procedure RefrescarEfectosVenta;
     procedure AsegurarConsolidacionAbierta;
     procedure AsegurarErroresAbierta;
     procedure AsegurarMovimientosFacAbierta;
@@ -934,8 +935,13 @@ begin
   unqryEfectosVenta := TUniQuery.Create(Self);
   unqryEfectosVenta.Connection := ConexionPrincipal;
   unqryEfectosVenta.SQL.Text :=
-    'SELECT * ' +
-    '  FROM vi_efectos_venta ' +
+    'SELECT E.*, F.FORMA_PAGO_FAC AS FORMA_PAGO_ORIGEN_EFV, ' +
+    '       COALESCE(NULLIF(TRIM(P.DESCRIPCION_FORMA_PAGO_FP), ''''), ' +
+    '         F.FORMA_PAGO_FAC) AS DESCRIPCION_FORMA_PAGO_EFV ' +
+    '  FROM vi_efectos_venta E ' +
+    '  LEFT JOIN fza_facturas F ON F.SERIE_FAC = E.SERIE_FAC_EFV ' +
+    '    AND F.NUMERO_FAC = E.NUMERO_FAC_EFV ' +
+    '  LEFT JOIN fza_formas_pago P ON P.CODIGO_FP_FP = F.FORMA_PAGO_FAC ' +
     ' WHERE NUMERO_FAC_EFV = :NUMERO_FAC ' +
     '   AND SERIE_FAC_EFV  = :SERIE_FAC ' +
     ' ORDER BY NUMERO_EFV';
@@ -1141,6 +1147,12 @@ begin
   end;
 end;
 
+procedure TdmFacturas.RefrescarEfectosVenta;
+begin
+  unqryEfectosVenta.Close;
+  AsegurarEfectosVentaAbierta;
+end;
+
 procedure TdmFacturas.EstamparBancoRecibos(const ASerie, ANumero,
                                            ACodEmpban, AIban: string);
 begin
@@ -1182,10 +1194,7 @@ begin
       ACodEmpban,
       AIbanEmp);
     if Assigned(unqryEfectosVenta) then
-    begin
-      unqryEfectosVenta.Close;
-      unqryEfectosVenta.Open;
-    end;
+      RefrescarEfectosVenta;
   end;
 end;
 
@@ -1208,10 +1217,7 @@ begin
       ATipo,
       AReferencia);
     if Assigned(unqryEfectosVenta) then
-    begin
-      unqryEfectosVenta.Close;
-      unqryEfectosVenta.Open;
-    end;
+      RefrescarEfectosVenta;
   end;
 end;
 

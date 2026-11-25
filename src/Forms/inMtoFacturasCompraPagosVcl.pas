@@ -9,13 +9,16 @@ interface
 
 uses
   System.Classes, Data.DB,
-  inLibSeleccionBancoEmpresaPersistenciaIntf, UniDataFacturasCompra;
+  inLibSeleccionBancoEmpresaPersistenciaIntf, UniDataFacturasCompra,
+  UniDataEfectosCompra;
 
 type
   TObtenerBancoDefectoProveedor = reference to function(
     const ACodigoProveedor: string): string;
   TGenerarEfectosCompra = reference to function(
     const ACodigoBancoEmpresa, AIban: string): Integer;
+  TGuardarReprogramacionEfecto = reference to procedure(
+    const ACambio: TReprogramacionEfectoCompra);
   TRegistrarPagoEfectoCompra = reference to function(
     ANumeroEfecto: Integer;
     AFecha: TDateTime;
@@ -33,6 +36,9 @@ procedure RegistrarPagoFacturaCompraVcl(
   const ARegistrarPago: TRegistrarPagoEfectoCompra;
   const AMensajeConciliado, AMensajeError: string);
 
+procedure EditarVencimientoEfectoCompraVcl(AEfectos: TDataSet;
+  const AGuardar: TGuardarReprogramacionEfecto);
+
 procedure ImprimirReciboPagoCompraVcl(AOwner: TComponent;
   ADataModule: TdmFacturasCompra);
 
@@ -41,7 +47,7 @@ implementation
 uses
   inLibMensajesVcl, UniDataComprasAgricultores,
   System.SysUtils, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
-  inLibMsgCompras,
+  System.DateUtils, inLibErroresBBDD, inLibMsgCompras,
   inMtoModalRegistrarPago, inMtoModalSeleccionarBanco, inMtoModalImpRecFac;
 
 
@@ -141,6 +147,55 @@ begin
   end
   else
     ShowMessage_fza(SErrorEfectoCompraNoSeleccionado);
+end;
+
+procedure EditarVencimientoEfectoCompraVcl(AEfectos: TDataSet;
+  const AGuardar: TGuardarReprogramacionEfecto);
+resourcestring
+  STitulo = 'Editar vencimiento del efecto';
+  SFecha = 'Vencimiento';
+  SImporte = 'Importe (la diferencia pasa a otro plazo pendiente)';
+  SDatosInvalidos = 'Introduce una fecha y un importe válidos.';
+  SEfectoNoPendiente = 'Selecciona un efecto pendiente, sin pagos ni remesa.';
+var
+  rCambio: TReprogramacionEfectoCompra;
+  aValores: array[0..1] of string;
+begin
+  if not Assigned(AEfectos) or not AEfectos.Active or AEfectos.IsEmpty then
+    ShowMessage_fza(SErrorEfectoCompraNoSeleccionado)
+  else if not SameText(AEfectos.FieldByName('ESTADO_EFEC').AsString,
+    'PENDIENTE') then
+    ShowMessage_fza(SEfectoNoPendiente)
+  else
+  begin
+    rCambio.Clave.SerieFac := AEfectos.FieldByName('SERIE_FACC_EFEC').AsString;
+    rCambio.Clave.NumeroFac := AEfectos.FieldByName('NUMERO_FACC_EFEC').AsString;
+    rCambio.Clave.NumeroEfec := AEfectos.FieldByName('NUMERO_EFEC').AsInteger;
+    rCambio.FechaAnterior :=
+      AEfectos.FieldByName('FECHA_VENCIMIENTO_EFEC').AsDateTime;
+    rCambio.ImporteAnterior := AEfectos.FieldByName('IMPORTE_EFEC').AsCurrency;
+    aValores[0] := '';
+    if rCambio.FechaAnterior <> 0 then
+      aValores[0] := DateToStr(rCambio.FechaAnterior);
+    aValores[1] := CurrToStr(rCambio.ImporteAnterior);
+    if InputQuery(STitulo, [SFecha, SImporte], aValores,
+      function(const Val: array of string): Boolean
+      begin
+        Result := TryStrToDate(Val[0], rCambio.FechaNueva) and
+          (YearOf(rCambio.FechaNueva) >= 1000) and
+          TryStrToCurr(Val[1], rCambio.ImporteNuevo);
+        if not Result then
+          ShowMessage_fza(SDatosInvalidos);
+      end) then
+    begin
+      try
+        AGuardar(rCambio);
+      except
+        on E: EValidacionBBDD do
+          ShowMessage_fza(E.Message);
+      end;
+    end;
+  end;
 end;
 
 procedure ImprimirReciboPagoCompraVcl(AOwner: TComponent;

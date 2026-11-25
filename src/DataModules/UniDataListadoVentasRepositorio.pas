@@ -50,10 +50,16 @@ type
     TInterfacedObject,
     IConsultaListadoVentas)
   private
+    FConexion: TUniConnection;
     FConsulta: TUniQuery;
+    FCancelada: Integer;
+    FAbriendo: Integer;
+    FUltimoCorte: UInt64;
   public
-    constructor Create(AConsulta: TUniQuery);
+    constructor Create(AConexion: TUniConnection; AConsulta: TUniQuery);
     destructor Destroy; override;
+    procedure Abrir;
+    procedure Cancelar;
     function DataSet: TDataSet;
   end;
 
@@ -68,6 +74,8 @@ type
     function ListarFamilias: TOpcionesListadoVentas;
     function ListarProveedores: TOpcionesListadoVentas;
     function ListarTemporadas: TOpcionesListadoVentas;
+    function PrepararConsulta(
+      const AFiltro: TFiltroListadoVentas): IConsultaListadoVentas;
     function ConsultarVentas(
       const AFiltro: TFiltroListadoVentas): IConsultaListadoVentas;
   end;
@@ -303,16 +311,52 @@ begin
   end;
 end;
 
-constructor TConsultaListadoVentasUniDAC.Create(AConsulta: TUniQuery);
+constructor TConsultaListadoVentasUniDAC.Create(AConexion: TUniConnection;
+  AConsulta: TUniQuery);
 begin
   inherited Create;
+  FConexion := AConexion;
   FConsulta := AConsulta;
 end;
 
 destructor TConsultaListadoVentasUniDAC.Destroy;
 begin
-  FreeAndNil(FConsulta);
+  FConsulta.Free;
+  FConexion.Free;
   inherited;
+end;
+
+procedure TConsultaListadoVentasUniDAC.Abrir;
+begin
+  if AtomicCmpExchange(FCancelada, 0, 0) = 0 then
+  begin
+    FConexion.Connect;
+    AtomicExchange(FAbriendo, 1);
+    try
+      if AtomicCmpExchange(FCancelada, 0, 0) = 0 then
+      begin
+        FConsulta.Open;
+        FConsulta.Last;
+        FConsulta.First;
+      end;
+    finally
+      AtomicExchange(FAbriendo, 0);
+    end;
+  end;
+end;
+
+procedure TConsultaListadoVentasUniDAC.Cancelar;
+var
+  iAhora: UInt64;
+begin
+  AtomicExchange(FCancelada, 1);
+  iAhora := TThread.GetTickCount64;
+  if (AtomicCmpExchange(FAbriendo, 0, 0) <> 0) and
+     ((FUltimoCorte = 0) or (iAhora - FUltimoCorte >= 1000)) then
+  begin
+    FUltimoCorte := iAhora;
+    FConsulta.BreakExec;
+  end;
 end;
 
 function TConsultaListadoVentasUniDAC.DataSet: TDataSet;
@@ -371,16 +415,22 @@ begin
   Result := ListarOpciones(SQL_TEMPORADAS);
 end;
 
-function TRepositorioListadoVentasUniDAC.ConsultarVentas(
+function TRepositorioListadoVentasUniDAC.PrepararConsulta(
   const AFiltro: TFiltroListadoVentas): IConsultaListadoVentas;
 var
+  Conexion: TUniConnection;
   Consulta: TUniQuery;
 begin
   if Trim(AFiltro.Empresa) = '' then
     raise EArgumentException.Create(STextoDebeIndicarLaEmpresaDeSesionComun);
-  Consulta := TUniQuery.Create(nil);
+  Conexion := TUniConnection.Create(nil);
+  Consulta := nil;
   try
-    Consulta.Connection := FConexion;
+    // BreakExec puede desconectar el driver. La sesión principal se conserva.
+    Conexion.Assign(FConexion);
+    Conexion.LoginPrompt := False;
+    Consulta := TUniQuery.Create(nil);
+    Consulta.Connection := Conexion;
     Consulta.SQL.Text := ConstruirSqlListadoVentas;
     Consulta.ParamByName('pEMPRESA').AsString := AFiltro.Empresa;
     Consulta.ParamByName('pDESDE').AsDateTime := AFiltro.FechaDesde;
@@ -392,12 +442,19 @@ begin
       Consulta.ParamByName('pCON').AsString := 'S'
     else
       Consulta.ParamByName('pCON').AsString := 'N';
-    Consulta.Open;
-    Result := TConsultaListadoVentasUniDAC.Create(Consulta);
+    Result := TConsultaListadoVentasUniDAC.Create(Conexion, Consulta);
   except
-    FreeAndNil(Consulta);
+    Consulta.Free;
+    Conexion.Free;
     raise;
   end;
+end;
+
+function TRepositorioListadoVentasUniDAC.ConsultarVentas(
+  const AFiltro: TFiltroListadoVentas): IConsultaListadoVentas;
+begin
+  Result := PrepararConsulta(AFiltro);
+  Result.Abrir;
 end;
 
 function CrearRepositorioListadoVentasUniDAC(

@@ -82,7 +82,7 @@ function ResumenCantidadesCompra(ALineas: TDataSet): string;
 implementation
 
 uses
-  inLibMsgCompras,
+  inLibMsgCompras, inLibMsgFacturas,
   System.Classes, System.Generics.Collections, inLibFormatoDocumento;
 
 function ResumenCantidadesCompra(ALineas: TDataSet): string;
@@ -408,7 +408,7 @@ procedure PintarCabeceraDoc(AConexion: TUniConnection;
   AColMax: Integer; out AFilaSiguiente: Integer);
 var
   iRow: Integer;
-  sDocumento: string;
+  sDocumento, sFormaPago: string;
 begin
   iRow := 1;
   // Titulo
@@ -495,6 +495,13 @@ begin
   begin
     W(Sheet, iRow, cDoc, STextoRefPrvCompras +
       QMaster.FieldByName(ACfg.FieldRefPrv).AsString);
+    Merge(Sheet, iRow, cDoc, 4, 1);
+  end;
+  sFormaPago := Trim(CampoTextoPrimero(QMaster, ['FORMA_PAGO_IMPRESION']));
+  if sFormaPago <> '' then
+  begin
+    Inc(iRow);
+    W(Sheet, iRow, cDoc, SReferenciaFacturaFormaPago + ': ' + sFormaPago);
     Merge(Sheet, iRow, cDoc, 4, 1);
   end;
   AFilaSiguiente := 9;

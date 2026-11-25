@@ -316,6 +316,9 @@ type
     chkRecargoEquivalenciaCompras: TcxDBCheckBox;
     chkESTOKENS_CALENDARIO_NATURAL_EMP: TcxDBCheckBox;
     chkESLOTES_REPOSICION_EMP: TcxDBCheckBox;
+    procedure tvBancosCellClick(Sender: TcxCustomGridTableView;
+      ACellViewInfo: TcxGridTableDataCellViewInfo; AButton: TMouseButton;
+      AShift: TShiftState; var AHandled: Boolean);
     procedure tsFichaEnter(Sender: TObject);
     procedure chkAplicaRetencionesPropertiesChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -812,6 +815,34 @@ begin
   inherited;
   // La traducción repone el título del DFM (&6_Otros, &7_Bancos...).
   NumerarPestanasAtajo(pcPestana);
+end;
+
+procedure TfrmMtoEmpresas.tvBancosCellClick(
+  Sender: TcxCustomGridTableView; ACellViewInfo: TcxGridTableDataCellViewInfo;
+  AButton: TMouseButton; AShift: TShiftState; var AHandled: Boolean);
+var
+  Columna: TcxGridDBColumn;
+  Campo: TField;
+begin
+  if (AButton = mbLeft) and (AShift * [ssCtrl, ssShift] = []) and
+     not AHandled and ACellViewInfo.Focused and Sender.OptionsData.Editing
+     and ACellViewInfo.Item.Options.Editing and
+     ((ACellViewInfo.Item = tvBancosESDEFECTO_COBRO_EMPBAN) or
+      (ACellViewInfo.Item = tvBancosESDEFECTO_PAGO_EMPBAN) or
+      (ACellViewInfo.Item = tvBancosESACTIVO_EMPBAN)) then
+  begin
+    Columna := TcxGridDBColumn(ACellViewInfo.Item);
+    Campo := Columna.DataBinding.Field;
+    if Assigned(Campo) and Campo.CanModify then
+    begin
+      AHandled := True;
+      Campo.DataSet.Edit;
+      if Campo.AsString = 'S' then
+        Campo.AsString := 'N'
+      else
+        Campo.AsString := 'S';
+    end;
+  end;
 end;
 
 procedure TfrmMtoEmpresas.CrearTablaPrincipal;

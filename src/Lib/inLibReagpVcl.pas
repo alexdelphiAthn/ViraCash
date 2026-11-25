@@ -61,11 +61,14 @@ var
   sCampo: string;
 begin
   Result := False;
-  sCampo := UpperCase(ACampo);
-  for sFragmento in FRAGMENTOS_CAMPO_REAGP do
+  sCampo := UpperCase(Trim(ACampo));
+  // La ficha de artículo también se usa para bienes de inversión del
+  // régimen general. El indicador de venta de activo fijo sí es REAGP.
+  if sCampo <> 'ESACTIVO_FIJO_ART' then
   begin
-    if Pos(sFragmento, sCampo) > 0 then
-      Result := True;
+    for sFragmento in FRAGMENTOS_CAMPO_REAGP do
+      if Pos(sFragmento, sCampo) > 0 then
+        Result := True;
   end;
 end;
 

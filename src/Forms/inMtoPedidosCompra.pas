@@ -399,7 +399,9 @@ type
     procedure PivoteVentaCrearLineaSku(const ACodigoSku: string);
     procedure PivoteVentaBandaCambiada(ABanda: TBandaPivoteVenta);
     procedure ARecibirCampoEditValueChanged(Sender: TObject);
+    procedure AvisarCantidadRecepcionLimitada(ASolicitada, APendiente: Double);
   protected
+    procedure PrepararAltaRegistro; override;
     // F1 = ciclar el modo de entrada (KeyPreview de TfrmBase),
     // mismo atajo que pedidos/facturas de venta.
     procedure KeyDown(var Key: Word; Shift: TShiftState); override;
@@ -1307,6 +1309,12 @@ end;
 procedure TfrmMtoPedidosCompra.btnCancelarPendienteClick(Sender: TObject);
 begin
   CancelarPendientePedido;
+end;
+
+procedure TfrmMtoPedidosCompra.PrepararAltaRegistro;
+begin
+  inherited;
+  AvisarAltaCompraSinSeries;
 end;
 
 procedure TfrmMtoPedidosCompra.btnNuevoClick(Sender: TObject);
@@ -2227,6 +2235,7 @@ begin
     CfgPV.BandaUnica := False;
     CfgPV.TextoBandaAAlbaranar := SCaptionColumnaPedidoARecibir;
     CfgPV.OnPendienteCancelado := PedidoCancelado;
+    CfgPV.AlLimitarCantidadServicio := AvisarCantidadRecepcionLimitada;
     CfgPV.CampoPorcentajeDto := 'PORCENTAJE_DTO_PEDCLIN';
     CfgPV.FieldImporteLinea := 'TOTAL_PEDCLIN';
     CfgPV.Repositorios :=
@@ -2520,6 +2529,16 @@ end;
 // Clamp del "A recibir" (campo CANTIDAD_A_RECIBIR_PEDCLIN) en los
 // modos SKU/Desglose: el maximo es el pendiente de la linea. En el
 // modo tallas el clamp lo hace el propio pivote sobre su banda.
+procedure TfrmMtoPedidosCompra.AvisarCantidadRecepcionLimitada(
+  ASolicitada, APendiente: Double);
+var
+  Pendiente: string;
+begin
+  Pendiente := FormatFloat('0.###', APendiente);
+  ShowMessageDiferido_fza(Format(SAvisoARecibirSuperaPendiente,
+    [FormatFloat('0.###', ASolicitada), Pendiente, Pendiente]));
+end;
+
 procedure TfrmMtoPedidosCompra.ARecibirCampoEditValueChanged(
   Sender: TObject);
 begin

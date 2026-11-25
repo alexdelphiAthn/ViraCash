@@ -188,6 +188,9 @@ type
     rbMargenVentaPrv: TcxRadioButton;
     spnMargenVentaPrv: TcxSpinEdit;
     spnMargenPrv: TcxDBSpinEdit;
+    chkRetencionPrv: TcxDBCheckBox;
+    lblRetencionPrv: TcxLabel;
+    spnRetencionPrv: TcxDBSpinEdit;
     chkVariosTiposIvaPrv: TcxDBCheckBox;
     chkESDESCRIPCION_BLANCO_PRV: TcxDBCheckBox;
     lblSistemaTallasPrv: TcxLabel;

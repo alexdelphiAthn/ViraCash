@@ -35,6 +35,8 @@ type
 
   IConsultaListadoVentas = interface
     ['{9816D9BF-24EA-469B-AA92-68609681230D}']
+    procedure Abrir;
+    procedure Cancelar;
     function DataSet: TDataSet;
   end;
 
@@ -43,6 +45,8 @@ type
     function ListarFamilias: TOpcionesListadoVentas;
     function ListarProveedores: TOpcionesListadoVentas;
     function ListarTemporadas: TOpcionesListadoVentas;
+    function PrepararConsulta(
+      const AFiltro: TFiltroListadoVentas): IConsultaListadoVentas;
     function ConsultarVentas(
       const AFiltro: TFiltroListadoVentas): IConsultaListadoVentas;
   end;

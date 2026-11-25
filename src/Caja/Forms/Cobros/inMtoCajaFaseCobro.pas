@@ -168,7 +168,11 @@ type
     procedure btnESCClick(Sender: TObject);
     procedure dbmImporteGetDisplayText(Sender: TcxCustomGridTableItem;
       ARecord: TcxCustomGridRecord; var AText: string);
-    procedure txtValeEmitidoPropertiesEditValueChanged(Sender: TObject);
+    procedure txtValeEmitidoExit(Sender: TObject);
+    procedure txtValeEmitidoKeyDown(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
+    procedure txtValeEmitidoMouseUp(Sender: TObject;
+      Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure dbtvFormasPagoEditChanged(Sender: TcxCustomGridTableView;
       AItem: TcxCustomGridTableItem);
     procedure btnBuscarTClick(Sender: TObject);
@@ -199,7 +203,6 @@ type
     FRepositorioPersistencia: IRepositorioFaseCobro;
     FRepositorioVales: IRepositorioInformesCaja;
     FMemTablePagos: TVirtualTable;
-    FActualizandoVale: Boolean;
     FActualizandoDescuento: Boolean;
     FEditorDescuentoActual: TcxCurrencyEdit;
     FEmailEnvio: string;
@@ -271,6 +274,8 @@ type
       out ANumeroFmt: string): Boolean;
     procedure CargarFormasPago;
     procedure AplicarValesOrigenSiProcede;
+    procedure ConfirmarValeEmitido;
+    function ActualizarImportesDevolucion: Boolean;
     procedure MostrarDescuentoLineal(ABruto, ADescuento: Currency);
     procedure CargarComboSeries;
     procedure AjustarFormatoEditorActivo;
@@ -829,6 +834,7 @@ begin
   Result := ConfirmarEditoresDescuento;
   if Result then
   begin
+    ConfirmarValeEmitido;
     if dbtvFormasPago.Controller.EditingController.IsEditing then
       dbtvFormasPago.Controller.EditingController.HideEdit(True);
     if FMemTablePagos.State in [dsEdit, dsInsert] then
@@ -904,7 +910,13 @@ begin
       oConfig.Propuesta.Fecha := Trunc(AFecha);
       oConfig.Visibles := [codEmpresa, codSerie, codFecha];
       oConfig.Fijos := [codEmpresa, codFecha];
-      oConfig.SerieSoloLista := SameText(ASubtipo, TIPO_FACTURA_COMPLETA_CAJA);
+      oConfig.SerieSoloLista := True;
+      oConfig.ListarSeriesPermitidas :=
+        function: TArray<string>
+        begin
+          Result := ListarSeriesEmisionCaja(ConexionPrincipal,
+            FEmpresaEmisora, FAlmacenEmision, ASubtipo, AFecha);
+        end;
       oConfig.Validar :=
         function(const AOpciones: TOpcionesDocumento;
           out AMensaje: string): Boolean
@@ -1551,7 +1563,7 @@ begin
   dr.Init;
   dr.EsDivisa  := EsDivisa;
   dr.EsCripto  := EsCripto;
-  dr.Pendiente := txtPendienteCobro.Value;
+  dr.Pendiente := FDatosCobro.ImportePendiente;
   if EsDivisa or EsCripto or fp.RequiereReferencia then
   begin
     FMemTablePagos.Edit;
@@ -1723,23 +1735,13 @@ begin
   ActualizarImportesDescuento;
   txtCambio.Value       := FDatosCobro.ImporteCambio;
   txtValeRecogido.Value := FDatosCobro.ImporteValeRecogido;
-  FActualizandoVale := True;
-  try
-    txtValeEmitido.Value := FDatosCobro.ImporteValeEmitido;
-  finally
-    FActualizandoVale := False;
-  end;
+  txtValeEmitido.Value := FDatosCobro.ImporteValeEmitido;
   EsTotal0 := (Abs(FDatosCobro.ImporteTotalPagar) < 0.01);
   if FDatosCobro.EsDevolucionEconomica then
   begin
-    txtPendienteCobro.Value  := FDatosCobro.ImporteDevolucionPendiente;
-    txtPendienteCuenta.Value := 0;
-    btnConTicket.Enabled  := (FDatosCobro.ImporteDevolucionPendiente <= 0.01)
-       or EsTotal0;
-    btnSinTicket.Enabled  := (FDatosCobro.ImporteDevolucionPendiente <= 0.01)
-       or EsTotal0;
-    btnSinPrecios.Enabled := (FDatosCobro.ImporteDevolucionPendiente <= 0.01)
-       or EsTotal0;
+    btnConTicket.Enabled := ActualizarImportesDevolucion;
+    btnSinTicket.Enabled := btnConTicket.Enabled;
+    btnSinPrecios.Enabled := btnConTicket.Enabled;
     btnBuscarVale.Enabled := false;
   end
   else
@@ -1770,9 +1772,7 @@ begin
   txtValeEmitido.Value    := FDatosCobro.ImporteValeEmitido;
   if FDatosCobro.EsDevolucionEconomica then
   begin
-    txtPendienteCobro.Value  := FDatosCobro.ImporteDevolucionPendiente;
-    txtPendienteCuenta.Value := 0;
-    btnConTicket.Enabled := (FDatosCobro.ImporteDevolucionPendiente <= 0.01);
+    btnConTicket.Enabled := ActualizarImportesDevolucion;
   end
   else
   begin
@@ -1840,7 +1840,33 @@ begin
   txtPorcenDtoGlobal.Enabled := False;
   txtTotalPagar.Properties.ReadOnly := True;
   txtValeEmitido.Properties.ReadOnly := False;
-  lblPendienteCobroAlt.Caption := SCaptionPendienteDevolver;
+end;
+
+function TfrmMtoCajaFaseCobro.ActualizarImportesDevolucion: Boolean;
+var
+  dExceso, dValeMinimo: Currency;
+begin
+  dExceso := FDatosCobro.ImporteDevueltoDeMas;
+  dValeMinimo := FDatosCobro.ImporteValeObligatorio;
+  if dValeMinimo > Abs(FDatosCobro.ImporteTotalPagar) then
+    dValeMinimo := Abs(FDatosCobro.ImporteTotalPagar);
+  lblValeEmitido.Caption := SCaptionValeEmitido;
+  if dValeMinimo > 0 then
+    lblValeEmitido.Caption := Format(SCaptionValeDevolucionMinimo,
+      [dValeMinimo]);
+  if dExceso > 0.01 then
+  begin
+    lblPendienteCobroAlt.Caption := SCaptionExcesoDevolucion;
+    txtPendienteCobro.Value := dExceso;
+  end
+  else
+  begin
+    lblPendienteCobroAlt.Caption := SCaptionPendienteDevolver;
+    txtPendienteCobro.Value := FDatosCobro.ImporteDevolucionPendiente;
+  end;
+  txtPendienteCuenta.Value := 0;
+  Result := (dExceso <= 0.01) and
+    (FDatosCobro.ImporteDevolucionPendiente <= 0.01);
 end;
 
 procedure TfrmMtoCajaFaseCobro.ConfigurarModoCobroNormal;
@@ -1859,20 +1885,49 @@ begin
       PuedeAplicarDescuentoGlobal;
 
   txtValeEmitido.Properties.ReadOnly := True;
+  lblValeEmitido.Caption := SCaptionValeEmitido;
   lblPendienteCobroAlt.Caption := SCaptionPendienteCobro;
 end;
 
-procedure TfrmMtoCajaFaseCobro.txtValeEmitidoPropertiesEditValueChanged(
-  Sender: TObject);
+procedure TfrmMtoCajaFaseCobro.txtValeEmitidoMouseUp(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
-  if FDatosCobro.EsDevolucionEconomica and not FActualizandoVale then
+  if (Button = mbLeft) and (Shift = []) and
+     not txtValeEmitido.Properties.ReadOnly then
+    txtValeEmitido.SelectAll;
+end;
+
+procedure TfrmMtoCajaFaseCobro.ConfirmarValeEmitido;
+var
+  rValidacion: TResultadoValidacion;
+begin
+  if Assigned(FDatosCobro) and FDatosCobro.EsDevolucionEconomica then
   begin
-    FActualizandoVale := True;
-    try
-      FDatosCobro.EmitirVale(txtValeEmitido.Value);
-    finally
-      FActualizandoVale := False;
+    txtValeEmitido.PostEditValue;
+    if txtValeEmitido.Value <> FDatosCobro.ImporteValeEmitido then
+    begin
+      rValidacion := FDatosCobro.EmitirVale(txtValeEmitido.Value);
+      if not rValidacion.Valido then
+      begin
+        txtValeEmitido.Value := FDatosCobro.ImporteValeEmitido;
+        ShowMessage_fza(rValidacion.Mensaje);
+      end;
     end;
+  end;
+end;
+
+procedure TfrmMtoCajaFaseCobro.txtValeEmitidoExit(Sender: TObject);
+begin
+  ConfirmarValeEmitido;
+end;
+
+procedure TfrmMtoCajaFaseCobro.txtValeEmitidoKeyDown(Sender: TObject;
+  var Key: Word; Shift: TShiftState);
+begin
+  if Key = VK_RETURN then
+  begin
+    Key := 0;
+    ConfirmarValeEmitido;
   end;
 end;
 

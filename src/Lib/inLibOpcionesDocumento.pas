@@ -25,7 +25,7 @@ function BuscarTipoOpcionesDocumento(
   out ATipo: TTipoOpcionesDocumento): Boolean;
 function ProponerSerieOpcionesDocumento(const ASeries: TArray<string>;
   const ASerieAlmacen: string;
-  const ASerieGeneralFactura: string = ''): string;
+  const ASerieGeneralFactura: string = ''; AEjercicio: Word = 0): string;
 function AlmacenObligatorioOpcionesDocumento(
   const ATipo: TTipoOpcionesDocumento; AMueveStock: Boolean): Boolean;
 function MueveStockOpcionesDocumento(const ATipo: TTipoOpcionesDocumento;
@@ -43,7 +43,7 @@ function ValidarOpcionesDocumento(
 implementation
 
 uses
-  System.SysUtils,
+  System.SysUtils, System.StrUtils,
   inLibMsgOpcionesDocumento;
 
 function BuscarTipoOpcionesDocumento(
@@ -69,11 +69,26 @@ end;
 // En factura normal prima su serie general si el llamador la aporta.
 // Sin ella se mantiene la serie del almacén y después la lista.
 function ProponerSerieOpcionesDocumento(const ASeries: TArray<string>;
-  const ASerieAlmacen, ASerieGeneralFactura: string): string;
+  const ASerieAlmacen, ASerieGeneralFactura: string;
+  AEjercicio: Word): string;
+var
+  Indice: Integer;
+  Prefijo: string;
 begin
   Result := Trim(ASerieGeneralFactura);
   if Result = '' then
     Result := Trim(ASerieAlmacen);
+  if (Result = '') and (AEjercicio > 0) then
+  begin
+    Prefijo := IntToStr(AEjercicio) + '.';
+    Indice := 0;
+    while (Indice < Length(ASeries)) and (Result = '') do
+    begin
+      if StartsText(Prefijo, ASeries[Indice]) then
+        Result := ASeries[Indice];
+      Inc(Indice);
+    end;
+  end;
   if (Result = '') and (Length(ASeries) > 0) then
     Result := ASeries[0];
 end;

@@ -39,6 +39,8 @@ type
     unqrySkusDevc:              TUniQuery;
     unqryAlmacenesDevc:         TUniQuery;
     dsAlmacenesDevc:            TDataSource;
+    unqryFormasPago: TUniQuery;
+    dsFormasPago: TDataSource;
     unqryMovimientosProveedor:  TUniQuery;
     dsMovimientosProveedor:     TDataSource;
     unstrdprcGetContadorDevc:   TUniStoredProc;
@@ -223,6 +225,7 @@ begin
   unqryArtDataLinDevc.Connection        := ConexionPrincipal;
   unqrySkusDevc.Connection              := ConexionPrincipal;
   unqryAlmacenesDevc.Connection         := ConexionPrincipal;
+  unqryFormasPago.Connection := ConexionPrincipal;
   unqryMovimientosProveedor.Connection  := ConexionPrincipal;
   unstrdprcGetContadorDevc.Connection   := ConexionPrincipal;
   unqryDefArticuloDevc.Connection       := ConexionPrincipal;
@@ -287,6 +290,8 @@ begin
   inherited;
   sw := TStopwatch.StartNew;
   RefrescarAlmacenes(UbicacionSesion.Empresa);
+  AbrirConsultaConTiempo(
+    unqryFormasPago, TAG, 'unqryFormasPago', RegistroLog);
   AbrirConsultaConTiempo(
     unqryDevolucionesCompraLineas, TAG,
     'unqryDevolucionesCompraLineas', RegistroLog);
@@ -1143,7 +1148,9 @@ begin
   bDoc := CampoVistaCabeceraPrintExiste('DOCUMENTO_FORMATO');
   bUds := CampoVistaCabeceraPrintExiste('TOTAL_UNIDADES_SES');
   bLineas := CampoVistaCabeceraPrintExiste('TOTAL_LINEAS_SES');
-  sSql := 'SELECT V.* ';
+  sSql := 'SELECT V.*, ' +
+    'COALESCE(NULLIF(TRIM(P.DESCRIPCION_FORMA_PAGO_FP), ''''), ' +
+    'D.FORMA_PAGO_DEVC) AS FORMA_PAGO_IMPRESION ';
   if not bDoc then
     sSql := sSql +
       ', CASE WHEN TRIM(COALESCE(V.SERIE_DEVC, '''')) = '''' ' +
@@ -1168,7 +1175,10 @@ begin
       '      AND L.NUMERO_DEVC_DEVCLIN = V.NUMERO_DEVC) ' +
       '       AS TOTAL_LINEAS_SES ';
   sSql := sSql +
-    '  FROM vi_devoluciones_compra_cab_print V ' +
+    ' FROM vi_devoluciones_compra_cab_print V ' +
+    ' LEFT JOIN fza_devoluciones_compra D ON D.SERIE_DEVC = V.SERIE_DEVC ' +
+    '   AND D.NUMERO_DEVC = V.NUMERO_DEVC ' +
+    ' LEFT JOIN fza_formas_pago P ON P.CODIGO_FP_FP = D.FORMA_PAGO_DEVC ' +
     ' WHERE V.SERIE_DEVC = :SERIE_DEVC ' +
     '   AND V.NUMERO_DEVC = :NUMERO_DEVC';
   unqryCabDevcPrint.SQL.Text := sSql;

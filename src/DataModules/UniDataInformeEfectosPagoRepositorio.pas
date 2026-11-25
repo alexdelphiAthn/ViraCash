@@ -8,11 +8,15 @@ uses
 function CrearRepositorioInformeEfectosPagoUniDAC(
   AConexion: TUniConnection): IRepositorioInformeEfectosPago;
 
+function PrepararInformeCobrosPendientes(AConexion: TUniConnection;
+  const AEmpresa, ACliente: string; AFecha: TDateTime
+): IResultadoInformeEfectosPago;
+
 implementation
 
 uses
   inLibMsgComun,
-  System.SysUtils, System.Classes, Data.DB;
+  System.SysUtils, System.Classes, System.DateUtils, Data.DB;
 
 type
   TResultadoInformeEfectosPagoUniDAC = class(
@@ -424,6 +428,78 @@ begin
     Result := TResultadoInformeEfectosPagoUniDAC.Create(oConsulta);
   except
     FreeAndNil(oConsulta);
+    raise;
+  end;
+end;
+
+function PrepararInformeCobrosPendientes(AConexion: TUniConnection;
+  const AEmpresa, ACliente: string; AFecha: TDateTime
+): IResultadoInformeEfectosPago;
+var
+  oConsulta: TUniQuery;
+begin
+  if Trim(AEmpresa) = '' then
+    raise EArgumentException.Create(STextoDebeIndicarLaEmpresaDeSesionComun);
+  oConsulta := TUniQuery.Create(nil);
+  try
+    oConsulta.Connection := AConexion;
+    // Un cobro parcial deja un efecto cobrado y otro por el resto.
+    // Se conserva el importe cobrado después de la fecha de corte.
+    oConsulta.SQL.Text :=
+      'WITH CARTERA AS (' +
+      ' SELECT E.*, F.CODIGO_ALM_FAC, T.DESCRIPCION_TEFE,' +
+      ' CASE WHEN E.ESTADO_EFV IN (''ANULADO'', ''CONCILIADO'') THEN' +
+      '   CASE WHEN E.INSTANTE_MODIF >= :LIMITE THEN COALESCE(' +
+      '        E.IMPORTE_EFV, 0) ELSE 0 END' +
+      ' WHEN E.FECHA_COBRO_EFV >= :LIMITE THEN COALESCE(E.IMPORTE_EFV, 0)' +
+      ' ELSE COALESCE(E.IMPORTE_PENDIENTE_EFV, E.IMPORTE_EFV, 0)' +
+      ' END AS SALDO_CORTE' +
+      ' FROM fza_efectos_venta E' +
+      ' LEFT JOIN fza_facturas F ON F.SERIE_FAC = E.SERIE_FAC_EFV' +
+      '   AND F.NUMERO_FAC = E.NUMERO_FAC_EFV' +
+      ' LEFT JOIN fza_tipos_efecto T ON T.CODIGO_TEFE = E.CODIGO_TEFE_EFV' +
+      ' WHERE E.CODIGO_EMP_EFV = :EMPRESA AND E.FECHA_EMISION_EFV < :LIMITE' +
+      '   AND (:CLIENTE = '''' OR E.CODIGO_CLI_EFV = :CLIENTE)' +
+      '   AND (E.INSTANTE_ALTA < :LIMITE OR NOT EXISTS (' +
+      '     SELECT 1 FROM fza_efectos_venta O' +
+      '     WHERE O.SERIE_FAC_CONCILIACION_EFV = E.SERIE_FAC_EFV' +
+      '       AND O.NUMERO_FAC_CONCILIACION_EFV = E.NUMERO_FAC_EFV' +
+      '       AND O.NUMERO_EFV_CONCILIACION_EFV = E.NUMERO_EFV)))' +
+      ' SELECT CONCAT_WS(''/'', SERIE_FAC_EFV, NUMERO_FAC_EFV,' +
+      '   NUMERO_EFV) AS IDENTIFICADOR_EFECTO,' +
+      ' COALESCE(DESCRIPCION_TEFE, CODIGO_TEFE_EFV) AS TIPO_EFECTO_EFEC,' +
+      ' CODIGO_ALM_FAC AS CODIGO_ALM_EFEC, CODIGO_CLI_EFV AS CODIGO_PRV_EFEC,' +
+      ' RAZON_SOCIAL_CLI_EFV AS PROVEEDOR_EFEC,' +
+      ' :CORTE AS FECHA_FILTRO_EFEC, FECHA_EMISION_EFV AS FECHA_DOCUMENTO_EFEC,' +
+      ' FECHA_VENCIMIENTO_EFV AS FECHA_VENCIMIENTO_EFEC,' +
+      ' IF(FECHA_COBRO_EFV < :LIMITE, FECHA_COBRO_EFV, NULL) AS FECHA_VALOR_EFEC,' +
+      ' DATEDIFF(:CORTE, FECHA_VENCIMIENTO_EFV) AS DIAS_EFEC,' +
+      ' IMPORTE_EFV AS IMPORTE_EFEC, IMPORTE_EFV AS IMPORTE_BRUTO_EFEC,' +
+      ' IMPORTE_EFV - SALDO_CORTE AS IMPORTE_PAGADO_EFEC,' +
+      ' SALDO_CORTE AS IMPORTE_PENDIENTE_EFEC,' +
+      ' SALDO_CORTE AS IMPORTE_PENDIENTE_BRUTO_EFEC,' +
+      ' 0 AS IMPORTE_COMPENSADO_EFEC,' +
+      ' IF(FECHA_VENCIMIENTO_EFV <= :CORTE, ''Vencido'', ''Pendiente'') ' +
+      '   AS SITUACION_EFEC,' +
+      ' CONCAT_WS(''.'', NULLIF(SERIE_REMV_EFV, ''''),' +
+      '   NULLIF(NUMERO_REMV_EFV, '''')) AS REMESA_EFEC,' +
+      ' CODIGO_EMPBAN_EFV AS BANCO_REMESA_EFEC,' +
+      ' COALESCE(CODIGO_CLI_EFV, '''') AS GRUPO1_COD,' +
+      ' CONCAT_WS('' - '', NULLIF(CODIGO_CLI_EFV, ''''),' +
+      '    NULLIF(RAZON_SOCIAL_CLI_EFV, '''')) AS GRUPO1_ETIQ,' +
+      ' '''' AS GRUPO2_COD, '''' AS GRUPO2_ETIQ,' +
+      ' '''' AS GRUPO3_COD, '''' AS GRUPO3_ETIQ' +
+      ' FROM CARTERA WHERE SALDO_CORTE <> 0' +
+      ' ORDER BY GRUPO1_COD, FECHA_VENCIMIENTO_EFV, SERIE_FAC_EFV,' +
+      ' NUMERO_FAC_EFV, NUMERO_EFV';
+    oConsulta.ParamByName('EMPRESA').AsString := AEmpresa;
+    oConsulta.ParamByName('CLIENTE').AsString := Trim(ACliente);
+    oConsulta.ParamByName('CORTE').AsDateTime := DateOf(AFecha);
+    oConsulta.ParamByName('LIMITE').AsDateTime := IncDay(DateOf(AFecha));
+    oConsulta.Open;
+    Result := TResultadoInformeEfectosPagoUniDAC.Create(oConsulta);
+  except
+    oConsulta.Free;
     raise;
   end;
 end;

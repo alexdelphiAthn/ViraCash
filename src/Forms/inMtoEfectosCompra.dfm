@@ -115,6 +115,15 @@ inherited frmMtoEfectosCompra: TfrmMtoEfectosCompra
       TabOrder = 3
       OnClick = btnFusionarEfectosClick
     end
+    object btnEditarVencimiento: TcxButton
+      Left = 0
+      Top = 300
+      Width = 137
+      Height = 44
+      Caption = 'Editar vencimiento'
+      TabOrder = 4
+      OnClick = btnEditarVencimientoClick
+    end
   end
   inherited dsTablaG: TDataSource
     DataSet = dmEfectosCompra.unqryTablaG

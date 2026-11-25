@@ -151,6 +151,7 @@ begin
   if dmAlbc <> nil then
   begin
     RebindReportDataSetsByDataModule(frxrprt1, dmAlbc);
+    AplicarFormaPagoInformeCompra(frxrprt1, dmAlbc.unqryCabAlbcPrint);
     AplicarResumenCantidadesCompra(frxrprt1, dmAlbc.unqryLinAlbcPrint);
   end;
 end;

@@ -308,6 +308,7 @@
                     Width = 220
                     FieldName = 'DESCRIPCION_FORMA_PAGO_FP'
                   end>
+                Properties.ListFieldIndex = 1
                 Properties.ListOptions.CaseInsensitive = True
                 TabOrder = 17
                 Width = 240
@@ -645,6 +646,7 @@
                       Width = 220
                       FieldName = 'DESCRIPCION_FORMA_PAGO_FP'
                     end>
+                  Properties.ListFieldIndex = 1
                   Properties.ListOptions.CaseInsensitive = True
                   TabOrder = 11
                   Width = 133
@@ -1195,6 +1197,15 @@
                   Caption = 'Conciliar efecto'
                   TabOrder = 1
                   OnClick = btnRegistrarPagoClick
+                end
+                object btnEditarVencimiento: TcxButton
+                  Left = 344
+                  Top = 5
+                  Width = 160
+                  Height = 26
+                  Caption = 'Editar vencimiento'
+                  TabOrder = 2
+                  OnClick = btnEditarVencimientoClick
                 end
               end
               object cxgrdEfectos: TcxGrid

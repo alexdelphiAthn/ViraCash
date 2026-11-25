@@ -269,6 +269,8 @@
     Connection = dmConn.conUni
     SQL.Strings = (
       'SELECT V.*,'
+      '       COALESCE(NULLIF(TRIM(P.DESCRIPCION_FORMA_PAGO_FP), '#39#39'),'
+      '         F.FORMA_PAGO_FACC) AS FORMA_PAGO_IMPRESION,'
       '       F.DOCUMENTO_FISCAL_FACC,'
       '       F.MODALIDAD_FACC,'
       '       F.PORCENTAJE_COMPENSACION_FACC,'
@@ -307,6 +309,7 @@
       '   AND F.NUMERO_FACC = V.NUMERO_FACC'
       '  LEFT JOIN fza_empresas E'
       '    ON E.CODIGO_EMP_EMP = F.CODIGO_EMP_FACC'
+      '  LEFT JOIN fza_formas_pago P ON P.CODIGO_FP_FP = F.FORMA_PAGO_FACC'
       ' WHERE V.SERIE_FACC = :SERIE_FACC'
       '   AND V.NUMERO_FACC = :NUMERO_FACC')
     Left = 360

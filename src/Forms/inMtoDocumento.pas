@@ -75,6 +75,7 @@ type
     procedure WMAvisoLineaRechazada(var Msg: TMessage);
       message WM_AVISO_LINEA_RECHAZADA;
   protected
+    procedure AvisarAltaCompraSinSeries;
     // FZ-ISSUE-430: lineas cuya edicion sin grabar se descarta con
     // «Cancelar» y con Esc. Nil: el documento no participa.
     function LineasCancelables: TDataSet; virtual;
@@ -122,6 +123,7 @@ uses
   cxEdit, cxGridCustomTableView, cxGridDBDataDefinitions, cxGrid,
   cxLookAndFeels, inLibColumnasDocumento, inLibDocumento, inLibDatasets,
   inLibFiltroUsuario, inLibMsgCompras, inLibMsgComun,
+  UniDataValoresAutomaticosRepositorio,
   inLibPerfilesUsuarioIntf, inLibPerfilesUsuarioValores,
   inLibPrecargaMantenimientos, inMtoGenPresentacionPerfilesVcl,
   UniDataGen, UniDataPrecargaCompras, inMtoModalFiltroCompras;
@@ -138,6 +140,24 @@ begin
   FEstrategiaDocumento := nil;
   AsignarVistaLineasDocumento(nil);
   inherited;
+end;
+
+procedure TfrmMtoDocumento.AvisarAltaCompraSinSeries;
+var
+  Series: TStringList;
+  Empresa, Tipo: string;
+begin
+  Empresa := Trim(UbicacionSesion.Empresa);
+  Tipo := ConfiguracionDocumento.TipoContador;
+  Series := TStringList.Create;
+  try
+    CargarSeriesEmpresa(ConexionPrincipal, Empresa, Tipo, Series);
+    if Series.Count = 0 then
+      ShowMessage_fza(Self, Format(SAvisoAltaCompraSinSeries,
+        [Tipo, Empresa]));
+  finally
+    Series.Free;
+  end;
 end;
 
 procedure TfrmMtoDocumento.InicializarDocumento(

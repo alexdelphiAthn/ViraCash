@@ -60,7 +60,9 @@ const
   COL_PORC_RE = 10;
   COL_CUOTA_RE = 11;
   COL_TOTAL = 12;
-  COL_MAXIMA = COL_TOTAL;
+  COL_BASE_INVERSION = 13;
+  COL_IVA_INVERSION = 14;
+  COL_MAXIMA = COL_IVA_INVERSION;
   // Hoja de resumen.
   RCOL_EMPRESA = 0;
   RCOL_LIBRO = 1;
@@ -96,6 +98,8 @@ resourcestring
   SNombreHojaResumenLibrosIva = 'Resumen por tipo';
   STituloLibrosIva = 'LIBROS DE IVA';
   STituloResumenLibrosIva = 'LIBROS DE IVA - RESUMEN POR TIPO';
+  STituloFacturasExpedidas = 'LIBRO DE FACTURAS EXPEDIDAS';
+  STituloResumenFacturasExpedidas = 'RESUMEN POR TIPO DE FACTURA E IVA';
   SEtiquetaPeriodoLibrosIva = 'Periodo:';
   SEtiquetaHastaLibrosIva = 'a';
   SColFechaLibrosIva = 'Fecha';
@@ -111,6 +115,8 @@ resourcestring
   SColPorcReLibrosIva = '% RE';
   SColCuotaReLibrosIva = 'Cuota RE';
   SColTotalLibrosIva = 'Total';
+  SColBaseInversionLibrosIva = 'Base bienes de inversión';
+  SColIvaInversionLibrosIva = 'IVA bienes de inversión';
   SColEmpresaLibrosIva = 'Empresa';
   SColLibroLibrosIva = 'Libro';
   SColDocumentosLibrosIva = 'Facturas';
@@ -142,6 +148,7 @@ type
     FResumen: TDataSet;
     FLiquidacion: TDataSet;
     FCabecera: TCabeceraLibrosIvaExcel;
+    FResumenPorDocumento: Boolean;
     FSelecciones: TArray<string>;
     FHoja: TdxSpreadSheetTableView;
     FFila: Integer;
@@ -192,6 +199,8 @@ begin
   FResumen := AResumen;
   FLiquidacion := ALiquidacion;
   FCabecera := ACabecera;
+  FResumenPorDocumento := Assigned(FResumen) and
+    Assigned(FResumen.FindField('TIPO_DOC'));
   FSelecciones := ASelecciones;
 end;
 
@@ -332,6 +341,10 @@ begin
   W(FHoja, FFila, COL_PORC_RE, SColPorcReLibrosIva, True, ssahRight);
   W(FHoja, FFila, COL_CUOTA_RE, SColCuotaReLibrosIva, True, ssahRight);
   W(FHoja, FFila, COL_TOTAL, SColTotalLibrosIva, True, ssahRight);
+  W(FHoja, FFila, COL_BASE_INVERSION, SColBaseInversionLibrosIva,
+    True, ssahRight);
+  W(FHoja, FFila, COL_IVA_INVERSION, SColIvaInversionLibrosIva,
+    True, ssahRight);
   FormatearFila(FFila, COL_MAXIMA, COLOR_CABECERA, True, True, True);
   Inc(FFila);
   FFilaPrimerDato := FFila;
@@ -358,6 +371,13 @@ begin
   EscribirPorcentaje(FFila, COL_PORC_RE, Numero(FDetalle, 'PORC_RE'));
   EscribirImporte(FFila, COL_CUOTA_RE, Numero(FDetalle, 'CUOTA_RE'));
   EscribirImporte(FFila, COL_TOTAL, Numero(FDetalle, 'TOTAL'));
+  if Texto(FDetalle, 'LIBRO') = 'SOP' then
+  begin
+    EscribirImporte(FFila, COL_BASE_INVERSION,
+      Numero(FDetalle, 'BASE_INVERSION'));
+    EscribirImporte(FFila, COL_IVA_INVERSION,
+      Numero(FDetalle, 'IVA_INVERSION'));
+  end;
   FBase := FBase + Numero(FDetalle, 'BASE');
   FCuotaIva := FCuotaIva + Numero(FDetalle, 'CUOTA_IVA');
   FCuotaRe := FCuotaRe + Numero(FDetalle, 'CUOTA_RE');
@@ -390,7 +410,10 @@ begin
     TdxSpreadSheetTableView) as TdxSpreadSheetTableView;
   FHoja.BeginUpdate;
   try
-    EscribirTitulo(STituloLibrosIva, COL_MAXIMA);
+    if FResumenPorDocumento then
+      EscribirTitulo(STituloFacturasExpedidas, COL_MAXIMA)
+    else
+      EscribirTitulo(STituloLibrosIva, COL_MAXIMA);
     if Assigned(FDetalle) and FDetalle.Active and not FDetalle.IsEmpty then
     begin
       sClaveAnterior := '';
@@ -434,6 +457,8 @@ begin
     FHoja.Columns[COL_PORC_RE].Size := 50;
     FHoja.Columns[COL_CUOTA_RE].Size := 80;
     FHoja.Columns[COL_TOTAL].Size := 100;
+    FHoja.Columns[COL_BASE_INVERSION].Size := 166;
+    FHoja.Columns[COL_IVA_INVERSION].Size := 166;
   finally
     FHoja.EndUpdate;
   end;
@@ -442,7 +467,10 @@ end;
 procedure TExportadorLibrosIvaExcel.EscribirCabeceraResumen;
 begin
   W(FHoja, FFila, RCOL_EMPRESA, SColEmpresaLibrosIva, True);
-  W(FHoja, FFila, RCOL_LIBRO, SColLibroLibrosIva, True);
+  if FResumenPorDocumento then
+    W(FHoja, FFila, RCOL_LIBRO, SColTipoDocLibrosIva, True)
+  else
+    W(FHoja, FFila, RCOL_LIBRO, SColLibroLibrosIva, True);
   W(FHoja, FFila, RCOL_PORC_IVA, SColPorcIvaLibrosIva, True, ssahRight);
   W(FHoja, FFila, RCOL_PORC_RE, SColPorcReLibrosIva, True, ssahRight);
   W(FHoja, FFila, RCOL_DOCUMENTOS, SColDocumentosLibrosIva, True,
@@ -462,7 +490,10 @@ var
   iDocumentos: Integer;
 begin
   EscribirTexto(FFila, RCOL_EMPRESA, Texto(FResumen, 'EMPRESA'));
-  W(FHoja, FFila, RCOL_LIBRO, NombreLibroIva(Texto(FResumen, 'LIBRO')));
+  if FResumenPorDocumento then
+    W(FHoja, FFila, RCOL_LIBRO, Texto(FResumen, 'TIPO_DOC'))
+  else
+    W(FHoja, FFila, RCOL_LIBRO, NombreLibroIva(Texto(FResumen, 'LIBRO')));
   EscribirPorcentaje(FFila, RCOL_PORC_IVA, Numero(FResumen, 'PORC_IVA'));
   EscribirPorcentaje(FFila, RCOL_PORC_RE, Numero(FResumen, 'PORC_RE'));
   iDocumentos := Round(Numero(FResumen, 'DOCUMENTOS'));
@@ -482,7 +513,7 @@ procedure TExportadorLibrosIvaExcel.EscribirTotalResumen(
   const AEmpresa, ALibro: string);
 begin
   W(FHoja, FFila, 0, Format(SFormatoTotalResumenLibrosIva,
-    [AEmpresa, UpperCase(NombreLibroIva(ALibro))]), True, ssahRight);
+    [AEmpresa, UpperCase(ALibro)]), True, ssahRight);
   Merge(FHoja, FFila, 0, RCOL_BASE, 1);
   EscribirImporte(FFila, RCOL_BASE, FBase);
   EscribirImporte(FFila, RCOL_CUOTA_IVA, FCuotaIva);
@@ -501,13 +532,16 @@ var
   sClave: string;
   sClaveAnterior: string;
   sEmpresaAnterior: string;
-  sLibroAnterior: string;
+  sLibroAnterior, sGrupo: string;
 begin
   FHoja := FControl.AddSheet(SNombreHojaResumenLibrosIva,
     TdxSpreadSheetTableView) as TdxSpreadSheetTableView;
   FHoja.BeginUpdate;
   try
-    EscribirTitulo(STituloResumenLibrosIva, RCOL_MAXIMA);
+    if FResumenPorDocumento then
+      EscribirTitulo(STituloResumenFacturasExpedidas, RCOL_MAXIMA)
+    else
+      EscribirTitulo(STituloResumenLibrosIva, RCOL_MAXIMA);
     EscribirCabeceraResumen;
     if Assigned(FResumen) and FResumen.Active and not FResumen.IsEmpty then
     begin
@@ -517,13 +551,16 @@ begin
         FResumen.First;
         while not FResumen.Eof do
         begin
-          sClave := Texto(FResumen, 'EMPRESA') + '|' +
-            Texto(FResumen, 'LIBRO');
+          if FResumenPorDocumento then
+            sGrupo := Texto(FResumen, 'TIPO_DOC')
+          else
+            sGrupo := NombreLibroIva(Texto(FResumen, 'LIBRO'));
+          sClave := Texto(FResumen, 'EMPRESA') + '|' + sGrupo;
           if (sClaveAnterior <> '') and (sClave <> sClaveAnterior) then
             EscribirTotalResumen(sEmpresaAnterior, sLibroAnterior);
           sClaveAnterior := sClave;
           sEmpresaAnterior := Texto(FResumen, 'EMPRESA');
-          sLibroAnterior := Texto(FResumen, 'LIBRO');
+          sLibroAnterior := sGrupo;
           EscribirLineaResumen;
           FResumen.Next;
         end;

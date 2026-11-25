@@ -1477,6 +1477,7 @@ inherited frmMtoFacturasBase: TfrmMtoFacturasBase
                       Width = 100
                       FieldName = 'DESCRIPCION_FORMA_PAGO_FP'
                     end>
+                  Properties.ListFieldIndex = 1
                   Properties.ListOptions.CaseInsensitive = True
                   TabOrder = 5
                   OnKeyUp = cbbSerieFacturaKeyUp

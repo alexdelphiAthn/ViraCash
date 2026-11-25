@@ -62,6 +62,7 @@ type
 function SqlExcluirLiquidacionDepositoArqueo: string;
 function SqlPrimeraFilaDocumentoArqueo: string;
 function SqlExcluirOperacionesArqueadasAntes: string;
+function SqlFinEfectivoArqueo(const AAlias: string): string;
 
 implementation
 
@@ -70,10 +71,19 @@ uses
   inLibCatalogoSqlEjecucion,
   UniDataCatalogoSqlValidacion;
 
+function SqlFinEfectivoArqueo(const AAlias: string): string;
+begin
+  // Los cierres importados sin hora representan el día completo.
+  Result := 'CASE WHEN ' + AAlias + '.USUARIO_ALTA = ''MIGRADOR'' ' +
+    'AND ' + AAlias + '.FECHA_DESDE_ARQ = ' + AAlias + '.FECHA_HASTA_ARQ ' +
+    'AND TIME(' + AAlias + '.FECHA_HASTA_ARQ) = ''00:00:00'' ' +
+    'THEN TIMESTAMP(DATE(' + AAlias + '.FECHA_HASTA_ARQ), ''23:59:59'') ' +
+    'ELSE ' + AAlias + '.FECHA_HASTA_ARQ END';
+end;
+
 function SqlExcluirOperacionesArqueadasAntes: string;
 begin
-  // La retirada de un cierre pasado puede tener fecha fisica de hoy.
-  // Su arqueo propietario evita volver a contarla en el periodo nuevo.
+  // El saldo inicial ya recoge los cierres anteriores al rango.
   Result :=
     'AND NOT EXISTS (SELECT 1 FROM fza_caja_arqueos ac ' +
     'WHERE ac.CODIGO_ARQ = o.CODIGO_ARQUEO_OPCAJA ' +
@@ -81,7 +91,7 @@ begin
     'AND ac.CODIGO_ALM_ARQ = o.CODIGO_ALM_OPCAJA ' +
     'AND ac.CODIGO_CAJA_ARQ = o.CODIGO_CAJA_OPCAJA ' +
     'AND ac.FASE_ARQ = ''CERRADO'' ' +
-    'AND ac.FECHA_HASTA_ARQ < :pFDESDE) ';
+    'AND ' + SqlFinEfectivoArqueo('ac') + ' < :pFDESDE) ';
 end;
 
 function SqlExcluirLiquidacionDepositoArqueo: string;
@@ -384,13 +394,13 @@ end;
 function SqlEfectivoAnterior: string;
 begin
   Result :=
-    'SELECT EFECTIVO_DEJADO_CAJA_ARQ FROM fza_caja_arqueos ' +
+    'SELECT EFECTIVO_DEJADO_CAJA_ARQ FROM fza_caja_arqueos A ' +
     'WHERE CODIGO_EMP_ARQ = :pEMPRESA ' +
     'AND CODIGO_ALM_ARQ = :pALMACEN ' +
     'AND CODIGO_CAJA_ARQ = :pCAJA ' +
     'AND FASE_ARQ = ''CERRADO'' ' +
-    'AND FECHA_HASTA_ARQ <= :pFDESDE ' +
-    'ORDER BY FECHA_HASTA_ARQ DESC LIMIT 1';
+    'AND (' + SqlFinEfectivoArqueo('A') + ') <= :pFDESDE ' +
+    'ORDER BY ' + SqlFinEfectivoArqueo('A') + ' DESC LIMIT 1';
 end;
 
 function DefinicionSql(

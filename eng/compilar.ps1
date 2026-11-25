@@ -60,19 +60,19 @@ $devExpressRoot = $env:VIRACASH_DEVEXPRESS_ROOT
 if ([string]::IsNullOrWhiteSpace($devExpressRoot)) {
   $errores.Add(
     'Falta DevExpress. Defina VIRACASH_DEVEXPRESS_ROOT; consulte ' +
-    'factuzam_web\scripts\README.md.')
+    'ViraCash_web\scripts\README.md.')
 }
 $fastReportRoot = $env:VIRACASH_FASTREPORT_ROOT
 if ([string]::IsNullOrWhiteSpace($fastReportRoot)) {
   $errores.Add(
     'Falta FastReport. Defina VIRACASH_FASTREPORT_ROOT; consulte ' +
-    'factuzam_web\scripts\README.md.')
+    'ViraCash_web\scripts\README.md.')
 }
 $uniDacRoot = $env:VIRACASH_UNIDAC_ROOT
 if ([string]::IsNullOrWhiteSpace($uniDacRoot)) {
   $errores.Add(
     'Falta UniDAC. Defina VIRACASH_UNIDAC_ROOT; consulte ' +
-    'factuzam_web\scripts\README.md.')
+    'ViraCash_web\scripts\README.md.')
 }
 
 foreach ($destino in $plataformas) {

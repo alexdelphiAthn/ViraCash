@@ -23,7 +23,9 @@ type
 procedure MostrarListadoVentas(AOwner: TComponent);
 procedure MostrarListadoDocumentosProveedor(AOwner: TComponent);
 procedure MostrarListadoEfectosPago(AOwner: TComponent);
-procedure MostrarListadoLibrosIva(AOwner: TComponent);
+procedure MostrarListadoEfectosCobro(AOwner: TComponent);
+procedure MostrarListadoLibrosIva(AOwner: TComponent;
+  ASoloExpedidas: Boolean = False);
 function FacturarAlbaranesCompra(out ASerie, ANumero: string): Boolean;
 function FacturarSimplificadosPeriodo(AOwner: TComponent;
   out ASerie, ANumero: string): Boolean;
@@ -128,13 +130,33 @@ begin
   end;
 end;
 
-procedure MostrarListadoLibrosIva(AOwner: TComponent);
+procedure MostrarListadoEfectosCobro(AOwner: TComponent);
+var
+  Formulario: TfrmPrintEfectosPago;
+begin
+  Formulario := TfrmPrintEfectosPago.Create(AOwner);
+  try
+    Formulario.ConfigurarCobros;
+    Formulario.NombreIconoMenu := 'mnuListadoEfectosCobro';
+    Formulario.ShowModal;
+  finally
+    Formulario.Free;
+  end;
+end;
+
+procedure MostrarListadoLibrosIva(AOwner: TComponent;
+  ASoloExpedidas: Boolean);
 var
   Formulario: TfrmPrintLibrosIva;
 begin
   Formulario := TfrmPrintLibrosIva.Create(AOwner);
   try
     Formulario.NombreIconoMenu := 'mnuListadoLibrosIva';
+    if ASoloExpedidas then
+    begin
+      Formulario.ConfigurarExpedidas;
+      Formulario.NombreIconoMenu := 'mnuLibroFacturasExpedidas';
+    end;
     Formulario.ShowModal;
   finally
     FreeAndNil(Formulario);

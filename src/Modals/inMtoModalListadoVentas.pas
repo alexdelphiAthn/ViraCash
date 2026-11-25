@@ -10,7 +10,7 @@
 {                                                                              }
 {  Descripcion:                                                                }
 {    Listado en grid de lineas de factura de venta. Incluye filtros de fecha,  }
-{    familia, proveedor y temporada, con precarga de los ultimos dos anyos.    }
+{    familia, proveedor y temporada, con precarga del mes en curso.         }
 {******************************************************************************}
 unit inMtoModalListadoVentas;
 
@@ -29,6 +29,9 @@ uses
   cxDropDownEdit, cxCalendar, cxButtons, cxCheckBox, cxCurrencyEdit,
   JvComponentBase, JvEnterTab, inLibListadoVentasPersistenciaIntf,
   inLibDocumentosTrabajo, inLibArticulosResolverIntf;
+
+const
+  WM_CARGA_INICIAL_LISTADO_VENTAS = WM_APP + 652;
 
 type
   TfrmModalListadoVentas = class(TfrmBase)
@@ -65,8 +68,17 @@ type
     miAgregarDocumento:    TMenuItem;
     FDocumentosTrabajo:    TRepositoriosDocumentosTrabajo;
     FResolverArticulos:    IArticulosResolver;
+    FInicioProgramado:     Boolean;
+    FBuscando:             Boolean;
     procedure CrearInterfaz;
     procedure CrearFiltros;
+    procedure ConfigurarEntradaFecha(AEditor: TcxDateEdit);
+    procedure SeleccionarFecha(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure ValidarEntradaFecha(Sender: TObject; var DisplayValue: Variant;
+      var ErrorText: TCaption; var Error: Boolean);
+    function LeerFecha(AEditor: TcxDateEdit;
+      const AMensajeVacio: string): TDateTime;
     procedure CrearGrid;
     procedure CrearColumnas;
     procedure CrearMenuContextual;
@@ -74,6 +86,9 @@ type
     procedure CargarCombo(ACombo: TcxComboBox;
                           const AOpciones: TOpcionesListadoVentas);
     procedure CargarListado;
+    procedure CargarListadoInicial(var AMensaje: TMessage);
+      message WM_CARGA_INICIAL_LISTADO_VENTAS;
+    procedure EjecutarConsulta(const AFiltro: TFiltroListadoVentas);
     procedure ActualizarResumenListado;
     procedure btnBuscarClick(Sender: TObject);
     procedure btnExcelClick(Sender: TObject);
@@ -88,8 +103,10 @@ type
     procedure ConfigurarNumero(ACol: TcxGridDBColumn);
     procedure MostrarFotoArticuloActivo;
   protected
+    procedure DoShow; override;
     procedure KeyDown(var Key: Word; Shift: TShiftState); override;
   public
+    function CloseQuery: Boolean; override;
     procedure ResolverArtSkuStock(out ACodArt, ACodSku: string); override;
   end;
 
@@ -97,7 +114,8 @@ implementation
 
 uses
   inLibMensajesVcl,
-  System.Diagnostics, inLibDevExp, inLibFotos,
+  System.Diagnostics, System.Threading, inLibDevExp, inLibFotos,
+  inLibVentanaEspera,
   inLibDocumentosTrabajoPresentacion,
   inMtoFotoArticulo,
   inLibMsgComun, inLibMsgVentas, inLibMsgArticulos,
@@ -135,7 +153,29 @@ begin
   CrearInterfaz;
   AplicarTraducciones(Self, Self);
   CargarCombos;
-  CargarListado;
+end;
+
+procedure TfrmModalListadoVentas.DoShow;
+begin
+  inherited;
+  if not FInicioProgramado then
+  begin
+    FInicioProgramado := True;
+    PostMessage(Handle, WM_CARGA_INICIAL_LISTADO_VENTAS, 0, 0);
+  end;
+end;
+
+procedure TfrmModalListadoVentas.CargarListadoInicial(var AMensaje: TMessage);
+begin
+  if Visible and not FBuscando then
+    CargarListado;
+end;
+
+function TfrmModalListadoVentas.CloseQuery: Boolean;
+begin
+  Result := not FBuscando;
+  if Result then
+    Result := inherited CloseQuery;
 end;
 
 procedure TfrmModalListadoVentas.CrearInterfaz;
@@ -205,6 +245,7 @@ begin
   dteDesde.Top := 32;
   dteDesde.Width := 112;
   dteDesde.Date := StartOfTheMonth(Date);
+  ConfigurarEntradaFecha(dteDesde);
   lblHasta := TcxLabel.Create(Self);
   lblHasta.Parent := pnlFiltros;
   lblHasta.Left := 136;
@@ -217,6 +258,7 @@ begin
   dteHasta.Top := 32;
   dteHasta.Width := 112;
   dteHasta.Date := Date;
+  ConfigurarEntradaFecha(dteHasta);
   lblFamilia := TcxLabel.Create(Self);
   lblFamilia.Parent := pnlFiltros;
   lblFamilia.Left := 268;
@@ -269,6 +311,55 @@ begin
   btnBuscar.Caption := SCaptionBuscar;
   btnBuscar.Anchors := [akTop, akRight];
   btnBuscar.OnClick := btnBuscarClick;
+end;
+
+procedure TfrmModalListadoVentas.ConfigurarEntradaFecha(AEditor: TcxDateEdit);
+begin
+  AEditor.Properties.InputKind := ikStandard;
+  AEditor.Properties.AutoSelect := True;
+  AEditor.Properties.DateOnError := deNoChange;
+  AEditor.Properties.SaveTime := False;
+  AEditor.Properties.MinDate := EncodeDate(1900, 1, 1);
+  AEditor.Properties.MaxDate := EncodeDate(9999, 12, 31);
+  AEditor.Properties.OnValidate := ValidarEntradaFecha;
+  AEditor.OnMouseUp := SeleccionarFecha;
+end;
+
+procedure TfrmModalListadoVentas.SeleccionarFecha(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+begin
+  if (Button = mbLeft) and (Shift = []) then
+    TcxDateEdit(Sender).SelectAll;
+end;
+
+procedure TfrmModalListadoVentas.ValidarEntradaFecha(Sender: TObject;
+  var DisplayValue: Variant; var ErrorText: TCaption; var Error: Boolean);
+var
+  sTexto: string;
+  dFecha: TDateTime;
+begin
+  sTexto := Trim(TcxDateEdit(Sender).Text);
+  if sTexto <> '' then
+  begin
+    Error := not TryStrToDate(sTexto, dFecha) or
+      (dFecha < EncodeDate(1900, 1, 1));
+    ErrorText := SErrorFechaFiltroInformeNoValida;
+    if not Error then
+      DisplayValue := DateToStr(dFecha);
+  end;
+end;
+
+function TfrmModalListadoVentas.LeerFecha(AEditor: TcxDateEdit;
+  const AMensajeVacio: string): TDateTime;
+begin
+  AEditor.ValidateEdit(True);
+  AEditor.PostEditValue;
+  Result := DateOf(AEditor.Date);
+  if Result <= 0 then
+  begin
+    AEditor.SetFocus;
+    raise EcxEditValidationError.Create(AMensajeVacio);
+  end;
 end;
 
 procedure TfrmModalListadoVentas.CrearGrid;
@@ -426,44 +517,93 @@ end;
 
 procedure TfrmModalListadoVentas.CargarListado;
 var
-  sw: TStopwatch;
   Filtro: TFiltroListadoVentas;
+  dHasta: TDateTime;
 begin
-  if dteDesde.Date <= 0 then
-    dteDesde.Date := StartOfTheMonth(Date);
-  if dteHasta.Date <= 0 then
-    dteHasta.Date := Date;
-  if dteHasta.Date < dteDesde.Date then
-    dteHasta.Date := dteDesde.Date;
   Filtro := Default(TFiltroListadoVentas);
-  Filtro.Empresa := UbicacionSesion.Empresa;
-  Filtro.FechaDesde := Trunc(dteDesde.Date);
-  Filtro.FechaHastaExclusiva := Trunc(dteHasta.Date) + 1;
-  Filtro.Familia := CodigoCombo(cbbFamilia);
-  Filtro.Proveedor := CodigoCombo(cbbProveedor);
-  Filtro.Temporada := CodigoCombo(cbbTemporada);
-  Filtro.SoloConsolidadas := chkSoloConsolidadas.Checked;
-  Screen.Cursor := crHourGlass;
+  Filtro.FechaDesde := LeerFecha(dteDesde, SErrorFechaInicioDocumentoNoIndicada);
+  dHasta := LeerFecha(dteHasta, SErrorFechaFinDocumentoNoIndicada);
+  if dHasta < Filtro.FechaDesde then
+  begin
+    dteHasta.SetFocus;
+    raise EcxEditValidationError.Create(SErrorRangoFechasDocumentoNoValido);
+  end;
+  Filtro.FechaHastaExclusiva := dHasta + 1;
+  if (YearOf(Filtro.FechaDesde) = 9999) or
+     (Filtro.FechaHastaExclusiva <= IncYear(Filtro.FechaDesde)) or
+     (MessageDlg_fza(Self, Format(SPreguntaListadoVentasRangoAnual,
+        [DateToStr(Filtro.FechaDesde), DateToStr(dHasta)]),
+        mtWarning, [mbYes, mbNo], 0, mbNo) = mrYes) then
+  begin
+    Filtro.Empresa := UbicacionSesion.Empresa;
+    Filtro.Familia := CodigoCombo(cbbFamilia);
+    Filtro.Proveedor := CodigoCombo(cbbProveedor);
+    Filtro.Temporada := CodigoCombo(cbbTemporada);
+    Filtro.SoloConsolidadas := chkSoloConsolidadas.Checked;
+    EjecutarConsulta(Filtro);
+  end;
+end;
+
+procedure TfrmModalListadoVentas.EjecutarConsulta(
+  const AFiltro: TFiltroListadoVentas);
+var
+  oConsulta: IConsultaListadoVentas;
+  oVentana: IVentanaEspera;
+  oTarea: ITask;
+  sError: string;
+  sw: TStopwatch;
+  CursorAnterior: TCursor;
+begin
+  oConsulta := FRepositorio.PrepararConsulta(AFiltro);
+  oVentana := CrearVentanaProcesoSegundoPlano(
+    BoundsRect, CurrentPPI, STituloVentasFacturadas);
+  FBuscando := True;
   sw := TStopwatch.StartNew;
+  CursorAnterior := Screen.Cursor;
   try
+    oVentana.Mostrar(SCaptionBuscandoVentas);
+    oVentana.PermitirCancelar(True);
+    oTarea := TTask.Run(
+      procedure
+      begin
+        try
+          oConsulta.Abrir;
+        except
+          on E: Exception do
+            sError := E.Message;
+        end;
+      end);
     try
+      EsperarTareaAtendiendoMensajes(oTarea,
+        procedure
+        begin
+          if oVentana.Cancelado then
+            oConsulta.Cancelar;
+        end);
+    finally
+      EsperarTareaAtendiendoMensajes(oTarea);
+    end;
+    if not oVentana.Cancelado then
+    begin
+      if sError <> '' then
+      begin
+        RegistroLog.RegistrarError('ListadoVentas.CargarListado: ' + sError);
+        raise Exception.Create(sError);
+      end;
+      oVentana.PermitirCancelar(False);
+      Screen.Cursor := crHourGlass;
       dsVentas.DataSet := nil;
-      FConsulta := FRepositorio.ConsultarVentas(Filtro);
+      FConsulta := oConsulta;
       FDatos := FConsulta.DataSet;
       dsVentas.DataSet := FDatos;
       ActualizarResumenListado;
       RegistroLog.RegistrarRendimiento('ListadoVentas.CargarListado',
-        Format('filas=%d', [FDatos.RecordCount]),
-        sw.ElapsedMilliseconds);
-    except
-      on E: Exception do
-      begin
-        RegistroLog.RegistrarError('ListadoVentas.CargarListado: ' + E.Message);
-        raise;
-      end;
+        Format('filas=%d', [FDatos.RecordCount]), sw.ElapsedMilliseconds);
     end;
   finally
-    Screen.Cursor := crDefault;
+    Screen.Cursor := CursorAnterior;
+    FBuscando := False;
+    oVentana.Ocultar;
   end;
 end;
 
@@ -497,7 +637,8 @@ end;
 
 procedure TfrmModalListadoVentas.btnBuscarClick(Sender: TObject);
 begin
-  CargarListado;
+  if not FBuscando then
+    CargarListado;
 end;
 
 procedure TfrmModalListadoVentas.btnExcelClick(Sender: TObject);

@@ -204,6 +204,8 @@ type
     procedure btnIraClienteClick(Sender: TObject);
     procedure actClientesExecute(Sender: TObject);
     procedure btnExportarExcelClick(Sender: TObject);
+  private
+    procedure PcPestanaChange(Sender: TObject);
   public
     dmmFormasdePago: TdmFormasdePago;
     procedure CrearTablaPrincipal; override;
@@ -376,7 +378,19 @@ begin
                                                dmmFormasdePago.dsFacturasLineas;
   cbbTipoEfecto.Properties.ListSource := dmmFormasdePago.dsTiposEfecto;
   pcPestana.ActivePage := tsMasDatos;
+  pcPestana.OnChange := PcPestanaChange;
   pkFieldName := 'CODIGO_FP_FP';
+end;
+
+procedure TfrmMtoFormasdePago.PcPestanaChange(Sender: TObject);
+begin
+  if Assigned(dmmFormasdePago) then
+  begin
+    if (pcPestana.ActivePage = tsVentas) and dsTablaG.DataSet.Active then
+      dmmFormasdePago.AbrirVentas
+    else
+      dmmFormasdePago.CerrarVentas;
+  end;
 end;
 
 procedure TfrmMtoFormasdePago.ResetForm;

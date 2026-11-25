@@ -236,6 +236,7 @@ type
     property PinValeEmitido: string read FPinValeEmitido
                                    write FPinValeEmitido;
     property ImporteValeObligatorio: Currency read FImporteValeObligatorio;
+    property ImporteDevueltoDeMas: Currency read FImporteDevueltoDeMas;
     // Vale canjeado en el ticket de origen del que procede el emitido
     property CodigoValePadre: string read FCodigoValePadre;
     property HayCliente: Boolean read FHayCliente;
@@ -613,7 +614,7 @@ end;
 
 function TDatosFaseCobro.EmitirVale(AImporte: Currency): TResultadoValidacion;
 begin
-  if AImporte <= 0 then
+  if (AImporte < 0) or ((AImporte = 0) and not EsDevolucionEconomica) then
     Result := TResultadoValidacion.Error(SErrorImporteValeNoPositivo)
   else
   begin

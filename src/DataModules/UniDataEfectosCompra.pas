@@ -29,6 +29,14 @@ type
 
   TClavesEfectoCompra = TArray<TClaveEfectoCompra>;
 
+  TReprogramacionEfectoCompra = record
+    Clave: TClaveEfectoCompra;
+    FechaAnterior: TDateTime;
+    FechaNueva: TDateTime;
+    ImporteAnterior: Currency;
+    ImporteNuevo: Currency;
+  end;
+
   TdmEfectosCompra = class(TdmBase)
     procedure unqryTablaGBeforeDelete(DataSet: TDataSet);
   private
@@ -79,18 +87,155 @@ type
     // estado CONCILIADO y referenciados al efecto resumen.
     function FusionarEfectosPendientes(const AClaves: TClavesEfectoCompra;
       out AReferencia: string): Integer;
+    procedure Reprogramar(const ACambio: TReprogramacionEfectoCompra);
   end;
+
+procedure ReprogramarEfectoCompra(AConexion: TUniConnection;
+  const AUsuario: string; const ACambio: TReprogramacionEfectoCompra);
 
 implementation
 
 uses
-  inLibMsgCompras;
+  System.DateUtils, System.Math, System.Variants,
+  inLibErroresBBDD, inLibMsgCompras;
 
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 
 {$R *.dfm}
 
 procedure ForceReferenceToClass(C: TClass); begin end;
+
+resourcestring
+  SErrorReprogramarEfectoCambio =
+    'El efecto ya cambió o no está pendiente y sin remesar. Actualiza la lista.';
+  SErrorReprogramarSinPlazo =
+    'El ajuste necesita otro plazo pendiente de la misma factura ' +
+    'que pueda absorber la diferencia.';
+  SErrorReprogramarImporte =
+    'El importe debe mantener el signo y tener como máximo dos decimales.';
+
+procedure ReprogramarEfectoCompra(AConexion: TUniConnection;
+  const AUsuario: string; const ACambio: TReprogramacionEfectoCompra);
+var
+  oLectura, oEscritura: TUniQuery;
+  dDiferencia, dOtroImporte, dNuevoOtroImporte: Currency;
+  iEfecto, iOtroEfecto: Integer;
+  bEfectoVigente: Boolean;
+
+  procedure AsignarFactura(AConsulta: TUniQuery);
+  begin
+    AConsulta.ParamByName('SERIE').AsString := ACambio.Clave.SerieFac;
+    AConsulta.ParamByName('NUMERO').AsString := ACambio.Clave.NumeroFac;
+  end;
+
+  procedure ActualizarPlazo(ANumero: Integer; AImporte: Currency;
+    AFecha: TDateTime; ACambiarImporte, ACambiarFecha: Boolean);
+  begin
+    oEscritura.SQL.Text := 'UPDATE fza_efectos_compra SET ' +
+      'USUARIO_MODIF = :USUARIO, INSTANTE_MODIF = CURRENT_TIMESTAMP';
+    if ACambiarImporte then
+      oEscritura.SQL.Add(', IMPORTE_EFEC = :IMPORTE, ' +
+        'IMPORTE_PENDIENTE_EFEC = :IMPORTE');
+    if ACambiarFecha then
+      oEscritura.SQL.Add(', FECHA_VENCIMIENTO_EFEC = :FECHA');
+    oEscritura.SQL.Add('WHERE SERIE_FACC_EFEC = :SERIE ' +
+      'AND NUMERO_FACC_EFEC = :NUMERO AND NUMERO_EFEC = :EFECTO');
+    AsignarFactura(oEscritura);
+    oEscritura.ParamByName('USUARIO').AsString := AUsuario;
+    oEscritura.ParamByName('EFECTO').AsInteger := ANumero;
+    if ACambiarImporte then
+      oEscritura.ParamByName('IMPORTE').AsCurrency := AImporte;
+    if ACambiarFecha then
+      oEscritura.ParamByName('FECHA').AsDateTime := DateOf(AFecha);
+    oEscritura.ExecSQL;
+  end;
+
+begin
+  if AConexion.InTransaction then
+    raise EValidacionBBDD.Create(SErrorReprogramarEfectoCambio);
+
+  dDiferencia := ACambio.ImporteNuevo - ACambio.ImporteAnterior;
+  if (dDiferencia <> 0) and
+     ((ACambio.ImporteNuevo = 0) or
+      (Sign(ACambio.ImporteNuevo) <> Sign(ACambio.ImporteAnterior)) or
+      (Frac(ACambio.ImporteNuevo * 100) <> 0) or
+      (Frac(ACambio.ImporteAnterior * 100) <> 0)) then
+    raise EValidacionBBDD.Create(SErrorReprogramarImporte);
+
+  oLectura := TUniQuery.Create(nil);
+  oEscritura := TUniQuery.Create(oLectura);
+  try
+    oLectura.Connection := AConexion;
+    oEscritura.Connection := AConexion;
+    AConexion.StartTransaction;
+    try
+      oLectura.SQL.Text := 'SELECT NUMERO_EFEC, IMPORTE_EFEC, ' +
+        'FECHA_VENCIMIENTO_EFEC FROM fza_efectos_compra ' +
+        'WHERE SERIE_FACC_EFEC = :SERIE AND NUMERO_FACC_EFEC = :NUMERO ' +
+        'AND ESTADO_EFEC = ''PENDIENTE'' ' +
+        'AND COALESCE(IMPORTE_PAGADO_EFEC, 0) = 0 ' +
+        'AND IMPORTE_PENDIENTE_EFEC = IMPORTE_EFEC ' +
+        'AND COALESCE(ESCONCILIADO_EFEC, ''N'') <> ''S'' ' +
+        'AND COALESCE(SERIE_REMC_EFEC, '''') = '''' ' +
+        'AND COALESCE(NUMERO_REMC_EFEC, '''') = '''' ' +
+        'ORDER BY NUMERO_EFEC FOR UPDATE';
+      AsignarFactura(oLectura);
+      oLectura.Open;
+      bEfectoVigente := False;
+      iOtroEfecto := 0;
+      dNuevoOtroImporte := 0;
+      while not oLectura.Eof do
+      begin
+        iEfecto := oLectura.FieldByName('NUMERO_EFEC').AsInteger;
+        if iEfecto = ACambio.Clave.NumeroEfec then
+          bEfectoVigente :=
+            (oLectura.FieldByName('IMPORTE_EFEC').AsCurrency =
+              ACambio.ImporteAnterior) and
+            (oLectura.FieldByName('FECHA_VENCIMIENTO_EFEC').AsDateTime =
+              ACambio.FechaAnterior)
+        else if dDiferencia <> 0 then
+        begin
+          dOtroImporte := oLectura.FieldByName('IMPORTE_EFEC').AsCurrency;
+          if (Frac(dOtroImporte * 100) = 0) and
+             (Sign(dOtroImporte) = Sign(ACambio.ImporteAnterior)) and
+             (Sign(dOtroImporte - dDiferencia) = Sign(dOtroImporte)) then
+          begin
+            iOtroEfecto := iEfecto;
+            dNuevoOtroImporte := dOtroImporte - dDiferencia;
+          end;
+        end;
+        oLectura.Next;
+      end;
+      oLectura.Close;
+      if not bEfectoVigente then
+        raise EValidacionBBDD.Create(SErrorReprogramarEfectoCambio);
+      if (dDiferencia <> 0) and (iOtroEfecto = 0) then
+        raise EValidacionBBDD.Create(SErrorReprogramarSinPlazo);
+      if iOtroEfecto <> 0 then
+        ActualizarPlazo(iOtroEfecto, dNuevoOtroImporte, 0, True, False);
+      if (dDiferencia <> 0) or (ACambio.FechaNueva <> ACambio.FechaAnterior)
+        then
+        ActualizarPlazo(ACambio.Clave.NumeroEfec, ACambio.ImporteNuevo,
+          ACambio.FechaNueva, dDiferencia <> 0, True);
+      AConexion.Commit;
+    except
+      if AConexion.InTransaction then
+        AConexion.Rollback;
+      raise;
+    end;
+  finally
+    oLectura.Free;
+  end;
+end;
+
+procedure TdmEfectosCompra.Reprogramar(const ACambio: TReprogramacionEfectoCompra);
+begin
+  ReprogramarEfectoCompra(ConexionPrincipal, IdentidadSesion.Usuario, ACambio);
+  RefrescarCartera;
+  unqryTablaG.Locate('SERIE_FACC_EFEC;NUMERO_FACC_EFEC;NUMERO_EFEC',
+    VarArrayOf([ACambio.Clave.SerieFac, ACambio.Clave.NumeroFac,
+      ACambio.Clave.NumeroEfec]), []);
+end;
 
 procedure TdmEfectosCompra.unqryTablaGBeforeDelete(DataSet: TDataSet);
 var

@@ -154,6 +154,7 @@ type
     procedure AvisarAntesDeConsulta; override;
     // Los descendientes redefinen esto para elegir qué pestañas mostrar.
     function FiltrosUsados: TFiltrosReport; virtual;
+    function UsaFechaCorte: Boolean; virtual;
     function EmpresaAlmacenes: string; virtual;
     // Aviso tras marcar o desmarcar un almacén (FZ-ISSUE-935).
     procedure AlmacenesCambiados; virtual;
@@ -365,6 +366,11 @@ begin
   end;
 end;
 
+function TfrmPrintMultiFiltro.UsaFechaCorte: Boolean;
+begin
+  Result := False;
+end;
+
 procedure TfrmPrintMultiFiltro.CrearTabFechas;
 var
   lblD, lblH: TcxLabel;
@@ -398,6 +404,15 @@ begin
   ConfigurarFecha(FdteHasta);
   FdteDesde.Date := EncodeDate(YearOf(Date), MonthOf(Date), 1);
   FdteHasta.Date := Date;
+  if UsaFechaCorte then
+  begin
+    lblD.Visible := False;
+    FdteDesde.Visible := False;
+    FdteDesde.Enabled := False;
+    lblH.Caption := 'Fecha de corte';
+    lblH.Top := 16;
+    FdteHasta.Top := 38;
+  end;
 end;
 
 procedure TfrmPrintMultiFiltro.ConfigurarFecha(AEditor: TcxDateEdit);
@@ -463,7 +478,9 @@ end;
 procedure TfrmPrintMultiFiltro.ValidarFechas;
 begin
   // El balance por acumulados no aplica las fechas deshabilitadas.
-  if Assigned(FdteDesde) and FdteDesde.Enabled and
+  if UsaFechaCorte and Assigned(FdteHasta) then
+    ValidarEditorFecha(FdteHasta, SErrorFechaFinDocumentoNoIndicada)
+  else if Assigned(FdteDesde) and FdteDesde.Enabled and
      Assigned(FdteHasta) and FdteHasta.Enabled then
   begin
     ValidarEditorFecha(FdteDesde, SErrorFechaInicioDocumentoNoIndicada);

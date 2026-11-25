@@ -184,6 +184,8 @@
     Connection = dmConn.conUni
     SQL.Strings = (
       'SELECT V.*,'
+      '       COALESCE(NULLIF(TRIM(P.DESCRIPCION_FORMA_PAGO_FP), '#39#39'),'
+      '         A.FORMA_PAGO_ALBC) AS FORMA_PAGO_IMPRESION,'
       '       COALESCE(TRIM(A.LOTE_REPOSICION_ALBC), '#39#39') AS LOTE_REPOSICION_ALBC,'
       '       A.TOTAL_BRUTO_ALBC AS TOTAL_BRUTO_ALBC_PRINT,'
       '       A.PORCENTAJE_DTO_COMERCIAL_ALBC AS PORCENTAJE_DTO_COMERCIAL_ALBC_PRINT,'
@@ -194,6 +196,7 @@
       '  LEFT JOIN fza_albaranes_compra A'
       '    ON A.SERIE_ALBC = V.SERIE_ALBC'
       '   AND A.NUMERO_ALBC = V.NUMERO_ALBC'
+      '  LEFT JOIN fza_formas_pago P ON P.CODIGO_FP_FP = A.FORMA_PAGO_ALBC'
       ' WHERE V.SERIE_ALBC = :SERIE_ALBC'
       '   AND V.NUMERO_ALBC = :NUMERO_ALBC')
     Left = 360

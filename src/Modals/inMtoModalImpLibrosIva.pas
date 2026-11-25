@@ -41,6 +41,7 @@ type
     procedure btnExcelNativoClick(Sender: TObject);
   private
     FInicializado: Boolean;
+    FSoloExpedidas: Boolean;
     FRepositorio: IRepositorioInformeLibrosIva;
     FResultado: IResultadoInformeLibrosIva;
     FclbEmpresas: TcxCheckListBox;
@@ -59,11 +60,13 @@ type
     function CriteriosActuales: TCriteriosInformeLibrosIva;
   protected
     function FiltrosUsados: TFiltrosReport; override;
+    function EmpresaAlmacenes: string; override;
     procedure AvisarAntesDeConsulta; override;
     procedure DescribirSelecciones(
       AResumen: TResumenSeleccionesInforme); override;
     procedure DoShow; override;
   public
+    procedure ConfigurarExpedidas;
     procedure preparar_consulta; override;
     procedure AfterReportLoaded; override;
   end;
@@ -74,7 +77,8 @@ uses
   System.DateUtils,
   UniDataInformeLibrosIvaRepositorio,
   inLibLibrosIva, inLibLibrosIvaExcel, inLibVerifactu,
-  inLibResumenSeleccionesVcl, inMtoPreviewExcel, inLibMensajesVcl;
+  inLibResumenSeleccionesVcl, inMtoPreviewExcel, inLibMensajesVcl,
+  inLibMsgComun;
 
 const
   // FZ-ISSUE-632: facturas sin n.º de proveedor listadas en el aviso.
@@ -82,11 +86,33 @@ const
 
 {$R *.dfm}
 
+resourcestring
+  STituloLibroFacturasExpedidas = 'Libro de facturas expedidas';
+  SConsultarLibroFacturasExpedidas = 'Consultar / Excel';
+
 { TfrmPrintLibrosIva }
+
+procedure TfrmPrintLibrosIva.ConfigurarExpedidas;
+begin
+  FSoloExpedidas := True;
+  Caption := STituloLibroFacturasExpedidas;
+  btnVistaPreliminar.Visible := False;
+  btnPDF.Visible := False;
+  btnImprimir.Visible := False;
+  btnEditar.Visible := False;
+  btnExcel.Caption := SConsultarLibroFacturasExpedidas;
+end;
+
+function TfrmPrintLibrosIva.EmpresaAlmacenes: string;
+begin
+  Result := UbicacionSesion.Empresa;
+end;
 
 function TfrmPrintLibrosIva.FiltrosUsados: TFiltrosReport;
 begin
   Result := [frFechas];
+  if FSoloExpedidas then
+    Include(Result, frAlmacenes);
 end;
 
 procedure TfrmPrintLibrosIva.DoShow;
@@ -110,10 +136,13 @@ end;
 procedure TfrmPrintLibrosIva.CrearControlesPropios;
 begin
   CrearSelectorPeriodo;
-  FclbEmpresas := CrearTabChecklist(STituloEmpresasLibrosIva);
-  CargarEmpresas;
-  FclbLibros := CrearTabChecklist(STituloLibrosLibrosIva);
-  CargarLibros;
+  if not FSoloExpedidas then
+  begin
+    FclbEmpresas := CrearTabChecklist(STituloEmpresasLibrosIva);
+    CargarEmpresas;
+    FclbLibros := CrearTabChecklist(STituloLibrosLibrosIva);
+    CargarLibros;
+  end;
 end;
 
 // Ejercicio y periodo a la derecha de las fechas. Elegir periodo rellena
@@ -243,16 +272,34 @@ begin
   if FcbPeriodo <> nil then
     AResumen.Anadir(SEtiquetaPeriodoLibrosIva, TextoPeriodo);
   inherited;
-  AnadirMarcados(AResumen, STituloEmpresasLibrosIva, FclbEmpresas);
-  AnadirMarcados(AResumen, STituloLibrosLibrosIva, FclbLibros);
+  if FSoloExpedidas then
+    AResumen.Anadir(STituloEmpresasLibrosIva, UbicacionSesion.Empresa)
+  else
+  begin
+    AnadirMarcados(AResumen, STituloEmpresasLibrosIva, FclbEmpresas);
+    AnadirMarcados(AResumen, STituloLibrosLibrosIva, FclbLibros);
+  end;
 end;
 
 function TfrmPrintLibrosIva.CriteriosActuales: TCriteriosInformeLibrosIva;
 begin
+  Result := Default(TCriteriosInformeLibrosIva);
   Result.FechaDesde := FechaDesde;
   Result.FechaHasta := FechaHasta;
-  Result.Empresas := SeleccionadosCSV(FclbEmpresas);
-  Result.Libros := SeleccionadosCSV(FclbLibros);
+  Result.SoloExpedidas := FSoloExpedidas;
+  if FSoloExpedidas then
+  begin
+    Result.Empresas := UbicacionSesion.Empresa;
+    if Result.Empresas = '' then
+      raise EArgumentException.Create(STextoDebeIndicarLaEmpresaDeSesionComun);
+    Result.Almacenes := CSVAlmacenes;
+    Result.Libros := CLibroIvaRepercutido;
+  end
+  else
+  begin
+    Result.Empresas := SeleccionadosCSV(FclbEmpresas);
+    Result.Libros := SeleccionadosCSV(FclbLibros);
+  end;
   Result.IncluirSinFase := SinVerifactuActivo(ParametrosApp);
 end;
 

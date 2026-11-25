@@ -146,6 +146,8 @@ type
   TFormaPagoAdicionalDocumento = reference to function(
     const AOpciones: TOpcionesDocumento; out AFormaPago: string): Boolean;
 
+  TListarSeriesOpcionesDocumento = reference to function: TArray<string>;
+
   TConfiguracionOpcionesDocumento = record
     Titulo: string;
     // Texto explicativo opcional encima de los campos.
@@ -167,6 +169,7 @@ type
     SerieOpcional: Boolean;
     // Para emisiones que deben usar las series ofrecidas por el lector.
     SerieSoloLista: Boolean;
+    ListarSeriesPermitidas: TListarSeriesOpcionesDocumento;
     Validar: TValidarOpcionesDocumento;
     // True propone una forma de pago al cambiar el tercero; False conserva
     // la elección manual del usuario al modificar otros campos.
@@ -194,6 +197,8 @@ type
       const AEmpresa: string): string;
     function ListarSeries(const AEmpresa, ATipo,
       ASubtipo: string): TArray<string>;
+    function ObtenerSerieCompraHabitual(const AEmpresa, ATipo: string;
+      AFecha: TDateTime; const ADisponibles: TArray<string>): string;
     // Serie general vigente de factura normal, sin asociar a almacén.
     function ObtenerSerieGeneralFactura(const AEmpresa: string): string;
     function ObtenerSerieAlmacen(const AEmpresa, ATipo, ASubtipo,

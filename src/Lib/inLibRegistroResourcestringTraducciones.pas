@@ -13878,6 +13878,12 @@ begin
     'src/Lib/inLibMsgCaja.pas',
     @inLibMsgCaja.
       SCaptionNumOperaciones);
+  ARegistrar('inLibMsgCaja.SCaptionValeEmitido',
+    'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.SCaptionValeEmitido);
+  ARegistrar('inLibMsgCaja.SCaptionExcesoDevolucion',
+    'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.SCaptionExcesoDevolucion);
+  ARegistrar('inLibMsgCaja.SCaptionValeDevolucionMinimo',
+    'src/Lib/inLibMsgCaja.pas', @inLibMsgCaja.SCaptionValeDevolucionMinimo);
   ARegistrar(
     'inLibMsgCaja.' +
     'SCaptionPendienteDevolver',
@@ -15045,6 +15051,11 @@ begin
     'src/Lib/inLibMsgCompras.pas',
     @inLibMsgCompras.
       SErrorAlmacenPedidoCompraNoSeleccionado);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SAvisoAltaCompraSinSeries',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SAvisoAltaCompraSinSeries);
   ARegistrar(
     'inLibMsgCompras.' +
     'SPedidoCompraConRecepcionesNoBorrable',
@@ -24572,6 +24583,16 @@ begin
     'src/Lib/inLibMsgVentas.pas',
     @inLibMsgVentas.
       SCaptionSoloEmitidas);
+  ARegistrar(
+    'inLibMsgVentas.' +
+    'SCaptionBuscandoVentas',
+    'src/Lib/inLibMsgVentas.pas',
+    @inLibMsgVentas.SCaptionBuscandoVentas);
+  ARegistrar(
+    'inLibMsgVentas.' +
+    'SPreguntaListadoVentasRangoAnual',
+    'src/Lib/inLibMsgVentas.pas',
+    @inLibMsgVentas.SPreguntaListadoVentasRangoAnual);
   ARegistrar(
     'inLibMsgVentas.' +
     'SCaptionLineasCargadas',
@@ -34251,6 +34272,11 @@ begin
     'src/Lib/inLibMsgCompras.pas',
     @inLibMsgCompras.
       SCaptionReabrirFacturaCompra);
+  ARegistrar(
+    'inLibMsgCompras.' +
+    'SAvisoCerrarCompraSinEfectos',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SAvisoCerrarCompraSinEfectos);
   ARegistrar(
     'inLibMsgCompras.' +
     'SPreguntaCerrarFacturaCompra',

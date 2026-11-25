@@ -22,7 +22,7 @@ function CrearRepositorioCajaPagosHistUniDAC(
 implementation
 
 uses
-  System.SysUtils;
+  System.Classes, System.SysUtils;
 
 type
   TRepositorioCajaPagosHistUniDAC = class(
@@ -30,14 +30,18 @@ type
     IRepositorioCajaPagosHist)
   private
     FConsulta: TUniQuery;
+    FConexionLectura: TUniConnection;
+    FCancelada: Integer;
+    FEjecutando: Integer;
+    FUltimoCorte: UInt64;
     function ConstruirSql(
       const AFiltros: TFiltrosCajaPagosHist): string;
   public
     constructor Create(AConsulta: TUniQuery);
-    function ListarAnyos: TCadenasCajaPagosHist;
     procedure PrepararConsulta(
       const AFiltros: TFiltrosCajaPagosHist);
     procedure AbrirConsulta;
+    procedure CancelarConsulta;
   end;
 
 constructor TRepositorioCajaPagosHistUniDAC.Create(
@@ -61,23 +65,7 @@ function TRepositorioCajaPagosHistUniDAC.ConstruirSql(
     end;
   end;
 
-var
-  iAnyo: Integer;
-  nAnyo: Integer;
-  sAnyos: string;
 begin
-  sAnyos := '';
-  for iAnyo := Low(AFiltros.Anyos) to High(AFiltros.Anyos) do
-  begin
-    if TryStrToInt(AFiltros.Anyos[iAnyo], nAnyo) then
-    begin
-      if sAnyos <> '' then
-      begin
-        sAnyos := sAnyos + ', ';
-      end;
-      sAnyos := sAnyos + IntToStr(nAnyo);
-    end;
-  end;
   // FZ-ISSUE-861: los gastos se guardan positivos, pero son salidas.
   Result := 'SELECT ' +
     'CODIGO_EMP_PAGO, ' +
@@ -99,6 +87,10 @@ begin
     'CASE WHEN TIPO_OPERACION_PAGO = ''GC'' THEN ' +
     '-ABS(IMPORTE_CAMBIO_PAGO) ELSE IMPORTE_CAMBIO_PAGO ' +
     'END AS IMPORTE_CAMBIO_PAGO, ' +
+    'CASE WHEN TIPO_OPERACION_PAGO = ''GC'' THEN ' +
+    '-ABS(IMPORTE_ENTREGADO_PAGO) + ABS(IMPORTE_CAMBIO_PAGO) ' +
+    'ELSE IMPORTE_ENTREGADO_PAGO - IMPORTE_CAMBIO_PAGO ' +
+    'END AS NETO_PAGO, ' +
     'REFERENCIA_FACPAG, ' +
     'OBSERVACIONES_PAGO, ' +
     'INSTANTE_MODIF, ' +
@@ -125,10 +117,10 @@ begin
     'CODIGO_CLI_FAC_PAGO, ' +
     'CLIENTE_FAC_PAGO ' +
     'FROM vi_caja_pagos WHERE 1 = 1';
-  if sAnyos <> '' then
-  begin
-    Result := Result + ' AND YEAR(FECHA_PAGO) IN (' + sAnyos + ')';
-  end;
+  if AFiltros.SinFilas then
+    Result := Result + ' AND 1 = 0'
+  else if AFiltros.HastaExclusiva > 0 then
+    Result := Result + ' AND FECHA_PAGO >= :DESDE AND FECHA_PAGO < :HASTA';
   Result := Result + FragmentoDimension(
     'CODIGO_EMP_PAGO',
     AFiltros.Empresa);
@@ -141,49 +133,68 @@ begin
   Result := Result + ' ORDER BY FECHA_PAGO DESC';
 end;
 
-function TRepositorioCajaPagosHistUniDAC.ListarAnyos:
-  TCadenasCajaPagosHist;
-var
-  oConsulta: TUniQuery;
-  iAnyo: Integer;
-begin
-  SetLength(Result, 0);
-  oConsulta := TUniQuery.Create(nil);
-  try
-    oConsulta.Connection := FConsulta.Connection;
-    oConsulta.SQL.Text :=
-      'SELECT DISTINCT YEAR(FECHA_PAGO) AS ANYO ' +
-      'FROM vi_caja_pagos ' +
-      'WHERE FECHA_PAGO IS NOT NULL ' +
-      'ORDER BY ANYO DESC';
-    oConsulta.Open;
-    while not oConsulta.Eof do
-    begin
-      iAnyo := Length(Result);
-      SetLength(Result, iAnyo + 1);
-      Result[iAnyo] := oConsulta.FieldByName('ANYO').AsString;
-      oConsulta.Next;
-    end;
-  finally
-    FreeAndNil(oConsulta);
-  end;
-end;
 
 procedure TRepositorioCajaPagosHistUniDAC.PrepararConsulta(
   const AFiltros: TFiltrosCajaPagosHist);
 begin
   FConsulta.Close;
+  if (AFiltros.HastaExclusiva > 0) and not Assigned(FConexionLectura) then
+  begin
+    // BreakExec solo debe afectar a la conexión de esta consulta.
+    FConexionLectura := TUniConnection.Create(FConsulta);
+    try
+      FConexionLectura.Assign(FConsulta.Connection);
+      FConexionLectura.LoginPrompt := False;
+      FConsulta.Connection := FConexionLectura;
+    except
+      FreeAndNil(FConexionLectura);
+      raise;
+    end;
+  end;
+  AtomicExchange(FCancelada, 0);
+  FUltimoCorte := 0;
   // Refrescar debe releer el importe firmado, no el SELECT crudo del DFM.
   FConsulta.SQLRefresh.Clear;
   FConsulta.ReadOnly := True;
   FConsulta.SQL.Text := ConstruirSql(AFiltros);
+  if not AFiltros.SinFilas and (AFiltros.HastaExclusiva > 0) then
+  begin
+    FConsulta.ParamByName('DESDE').AsDateTime := AFiltros.Desde;
+    FConsulta.ParamByName('HASTA').AsDateTime := AFiltros.HastaExclusiva;
+  end;
 end;
 
 procedure TRepositorioCajaPagosHistUniDAC.AbrirConsulta;
 begin
-  if not FConsulta.Active then
+  if not FConsulta.Active and (AtomicCmpExchange(FCancelada, 0, 0) = 0) then
   begin
-    FConsulta.Open;
+    if Assigned(FConexionLectura) then
+      FConexionLectura.Connect;
+    AtomicExchange(FEjecutando, 1);
+    try
+      if AtomicCmpExchange(FCancelada, 0, 0) = 0 then
+      begin
+        FConsulta.Open;
+        FConsulta.Last;
+        FConsulta.First;
+      end;
+    finally
+      AtomicExchange(FEjecutando, 0);
+    end;
+  end;
+end;
+
+procedure TRepositorioCajaPagosHistUniDAC.CancelarConsulta;
+var
+  iAhora: UInt64;
+begin
+  AtomicExchange(FCancelada, 1);
+  iAhora := TThread.GetTickCount64;
+  if (AtomicCmpExchange(FEjecutando, 0, 0) <> 0) and
+     ((FUltimoCorte = 0) or (iAhora - FUltimoCorte >= 1000)) then
+  begin
+    FUltimoCorte := iAhora;
+    FConsulta.BreakExec;
   end;
 end;
 

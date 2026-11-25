@@ -40,6 +40,8 @@ type
     fxdsEfectosPago: TfrxDBDataset;
   private
     FInicializado: Boolean;
+    FEsCobros: Boolean;
+    FtxtCliente: TcxTextEdit;
     FRepositorioEfectos: IRepositorioInformeEfectosPago;
     FResultadoEfectos: IResultadoInformeEfectosPago;
     FrgTipoFecha: TcxRadioGroup;
@@ -51,6 +53,8 @@ type
     FclbTipos: TcxCheckListBox;
     FclbSituaciones: TcxCheckListBox;
     FclbBancos: TcxCheckListBox;
+    procedure CrearControlesCobros;
+    procedure RotularInformeCobros;
     procedure CrearControlesPropios;
     procedure CargarChecklist(
       AClb: TcxCheckListBox;
@@ -70,12 +74,14 @@ type
   protected
     procedure ConstruirExcelNativo(AControl: TdxSpreadSheet); override;
     function FiltrosUsados: TFiltrosReport; override;
+    function UsaFechaCorte: Boolean; override;
     procedure DescribirSelecciones(
       AResumen: TResumenSeleccionesInforme); override;
     function OrigenProveedores:
       TOrigenProveedoresInformeMultiFiltro; override;
     procedure DoShow; override;
   public
+    procedure ConfigurarCobros;
     procedure preparar_consulta; override;
     procedure AfterReportLoaded; override;
   end;
@@ -98,12 +104,32 @@ resourcestring
   SCaptionAlmacenesInformeEfectosPago = 'Almacenes';
   SCaptionFechasInformeEfectosPago = 'Fechas';
   SCaptionProveedoresInformeEfectosPago = 'Proveedores';
+  STituloInformeCobros = 'Listado de efectos de cobro';
+  SCorteInformeCobros = 'Fecha de corte';
+  SClienteInformeCobros = 'Código de cliente (vacío para todos)';
+  SLimiteHistoricoCobros = 'Las devoluciones registradas después del ' +
+    'corte pueden haber borrado la fecha del cobro original.';
 
 { TfrmPrintEfectosPago }
 
 function TfrmPrintEfectosPago.FiltrosUsados: TFiltrosReport;
 begin
-  Result := [frFechas, frAlmacenes, frProveedores];
+  if FEsCobros then
+    Result := [frFechas]
+  else
+    Result := [frFechas, frAlmacenes, frProveedores];
+end;
+
+function TfrmPrintEfectosPago.UsaFechaCorte: Boolean;
+begin
+  Result := FEsCobros;
+end;
+
+procedure TfrmPrintEfectosPago.ConfigurarCobros;
+begin
+  FEsCobros := True;
+  Name := 'frmPrintEfectosCobro';
+  Caption := STituloInformeCobros;
 end;
 
 function TfrmPrintEfectosPago.OrigenProveedores:
@@ -118,11 +144,35 @@ begin
   btnExcel.OnClick := btnExcelNativoClick;
   if not FInicializado then
   begin
-    FRepositorioEfectos := CrearRepositorioInformeEfectosPagoUniDAC(
-      ConexionPrincipal);
-    CrearControlesPropios;
+    if FEsCobros then
+      CrearControlesCobros
+    else
+    begin
+      FRepositorioEfectos := CrearRepositorioInformeEfectosPagoUniDAC(
+        ConexionPrincipal);
+      CrearControlesPropios;
+    end;
     FInicializado := True;
   end;
+end;
+
+procedure TfrmPrintEfectosPago.CrearControlesCobros;
+var
+  oEtiqueta: TcxLabel;
+begin
+  oEtiqueta := TcxLabel.Create(Self);
+  oEtiqueta.Parent := TabFechas;
+  oEtiqueta.SetBounds(16, 75, 260, 20);
+  oEtiqueta.Caption := SClienteInformeCobros;
+  FtxtCliente := TcxTextEdit.Create(Self);
+  FtxtCliente.Parent := TabFechas;
+  FtxtCliente.SetBounds(16, 97, 160, 23);
+  FtxtCliente.Properties.MaxLength := 20;
+  oEtiqueta := TcxLabel.Create(Self);
+  oEtiqueta.Parent := TabFechas;
+  oEtiqueta.SetBounds(16, 135, 515, 40);
+  oEtiqueta.Properties.WordWrap := True;
+  oEtiqueta.Caption := SLimiteHistoricoCobros;
 end;
 
 procedure TfrmPrintEfectosPago.CrearControlesPropios;
@@ -320,27 +370,37 @@ procedure TfrmPrintEfectosPago.DescribirSelecciones(
   AResumen: TResumenSeleccionesInforme);
 begin
   inherited;
-  AnadirOpcionRadio(AResumen, FrgTipoFecha);
-  AnadirOpcionRadio(AResumen, FrgSituacion);
-  if TextoNumero(FtxtNumeroDesde) <> '' then
-    AResumen.Anadir(
-      SCaptionNumEfectoDesde, TextoNumero(FtxtNumeroDesde));
-  if TextoNumero(FtxtNumeroHasta) <> '' then
-    AResumen.Anadir(
-      SCaptionNumEfectoHasta, TextoNumero(FtxtNumeroHasta));
-  AnadirCasilla(AResumen, FchkSoloTotales);
-  // Sin niveles marcados la consulta totaliza por banco.
-  AnadirMarcados(
-    AResumen,
-    STituloTotalesInformeEfectosPago,
-    FclbTotales,
-    STituloBancosInformeEfectosPago);
-  AnadirMarcados(
-    AResumen, STituloTiposInformeEfectosPago, FclbTipos);
-  AnadirMarcados(
-    AResumen, STituloSituacionesInformeEfectosPago, FclbSituaciones);
-  AnadirMarcados(
-    AResumen, STituloBancosInformeEfectosPago, FclbBancos);
+  if FEsCobros then
+  begin
+    AResumen.Anadir(SCorteInformeCobros, DateToStr(FechaHasta));
+    AResumen.Anadir('Histórico', SLimiteHistoricoCobros);
+    if Trim(FtxtCliente.Text) <> '' then
+      AResumen.Anadir('Cliente', Trim(FtxtCliente.Text));
+  end
+  else
+  begin
+    AnadirOpcionRadio(AResumen, FrgTipoFecha);
+    AnadirOpcionRadio(AResumen, FrgSituacion);
+    if TextoNumero(FtxtNumeroDesde) <> '' then
+      AResumen.Anadir(
+        SCaptionNumEfectoDesde, TextoNumero(FtxtNumeroDesde));
+    if TextoNumero(FtxtNumeroHasta) <> '' then
+      AResumen.Anadir(
+        SCaptionNumEfectoHasta, TextoNumero(FtxtNumeroHasta));
+    AnadirCasilla(AResumen, FchkSoloTotales);
+    // Sin niveles marcados la consulta totaliza por banco.
+    AnadirMarcados(
+      AResumen,
+      STituloTotalesInformeEfectosPago,
+      FclbTotales,
+      STituloBancosInformeEfectosPago);
+    AnadirMarcados(
+      AResumen, STituloTiposInformeEfectosPago, FclbTipos);
+    AnadirMarcados(
+      AResumen, STituloSituacionesInformeEfectosPago, FclbSituaciones);
+    AnadirMarcados(
+      AResumen, STituloBancosInformeEfectosPago, FclbBancos);
+  end;
 end;
 
 procedure TfrmPrintEfectosPago.preparar_consulta;
@@ -348,30 +408,36 @@ var
   criterios: TCriteriosInformeEfectosPago;
 begin
   inherited;
-  criterios.Empresa := UbicacionSesion.Empresa;
-  criterios.FechaDesde := DateOf(FechaDesde);
-  criterios.FechaHasta := DateOf(FechaHasta);
-  criterios.Almacenes := CSVAlmacenes;
-  criterios.Proveedores := CSVProveedores;
-  criterios.Tipos := CSVTipos;
-  criterios.Situaciones := CSVSituaciones;
-  criterios.Bancos := CSVBancos;
-  criterios.NumeroDesde := TextoNumero(FtxtNumeroDesde);
-  criterios.NumeroHasta := TextoNumero(FtxtNumeroHasta);
-  if FrgTipoFecha <> nil then
-    criterios.TipoFecha := FrgTipoFecha.ItemIndex
-  else
-    criterios.TipoFecha := 2;
-  if FrgSituacion <> nil then
-    criterios.ModoSituacion := FrgSituacion.ItemIndex
-  else
-    criterios.ModoSituacion := 3;
-  criterios.Niveles := NivelesTotales;
-  if FRepositorioEfectos = nil then
-    FRepositorioEfectos := CrearRepositorioInformeEfectosPagoUniDAC(
-      ConexionPrincipal);
   fxdsEfectosPago.DataSet := nil;
-  FResultadoEfectos := FRepositorioEfectos.Preparar(criterios);
+  if FEsCobros then
+    FResultadoEfectos := PrepararInformeCobrosPendientes(ConexionPrincipal,
+      UbicacionSesion.Empresa, FtxtCliente.Text, FechaHasta)
+  else
+  begin
+    criterios.Empresa := UbicacionSesion.Empresa;
+    criterios.FechaDesde := DateOf(FechaDesde);
+    criterios.FechaHasta := DateOf(FechaHasta);
+    criterios.Almacenes := CSVAlmacenes;
+    criterios.Proveedores := CSVProveedores;
+    criterios.Tipos := CSVTipos;
+    criterios.Situaciones := CSVSituaciones;
+    criterios.Bancos := CSVBancos;
+    criterios.NumeroDesde := TextoNumero(FtxtNumeroDesde);
+    criterios.NumeroHasta := TextoNumero(FtxtNumeroHasta);
+    if FrgTipoFecha <> nil then
+      criterios.TipoFecha := FrgTipoFecha.ItemIndex
+    else
+      criterios.TipoFecha := 2;
+    if FrgSituacion <> nil then
+      criterios.ModoSituacion := FrgSituacion.ItemIndex
+    else
+      criterios.ModoSituacion := 3;
+    criterios.Niveles := NivelesTotales;
+    if FRepositorioEfectos = nil then
+      FRepositorioEfectos := CrearRepositorioInformeEfectosPagoUniDAC(
+        ConexionPrincipal);
+    FResultadoEfectos := FRepositorioEfectos.Preparar(criterios);
+  end;
   fxdsEfectosPago.DataSet := FResultadoEfectos.DataSet;
   fxdsEfectosPago.UpdateBounds;
 end;
@@ -384,7 +450,27 @@ begin
   frxrprt1.DataSets.Add(fxdsEfectosPago);
   frxrprt1.OnBeforePrint := ReportBeforePrint;
   IncluirDetalleOcultoEnAcumulados;
-  RotularFechaElegida;
+  if FEsCobros then
+    RotularInformeCobros
+  else
+    RotularFechaElegida;
+end;
+
+procedure TfrmPrintEfectosPago.RotularInformeCobros;
+  procedure PonerTexto(const ANombre, ATexto: string);
+  var
+    oComponente: TfrxComponent;
+  begin
+    oComponente := frxrprt1.FindObject(ANombre);
+    if oComponente is TfrxMemoView then
+      TfrxMemoView(oComponente).Memo.Text := ATexto;
+  end;
+begin
+  PonerTexto('MemoTitulo', STituloInformeCobros);
+  PonerTexto('MemoFechaTitulo', SCorteInformeCobros + ' ' +
+    DateToStr(FechaHasta));
+  PonerTexto('MemoHPvdor', 'Cliente');
+  PonerTexto('MemoHPagado', 'Cobrado');
 end;
 
 // FZ-ISSUE-431: el rótulo de la cabecera decía siempre «Fecha vencimiento»;
@@ -462,45 +548,64 @@ var
 begin
   Selecciones := LineasResumenSelecciones;
   AControl.ClearAll;
-  if (FchkSoloTotales = nil) or (not FchkSoloTotales.Checked) then
+  if FEsCobros then
+  begin
     AnadirHojaInformeTabularExcel(AControl, FResultadoEfectos.DataSet,
       'Efectos',
       [ColumnaInforme('IDENTIFICADOR_EFECTO', STextoEfectoComun, 1),
-       ColumnaInforme('TIPO_EFECTO_EFEC', STextoTipoComun, 1),
-       ColumnaInforme('CODIGO_ALM_EFEC', STextoAlmacenComun, 1),
-       ColumnaInforme('CODIGO_PRV_EFEC', STextoProveedorComun, 1),
-       ColumnaInforme('PROVEEDOR_EFEC', STextoNombreProveedorComun, 1),
-       ColumnaInforme('SITUACION_EFEC', STextoSituacionComun, 1),
-       ColumnaInforme('FECHA_FILTRO_EFEC', STextoFechaSeleccionadaComun, 1),
+       ColumnaInforme('CODIGO_PRV_EFEC', 'Cliente', 1),
+       ColumnaInforme('PROVEEDOR_EFEC', 'Nombre del cliente', 1),
        ColumnaInforme('FECHA_VENCIMIENTO_EFEC', STextoVencimientoComun, 1),
-       ColumnaInforme('DIAS_EFEC', STextoDiasComun, 1, '%g'),
-       ColumnaInforme('FECHA_DOCUMENTO_EFEC', STextoFechaDocumentoComun, 1),
-       ColumnaInforme('FECHA_VALOR_EFEC', STextoFechaValorComun, 1),
-       ColumnaInforme('IMPORTE_EFEC', STextoImporteComun, 1, '%n'),
+       ColumnaInforme('IMPORTE_PENDIENTE_EFEC', STextoPendienteComun, 1, '%n')],
+      False, Caption, Selecciones);
+    AnadirResumenInformeTabularExcel(AControl, FResultadoEfectos.DataSet,
+      'Totales por cliente',
+      [ColumnaInforme('GRUPO1_ETIQ', 'Cliente', 2),
+       ColumnaInforme('IMPORTE_PENDIENTE_EFEC', STextoPendienteComun, 1, '%n')],
+      '', True, Selecciones);
+  end
+  else
+  begin
+    if (FchkSoloTotales = nil) or (not FchkSoloTotales.Checked) then
+      AnadirHojaInformeTabularExcel(AControl, FResultadoEfectos.DataSet,
+        'Efectos',
+        [ColumnaInforme('IDENTIFICADOR_EFECTO', STextoEfectoComun, 1),
+         ColumnaInforme('TIPO_EFECTO_EFEC', STextoTipoComun, 1),
+         ColumnaInforme('CODIGO_ALM_EFEC', STextoAlmacenComun, 1),
+         ColumnaInforme('CODIGO_PRV_EFEC', STextoProveedorComun, 1),
+         ColumnaInforme('PROVEEDOR_EFEC', STextoNombreProveedorComun, 1),
+         ColumnaInforme('SITUACION_EFEC', STextoSituacionComun, 1),
+         ColumnaInforme('FECHA_FILTRO_EFEC', STextoFechaSeleccionadaComun, 1),
+         ColumnaInforme('FECHA_VENCIMIENTO_EFEC', STextoVencimientoComun, 1),
+         ColumnaInforme('DIAS_EFEC', STextoDiasComun, 1, '%g'),
+         ColumnaInforme('FECHA_DOCUMENTO_EFEC', STextoFechaDocumentoComun, 1),
+         ColumnaInforme('FECHA_VALOR_EFEC', STextoFechaValorComun, 1),
+         ColumnaInforme('IMPORTE_EFEC', STextoImporteComun, 1, '%n'),
+         ColumnaInforme('IMPORTE_PAGADO_EFEC', STextoPagadoComun, 1, '%n'),
+         ColumnaInforme('IMPORTE_PENDIENTE_EFEC', STextoPendienteComun, 1, '%n'),
+         ColumnaInforme('IMPORTE_COMPENSADO_EFEC', STextoCompensadoComun, 1,
+           '%n'),
+         ColumnaInforme('REMESA_EFEC', STextoRemesaComun, 1),
+         ColumnaInforme('BANCO_REMESA_EFEC', STextoBancoRemesaComun, 1)],
+        False, Caption, Selecciones);
+    aImportes :=
+      [ColumnaInforme('IMPORTE_EFEC', STextoImporteComun, 1, '%n'),
        ColumnaInforme('IMPORTE_PAGADO_EFEC', STextoPagadoComun, 1, '%n'),
        ColumnaInforme('IMPORTE_PENDIENTE_EFEC', STextoPendienteComun, 1, '%n'),
-       ColumnaInforme('IMPORTE_COMPENSADO_EFEC', STextoCompensadoComun, 1,
-         '%n'),
-       ColumnaInforme('REMESA_EFEC', STextoRemesaComun, 1),
-       ColumnaInforme('BANCO_REMESA_EFEC', STextoBancoRemesaComun, 1)],
-      False, Caption, Selecciones);
-  aImportes :=
-    [ColumnaInforme('IMPORTE_EFEC', STextoImporteComun, 1, '%n'),
-     ColumnaInforme('IMPORTE_PAGADO_EFEC', STextoPagadoComun, 1, '%n'),
-     ColumnaInforme('IMPORTE_PENDIENTE_EFEC', STextoPendienteComun, 1, '%n'),
-     ColumnaInforme('IMPORTE_COMPENSADO_EFEC', STextoCompensadoComun, 1, '%n')];
-  aGrupos := nil;
-  iNiveles := Length(NivelesTotales);
-  if iNiveles > 3 then
-    iNiveles := 3;
-  for iNivel := 1 to iNiveles do
-  begin
-    aGrupos := aGrupos + [ColumnaInforme(
-      Format('GRUPO%d_ETIQ', [iNivel]),
-      Format('Grupo %d', [iNivel]), 2)];
-    AnadirResumenInformeTabularExcel(AControl, FResultadoEfectos.DataSet,
-      Format(STextoTotalesNivelDComun, [iNivel]), aGrupos + aImportes,
-      '', True, Selecciones);
+       ColumnaInforme('IMPORTE_COMPENSADO_EFEC', STextoCompensadoComun, 1, '%n')];
+    aGrupos := nil;
+    iNiveles := Length(NivelesTotales);
+    if iNiveles > 3 then
+      iNiveles := 3;
+    for iNivel := 1 to iNiveles do
+    begin
+      aGrupos := aGrupos + [ColumnaInforme(
+        Format('GRUPO%d_ETIQ', [iNivel]),
+        Format('Grupo %d', [iNivel]), 2)];
+      AnadirResumenInformeTabularExcel(AControl, FResultadoEfectos.DataSet,
+        Format(STextoTotalesNivelDComun, [iNivel]), aGrupos + aImportes,
+        '', True, Selecciones);
+    end;
   end;
   AnadirSeleccionInformeExcel(AControl, Caption, Selecciones);
 end;

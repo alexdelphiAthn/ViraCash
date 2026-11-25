@@ -89,8 +89,12 @@ const
     'FROM fza_clientes WHERE ESACTIVO_CLI = ''S'' ' +
     'ORDER BY RAZON_SOCIAL_CLI';
   SQL_CONSULTAR_CLIENTE =
-    'SELECT RAZON_SOCIAL_CLI, NIF_CLI, CODIGO_PAI_CLI, NOMBRE_PAI_CLI ' +
-    'FROM fza_clientes WHERE CODIGO_CLI_CLI = :CLIENTE';
+    'SELECT C.RAZON_SOCIAL_CLI, C.NIF_CLI, C.CODIGO_PAI_CLI, ' +
+    'C.NOMBRE_PAI_CLI, P.CODIGO_FP_FP AS FORMA_PAGO ' +
+    'FROM fza_clientes C LEFT JOIN fza_formas_pago P ' +
+    'ON P.CODIGO_FP_FP = C.CODIGO_FP_CLI ' +
+    'AND COALESCE(P.ESACTIVO_FORMA_PAGO_FP, ''S'') = ''S'' ' +
+    'WHERE C.CODIGO_CLI_CLI = :CLIENTE';
   SQL_INSERTAR_CABECERA =
     'INSERT INTO fza_facturas ' +
     '(NUMERO_FAC, SERIE_FAC, FECHA_FAC, TIPO_FAC, FASE_FAC, ' +
@@ -622,6 +626,7 @@ begin
         oConsulta.FieldByName('CODIGO_PAI_CLI').AsString;
       Result.NombrePais :=
         oConsulta.FieldByName('NOMBRE_PAI_CLI').AsString;
+      Result.FormaPago := oConsulta.FieldByName('FORMA_PAGO').AsString;
     end;
   finally
     FreeAndNil(oConsulta);
@@ -1303,7 +1308,8 @@ begin
       else
       begin
         oSolicitud := ASolicitud;
-        oSolicitud.FormaPago := FORMA_PAGO_FACTURA_CAJA;
+        if Trim(oSolicitud.FormaPago) = '' then
+          oSolicitud.FormaPago := FORMA_PAGO_FACTURA_CAJA;
         sDesglosePagos := ResumenCobrosTicketCaja(FConexion,
           ASolicitud.SerieTicket, ASolicitud.NumeroTicket, cTotal);
         if sDesglosePagos = '' then

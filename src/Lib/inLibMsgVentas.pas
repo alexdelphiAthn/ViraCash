@@ -658,6 +658,10 @@ resourcestring
   SCaptionTallaAgrupacionMovimientosVentas = 'Talla';
   SCaptionCopaAgrupacionMovimientosVentas = 'Copa';
   SCaptionSoloEmitidas = 'Solo emitidas';
+  SCaptionBuscandoVentas = 'Buscando ventas...';
+  SPreguntaListadoVentasRangoAnual =
+    'El periodo del %s al %s supera un año. La consulta puede tardar.' +
+    sLineBreak + sLineBreak + '¿Quieres continuar?';
   SCaptionLineasCargadas = '%d líneas cargadas';
   SCaptionPrimeraVentaVacia = 'Primera venta: -';
   SCaptionUltimaVentaVacia = 'Última venta: -';

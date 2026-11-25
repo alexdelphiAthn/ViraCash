@@ -47,6 +47,8 @@ type
     dbcGrdDBTabPrinNUMERO_REMC_EFEC: TcxGridDBColumn;
     btnRegistrarPago: TcxButton;
     btnFusionarEfectos: TcxButton;
+    btnEditarVencimiento: TcxButton;
+    procedure btnEditarVencimientoClick(Sender: TObject);
     procedure btnRegistrarPagoClick(Sender: TObject);
     procedure btnFusionarEfectosClick(Sender: TObject);
   private
@@ -62,7 +64,7 @@ type
 implementation
 
 uses
-  inLibMensajesVcl,
+  inLibMensajesVcl, inLibPermisosIntf, inMtoFacturasCompraPagosVcl,
   inLibWin, inMtoModalRegistrarPago, inLibFiltroUsuario,
   inLibMsgCompras, inLibMsgComun, inLibFusionEfectos,
   UniDataFusionEfectos, inMtoFusionEfectosVcl;
@@ -158,6 +160,13 @@ begin
   end
   else
     ShowMessage_fza(SErrorEfectoNoSeleccionado);
+end;
+
+procedure TfrmMtoEfectosCompra.btnEditarVencimientoClick(Sender: TObject);
+begin
+  if Assigned(dmmEfectosCompra) and PuedeAccionMto(apmModificar) then
+    EditarVencimientoEfectoCompraVcl(dmmEfectosCompra.unqryTablaG,
+      dmmEfectosCompra.Reprogramar);
 end;
 
 procedure TfrmMtoEfectosCompra.btnFusionarEfectosClick(Sender: TObject);

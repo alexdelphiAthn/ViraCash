@@ -21,8 +21,8 @@ unit UniDataLibrosIvaSql;
 interface
 
 function SqlEmpresasLibrosIva: string;
-function SqlDetalleLibrosIva: string;
-function SqlResumenLibrosIva: string;
+function SqlDetalleLibrosIva(ASoloExpedidas: Boolean = False): string;
+function SqlResumenLibrosIva(AgruparTipo: Boolean = False): string;
 // FZ-ISSUE-372: cuadro de liquidación por empresa.
 function SqlLiquidacionLibrosIva: string;
 // FZ-ISSUE-632: facturas del libro soportado sin n.º de fra. proveedor.
@@ -79,7 +79,8 @@ begin
     '  ' + Importe('F', 'TOTAL_BASEI_IVA', '_FAC') + ' AS BASE, ' +
     '  ' + Importe('F', 'TOTAL_IVA', '_FAC') + ' AS CUOTA_IVA, ' +
     '  ' + Tramo('F', 'PORCENTAJE_RE', '_FAC') + ' AS PORC_RE, ' +
-    '  ' + Importe('F', 'TOTAL_RE', '_FAC') + ' AS CUOTA_RE ' +
+    '  ' + Importe('F', 'TOTAL_RE', '_FAC') + ' AS CUOTA_RE, ' +
+    '  0 AS PROPORCION_INVERSION ' +
     'FROM fza_facturas F ' +
     CTramos +
     'LEFT JOIN fza_empresas E ON E.CODIGO_EMP_EMP = F.CODIGO_EMP_FAC ' +
@@ -87,6 +88,7 @@ begin
     '  AND F.FECHA_FAC <= :pHASTA ' +
     '  AND (:pEMP = '''' OR FIND_IN_SET(F.CODIGO_EMP_FAC, :pEMP)) ' +
     '  AND (:pLIB = '''' OR FIND_IN_SET(''REP'', :pLIB)) ' +
+    '  AND (:pALM = '''' OR FIND_IN_SET(F.CODIGO_ALM_FAC, :pALM)) ' +
     '  AND COALESCE(F.FASE_FAC, '''') NOT IN ' +
     '    (''BORRADOR'', ''ERROR_BORRADOR'', ''CANCELADA'') ' +
     // Sin fase: histórico emitido sin SIF o borrador pendiente con él.
@@ -99,8 +101,34 @@ begin
       'F.NUMERO_FAC');
 end;
 
-function SqlSoportado: string;
+function ProporcionInversion: string;
 begin
+  // Las bases de un tramo comparten el descuento comercial de cabecera.
+  Result := 'COALESCE((SELECT ' +
+    ' SUM(IF(A.ESACTIVO_FIJO_ART = ''S'', ' +
+    '        ROUND(L.TOTAL_FACCLIN, 2), 0)) / ' +
+    ' NULLIF(SUM(ROUND(L.TOTAL_FACCLIN, 2)), 0) ' +
+    ' FROM fza_facturas_compra_lineas L ' +
+    ' LEFT JOIN fza_articulos A ON A.CODIGO_ART_ART = L.CODIGO_ART_FACCLIN ' +
+    ' WHERE L.SERIE_FACC_FACCLIN = C.SERIE_FACC ' +
+    '   AND L.NUMERO_FACC_FACCLIN = C.NUMERO_FACC ' +
+    '   AND CASE ' +
+    '     WHEN C.ESIVA_EXENTO_INTRACOMUNITARIO_FACC = ''S'' THEN ''E'' ' +
+    '     WHEN L.TIPO_IVA_ARTICULO_FACCLIN IN (''N'',''R'',''S'',''E'') ' +
+    '       THEN L.TIPO_IVA_ARTICULO_FACCLIN ' +
+    '     WHEN COALESCE(L.PORCENTAJE_IVA_FACCLIN, 0) <= 0 THEN ''E'' ' +
+    '     WHEN L.PORCENTAJE_IVA_FACCLIN < 6 THEN ''S'' ' +
+    '     WHEN L.PORCENTAJE_IVA_FACCLIN < 13 THEN ''R'' ' +
+    '     ELSE ''N'' END = T.TIPO), 0)';
+end;
+
+function SqlSoportado(AIncluirInversion: Boolean): string;
+var
+  Inversion: string;
+begin
+  Inversion := '0';
+  if AIncluirInversion then
+    Inversion := ProporcionInversion;
   Result :=
     'SELECT C.CODIGO_EMP_FACC, ' +
     '  COALESCE(E.RAZON_SOCIAL_EMP, ''''), ' +
@@ -124,7 +152,8 @@ begin
     '  ' + Importe('C', 'TOTAL_BASEI_IVA', '_FACC') + ', ' +
     '  ' + Importe('C', 'TOTAL_IVA', '_FACC') + ', ' +
     '  ' + Tramo('C', 'PORCENTAJE_RE', '_FACC') + ', ' +
-    '  ' + Importe('C', 'TOTAL_RE', '_FACC') + ' ' +
+    '  ' + Importe('C', 'TOTAL_RE', '_FACC') + ', ' +
+    '  ' + Inversion + ' ' +
     'FROM fza_facturas_compra C ' +
     CTramos +
     'LEFT JOIN fza_empresas E ON E.CODIGO_EMP_EMP = C.CODIGO_EMP_FACC ' +
@@ -137,14 +166,21 @@ end;
 
 // Filas con importe de ambos libros; el porcentaje de recargo solo se
 // muestra si el tramo lleva recargo.
-function SqlTramos: string;
+function SqlTramos(AIncluirInversion: Boolean = False;
+  ASoloExpedidas: Boolean = False): string;
+var
+  sLibros: string;
 begin
+  sLibros := SqlRepercutido;
+  if not ASoloExpedidas then
+    sLibros := sLibros + ' UNION ALL ' + SqlSoportado(AIncluirInversion);
   Result :=
     'SELECT D.EMPRESA, D.RAZON_SOCIAL_EMPRESA, D.LIBRO, D.FECHA, ' +
     '  D.SERIE, D.NUMERO, D.TIPO_DOC, D.NIF, D.NOMBRE, D.DOC_EXTERNO, ' +
     '  D.ORDEN_TIPO, D.TIPO_IVA, D.PORC_IVA, D.BASE, D.CUOTA_IVA, ' +
-    '  IF(D.CUOTA_RE = 0, 0, D.PORC_RE) AS PORC_RE, D.CUOTA_RE ' +
-    'FROM (' + SqlRepercutido + ' UNION ALL ' + SqlSoportado + ') D ' +
+    '  IF(D.CUOTA_RE = 0, 0, D.PORC_RE) AS PORC_RE, D.CUOTA_RE, ' +
+    '  D.PROPORCION_INVERSION ' +
+    'FROM (' + sLibros + ') D ' +
     'WHERE D.BASE <> 0 OR D.CUOTA_IVA <> 0 OR D.CUOTA_RE <> 0';
 end;
 
@@ -156,30 +192,38 @@ begin
     'ORDER BY IF(ESACTIVO_EMP = ''S'', 0, 1), ORDEN_EMP, CODIGO_EMP_EMP';
 end;
 
-function SqlDetalleLibrosIva: string;
+function SqlDetalleLibrosIva(ASoloExpedidas: Boolean): string;
 begin
   Result :=
     'SELECT L.EMPRESA, L.RAZON_SOCIAL_EMPRESA, L.LIBRO, L.FECHA, ' +
     '  CONCAT(L.SERIE, ''/'', L.NUMERO) AS DOCUMENTO, L.TIPO_DOC, ' +
     '  L.NIF, L.NOMBRE, L.DOC_EXTERNO, L.TIPO_IVA, L.PORC_IVA, ' +
     '  L.BASE, L.CUOTA_IVA, L.PORC_RE, L.CUOTA_RE, ' +
-    '  L.BASE + L.CUOTA_IVA + L.CUOTA_RE AS TOTAL ' +
-    'FROM (' + SqlTramos + ') L ' +
+    '  L.BASE + L.CUOTA_IVA + L.CUOTA_RE AS TOTAL, ' +
+    '  ROUND(L.BASE * L.PROPORCION_INVERSION, 2) AS BASE_INVERSION, ' +
+    '  ROUND(L.CUOTA_IVA * L.PROPORCION_INVERSION, 2) AS IVA_INVERSION ' +
+    'FROM (' + SqlTramos(True, ASoloExpedidas) + ') L ' +
     'ORDER BY L.EMPRESA, L.LIBRO, L.FECHA, L.SERIE, L.NUMERO, ' +
     '  L.ORDEN_TIPO';
 end;
 
-function SqlResumenLibrosIva: string;
+function SqlResumenLibrosIva(AgruparTipo: Boolean): string;
+var
+  sTipo: string;
 begin
+  sTipo := '';
+  if AgruparTipo then
+    sTipo := ', L.TIPO_DOC';
   Result :=
-    'SELECT L.EMPRESA, L.LIBRO, L.PORC_IVA, L.PORC_RE, ' +
+    'SELECT L.EMPRESA, L.LIBRO, L.PORC_IVA, L.PORC_RE' + sTipo + ', ' +
     '  COUNT(DISTINCT CONCAT(L.SERIE, ''/'', L.NUMERO)) AS DOCUMENTOS, ' +
     '  SUM(L.BASE) AS BASE, SUM(L.CUOTA_IVA) AS CUOTA_IVA, ' +
     '  SUM(L.CUOTA_RE) AS CUOTA_RE, ' +
     '  SUM(L.BASE + L.CUOTA_IVA + L.CUOTA_RE) AS TOTAL ' +
-    'FROM (' + SqlTramos + ') L ' +
-    'GROUP BY L.EMPRESA, L.LIBRO, L.PORC_IVA, L.PORC_RE ' +
-    'ORDER BY L.EMPRESA, L.LIBRO, L.PORC_IVA DESC, L.PORC_RE DESC';
+    'FROM (' + SqlTramos(False, AgruparTipo) + ') L ' +
+    'GROUP BY L.EMPRESA, L.LIBRO, L.PORC_IVA, L.PORC_RE' + sTipo + ' ' +
+    'ORDER BY L.EMPRESA, L.LIBRO' + sTipo +
+    ', L.PORC_IVA DESC, L.PORC_RE DESC';
 end;
 
 // FZ-ISSUE-372: una fila por empresa con el IVA y el recargo repercutidos

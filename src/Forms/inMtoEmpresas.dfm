@@ -1448,6 +1448,7 @@
                   Align = alClient
                   TabOrder = 0
                   object tvBancos: TcxGridDBTableView
+                    OnCellClick = tvBancosCellClick
                     Navigator.Buttons.ConfirmDelete = True
                     Navigator.Buttons.First.Visible = False
                     Navigator.Buttons.PriorPage.Visible = False
@@ -1497,16 +1498,28 @@
                     object tvBancosESDEFECTO_COBRO_EMPBAN: TcxGridDBColumn
                       Caption = 'Def. Cobro'
                       DataBinding.FieldName = 'ESDEFECTO_COBRO_EMPBAN'
+                      PropertiesClassName = 'TcxCheckBoxProperties'
+                      Properties.NullStyle = nssUnchecked
+                      Properties.ValueChecked = 'S'
+                      Properties.ValueUnchecked = 'N'
                       Width = 70
                     end
                     object tvBancosESDEFECTO_PAGO_EMPBAN: TcxGridDBColumn
                       Caption = 'Def. Pago'
                       DataBinding.FieldName = 'ESDEFECTO_PAGO_EMPBAN'
+                      PropertiesClassName = 'TcxCheckBoxProperties'
+                      Properties.NullStyle = nssUnchecked
+                      Properties.ValueChecked = 'S'
+                      Properties.ValueUnchecked = 'N'
                       Width = 70
                     end
                     object tvBancosESACTIVO_EMPBAN: TcxGridDBColumn
                       Caption = 'Activo'
                       DataBinding.FieldName = 'ESACTIVO_EMPBAN'
+                      PropertiesClassName = 'TcxCheckBoxProperties'
+                      Properties.NullStyle = nssUnchecked
+                      Properties.ValueChecked = 'S'
+                      Properties.ValueUnchecked = 'N'
                       Width = 55
                     end
                   end

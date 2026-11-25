@@ -667,7 +667,8 @@
       '    on pv.ID_PV_ARTPROP = ap.ID_PV_ARTPROP'
       ' where (v.CODIGO_TAR_ARTTAR = :tarifa'
       '    or v.CODIGO_TAR_ARTTAR is null)'
-      '   and v.FECHA_DESDE_ARTTAR < :FECHA_FAC'
+      '   and (v.FECHA_DESDE_ARTTAR is null'
+      '        or v.FECHA_DESDE_ARTTAR < :FECHA_FAC)'
       '   and (v.FECHA_HASTA_ARTTAR is null'
       '        or v.FECHA_HASTA_ARTTAR > :FECHA_FAC)')
     Left = 200

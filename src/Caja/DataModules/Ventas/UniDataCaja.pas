@@ -3009,7 +3009,7 @@ begin
           FQuery,
           FDatosCobro.ValesRecogidos[iVale].CodigoVale,
           FEmpresa, FAlmacen, FCaja, FNumeroOperacion,
-          FSerieGenerada, FNumeroFactura,
+          FSerieGenerada, FNumeroFactura, FFechaOperacion,
           FDatosCobro.ValesRecogidos[iVale].ImporteAplicado,
           TRestriccionCanjeVale.Crear(
             FDataModule.FParametrosCaja.GetString(

@@ -27,6 +27,8 @@ type
     FechaHasta: TDateTime;
     // Códigos de empresa separados por comas; vacío = todas.
     Empresas: string;
+    Almacenes: string;
+    SoloExpedidas: Boolean;
     // REP, SOP o ambos separados por comas; vacío = los dos libros.
     Libros: string;
     // Ventas sin fase (FASE_FAC vacía): solo cuentan con el SIF sin

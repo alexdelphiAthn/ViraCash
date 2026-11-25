@@ -37,7 +37,8 @@ uses
     inLibParametrosIntf, Uni, inLibFormatoExcel,
     inLibFacturas, inLibFacturasLecturasIntf;
   procedure BusqAllGrid(var AdbTvGen: TcxGridDBTableView;
-                        AsDatoBusq: String);
+                        AsDatoBusq: String;
+                        ASoloVisibles: Boolean = False);
   procedure GrabarGrids(frmMto: TComponent);
   function CheckOpenGrids(frmMto: TComponent):Boolean;
   procedure CancelarGrids(ApcPrincipal:TcxPageControl);
@@ -1225,7 +1226,8 @@ begin
   end;
 end;
 
-procedure BusqAllGrid(var AdbTvGen: TcxGridDBTableView; AsDatoBusq: String);
+procedure BusqAllGrid(var AdbTvGen: TcxGridDBTableView; AsDatoBusq: String;
+  ASoloVisibles: Boolean);
 const
   CMaxLongitudBusquedaGlobal = 128;
 var
@@ -1259,7 +1261,8 @@ begin
         oListaBusqueda := oFiltro.Root.AddItemList(fboOr);
           for i := 0 to AdbTvGen.ColumnCount - 1 do
           begin
-            if AdbTvGen.Columns[i].DataBinding.Field <> nil then
+            if (not ASoloVisibles or AdbTvGen.Columns[i].Visible) and
+               (AdbTvGen.Columns[i].DataBinding.Field <> nil) then
               if AdbTvGen.Columns[i].DataBinding.Field.DataType in [ftSmallint,
                                                                    ftInteger,
                                                                    ftWord,

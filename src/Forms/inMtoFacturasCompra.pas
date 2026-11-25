@@ -106,6 +106,7 @@ type
     pnlEfectosTop: TPanel;
     btnGenerarEfectos: TcxButton;
     btnRegistrarPago: TcxButton;
+    btnEditarVencimiento: TcxButton;
     cxgrdEfectos: TcxGrid;
     tvEfectos: TcxGridDBTableView;
     lvlEfectos: TcxGridLevel;
@@ -198,6 +199,7 @@ type
                                       Shift: TShiftState);
     procedure btnGenerarEfectosClick(Sender: TObject);
     procedure btnCerrarBorradorClick(Sender: TObject);
+    procedure btnEditarVencimientoClick(Sender: TObject);
     procedure btnRegistrarPagoClick(Sender: TObject);
   private
     FActualizandoEmisor: Boolean;
@@ -362,7 +364,7 @@ uses
   // Composicion del puerto de persistencia del pivote (V2).
   UniDataPivoteVenta, UniDataGridPivoteCompraRepositorio,
   UniDataColumnasSkuServicios, UniDataModoTallas,
-  inMtoFacturasCompraPagosVcl;
+  inMtoFacturasCompraPagosVcl, UniDataEfectosCompra;
 
 {$R *.dfm}
 
@@ -1905,6 +1907,8 @@ begin
     Result := SPreguntaReabrirReciboCompra
   else
     Result := SPreguntaReabrirFacturaCompra;
+  if ACerrar and dmmFacturasCompra.FacturaActualSinEfectos then
+    Result := SAvisoCerrarCompraSinEfectos + sLineBreak + sLineBreak + Result;
 end;
 
 procedure TfrmMtoFacturasCompra.btnCerrarBorradorClick(Sender: TObject);
@@ -1927,6 +1931,22 @@ begin
       end;
     ActualizarBotonEstadoFactura;
   end;
+end;
+
+procedure TfrmMtoFacturasCompra.btnEditarVencimientoClick(Sender: TObject);
+begin
+  if Assigned(dmmFacturasCompra) and PuedeAccionMto(apmModificar) then
+    EditarVencimientoEfectoCompraVcl(dmmFacturasCompra.unqryEfectos,
+      procedure(const ACambio: TReprogramacionEfectoCompra)
+      begin
+        ReprogramarEfectoCompra(
+          dmmFacturasCompra.unqryTablaG.Connection,
+          IdentidadSesion.Usuario, ACambio);
+        dmmFacturasCompra.unqryEfectos.Close;
+        dmmFacturasCompra.unqryEfectos.Open;
+        dmmFacturasCompra.unqryEfectos.Locate(
+          'NUMERO_EFEC', ACambio.Clave.NumeroEfec, []);
+      end);
 end;
 
 procedure TfrmMtoFacturasCompra.btnRegistrarPagoClick(Sender: TObject);

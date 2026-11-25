@@ -264,6 +264,8 @@ procedure TdmClientes.unqryTablaGAfterInsert(DataSet: TDataSet);
 begin
   inherited;
   AplicarValoresPorDefecto(ConexionPrincipal, unqryTablaG, 'fza_clientes');
+  if DataSet.FieldByName('ESPERMITE_DEUDA_CLI').IsNull then
+    DataSet.FieldByName('ESPERMITE_DEUDA_CLI').AsString := 'N';
   if DataSet.FindField('ESVARIOS_CLI') <> nil then
     DataSet.FieldByName('ESVARIOS_CLI').AsString := 'N';
   unqryTablaG.FindField('CODIGO_FP_CLI').AsString :=

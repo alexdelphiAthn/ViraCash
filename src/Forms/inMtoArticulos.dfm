@@ -418,6 +418,18 @@
                     Height = 122
                     Width = 185
                   end
+                  object chkACTIVO_ARTICULO: TcxDBCheckBox
+                    Left = 408
+                    Top = 150
+                    Caption = 'Bien de inversi'#243'n (activo fijo)'
+                    DataBinding.DataField = 'ESACTIVO_FIJO_ART'
+                    DataBinding.DataSource = dsTablaG
+                    Properties.ValueChecked = 'S'
+                    Properties.ValueUnchecked = 'N'
+                    TabOrder = 4
+                    Transparent = True
+                    Width = 192
+                  end
                   object cxGroupBox2: TcxGroupBox
                     Left = 23
                     Top = 19
@@ -1284,6 +1296,10 @@
               ExplicitTop = 0
               ExplicitWidth = 0
               ExplicitHeight = 0
+              object lblProveedorAlta: TcxLabel
+                Align = alTop
+                Visible = False
+              end
               object cxgrdProveedores: TcxGrid
                 Left = 0
                 Top = 0
@@ -2546,17 +2562,6 @@
                   TabOrder = 6
                   Transparent = True
                 end
-              end
-              object chkACTIVO_ARTICULO: TcxDBCheckBox
-                Left = 48
-                Top = 24
-                Caption = 'Es Activo fijo --Es Maquinaria o Aperos-- (S'#243'lo REAGP)'
-                DataBinding.DataField = 'ESACTIVO_FIJO_ART'
-                DataBinding.DataSource = dsTablaG
-                Properties.ValueChecked = 'S'
-                Properties.ValueUnchecked = 'N'
-                TabOrder = 0
-                Transparent = True
               end
               object lblTextoLegal11: TcxLabel
                 Left = 376

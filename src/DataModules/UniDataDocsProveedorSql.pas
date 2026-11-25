@@ -95,6 +95,7 @@ begin
     Agregar('       D.REF_PROVEEDOR_DOC,');
     Agregar('       D.FECHA_DOC,');
     Agregar('       D.ESTADO_DOC,');
+    Agregar('       D.FACTURA_ALBARAN_DOC,');
     Agregar('       D.CODIGO_ALM AS CODIGO_ALM_DOC,');
     Agregar('       D.TEMPORADA AS TEMPORADA_DOC,');
     Agregar('       D.CANTIDAD_DOC,');
@@ -190,6 +191,7 @@ begin
     Agregar('       D.BASE_DOC AS TOTAL_BASES_DOC,');
     Agregar('       D.IVA_DOC AS TOTAL_IVA_DOC,');
     Agregar('       D.RE_DOC AS TOTAL_RE_DOC,');
+    Agregar('       D.RETENCION_DOC AS TOTAL_RETENCION_DOC,');
     Agregar('       D.LIQUIDO_DOC AS TOTAL_LIQUIDO_DOC');
   Agregar('  FROM (');
 end;
@@ -213,6 +215,7 @@ begin
     Agregar('         P.REF_PROVEEDOR_PEDC AS REF_PROVEEDOR_DOC,');
     Agregar('         P.FECHA_PEDC AS FECHA_DOC,');
     Agregar('         P.ESTADO_PEDC AS ESTADO_DOC,');
+    Agregar('         '''' AS FACTURA_ALBARAN_DOC,');
     Agregar('         COALESCE(NULLIF(P.CODIGO_ALM_PEDC, ''''), '''') ' +
             'AS CODIGO_ALM,');
     Agregar('         COALESCE(TP.PV, SDT.TEMPORADA, '''') AS TEMPORADA,');
@@ -255,6 +258,7 @@ begin
     Agregar('           + COALESCE(P.TOTAL_RER_PEDC, 0)');
     Agregar('           + COALESCE(P.TOTAL_RES_PEDC, 0)');
     Agregar('           + COALESCE(P.TOTAL_REE_PEDC, 0) AS RE_DOC,');
+    Agregar('         COALESCE(P.TOTAL_RETENCION_PEDC, 0) AS RETENCION_DOC,');
     Agregar('         COALESCE(P.TOTAL_LIQUIDO_PEDC, 0) AS LIQUIDO_DOC');
     Agregar('    FROM fza_pedidos_compra P');
     Agregar('    LEFT JOIN fza_propiedades_valores TP');
@@ -301,6 +305,9 @@ begin
     Agregar('         A.REF_PROVEEDOR_ALBC AS REF_PROVEEDOR_DOC,');
     Agregar('         A.FECHA_ALBC AS FECHA_DOC,');
     Agregar('         A.ESTADO_ALBC AS ESTADO_DOC,');
+    Agregar('         CONCAT_WS(''.'', NULLIF(A.SERIE_FAC_ALBC, ''''),');
+    Agregar('           NULLIF(A.NUMERO_FAC_ALBC, ''''))');
+    Agregar('           AS FACTURA_ALBARAN_DOC,');
     Agregar('         COALESCE(NULLIF(A.CODIGO_ALM_ALBC, ''''), '''') ' +
             'AS CODIGO_ALM,');
     Agregar('         COALESCE(TP.PV, SDT.TEMPORADA, '''') AS TEMPORADA,');
@@ -341,6 +348,7 @@ begin
     Agregar('           + COALESCE(A.TOTAL_RER_ALBC, 0)');
     Agregar('           + COALESCE(A.TOTAL_RES_ALBC, 0)');
     Agregar('           + COALESCE(A.TOTAL_REE_ALBC, 0) AS RE_DOC,');
+    Agregar('         COALESCE(A.TOTAL_RETENCION_ALBC, 0) AS RETENCION_DOC,');
     Agregar('         COALESCE(A.TOTAL_LIQUIDO_ALBC, 0) AS LIQUIDO_DOC');
     Agregar('    FROM fza_albaranes_compra A');
     Agregar('    LEFT JOIN fza_pedidos_compra P');
@@ -391,6 +399,7 @@ begin
     Agregar('                  F.REF_PROVEEDOR_FACC) AS REF_PROVEEDOR_DOC,');
     Agregar('         F.FECHA_FACC AS FECHA_DOC,');
     Agregar('         F.ESTADO_FACC AS ESTADO_DOC,');
+    Agregar('         '''' AS FACTURA_ALBARAN_DOC,');
     Agregar('         COALESCE(NULLIF(F.CODIGO_ALM_FACC, ''''), '''') ' +
             'AS CODIGO_ALM,');
     Agregar('         COALESCE(TF.PV, FT.TEMPORADA, '''') AS TEMPORADA,');
@@ -429,6 +438,7 @@ begin
     Agregar('           + COALESCE(F.TOTAL_RER_FACC, 0)');
     Agregar('           + COALESCE(F.TOTAL_RES_FACC, 0)');
     Agregar('           + COALESCE(F.TOTAL_REE_FACC, 0) AS RE_DOC,');
+    Agregar('         COALESCE(F.TOTAL_RETENCION_FACC, 0) AS RETENCION_DOC,');
     Agregar('         COALESCE(F.TOTAL_LIQUIDO_FACC, 0) AS LIQUIDO_DOC');
     Agregar('    FROM fza_facturas_compra F');
     Agregar('    LEFT JOIN fza_propiedades_valores TF');
@@ -492,6 +502,7 @@ begin
     Agregar('         V.REF_PROVEEDOR_DEVC AS REF_PROVEEDOR_DOC,');
     Agregar('         V.FECHA_DEVC AS FECHA_DOC,');
     Agregar('         V.ESTADO_DEVC AS ESTADO_DOC,');
+    Agregar('         '''' AS FACTURA_ALBARAN_DOC,');
     Agregar('         COALESCE(NULLIF(V.CODIGO_ALM_DEVC, ''''), '''') ' +
             'AS CODIGO_ALM,');
     Agregar('         COALESCE(TP.PV, FT.TEMPORADA, '''') AS TEMPORADA,');
@@ -532,6 +543,7 @@ begin
     Agregar('           + COALESCE(V.TOTAL_RER_DEVC, 0)');
     Agregar('           + COALESCE(V.TOTAL_RES_DEVC, 0)');
     Agregar('           + COALESCE(V.TOTAL_REE_DEVC, 0)) AS RE_DOC,');
+    Agregar('         -COALESCE(V.TOTAL_RETENCION_DEVC, 0) AS RETENCION_DOC,');
     Agregar('         -COALESCE(V.TOTAL_LIQUIDO_DEVC, 0) AS LIQUIDO_DOC');
     Agregar('    FROM fza_devoluciones_compra V');
     Agregar('    LEFT JOIN fza_pedidos_compra P');

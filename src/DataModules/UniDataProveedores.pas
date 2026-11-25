@@ -630,6 +630,11 @@ begin
   if unqryTablaG.FindField('ESACTIVO_PRV') <> nil then
     unqryTablaG.FieldByName('ESACTIVO_PRV').AsString := 'S';
   unqryTablaG.FieldByName('ESFACTURACION_DIRECTA_PRV').AsString := 'N';
+  if DataSet.FindField('ESRETENCION_PRV') <> nil then
+  begin
+    DataSet.FieldByName('ESRETENCION_PRV').AsString := 'N';
+    DataSet.FieldByName('PORCENTAJE_RETENCION_PRV').AsCurrency := 0;
+  end;
   if unqryTablaG.FindField('ESVARIOS_TIPOS_IVA_PRV') <> nil then
     unqryTablaG.FieldByName(
       'ESVARIOS_TIPOS_IVA_PRV').AsString := 'N';

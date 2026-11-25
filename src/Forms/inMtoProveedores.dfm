@@ -1557,6 +1557,32 @@
                 TabOrder = 1
                 Width = 320
               end
+              object chkRetencionPrv: TcxDBCheckBox
+                Left = 34
+                Top = 108
+                Caption = 'Aplica retenci'#243'n'
+                DataBinding.DataField = 'ESRETENCION_PRV'
+                DataBinding.DataSource = dsTablaG
+                Properties.ValueChecked = 'S'
+                Properties.ValueUnchecked = 'N'
+                TabOrder = 4
+              end
+              object lblRetencionPrv: TcxLabel
+                Left = 260
+                Top = 108
+                Caption = 'Retenci'#243'n (%)'
+                TabOrder = 5
+              end
+              object spnRetencionPrv: TcxDBSpinEdit
+                Left = 380
+                Top = 104
+                DataBinding.DataField = 'PORCENTAJE_RETENCION_PRV'
+                DataBinding.DataSource = dsTablaG
+                Properties.MaxValue = 100.000000000000000000
+                Properties.ValueType = vtFloat
+                TabOrder = 6
+                Width = 100
+              end
               object lblEmpBanPrv: TcxLabel
                 Left = 34
                 Top = 65

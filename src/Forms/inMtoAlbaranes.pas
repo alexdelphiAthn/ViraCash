@@ -1759,8 +1759,12 @@ begin
   oConfig.Propuesta.Empresa := ds.FieldByName('CODIGO_EMP_ALB').AsString;
   oConfig.Propuesta.Almacen := ds.FieldByName('CODIGO_ALM_ALB').AsString;
   oConfig.Propuesta.Tipo := 'FC';
-  oConfig.Propuesta.Fecha := Date;
-  oConfig.Propuesta.FormaPago := ds.FieldByName('FORMA_PAGO_ALB').AsString;
+  oConfig.Propuesta.Fecha := ds.FieldByName('FECHA_ALB').AsDateTime;
+  if oConfig.Propuesta.Fecha = 0 then
+    oConfig.Propuesta.Fecha := Date;
+  oConfig.Propuesta.FormaPago := dmmAlbaranes.FormaPagoFacturaAlbaran(
+    ds.FieldByName('SERIE_ALB').AsString,
+    ds.FieldByName('NUMERO_ALB').AsString);
   // Empresa y almacen son los del albaran; el almacen no se muestra pero
   // decide la serie propuesta.
   oConfig.Visibles := [codEmpresa, codTipo, codSerie, codNumero, codFecha,

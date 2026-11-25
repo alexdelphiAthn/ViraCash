@@ -140,6 +140,8 @@
         object colAlbFecha: TcxGridDBColumn
           Caption = 'Fecha'
           DataBinding.FieldName = 'FECHA_ALBC'
+          SortIndex = 0
+          SortOrder = soDescending
           Width = 100
         end
         object colAlbRefPrv: TcxGridDBColumn

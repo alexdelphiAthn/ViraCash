@@ -17,6 +17,8 @@ procedure AdaptarInformeCompraDirecta(AInforme: TfrxReport;
 procedure AdaptarExcelCompraDirecta(ACabecera: TDataSet;
   var AConfiguracion: TDocCompraCabCfg);
 procedure EnlazarTrazabilidadCompra(AInforme: TfrxReport);
+procedure AplicarFormaPagoInformeCompra(AInforme: TfrxReport;
+  ACabecera: TDataSet);
 procedure AplicarResumenCantidadesCompra(AInforme: TfrxReport;
   ALineas: TDataSet);
 
@@ -24,7 +26,7 @@ implementation
 
 uses
   System.SysUtils, System.Classes, Vcl.Graphics,
-  inLibComprasDirectas, inLibVerifactu;
+  inLibComprasDirectas, inLibVerifactu, inLibMsgFacturas;
 
 resourcestring
   STituloAutofactura = 'AUTOFACTURA';
@@ -56,6 +58,50 @@ begin
   Objeto := AInforme.FindObject('MemoTotalUds');
   if Objeto is TfrxMemoView then
     TfrxMemoView(Objeto).Text := ResumenCantidadesCompra(ALineas);
+end;
+
+procedure AplicarFormaPagoInformeCompra(AInforme: TfrxReport;
+  ACabecera: TDataSet);
+const
+  NOMBRE_MEMO = 'MemoFormaPagoDocumento';
+var
+  oComponente: TfrxComponent;
+  oResumen: TfrxReportSummary;
+  oMemo: TfrxMemoView;
+  oCampo: TField;
+  sFormaPago: string;
+begin
+  sFormaPago := '';
+  if Assigned(ACabecera) and ACabecera.Active and not ACabecera.IsEmpty then
+  begin
+    oCampo := ACabecera.FindField('FORMA_PAGO_IMPRESION');
+    if Assigned(oCampo) then
+      sFormaPago := Trim(oCampo.AsString);
+  end;
+  oComponente := AInforme.FindObject(NOMBRE_MEMO);
+  oMemo := nil;
+  if oComponente is TfrxMemoView then
+    oMemo := TfrxMemoView(oComponente)
+  else if sFormaPago <> '' then
+  begin
+    oComponente := AInforme.FindObject('ReportSummaryTotalesFiscales');
+    if oComponente is TfrxReportSummary then
+    begin
+      oResumen := TfrxReportSummary(oComponente);
+      oMemo := TfrxMemoView.Create(oResumen);
+      oMemo.Name := NOMBRE_MEMO;
+      oMemo.SetBounds(0, oResumen.Height + 4, oResumen.Width, 20);
+      oResumen.Height := oMemo.Top + oMemo.Height;
+      oMemo.Font.Size := 9;
+      oMemo.AllowExpressions := False;
+      oMemo.StretchMode := smActualHeight;
+    end;
+  end;
+  if Assigned(oMemo) then
+  begin
+    oMemo.Visible := sFormaPago <> '';
+    oMemo.Text := SReferenciaFacturaFormaPago + ': ' + sFormaPago;
+  end;
 end;
 
 function EsCompraDirecta(ACabecera: TDataSet): Boolean;

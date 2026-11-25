@@ -87,6 +87,9 @@ implementation
 uses
   System.SysUtils, inLibMsgFacturas;
 
+resourcestring
+  SCaptionCodigoFormaPagoCobros = 'Código forma de pago';
+
 const
   CAMPOS_VISIBILIDAD_DETALLE: TCamposCobroFactura = [
     ccfLocalidad,
@@ -133,9 +136,8 @@ begin
   AConfiguracion.Campos[ccfNumeroFactura] := 'NUMERO_FAC_EFV';
   AConfiguracion.Campos[ccfSerieFactura] := 'SERIE_FAC_EFV';
   AConfiguracion.Campos[ccfNumeroPlazo] := 'NUMERO_EFV';
-  AConfiguracion.Campos[ccfFormaPago] := 'CODIGO_TEFE_EFV';
-  AConfiguracion.Campos[ccfDescripcionFormaPago] :=
-    'DESCRIPCION_TEFE_VIEW_EFV';
+  AConfiguracion.Campos[ccfFormaPago] := 'DESCRIPCION_FORMA_PAGO_EFV';
+  AConfiguracion.Campos[ccfDescripcionFormaPago] := 'FORMA_PAGO_ORIGEN_EFV';
   AConfiguracion.Campos[ccfImporte] := 'IMPORTE_EFV';
   AConfiguracion.Campos[ccfEstado] := 'ESTADO_EFV';
   AConfiguracion.Campos[ccfFechaExpedicion] := 'FECHA_EMISION_EFV';
@@ -195,6 +197,9 @@ begin
   AConfiguracion.Captions[ccfSerieFactura] :=
     SCaptionColSerieBorradorEfecto;
   AConfiguracion.Captions[ccfNumeroPlazo] := SCaptionColEfecto;
+  AConfiguracion.Captions[ccfFormaPago] := SReferenciaFacturaFormaPago;
+  AConfiguracion.Captions[ccfDescripcionFormaPago] :=
+    SCaptionCodigoFormaPagoCobros;
   AConfiguracion.Captions[ccfImporte] := SCaptionColTotalEfecto;
   AConfiguracion.Captions[ccfEstado] := SCaptionColEstadoEfecto;
   AConfiguracion.Captions[ccfFechaExpedicion] :=

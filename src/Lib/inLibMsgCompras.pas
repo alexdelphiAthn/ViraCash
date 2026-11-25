@@ -241,6 +241,9 @@ resourcestring
     'Cerrar borrador';
   SCaptionReabrirFacturaCompra =
     'Reabrir';
+  SAvisoCerrarCompraSinEfectos =
+    'Este documento se cerrará sin vencimientos. Después de cerrarlo, ' +
+    'pulsa Generar efectos en la pestaña Efectos para registrarlos.';
   SPreguntaCerrarFacturaCompra =
     '¿Cerrar la factura? Quedará como definitiva para pagos y libros.';
   SPreguntaReabrirFacturaCompra =
@@ -763,6 +766,9 @@ resourcestring
     'El artículo "%s" no tiene colores básicos activos en sus SKUs.';
   SPreguntaEliminarLineaPedidoCompra =
     '¿Está seguro de que desea eliminar esta línea?';
+  SAvisoAltaCompraSinSeries =
+    'No hay series vigentes de tipo %s para la empresa %s.' +
+    sLineBreak + 'Puedes configurarlas en Empresas > Series.';
   SPreguntaAbrirSeriesPedidoCompra =
     'No hay series de pedidos de compra (tipo PC) para la empresa "%s".' +
     sLineBreak +

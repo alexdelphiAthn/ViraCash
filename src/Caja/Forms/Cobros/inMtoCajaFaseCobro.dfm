@@ -309,12 +309,15 @@
             Left = 414
             Top = 54
             Properties.Alignment.Horz = taRightJustify
+            Properties.AutoSelect = True
             Properties.DisplayFormat = '#,##0.00 '#8364
-            Properties.EditFormat = ',0.00 '#8364
+            Properties.EditFormat = ',0.00'
             Properties.ReadOnly = True
-            Properties.OnEditValueChanged = txtValeEmitidoPropertiesEditValueChanged
             Style.BorderStyle = ebsOffice11
             TabOrder = 3
+            OnExit = txtValeEmitidoExit
+            OnKeyDown = txtValeEmitidoKeyDown
+            OnMouseUp = txtValeEmitidoMouseUp
             Width = 171
           end
         end

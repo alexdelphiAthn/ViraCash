@@ -329,8 +329,7 @@ begin
       [FSeleccion.Serie,
       FSeleccion.Numero,
       FormatDateTime(
-        'dd/mm/yyyy hh:nn',
-        ADataSet.FieldByName('INSTANTE_ALTA').AsDateTime),
+        'dd/mm/yyyy', ADataSet.FieldByName('FECHA_FAC').AsDateTime),
       FSeleccion.Almacen,
       FormatFloat(
         '#,##0.00',

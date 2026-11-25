@@ -62,6 +62,7 @@ const
 
 type
   TfrmMtoDevolucionesCompra = class(TfrmMtoDocumento)
+    cbbTotalesFORMA_PAGO_DEVC: TcxDBLookupComboBox;
     pnlTopFicha:         TPanel;
     splSplitterFicha:    TcxSplitter;
     pcCab:               TcxPageControl;
@@ -345,6 +346,7 @@ type
     // mismo paso que albaranes/pedidos de compra.
     procedure MostrarColumnasAtributoGlobalesDevc;
   protected
+    procedure PrepararAltaRegistro; override;
     // F1 = ciclar el modo de entrada (KeyPreview de TfrmBase),
     // mismo atajo que albaranes y pedidos de compra.
     procedure KeyDown(var Key: Word; Shift: TShiftState); override;
@@ -363,6 +365,7 @@ function CrearDevolucionesCompraInyectada(
 implementation
 
 uses
+  System.Threading, inLibVentanaEspera, inLibConexionesIntf,
   UniDataReposicionAutomatica,
   inLibComboProveedorDocumentoVcl,
   inLibMensajesVcl, inLibCorreoTickets,
@@ -1112,6 +1115,8 @@ begin
     [dmmDevolucionesCompra.unqryDevolucionesCompraLineas,
      dmmDevolucionesCompra.unqryMovimientosProveedor],
     pkFieldName, 'SERIE_DEVC;NUMERO_DEVC');
+  cbbTotalesFORMA_PAGO_DEVC.Properties.ListSource :=
+    dmmDevolucionesCompra.dsFormasPago;
   tvMovimientosProveedor.DataController.DataSource :=
     dmmDevolucionesCompra.dsMovimientosProveedor;
   if FLectorDocumento = nil then
@@ -1598,6 +1603,12 @@ begin
       end;
     end;
   end;
+end;
+
+procedure TfrmMtoDevolucionesCompra.PrepararAltaRegistro;
+begin
+  inherited;
+  AvisarAltaCompraSinSeries;
 end;
 
 procedure TfrmMtoDevolucionesCompra.btnNuevoClick(Sender: TObject);
@@ -2470,7 +2481,11 @@ end;
 procedure TfrmMtoDevolucionesCompra.btnDesdeAlbaranClick(Sender: TObject);
 var
   Cabecera, Lineas, Origen: TDataSet;
-  Empresa, Proveedor: string;
+  Empresa, Proveedor, Almacen, ErrorCarga: string;
+  ConexionOrigen: TUniConnection;
+  ServicioConexiones: IServicioConexiones;
+  Espera: IVentanaEspera;
+  Tarea: ITask;
   Cantidad: Double;
 begin
   Cabecera := dsTablaG.DataSet;
@@ -2486,10 +2501,35 @@ begin
       raise Exception.Create(SErrorOrigenRecepcionCabecera);
     if dmmDevolucionesCompra.unqryDevolucionesCompraLineas.Active then
       ConfirmarLineaDocumento(tvLineasDevolucion);
-    Origen := ConsultaOrigenRecepcionDevolucion(
-      dmmDevolucionesCompra.unqryTablaG.Connection, Empresa, Proveedor,
-      AlmacenRestringido(ContextoSesion, ParametrosApp));
+    Almacen := AlmacenRestringido(ContextoSesion, ParametrosApp);
+    if Almacen = '' then
+      Almacen := ValorTextoDataSetCompra(Cabecera, 'CODIGO_ALM_DEVC');
+    ServicioConexiones := Conexiones;
+    ConexionOrigen := nil;
+    Origen := nil;
     try
+      Espera := CrearVentanaEspera(BoundsRect, CurrentPPI, Handle);
+      Espera.Mostrar(STituloOrigenRecepcion);
+      try
+        Tarea := TTask.Run(
+          procedure
+          begin
+            try
+              ConexionOrigen := ServicioConexiones.CrearConexion(
+                nil, uctSegundoPlano);
+              Origen := ConsultaOrigenRecepcionDevolucion(
+                ConexionOrigen, Empresa, Proveedor, Almacen);
+            except
+              on E: Exception do
+                ErrorCarga := E.ClassName + ': ' + E.Message;
+            end;
+          end);
+        EsperarTareaAtendiendoMensajes(Tarea);
+      finally
+        Espera.Ocultar;
+      end;
+      if ErrorCarga <> '' then
+        raise Exception.Create(ErrorCarga);
       if Origen.IsEmpty then
         MessageDlg_fza(SErrorOrigenRecepcionNoDisponible, mtInformation,
           [mbOk], 0)
@@ -2538,6 +2578,7 @@ begin
       end;
     finally
       Origen.Free;
+      ConexionOrigen.Free;
     end;
   end;
 end;

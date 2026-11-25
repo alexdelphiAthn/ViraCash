@@ -943,7 +943,8 @@ begin
   CrearColumnaHostDocumento(AVista, SCaptionColumnaPedidoModeloProveedor,
     'REF_PRV_' + APrefijoLinea, 130, True);
   CrearColumnaHostDocumento(AVista, SCaptionColumnaPedidoDescripcion,
-    'DESCRIPCION_ARTICULO_' + APrefijoLinea, 260, False);
+    'DESCRIPCION_ARTICULO_' + APrefijoLinea, 260,
+    (APrefijoLinea = 'FACCLIN') and (AModo <> mcsTallasHorPed));
   if AModo <> mcsTallasHorPed then
     Result.ColCantidad := CrearColumnaHostDocumento(
       AVista, SCaptionColCantidad,

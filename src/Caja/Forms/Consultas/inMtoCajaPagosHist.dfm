@@ -11,7 +11,21 @@
         ExplicitHeight = 484
         inherited cxGrdPrincipal: TcxGrid
           inherited cxGrdDBTabPrin: TcxGridDBTableView
-            OptionsData.Editing = True
+            DataController.Summary.DefaultGroupSummaryItems = <
+              item
+                Format = 'Neto #,##0.00 '#8364
+                Kind = skSum
+                Column = colNetoPago
+              end>
+            DataController.Summary.FooterSummaryItems = <
+              item
+                Format = '#,##0.00 '#8364
+                Kind = skSum
+                Column = colNetoPago
+              end>
+            OptionsData.Editing = False
+            OptionsView.Footer = True
+            OptionsView.GroupByBox = True
             object cxGrdDBTabPrinCODIGO_EMPRESA_PAGO: TcxGridDBColumn
               Caption = 'Empresa'
               DataBinding.FieldName = 'CODIGO_EMP_PAGO'
@@ -51,6 +65,9 @@
             object cxGrdDBTabPrinCODIGO_FORMAP: TcxGridDBColumn
               Caption = 'Forma de Pago'
               DataBinding.FieldName = 'CODIGO_FP_CFP'
+              GroupIndex = 0
+              SortIndex = 0
+              SortOrder = soAscending
               Width = 120
             end
             object cxGrdDBTabPrinDESCRIPCION_FORMAP: TcxGridDBColumn
@@ -93,6 +110,13 @@
             object cxGrdDBTabPrinIMPORTE_CAMBIO_PAGO: TcxGridDBColumn
               Caption = 'Importe Cambio'
               DataBinding.FieldName = 'IMPORTE_CAMBIO_PAGO'
+              Width = 120
+            end
+            object colNetoPago: TcxGridDBColumn
+              Caption = 'Neto'
+              DataBinding.FieldName = 'NETO_PAGO'
+              PropertiesClassName = 'TcxCurrencyEditProperties'
+              Properties.DisplayFormat = '#,##0.00 '#8364
               Width = 120
             end
             object cxGrdDBTabPrinREFERENCIA_PAGO: TcxGridDBColumn
@@ -156,39 +180,76 @@
             BevelOuter = bvNone
             ParentBackground = False
             TabOrder = 1
-            object lblFiltroAnyo: TcxLabel
-              Left = 16
+            object lblDesde: TcxLabel
+              Left = 12
               Top = 8
-              Caption = 'A'#241'os:'
-              TabOrder = 3
+              Caption = 'Desde'
               Transparent = True
             end
-            object ccbFiltroAnyo: TcxCheckComboBox
-              Left = 80
+            object dteDesde: TcxDateEdit
+              Left = 58
               Top = 5
-              Properties.EditValueFormat = cvfStatesString
-              Properties.EmptySelectionText = 'Todos'
-              Properties.Items = <>
-              Properties.OnCloseUp = ccbFiltroAnyoPropertiesCloseUp
+              Properties.AutoSelect = True
+              Properties.InputKind = ikStandard
               TabOrder = 0
-              Width = 210
+              Width = 105
+            end
+            object lblHasta: TcxLabel
+              Left = 174
+              Top = 8
+              Caption = 'Hasta'
+              Transparent = True
+            end
+            object dteHasta: TcxDateEdit
+              Left = 220
+              Top = 5
+              Properties.AutoSelect = True
+              Properties.InputKind = ikStandard
+              TabOrder = 1
+              Width = 105
+            end
+            object lblAlmacenCarga: TcxLabel
+              Left = 336
+              Top = 8
+              Caption = 'Almac'#233'n'
+              Transparent = True
+            end
+            object edtAlmacen: TcxTextEdit
+              Left = 405
+              Top = 5
+              Properties.MaxLength = 10
+              TabOrder = 2
+              Width = 82
+            end
+            object lblCajaCarga: TcxLabel
+              Left = 498
+              Top = 8
+              Caption = 'Caja'
+              Transparent = True
+            end
+            object edtCaja: TcxTextEdit
+              Left = 536
+              Top = 5
+              Properties.MaxLength = 10
+              TabOrder = 3
+              Width = 70
             end
             object btnCargarPagos: TcxButton
-              Left = 312
+              Left = 618
               Top = 4
               Width = 95
               Height = 25
               Caption = 'Cargar'
-              TabOrder = 1
+              TabOrder = 4
               OnClick = btnCargarPagosClick
             end
             object btnGuardarPrecargaCaja: TcxButton
-              Left = 416
+              Left = 722
               Top = 4
               Width = 139
               Height = 25
-              Caption = 'Guardar precarga'
-              TabOrder = 2
+              Caption = 'Guardar filtros'
+              TabOrder = 5
               OnClick = btnGuardarPrecargaCajaClick
             end
           end

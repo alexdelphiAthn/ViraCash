@@ -187,11 +187,8 @@ begin
     oConsulta.Connection := AConexion;
     for sCodigo in aCodigos do
     begin
-      // FZ-ISSUE-1116: la retirada que grabó el cierre (GC con su código
-      // y posterior al fin de su rango, ver InsertarRetirada) se borra
-      // con él. Desmarcada quedaba como gasto suelto y el arqueo
-      // siguiente la restaba otra vez. Los gastos del turno (dentro del
-      // rango) solo se desmarcan, como el resto de operaciones.
+      // La referencia distingue la retirada de los gastos del turno.
+      // Las retiradas antiguas se grababan fuera del rango del arqueo.
       oConsulta.SQL.Text :=
         'DELETE O FROM fza_caja_operaciones O ' +
         'JOIN fza_caja_arqueos A ON A.CODIGO_ARQ = O.CODIGO_ARQUEO_OPCAJA ' +
@@ -200,7 +197,9 @@ begin
         'AND O.CODIGO_EMP_OPCAJA = A.CODIGO_EMP_ARQ ' +
         'AND O.CODIGO_ALM_OPCAJA = A.CODIGO_ALM_ARQ ' +
         'AND O.CODIGO_CAJA_OPCAJA = A.CODIGO_CAJA_ARQ ' +
-        'AND O.FECHA_OPERACION_OPCAJA > A.FECHA_HASTA_ARQ';
+        'AND (O.FECHA_OPERACION_OPCAJA > A.FECHA_HASTA_ARQ ' +
+        'OR (O.SERIE_REF_ORIGEN_OPCAJA = ''ARQUEO'' ' +
+        'AND O.NUMERO_REF_ORIGEN_OPCAJA = A.CODIGO_ARQ))';
       oConsulta.ParamByName('ARQUEO').AsString := sCodigo;
       oConsulta.Execute;
       oConsulta.SQL.Text :=
@@ -351,11 +350,12 @@ const
     '  CONCEPTO_GASTO_INGRESO_OPCAJA,' +
     '  ESTADO_DEVOLUCION_OPCAJA,' +
     '  CODIGO_ARQUEO_OPCAJA,' +
+    '  SERIE_REF_ORIGEN_OPCAJA, NUMERO_REF_ORIGEN_OPCAJA,' +
     '  USUARIO_ALTA, USUARIO_MODIF, INSTANTE_ALTA' +
     ') VALUES (' +
     '  :EMP, :ALM, :CAJA, :NUMOP,' +
-    '  ''GC'', :IMP, NOW(), CURRENT_DATE,' +
-    '  :EMPL, :CONCEPTO, ''N'', :ARQ,' +
+    '  ''GC'', :IMP, :FECHA, DATE(:FECHA),' +
+    '  :EMPL, :CONCEPTO, ''N'', :ARQ, ''ARQUEO'', :ARQ,' +
     '  :USR2, :USR3, NOW())';
 
 type
@@ -771,6 +771,7 @@ begin
       oConsulta.ParamByName('CAJA').AsString := FArqueo.Caja;
       oConsulta.ParamByName('NUMOP').AsString := FNumeroRetirada;
       oConsulta.ParamByName('IMP').AsCurrency := FImporteRetirada;
+      oConsulta.ParamByName('FECHA').AsDateTime := FArqueo.FechaHasta;
       // FZ-ISSUE-396: la columna de empleado lleva el vendedor del
       // cierre, no el usuario (que ya va en USUARIO_ALTA).
       oConsulta.ParamByName('EMPL').AsString := FCodigoEmpleado;
@@ -789,7 +790,7 @@ procedure TGrabacionArqueo.Ejecutar;
 begin
   FCodigoArqueo := GenerarCodigoArqueo(
     FConexion, FArqueo.Empresa, FArqueo.Almacen, FArqueo.Caja,
-    FArqueo.FechaDesde);
+    FArqueo.FechaHasta);
   ReservarNumeroRetirada;
   FConexion.StartTransaction;
   try

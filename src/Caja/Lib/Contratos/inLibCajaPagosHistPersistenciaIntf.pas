@@ -14,10 +14,10 @@ unit inLibCajaPagosHistPersistenciaIntf;
 interface
 
 type
-  TCadenasCajaPagosHist = TArray<string>;
-
   TFiltrosCajaPagosHist = record
-    Anyos: TCadenasCajaPagosHist;
+    Desde: TDateTime;
+    HastaExclusiva: TDateTime;
+    SinFilas: Boolean;
     Empresa: string;
     Almacen: string;
     Caja: string;
@@ -25,10 +25,10 @@ type
 
   IRepositorioCajaPagosHist = interface
     ['{2E6C7E8A-7436-4F3E-BF55-D8CD3045AA7A}']
-    function ListarAnyos: TCadenasCajaPagosHist;
     procedure PrepararConsulta(
       const AFiltros: TFiltrosCajaPagosHist);
     procedure AbrirConsulta;
+    procedure CancelarConsulta;
   end;
 
 implementation

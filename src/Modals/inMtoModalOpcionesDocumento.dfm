@@ -97,6 +97,7 @@
     Left = 180
     Top = 224
     TabOrder = 6
+    OnExit = FechaExit
     Width = 140
   end
   object lblHora: TcxLabel [13]

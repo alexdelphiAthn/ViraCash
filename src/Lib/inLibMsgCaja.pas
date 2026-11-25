@@ -770,6 +770,9 @@ resourcestring
   SCaptionNumOperaciones = '%d operaciones';
   // R12 - Formularios de caja en ejecución
   SCaptionPendienteDevolver = 'Pendiente de devolver';
+  SCaptionValeEmitido = 'Vale emitido';
+  SCaptionExcesoDevolucion = 'Exceso de devolución';
+  SCaptionValeDevolucionMinimo = 'Vale emitido (mínimo %m)';
   SHintSinDescuentoGlobalDeposito =
     'No se puede aplicar descuento global con líneas de depósito';
   SErrorAjusteTotalNoPermitido =

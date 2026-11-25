@@ -99,7 +99,8 @@ type
                               const ACaption: string;
                               ADataSet: TCustomDADataSet;
                               const AName: string;
-                              AParentForm: TCustomForm = nil):
+                              AParentForm: TCustomForm = nil;
+                              ASoloColumnasVisibles: Boolean = False):
                               Boolean; overload;
     function EjecutarBusquedaDataSet(
       const ACaption: string;
@@ -125,7 +126,7 @@ end;
 function TBusquedaVisualMto.EjecutarBusqueda(
   AConexion: TUniConnection; const ACaption: string;
   ADataSet: TCustomDADataSet; const AName: string;
-  AParentForm: TCustomForm): Boolean;
+  AParentForm: TCustomForm; ASoloColumnasVisibles: Boolean): Boolean;
 var
   oFormulario: TfrmMtoSearch;
 begin
@@ -135,6 +136,7 @@ begin
     oFormulario.Name := AName;
     if Assigned(AParentForm) then
       oFormulario.PopupParent := AParentForm;
+    oFormulario.BuscarSoloColumnasVisibles := ASoloColumnasVisibles;
     ADataSet.Connection := AConexion;
     oFormulario.dsTablaG.DataSet := ADataSet;
     if not ADataSet.Active then

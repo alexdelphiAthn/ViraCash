@@ -884,7 +884,8 @@ begin
     ShowMessage_fza(SErrorOperacionSinBorrador)
   else
     TfrmModalFacturarTicket.Ejecutar(Self, sSerie, sNumero, FEmpresa,
-      FAlmacen, PuedeUsarBoton(PERMISO_CAJA_BUSCAR_REIMPRIMIR));
+      FAlmacen, PuedeUsarBoton(PERMISO_CAJA_BUSCAR_REIMPRIMIR),
+      BuscarFechaOperacionCaja(FEmpresa, FAlmacen, FCaja));
 end;
 
 procedure TfrmConsultaOpe.btnDevolverAbonarClick(Sender: TObject);
@@ -913,9 +914,9 @@ begin
       oFormularioCaja := oOperacionCaja.FormularioCaja;
       oFormularioCaja.Caption :=
         Format(STituloOperacionCajaReal, [FCaja]);
-      oOperacionCaja.PrepararValores(
-        FEmpresa, FAlmacen, FCaja, Now);
     end;
+    oOperacionCaja.PrepararValores(FEmpresa, FAlmacen, FCaja,
+      BuscarFechaOperacionCaja(FEmpresa, FAlmacen, FCaja));
     oFormularioCaja := oOperacionCaja.FormularioCaja;
     oOperacionCaja.CargarDevolucion(
       sSerie,

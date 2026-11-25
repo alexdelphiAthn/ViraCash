@@ -26,7 +26,8 @@ type
                               const ACaption: string;
                               ADataSet: TCustomDADataSet;
                               const AName: string;
-                              AParentForm: TCustomForm = nil):
+                              AParentForm: TCustomForm = nil;
+                              ASoloColumnasVisibles: Boolean = False):
                               Boolean; overload;
     function EjecutarBusquedaDataSet(
       const ACaption: string;

@@ -69,6 +69,8 @@ type
     actIrOperacionRedencion: TAction;
     btnReimprimirVale: TcxButton;
     actReimprimirVale: TAction;
+    btnSaldoVales: TcxButton;
+    procedure btnSaldoValesClick(Sender: TObject);
     procedure actIrOperacionOrigenExecute(Sender: TObject);
     procedure actIrOperacionOrigenUpdate(Sender: TObject);
     procedure actIrOperacionRedencionExecute(Sender: TObject);
@@ -98,7 +100,17 @@ implementation
 uses
   inLibWin, inLibFiltroUsuario, inLibShowMto, inLibMensajesVcl,
   inLibCajaPantallaInyeccion, inLibMsgFacturas,
-  inMtoCajaFormatosTicket;
+  inMtoCajaFormatosTicket, inMtoPreviewExcel, inLibPreviewExcel,
+  inLibInformeTabular, inLibInformeTabularExcel, Uni;
+
+resourcestring
+  STituloSaldoVales = 'Vales pendientes a fecha de corte';
+  SFechaSaldoVales = 'Fecha de corte';
+  SPedirFechaSaldoVales = 'Fecha de corte (dd/mm/aaaa)';
+  SFechaSaldoValesInvalida = 'Introduce una fecha de corte válida.';
+  SAlmacenSaldoVales = 'Almacén emisor';
+  SImporteSaldoVales = 'Saldo pendiente';
+  STotalesSaldoVales = 'Totales por almacén';
 
 {$R *.dfm}
 
@@ -142,6 +154,57 @@ begin
   dmmCajaValesHist.AplicarRestriccionUsuario(SqlRestriccionUsuario);
   pkFieldName := 'CODIGO_VL';
   actReimprimirVale.Visible := PuedeImprimir;
+end;
+
+procedure TfrmMtoCajaValesHist.btnSaldoValesClick(Sender: TObject);
+var
+  sFecha, sFiltro: string;
+  dCorte: TDateTime;
+  oConsulta: TUniQuery;
+  oVista: TSesionPreviewExcel;
+  aResumen: TArray<string>;
+begin
+  sFecha := DateToStr(Date);
+  if InputQuery(STituloSaldoVales, SPedirFechaSaldoVales, sFecha) then
+  begin
+    if not TryStrToDate(Trim(sFecha), dCorte) or
+       (dCorte >= EncodeDate(9999, 12, 31)) then
+      ShowMessage_fza(SFechaSaldoValesInvalida)
+    else
+    begin
+      sFiltro := SqlFiltroEmpAlmCaja(ContextoSesion, ParametrosApp, '',
+        'V.CODIGO_ALM_EMI_VL', 'V.CODIGO_CAJA_EMI_VL');
+      oConsulta := dmmCajaValesHist.ConsultarSaldoVales(
+        UbicacionSesion.Empresa, sFiltro, dCorte);
+      try
+        oVista := CrearProveedorPreviewExcelMto.Crear(Self);
+        try
+          oVista.AsignarPopupParent(Self);
+          oVista.AsignarNombreArchivo('Vales_pendientes_' +
+            FormatDateTime('yyyymmdd', dCorte) + '.xlsx');
+          aResumen := [SFechaSaldoVales + ' ' + DateToStr(dCorte)];
+          oVista.HojaCalculo.ClearAll;
+          AnadirResumenInformeTabularExcel(oVista.HojaCalculo, oConsulta,
+            STotalesSaldoVales,
+            [ColumnaInforme('CODIGO_ALM_EMI_VL', SAlmacenSaldoVales, 2),
+             ColumnaInforme('IMPORTE_NOMINAL_VL', SImporteSaldoVales, 1, '%n')],
+            '', True, aResumen);
+          AnadirHojaInformeTabularExcel(oVista.HojaCalculo, oConsulta, 'Vales',
+            [ColumnaInforme('CODIGO_VL', 'Vale', 2),
+             ColumnaInforme('CODIGO_ALM_EMI_VL', SAlmacenSaldoVales, 1),
+             ColumnaInforme('FECHA_EMISION_VL', 'Fecha de emisión', 1),
+             ColumnaInforme('IMPORTE_NOMINAL_VL', SImporteSaldoVales, 1, '%n')],
+            True, STituloSaldoVales, aResumen);
+          oVista.HojaCalculo.ActiveSheetIndex := 0;
+          oVista.Mostrar;
+        finally
+          oVista.Free;
+        end;
+      finally
+        oConsulta.Free;
+      end;
+    end;
+  end;
 end;
 
 procedure TfrmMtoCajaValesHist.ResetForm;

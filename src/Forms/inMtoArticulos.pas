@@ -92,6 +92,7 @@ type
     tvTarifas: TcxGridDBTableView;
     cxgrdlvlTarifas: TcxGridLevel;
     chkACTIVO_ARTICULO: TcxDBCheckBox;
+    lblProveedorAlta: TcxLabel;
     tsProveedores: TcxTabSheet;
     tsLineasFactura: TcxTabSheet;
     cxgrdProveedores: TcxGrid;
@@ -707,6 +708,7 @@ begin
 end;
 
 resourcestring
+  SProveedorPrincipalAlta = 'Proveedor principal: %s. Modelo: %s';
   STituloBuscarProveedoresArticulos =
     'Búsqueda de Proveedores en Articulos';
 
@@ -1101,7 +1103,7 @@ procedure TfrmMtoArticulos.btnAddProveedorClick(Sender: TObject);
 begin
   if (dmmArticulos.unqryTablaG.State = dsInsert) or
      (dmmArticulos.unqryTablaG.State = dsEdit) then
-    dmmArticulos.unqryTablaG.Post;
+    dmmArticulos.GuardarArticulo;
   BuscarProveedores;
 end;
 
@@ -1109,7 +1111,7 @@ procedure TfrmMtoArticulos.btnAddSKUClick(Sender: TObject);
 begin
   inherited;
   if dmmArticulos.unqryTablaG.State in [dsInsert, dsEdit] then
-    dmmArticulos.unqryTablaG.Post;
+    dmmArticulos.GuardarArticulo;
   FPresTarifas.AltaMasivaPrecios(Self,
     dmmArticulos.unqryTablaG.FieldByName('CODIGO_ART_ART').AsString);
 end;
@@ -1600,7 +1602,7 @@ begin
     ConexionPrincipal,
     STituloBuscarProveedoresArticulos,
                                      dmmArticulos.unqryProveedores,
-                                     'frmMtoArtProvSearch') then
+                                     'frmMtoArtProvSearch', Self, True) then
     dmmArticulos.CopiarProveedoraArticulo(dmmArticulos.unqryProveedores);
 end;
 
@@ -1853,6 +1855,7 @@ var
   UsaModelo, UsaProveedor: Boolean;
   IndiceProveedor: Integer;
 begin
+  lblProveedorAlta.Caption := '';
   // Cada alta comienza sin los valores visuales del artículo anterior.
   if Assigned(FGestorProp) then
     FGestorProp.CargarPropiedades('');
@@ -1901,6 +1904,9 @@ begin
     if UsaProveedor then
       Proveedor := Valores[IndiceProveedor];
     dmmArticulos.AsignarDatosCodigoAlta(Modelo, Proveedor);
+    if Proveedor <> '' then
+      lblProveedorAlta.Caption := Format(SProveedorPrincipalAlta,
+        [Trim(Proveedor), Trim(Modelo)]);
   end;
 end;
 
@@ -2512,6 +2518,9 @@ end;
 procedure TfrmMtoArticulos.dsTablaGStateChange(Sender: TObject);
 begin
   inherited;
+  if Assigned(lblProveedorAlta) then
+    lblProveedorAlta.Visible := (dsTablaG.State = dsInsert) and
+      (lblProveedorAlta.Caption <> '');
   if Assigned(FPresAtributos) and (dsTablaG.State = dsBrowse) and
      not FGuardandoBasicos then
     FPresAtributos.CancelarCambios;

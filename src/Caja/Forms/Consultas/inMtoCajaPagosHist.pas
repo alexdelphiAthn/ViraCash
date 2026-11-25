@@ -31,7 +31,7 @@ uses
   inLibPerfilesUsuarioIntf, inLibCajaPagosHistPersistenciaIntf,
   inLibCajaPantallaHistoricosIntf, inLibPermisosIntf,
   inLibCajaPantallaInyeccion,
-  cxCheckBox, cxCheckComboBox,
+  cxCheckBox, cxCalendar,
   cxSpinEdit, cxBlobEdit, dxScrollbarAnnotations, dxCore, cxRadioGroup,
   cxDBEdit, cxCurrencyEdit, UniDataCajaPagosHist,
   Vcl.AppEvnts, JvComponentBase, JvEnterTab, dxShellDialogs;
@@ -143,13 +143,19 @@ type
     pnlFiltrosCaja: TPanel;
     btnToggleFiltrosCaja: TcxButton;
     pnlContFiltrosCaja: TPanel;
-    lblFiltroAnyo: TcxLabel;
-    ccbFiltroAnyo: TcxCheckComboBox;
+    lblDesde: TcxLabel;
+    lblHasta: TcxLabel;
+    lblAlmacenCarga: TcxLabel;
+    lblCajaCarga: TcxLabel;
+    dteDesde: TcxDateEdit;
+    dteHasta: TcxDateEdit;
+    edtAlmacen: TcxTextEdit;
+    edtCaja: TcxTextEdit;
+    colNetoPago: TcxGridDBColumn;
     btnCargarPagos: TcxButton;
     btnGuardarPrecargaCaja: TcxButton;
     procedure btnImprimirInformeClick(Sender: TObject);
     procedure btnToggleFiltrosCajaClick(Sender: TObject);
-    procedure ccbFiltroAnyoPropertiesCloseUp(Sender: TObject);
     procedure btnCargarPagosClick(Sender: TObject);
     procedure btnGuardarPrecargaCajaClick(Sender: TObject);
     procedure btnIrAOperacionClick(Sender: TObject);
@@ -157,15 +163,13 @@ type
     procedure pcFichaDetalleChange(Sender: TObject);
   private
     dmmCajaPagosHist: TdmCajaPagosHist;
-    FFiltrosCargando: Boolean;
-    FCargaInicialHecha: Boolean;
+    FCargandoPagos: Boolean;
     FRepositorioPersistencia: IRepositorioCajaPagosHist;
     FGrabadorPerfiles: IGrabadorPerfilesHistoricoCaja;
     FDependenciasInyeccion: TDependenciasPagosHistoricosCaja;
-    procedure CargarAnyosFiltro;
     procedure LeerFiltrosPerfil;
     function ObtenerFiltros: TFiltrosCajaPagosHist;
-    procedure AbrirPagos;
+    function FiltrosSesion: TFiltrosCajaPagosHist;
     procedure AplicarFiltrosPagos;
   public
     constructor Create(
@@ -174,7 +178,7 @@ type
       const ADependencias: TDependenciasPagosHistoricosCaja); reintroduce;
       overload;
     procedure CrearTablaPrincipal; override;
-    procedure ResetForm; override;
+    function CloseQuery: Boolean; override;
     procedure RecogerPerfilesParticulares(var oList: TPerfilList;
                                           const sPermisos: string); override;
     procedure PrepararBusquedaExterna(const ABusq: string); override;
@@ -187,11 +191,13 @@ uses
   inLibMensajesVcl,
   inLibWin, inLibUser,
   inMtoModalGenImpSave, inMtoModalImpPagos, inLibFiltroUsuario,
-  inLibMsgCaja, inLibMsgComun, inLibShowMto;
+  inLibMsgCaja, inLibMsgComun, inLibShowMto, System.Threading,
+  inLibVentanaEspera;
 
 {$R *.dfm}
 
 resourcestring
+  SCargandoPagosHistoricos = 'Cargando pagos de caja...';
   SDescripcionGuardarPrecargaPagosCaja =
     'Guardar precarga';
 
@@ -229,6 +235,8 @@ begin
 end;
 
 procedure TfrmMtoCajaPagosHist.CrearTablaPrincipal;
+var
+  rFiltros: TFiltrosCajaPagosHist;
 begin
   inherited;
   dmmCajaPagosHist := tdmDataModule as TdmCajaPagosHist;
@@ -245,154 +253,153 @@ begin
   FGrabadorPerfiles := FDependenciasInyeccion.CrearPerfiles();
   pkFieldName := 'CODIGO_EMP_PAGO;CODIGO_ALM_PAGO;CODIGO_CAJA_PAGO;' +
                  'SERIE_OPERACION_PAGO;NUMERO_OPERACION_PAGO;NUMERO_LINEA_PAGO';
-  pnlContFiltrosCaja.Visible := False;
-  pnlFiltrosCaja.Height := 22;
-  btnToggleFiltrosCaja.Caption := SCaptionFiltrosCargaContraido;
-  CargarAnyosFiltro;
+  btnToggleFiltrosCaja.Caption := SCaptionFiltrosCargaExpandido;
   LeerFiltrosPerfil;
-  FRepositorioPersistencia.PrepararConsulta(ObtenerFiltros);
-end;
-
-procedure TfrmMtoCajaPagosHist.ResetForm;
-begin
-  inherited;
-  if (not FCargaInicialHecha) and (not EsInstanciaBusqueda) then
-  begin
-    FCargaInicialHecha := True;
-    AbrirPagos;
-  end;
-end;
-
-procedure TfrmMtoCajaPagosHist.CargarAnyosFiltro;
-var
-  item: TcxCheckComboBoxItem;
-  aAnyos: TCadenasCajaPagosHist;
-  sAnyoActual: string;
-  sAnyo: string;
-begin
-  ccbFiltroAnyo.Properties.Items.Clear;
-  sAnyoActual := IntToStr(YearOf(Date));
-  item := ccbFiltroAnyo.Properties.Items.Add;
-  item.Description := sAnyoActual;
-  aAnyos := FRepositorioPersistencia.ListarAnyos;
-  for sAnyo in aAnyos do
-  begin
-    if sAnyo <> sAnyoActual then
-    begin
-      item := ccbFiltroAnyo.Properties.Items.Add;
-      item.Description := sAnyo;
-    end;
-  end;
+  rFiltros := FiltrosSesion;
+  rFiltros.SinFilas := True;
+  FRepositorioPersistencia.PrepararConsulta(rFiltros);
 end;
 
 procedure TfrmMtoCajaPagosHist.LeerFiltrosPerfil;
 var
-  sAnyosCsv: string;
-  lst: TStringList;
-  i: Integer;
+  dFecha: TDateTime;
+  sAlmacen, sCaja: string;
 begin
-  FFiltrosCargando := True;
-  try
-    sAnyosCsv := GetPerfilValueDef(oPerfilDic, 'oFiltroAnyos',
-                                   IntToStr(YearOf(Date)));
-    lst := TStringList.Create;
-    try
-      lst.Delimiter := ';';
-      lst.StrictDelimiter := True;
-      lst.DelimitedText := sAnyosCsv;
-      for i := 0 to ccbFiltroAnyo.Properties.Items.Count - 1 do
-      begin
-        if lst.IndexOf(ccbFiltroAnyo.Properties.Items[i].Description) >= 0 then
-          ccbFiltroAnyo.States[i] := cbsChecked
-        else
-          ccbFiltroAnyo.States[i] := cbsUnchecked;
-      end;
-    finally
-      FreeAndNil(lst);
-    end;
-  finally
-    FFiltrosCargando := False;
-  end;
+  dteDesde.Date := StartOfTheMonth(Date);
+  dteHasta.Date := Date;
+  if TryISO8601ToDate(GetPerfilValueDef(oPerfilDic, 'oFiltroDesde', ''),
+    dFecha, False) then
+    dteDesde.Date := DateOf(dFecha);
+  if TryISO8601ToDate(GetPerfilValueDef(oPerfilDic, 'oFiltroHasta', ''),
+    dFecha, False) then
+    dteHasta.Date := DateOf(dFecha);
+  sAlmacen := AlmacenRestringido(ContextoSesion, ParametrosApp);
+  sCaja := CajaRestringida(ContextoSesion, ParametrosApp);
+  edtAlmacen.Properties.ReadOnly := sAlmacen <> '';
+  edtCaja.Properties.ReadOnly := sCaja <> '';
+  if sAlmacen = '' then
+    sAlmacen := GetPerfilValueDef(oPerfilDic, 'oFiltroAlmacen', '');
+  if sCaja = '' then
+    sCaja := GetPerfilValueDef(oPerfilDic, 'oFiltroCaja', '');
+  edtAlmacen.Text := sAlmacen;
+  edtCaja.Text := sCaja;
 end;
 
 procedure TfrmMtoCajaPagosHist.RecogerPerfilesParticulares(
-                          var oList: TPerfilList; const sPermisos: string);
+  var oList: TPerfilList; const sPermisos: string);
 var
   item: TPerfilItem;
-  i: Integer;
-  sAnyos: string;
-begin
-  if Assigned(ccbFiltroAnyo) then
+
+  procedure Guardar(const AClave, AValor: string);
   begin
-    item.UserGroup := sPermisos;
-    item.KeyPerfil := Self.Name;
-    sAnyos := '';
-    for i := 0 to ccbFiltroAnyo.Properties.Items.Count - 1 do
-    begin
-      if ccbFiltroAnyo.States[i] = cbsChecked then
-      begin
-        if sAnyos <> '' then
-          sAnyos := sAnyos + ';';
-        sAnyos := sAnyos + ccbFiltroAnyo.Properties.Items[i].Description;
-      end;
-    end;
-    item.SubKey := 'oFiltroAnyos';
-    item.Value := sAnyos;
+    item.SubKey := AClave;
+    item.Value := AValor;
     oList.Add(item);
   end;
+
+begin
+  item.UserGroup := sPermisos;
+  item.KeyPerfil := Self.Name;
+  if dteDesde.Date > 0 then
+    Guardar('oFiltroDesde', DateToISO8601(dteDesde.Date, False));
+  if dteHasta.Date > 0 then
+    Guardar('oFiltroHasta', DateToISO8601(dteHasta.Date, False));
+  if not edtAlmacen.Properties.ReadOnly then
+    Guardar('oFiltroAlmacen', Trim(edtAlmacen.Text));
+  if not edtCaja.Properties.ReadOnly then
+    Guardar('oFiltroCaja', Trim(edtCaja.Text));
+end;
+
+function TfrmMtoCajaPagosHist.FiltrosSesion: TFiltrosCajaPagosHist;
+begin
+  Result := Default(TFiltrosCajaPagosHist);
+  Result.Empresa := EmpresaRestringida(ContextoSesion, ParametrosApp);
+  Result.Almacen := AlmacenRestringido(ContextoSesion, ParametrosApp);
+  Result.Caja := CajaRestringida(ContextoSesion, ParametrosApp);
 end;
 
 function TfrmMtoCajaPagosHist.ObtenerFiltros: TFiltrosCajaPagosHist;
-var
-  i: Integer;
-  iAnyo: Integer;
 begin
-  Result := Default(TFiltrosCajaPagosHist);
-  for i := 0 to ccbFiltroAnyo.Properties.Items.Count - 1 do
-  begin
-    if ccbFiltroAnyo.States[i] = cbsChecked then
-    begin
-      iAnyo := Length(Result.Anyos);
-      SetLength(Result.Anyos, iAnyo + 1);
-      Result.Anyos[iAnyo] :=
-        ccbFiltroAnyo.Properties.Items[i].Description;
-    end;
-  end;
-  Result.Empresa := EmpresaRestringida(
-    ContextoSesion,
-    ParametrosApp);
-  Result.Almacen := AlmacenRestringido(
-    ContextoSesion,
-    ParametrosApp);
-  Result.Caja := CajaRestringida(
-    ContextoSesion,
-    ParametrosApp);
+  Result := FiltrosSesion;
+  dteDesde.ValidateEdit(True);
+  dteDesde.PostEditValue;
+  dteHasta.ValidateEdit(True);
+  dteHasta.PostEditValue;
+  Result.Desde := DateOf(dteDesde.Date);
+  Result.HastaExclusiva := DateOf(dteHasta.Date) + 1;
+  if (Result.Desde <= 0) or (dteHasta.Date <= 0) then
+    raise EcxEditValidationError.Create(SErrorFechaFiltroInformeNoValida);
+  if Result.HastaExclusiva <= Result.Desde then
+    raise EcxEditValidationError.Create(SErrorRangoFechasDocumentoNoValido);
+  if Result.Almacen = '' then
+    Result.Almacen := Trim(edtAlmacen.Text);
+  if Result.Caja = '' then
+    Result.Caja := Trim(edtCaja.Text);
 end;
 
-procedure TfrmMtoCajaPagosHist.AbrirPagos;
-var
-  oDatos: TDataSet;
-  cursorPrev: TCursor;
+function TfrmMtoCajaPagosHist.CloseQuery: Boolean;
 begin
-  oDatos := dsTablaG.DataSet;
-  if Assigned(oDatos) then
-  begin
-    cursorPrev := Screen.Cursor;
-    Screen.Cursor := crHourGlass;
-    oDatos.DisableControls;
-    try
-      FRepositorioPersistencia.AbrirConsulta;
-    finally
-      oDatos.EnableControls;
-      Screen.Cursor := cursorPrev;
-    end;
-  end;
+  Result := not FCargandoPagos;
+  if Result then
+    Result := inherited CloseQuery;
 end;
 
 procedure TfrmMtoCajaPagosHist.AplicarFiltrosPagos;
+var
+  oDatos: TDataSet;
+  oVentana: IVentanaEspera;
+  oTarea: ITask;
+  rFiltros: TFiltrosCajaPagosHist;
+  Zona: TRect;
+  sError: string;
 begin
-  FRepositorioPersistencia.PrepararConsulta(ObtenerFiltros);
-  AbrirPagos;
+  oDatos := dsTablaG.DataSet;
+  if Assigned(oDatos) and not FCargandoPagos then
+  begin
+    rFiltros := ObtenerFiltros;
+    GetWindowRect(Handle, Zona);
+    oVentana := CrearVentanaProcesoSegundoPlano(Zona, CurrentPPI, Caption);
+    FCargandoPagos := True;
+    oDatos.DisableControls;
+    try
+      FRepositorioPersistencia.PrepararConsulta(rFiltros);
+      oVentana.Mostrar(SCargandoPagosHistoricos);
+      oVentana.PermitirCancelar(True);
+      oTarea := TTask.Run(
+        procedure
+        begin
+          try
+            FRepositorioPersistencia.AbrirConsulta;
+          except
+            on E: Exception do
+              sError := E.Message;
+          end;
+        end);
+      try
+        EsperarTareaAtendiendoMensajes(oTarea,
+          procedure
+          begin
+            if oVentana.Cancelado then
+              FRepositorioPersistencia.CancelarConsulta;
+          end);
+      finally
+        EsperarTareaAtendiendoMensajes(oTarea);
+      end;
+      oVentana.PermitirCancelar(False);
+      if oVentana.Cancelado or (sError <> '') then
+      begin
+        rFiltros := FiltrosSesion;
+        rFiltros.SinFilas := True;
+        FRepositorioPersistencia.PrepararConsulta(rFiltros);
+        if not oVentana.Cancelado then
+          raise EDatabaseError.Create(sError);
+      end;
+    finally
+      oDatos.EnableControls;
+      FCargandoPagos := False;
+      oVentana.Ocultar;
+    end;
+  end;
 end;
 
 procedure TfrmMtoCajaPagosHist.btnToggleFiltrosCajaClick(Sender: TObject);
@@ -413,12 +420,6 @@ begin
   end;
 end;
 
-procedure TfrmMtoCajaPagosHist.ccbFiltroAnyoPropertiesCloseUp(
-                                                            Sender: TObject);
-begin
-  if not FFiltrosCargando then
-    AplicarFiltrosPagos;
-end;
 
 procedure TfrmMtoCajaPagosHist.btnCargarPagosClick(Sender: TObject);
 begin
@@ -460,20 +461,8 @@ begin
 end;
 
 procedure TfrmMtoCajaPagosHist.PrepararBusquedaExterna(const ABusq: string);
-var
-  i: Integer;
 begin
-  FFiltrosCargando := True;
-  try
-    for i := 0 to ccbFiltroAnyo.Properties.Items.Count - 1 do
-      ccbFiltroAnyo.States[i] := cbsUnchecked;
-  finally
-    FFiltrosCargando := False;
-  end;
-  FRepositorioPersistencia.PrepararConsulta(ObtenerFiltros);
-  pnlContFiltrosCaja.Visible := False;
-  pnlFiltrosCaja.Height := 22;
-  btnToggleFiltrosCaja.Caption := SCaptionFiltrosCargaContraido;
+  FRepositorioPersistencia.PrepararConsulta(FiltrosSesion);
   inherited;
 end;
 

@@ -142,6 +142,7 @@ begin
     Result.ParamByName('pHASTA').AsDate := ACriterios.FechaHasta;
     Result.ParamByName('pEMP').AsString := ACriterios.Empresas;
     Result.ParamByName('pLIB').AsString := ACriterios.Libros;
+    Result.ParamByName('pALM').AsString := ACriterios.Almacenes;
     if ACriterios.IncluirSinFase then
       Result.ParamByName('pSINFASE').AsString := 'S'
     else
@@ -162,10 +163,13 @@ var
   oLiquidacion: TUniQuery;
 begin
   oResumen := nil;
-  oDetalle := Abrir(SqlDetalleLibrosIva, ACriterios);
+  oLiquidacion := nil;
+  oDetalle := Abrir(SqlDetalleLibrosIva(ACriterios.SoloExpedidas), ACriterios);
   try
-    oResumen := Abrir(SqlResumenLibrosIva, ACriterios);
-    oLiquidacion := Abrir(SqlLiquidacionLibrosIva, ACriterios);
+    oResumen := Abrir(SqlResumenLibrosIva(ACriterios.SoloExpedidas),
+      ACriterios);
+    if not ACriterios.SoloExpedidas then
+      oLiquidacion := Abrir(SqlLiquidacionLibrosIva, ACriterios);
   except
     FreeAndNil(oResumen);
     FreeAndNil(oDetalle);

@@ -240,6 +240,7 @@ type
     procedure MostrarStockArticulo(const ACodArt, ACodSku: string);
     procedure AplicarCamposRestringidos;
   protected
+    procedure PrepararAltaRegistro; virtual;
     // Para pantallas cuyo artículo / SKU depende de la pestaña activa:
     // el visor Ctrl+F vuelve a preguntarlo si sigue a este Mto.
     procedure RefrescarFotoArticulo;
@@ -304,6 +305,7 @@ type
     procedure ComprobarPermisoGrabar;
     procedure PrepararGuardado; virtual;
   public
+    BuscarSoloColumnasVisibles: Boolean;
     tdmDataModule:TObject;
     sDataModuleName:string;
     oPerfilDic : TProfileDicc;
@@ -2523,6 +2525,10 @@ begin
   end;
 end;
 
+procedure TfrmMtoGen.PrepararAltaRegistro;
+begin
+end;
+
 // Si algo falla despues de entrar en insercion (AfterInsert de un modulo:
 // valores por defecto, serie, BBDD sin una migracion...), la ficha no se
 // queda «Insertando» con la cabecera a medias: se cancela el alta y el
@@ -2532,6 +2538,7 @@ var
   oDataSet: TDataSet;
 begin
   oDataSet := dsTablaG.DataSet;
+  PrepararAltaRegistro;
   try
     oDataSet.Insert;
     // Reafirmar ficha y foco tras completar los valores del alta.
@@ -2935,7 +2942,8 @@ begin
       tmrBusqGlobal.Enabled := True
     else if cxGrdDBTabPrin.DataController.DataSet.Active then
     begin
-      BusqAllGrid(cxGrdDBTabPrin, edtBusqGlobal.Text);
+      BusqAllGrid(cxGrdDBTabPrin, edtBusqGlobal.Text,
+        BuscarSoloColumnasVisibles);
       if (pcPantalla.ActivePage <> tsLista) and tsLista.TabVisible then
         pcPantalla.ActivePage := tsLista;
     end;

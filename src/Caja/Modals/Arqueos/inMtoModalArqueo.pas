@@ -482,14 +482,12 @@ begin
     if not frm.FEmitirJustificanteCierre then
       frm.btnGrabarArqueo.Caption :=
         SCaptionGrabarArqueoSinJustificante;
-    // El cierre abarca solo las operaciones realizadas hasta este momento.
     frm.dteFechaDesde.EditValue := DateOf(AFechaDesde);
-    frm.dteFechaHasta.EditValue :=
-      Min(Now, DateOf(AFechaHasta) + EncodeTime(23, 59, 59, 0));
+    frm.dteFechaHasta.EditValue := HastaPropuestoArqueo(AFechaHasta, Now);
     // Los cierres son por turno: con un cierre ya hecho ese día, el
     // rango empieza donde terminó (FZ-ISSUE-408).
     frm.ProponerDesdeTrasUltimoCierre;
-    // Si quedó algún día sin cerrar, el rango lo recoge (FZ-ISSUE-446).
+    // Desde la operación siguiente al último cierre de la caja.
     frm.IncluirOperacionesSinCerrar;
     // Permisos. Sin el de cambiar la fecha no se puede cambiar de día,
     // pero sí la hora; antes los dos campos quedaban en solo lectura y
@@ -862,13 +860,12 @@ begin
   end;
 end;
 
-// Con operaciones sin cerrar entre el último arqueo y el comienzo del
-// rango, este empieza a continuación de aquel cierre: así entran en el
-// arqueo y su efectivo cuenta sobre lo que se dejó en caja. El aviso sale
-// con la ventana ya en pantalla.
+// El rango empieza en el segundo posterior al último cierre. Si había
+// operaciones pendientes antes del día propuesto, avisamos al usuario.
 procedure TfrmModalArqueo.IncluirOperacionesSinCerrar;
 var
-  dUltimoCierre: TDateTime;
+  dUltimoCierre, dDesde: TDateTime;
+  bHayOperaciones: Boolean;
   iOperaciones: Integer;
   oAvisar: TThreadProcedure;
   sAviso: string;
@@ -880,10 +877,16 @@ begin
   Solicitud.Caja := FCaja;
   Solicitud.FechaDesde := FechaDesdeSeleccionada;
   Solicitud.FechaHasta := FechaHastaSeleccionada;
-  if FRepositorioPersistencia.OperacionesSinCerrarAntes(
-    Solicitud, dUltimoCierre, iOperaciones) then
+  bHayOperaciones := FRepositorioPersistencia.OperacionesSinCerrarAntes(
+    Solicitud, dUltimoCierre, iOperaciones);
+  if dUltimoCierre > 0 then
   begin
-    dteFechaDesde.EditValue := IncSecond(dUltimoCierre);
+    dDesde := IncSecond(dUltimoCierre);
+    if CompareDateTime(dDesde, Solicitud.FechaHasta) <= 0 then
+      dteFechaDesde.EditValue := dDesde;
+  end;
+  if bHayOperaciones then
+  begin
     sAviso := Format(SAvisoArqueoCajaOperacionesSinCerrar,
       [iOperaciones,
        FormatDateTime('dd/mm/yyyy hh:nn', dUltimoCierre)]);

@@ -1003,6 +1003,7 @@ var
   oColumna      : TcxGridColumn;
   oColumnaLinea : TcxGridColumn;
   vLinea        : Variant;
+  vTecleado     : Variant;
   aPosiciones   : TArrPosConjunto;
   iLinea        : Integer;
   iConjunto     : Integer;
@@ -1021,6 +1022,7 @@ begin
   if bCeldaValida then
   begin
     oEditor := TcxCustomEdit(ASender);
+    vTecleado := oEditor.EditingValue;
     oEditor.PostEditValue;
     oRegistro := FCfg.Grid.Controller.FocusedRecord;
     oColumna := FCfg.Grid.Controller.FocusedColumn;
@@ -1053,7 +1055,7 @@ begin
     begin
       iTalla := aPosiciones[oColumna.Tag - 1].IdAv;
       iClave := ClaveCeldaPivoteCompra(iLinea, iTalla);
-      dValor := ObtenerValorEditor(oEditor, oRegistro, oColumna, Null);
+      dValor := ObtenerValorEditor(oEditor, oRegistro, oColumna, vTecleado);
       dPedida := 0;
       dRecibida := 0;
       FCache.Cantidades.TryGetValue(iClave, dPedida);

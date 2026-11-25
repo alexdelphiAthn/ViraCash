@@ -68,7 +68,7 @@ type
     FRepositorio: IRepositorioFacturacionAlbaranesFechas;
     FAlbaranes: TAlbaranesFacturacionFechas;
     procedure CargarGrid;
-    function SolicitarOpcionesFacturas(
+    function SolicitarOpcionesFacturas(AFechaMaxima: TDateTime;
       out AOpciones: TOpcionesDocumento): Boolean;
   public
     dmmAlbaranes: TdmAlbaranes;
@@ -168,7 +168,7 @@ end;
 // Una factura por albaran (o por cliente): la serie vacia deja la de
 // cada albaran, la forma de pago vacia la de cada albaran y el numero
 // sale siempre del contador.
-function TfrmModalFacturarAlbaranesFechas.SolicitarOpcionesFacturas(
+function TfrmModalFacturarAlbaranesFechas.SolicitarOpcionesFacturas(AFechaMaxima: TDateTime;
   out AOpciones: TOpcionesDocumento): Boolean;
 var
   oConfig: TConfiguracionOpcionesDocumento;
@@ -178,7 +178,9 @@ begin
   oConfig.Tipos := TiposFacturaDesdeAlbaran;
   oConfig.Propuesta.Empresa := UbicacionSesion.Empresa;
   oConfig.Propuesta.Tipo := 'FC';
-  oConfig.Propuesta.Fecha := Date;
+  oConfig.Propuesta.Fecha := AFechaMaxima;
+  if oConfig.Propuesta.Fecha = 0 then
+    oConfig.Propuesta.Fecha := Date;
   oConfig.Visibles := [codTipo, codSerie, codNumero, codFecha, codFormaPago];
   oConfig.SerieOpcional := True;
   Result := TfrmModalOpcionesDocumento.Solicitar(Self,
@@ -189,6 +191,7 @@ end;
 procedure TfrmModalFacturarAlbaranesFechas.btnFacturarClick(Sender: TObject);
 var
   i, generadas: Integer;
+  dFechaMaxima: TDateTime;
   lst: TStringList;
   sNumAlb, sSerAlb: string;
   oOpciones: TOpcionesDocumento;
@@ -199,6 +202,7 @@ begin
   end
   else
   begin
+    dFechaMaxima := 0;
     lst := TStringList.Create;
     try
       for i := 0 to tvAlbaranes.DataController.RecordCount - 1 do
@@ -211,11 +215,13 @@ begin
           sSerAlb := VarToStr(
             tvAlbaranes.DataController.Values[i, colSerie.Index]);
           lst.Add(sSerAlb + '|' + sNumAlb);
+          if FAlbaranes[i].Fecha > dFechaMaxima then
+            dFechaMaxima := FAlbaranes[i].Fecha;
         end;
       end;
       if lst.Count = 0 then
         ShowMessage_fza(SErrorAlbaranesNoSeleccionados)
-      else if SolicitarOpcionesFacturas(oOpciones) then
+      else if SolicitarOpcionesFacturas(dFechaMaxima, oOpciones) then
       begin
         Screen.Cursor := crHourGlass;
         try

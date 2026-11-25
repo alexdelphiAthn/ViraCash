@@ -372,13 +372,13 @@ begin
     oConsulta.Connection := FConexion;
     oConsulta.SQL.Text :=
       'SELECT COUNT(*) AS N ' +
-      '  FROM fza_caja_arqueos ' +
+      '  FROM fza_caja_arqueos A ' +
       ' WHERE CODIGO_EMP_ARQ = :EMPRESA ' +
       '   AND CODIGO_ALM_ARQ = :ALMACEN ' +
       '   AND CODIGO_CAJA_ARQ = :CAJA ' +
       '   AND FASE_ARQ = ''CERRADO'' ' +
       '   AND FECHA_DESDE_ARQ <= :FECHA_HASTA ' +
-      '   AND FECHA_HASTA_ARQ >= :FECHA_DESDE';
+      '   AND (' + SqlFinEfectivoArqueo('A') + ') >= :FECHA_DESDE';
     oConsulta.ParamByName('EMPRESA').AsString := ASolicitud.Empresa;
     oConsulta.ParamByName('ALMACEN').AsString := ASolicitud.Almacen;
     oConsulta.ParamByName('CAJA').AsString := ASolicitud.Caja;
@@ -404,14 +404,14 @@ begin
   try
     oConsulta.Connection := FConexion;
     oConsulta.SQL.Text :=
-      'SELECT MAX(FECHA_HASTA_ARQ) AS ULTIMO ' +
-      '  FROM fza_caja_arqueos ' +
+      'SELECT MAX(' + SqlFinEfectivoArqueo('A') + ') AS ULTIMO ' +
+      '  FROM fza_caja_arqueos A ' +
       ' WHERE CODIGO_EMP_ARQ = :EMPRESA ' +
       '   AND CODIGO_ALM_ARQ = :ALMACEN ' +
       '   AND CODIGO_CAJA_ARQ = :CAJA ' +
       '   AND FASE_ARQ = ''CERRADO'' ' +
-      '   AND FECHA_HASTA_ARQ >= :FECHA_DESDE ' +
-      '   AND FECHA_HASTA_ARQ <= :FECHA_HASTA';
+      '   AND (' + SqlFinEfectivoArqueo('A') + ') >= :FECHA_DESDE ' +
+      '   AND (' + SqlFinEfectivoArqueo('A') + ') <= :FECHA_HASTA';
     oConsulta.ParamByName('EMPRESA').AsString := ASolicitud.Empresa;
     oConsulta.ParamByName('ALMACEN').AsString := ASolicitud.Almacen;
     oConsulta.ParamByName('CAJA').AsString := ASolicitud.Caja;
@@ -442,13 +442,13 @@ begin
   try
     oConsulta.Connection := FConexion;
     oConsulta.SQL.Text :=
-      'SELECT MAX(FECHA_HASTA_ARQ) AS ULTIMO ' +
-      '  FROM fza_caja_arqueos ' +
+      'SELECT MAX(' + SqlFinEfectivoArqueo('A') + ') AS ULTIMO ' +
+      '  FROM fza_caja_arqueos A ' +
       ' WHERE CODIGO_EMP_ARQ = :EMPRESA ' +
       '   AND CODIGO_ALM_ARQ = :ALMACEN ' +
       '   AND CODIGO_CAJA_ARQ = :CAJA ' +
       '   AND FASE_ARQ = ''CERRADO'' ' +
-      '   AND FECHA_HASTA_ARQ < :FECHA_DESDE';
+      '   AND (' + SqlFinEfectivoArqueo('A') + ') < :FECHA_DESDE';
     oConsulta.ParamByName('EMPRESA').AsString := ASolicitud.Empresa;
     oConsulta.ParamByName('ALMACEN').AsString := ASolicitud.Almacen;
     oConsulta.ParamByName('CAJA').AsString := ASolicitud.Caja;

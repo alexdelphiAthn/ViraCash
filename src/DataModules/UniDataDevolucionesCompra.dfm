@@ -107,6 +107,19 @@
         Value = nil
       end>
   end
+  object unqryFormasPago: TUniQuery
+    Connection = dmConn.conUni
+    SQL.Strings = (
+      'SELECT CODIGO_FP_FP, DESCRIPCION_FORMA_PAGO_FP FROM vi_formapago')
+    ReadOnly = True
+    Left = 560
+    Top = 152
+  end
+  object dsFormasPago: TDataSource
+    DataSet = unqryFormasPago
+    Left = 560
+    Top = 208
+  end
   object unqryAlmacenesDevc: TUniQuery
     Connection = dmConn.conUni
     SQL.Strings = (

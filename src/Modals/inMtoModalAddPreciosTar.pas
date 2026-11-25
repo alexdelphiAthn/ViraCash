@@ -17,7 +17,7 @@ unit inMtoModalAddPreciosTar;
 interface
 
 uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Types,
   System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   Vcl.StdCtrls, Vcl.ExtCtrls, Vcl.Menus, Vcl.ImgList,
   System.Actions, Vcl.ActnList,
@@ -41,8 +41,13 @@ type
     chkTarifas: TcxCheckListBox;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure FechaMouseUp(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
   private
     FImagenesColores: TImageList;
+    FUltimoEditorFecha: TObject;
+    FUltimoClicFecha: UInt64;
+    FUltimaPosicionFecha: TPoint;
     FOpcionesSkus: TOpcionesSkuTarifaArticulo;
     // Nombres de los ejes del artículo si no son Color y Talla
     // (FZ-ISSUE-439); vacíos = los textos de siempre.
@@ -80,6 +85,25 @@ begin
   chkSkus.ImageLayout := ilAfterChecks;
   dtpDesde.Date := Date;
   dtpHasta.Clear;
+end;
+
+procedure TfrmMtoModalAddPreciosTar.FechaMouseUp(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+var
+  Instante: UInt64;
+begin
+  if Button = mbLeft then
+  begin
+    Instante := GetTickCount64;
+    if (Sender = FUltimoEditorFecha) and
+       (Instante - FUltimoClicFecha <= GetDoubleClickTime) and
+       (Abs(X - FUltimaPosicionFecha.X) <= GetSystemMetrics(SM_CXDOUBLECLK)) and
+       (Abs(Y - FUltimaPosicionFecha.Y) <= GetSystemMetrics(SM_CYDOUBLECLK)) then
+      TcxDateEdit(Sender).SelectAll;
+    FUltimoEditorFecha := Sender;
+    FUltimoClicFecha := Instante;
+    FUltimaPosicionFecha := Point(X, Y);
+  end;
 end;
 
 procedure TfrmMtoModalAddPreciosTar.FormDestroy(Sender: TObject);

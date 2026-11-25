@@ -150,6 +150,7 @@ type
     // Cierra (CERRADA) o reabre (ABIERTA) la factura enfocada, que no debe
     // estar en edición. Las validaciones del cierre están en BeforePost
     // (FZ-ISSUE-733).
+    function FacturaActualSinEfectos: Boolean;
     procedure CambiarEstadoFactura(ACerrar: Boolean);
     // FZ-ISSUE-752: movimientos FP de la factura enfocada, abiertos.
     function FuenteMovimientosFactura: TDataSource;
@@ -587,9 +588,11 @@ begin
   end;
 end;
 
-procedure TdmFacturasCompra.CargarFormaPagoProveedor(const ACodigoPrv: string);
+procedure TdmFacturasCompra.CargarFormaPagoProveedor(
+  const ACodigoPrv: string);
 var
   sFp: string;
+  CodigoAnterior: string;
 begin
   if unqryTablaG.State in [dsEdit, dsInsert] then
   begin
@@ -607,6 +610,12 @@ begin
       if sFp <> '' then
         unqryTablaG.FieldByName('FORMA_PAGO_FACC').AsString := sFp;
     end;
+    CodigoAnterior := VarToStr(
+      unqryTablaG.FieldByName(CampoEmisorCompra(unqryTablaG)).OldValue);
+    if (CampoEmisorCompra(unqryTablaG) = 'CODIGO_PRV_FACC') and
+       not SameText(ACodigoPrv, CodigoAnterior) then
+      unqryTablaG.FieldByName('PORCENTAJE_RETENCION_FACC').AsCurrency :=
+        RetencionDefectoProveedor(ConexionEscritura, ACodigoPrv);
     CalcularTotalesFacturaCompra;
   end;
 end;
@@ -822,6 +831,11 @@ begin
     if not EsReciboAgricola(DataSet) then
       DataSet.FieldByName('CODIGO_CLI_FACC').Clear;
     CopiarDatosProveedorDocumento(DataSet, 'FACC');
+    if (DataSet.State = dsInsert) and
+       DataSet.FieldByName('PORCENTAJE_RETENCION_FACC').IsNull then
+      DataSet.FieldByName('PORCENTAJE_RETENCION_FACC').AsCurrency :=
+        RetencionDefectoProveedor(ConexionEscritura,
+          DataSet.FieldByName('CODIGO_PRV_FACC').AsString);
   end;
   CopiarDatosEmpresaDocumento(DataSet, 'FACC');
   if FEsCompraDirecta then
@@ -1028,6 +1042,32 @@ end;
 // FZ-ISSUE-752: el cambio de estado y los movimientos de stock van en la
 // misma transacción; si los movimientos fallan, la factura sigue como
 // estaba.
+function TdmFacturasCompra.FacturaActualSinEfectos: Boolean;
+var
+  Consulta: TUniQuery;
+begin
+  Result := False;
+  if (Trim(unqryTablaG.FieldByName('FORMA_PAGO_FACC').AsString) <> '') and
+     (unqryTablaG.FieldByName('TOTAL_LIQUIDO_FACC').AsCurrency <> 0) then
+  begin
+    Consulta := TUniQuery.Create(nil);
+    try
+      Consulta.Connection := ConexionEscritura;
+      Consulta.SQL.Text := 'SELECT 1 FROM fza_efectos_compra ' +
+        'WHERE SERIE_FACC_EFEC = :SERIE AND NUMERO_FACC_EFEC = :NUMERO ' +
+        'LIMIT 1';
+      Consulta.ParamByName('SERIE').AsString :=
+        unqryTablaG.FieldByName('SERIE_FACC').AsString;
+      Consulta.ParamByName('NUMERO').AsString :=
+        unqryTablaG.FieldByName('NUMERO_FACC').AsString;
+      Consulta.Open;
+      Result := Consulta.IsEmpty;
+    finally
+      Consulta.Free;
+    end;
+  end;
+end;
+
 procedure TdmFacturasCompra.CambiarEstadoFactura(ACerrar: Boolean);
 var
   oConexion: TUniConnection;

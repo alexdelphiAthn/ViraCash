@@ -647,6 +647,14 @@
           ShortCut = 49238
           OnClick = mnuLisVentasClick
         end
+        object mnuLibroFacturasExpedidas: TMenuItem
+          Caption = 'Libro de facturas expedidas'
+          OnClick = mnuLibroFacturasExpedidasClick
+        end
+        object mnuListadoEfectosCobro: TMenuItem
+          Caption = 'Listado de efectos de cobro'
+          OnClick = mnuListadoEfectosCobroClick
+        end
       end
     end
     object mnuCaja: TMenuItem

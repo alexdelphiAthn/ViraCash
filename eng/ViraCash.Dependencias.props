@@ -61,13 +61,13 @@
             Text="Plataforma no soportada: $(Platform). Use Win32 o Win64."/>
         <Error
             Condition="'$(ViraCashDevExpressRoot)'==''"
-            Text="Falta DevExpress. Defina VIRACASH_DEVEXPRESS_ROOT o ViraCashDevExpressRoot. Consulte factuzam_web\scripts\README.md."/>
+            Text="Falta DevExpress. Defina VIRACASH_DEVEXPRESS_ROOT o ViraCashDevExpressRoot. Consulte ViraCash_web\scripts\README.md."/>
         <Error
             Condition="'$(ViraCashFastReportRoot)'==''"
-            Text="Falta FastReport. Defina VIRACASH_FASTREPORT_ROOT o ViraCashFastReportRoot. Consulte factuzam_web\scripts\README.md."/>
+            Text="Falta FastReport. Defina VIRACASH_FASTREPORT_ROOT o ViraCashFastReportRoot. Consulte ViraCash_web\scripts\README.md."/>
         <Error
             Condition="'$(ViraCashUniDacRoot)'==''"
-            Text="Falta UniDAC. Defina VIRACASH_UNIDAC_ROOT o ViraCashUniDacRoot. Consulte factuzam_web\scripts\README.md."/>
+            Text="Falta UniDAC. Defina VIRACASH_UNIDAC_ROOT o ViraCashUniDacRoot. Consulte ViraCash_web\scripts\README.md."/>
         <Error
             Condition="'$(ViraCashDevExpressRoot)'!='' and !Exists('$(ViraCashDevExpressPath)\cxClasses.dcu')"
             Text="DevExpress no contiene cxClasses.dcu para $(Platform): $(ViraCashDevExpressPath)."/>
@@ -85,19 +85,19 @@
             Text="DUnitX.TestFramework.pas no existe en $(ViraCashDUnitXRoot)."/>
         <Error
             Condition="'$(ViraCashJclRoot)'==''"
-            Text="Falta JCL. Defina VIRACASH_JCL_ROOT o ViraCashJclRoot. Consulte factuzam_web\scripts\README.md."/>
+            Text="Falta JCL. Defina VIRACASH_JCL_ROOT o ViraCashJclRoot. Consulte ViraCash_web\scripts\README.md."/>
         <Error
             Condition="'$(ViraCashJvclRoot)'==''"
-            Text="Falta JVCL. Defina VIRACASH_JVCL_ROOT o ViraCashJvclRoot. Consulte factuzam_web\scripts\README.md."/>
+            Text="Falta JVCL. Defina VIRACASH_JVCL_ROOT o ViraCashJvclRoot. Consulte ViraCash_web\scripts\README.md."/>
         <Error
             Condition="'$(ViraCashDcpCryptRoot)'==''"
-            Text="Falta DCPCrypt. Defina VIRACASH_DCPCRYPT_ROOT o ViraCashDcpCryptRoot. Consulte factuzam_web\scripts\README.md."/>
+            Text="Falta DCPCrypt. Defina VIRACASH_DCPCRYPT_ROOT o ViraCashDcpCryptRoot. Consulte ViraCash_web\scripts\README.md."/>
         <Error
             Condition="'$(ViraCashSynEditRoot)'==''"
-            Text="Falta SynEdit. Defina VIRACASH_SYNEDIT_ROOT o ViraCashSynEditRoot. Consulte factuzam_web\scripts\README.md."/>
+            Text="Falta SynEdit. Defina VIRACASH_SYNEDIT_ROOT o ViraCashSynEditRoot. Consulte ViraCash_web\scripts\README.md."/>
         <Error
             Condition="'$(ViraCashSynPdfRoot)'==''"
-            Text="Falta SynPDF. Defina VIRACASH_SYNPDF_ROOT o ViraCashSynPdfRoot. Consulte factuzam_web\scripts\README.md."/>
+            Text="Falta SynPDF. Defina VIRACASH_SYNPDF_ROOT o ViraCashSynPdfRoot. Consulte ViraCash_web\scripts\README.md."/>
         <Error
             Condition="'$(ViraCashJclRoot)'!='' and (!Exists('$(ViraCashJclPath)\JclBase.dcu') or !Exists('$(ViraCashJclRoot)\source\include\jcl.inc'))"
             Text="JCL incompleta para $(Platform): $(ViraCashJclPath) y source\include\jcl.inc."/>

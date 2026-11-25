@@ -102,6 +102,7 @@ type
     // AOpciones: serie (vacia = la del albaran), numero (vacio =
     // contador), fecha y forma de pago (vacia = la del albaran) del
     // dialogo comun de creacion de documentos.
+    function FormaPagoFacturaAlbaran(const ASerie, ANumero: string): string;
     function CrearFacturaDesdeAlbaran(out sNumeroFac, sSerieFac: string;
                                       aLineas: TList<string>;
                                       const AOpciones: TOpcionesDocumento
@@ -1892,6 +1893,30 @@ begin
   unstrdprcCrearFacturaFin.ExecProc;
 end;
 
+function TdmAlbaranes.FormaPagoFacturaAlbaran(
+  const ASerie, ANumero: string): string;
+var
+  oConsulta: TUniQuery;
+begin
+  Result := '';
+  oConsulta := TUniQuery.Create(nil);
+  try
+    oConsulta.Connection := ConexionEscritura;
+    oConsulta.SQL.Text :=
+      'SELECT COALESCE(NULLIF(TRIM(A.FORMA_PAGO_ALB), ''''), C.CODIGO_FP_CLI) ' +
+      'FROM fza_albaranes A LEFT JOIN fza_clientes C ' +
+      'ON C.CODIGO_CLI_CLI = A.CODIGO_CLI_ALB ' +
+      'WHERE A.SERIE_ALB = :SERIE AND A.NUMERO_ALB = :NUMERO';
+    oConsulta.ParamByName('SERIE').AsString := ASerie;
+    oConsulta.ParamByName('NUMERO').AsString := ANumero;
+    oConsulta.Open;
+    if not oConsulta.IsEmpty then
+      Result := oConsulta.Fields[0].AsString;
+  finally
+    oConsulta.Free;
+  end;
+end;
+
 function TdmAlbaranes.CrearFacturaDesdeAlbaran(out sNumeroFac,
                                                sSerieFac: string;
                                                aLineas: TList<string>;
@@ -1996,6 +2021,7 @@ var
   i: Integer;
   sSer, sNum, sCliActual, sCliAlb: string;
   sNumFac, sSerFac, sNumFacActual, sSerFacActual: string;
+  rOpciones: TOpcionesDocumento;
   qCli, qLin: TUniQuery;
   bTransPropia: Boolean;
 begin
@@ -2026,8 +2052,11 @@ begin
                (sNumFacActual = '') or
                (sCliAlb <> sCliActual) then
             begin
+              rOpciones := AOpciones;
+              if Trim(rOpciones.FormaPago) = '' then
+                rOpciones.FormaPago := FormaPagoFacturaAlbaran(sSer, sNum);
               EjecutarCrearFacturaInicio(
-                sNum, sSer, AOpciones, sNumFac, sSerFac);
+                sNum, sSer, rOpciones, sNumFac, sSerFac);
               NegarMovimientosFacturaDesdeAlbaran(sSerFac, sNumFac);
               sNumFacActual := sNumFac;
               sSerFacActual := sSerFac;

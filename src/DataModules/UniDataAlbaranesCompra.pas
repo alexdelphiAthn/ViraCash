@@ -720,6 +720,12 @@ begin
     DataSet.FieldByName('ESPIVOTE_HORIZONTAL_ALBC').AsString := 'N';
   // FZ-ISSUE-249: datos del proveedor en la cabecera, como los de empresa.
   CopiarDatosProveedorDocumento(DataSet, 'ALBC');
+  // La factura creada desde el albarán toma este porcentaje.
+  if (DataSet.State = dsInsert) and
+     DataSet.FieldByName('PORCENTAJE_RETENCION_ALBC').IsNull then
+    DataSet.FieldByName('PORCENTAJE_RETENCION_ALBC').AsCurrency :=
+      RetencionDefectoProveedor(ConexionEscritura,
+        DataSet.FieldByName('CODIGO_PRV_ALBC').AsString);
   ValidarAlmacenCabecera;
   if (unqryTablaG.FieldByName('NUMERO_ALBC').AsString = '0') or
      (unqryTablaG.FieldByName('NUMERO_ALBC').AsString = '') then
@@ -729,7 +735,13 @@ begin
     'ALBC');
   CalcularTotalesAlbaranCompra;
   if DataSet.State = dsEdit then
+  begin
+    if (DataSet.FieldByName('ESTADO_ALBC').AsString = 'ABIERTO') and
+       HayLineasMovimiento(DataSet.FieldByName('SERIE_ALBC').AsString,
+         DataSet.FieldByName('NUMERO_ALBC').AsString) then
+      DataSet.FieldByName('ESTADO_ALBC').AsString := 'CERRADO';
     IniciarEscrituraRecepcion(DataSet);
+  end;
 end;
 
 procedure TdmAlbaranesCompra.unqryTablaGAfterPost(DataSet: TDataSet);

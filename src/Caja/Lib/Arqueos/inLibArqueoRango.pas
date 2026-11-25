@@ -22,6 +22,8 @@ interface
 // último cierre si queda dentro del rango; si no, el «desde» recibido.
 function DesdePropuestoArqueo(ADesde, AHasta: TDateTime;
   AHayCierre: Boolean; AUltimoCierre: TDateTime): TDateTime;
+// Para hoy se propone la hora actual. Otro día de caja usa su fin de día.
+function HastaPropuestoArqueo(AFechaCaja, AInstanteActual: TDateTime): TDateTime;
 // El día fijado con la hora del valor tecleado.
 function FijarDiaArqueo(ADiaFijo, AValor: TDateTime): TDateTime;
 // El valor tecleado se sale del día fijado.
@@ -166,6 +168,14 @@ begin
        (CompareDateTime(dSiguiente, AHasta) < 0) then
       Result := dSiguiente;
   end;
+end;
+
+function HastaPropuestoArqueo(AFechaCaja, AInstanteActual: TDateTime): TDateTime;
+begin
+  if SameDate(AFechaCaja, AInstanteActual) then
+    Result := AInstanteActual
+  else
+    Result := DateOf(AFechaCaja) + EncodeTime(23, 59, 59, 0);
 end;
 
 function FijarDiaArqueo(ADiaFijo, AValor: TDateTime): TDateTime;

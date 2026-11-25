@@ -58,8 +58,6 @@ type
       const AUsuario: string
     ): TResultadoFacturacionAlbaranCompra;
     function BuscarFormaPagoProveedor(const AProveedor: string): string;
-    procedure ProponerReferenciaProveedor(
-      const ASerie, ANumero, AUsuario: string);
   end;
 
 implementation

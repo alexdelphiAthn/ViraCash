@@ -42,6 +42,8 @@ type
     // El form empuja su dsTablaG; el DM ya no usa GetOwnerForm.
     procedure AsignarMaestroCabecera(ADataSource: TDataSource); override;
     procedure AbrirDetalles; override;
+    procedure AbrirVentas;
+    procedure CerrarVentas;
   end;
 
 implementation
@@ -61,9 +63,12 @@ var
   oCampo: TField;
 begin
   inherited;
-  unqryTablaG.FindField('CODIGO_FP_FP').AsString := '0';
+  unqryTablaG.FieldByName('CODIGO_FP_FP').Clear;
   unqryTablaG.FindField('ORDEN_FORMA_PAGO_FP').AsString := '0';
   unqryTablaG.FindField('PORCENTAJE_ANTICIPO_FORMA_PAGO_FP').AsString := '0';
+  DataSet.FieldByName('ESACTIVO_FORMA_PAGO_FP').AsString := 'S';
+  DataSet.FieldByName('ESVERBANCOEMPRESA_FORMA_PAGO_FP').AsString := 'N';
+  DataSet.FieldByName('ESCONTADO_FORMA_PAGO_FP').AsString := 'N';
   oCampo := unqryTablaG.FindField('CODIGO_FACTURAE_FP');
   if oCampo <> nil then
     oCampo.AsString := '01';
@@ -95,16 +100,30 @@ begin
   sw := TStopwatch.StartNew;
   AbrirConsultaConTiempo(
     unqryTiposEfecto, TAG, 'unqryTiposEfecto', RegistroLog);
-  AbrirConsultaConTiempo(
-    unqryFacturas, TAG, 'unqryFacturas', RegistroLog);
-  AbrirConsultaConTiempo(
-    unqryFacturasLineas, TAG, 'unqryFacturasLineas', RegistroLog);
   RegistroLog.RegistrarRendimiento(TAG, 'TOTAL', sw.ElapsedMilliseconds);
+end;
+
+procedure TdmFormasdePago.AbrirVentas;
+begin
+  unqryFacturas.Open;
+  try
+    unqryFacturasLineas.Open;
+  except
+    unqryFacturas.Close;
+    raise;
+  end;
+end;
+
+procedure TdmFormasdePago.CerrarVentas;
+begin
+  unqryFacturasLineas.Close;
+  unqryFacturas.Close;
 end;
 
 procedure TdmFormasdePago.GetCodigoAutoFormasdePago;
 begin
-  if unqryTablaG.FindField('CODIGO_FP_FP').AsString = '0' then
+  if (unqryTablaG.State = dsInsert) and
+     (Trim(unqryTablaG.FieldByName('CODIGO_FP_FP').AsString) = '') then
   begin
     unstrdprcContador.Params.Clear;
     unstrdprcContador.Params.CreateParam(ftString, 'ptipodoc', ptInput);

@@ -34,6 +34,9 @@ uses
   UniDataDevolucionesCompraStockRepositorio, inLibMsgCompras,
   inLibErroresBBDD;
 
+type
+  TConsultaOrigenRecepcion = class(TUniQuery);
+
 const
   SQL_ENTRADAS_ORIGEN =
     'SELECT H.SERIE_ALBC AS SERIE, H.NUMERO_ALBC AS NUMERO, ' +
@@ -96,24 +99,29 @@ end;
 function ConsultaOrigenRecepcionDevolucion(AConexion: TUniConnection;
   const AEmpresa, AProveedor, AAlmacenRestringido: string): TDataSet;
 var
-  Datos: TUniQuery;
+  Datos: TConsultaOrigenRecepcion;
+  FiltroAlmacen: string;
 begin
-  Datos := TUniQuery.Create(nil);
+  FiltroAlmacen := '';
+  if AAlmacenRestringido <> '' then
+    FiltroAlmacen := 'AND M.CODIGO_ALM_MOV=:ALM ';
+  Datos := TConsultaOrigenRecepcion.Create(nil);
   try
     Datos.Connection := AConexion;
+    Datos.FetchAll := True;
     Datos.SQL.Text :=
       'SELECT R.*, R.RECIBIDAS-COALESCE((SELECT SUM(D.CANTIDAD_DEVCLIN) ' +
       SQL_DEVOLUCIONES_ORIGEN + 'D.SERIE_ALBC_DEVCLIN=R.SERIE ' +
       'AND D.NUMERO_ALBC_DEVCLIN=R.NUMERO AND D.LINEA_ALBC_DEVCLIN=R.LINEA ' +
       'AND D.CODIGO_UNIDAD_DEVCLIN=R.SKU AND D.CODIGO_ALMACEN_DEVCLIN=R.ALMACEN ' +
       'AND COALESCE(D.LOTE_DEVCLIN,'''')=R.LOTE),0) AS PENDIENTES ' +
-      'FROM (' + SQL_ENTRADAS_ORIGEN +
-      'AND (:ALM='''' OR M.CODIGO_ALM_MOV=:ALM) ' +
+      'FROM (' + SQL_ENTRADAS_ORIGEN + FiltroAlmacen +
       SQL_GRUPO_ORIGEN + ') R HAVING PENDIENTES>0 ' +
       'ORDER BY FECHA DESC, SERIE, NUMERO, LINEA, SKU';
     Datos.ParamByName('EMP').AsString := AEmpresa;
     Datos.ParamByName('PRV').AsString := AProveedor;
-    Datos.ParamByName('ALM').AsString := AAlmacenRestringido;
+    if FiltroAlmacen <> '' then
+      Datos.ParamByName('ALM').AsString := AAlmacenRestringido;
     Datos.Open;
   except
     Datos.Free;

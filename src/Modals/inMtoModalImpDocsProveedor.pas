@@ -226,6 +226,7 @@ begin
      ColumnaInforme('RAZON_SOCIAL_PRV', STextoNombreProveedorCompras, 1),
      ColumnaInforme('TIPO_DOC', STextoTipoCompras, 1),
      ColumnaInforme('DOCUMENTO_DOC', STextoDocumentoCompras2, 1),
+     ColumnaInforme('FACTURA_ALBARAN_DOC', SNombreTipoFacturaInformeProveedor, 1),
      ColumnaInforme('FECHA_DOC', STextoFechaCompras2, 1),
      ColumnaInforme('REF_PROVEEDOR_DOC', STextoReferenciaProveedorCompras, 1),
      ColumnaInforme('CODIGO_ALM_DOC', STextoAlmacenCompras, 1),
@@ -234,6 +235,8 @@ begin
      ColumnaInforme('TOTAL_BASES_DOC', STextoBaseImponibleCompras, 1, '%n'),
      ColumnaInforme('TOTAL_IVA_DOC', STextoIvaCompras2, 1, '%n'),
      ColumnaInforme('TOTAL_RE_DOC', STextoRecargoCompras, 1, '%n'),
+     ColumnaInforme('TOTAL_RETENCION_DOC', STextoRetencionIrpfCompras,
+       1, '%n'),
      ColumnaInforme('TOTAL_LIQUIDO_DOC', STextoTotalLiquidoCompras2, 1, '%n')],
     Selecciones);
   AnadirResumenInformeTabularExcel(AControl, FResultadoDocumentos.DataSet,
@@ -245,6 +248,8 @@ begin
      ColumnaInforme('TOTAL_BASES_DOC', STextoBaseImponibleCompras, 1, '%n'),
      ColumnaInforme('TOTAL_IVA_DOC', STextoIvaCompras2, 1, '%n'),
      ColumnaInforme('TOTAL_RE_DOC', STextoRecargoCompras, 1, '%n'),
+     ColumnaInforme('TOTAL_RETENCION_DOC', STextoRetencionIrpfCompras,
+       1, '%n'),
      ColumnaInforme('TOTAL_LIQUIDO_DOC', STextoTotalLiquidoCompras2, 1, '%n')],
     '', False, Selecciones);
   AnadirResumenInformeTabularExcel(AControl, FResultadoDocumentos.DataSet,
@@ -256,6 +261,8 @@ begin
      ColumnaInforme('TOTAL_BASES_DOC', STextoBaseImponibleCompras, 1, '%n'),
      ColumnaInforme('TOTAL_IVA_DOC', STextoIvaCompras2, 1, '%n'),
      ColumnaInforme('TOTAL_RE_DOC', STextoRecargoCompras, 1, '%n'),
+     ColumnaInforme('TOTAL_RETENCION_DOC', STextoRetencionIrpfCompras,
+       1, '%n'),
      ColumnaInforme('TOTAL_LIQUIDO_DOC', STextoTotalLiquidoCompras2, 1, '%n')],
     'COMPRA_NETA_DOC', True, Selecciones);
 end;

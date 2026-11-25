@@ -1291,6 +1291,8 @@ end;
 procedure TdmArticulos.unqryTablaGAfterInsert(DataSet: TDataSet);
 var
   oCampoWeb: TField;
+  Formula: string;
+  Valores: TValoresFormulaCodigoArticuloSesion;
 begin
   inherited;
   UniDataValoresAutomaticosRepositorio.AplicarValoresPorDefecto(
@@ -1319,6 +1321,17 @@ begin
   if Trim(unqryTablaG.FindField('TIPO_CANTIDAD_ART').AsString) = '' then
     unqryTablaG.FindField('TIPO_CANTIDAD_ART').AsString := 'Uds';
   ProponerTrazabilidadAlta;
+  Formula := FormulaCodigoArticulo;
+  Valores := FValoresFormulaAlta;
+  Valores.CodFamilia := DataSet.FieldByName('CODIGO_FAM_ART').AsString;
+  if (Trim(DataSet.FieldByName('CODIGO_ART_ART').AsString) = '') and
+     (Formula <> '') and
+     not TFormulaCodigoArticuloSesion.UsaDatosFamilia(Formula) and
+     not TFormulaCodigoArticuloSesion.UsaContadorArticulo(Formula) and
+     TFormulaCodigoArticuloSesion.PuedeEvaluar(Formula, Valores) then
+    DataSet.FieldByName('CODIGO_ART_ART').AsString :=
+      StringReplace(TFormulaCodigoArticuloSesion.Evaluar(Formula, Valores),
+        '/', '-', [rfReplaceAll]);
 end;
 
 // Cambiar de familia durante el alta actualiza la propuesta en pantalla.

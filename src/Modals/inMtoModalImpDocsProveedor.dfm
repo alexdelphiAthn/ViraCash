@@ -118,7 +118,7 @@
           AllowVectorExport = True
           Left = 38.000000000000000000
           Top = 2.000000000000000000
-          Width = 96.000000000000000000
+          Width = 90.000000000000000000
           Height = 16.000000000000000000
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -132,9 +132,9 @@
         end
         object MemoHFecha: TfrxMemoView
           AllowVectorExport = True
-          Left = 136.000000000000000000
+          Left = 130.000000000000000000
           Top = 2.000000000000000000
-          Width = 60.000000000000000000
+          Width = 55.000000000000000000
           Height = 16.000000000000000000
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -148,9 +148,9 @@
         end
         object MemoHProv: TfrxMemoView
           AllowVectorExport = True
-          Left = 198.000000000000000000
+          Left = 187.000000000000000000
           Top = 2.000000000000000000
-          Width = 150.000000000000000000
+          Width = 117.000000000000000000
           Height = 16.000000000000000000
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -164,9 +164,9 @@
         end
         object MemoHRef: TfrxMemoView
           AllowVectorExport = True
-          Left = 350.000000000000000000
+          Left = 306.000000000000000000
           Top = 2.000000000000000000
-          Width = 100.000000000000000000
+          Width = 76.000000000000000000
           Height = 16.000000000000000000
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -178,11 +178,27 @@
             'Ref. prov.')
           ParentFont = False
         end
+        object MemoHFactura: TfrxMemoView
+          AllowVectorExport = True
+          Left = 384.000000000000000000
+          Top = 2.000000000000000000
+          Width = 82.000000000000000000
+          Height = 16.000000000000000000
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -9
+          Font.Name = 'Arial'
+          Font.Style = [fsBold]
+          Frame.Typ = [ftBottom]
+          Memo.UTF8W = (
+            'Factura albar'#225'n')
+          ParentFont = False
+        end
         object MemoHAlm: TfrxMemoView
           AllowVectorExport = True
-          Left = 452.000000000000000000
+          Left = 468.000000000000000000
           Top = 2.000000000000000000
-          Width = 48.000000000000000000
+          Width = 41.000000000000000000
           Height = 16.000000000000000000
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -196,9 +212,9 @@
         end
         object MemoHTmp: TfrxMemoView
           AllowVectorExport = True
-          Left = 502.000000000000000000
+          Left = 511.000000000000000000
           Top = 2.000000000000000000
-          Width = 86.000000000000000000
+          Width = 62.000000000000000000
           Height = 16.000000000000000000
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -212,9 +228,9 @@
         end
         object MemoHCtd: TfrxMemoView
           AllowVectorExport = True
-          Left = 590.000000000000000000
+          Left = 575.000000000000000000
           Top = 2.000000000000000000
-          Width = 58.000000000000000000
+          Width = 49.000000000000000000
           Height = 16.000000000000000000
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -229,9 +245,9 @@
         end
         object MemoHUds: TfrxMemoView
           AllowVectorExport = True
-          Left = 650.000000000000000000
+          Left = 626.000000000000000000
           Top = 2.000000000000000000
-          Width = 88.000000000000000000
+          Width = 84.000000000000000000
           Height = 16.000000000000000000
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -247,9 +263,9 @@
         end
         object MemoHBase: TfrxMemoView
           AllowVectorExport = True
-          Left = 740.000000000000000000
+          Left = 712.000000000000000000
           Top = 2.000000000000000000
-          Width = 72.000000000000000000
+          Width = 64.000000000000000000
           Height = 16.000000000000000000
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -264,9 +280,9 @@
         end
         object MemoHIva: TfrxMemoView
           AllowVectorExport = True
-          Left = 814.000000000000000000
+          Left = 778.000000000000000000
           Top = 2.000000000000000000
-          Width = 64.000000000000000000
+          Width = 58.000000000000000000
           Height = 16.000000000000000000
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -281,9 +297,9 @@
         end
         object MemoHRe: TfrxMemoView
           AllowVectorExport = True
-          Left = 880.000000000000000000
+          Left = 838.000000000000000000
           Top = 2.000000000000000000
-          Width = 64.000000000000000000
+          Width = 55.000000000000000000
           Height = 16.000000000000000000
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -296,11 +312,11 @@
             'RE')
           ParentFont = False
         end
-        object MemoHTotal: TfrxMemoView
+        object MemoHRetencion: TfrxMemoView
           AllowVectorExport = True
-          Left = 946.000000000000000000
+          Left = 895.000000000000000000
           Top = 2.000000000000000000
-          Width = 82.000000000000000000
+          Width = 61.000000000000000000
           Height = 16.000000000000000000
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -310,7 +326,24 @@
           Frame.Typ = [ftBottom]
           HAlign = haRight
           Memo.UTF8W = (
-            'Total')
+            'Retenci'#243'n')
+          ParentFont = False
+        end
+        object MemoHTotal: TfrxMemoView
+          AllowVectorExport = True
+          Left = 958.000000000000000000
+          Top = 2.000000000000000000
+          Width = 70.000000000000000000
+          Height = 16.000000000000000000
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -9
+          Font.Name = 'Arial'
+          Font.Style = [fsBold]
+          Frame.Typ = [ftBottom]
+          HAlign = haRight
+          Memo.UTF8W = (
+            'L'#237'quido')
           ParentFont = False
         end
       end
@@ -403,7 +436,7 @@
           AllowVectorExport = True
           Left = 38.000000000000000000
           Top = 1.000000000000000000
-          Width = 96.000000000000000000
+          Width = 90.000000000000000000
           Height = 14.000000000000000000
           DataSet = fxdsDocsProveedor
           DataSetName = 'DocsProveedor'
@@ -419,9 +452,9 @@
         end
         object MemoFecha: TfrxMemoView
           AllowVectorExport = True
-          Left = 136.000000000000000000
+          Left = 130.000000000000000000
           Top = 1.000000000000000000
-          Width = 60.000000000000000000
+          Width = 55.000000000000000000
           Height = 14.000000000000000000
           DataSet = fxdsDocsProveedor
           DataSetName = 'DocsProveedor'
@@ -439,9 +472,9 @@
         end
         object MemoProv: TfrxMemoView
           AllowVectorExport = True
-          Left = 198.000000000000000000
+          Left = 187.000000000000000000
           Top = 1.000000000000000000
-          Width = 150.000000000000000000
+          Width = 117.000000000000000000
           Height = 14.000000000000000000
           DataSet = fxdsDocsProveedor
           DataSetName = 'DocsProveedor'
@@ -457,9 +490,9 @@
         end
         object MemoRef: TfrxMemoView
           AllowVectorExport = True
-          Left = 350.000000000000000000
+          Left = 306.000000000000000000
           Top = 1.000000000000000000
-          Width = 100.000000000000000000
+          Width = 76.000000000000000000
           Height = 14.000000000000000000
           DataSet = fxdsDocsProveedor
           DataSetName = 'DocsProveedor'
@@ -473,11 +506,29 @@
             '[DocsProveedor."REF_PROVEEDOR_DOC"]')
           ParentFont = False
         end
+        object MemoFactura: TfrxMemoView
+          AllowVectorExport = True
+          Left = 384.000000000000000000
+          Top = 1.000000000000000000
+          Width = 82.000000000000000000
+          Height = 14.000000000000000000
+          DataSet = fxdsDocsProveedor
+          DataSetName = 'DocsProveedor'
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -8
+          Font.Name = 'Arial'
+          Font.Style = []
+          Frame.Typ = []
+          Memo.UTF8W = (
+            '[DocsProveedor."FACTURA_ALBARAN_DOC"]')
+          ParentFont = False
+        end
         object MemoAlm: TfrxMemoView
           AllowVectorExport = True
-          Left = 452.000000000000000000
+          Left = 468.000000000000000000
           Top = 1.000000000000000000
-          Width = 48.000000000000000000
+          Width = 41.000000000000000000
           Height = 14.000000000000000000
           DataSet = fxdsDocsProveedor
           DataSetName = 'DocsProveedor'
@@ -493,9 +544,9 @@
         end
         object MemoTmp: TfrxMemoView
           AllowVectorExport = True
-          Left = 502.000000000000000000
+          Left = 511.000000000000000000
           Top = 1.000000000000000000
-          Width = 86.000000000000000000
+          Width = 62.000000000000000000
           Height = 14.000000000000000000
           DataSet = fxdsDocsProveedor
           DataSetName = 'DocsProveedor'
@@ -511,9 +562,9 @@
         end
         object MemoCtd: TfrxMemoView
           AllowVectorExport = True
-          Left = 590.000000000000000000
+          Left = 575.000000000000000000
           Top = 1.000000000000000000
-          Width = 58.000000000000000000
+          Width = 49.000000000000000000
           Height = 14.000000000000000000
           DataSet = fxdsDocsProveedor
           DataSetName = 'DocsProveedor'
@@ -532,9 +583,9 @@
         end
         object MemoUds: TfrxMemoView
           AllowVectorExport = True
-          Left = 650.000000000000000000
+          Left = 626.000000000000000000
           Top = 1.000000000000000000
-          Width = 88.000000000000000000
+          Width = 84.000000000000000000
           Height = 14.000000000000000000
           DataSet = fxdsDocsProveedor
           DataSetName = 'DocsProveedor'
@@ -552,9 +603,9 @@
         end
         object MemoBase: TfrxMemoView
           AllowVectorExport = True
-          Left = 740.000000000000000000
+          Left = 712.000000000000000000
           Top = 1.000000000000000000
-          Width = 72.000000000000000000
+          Width = 64.000000000000000000
           Height = 14.000000000000000000
           DataSet = fxdsDocsProveedor
           DataSetName = 'DocsProveedor'
@@ -574,9 +625,9 @@
         end
         object MemoIva: TfrxMemoView
           AllowVectorExport = True
-          Left = 814.000000000000000000
+          Left = 778.000000000000000000
           Top = 1.000000000000000000
-          Width = 64.000000000000000000
+          Width = 58.000000000000000000
           Height = 14.000000000000000000
           DataSet = fxdsDocsProveedor
           DataSetName = 'DocsProveedor'
@@ -596,9 +647,9 @@
         end
         object MemoRe: TfrxMemoView
           AllowVectorExport = True
-          Left = 880.000000000000000000
+          Left = 838.000000000000000000
           Top = 1.000000000000000000
-          Width = 64.000000000000000000
+          Width = 55.000000000000000000
           Height = 14.000000000000000000
           DataSet = fxdsDocsProveedor
           DataSetName = 'DocsProveedor'
@@ -616,11 +667,33 @@
             '[DocsProveedor."TOTAL_RE_DOC"]')
           ParentFont = False
         end
+        object MemoRetencion: TfrxMemoView
+          AllowVectorExport = True
+          Left = 895.000000000000000000
+          Top = 1.000000000000000000
+          Width = 61.000000000000000000
+          Height = 14.000000000000000000
+          DataSet = fxdsDocsProveedor
+          DataSetName = 'DocsProveedor'
+          DisplayFormat.DecimalSeparator = ','
+          DisplayFormat.FormatStr = '%2.2m'
+          DisplayFormat.Kind = fkNumeric
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -8
+          Font.Name = 'Arial'
+          Font.Style = []
+          Frame.Typ = []
+          HAlign = haRight
+          Memo.UTF8W = (
+            '[DocsProveedor."TOTAL_RETENCION_DOC"]')
+          ParentFont = False
+        end
         object MemoTotal: TfrxMemoView
           AllowVectorExport = True
-          Left = 946.000000000000000000
+          Left = 958.000000000000000000
           Top = 1.000000000000000000
-          Width = 82.000000000000000000
+          Width = 70.000000000000000000
           Height = 14.000000000000000000
           DataSet = fxdsDocsProveedor
           DataSetName = 'DocsProveedor'
@@ -652,7 +725,7 @@
         object MemoTotProv: TfrxMemoView
           AllowVectorExport = True
           Top = 2.000000000000000000
-          Width = 588.000000000000000000
+          Width = 573.000000000000000000
           Height = 14.000000000000000000
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -666,9 +739,9 @@
         end
         object MemoTotProvCtd: TfrxMemoView
           AllowVectorExport = True
-          Left = 590.000000000000000000
+          Left = 575.000000000000000000
           Top = 2.000000000000000000
-          Width = 58.000000000000000000
+          Width = 49.000000000000000000
           Height = 14.000000000000000000
           DisplayFormat.FormatStr = '%g'
           DisplayFormat.Kind = fkNumeric
@@ -685,9 +758,9 @@
         end
         object MemoTotProvUds: TfrxMemoView
           AllowVectorExport = True
-          Left = 650.000000000000000000
+          Left = 626.000000000000000000
           Top = 2.000000000000000000
-          Width = 88.000000000000000000
+          Width = 84.000000000000000000
           Height = 14.000000000000000000
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -703,9 +776,9 @@
         end
         object MemoTotProvBase: TfrxMemoView
           AllowVectorExport = True
-          Left = 740.000000000000000000
+          Left = 712.000000000000000000
           Top = 2.000000000000000000
-          Width = 72.000000000000000000
+          Width = 64.000000000000000000
           Height = 14.000000000000000000
           DisplayFormat.DecimalSeparator = ','
           DisplayFormat.FormatStr = '%2.2m'
@@ -723,9 +796,9 @@
         end
         object MemoTotProvIva: TfrxMemoView
           AllowVectorExport = True
-          Left = 814.000000000000000000
+          Left = 778.000000000000000000
           Top = 2.000000000000000000
-          Width = 64.000000000000000000
+          Width = 58.000000000000000000
           Height = 14.000000000000000000
           DisplayFormat.DecimalSeparator = ','
           DisplayFormat.FormatStr = '%2.2m'
@@ -743,9 +816,9 @@
         end
         object MemoTotProvRe: TfrxMemoView
           AllowVectorExport = True
-          Left = 880.000000000000000000
+          Left = 838.000000000000000000
           Top = 2.000000000000000000
-          Width = 64.000000000000000000
+          Width = 55.000000000000000000
           Height = 14.000000000000000000
           DisplayFormat.DecimalSeparator = ','
           DisplayFormat.FormatStr = '%2.2m'
@@ -761,11 +834,31 @@
             '[SUM(<DocsProveedor."TOTAL_RE_DOC">,MasterData1)]')
           ParentFont = False
         end
+        object MemoTotProvRetencion: TfrxMemoView
+          AllowVectorExport = True
+          Left = 895.000000000000000000
+          Top = 2.000000000000000000
+          Width = 61.000000000000000000
+          Height = 14.000000000000000000
+          DisplayFormat.DecimalSeparator = ','
+          DisplayFormat.FormatStr = '%2.2m'
+          DisplayFormat.Kind = fkNumeric
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -9
+          Font.Name = 'Arial'
+          Font.Style = [fsBold]
+          Frame.Typ = [ftTop]
+          HAlign = haRight
+          Memo.UTF8W = (
+            '[SUM(<DocsProveedor."TOTAL_RETENCION_DOC">,MasterData1)]')
+          ParentFont = False
+        end
         object MemoTotProvTotal: TfrxMemoView
           AllowVectorExport = True
-          Left = 946.000000000000000000
+          Left = 958.000000000000000000
           Top = 2.000000000000000000
-          Width = 82.000000000000000000
+          Width = 70.000000000000000000
           Height = 14.000000000000000000
           DisplayFormat.DecimalSeparator = ','
           DisplayFormat.FormatStr = '%2.2m'
@@ -795,7 +888,7 @@
         object MemoTotTipo: TfrxMemoView
           AllowVectorExport = True
           Top = 2.000000000000000000
-          Width = 588.000000000000000000
+          Width = 573.000000000000000000
           Height = 16.000000000000000000
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -809,9 +902,9 @@
         end
         object MemoTotTipoCtd: TfrxMemoView
           AllowVectorExport = True
-          Left = 590.000000000000000000
+          Left = 575.000000000000000000
           Top = 2.000000000000000000
-          Width = 58.000000000000000000
+          Width = 49.000000000000000000
           Height = 16.000000000000000000
           DisplayFormat.FormatStr = '%g'
           DisplayFormat.Kind = fkNumeric
@@ -828,9 +921,9 @@
         end
         object MemoTotTipoUds: TfrxMemoView
           AllowVectorExport = True
-          Left = 650.000000000000000000
+          Left = 626.000000000000000000
           Top = 2.000000000000000000
-          Width = 88.000000000000000000
+          Width = 84.000000000000000000
           Height = 16.000000000000000000
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -846,9 +939,9 @@
         end
         object MemoTotTipoBase: TfrxMemoView
           AllowVectorExport = True
-          Left = 740.000000000000000000
+          Left = 712.000000000000000000
           Top = 2.000000000000000000
-          Width = 72.000000000000000000
+          Width = 64.000000000000000000
           Height = 16.000000000000000000
           DisplayFormat.DecimalSeparator = ','
           DisplayFormat.FormatStr = '%2.2m'
@@ -866,9 +959,9 @@
         end
         object MemoTotTipoIva: TfrxMemoView
           AllowVectorExport = True
-          Left = 814.000000000000000000
+          Left = 778.000000000000000000
           Top = 2.000000000000000000
-          Width = 64.000000000000000000
+          Width = 58.000000000000000000
           Height = 16.000000000000000000
           DisplayFormat.DecimalSeparator = ','
           DisplayFormat.FormatStr = '%2.2m'
@@ -886,9 +979,9 @@
         end
         object MemoTotTipoRe: TfrxMemoView
           AllowVectorExport = True
-          Left = 880.000000000000000000
+          Left = 838.000000000000000000
           Top = 2.000000000000000000
-          Width = 64.000000000000000000
+          Width = 55.000000000000000000
           Height = 16.000000000000000000
           DisplayFormat.DecimalSeparator = ','
           DisplayFormat.FormatStr = '%2.2m'
@@ -904,11 +997,31 @@
             '[SUM(<DocsProveedor."TOTAL_RE_DOC">,MasterData1)]')
           ParentFont = False
         end
+        object MemoTotTipoRetencion: TfrxMemoView
+          AllowVectorExport = True
+          Left = 895.000000000000000000
+          Top = 2.000000000000000000
+          Width = 61.000000000000000000
+          Height = 16.000000000000000000
+          DisplayFormat.DecimalSeparator = ','
+          DisplayFormat.FormatStr = '%2.2m'
+          DisplayFormat.Kind = fkNumeric
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -9
+          Font.Name = 'Arial'
+          Font.Style = [fsBold]
+          Frame.Typ = [ftTop, ftBottom]
+          HAlign = haRight
+          Memo.UTF8W = (
+            '[SUM(<DocsProveedor."TOTAL_RETENCION_DOC">,MasterData1)]')
+          ParentFont = False
+        end
         object MemoTotTipoTotal: TfrxMemoView
           AllowVectorExport = True
-          Left = 946.000000000000000000
+          Left = 958.000000000000000000
           Top = 2.000000000000000000
-          Width = 82.000000000000000000
+          Width = 70.000000000000000000
           Height = 16.000000000000000000
           DisplayFormat.DecimalSeparator = ','
           DisplayFormat.FormatStr = '%2.2m'
@@ -938,7 +1051,7 @@
         object MemoTotalGeneral: TfrxMemoView
           AllowVectorExport = True
           Top = 2.000000000000000000
-          Width = 588.000000000000000000
+          Width = 573.000000000000000000
           Height = 16.000000000000000000
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -952,9 +1065,9 @@
         end
         object MemoTotGenCtd: TfrxMemoView
           AllowVectorExport = True
-          Left = 590.000000000000000000
+          Left = 575.000000000000000000
           Top = 2.000000000000000000
-          Width = 58.000000000000000000
+          Width = 49.000000000000000000
           Height = 16.000000000000000000
           DisplayFormat.FormatStr = '%g'
           DisplayFormat.Kind = fkNumeric
@@ -971,9 +1084,9 @@
         end
         object MemoTotGenUds: TfrxMemoView
           AllowVectorExport = True
-          Left = 650.000000000000000000
+          Left = 626.000000000000000000
           Top = 2.000000000000000000
-          Width = 88.000000000000000000
+          Width = 84.000000000000000000
           Height = 16.000000000000000000
           Font.Charset = DEFAULT_CHARSET
           Font.Color = clBlack
@@ -989,9 +1102,9 @@
         end
         object MemoTotGenBase: TfrxMemoView
           AllowVectorExport = True
-          Left = 740.000000000000000000
+          Left = 712.000000000000000000
           Top = 2.000000000000000000
-          Width = 72.000000000000000000
+          Width = 64.000000000000000000
           Height = 16.000000000000000000
           DisplayFormat.DecimalSeparator = ','
           DisplayFormat.FormatStr = '%2.2m'
@@ -1009,9 +1122,9 @@
         end
         object MemoTotGenIva: TfrxMemoView
           AllowVectorExport = True
-          Left = 814.000000000000000000
+          Left = 778.000000000000000000
           Top = 2.000000000000000000
-          Width = 64.000000000000000000
+          Width = 58.000000000000000000
           Height = 16.000000000000000000
           DisplayFormat.DecimalSeparator = ','
           DisplayFormat.FormatStr = '%2.2m'
@@ -1029,9 +1142,9 @@
         end
         object MemoTotGenRe: TfrxMemoView
           AllowVectorExport = True
-          Left = 880.000000000000000000
+          Left = 838.000000000000000000
           Top = 2.000000000000000000
-          Width = 64.000000000000000000
+          Width = 55.000000000000000000
           Height = 16.000000000000000000
           DisplayFormat.DecimalSeparator = ','
           DisplayFormat.FormatStr = '%2.2m'
@@ -1047,11 +1160,31 @@
             '[SUM(<DocsProveedor."TOTAL_RE_DOC">,MasterData1)]')
           ParentFont = False
         end
+        object MemoTotGenRetencion: TfrxMemoView
+          AllowVectorExport = True
+          Left = 895.000000000000000000
+          Top = 2.000000000000000000
+          Width = 61.000000000000000000
+          Height = 16.000000000000000000
+          DisplayFormat.DecimalSeparator = ','
+          DisplayFormat.FormatStr = '%2.2m'
+          DisplayFormat.Kind = fkNumeric
+          Font.Charset = DEFAULT_CHARSET
+          Font.Color = clBlack
+          Font.Height = -9
+          Font.Name = 'Arial'
+          Font.Style = [fsBold]
+          Frame.Typ = [ftTop, ftBottom]
+          HAlign = haRight
+          Memo.UTF8W = (
+            '[SUM(<DocsProveedor."TOTAL_RETENCION_DOC">,MasterData1)]')
+          ParentFont = False
+        end
         object MemoTotGenTotal: TfrxMemoView
           AllowVectorExport = True
-          Left = 946.000000000000000000
+          Left = 958.000000000000000000
           Top = 2.000000000000000000
-          Width = 82.000000000000000000
+          Width = 70.000000000000000000
           Height = 16.000000000000000000
           DisplayFormat.DecimalSeparator = ','
           DisplayFormat.FormatStr = '%2.2m'

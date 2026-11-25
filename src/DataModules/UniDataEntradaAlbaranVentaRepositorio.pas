@@ -37,7 +37,8 @@ const
     '    ON pv.ID_PV_ARTPROP = artprop.ID_PV_ARTPROP ' +
     ' WHERE (v.CODIGO_TAR_ARTTAR = :tarifa ' +
     '    OR v.CODIGO_TAR_ARTTAR IS NULL) ' +
-    '   AND v.FECHA_DESDE_ARTTAR < :fecha ' +
+    '   AND (v.FECHA_DESDE_ARTTAR IS NULL ' +
+    '        OR v.FECHA_DESDE_ARTTAR < :fecha) ' +
     '   AND (v.FECHA_HASTA_ARTTAR IS NULL ' +
     '        OR v.FECHA_HASTA_ARTTAR > :fecha)';
   SQL_SKUS =

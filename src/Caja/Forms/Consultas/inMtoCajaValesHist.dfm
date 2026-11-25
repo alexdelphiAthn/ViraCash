@@ -215,6 +215,16 @@
       TabOrder = 4
       WordWrap = True
     end
+    object btnSaldoVales: TcxButton
+      Left = 1
+      Top = 276
+      Width = 138
+      Height = 48
+      Caption = 'Saldo a fecha de corte'
+      OnClick = btnSaldoValesClick
+      TabOrder = 5
+      WordWrap = True
+    end
   end
   inherited dsTablaG: TDataSource
     DataSet = dmCajaValesHist.unqryTablaG

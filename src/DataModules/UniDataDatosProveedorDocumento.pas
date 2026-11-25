@@ -17,7 +17,7 @@ unit UniDataDatosProveedorDocumento;
 interface
 
 uses
-  Data.DB;
+  Data.DB, Uni;
 
 // Rellena RAZON_SOCIAL_PRV_<ASufijo>, NIF_PRV_<ASufijo>... desde la ficha
 // del proveedor CODIGO_PRV_<ASufijo>. Solo en el alta, al cambiar de
@@ -26,6 +26,8 @@ uses
 // (se usa su conexion) en dsInsert o dsEdit.
 procedure CopiarDatosProveedorDocumento(ADataSet: TDataSet;
   const ASufijo: string);
+function RetencionDefectoProveedor(AConexion: TUniConnection;
+  const ACodigo: string): Currency;
 // Igual para la empresa compradora: RAZON_SOCIAL_EMPRESA_<ASufijo>...
 // desde CODIGO_EMP_<ASufijo>. La factura de compra no los copiaba y el
 // recibo REAGP salía sin los datos de quien compra (FZ-ISSUE-745).
@@ -35,7 +37,7 @@ procedure CopiarDatosEmpresaDocumento(ADataSet: TDataSet;
 implementation
 
 uses
-  System.SysUtils, System.Variants, Uni;
+  System.SysUtils, System.Variants;
 
 const
   // Columnas de la cabecera sin el sufijo del documento; la
@@ -91,6 +93,30 @@ function DebeCopiar(ADataSet: TDataSet; const ASufijo: string): Boolean;
 begin
   Result := DebeCopiarTercero(ADataSet, 'CODIGO_PRV_' + ASufijo,
     'RAZON_SOCIAL_PRV_' + ASufijo);
+end;
+
+function RetencionDefectoProveedor(AConexion: TUniConnection;
+  const ACodigo: string): Currency;
+var
+  Consulta: TUniQuery;
+begin
+  Result := 0;
+  if (ACodigo <> '') and (ACodigo <> '0') then
+  begin
+    Consulta := TUniQuery.Create(nil);
+    try
+      Consulta.Connection := AConexion;
+      Consulta.SQL.Text := 'SELECT PORCENTAJE_RETENCION_PRV ' +
+        'FROM fza_proveedores WHERE CODIGO_PRV_PRV = :PROVEEDOR ' +
+        'AND ESRETENCION_PRV = ''S''';
+      Consulta.ParamByName('PROVEEDOR').AsString := ACodigo;
+      Consulta.Open;
+      if not Consulta.IsEmpty then
+        Result := Consulta.Fields[0].AsCurrency;
+    finally
+      Consulta.Free;
+    end;
+  end;
 end;
 
 procedure CopiarDatosProveedorDocumento(ADataSet: TDataSet;

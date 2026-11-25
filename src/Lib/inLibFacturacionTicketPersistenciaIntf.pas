@@ -28,6 +28,7 @@ type
     Nif: string;
     CodigoPais: string;
     NombrePais: string;
+    FormaPago: string;
   end;
 
   TTicketFacturacion = record

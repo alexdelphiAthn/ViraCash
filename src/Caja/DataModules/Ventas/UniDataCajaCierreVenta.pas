@@ -93,7 +93,7 @@ type
       AConsulta: TUniQuery;
       const ACodigoVale, AEmpresa, AAlmacen, ACaja: string;
       const ANumeroOperacion, ASerie, ANumeroFactura: string;
-      AImporteRedimido: Currency;
+      AFechaOperacion: TDateTime; AImporteRedimido: Currency;
       const ARestriccion: TRestriccionCanjeVale);
   end;
 
@@ -667,7 +667,7 @@ procedure TPersistenciaCierreVentaCajaUniDAC.MarcarValeCanjeado(
   AConsulta: TUniQuery;
   const ACodigoVale, AEmpresa, AAlmacen, ACaja: string;
   const ANumeroOperacion, ASerie, ANumeroFactura: string;
-  AImporteRedimido: Currency;
+  AFechaOperacion: TDateTime; AImporteRedimido: Currency;
   const ARestriccion: TRestriccionCanjeVale);
 var
   iFilasAfectadas: Integer;
@@ -678,7 +678,7 @@ begin
     raise EValidacionBBDD.Create(SErrorUbicacionCanjeValeNoConfigurada);
   AConsulta.SQL.Text :=
     'UPDATE fza_caja_vales SET ESTADO_VL = ''REDIMIDO'', ' +
-    'FECHA_REDENCION_VL = NOW(), IMPORTE_REDIMIDO_VL = :IMPORTE, ' +
+    'FECHA_REDENCION_VL = :FECHA, IMPORTE_REDIMIDO_VL = :IMPORTE, ' +
     'CODIGO_EMP_RED_VL = :EMPRESA, CODIGO_ALM_RED_VL = :ALMACEN, ' +
     'CODIGO_CAJA_RED_VL = :CAJA, ' +
     'NUMERO_OPERACION_RED_VL = :NUMOP, ' +
@@ -690,6 +690,7 @@ begin
     '     OR FECHA_CADUCIDAD_VL >= CURDATE())' +
     FiltroAmbitoCanjeVale(ARestriccion);
   AConsulta.ParamByName('CODIGO').AsString := ACodigoVale;
+  AConsulta.ParamByName('FECHA').AsDateTime := AFechaOperacion;
   AConsulta.ParamByName('IMPORTE').AsCurrency := AImporteRedimido;
   AConsulta.ParamByName('EMPRESA').AsString := AEmpresa;
   AConsulta.ParamByName('ALMACEN').AsString := AAlmacen;

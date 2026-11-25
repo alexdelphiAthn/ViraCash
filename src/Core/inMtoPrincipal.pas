@@ -119,6 +119,7 @@ type
     mnuComprasListados: TMenuItem;
     mnuListadoDocsProveedor: TMenuItem;
     mnuListadoEfectosPago: TMenuItem;
+    mnuListadoEfectosCobro: TMenuItem;
     dxSkinController1: TdxSkinController;
     mnuAlmacen: TMenuItem;
     Movimientosdealmacn1: TMenuItem;
@@ -173,7 +174,9 @@ type
     procedure mnuComparativaVentasClick(Sender: TObject);
     procedure mnuListadoDocsProveedorClick(Sender: TObject);
     procedure mnuListadoEfectosPagoClick(Sender: TObject);
+    procedure mnuListadoEfectosCobroClick(Sender: TObject);
     procedure mnuListadoLibrosIvaClick(Sender: TObject);
+    procedure mnuLibroFacturasExpedidasClick(Sender: TObject);
     procedure pcPrincipalChange(Sender: TObject);
   public
     // Re-vincula la pantalla flotante de fotos (si esta abierta) al
@@ -237,6 +240,7 @@ type
     mnuGruposdeIVA: TMenuItem;
     mnuIvas: TMenuItem;
     mnuListadoLibrosIva: TMenuItem;
+    mnuLibroFacturasExpedidas: TMenuItem;
     mnuContadores: TMenuItem;
     mnuPaises: TMenuItem;
     mnuUnidadesMedida: TMenuItem;
@@ -1224,6 +1228,8 @@ end;
 procedure TfrmMtoPrincipal.mnuVentasMayorClick(Sender: TObject);
 begin
   AplicarInterruptorListasRegalos;
+  mnuListadoEfectosCobro.Visible := EfectosVenta1.Visible;
+  mnuListadoEfectosCobro.Enabled := EfectosVenta1.Enabled;
 end;
 
 // F-LOTEC: los menús de trazabilidad solo existen con su interruptor
@@ -1332,6 +1338,8 @@ function TfrmMtoPrincipal.PuedeAbrirMenu(AItem: TMenuItem): Boolean;
 var
   sCodigo: string;
 begin
+  if AItem = mnuLibroFacturasExpedidas then
+    AItem := mnuListadoLibrosIva;
   sCodigo := FComposicion.RegistroPantallas.CodigoMenu(AItem);
   Result := (sCodigo = '') or
             (Assigned(Permisos) and
@@ -2364,6 +2372,12 @@ begin
   MostrarListadoDocumentosProveedor(Self);
 end;
 
+procedure TfrmMtoPrincipal.mnuListadoEfectosCobroClick(Sender: TObject);
+begin
+  if EfectosVenta1.Visible and EfectosVenta1.Enabled then
+    MostrarListadoEfectosCobro(Self);
+end;
+
 procedure TfrmMtoPrincipal.mnuListadoEfectosPagoClick(Sender: TObject);
 begin
   inherited;
@@ -2374,6 +2388,13 @@ procedure TfrmMtoPrincipal.mnuListadoLibrosIvaClick(Sender: TObject);
 begin
   inherited;
   MostrarListadoLibrosIva(Self);
+end;
+
+procedure TfrmMtoPrincipal.mnuLibroFacturasExpedidasClick(Sender: TObject);
+begin
+  inherited;
+  if PuedeAbrirMenu(mnuLibroFacturasExpedidas) then
+    MostrarListadoLibrosIva(Self, True);
 end;
 
 procedure TfrmMtoPrincipal.mnuMenuCajaClick(Sender: TObject);

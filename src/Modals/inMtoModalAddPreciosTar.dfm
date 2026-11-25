@@ -114,12 +114,14 @@
         Top = 19
         TabOrder = 0
         Width = 120
+        OnMouseUp = FechaMouseUp
       end
       object dtpHasta: TcxDateEdit
         Left = 424
         Top = 19
         TabOrder = 1
         Width = 120
+        OnMouseUp = FechaMouseUp
       end
     end
     object chkSkus: TcxCheckListBox

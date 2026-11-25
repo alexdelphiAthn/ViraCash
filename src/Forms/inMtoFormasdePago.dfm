@@ -298,6 +298,7 @@
                 DataBinding.DataField = 'CODIGO_TEFE_FP'
                 DataBinding.DataSource = dsTablaG
                 Properties.KeyFieldNames = 'CODIGO_TEFE'
+                Properties.ListOptions.ShowHeader = False
                 Properties.ListColumns = <
                   item
                     FieldName = 'DESCRIPCION_TEFE'

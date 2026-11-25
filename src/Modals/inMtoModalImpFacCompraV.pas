@@ -153,6 +153,7 @@ begin
   begin
     RebindReportDataSetsByDataModule(frxrprt1, dmFacc);
     AdaptarInformeCompraDirecta(frxrprt1, dmFacc.unqryCabFaccPrint);
+    AplicarFormaPagoInformeCompra(frxrprt1, dmFacc.unqryCabFaccPrint);
   end;
 end;
 

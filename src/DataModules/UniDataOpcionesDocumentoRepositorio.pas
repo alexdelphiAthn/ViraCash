@@ -24,10 +24,69 @@ uses
 function CrearLectorOpcionesDocumentoUniDAC(
   AConexion: TUniConnection): ILectorOpcionesDocumento;
 
+function ListarSeriesEmisionCaja(AConexion: TUniConnection;
+  const AEmpresa, AAlmacen, ASubtipo: string;
+  AFecha: TDateTime): TArray<string>;
+
 implementation
 
 uses
-  System.SysUtils, System.Generics.Collections, Data.DB;
+  System.SysUtils, System.StrUtils, System.DateUtils,
+  System.Generics.Collections, Data.DB, inLibSerieTokenizada;
+
+function ListarSeriesEmisionCaja(AConexion: TUniConnection;
+  const AEmpresa, AAlmacen, ASubtipo: string;
+  AFecha: TDateTime): TArray<string>;
+var
+  oConsulta: TUniQuery;
+  iEjercicio: Integer;
+  sSerie, sPlantilla: string;
+  bSerieDeOtroEjercicio: Boolean;
+begin
+  Result := nil;
+  oConsulta := TUniQuery.Create(nil);
+  try
+    oConsulta.Connection := AConexion;
+    oConsulta.SQL.Text :=
+      'SELECT S.EMPSER, S.SERIE_TOKENIZADA_EMPSER, ' +
+      '       E.ESTOKENS_CALENDARIO_NATURAL_EMP ' +
+      'FROM fza_empresas_series S JOIN fza_empresas E ' +
+      'ON E.CODIGO_EMP_EMP = S.CODIGO_EMP_EMPSER ' +
+      'WHERE S.CODIGO_EMP_EMPSER = :EMP AND S.TIPO_DOC_EMPSER = ''FC'' ' +
+      'AND S.SUBTIPO_EMPSER = :SUB ' +
+      'AND COALESCE(S.CODIGO_ALM_EMPSER, '''') IN ('''', :ALM) ' +
+      'AND (S.FECHA_DESDE_EMPSER IS NULL OR S.FECHA_DESDE_EMPSER <= :FECHA) ' +
+      'AND (S.FECHA_HASTA_EMPSER IS NULL OR S.FECHA_HASTA_EMPSER >= :FECHA) ' +
+      'ORDER BY COALESCE(S.CODIGO_ALM_EMPSER, '''') <> '''' DESC, ' +
+      'S.ESDEFECTO_EMPSER DESC, S.EMPSER';
+    oConsulta.ParamByName('EMP').AsString := AEmpresa;
+    oConsulta.ParamByName('ALM').AsString := AAlmacen;
+    oConsulta.ParamByName('SUB').AsString := ASubtipo;
+    oConsulta.ParamByName('FECHA').AsDate := DateOf(AFecha);
+    oConsulta.Open;
+    while not oConsulta.Eof do
+    begin
+      sSerie := Trim(oConsulta.FieldByName('EMPSER').AsString);
+      sPlantilla := Trim(
+        oConsulta.FieldByName('SERIE_TOKENIZADA_EMPSER').AsString);
+      if SameText(
+        oConsulta.FieldByName('ESTOKENS_CALENDARIO_NATURAL_EMP').AsString,
+        'S') and EsSerieTokenizadaValida(sPlantilla) then
+        sSerie := ResolverSerieTokenizada(sPlantilla, AFecha);
+      iEjercicio := StrToIntDef(Copy(sSerie, 1, 4), 0);
+      bSerieDeOtroEjercicio := (iEjercicio >= 1900) and (iEjercicio <= 2999)
+        and ((Length(sSerie) = 4) or
+          CharInSet(sSerie[5], ['.', '-', '/'])) and
+        (iEjercicio <> YearOf(AFecha));
+      if (sSerie <> '') and (sSerie <> '-') and
+         not bSerieDeOtroEjercicio and not MatchText(sSerie, Result) then
+        Result := Result + [sSerie];
+      oConsulta.Next;
+    end;
+  finally
+    oConsulta.Free;
+  end;
+end;
 
 const
   SQL_LISTAR_EMPRESAS =
@@ -146,6 +205,8 @@ type
       const AEmpresa: string): string;
     function ListarSeries(const AEmpresa, ATipo,
       ASubtipo: string): TArray<string>;
+    function ObtenerSerieCompraHabitual(const AEmpresa, ATipo: string;
+      AFecha: TDateTime; const ADisponibles: TArray<string>): string;
     function ObtenerSerieGeneralFactura(const AEmpresa: string): string;
     function ObtenerSerieAlmacen(const AEmpresa, ATipo, ASubtipo,
       AAlmacen: string): string;
@@ -269,6 +330,53 @@ begin
     Result := oSeries.ToArray;
   finally
     FreeAndNil(oSeries);
+  end;
+end;
+
+function TLectorOpcionesDocumentoUniDAC.ObtenerSerieCompraHabitual(
+  const AEmpresa, ATipo: string; AFecha: TDateTime;
+  const ADisponibles: TArray<string>): string;
+var
+  Consulta: TUniQuery;
+  Sql: string;
+  Ejercicio: Word;
+begin
+  Result := '';
+  Sql := '';
+  if ATipo = 'AB' then
+    Sql := 'SELECT SERIE_ALBC AS SERIE FROM fza_albaranes_compra ' +
+      'WHERE CODIGO_EMP_ALBC = :EMP AND SERIE_ALBC LIKE :PREFIJO ' +
+      'AND FECHA_ALBC >= :DESDE AND FECHA_ALBC <= :HASTA ' +
+      'AND COALESCE(ESTADO_ALBC, '''') <> ''CANCELADO'' ' +
+      'GROUP BY SERIE_ALBC ' +
+      'ORDER BY COUNT(*) DESC, MAX(FECHA_ALBC) DESC, SERIE_ALBC'
+  else if ATipo = 'FP' then
+    Sql := 'SELECT SERIE_FACC AS SERIE FROM fza_facturas_compra ' +
+      'WHERE CODIGO_EMP_FACC = :EMP AND SERIE_FACC LIKE :PREFIJO ' +
+      'AND FECHA_FACC >= :DESDE AND FECHA_FACC <= :HASTA ' +
+      'AND COALESCE(ESTADO_FACC, '''') <> ''CANCELADA'' ' +
+      'AND COALESCE(MODALIDAD_FACC, ''ORDINARIA'') = ''ORDINARIA'' ' +
+      'GROUP BY SERIE_FACC ' +
+      'ORDER BY COUNT(*) DESC, MAX(FECHA_FACC) DESC, SERIE_FACC';
+  if (Sql <> '') and (Length(ADisponibles) > 0) then
+  begin
+    Ejercicio := YearOf(AFecha);
+    Consulta := CrearConsulta(Sql);
+    try
+      Consulta.ParamByName('EMP').AsString := AEmpresa;
+      Consulta.ParamByName('PREFIJO').AsString := IntToStr(Ejercicio) + '.%';
+      Consulta.ParamByName('DESDE').AsDate := EncodeDate(Ejercicio, 1, 1);
+      Consulta.ParamByName('HASTA').AsDate := EncodeDate(Ejercicio, 12, 31);
+      Consulta.Open;
+      while (Result = '') and not Consulta.Eof do
+      begin
+        if MatchText(Consulta.Fields[0].AsString, ADisponibles) then
+          Result := Consulta.Fields[0].AsString;
+        Consulta.Next;
+      end;
+    finally
+      Consulta.Free;
+    end;
   end;
 end;
 

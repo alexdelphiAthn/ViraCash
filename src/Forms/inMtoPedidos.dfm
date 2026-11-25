@@ -1132,6 +1132,7 @@
                       Width = 220
                       FieldName = 'DESCRIPCION_FORMA_PAGO_FP'
                     end>
+                  Properties.ListFieldIndex = 1
                   Properties.ListOptions.CaseInsensitive = True
                   TabOrder = 11
                   Width = 133

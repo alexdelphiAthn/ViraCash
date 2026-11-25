@@ -52,8 +52,9 @@ type
       const AOpciones: TOpcionesDocumento; out AMensaje: string): Boolean;
     function ComprobarFacturaNormal(
       const AOpciones: TOpcionesDocumento; out AMensaje: string): Boolean;
-    function Configurar(
-      const AAlmacen: string): TConfiguracionOpcionesDocumento;
+    function FormaPagoCliente(const ACliente: string): string;
+    function Configurar(const AAlmacen: string;
+      AFechaPropuesta: TDateTime = 0): TConfiguracionOpcionesDocumento;
     function CrearFacturaNormal(
       const AOpciones: TOpcionesDocumento): TFacturarTicketResult;
     function ConfigurarPeriodo: TConfiguracionOpcionesDocumento;
@@ -83,7 +84,8 @@ type
       const ANumeroTicket: string;
       const AEmpresa: string;
       const AAlmacen: string;
-      AMostrarImpresion: Boolean): TFacturarTicketResult;
+      APuedeImprimir: Boolean;
+      AFechaPropuesta: TDateTime = 0): TFacturarTicketResult;
   end;
 
 implementation
@@ -578,12 +580,15 @@ class function TfrmModalFacturarTicket.Ejecutar(
   const ANumeroTicket: string;
   const AEmpresa: string;
   const AAlmacen: string;
-  AMostrarImpresion: Boolean): TFacturarTicketResult;
+  APuedeImprimir: Boolean;
+  AFechaPropuesta: TDateTime): TFacturarTicketResult;
+resourcestring
+  SPreguntaImprimirFactura = '¿Desea imprimir la factura?';
 var
   oContexto: TContextoFacturacionTicketVentasPantalla;
   oFormulario: TfrmModalFacturarTicket;
   oOpciones: TOpcionesDocumento;
-  sFormatoDocumento: string;
+  sFormatoDocumento, sAviso: string;
 begin
   Result := Default(TFacturarTicketResult);
   oFormulario := TfrmModalFacturarTicket.Create(AOwner);
@@ -603,7 +608,7 @@ begin
       ShowMessage_fza(SErrorOrigenCanjeNoDisponible)
     else if TfrmModalOpcionesDocumento.Solicitar(AOwner,
       CrearLectorOpcionesDocumentoUniDAC(oFormulario.ConexionPrincipal),
-      oFormulario.Configurar(AAlmacen), oOpciones) then
+      oFormulario.Configurar(AAlmacen, AFechaPropuesta), oOpciones) then
     begin
       try
         Result := oFormulario.CrearFacturaNormal(oOpciones);
@@ -615,12 +620,16 @@ begin
       begin
         sFormatoDocumento := CrearFormatoDocumentoLecturas(
           oFormulario.ConexionPrincipal).LeerFormatoEmpresa(AEmpresa);
-        ShowMessage_fza(FormatearMensajeDocumentos(sFormatoDocumento,
+        sAviso := FormatearMensajeDocumentos(sFormatoDocumento,
           SInfoBorradorSustitucionTicketCreado,
           [Result.SerieNueva, Result.NumeroNueva, oFormulario.FSerieTicket,
            oFormulario.FNumeroTicket,
-           ModoVerifactuTexto(oFormulario.ParametrosApp)]));
-        if AMostrarImpresion then
+           ModoVerifactuTexto(oFormulario.ParametrosApp)]);
+        if not APuedeImprimir then
+          ShowMessage_fza(sAviso)
+        else if MessageDlg_fza(sAviso + sLineBreak + sLineBreak +
+          SPreguntaImprimirFactura, mtConfirmation, [mbYes, mbNo], 0,
+          mbNo) = mrYes then
           TfrmPrintFac.MostrarPorReferencia(oFormulario,
             Result.SerieNueva, Result.NumeroNueva, True);
       end;
@@ -631,12 +640,27 @@ begin
   end;
 end;
 
+function TfrmModalFacturarTicket.FormaPagoCliente(
+  const ACliente: string): string;
+var
+  oCliente: TClienteFacturacionTicket;
+begin
+  Result := FORMA_PAGO_FACTURA_CAJA;
+  if Trim(ACliente) <> '' then
+  begin
+    oCliente := FServicioFacturacion.ConsultarCliente(ACliente);
+    if oCliente.Existe and (Trim(oCliente.FormaPago) <> '') then
+      Result := oCliente.FormaPago;
+  end;
+end;
+
 // Propone la serie normal general de la empresa antes que la del almacén.
-function TfrmModalFacturarTicket.Configurar(
-  const AAlmacen: string): TConfiguracionOpcionesDocumento;
+function TfrmModalFacturarTicket.Configurar(const AAlmacen: string;
+  AFechaPropuesta: TDateTime): TConfiguracionOpcionesDocumento;
 var
   oTipo: TTipoOpcionesDocumento;
   oCliente: TCampoAdicionalOpcionesDocumento;
+  sUltimoCliente: string;
 begin
   oTipo := Default(TTipoOpcionesDocumento);
   oTipo.Codigo := 'FC';
@@ -665,13 +689,29 @@ begin
   Result.Propuesta.Almacen := AAlmacen;
   Result.Propuesta.Tipo := 'FC';
   Result.Propuesta.Fecha := Date;
+  if AFechaPropuesta > 0 then
+    Result.Propuesta.Fecha := DateOf(AFechaPropuesta);
   Result.Fijos := [codEmpresa];
   if not FPorPeriodo then
   begin
     FServicioFacturacion.LeerClienteTicket(FSerieTicket, FNumeroTicket,
       oCliente.Valor, oCliente.Descripcion);
-    Result.Propuesta.FormaPago := FORMA_PAGO_FACTURA_CAJA;
-    Include(Result.Fijos, codFormaPago);
+    sUltimoCliente := oCliente.Valor;
+    Result.Propuesta.FormaPago := FormaPagoCliente(sUltimoCliente);
+    Result.FormaPagoAlCambiarAdicional :=
+      function(const AOpciones: TOpcionesDocumento;
+        out AFormaPago: string): Boolean
+      var
+        sCliente: string;
+      begin
+        sCliente := AOpciones.Adicional(CLAVE_CLIENTE);
+        Result := not SameText(sCliente, sUltimoCliente);
+        if Result then
+        begin
+          sUltimoCliente := sCliente;
+          AFormaPago := FormaPagoCliente(sCliente);
+        end;
+      end;
   end;
   Result.Propuesta.Adicionales := [oCliente];
   Result.Visibles := [codEmpresa, codSerie, codNumero, codFecha,

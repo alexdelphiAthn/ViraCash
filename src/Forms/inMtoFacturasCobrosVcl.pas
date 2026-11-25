@@ -111,6 +111,7 @@ var
   sEmpresa: string;
   sMensaje: string;
   sPreferido: string;
+  iResultado: Integer;
 begin
   if HayCabecera(AContexto) then
   begin
@@ -167,10 +168,10 @@ begin
         Solicitud.Usuario := AContexto.Usuario;
         Solicitud.CodigoBanco := SeleccionBanco.CodigoEmpban;
         Solicitud.Iban := SeleccionBanco.Iban;
-        MostrarResultadoGeneracion(
-          AContexto.Aplicacion.Generar(Solicitud));
+        iResultado := AContexto.Aplicacion.Generar(Solicitud);
         if Assigned(AContexto.RefrescarEfectos) then
           AContexto.RefrescarEfectos();
+        MostrarResultadoGeneracion(iResultado);
       end
       else
       begin

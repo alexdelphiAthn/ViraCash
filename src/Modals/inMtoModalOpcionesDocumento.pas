@@ -25,6 +25,7 @@ uses
   cxGraphics, cxControls, cxLookAndFeels, cxLookAndFeelPainters,
   cxContainer, cxEdit, cxTextEdit, cxMaskEdit, cxDropDownEdit,
   cxCalendar, cxLabel, cxCheckBox, cxButtons, dxCore, cxDateUtils,
+  System.DateUtils, System.StrUtils,
   cxSpinEdit, cxTimeEdit,
   inMtoFrmBase, inLibOpcionesDocumentoIntf,
   inLibCamposAdicionalesDocumentoVcl;
@@ -53,6 +54,7 @@ type
     btnAceptar: TcxButton;
     procedure btnAceptarClick(Sender: TObject);
     procedure btnCancelarClick(Sender: TObject);
+    procedure FechaExit(Sender: TObject);
     procedure cbbEmpresaPropertiesEditValueChanged(Sender: TObject);
     procedure cbbAlmacenPropertiesEditValueChanged(Sender: TObject);
     procedure cbbTipoDocumentoPropertiesEditValueChanged(Sender: TObject);
@@ -61,6 +63,8 @@ type
   private
     FAceptado: Boolean;
     FCargando: Boolean;
+    FUltimaSeriePropuesta: string;
+    FEjercicioPropuesto: Word;
     FLector: ILectorOpcionesDocumento;
     FConfiguracion: TConfiguracionOpcionesDocumento;
     // Códigos de cada elemento de los combos, por índice.
@@ -138,7 +142,7 @@ end;
 // índice. Con AConVacio el primer elemento es «sin valor».
 function LlenarCombo(ACombo: TcxComboBox;
   const AElementos: TElementosOpcionesDocumento;
-  AConVacio: Boolean): TArray<string>;
+  AConVacio: Boolean; ANombrePrimero: Boolean = False): TArray<string>;
 var
   oElemento: TElementoOpcionesDocumento;
 begin
@@ -156,6 +160,9 @@ begin
       Result := Result + [oElemento.Codigo];
       if Trim(oElemento.Nombre) = '' then
         ACombo.Properties.Items.Add(oElemento.Codigo)
+      else if ANombrePrimero then
+        ACombo.Properties.Items.Add(
+          oElemento.Nombre + ' (' + oElemento.Codigo + ')')
       else
         ACombo.Properties.Items.Add(
           oElemento.Codigo + ' - ' + oElemento.Nombre);
@@ -224,7 +231,9 @@ begin
     tmeHora.Time := Frac(AConfiguracion.Propuesta.Hora);
     chkMueveStock.Checked := AConfiguracion.Propuesta.MueveStock;
     CargarSeries;
-    if (AConfiguracion.Propuesta.Serie <> '') or
+    if ((AConfiguracion.Propuesta.Serie <> '') and
+        (not AConfiguracion.SerieSoloLista or
+         (cbbSerie.Properties.Items.IndexOf(AConfiguracion.Propuesta.Serie) >= 0))) or
        AConfiguracion.SerieOpcional then
       cbbSerie.Text := AConfiguracion.Propuesta.Serie
     else
@@ -367,7 +376,7 @@ var
 begin
   sPropuesta := FConfiguracion.Propuesta.FormaPago;
   FFormasPago := LlenarCombo(cbbFormaPago, FLector.ListarFormasPago,
-    not FConfiguracion.FormaPagoObligatoria);
+    not FConfiguracion.FormaPagoObligatoria, True);
   ElegirCodigo(FFormasPago, cbbFormaPago, sPropuesta);
   if (codFormaPago in FConfiguracion.Fijos) and (sPropuesta <> '') and
      (cbbFormaPago.ItemIndex < 0) then
@@ -397,7 +406,12 @@ begin
   cbbSerie.Properties.Items.BeginUpdate;
   try
     cbbSerie.Properties.Items.Clear;
-    if TipoElegido(oTipo) then
+    if Assigned(FConfiguracion.ListarSeriesPermitidas) then
+    begin
+      for sSerie in FConfiguracion.ListarSeriesPermitidas() do
+        cbbSerie.Properties.Items.Add(sSerie);
+    end
+    else if TipoElegido(oTipo) then
     begin
       for sSerie in FLector.ListarSeries(
           CodigoElegido(FEmpresas, cbbEmpresa), oTipo.TipoContador,
@@ -410,27 +424,39 @@ begin
 end;
 
 // La factura normal prioriza su serie general sobre la del almacén.
-// Los demás documentos conservan la propuesta propia del almacén.
+// Las compras priorizan una serie vigente usada en su ejercicio.
 procedure TfrmModalOpcionesDocumento.ProponerSerie;
 var
   oTipo: TTipoOpcionesDocumento;
-  sSerieAlmacen, sSerieGeneralFactura: string;
+  sSerieAlmacen, SeriePreferente: string;
+  Disponibles: TArray<string>;
+  Ejercicio: Word;
 begin
+  Ejercicio := 0;
   sSerieAlmacen := '';
-  sSerieGeneralFactura := '';
+  SeriePreferente := '';
+  Disponibles := cbbSerie.Properties.Items.ToStringArray;
   if TipoElegido(oTipo) then
   begin
     sSerieAlmacen := FLector.ObtenerSerieAlmacen(
       CodigoElegido(FEmpresas, cbbEmpresa), oTipo.TipoContador,
       oTipo.Subtipo, CodigoElegido(FAlmacenes, cbbAlmacen));
+    if MatchText(oTipo.TipoContador, ['AB', 'FP']) then
+    begin
+      Ejercicio := YearOf(dteFecha.Date);
+      SeriePreferente := FLector.ObtenerSerieCompraHabitual(
+        CodigoElegido(FEmpresas, cbbEmpresa), oTipo.TipoContador,
+        dteFecha.Date, Disponibles);
+    end;
     if SameText(oTipo.TipoContador, 'FC') and
        ((oTipo.Subtipo = '') or SameText(oTipo.Subtipo, 'NORMAL')) then
-      sSerieGeneralFactura := FLector.ObtenerSerieGeneralFactura(
+      SeriePreferente := FLector.ObtenerSerieGeneralFactura(
         CodigoElegido(FEmpresas, cbbEmpresa));
   end;
-  cbbSerie.Text := ProponerSerieOpcionesDocumento(
-    cbbSerie.Properties.Items.ToStringArray, sSerieAlmacen,
-    sSerieGeneralFactura);
+  FUltimaSeriePropuesta := ProponerSerieOpcionesDocumento(Disponibles,
+    sSerieAlmacen, SeriePreferente, Ejercicio);
+  FEjercicioPropuesto := Ejercicio;
+  cbbSerie.Text := FUltimaSeriePropuesta;
 end;
 
 procedure TfrmModalOpcionesDocumento.ColocarFila(AEtiqueta: TcxLabel;
@@ -683,6 +709,17 @@ procedure TfrmModalOpcionesDocumento.btnCancelarClick(Sender: TObject);
 begin
   FAceptado := False;
   ModalResult := mrCancel;
+end;
+
+procedure TfrmModalOpcionesDocumento.FechaExit(Sender: TObject);
+var
+  Tipo: TTipoOpcionesDocumento;
+begin
+  if not FCargando and (FEjercicioPropuesto <> 0) and TipoElegido(Tipo) and
+     MatchText(Tipo.TipoContador, ['AB', 'FP']) and
+     (dteFecha.Date > 0) and (YearOf(dteFecha.Date) <> FEjercicioPropuesto) and
+     SameText(cbbSerie.Text, FUltimaSeriePropuesta) then
+    ProponerSerie;
 end;
 
 procedure TfrmModalOpcionesDocumento.cbbEmpresaPropertiesEditValueChanged(

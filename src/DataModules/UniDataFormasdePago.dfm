@@ -5,9 +5,8 @@
   inherited unqryTablaG: TUniQuery
     Connection = dmConn.conUni
     SQL.Strings = (
-      'SELECT *  '
-      '  FROM vi_formapago'
-      '')
+      'SELECT * FROM fza_formas_pago'
+      'ORDER BY ORDEN_FORMA_PAGO_FP')
     Active = True
     AfterInsert = unqryTablaGAfterInsert
   end
@@ -77,7 +76,6 @@
     MasterFields = 'CODIGO_FP_FP'
     DetailFields = 'FORMA_PAGO_FAC'
     ReadOnly = True
-    Active = True
     Left = 215
     Top = 24
     ParamData = <
@@ -135,7 +133,6 @@
     MasterFields = 'CODIGO_FP_FP'
     DetailFields = 'FORMA_PAGO_FAC'
     ReadOnly = True
-    Active = True
     Left = 359
     Top = 24
     ParamData = <

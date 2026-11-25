@@ -638,11 +638,22 @@
                   TabOrder = 10
                   Transparent = True
                 end
-                object txtTotalesFORMA_PAGO_DEVC: TcxDBTextEdit
+                object cbbTotalesFORMA_PAGO_DEVC: TcxDBLookupComboBox
                   Left = 230
                   Top = 178
                   DataBinding.DataField = 'FORMA_PAGO_DEVC'
                   DataBinding.DataSource = dsTablaG
+                  Properties.KeyFieldNames = 'CODIGO_FP_FP'
+                  Properties.ListColumns = <
+                    item
+                      Caption = 'C'#243'digo'
+                      FieldName = 'CODIGO_FP_FP'
+                    end
+                    item
+                      Caption = 'Descripci'#243'n'
+                      FieldName = 'DESCRIPCION_FORMA_PAGO_FP'
+                    end>
+                  Properties.ListFieldIndex = 1
                   TabOrder = 11
                   Width = 133
                 end

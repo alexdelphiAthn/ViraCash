@@ -749,6 +749,9 @@ begin
   end;
 end;
 
+procedure AplicarOrigenCobrosFacturaVcl(
+  AFormulario: TfrmMtoFacturasBase); forward;
+
 function CrearContextoCobrosFacturaVcl(
   AFormulario: TfrmMtoFacturasBase): TContextoCobrosFacturaVcl;
 begin
@@ -796,8 +799,12 @@ begin
   Result.RefrescarEfectos :=
     procedure
     begin
-      AFormulario.dmmFacturas.unqryEfectosVenta.Close;
-      AFormulario.dmmFacturas.unqryEfectosVenta.Open;
+      AFormulario.tvRecibos.DataController.DataSource := nil;
+      try
+        AFormulario.dmmFacturas.RefrescarEfectosVenta;
+      finally
+        AplicarOrigenCobrosFacturaVcl(AFormulario);
+      end;
     end;
   Result.MarcarReciboPagado :=
     procedure
@@ -3219,14 +3226,42 @@ begin
 end;
 
 procedure TfrmMtoFacturasBase.btnConsolidarClick(Sender: TObject);
+resourcestring
+  SAvisoFacturaConsolidadaSinEfectos =
+    'La factura se ha consolidado sin vencimientos. Usa Generar efectos ' +
+    'en la pestaña Efectos para registrarlos.';
+var
+  oFactura: TDataSet;
+  sSerie, sNumero: string;
+  bAvisar: Boolean;
 begin
   dmmFacturas.CompletarClienteBorrador;
+  oFactura := dsTablaG.DataSet;
+  bAvisar := SameText(TipoFacturaFiltro, 'NORMAL') and
+    Assigned(oFactura) and oFactura.Active and not oFactura.IsEmpty and
+    (oFactura.FieldByName('ESCONSOLIDADA_FAC').AsString <> 'S');
+  if bAvisar then
+  begin
+    sSerie := oFactura.FieldByName('SERIE_FAC').AsString;
+    sNumero := oFactura.FieldByName('NUMERO_FAC').AsString;
+  end;
   // Intracomunitaria: el NIF-IVA tiene que figurar en VIES (ROI).
   if (not (FVerificacionNif is TVerificacionNifVcl)) or
      TVerificacionNifVcl(FVerificacionNif).
        ComprobarRoiAntesDeConsolidar then
     TCoordinadorConsolidacionFacturaVcl.Ejecutar(
       CrearContextoConsolidacionFacturaVcl(Self));
+  if bAvisar and oFactura.Active and not oFactura.IsEmpty and
+     SameText(oFactura.FieldByName('SERIE_FAC').AsString, sSerie) and
+     SameText(oFactura.FieldByName('NUMERO_FAC').AsString, sNumero) and
+     (oFactura.FieldByName('ESCONSOLIDADA_FAC').AsString = 'S') and
+     (Trim(oFactura.FieldByName('FORMA_PAGO_FAC').AsString) <> '') and
+     (oFactura.FieldByName('TOTAL_LIQUIDO_FAC').AsCurrency <> 0) then
+  begin
+    dmmFacturas.RefrescarEfectosVenta;
+    if dmmFacturas.unqryEfectosVenta.IsEmpty then
+      ShowMessage_fza(SAvisoFacturaConsolidadaSinEfectos);
+  end;
 end;
 
 procedure TfrmMtoFacturasBase.btnGenerarRecibosClick(Sender: TObject);

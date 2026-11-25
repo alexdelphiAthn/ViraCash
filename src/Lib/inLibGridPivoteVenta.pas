@@ -138,6 +138,8 @@ type
     OnElegirArticulo      : TElegirArticuloPivoteVentaEvent;
     OnCrearLineaSku       : TCrearLineaPivoteVentaEvent;
     OnBandaCambiada       : TBandaPivoteVentaEvent;
+    AlLimitarCantidadServicio: procedure(ASolicitada, APendiente: Double)
+      of object;
   end;
 function CrearModoEntradaGridPivoteVenta(
   const AConfig: TConfigColumnasSku;
@@ -875,7 +877,10 @@ begin
                                             rEntregada);
       if AValor > rPendBase then
       begin
-        MessageBeep(MB_ICONWARNING);
+        if Assigned(FCfg.AlLimitarCantidadServicio) then
+          FCfg.AlLimitarCantidadServicio(AValor, rPendBase)
+        else
+          MessageBeep(MB_ICONWARNING);
         AValor := rPendBase;
       end;
       if not (ADs.State in dsEditModes) then
