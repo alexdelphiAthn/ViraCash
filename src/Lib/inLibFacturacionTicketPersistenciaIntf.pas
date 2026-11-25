@@ -84,6 +84,7 @@ type
     function ConsultarClientes: IConsultaClientesFacturacionTicket;
     function ConsultarCliente(
       const ACodigoCliente: string): TClienteFacturacionTicket;
+    function FormaPagoAplazada(const ACodigo: string): Boolean;
     function CrearFactura(
       const ASolicitud: TSolicitudFacturacionTicket): string;
     function ResolverOrigenCanje(var ASerie, ANumero: string;

@@ -25769,6 +25769,36 @@ begin
       STextoIncidenciaFechaRectificativa);
   ARegistrar(
     'inLibMsgVerifactu.' +
+    'SErrorDatosEmpresaParaComprobarCertificado',
+    'src/Lib/inLibMsgVerifactu.pas',
+    @inLibMsgVerifactu.
+      SErrorDatosEmpresaParaComprobarCertificado);
+  ARegistrar(
+    'inLibMsgVerifactu.' +
+    'SAvisoNifCertificadoEmpresa',
+    'src/Lib/inLibMsgVerifactu.pas',
+    @inLibMsgVerifactu.
+      SAvisoNifCertificadoEmpresa);
+  ARegistrar(
+    'inLibMsgVerifactu.' +
+    'SAvisoNombreCertificadoEmpresa',
+    'src/Lib/inLibMsgVerifactu.pas',
+    @inLibMsgVerifactu.
+      SAvisoNombreCertificadoEmpresa);
+  ARegistrar(
+    'inLibMsgVerifactu.' +
+    'SIdentidadCertificadoNoDisponible',
+    'src/Lib/inLibMsgVerifactu.pas',
+    @inLibMsgVerifactu.
+      SIdentidadCertificadoNoDisponible);
+  ARegistrar(
+    'inLibMsgVerifactu.' +
+    'SConfirmarIdentidadCertificadoEmpresa',
+    'src/Lib/inLibMsgVerifactu.pas',
+    @inLibMsgVerifactu.
+      SConfirmarIdentidadCertificadoEmpresa);
+  ARegistrar(
+    'inLibMsgVerifactu.' +
     'SInfoBorradorVerifactuPendiente',
     'src/Lib/inLibMsgVerifactu.pas',
     @inLibMsgVerifactu.

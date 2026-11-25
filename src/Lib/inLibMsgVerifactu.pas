@@ -16,6 +16,20 @@ unit inLibMsgVerifactu;
 interface
 
 resourcestring
+  SErrorDatosEmpresaParaComprobarCertificado =
+    'Indique el NIF y la razón social de la empresa antes de asignar ' +
+    'un certificado.';
+  SAvisoNifCertificadoEmpresa =
+    'El certificado no acredita el NIF de la empresa seleccionada. ' +
+    'Continúe solo si el titular está autorizado por la AEAT para ' +
+    'presentar los registros en nombre de esta empresa.';
+  SAvisoNombreCertificadoEmpresa =
+    'El NIF coincide, pero el nombre del certificado difiere de la ' +
+    'razón social de la ficha. Revise ambos datos antes de continuar.';
+  SIdentidadCertificadoNoDisponible = 'No consta';
+  SConfirmarIdentidadCertificadoEmpresa = '%s' + #13#10#13#10 +
+    'Empresa: %s (%s)' + #13#10 + 'Certificado: %s (%s)' + #13#10#13#10 +
+    '¿Desea asignar este certificado?';
   SErrorRepositorioExportacionNoVerifactuNoRegistrado =
     'No se ha registrado el repositorio de exportación NO VERI*FACTU.';
   SErrorRespuestaNtpNoValida =

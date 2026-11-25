@@ -98,7 +98,8 @@ const
   SQL_INSERTAR_CABECERA =
     'INSERT INTO fza_facturas ' +
     '(NUMERO_FAC, SERIE_FAC, FECHA_FAC, TIPO_FAC, FASE_FAC, ' +
-    'ESCONSOLIDADA_FAC, CODIGO_EMP_FAC, RAZON_SOCIAL_EMPRESA_FAC, ' +
+    'ESCONSOLIDADA_FAC, CODIGO_EMP_FAC, CODIGO_ALM_FAC, CODIGO_CAJA_FAC, ' +
+    'RAZON_SOCIAL_EMPRESA_FAC, ' +
     'NIF_EMPRESA_FAC, MOVIL_EMPRESA_FAC, EMAIL_EMPRESA_FAC, ' +
     'DIRECCION1_EMPRESA_FAC, DIRECCION2_EMPRESA_FAC, ' +
     'POBLACION_EMPRESA_FAC, PROVINCIA_EMPRESA_FAC, ' +
@@ -137,7 +138,10 @@ const
     'ESDESCRIPCIONES_AMP_FAC, ESFECHADEENTREGA_FAC, ' +
     'INSTANTE_MODIF, INSTANTE_ALTA, USUARIO_ALTA, USUARIO_MODIF) ' +
     'SELECT :NUMERO, :SERIE, :FECHA, ''NORMAL'', ''BORRADOR'', ''N'', ' +
-    't.CODIGO_EMP_FAC, t.RAZON_SOCIAL_EMPRESA_FAC, t.NIF_EMPRESA_FAC, ' +
+    't.CODIGO_EMP_FAC, ' +
+    'IF(:COPIAR_UBICACION = 1, t.CODIGO_ALM_FAC, NULL), ' +
+    'IF(:COPIAR_UBICACION = 1, t.CODIGO_CAJA_FAC, NULL), ' +
+    't.RAZON_SOCIAL_EMPRESA_FAC, t.NIF_EMPRESA_FAC, ' +
     't.MOVIL_EMPRESA_FAC, t.EMAIL_EMPRESA_FAC, ' +
     't.DIRECCION1_EMPRESA_FAC, t.DIRECCION2_EMPRESA_FAC, ' +
     't.POBLACION_EMPRESA_FAC, t.PROVINCIA_EMPRESA_FAC, ' +
@@ -531,6 +535,7 @@ type
     function ConsultarClientes: IConsultaClientesFacturacionTicket;
     function ConsultarCliente(
       const ACodigoCliente: string): TClienteFacturacionTicket;
+    function FormaPagoAplazada(const ACodigo: string): Boolean;
     function CrearFactura(
       const ASolicitud: TSolicitudFacturacionTicket): string;
     function ResolverOrigenCanje(var ASerie, ANumero: string;
@@ -652,6 +657,26 @@ begin
       ACliente := oConsulta.FieldByName('CODIGO_CLI_CLI').AsString;
       ARazonSocial := oConsulta.FieldByName('RAZON_SOCIAL_CLI').AsString;
     end;
+  finally
+    FreeAndNil(oConsulta);
+  end;
+end;
+
+function TServicioFacturacionTicketUniDAC.FormaPagoAplazada(
+  const ACodigo: string): Boolean;
+var
+  oConsulta: TUniQuery;
+begin
+  oConsulta := TUniQuery.Create(nil);
+  try
+    oConsulta.Connection := FConexion;
+    oConsulta.SQL.Text :=
+      'SELECT 1 FROM fza_formas_pago WHERE CODIGO_FP_FP=:CODIGO ' +
+      'AND (COALESCE(N_PLAZOS_FORMA_PAGO_FP,1)>1 ' +
+      'OR COALESCE(N_DIAS_ENTRE_PLAZOS_FORMA_PAGO_FP,0)>0)';
+    oConsulta.ParamByName('CODIGO').AsString := Trim(ACodigo);
+    oConsulta.Open;
+    Result := not oConsulta.IsEmpty;
   finally
     FreeAndNil(oConsulta);
   end;
@@ -1256,6 +1281,10 @@ begin
     AConsulta.ParamByName('FORMA_PAGO').AsString :=
       Trim(ASolicitud.FormaPago);
   end;
+  // Una factura agrupada puede reunir tickets de distintos terminales.
+  if AConsulta.Params.FindParam('COPIAR_UBICACION') <> nil then
+    AConsulta.ParamByName('COPIAR_UBICACION').AsInteger :=
+      Ord(Length(ASolicitud.Tickets) <= 1);
   if AConsulta.Params.FindParam('COMENTARIO') <> nil then
   begin
     sComentario :=

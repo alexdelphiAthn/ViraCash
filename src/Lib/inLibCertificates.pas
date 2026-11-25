@@ -132,6 +132,8 @@ type
                                        ATitular: string;
                                        out AFechaHasta: TDateTime;
                                        out ATitularReal: string): Boolean;
+  function ObtenerIdentidadCertificado(const ANumeroSerie, ASujeto,
+    AEmisor: string; out ANif, ANombre: string): Boolean;
   procedure AgregarCertificado(ATvCertificados: TcxGridTableView;
                                const ASubject, AIssuer,
                                ASerialNumber: string;
@@ -161,7 +163,56 @@ type
 implementation
 
 uses
-  inLibMsgComun;
+  inLibMsgComun, inLibVerificacionNif;
+
+function CertGetNameStringW(ACertificado: PCCERT_CONTEXT;
+  ATipo, AFlags: DWORD; AParametro: Pointer; ADestino: PWideChar;
+  ALongitud: DWORD): DWORD; stdcall; external CRYPT32;
+
+function AtributoSujetoCertificado(ACertificado: PCCERT_CONTEXT;
+  const AOid: AnsiString): string;
+const
+  cNombrePorAtributo = 3;
+var
+  iLongitud: DWORD;
+begin
+  Result := '';
+  iLongitud := CertGetNameStringW(ACertificado, cNombrePorAtributo, 0,
+    PAnsiChar(AOid), nil, 0);
+  if iLongitud > 1 then
+  begin
+    SetLength(Result, iLongitud);
+    iLongitud := CertGetNameStringW(ACertificado, cNombrePorAtributo, 0,
+      PAnsiChar(AOid), PWideChar(Result), iLongitud);
+    if iLongitud > 1 then
+      SetLength(Result, iLongitud - 1)
+    else
+      Result := '';
+  end;
+end;
+
+procedure LeerIdentidadCertificado(ACertificado: PCCERT_CONTEXT;
+  out ANif, ANombre: string);
+var
+  sIdentificador: string;
+begin
+  sIdentificador := Trim(AtributoSujetoCertificado(ACertificado, '2.5.4.97'));
+  ANombre := AtributoSujetoCertificado(ACertificado, '2.5.4.10');
+  if (sIdentificador = '') and (ANombre = '') then
+  begin
+    sIdentificador := Trim(AtributoSujetoCertificado(ACertificado, '2.5.4.5'));
+    ANombre := Trim(AtributoSujetoCertificado(ACertificado, '2.5.4.42') +
+      ' ' + AtributoSujetoCertificado(ACertificado, '2.5.4.4'));
+    if ANombre = '' then
+      ANombre := AtributoSujetoCertificado(ACertificado, '2.5.4.3');
+  end;
+  if StartsText('VATES-', sIdentificador) or
+     StartsText('IDCES-', sIdentificador) then
+    Delete(sIdentificador, 1, 6);
+  ANif := NormalizarNifVerificacion(sIdentificador);
+  if Length(ANif) <> 9 then
+    ANif := '';
+end;
 function NormalizarNumeroSerieCertificado(const AValor: string): string;
 begin
   Result := UpperCase(Trim(AValor));
@@ -191,6 +242,36 @@ begin
   for I := 0 to ACertContext^.pCertInfo^.SerialNumber.cbData - 1 do
     Result := Result +
       IntToHex(PByte(ACertContext^.pCertInfo^.SerialNumber.pbData)[I], 2);
+end;
+
+function ObtenerIdentidadCertificado(const ANumeroSerie, ASujeto,
+  AEmisor: string; out ANif, ANombre: string): Boolean;
+var
+  Almacen: HCERTSTORE;
+  Certificado: PCCERT_CONTEXT;
+begin
+  Result := False;
+  ANif := '';
+  ANombre := '';
+  Almacen := CertOpenSystemStoreA(0, PAnsiChar('MY'));
+  if Almacen <> Default(HCERTSTORE) then
+  try
+    Certificado := nil;
+    repeat
+      Certificado := CertEnumCertificatesInStore(Almacen, Certificado);
+      if (Certificado <> nil) and (not Result) and
+         SameText(NumeroSerieCertificado(Certificado), ANumeroSerie) and
+         (GetCertificateName(@Certificado^.pCertInfo^.Subject) = ASujeto) and
+         (GetCertificateName(@Certificado^.pCertInfo^.Issuer) = AEmisor) and
+         IsCertificateValid(Certificado) then
+      begin
+        LeerIdentidadCertificado(Certificado, ANif, ANombre);
+        Result := True;
+      end;
+    until Certificado = nil;
+  finally
+    CertCloseStore(Almacen, 0);
+  end;
 end;
 
 function CertificadoCoincide(ACertContext: PCCERT_CONTEXT;

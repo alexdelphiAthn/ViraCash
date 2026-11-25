@@ -29,6 +29,7 @@ function ValorEtiquetaXmlVerificacion(
   const AXml, ANombreLocal: string): string;
 // Mayúsculas sin espacios, guiones ni puntos y sin el prefijo ES.
 function NormalizarNifVerificacion(const ANif: string): string;
+function NormalizarNombreVerificacion(const ANombre: string): string;
 // Letras de sociedad (A, B, C...): la AEAT devuelve la razón social
 // oficial. En personas físicas el nombre es un eco del enviado.
 function EsNifPersonaJuridica(const ANif: string): Boolean;

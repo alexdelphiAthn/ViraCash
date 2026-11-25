@@ -158,10 +158,6 @@ type
       ProgressType: TfrxProgressType;
       Progress: Integer);
     procedure ExportarPdfInteractivo;
-    // FZ-ISSUE-102.13: nombre que propone el diálogo Guardar al exportar
-    // cuando el informe no fija uno propio: título de la ventana sin el
-    // verbo inicial y la fecha (p. ej. "Histórico de Depósitos_20261001").
-    function NombreExportacionPorDefecto(const AExtension: string): string;
     // Guardar del diseñador: el formato va al BLOB de fza_usuarios_perfiles.
     function GuardarFormatoEnBaseDatos(AReport: TfrxReport): Boolean;
     // Guardar como del diseñador: copia del .fr3 en un fichero elegido.
@@ -211,6 +207,9 @@ type
     procedure IniciarEspera(const AFase: string);
     procedure btnExcelNativoClick(Sender: TObject);
     procedure ConstruirExcelNativo(AControl: TdxSpreadSheet); virtual;
+    // Por defecto, propone el título del informe y la fecha de emisión.
+    function NombreExportacionPorDefecto(const AExtension: string):
+      string; virtual;
     procedure ActualizarDetalleEspera(const ADetalle: string);
     procedure OcultarEspera;
     procedure TerminarEspera;

@@ -361,6 +361,8 @@ type
       const AEmpresa, ASerieTokenizada: string): Boolean;
     procedure IncorporarCertificadoSeleccionado(
       ATvCertificados: TcxGridTableView);
+    function ConfirmarCertificadoEmpresa(ARegistro: TcxCustomGridRecord):
+      Boolean;
     // Carga perezosa de sub-pestañas detail (Retenciones, Historia).
     procedure PcPestanaChange(Sender: TObject);
   end;
@@ -380,6 +382,7 @@ uses
   inLibIBAN,
   inLibFotos,
   inLibVerifactuInstalacion,
+  inLibVerificacionNif,
   inLibMsgComun, inLibMsgVentas, inLibMsgVerifactu,
   inMtoModalSeriesDocumentos,
   UniDataConfiguracionPantalla,
@@ -964,7 +967,7 @@ var
   oRegistro: TcxCustomGridRecord;
 begin
   oRegistro := ATvCertificados.Controller.FocusedRecord;
-  if Assigned(oRegistro) then
+  if Assigned(oRegistro) and ConfirmarCertificadoEmpresa(oRegistro) then
   begin
     dmmEmpresas.unqryTablaG.Edit;
     dmmEmpresas.unqryTablaG.FieldByName(
@@ -980,6 +983,53 @@ begin
       'FECHA_HASTA_CERTIFICADO_EMP').AsString :=
         VarToStr(oRegistro.Values[COLUMNA_CER_FECHAHASTA]);
     dmmEmpresas.unqryTablaG.Post;
+  end;
+end;
+
+function TfrmMtoEmpresas.ConfirmarCertificadoEmpresa(
+  ARegistro: TcxCustomGridRecord): Boolean;
+var
+  sNifCertificado: string;
+  sNombreCertificado: string;
+  sNifEmpresa: string;
+  sNombreEmpresa: string;
+  sAviso: string;
+begin
+  Result := False;
+  sNifEmpresa := Trim(dmmEmpresas.unqryTablaG.FieldByName('NIF_EMP').AsString);
+  sNombreEmpresa := Trim(dmmEmpresas.unqryTablaG.FieldByName(
+    'RAZON_SOCIAL_EMP').AsString);
+  if (Length(NormalizarNifVerificacion(sNifEmpresa)) <> 9) or
+     (NormalizarNombreVerificacion(sNombreEmpresa) = '') then
+    MessageDlg_fza(SErrorDatosEmpresaParaComprobarCertificado,
+      mtWarning, [mbOK], 0)
+  else if not ObtenerIdentidadCertificado(
+    VarToStr(ARegistro.Values[COLUMNA_CER_NROSERIE]),
+    VarToStr(ARegistro.Values[COLUMNA_CER_NOMBRE]),
+    VarToStr(ARegistro.Values[COLUMNA_CER_EMISOR]),
+    sNifCertificado, sNombreCertificado) then
+    MessageDlg_fza(SErrorCertificadoVigenteNoEncontrado, mtWarning, [mbOK], 0)
+  else
+  begin
+    if sNifCertificado <> NormalizarNifVerificacion(sNifEmpresa) then
+      sAviso := SAvisoNifCertificadoEmpresa
+    else if NormalizarNombreVerificacion(sNombreCertificado) <>
+            NormalizarNombreVerificacion(sNombreEmpresa) then
+      sAviso := SAvisoNombreCertificadoEmpresa
+    else
+      sAviso := '';
+    Result := sAviso = '';
+    if not Result then
+    begin
+      if sNifCertificado = '' then
+        sNifCertificado := SIdentidadCertificadoNoDisponible;
+      if sNombreCertificado = '' then
+        sNombreCertificado := SIdentidadCertificadoNoDisponible;
+      Result := MessageDlg_fza(Format(SConfirmarIdentidadCertificadoEmpresa,
+        [sAviso, sNombreEmpresa, sNifEmpresa,
+         sNombreCertificado, sNifCertificado]),
+        mtWarning, [mbYes, mbNo], 0, mbNo) = mrYes;
+    end;
   end;
 end;
 

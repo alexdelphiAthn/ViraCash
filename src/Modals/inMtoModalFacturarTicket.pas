@@ -584,6 +584,9 @@ class function TfrmModalFacturarTicket.Ejecutar(
   AFechaPropuesta: TDateTime): TFacturarTicketResult;
 resourcestring
   SPreguntaImprimirFactura = '¿Desea imprimir la factura?';
+  SInfoFacturaCanjeEmitida =
+    'Se ha emitido la factura %s\%s en sustitución del ticket %s\%s ' +
+    'en modo fiscal %s (F3).';
 var
   oContexto: TContextoFacturacionTicketVentasPantalla;
   oFormulario: TfrmModalFacturarTicket;
@@ -621,7 +624,7 @@ begin
         sFormatoDocumento := CrearFormatoDocumentoLecturas(
           oFormulario.ConexionPrincipal).LeerFormatoEmpresa(AEmpresa);
         sAviso := FormatearMensajeDocumentos(sFormatoDocumento,
-          SInfoBorradorSustitucionTicketCreado,
+          SInfoFacturaCanjeEmitida,
           [Result.SerieNueva, Result.NumeroNueva, oFormulario.FSerieTicket,
            oFormulario.FNumeroTicket,
            ModoVerifactuTexto(oFormulario.ParametrosApp)]);
@@ -800,6 +803,14 @@ end;
 // trimestre del ejercicio anterior) a hoy; después, el cliente.
 function TfrmModalFacturarTicket.ComprobarFacturaNormal(
   const AOpciones: TOpcionesDocumento; out AMensaje: string): Boolean;
+resourcestring
+  SConfirmarCanjeSinVencimientos =
+    'La factura se emitirá sin vencimientos. Si el ticket ya está ' +
+    'cobrado, elija una forma de pago al contado para evitar crear ' +
+    'cobros pendientes.' + sLineBreak + sLineBreak +
+    'Si queda pendiente la factura completa, puede registrar sus ' +
+    'vencimientos en Ventas Mayor > Borradores > Efectos > Generar efectos.' +
+    sLineBreak + sLineBreak + '¿Desea emitir la factura?';
 begin
   AMensaje := ErrorFechaFacturaSustitucionTicket(AOpciones.Fecha,
     FServicioFacturacion.FechaTicket(FSerieTicket, FNumeroTicket), Date);
@@ -807,6 +818,9 @@ begin
     Result := False
   else
     Result := ComprobarClienteFacturaNormal(AOpciones, AMensaje);
+  if Result and FServicioFacturacion.FormaPagoAplazada(AOpciones.FormaPago) then
+    Result := MessageDlg_fza(SConfirmarCanjeSinVencimientos,
+      mtConfirmation, [mbYes, mbNo], 0, mbNo) = mrYes;
 end;
 
 function TfrmModalFacturarTicket.CrearFacturaNormal(

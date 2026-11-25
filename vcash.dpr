@@ -774,6 +774,7 @@ uses
   UniDataEntradaCambioRepositorio in 'src\Caja\DataModules\Cobros\UniDataEntradaCambioRepositorio.pas',
   inLibCajaPagosHistPersistenciaIntf in 'src\Caja\Lib\Contratos\inLibCajaPagosHistPersistenciaIntf.pas',
   UniDataCajaPagosHistRepositorio in 'src\Caja\DataModules\Consultas\UniDataCajaPagosHistRepositorio.pas',
+  inMtoModalImpSaldoVales in 'src\Caja\Modals\Consultas\inMtoModalImpSaldoVales.pas' {frmPrintSaldoVales},
   inMtoModalImpOperaciones in 'src\Caja\Modals\Consultas\inMtoModalImpOperaciones.pas' {frmPrintOperaciones},
   inMtoModalImpOperacionesVenta in 'src\Caja\Modals\Consultas\inMtoModalImpOperacionesVenta.pas' {frmPrintOperacionesVenta},
   inMtoModalImpTraspasoSolicitudes in 'src\Caja\Modals\Traspasos\inMtoModalImpTraspasoSolicitudes.pas' {frmPrintTraspasoSolicitudes},
