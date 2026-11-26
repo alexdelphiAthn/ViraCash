@@ -65,6 +65,13 @@ type
     ): TResultadoRectificacionCaja;
   end;
 
+const
+  CAMPO_LINEA_ORIGEN_DEVOLUCION = 'LINEA_ORIGEN_DEVOLUCION';
+  CAMPO_MAXIMO_DEVOLUCION = 'MAXIMO_UNIDADES_DEVOLUCION';
+
+function AvisoCantidadDevolucionLineaCaja(ALinea: TDataSet;
+  ACantidad: Double): string;
+
 procedure ConservarLineasDevolucionCaja(ALineas: TDataSet;
   const ASeleccion: TArray<string>);
 
@@ -77,6 +84,21 @@ uses
 
 const
   TIPO_FACTURA_COMPLETA_RECTIFICACION = 'NORMAL';
+
+function AvisoCantidadDevolucionLineaCaja(ALinea: TDataSet;
+  ACantidad: Double): string;
+var
+  oOrigen, oMaximo: TField;
+begin
+  Result := '';
+  oOrigen := ALinea.FindField(CAMPO_LINEA_ORIGEN_DEVOLUCION);
+  oMaximo := ALinea.FindField(CAMPO_MAXIMO_DEVOLUCION);
+  if Assigned(oOrigen) and Assigned(oMaximo) and not oOrigen.IsNull and
+    (-ACantidad > oMaximo.AsFloat + 0.000001) then
+    Result := Format(SErrorDevolucionCajaLineaSuperaPendiente,
+      [oOrigen.AsString, FormatFloat('0.######', oMaximo.AsFloat),
+       FormatFloat('0.######', -ACantidad)]);
+end;
 
 procedure ConservarLineasDevolucionCaja(ALineas: TDataSet;
   const ASeleccion: TArray<string>);
@@ -309,6 +331,13 @@ begin
   if (ASigno < 0) and
      (ADestino.FindField('CANTIDAD_FACLIN') <> nil) then
     ADestino.FieldByName('CANTIDAD_FACLIN').AsFloat := ASigno * ACantidad;
+  if (ASigno < 0) and (AOrigen.FieldByName('CANTIDAD_FACLIN').AsFloat > 0) and
+    Assigned(ADestino.FindField(CAMPO_LINEA_ORIGEN_DEVOLUCION)) then
+  begin
+    ADestino.FieldByName(CAMPO_LINEA_ORIGEN_DEVOLUCION).AsString :=
+      AOrigen.FieldByName('LINEA_FACLIN').AsString;
+    ADestino.FieldByName(CAMPO_MAXIMO_DEVOLUCION).AsFloat := ACantidad;
+  end;
   for sImporte in TArray<string>.Create(
     'TOTAL_FACLIN', 'TOTAL_FAC_SIVA_FACLIN') do
   begin

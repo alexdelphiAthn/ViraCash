@@ -1293,6 +1293,19 @@ begin
       begin
         AFormulario.FLotesCaja.ValidarTicket;
       end;
+  if AFormulario.FTipoRectificativa <> trcSustitutiva then
+    Result.ValidarDevolucionPendiente :=
+      procedure
+      begin
+        if Trim(AFormulario.FSerieRectifica) <> '' then
+          AFormulario.DatosCaja.ValidarDevolucionPendiente(
+            Trim(AFormulario.FSerieRectifica),
+            Trim(AFormulario.FNumeroRectifica))
+        else
+          AFormulario.DatosCaja.ValidarDevolucionPendiente(
+            Trim(AFormulario.FSerieOrigenDev),
+            Trim(AFormulario.FNumeroOrigenDev));
+      end;
   Result.RepartidorDescuento :=
     AFormulario.FDependencias.RepartidorDescuento;
   Result.CasoUso := AFormulario.FDependencias.CasoUsoCierre;
@@ -3086,7 +3099,14 @@ begin
   if (VieneDeDep <> 'S') and (VieneDeDep <> 'A') then
   begin
     NuevaCant := StrToFloatDef(VarToStrDef(DisplayValue, '0'), 0);
-    if (NuevaCant < 0) and
+    sMensaje := AvisoCantidadDevolucionLineaCaja(
+      DatosCaja.cdsLineas, NuevaCant);
+    if sMensaje <> '' then
+    begin
+      Error := True;
+      ErrorText := sMensaje;
+    end
+    else if (NuevaCant < 0) and
        (FNumeroRectifica = '') and
        (Trim(FSerieOrigenDev) = '') and
        (not FPreguntandoVentaOrigen) then

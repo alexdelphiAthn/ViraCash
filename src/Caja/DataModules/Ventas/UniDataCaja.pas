@@ -274,6 +274,8 @@ type
     // FZ-ISSUE-424: también en el BeforePost de cada línea (avisa o aborta).
     property ValidarStockLinea: TProc<TDataSet> read FValidarStockLinea
       write FValidarStockLinea;
+    procedure ValidarDevolucionPendiente(const ASerie, ANumero: string;
+      ABloquearOrigen: Boolean = False);
     procedure AsignarRepositorioTicketsCaja(
       const ARepositorio: TRepositoriosTicketsCaja);
     // FZ-ISSUE-255: total máximo por línea de la empresa de la caja. La
@@ -395,6 +397,7 @@ uses
      inLibTrazabilidad, UniDataMovimientosLote, inLibCajaParam,
      UniDataLotesRepositorio, inLibLotesPersistenciaIntf,
      UniDataCajaConsultasRepositorio, UniDataUbicacionSesion,
+     inLibCajaRectificacion,
      inLibFacturas,
      inLibVerifactu,
      inLibVerifactuCola,
@@ -516,9 +519,7 @@ type
     procedure DeterminarSiRequiereFactura;
     procedure ValidarSolicitud;
     procedure ValidarPartidasDevolucion;
-    procedure ValidarDevolucionPendiente;
-    procedure SumarDevolucionesLineas(
-      ADevolver: TDictionary<string, Double>);
+    procedure ValidarDevolucionPendiente(ABloquearOrigen: Boolean = False);
     procedure AjustarCobroParcial;
     procedure IniciarTransaccion;
     function ObtenerNumeroFactura: string;
@@ -2110,7 +2111,7 @@ begin
   ValidarDevolucionPendiente;
 end;
 
-// Unidades en negativo de la operación en curso, por SKU.
+// Validación de los lotes y números de serie de la devolución.
 procedure TGrabacionFacturaCaja.ValidarPartidasDevolucion;
 var
   Clon: TClientDataSet;
@@ -2151,48 +2152,10 @@ begin
   end;
 end;
 
-procedure TGrabacionFacturaCaja.SumarDevolucionesLineas(
-  ADevolver: TDictionary<string, Double>);
+procedure TGrabacionFacturaCaja.ValidarDevolucionPendiente(
+  ABloquearOrigen: Boolean);
 var
-  oLineas: TDataSet;
-  sSku: string;
-  rCantidad, rAcumulado: Double;
-begin
-  oLineas := FDataModule.cdsLineas;
-  oLineas.DisableControls;
-  try
-    oLineas.First;
-    while not oLineas.Eof do
-    begin
-      sSku := UpperCase(Trim(
-        oLineas.FieldByName('CODIGO_UNIDAD_FACLIN').AsString));
-      rCantidad := oLineas.FieldByName('CANTIDAD_FACLIN').AsFloat;
-      if (sSku <> '') and (rCantidad < 0) then
-      begin
-        if not ADevolver.TryGetValue(sSku, rAcumulado) then
-          rAcumulado := 0;
-        ADevolver.AddOrSetValue(sSku, rAcumulado - rCantidad);
-      end;
-      oLineas.Next;
-    end;
-    oLineas.First;
-  finally
-    oLineas.EnableControls;
-  end;
-end;
-
-// FZ-ISSUE-392: de una venta no se devuelven más unidades de las que
-// quedan (vendidas menos ya devueltas). Vale para la rectificativa por
-// diferencias y para la devolución comercial con ticket de origen; la
-// sustitutiva reemplaza la venta entera y no pasa por aquí. Un SKU que no
-// está en la venta de origen no se controla. Es un aviso al cajero
-// (EValidacionBBDD), antes de abrir la transacción.
-procedure TGrabacionFacturaCaja.ValidarDevolucionPendiente;
-var
-  sSerie, sNumero, sSku: string;
-  oDevolver: TDictionary<string, Double>;
-  oConsulta: TUniQuery;
-  rDevolver, rVendida, rDevuelta: Double;
+  sSerie, sNumero: string;
 begin
   sSerie := Trim(FSerieRectificada);
   sNumero := Trim(FNumeroRectificado);
@@ -2201,14 +2164,70 @@ begin
     sSerie := Trim(FSerieOrigenDevolucion);
     sNumero := Trim(FNumeroOrigenDevolucion);
   end;
-  if (sSerie <> '') and (sNumero <> '') and
-     (FTipoRectificativa <> trcSustitutiva) then
+  if FTipoRectificativa <> trcSustitutiva then
+    FDataModule.ValidarDevolucionPendiente(sSerie, sNumero, ABloquearOrigen);
+end;
+
+procedure TdmCajaOpe.ValidarDevolucionPendiente(
+  const ASerie, ANumero: string; ABloquearOrigen: Boolean);
+var
+  oDevolver, oPorLinea: TDictionary<string, Double>;
+  oConsulta: TUniQuery;
+  oLineas: TClientDataSet;
+  sSku, sLinea, sAviso: string;
+  rCantidad, rAcumulado, rDevolver, rVendida, rDevuelta: Double;
+begin
+  if (ASerie <> '') and (ANumero <> '') then
   begin
     oDevolver := TDictionary<string, Double>.Create;
-    oConsulta := TUniQuery.Create(nil);
+    oPorLinea := nil;
+    oLineas := nil;
+    oConsulta := nil;
     try
-      SumarDevolucionesLineas(oDevolver);
-      oConsulta.Connection := FDataModule.FConexion;
+      oPorLinea := TDictionary<string, Double>.Create;
+      oLineas := TClientDataSet.Create(nil);
+      oLineas.CloneCursor(cdsLineas, True);
+      oLineas.First;
+      while not oLineas.Eof do
+      begin
+        rCantidad := oLineas.FieldByName('CANTIDAD_FACLIN').AsFloat;
+        if rCantidad < 0 then
+        begin
+          sLinea := oLineas.FieldByName(
+            CAMPO_LINEA_ORIGEN_DEVOLUCION).AsString;
+          if sLinea <> '' then
+          begin
+            oPorLinea.TryGetValue(sLinea, rAcumulado);
+            rAcumulado := rAcumulado - rCantidad;
+            sAviso := AvisoCantidadDevolucionLineaCaja(oLineas, -rAcumulado);
+            if sAviso <> '' then
+              raise EValidacionBBDD.Create(sAviso);
+            oPorLinea.AddOrSetValue(sLinea, rAcumulado);
+          end;
+          sSku := UpperCase(Trim(oLineas.FieldByName(
+            'CODIGO_UNIDAD_FACLIN').AsString));
+          if sSku <> '' then
+          begin
+            oDevolver.TryGetValue(sSku, rAcumulado);
+            oDevolver.AddOrSetValue(sSku, rAcumulado - rCantidad);
+          end;
+        end;
+        oLineas.Next;
+      end;
+      oConsulta := TUniQuery.Create(nil);
+      oConsulta.Connection := FConexion;
+      if ABloquearOrigen and ((oDevolver.Count > 0) or
+        (oPorLinea.Count > 0)) then
+      begin
+        // Las cajas que devuelven el mismo ticket se turnan antes de
+        // releer el saldo pendiente en su transacción.
+        oConsulta.SQL.Text := 'SELECT NUMERO_FAC FROM fza_facturas ' +
+          'WHERE SERIE_FAC = :SERIE AND NUMERO_FAC = :NUMERO FOR UPDATE';
+        oConsulta.ParamByName('SERIE').AsString := ASerie;
+        oConsulta.ParamByName('NUMERO').AsString := ANumero;
+        oConsulta.Open;
+        oConsulta.Close;
+      end;
       oConsulta.SQL.Text :=
         'SELECT L.CODIGO_UNIDAD_FACLIN AS SKU, ' +
         '       MAX(L.DESCRIPCION_ARTICULO_FACLIN) AS DESCRIPCION, ' +
@@ -2221,8 +2240,8 @@ begin
         '   AND L.NUMERO_FAC_FACLIN = :NUMERO ' +
         '   AND L.CANTIDAD_FACLIN > 0 ' +
         ' GROUP BY L.CODIGO_UNIDAD_FACLIN';
-      oConsulta.ParamByName('SERIE').AsString := sSerie;
-      oConsulta.ParamByName('NUMERO').AsString := sNumero;
+      oConsulta.ParamByName('SERIE').AsString := ASerie;
+      oConsulta.ParamByName('NUMERO').AsString := ANumero;
       if oDevolver.Count > 0 then
         oConsulta.Open;
       while oConsulta.Active and (not oConsulta.Eof) do
@@ -2237,16 +2256,18 @@ begin
             [FormatFloat('0.###', rDevolver),
              Trim(oConsulta.FieldByName('DESCRIPCION').AsString + ' (' +
                oConsulta.FieldByName('SKU').AsString + ')'),
-             FormatearReferenciaFactura(FDataModule.FConexion, sSerie,
-               sNumero),
+             FormatearReferenciaFactura(FConexion, ASerie,
+               ANumero),
              FormatFloat('0.###', rVendida - rDevuelta),
              FormatFloat('0.###', rVendida),
              FormatFloat('0.###', rDevuelta)]);
         oConsulta.Next;
       end;
     finally
-      FreeAndNil(oConsulta);
-      FreeAndNil(oDevolver);
+      oConsulta.Free;
+      oLineas.Free;
+      oPorLinea.Free;
+      oDevolver.Free;
     end;
   end;
 end;
@@ -2274,6 +2295,7 @@ var
   ModoArqueo: TModoCambioArqueoVenta;
 begin
   FPersistencia.IniciarUnidadTrabajo;
+  ValidarDevolucionPendiente(True);
   if FNumeroRectificado <> '' then
   begin
     ModoArqueo := mcavDiferencias;
@@ -4010,6 +4032,7 @@ end;
 procedure TdmCajaOpe.cdsLineasBeforePost(DataSet: TDataSet);
 var
   Requeridos, Resueltos, Pendiente: Integer;
+  sAviso: string;
 begin
   if DataSet.FieldByName('DESCRIPCION_ARTICULO_FACLIN').AsString = '' then
     Abort;
@@ -4029,6 +4052,10 @@ begin
         FOnAtributoPendiente(Pendiente);
       Abort;
     end;
+    sAviso := AvisoCantidadDevolucionLineaCaja(DataSet,
+      DataSet.FieldByName('CANTIDAD_FACLIN').AsFloat);
+    if sAviso <> '' then
+      raise EValidacionBBDD.Create(sAviso);
     if Assigned(FValidarStockLinea) then
       FValidarStockLinea(DataSet);
     if Assigned(FValidarLoteLinea) then
@@ -4159,6 +4186,8 @@ begin
   if cdsLineas.Active then cdsLineas.Close;
   cdsLineas.FieldDefs.Clear;
   cdsLineas.IndexDefs.Clear;
+  Add(CAMPO_LINEA_ORIGEN_DEVOLUCION, ftString, 20);
+  Add(CAMPO_MAXIMO_DEVOLUCION, ftFloat);
   Add('VIENE_DE_DEPOSITO', ftString, 1);
     Add('ORIGEN_CUENTA_DEP', ftString, 50);
     Add('SALDO_CONSULTA_DEP', ftCurrency);

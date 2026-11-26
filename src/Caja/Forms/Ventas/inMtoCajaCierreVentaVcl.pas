@@ -65,6 +65,7 @@ type
     PresentarResultado: TPresentarResultadoCierreCaja;
     ValidarLotes: TProc;
     ConfirmarLotesDevolucion: TProc;
+    ValidarDevolucionPendiente: TProc;
     ExigirOrigenDevolucion: Boolean;
     ValidarStock: TProc;
     DependenciasFaseCobro: TDependenciasFaseCobro;
@@ -316,6 +317,8 @@ begin
     Result := ConfirmarRectificativaCajaVcl(FContexto);
     if Result and Assigned(FContexto.ConfirmarLotesDevolucion) then
       FContexto.ConfirmarLotesDevolucion();
+    if Result and Assigned(FContexto.ValidarDevolucionPendiente) then
+      FContexto.ValidarDevolucionPendiente();
     if Result then
       Result := TCoordinadorCierreVentaCajaVcl.PrepararFaseCobro(
         FContexto, FFormulario, FTotales);

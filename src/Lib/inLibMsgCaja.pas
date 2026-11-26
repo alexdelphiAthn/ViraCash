@@ -911,6 +911,9 @@ resourcestring
   SErrorDevolucionCajaSinPendiente =
     'El ticket %s\%s ya está devuelto por completo: ' +
     'no queda ninguna unidad por devolver.';
+  SErrorDevolucionCajaLineaSuperaPendiente =
+    'Unidades pendientes de devolver en la línea %s: %s. ' +
+    'Has indicado %s.';
   SErrorDevolucionCajaSuperaPendiente =
     'No se pueden devolver %s unidades de %s: de %s solo quedan %s ' +
     'por devolver (vendidas %s, ya devueltas %s).';
