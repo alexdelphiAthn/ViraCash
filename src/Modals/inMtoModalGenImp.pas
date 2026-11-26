@@ -314,7 +314,7 @@ procedure AjustarFormatoHorizontalTallas(AInforme: TfrxReport);
 implementation
 
 uses
-  inLibFormatoDocumento, inLibPosicionFormulario,
+  inLibFormatoDocumento, inLibPosicionFormulario, inLibFuenteFastReport,
   inLibMensajesVcl,
   inLibPivoteVentaCalculo,
   inMtoModalGenImpSave, inLibUser, inLibPathTokens,
@@ -2046,6 +2046,7 @@ var
   oContexto: TContextoImpresionVentasPantalla;
 begin
   inherited;
+  frxdsgnr1.OnShow := TFuenteFastReport.AlMostrarDisenador;
   if Width > Screen.WorkAreaWidth then
     Width := Screen.WorkAreaWidth;
   if Height > Screen.WorkAreaHeight then

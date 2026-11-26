@@ -16,6 +16,17 @@ unit inLibCredencialUsuarioIni;
 
 interface
 
+type
+  TOpcionesEntrada = record
+    RecordarUsuario: Boolean;
+    ArranqueAutomatico: Boolean;
+    RecordarContrasena: Boolean;
+    Usuario: string;
+  end;
+
+function LeerOpcionesEntrada(const ARutaIni: string): TOpcionesEntrada;
+procedure GuardarOpcionesEntrada(const ARutaIni, AUsuario: string;
+  ARecordar, AAutomatica, ACambioUsuario, ACambioArranque: Boolean);
 function CargarContrasenaUsuarioRecordada(
   const ARutaIni: string): string;
 procedure GuardarContrasenaUsuarioRecordada(
@@ -27,6 +38,7 @@ procedure EliminarContrasenaUsuarioRecordada(
 implementation
 
 uses
+  inLibConfiguracionIni,
   inLibMsgComun,
   System.IniFiles,
   System.SysUtils,
@@ -56,6 +68,56 @@ begin
   begin
     raise EArgumentException.Create(
       STextoLaRutaDelIniDeUsuarioNoComun);
+  end;
+end;
+
+function LeerOpcionesEntrada(const ARutaIni: string): TOpcionesEntrada;
+var
+  oIni: TIniFile;
+begin
+  NormalizarFormatoIni(ARutaIni);
+  oIni := TIniFile.Create(ARutaIni);
+  try
+    Result.RecordarUsuario := SameText(oIni.ReadString(SECCION_USUARIO,
+      'RememberUser', 'No'), 'Yes');
+    Result.ArranqueAutomatico := SameText(oIni.ReadString(SECCION_USUARIO,
+      'AutoLogin', 'No'), 'Yes');
+    Result.RecordarContrasena := SameText(oIni.ReadString(SECCION_USUARIO,
+      'RememberPassword', 'No'), 'Yes');
+    Result.Usuario := '';
+    if Result.RecordarUsuario then
+      Result.Usuario := oIni.ReadString(SECCION_USUARIO, 'NomUser', '');
+  finally
+    oIni.Free;
+  end;
+end;
+
+procedure GuardarOpcionesEntrada(const ARutaIni, AUsuario: string;
+  ARecordar, AAutomatica, ACambioUsuario, ACambioArranque: Boolean);
+var
+  oIni: TIniFile;
+
+  procedure GuardarOpcion(const AClave: string; AMarcada, ACambiada: Boolean);
+  begin
+    if not AMarcada then
+      oIni.WriteString(SECCION_USUARIO, AClave, 'No')
+    else if ACambiada then
+      oIni.WriteString(SECCION_USUARIO, AClave, 'Yes');
+  end;
+
+begin
+  oIni := TIniFile.Create(ARutaIni);
+  try
+    // Una opción heredada puede haberse desactivado con el diálogo abierto.
+    GuardarOpcion('RememberUser', ARecordar, ACambioUsuario);
+    GuardarOpcion('AutoLogin', AAutomatica, ACambioArranque);
+    if ARecordar and SameText(oIni.ReadString(SECCION_USUARIO,
+      'RememberUser', 'No'), 'Yes') then
+      oIni.WriteString(SECCION_USUARIO, 'NomUser', AUsuario)
+    else
+      oIni.DeleteKey(SECCION_USUARIO, 'NomUser');
+  finally
+    oIni.Free;
   end;
 end;
 

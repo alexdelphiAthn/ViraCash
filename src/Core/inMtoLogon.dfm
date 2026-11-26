@@ -68,11 +68,14 @@ object frmLogon: TfrmLogon
         TabOrder = 1
         Width = 312
       end
-      object chkRememberUser: TcxCheckBox
+      object chkRememberUser: TCheckBox
         Left = 0
         Top = 114
+        Width = 150
+        Height = 22
         Caption = 'Recordar Usuario'
         TabOrder = 2
+        OnClick = OpcionEntradaCambiada
       end
       object chkRememberPassword: TcxCheckBox
         Left = 156

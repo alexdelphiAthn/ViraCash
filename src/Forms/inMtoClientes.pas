@@ -450,6 +450,9 @@ type
     FRepositorioClientes: IRepositorioClientes;
     FVerificacionNif: TComponent;
     FTabMedidas: TcxTabSheet;
+    FTabLlamadas: TcxTabSheet;
+    procedure CrearAccesoLlamadas;
+    procedure LlamadasClienteClick(Sender: TObject);
     procedure CrearAccesoMedidas;
     procedure MedidasClienteClick(Sender: TObject);
     procedure InstalarVerificacionNif;
@@ -468,6 +471,7 @@ implementation
 uses
   inLibMensajesVcl,
   inLibMsgMedidasCliente, inMtoModalMedidasCliente,
+  inMtoConsultoriaLlamadas, UniDataLlamadasCliente, inLibMsgScripter,
   inLibComboPais,
   inLibWin,
   inLibUser,
@@ -757,7 +761,42 @@ begin
   btnExportarExcelPrestamos.Visible := PuedeAccionMto(apmExcel);
   btnImprimirEtiqueta.Visible := PuedeImprimir;
   InstalarVerificacionNif;
+  CrearAccesoLlamadas;
   CrearAccesoMedidas;
+end;
+
+procedure TfrmMtoClientes.CrearAccesoLlamadas;
+var
+  oBoton: TcxButton;
+begin
+  if (FTabLlamadas = nil) and Assigned(Permisos) and
+    Permisos.TienePermiso(PermisoConsultarLlamadas, paExigirConcesion) then
+  begin
+    FTabLlamadas := TcxTabSheet.Create(Self);
+    FTabLlamadas.PageControl := pcPestanas;
+    FTabLlamadas.Caption := SLlamadasCliente;
+    oBoton := TcxButton.Create(Self);
+    oBoton.Parent := FTabLlamadas;
+    oBoton.Align := alTop;
+    oBoton.Height := ScaleValue(44);
+    oBoton.Caption := SLlamadasCliente;
+    oBoton.OnClick := LlamadasClienteClick;
+  end;
+end;
+
+procedure TfrmMtoClientes.LlamadasClienteClick(Sender: TObject);
+var
+  sCliente: string;
+begin
+  if (dsTablaG.State = dsBrowse) and not dsTablaG.DataSet.IsEmpty then
+  begin
+    sCliente := dsTablaG.DataSet.FieldByName('CODIGO_CLI_CLI').AsString;
+    if Trim(sCliente) <> '' then
+      AbrirLlamadas(Self, ConexionPrincipal, Permisos,
+        IdentidadSesion.Usuario, sCliente, False);
+  end
+  else
+    ShowMessage_fza(SSeleccioneCliente);
 end;
 
 procedure TfrmMtoClientes.CrearAccesoMedidas;

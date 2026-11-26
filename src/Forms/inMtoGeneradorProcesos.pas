@@ -285,6 +285,7 @@ type
 implementation
 
 uses
+  inLibFuenteInterfaz,
   inLibMensajesVcl,
   inLibWin,
   inLibUser,
@@ -1627,6 +1628,14 @@ begin
 end;
 
 procedure TfrmMtoGeneradorProcesos.FormShow(Sender: TObject);
+
+  procedure ConfigurarEditor(AEditor: TCustomSynEdit);
+  begin
+    AplicarFuenteCodigo(AEditor.Font);
+    AplicarFuenteCodigo(AEditor.Gutter.Font);
+    AEditor.RightEdge := ColumnaGuiaCodigo;
+  end;
+
   procedure CrearAccion(const Atajo: TShortCut; Ejecutar,
     Actualizar: TNotifyEvent);
   var
@@ -1684,6 +1693,8 @@ begin
     syndtEstructura.SearchEngine := FSearchEngine;
   end;
   CrearMenuContextual;
+  ConfigurarEditor(DBSynEdit1);
+  ConfigurarEditor(syndtEstructura);
   DBSynEdit1.WantTabs := True;
   syndtEstructura.WantTabs := True;
   DBSynEdit1.WantReturns := True;

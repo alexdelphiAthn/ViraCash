@@ -378,6 +378,11 @@ uses
   inMtoLogon in 'src\Core\inMtoLogon.pas' {frmLogon},
   inMtoPrincipal in 'src\Core\inMtoPrincipal.pas' {frmMtoPrincipal},
   inMtoPrincipalAccionesVcl in 'src\Core\inMtoPrincipalAccionesVcl.pas',
+  inMtoConsultoriaLlamadas in 'src\Forms\inMtoConsultoriaLlamadas.pas',
+  inLibMsgScripter in 'src\Lib\inLibMsgScripter.pas',
+  inLibMenusScripter in 'src\Lib\inLibMenusScripter.pas',
+  inMtoLlamadasAccionesVcl in 'src\Forms\inMtoLlamadasAccionesVcl.pas',
+  UniDataLlamadasCliente in 'src\DataModules\UniDataLlamadasCliente.pas',
   inMtoPrincipalCertificadosVcl in 'src\Core\inMtoPrincipalCertificadosVcl.pas',
   inLibHuellaEsquemaIntf in 'src\Lib\inLibHuellaEsquemaIntf.pas',
   inLibHuellaEsquema in 'src\Lib\inLibHuellaEsquema.pas',
@@ -1630,7 +1635,7 @@ function CrearContextoSesionInicial(
   const AFabricaConexiones: IFabricaConexionesUniDAC;
   const ARegistroLog: IRegistroLog;
   AForzarCredenciales: Boolean;
-  const ARutaRestauracionAdministrativa: string;
+  const ARutaRestauracionAdministrativa, ARutaIni: string;
   out AContextoSesion: IContextoSesionAplicacion;
   out AResultadoLicencia: TResultadoLicenciaAplicacion): Boolean;
 var
@@ -1645,7 +1650,7 @@ begin
   frmLogon := TfrmLogon.Create(
     Application,
     AFabricaConexiones,
-    ARegistroLog);
+    ARegistroLog, ARutaIni);
   try
     if ARutaRestauracionAdministrativa <> '' then
     begin
@@ -1702,6 +1707,7 @@ begin
   var FabricaConexiones: IFabricaConexionesUniDAC;
   var GestorContextoCierre: IGestorContextoSesion;
   var Principal: TfrmMtoPrincipal;
+  var RutaIniSesion: string;
   var RegistroLogAplicacion: IRegistroLog;
   var RutaRestauracionAdministrativa: string;
   var ResultadoLicenciaInicial: TResultadoLicenciaAplicacion;
@@ -1712,6 +1718,13 @@ begin
   var CodigoSalidaComandoCopia: Cardinal;
   var CodigoSalidaComandoImpresion: Cardinal;
   var CodigoSalidaComandoRecalculosStock: Cardinal;
+  // Un lanzamiento sin perfil desde el escritorio recupera la sesión
+  // abierta antes de intentar conectar con el INI predeterminado.
+  if (ParamCount = 0) and
+    SameFileName(RutaIniAplicacion(GetUserFolder), GetUserFolder +
+      ChangeFileExt(ExtractFileName(ParamStr(0)), '.ini')) and
+    ActivarSesionConPerfil(MarcaSesionViraCash(ParamStr(0), GetUserFolder)) then
+    ExitProcess(0);
   // Instancia lanzada con permisos de administrador solo para
   // sustituir los ejecutables: hace su trabajo y termina.
   ProcesarArranqueSustitucionElevada;
@@ -1800,14 +1813,17 @@ begin
       ExitProcess(CodigoSalidaComandoImpresion);
     end;
   end;
-  FabricaConexiones :=
-    CrearFabricaConexionesAplicacionUniDAC(GetUserFolder);
+  RutaIniSesion := RutaPerfilConexionAplicacion(GetUserFolder);
+  RegistroLogAplicacion.RegistrarInformacion(Format(
+    'Arranque PID %d, perfil INI: %s', [GetCurrentProcessId, RutaIniSesion]));
+  FabricaConexiones := CrearFabricaConexionesUniDAC(
+    CargarConfiguracionConexionIni(RutaIniSesion), RutaIniSesion);
   try
     if CrearContextoSesionInicial(
       FabricaConexiones,
       RegistroLogAplicacion,
       EsModoComandoImprimirFacturas,
-      RutaRestauracionAdministrativa,
+      RutaRestauracionAdministrativa, RutaIniSesion,
       ContextoSesionInicial,
       ResultadoLicenciaInicial) then
     begin
@@ -1824,7 +1840,7 @@ begin
     Principal.InicializarAplicacion(
       FabricaConexiones,
       ContextoSesionInicial,
-      ResultadoLicenciaInicial);
+      ResultadoLicenciaInicial, RutaIniSesion);
     Principal.AsignarServiciosVisuales(
       CrearBusquedaVisualMto,
       CrearDistribuidorTallasVisualMto(

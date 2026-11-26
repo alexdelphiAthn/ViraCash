@@ -11,6 +11,7 @@
         <AppType>Application</AppType>
         <ProjectName Condition="'$(ProjectName)'==''">vcash</ProjectName>
     </PropertyGroup>
+    <Import Project="$(MSBuildProjectDirectory)\eng\ViraCash.Dependencias.props"/>
     <PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
         <Base>true</Base>
     </PropertyGroup>
@@ -177,7 +178,17 @@ $(PreBuildEvent)]]></PreBuildEvent>
         <UWP_DelphiLogo150>icon-verde-128.png</UWP_DelphiLogo150>
         <DCC_MapFile>3</DCC_MapFile>
     </PropertyGroup>
-    <Import Project="$(MSBuildProjectDirectory)\eng\ViraCash.Dependencias.props"/>
+    <PropertyGroup>
+        <DCC_UnitSearchPath>$(ViraCashTmsUnits);$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+    </PropertyGroup>
+    <ItemGroup>
+        <FuenteLlamadas Include="src\Forms\Consultoria\*.rc;src\Forms\Consultoria\*.ssproj;src\Forms\Consultoria\**\*.psc;src\Forms\Consultoria\**\*.sfm"/>
+    </ItemGroup>
+    <Target Name="CompilarPlantillaLlamadas" BeforeTargets="_PasCoreCompile"
+        Inputs="@(FuenteLlamadas)"
+        Outputs="$(MSBuildProjectDirectory)\src\Forms\Consultoria\Llamadas.res">
+        <Exec WorkingDirectory="$(MSBuildProjectDirectory)\src\Forms\Consultoria" Command="&quot;$(BDS)\bin\brcc32.exe&quot; -foLlamadas.res Llamadas.rc"/>
+    </Target>
     <ItemGroup>
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
@@ -466,6 +477,11 @@ $(PreBuildEvent)]]></PreBuildEvent>
             <Form>frmMtoPrincipal</Form>
         </DCCReference>
         <DCCReference Include="src\Core\inMtoPrincipalAccionesVcl.pas"/>
+        <DCCReference Include="src\Forms\inMtoConsultoriaLlamadas.pas"/>
+        <DCCReference Include="src\Lib\inLibMsgScripter.pas"/>
+        <DCCReference Include="src\Lib\inLibMenusScripter.pas"/>
+        <DCCReference Include="src\Forms\inMtoLlamadasAccionesVcl.pas"/>
+        <DCCReference Include="src\DataModules\UniDataLlamadasCliente.pas"/>
         <DCCReference Include="src\Core\inMtoPrincipalCertificadosVcl.pas"/>
         <DCCReference Include="src\Lib\inLibHuellaEsquemaIntf.pas"/>
         <DCCReference Include="src\Lib\inLibHuellaEsquema.pas"/>

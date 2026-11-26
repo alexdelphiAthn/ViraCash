@@ -66,8 +66,9 @@
             end
             object cxgrdbclmnGrdDBTabPrinTIPOIVA_ARTICULO: TcxGridDBColumn
               Caption = 'Tipo IVA'
-              DataBinding.FieldName = 'NOMBRE_TIPO_IVA_IVATIP'
+              DataBinding.FieldName = 'TIPO_IVA_ART'
               PropertiesClassName = 'TcxTextEditProperties'
+              OnGetDisplayText = MostrarTipoIvaArticulo
               Width = 130
             end
             object cxgrdbclmnGrdDBTabPrinREF_PROVEEDOR: TcxGridDBColumn

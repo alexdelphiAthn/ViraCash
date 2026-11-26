@@ -3958,8 +3958,12 @@ begin
       'fza_facturas_lineas');
   cdsLineas.FieldByName('SERIE_FAC_FACLIN').AsString := '0';
   cdsLineas.FieldByName('NUMERO_FAC_FACLIN').AsString := '0';
-  NuevoNumero :=
-    cdsCabecera.FieldByName('CONTADOR_LINEAS_FAC').AsInteger + 10;
+  // El contador puede venir de una línea provisional cancelada.
+  // Sin líneas guardadas en el borrador, se empieza de nuevo en 0010.
+  NuevoNumero := 10;
+  if cdsLineas.RecordCount > 0 then
+    NuevoNumero :=
+      cdsCabecera.FieldByName('CONTADOR_LINEAS_FAC').AsInteger + 10;
   cdsCabecera.Edit;
   cdsCabecera.FieldByName('CONTADOR_LINEAS_FAC').AsInteger :=
     NuevoNumero;

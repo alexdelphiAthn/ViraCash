@@ -461,6 +461,8 @@ type
       ARecord: TcxCustomGridRecord; var AText: string);
     procedure MostrarCosteTarifa(Sender: TcxCustomGridTableItem;
       ARecord: TcxCustomGridRecord; var AText: string);
+    procedure MostrarTipoIvaArticulo(Sender: TcxCustomGridTableItem;
+      ARecord: TcxCustomGridRecord; var AText: string);
     procedure dbcTarifasMARGENGetDisplayText(
       Sender: TcxCustomGridTableItem;
       ARecord: TcxCustomGridRecord;
@@ -1165,6 +1167,20 @@ procedure TfrmMtoArticulos.MostrarProveedorCompraTarifa(
 begin
   if Assigned(FPresTarifas) then
     FPresTarifas.MostrarProveedorCompra(ARecord, AText);
+end;
+
+procedure TfrmMtoArticulos.MostrarTipoIvaArticulo(
+  Sender: TcxCustomGridTableItem; ARecord: TcxCustomGridRecord;
+  var AText: string);
+var
+  i: Integer;
+begin
+  i := 0;
+  while (i < rgTipoIVA.Properties.Items.Count) and
+    not SameText(AText, VarToStr(rgTipoIVA.Properties.Items[i].Value)) do
+    Inc(i);
+  if i < rgTipoIVA.Properties.Items.Count then
+    AText := rgTipoIVA.Properties.Items[i].Caption;
 end;
 
 procedure TfrmMtoArticulos.dbcTarifasMARGENGetDisplayText(

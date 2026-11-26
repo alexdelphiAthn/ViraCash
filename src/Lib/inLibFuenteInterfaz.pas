@@ -2,6 +2,14 @@
 
 interface
 
+uses
+  Vcl.Graphics;
+
+const
+  ColumnaGuiaCodigo = 80;
+
+procedure AplicarFuenteCodigo(AFuente: TFont);
+
 // La fuente se valida con GDI antes de utilizarla para medir o escalar UI.
 function FuenteInterfazValida(const ANombre: string): Boolean;
 function NombreFuenteInterfaz(
@@ -12,7 +20,16 @@ implementation
 uses
   Winapi.Windows,
   System.Types,
-  System.SysUtils;
+  System.SysUtils, Vcl.Forms;
+
+procedure AplicarFuenteCodigo(AFuente: TFont);
+begin
+  AFuente.Name := 'Consolas';
+  if Screen.Fonts.IndexOf('Consolas SemiBold') >= 0 then
+    AFuente.Name := 'Consolas SemiBold';
+  AFuente.Size := 14;
+  AFuente.Quality := fqClearTypeNatural;
+end;
 
 function FuenteInterfazValida(const ANombre: string): Boolean;
 var

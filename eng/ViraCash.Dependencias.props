@@ -1,5 +1,8 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
+        <VIRACASH_TMSSCRIPTER_ROOT Condition="'$(VIRACASH_TMSSCRIPTER_ROOT)'==''">C:\DISCO_DURO\TMSScripter</VIRACASH_TMSSCRIPTER_ROOT>
+        <ViraCashTms>$(VIRACASH_TMSSCRIPTER_ROOT)\source</ViraCashTms>
+        <ViraCashTmsUnits>$(ViraCashTms)\core;$(ViraCashTms)\ide;$(ViraCashTms)\vcl;$(ViraCashTms)\memo;$(ViraCashTms)\imports\rtl;$(ViraCashTms)\imports\vcl</ViraCashTmsUnits>
         <VIRACASH_DELPHI_ROOT Condition="'$(VIRACASH_DELPHI_ROOT)'==''">$(FACTUZAM_DELPHI_ROOT)</VIRACASH_DELPHI_ROOT>
         <VIRACASH_DEVEXPRESS_ROOT Condition="'$(VIRACASH_DEVEXPRESS_ROOT)'==''">$(FACTUZAM_DEVEXPRESS_ROOT)</VIRACASH_DEVEXPRESS_ROOT>
         <VIRACASH_FASTREPORT_ROOT Condition="'$(VIRACASH_FASTREPORT_ROOT)'==''">$(FACTUZAM_FASTREPORT_ROOT)</VIRACASH_FASTREPORT_ROOT>

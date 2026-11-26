@@ -508,32 +508,43 @@ var
   PCount: Integer;
   SubQueryStr: string;
   TableName: string;
+  TextoSubconsulta: TStringBuilder;
+  EsSubconsulta: Boolean;
 begin
   if (CurrentToken = tsqlBraceOpen) then
   begin
-    GetNextToken;
-
-    // --- INICIO SOPORTE PARA DERIVED TABLES (Subconsultas en FROM/JOIN) ---
-    if (CurrentToken = tsqlSelect) then
-    begin
-      SubQueryStr := '(';
-      PCount := 1;
-
-      // Capturar de forma segura todos los tokens de la subconsulta respetando paréntesis anidados
-      while (PCount > 0) and (CurrentToken <> tsqlEOF) do
-      begin
-        SubQueryStr := SubQueryStr + ' ' + CurrentTokenString;
+    // Conservar los literales, identificadores y comentarios del SQL original.
+    TextoSubconsulta := TStringBuilder.Create('(');
+    try
+      FScanner.IniciarCaptura(TextoSubconsulta);
+      try
         GetNextToken;
-        if CurrentToken = tsqlBraceOpen then
-          Inc(PCount)
-        else if CurrentToken = tsqlBraceClose then
-          Dec(PCount);
+        EsSubconsulta := CurrentToken = tsqlSelect;
+        if EsSubconsulta then
+        begin
+          PCount := 1;
+          repeat
+            GetNextToken;
+            if CurrentToken = tsqlBraceOpen then
+              Inc(PCount)
+            else if CurrentToken = tsqlBraceClose then
+              Dec(PCount);
+          until (PCount = 0) or (CurrentToken = tsqlEOF);
+          Expect(tsqlBraceClose);
+        end;
+      finally
+        FScanner.TerminarCaptura;
       end;
-      SubQueryStr := SubQueryStr + ' )';
-      GetNextToken; // Consumir el tsqlBraceClose final
+      SubQueryStr := TextoSubconsulta.ToString;
+    finally
+      TextoSubconsulta.Free;
+    end;
 
-      // Engañamos al AST encapsulando la subconsulta como si fuera un nombre de tabla
-      T := TSQLSimpleTablereference(CreateElement(TSQLSimpleTablereference, AParent));
+    if EsSubconsulta then
+    begin
+      GetNextToken;
+      T := TSQLSimpleTablereference(
+        CreateElement(TSQLSimpleTablereference, AParent));
       Result := T;
       T.ObjectName := CreateIdentifier(T, SubQueryStr);
 

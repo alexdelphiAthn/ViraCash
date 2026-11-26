@@ -72,7 +72,8 @@ const
   cSinTablasAjenas =
     '    AND %0:s NOT LIKE ''tmp\_%%'' ' +
     '    AND %0:s NOT LIKE ''bak\_%%'' ' +
-    '    AND %0:s NOT LIKE ''fzu\_%%'' ';
+    '    AND %0:s NOT LIKE ''fzu\_%%'' ' +
+    '    AND LOWER(%0:s) <> ''fza_clientes_llamadas'' ';
   cSinVistasAjenas =
     '    AND %0:s NOT LIKE ''tmp\_%%'' ' +
     '    AND %0:s NOT LIKE ''vu\_%%'' ';

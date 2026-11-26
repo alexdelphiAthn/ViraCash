@@ -37,6 +37,8 @@ procedure EscribirCadenaIni(
   const AClave: string;
   const AValor: string;
   const ADirectorio: string);
+procedure EscribirCadenaEnIni(
+  const ARutaIni, ASeccion, AClave, AValor: string);
 // Deja el INI en el formato que entiende la API de perfiles de Windows
 // (TIniFile): fines de línea CR+LF y, si traía BOM UTF-8, UTF-16 con BOM.
 // No toca un archivo que ya está bien ni uno que no existe.
@@ -182,7 +184,7 @@ begin
       '.ini')
   else
     sNombreFichero := sParametro;
-  Result := ADirectorio + sNombreFichero;
+  Result := TPath.Combine(ADirectorio, sNombreFichero);
 end;
 
 function RutaIniAplicacion(
@@ -199,13 +201,18 @@ procedure EscribirCadenaIni(
   const AClave: string;
   const AValor: string;
   const ADirectorio: string);
+begin
+  EscribirCadenaEnIni(RutaIniAplicacion(ADirectorio), ASeccion,
+    AClave, AValor);
+end;
+
+procedure EscribirCadenaEnIni(
+  const ARutaIni, ASeccion, AClave, AValor: string);
 var
   oIni: TIniFile;
-  sRuta: string;
 begin
-  sRuta := RutaIniAplicacion(ADirectorio);
-  NormalizarFormatoIni(sRuta);
-  oIni := TIniFile.Create(sRuta);
+  NormalizarFormatoIni(ARutaIni);
+  oIni := TIniFile.Create(ARutaIni);
   try
     oIni.WriteString(
       ASeccion,

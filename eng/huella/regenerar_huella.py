@@ -133,8 +133,9 @@ def es_script_esquema(ruta):
     texto = re.sub(r'--[^\n]*', '', texto)
     for patron in (PATRON_DDL, PATRON_INDICE):
         for coincidencia in patron.finditer(texto):
-            if not coincidencia.group(1).lower().startswith(
-                    PREFIJOS_IGNORADOS):
+            nombre = coincidencia.group(1).lower()
+            if (nombre != 'fza_clientes_llamadas'
+                    and not nombre.startswith(PREFIJOS_IGNORADOS)):
                 return True
     return False
 

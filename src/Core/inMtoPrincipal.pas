@@ -256,6 +256,8 @@ type
     mnuSesionesCambioTarifa: TMenuItem;
     mnuProcesosAuxiliaresBBDD: TMenuItem;
     mnuGeneradorProcesos: TMenuItem;
+    mnuDisenadorLlamadas: TMenuItem;
+    mnuLlamadasCliente: TMenuItem;
     mnuUsuarios: TMenuItem;
     mnuEmpleados: TMenuItem;
     mnuGrupos: TMenuItem;
@@ -301,6 +303,7 @@ type
     procedure mnuAjusteDepositosClick(Sender: TObject);
     procedure mnuBajasSinLoteClick(Sender: TObject);
     procedure mnuProcesosAuxiliaresBBDDClick(Sender: TObject);
+    procedure mnuLlamadasClick(Sender: TObject);
     procedure tmr1Timer(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
@@ -339,6 +342,8 @@ type
     FFinSesionWindows: Boolean;
     FNivelModalCierrePendiente: Integer;
     FRelanzarLoginPendiente: Boolean;
+    FRutaIniSesion: string;
+    FMarcaSesion: string;
     FRutaRestauracionPendiente: string;
     FFalloCargaPermisosAvisado: Boolean;
     FGestorExcepciones: IGestorExcepcionesAplicacion;
@@ -443,6 +448,9 @@ type
     function AtenderEscape(var Message: TWMKey;
       AFormularioActivo: TCustomForm; AEsFlotante: Boolean): Boolean;
     function AtenderAtajoMenuPrincipal(var Message: TWMKey): Boolean;
+  protected
+    procedure CreateWnd; override;
+    procedure DestroyWnd; override;
   public
     { Public declarations }
     FormManager : TEmbeddedFormManager;
@@ -455,7 +463,8 @@ type
     procedure InicializarAplicacion(
       const AFabricaConexiones: IFabricaConexionesUniDAC;
       const AContextoSesion: IContextoSesionAplicacion;
-      const AResultadoLicencia: TResultadoLicenciaAplicacion);
+      const AResultadoLicencia: TResultadoLicenciaAplicacion;
+      const ARutaIni: string);
     procedure FormResize(Sender: TObject);
     procedure MostrarOperacion;
     procedure ActualizarProgreso(
@@ -512,11 +521,11 @@ uses
   inLibCopiasSeguridadReglas,
   inLibComandoCopiaSeguridad,
   inLibCifrado,
-  inLibConexionPerfilIni,
+  inLibVentanaBarraTareas,
   inLibDir,
   inMtoCajaMenu,
   inLibGenerarTicketCaja,
-  inMtoPrincipalAccionesVcl,
+  inMtoPrincipalAccionesVcl, inMtoConsultoriaLlamadas,
   inMtoModalAjusteDepositos, inLibFiltroUsuario,
   inMtoModalBajasSinLote,
   inMtoModalScriptLog,
@@ -1011,8 +1020,10 @@ end;
 procedure TfrmMtoPrincipal.InicializarAplicacion(
   const AFabricaConexiones: IFabricaConexionesUniDAC;
   const AContextoSesion: IContextoSesionAplicacion;
-  const AResultadoLicencia: TResultadoLicenciaAplicacion);
+  const AResultadoLicencia: TResultadoLicenciaAplicacion;
+  const ARutaIni: string);
 begin
+  FRutaIniSesion := ARutaIni;
   FFabricaConexiones := AFabricaConexiones;
   CrearCasoUsoArranqueAplicacion(
     Self as IPasosArranqueAplicacion).Ejecutar(
@@ -1193,6 +1204,13 @@ begin
   mnuCargasTransito.Visible := UsarAlmacenesTransito(ParametrosCaja) and
     PuedeAbrirMenu(mnuCargasTransito);
   mnuCargasTransito.Enabled := mnuCargasTransito.Visible;
+end;
+
+procedure TfrmMtoPrincipal.mnuLlamadasClick(Sender: TObject);
+begin
+  if PuedeAbrirMenu(Sender as TMenuItem) then
+    AbrirLlamadas(Self, ConexionPrincipal, Permisos, IdentidadSesion.Usuario,
+      '', Sender = mnuDisenadorLlamadas);
 end;
 
 procedure TfrmMtoPrincipal.mnuAlmacenClick(Sender: TObject);
@@ -1660,15 +1678,12 @@ end;
 procedure TfrmMtoPrincipal.RelanzarLoginSiPendiente;
 var
   iResultado: HINST;
-  sNombreIni: string;
   sParametros: string;
 begin
   if FRelanzarLoginPendiente then
   begin
     FRelanzarLoginPendiente := False;
-    sNombreIni := ExtractFileName(
-      RutaPerfilConexionAplicacion(GetUserFolder));
-    sParametros := '"' + sNombreIni + '" /relogin';
+    sParametros := '"' + FRutaIniSesion + '" /relogin';
     if FRutaRestauracionPendiente <> '' then
     begin
       sParametros := sParametros + ' /restaurar "' +
@@ -1701,6 +1716,11 @@ begin
   // Sin desmarcar hasta que acabe el proceso: un segundo FormClose durante
   // las esperas de este liberaría la composición que aún se está usando.
   FCierreEnCurso := True;
+  if FMarcaSesion <> '' then
+  begin
+    RemoveProp(Handle, PChar(FMarcaSesion));
+    FMarcaSesion := '';
+  end;
   // Señalar a las tareas de segundo plano que la app se esta cerrando, ANTES
   // de empezar a liberar formularios y conexiones. Asi no arrancan trabajo
   // nuevo ni tocan formularios en destruccion
@@ -1912,12 +1932,32 @@ begin
   Self.Close;
 end;
 
+procedure TfrmMtoPrincipal.CreateWnd;
+begin
+  inherited;
+  if FMarcaSesion <> '' then
+    SetProp(Handle, PChar(FMarcaSesion), 1);
+end;
+
+procedure TfrmMtoPrincipal.DestroyWnd;
+begin
+  if FMarcaSesion <> '' then
+    RemoveProp(Handle, PChar(FMarcaSesion));
+  inherited;
+end;
+
 procedure TfrmMtoPrincipal.FormShow(Sender: TObject);
 begin
   if FException then
     PostMessage(Handle, wm_Close, 0, 0);
   if not FException then
   begin
+    if not SameFileName(FRutaIniSesion, GetUserFolder +
+      ChangeFileExt(ExtractFileName(ParamStr(0)), '.ini')) then
+    begin
+      FMarcaSesion := MarcaSesionViraCash(ParamStr(0), GetUserFolder);
+      SetProp(Handle, PChar(FMarcaSesion), 1);
+    end;
     // Garantiza el z-order y la visibilidad con el formulario ya visible
     imgFondoLogo.BringToFront;
     if Assigned(FPresentacionInicio) then

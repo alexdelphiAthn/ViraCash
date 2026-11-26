@@ -16,7 +16,7 @@ uses
   inLibMsgMeteorologiaCaja, inLibMsgCambioCodigoCliente,
   inLibMsgInformesCliente,
   inLibCambiosTrabajo,
-  inLibMsgMedidasCliente,
+  inLibMsgMedidasCliente, inLibMsgScripter,
   inLibMsgRetiradaLotes,
   inLibMsgSubsanacionCaja,
   inLibMsgPersistenciaSubsanacionCaja,
@@ -6856,6 +6856,206 @@ end;
 procedure EnumerarResourcestringsTraduccion(
   const ARegistrar: TRegistrarResourcestringTraduccion);
 begin
+  ARegistrar('inLibMsgScripter.SArchivo', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SArchivo);
+  ARegistrar('inLibMsgScripter.SEdicion', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SEdicion);
+  ARegistrar('inLibMsgScripter.SVer', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SVer);
+  ARegistrar('inLibMsgScripter.SMenuEjecutar', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SMenuEjecutar);
+  ARegistrar('inLibMsgScripter.SProyecto', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SProyecto);
+  ARegistrar('inLibMsgScripter.SHerramientas', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SHerramientas);
+  ARegistrar('inLibMsgScripter.SNuevaUnidad', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SNuevaUnidad);
+  ARegistrar('inLibMsgScripter.SNuevoFormulario', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SNuevoFormulario);
+  ARegistrar('inLibMsgScripter.SNuevoProyecto', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SNuevoProyecto);
+  ARegistrar('inLibMsgScripter.SAbrirProyecto', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SAbrirProyecto);
+  ARegistrar('inLibMsgScripter.SAgregarArchivo', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SAgregarArchivo);
+  ARegistrar('inLibMsgScripter.SQuitarArchivo', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SQuitarArchivo);
+  ARegistrar('inLibMsgScripter.SGuardar', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SGuardar);
+  ARegistrar('inLibMsgScripter.SGuardarComo', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SGuardarComo);
+  ARegistrar('inLibMsgScripter.SGuardarProyectoComo', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SGuardarProyectoComo);
+  ARegistrar('inLibMsgScripter.SGuardarTodo', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SGuardarTodo);
+  ARegistrar('inLibMsgScripter.SCerrarArchivo', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SCerrarArchivo);
+  ARegistrar('inLibMsgScripter.SCerrarTodo', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SCerrarTodo);
+  ARegistrar('inLibMsgScripter.SSalir', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SSalir);
+  ARegistrar('inLibMsgScripter.SDeshacer', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SDeshacer);
+  ARegistrar('inLibMsgScripter.SRehacer', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SRehacer);
+  ARegistrar('inLibMsgScripter.SCortar', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SCortar);
+  ARegistrar('inLibMsgScripter.SCopiar', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SCopiar);
+  ARegistrar('inLibMsgScripter.SPegar', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SPegar);
+  ARegistrar('inLibMsgScripter.SEliminar', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SEliminar);
+  ARegistrar('inLibMsgScripter.SSeleccionarTodo', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SSeleccionarTodo);
+  ARegistrar('inLibMsgScripter.SBuscar', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SBuscar);
+  ARegistrar('inLibMsgScripter.SReemplazar', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SReemplazar);
+  ARegistrar('inLibMsgScripter.SBuscarSiguiente', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SBuscarSiguiente);
+  ARegistrar('inLibMsgScripter.SAlinearCuadricula', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SAlinearCuadricula);
+  ARegistrar('inLibMsgScripter.STraerFrente', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.STraerFrente);
+  ARegistrar('inLibMsgScripter.SEnviarFondo', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SEnviarFondo);
+  ARegistrar('inLibMsgScripter.SAlinear', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SAlinear);
+  ARegistrar('inLibMsgScripter.STamano', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.STamano);
+  ARegistrar('inLibMsgScripter.SOrdenTabulacion', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SOrdenTabulacion);
+  ARegistrar('inLibMsgScripter.SBloquear', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SBloquear);
+  ARegistrar('inLibMsgScripter.SInspector', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SInspector);
+  ARegistrar('inLibMsgScripter.SPaleta', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SPaleta);
+  ARegistrar('inLibMsgScripter.SExpresiones', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SExpresiones);
+  ARegistrar('inLibMsgScripter.SBibliotecas', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SBibliotecas);
+  ARegistrar('inLibMsgScripter.SAlternarVista', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SAlternarVista);
+  ARegistrar('inLibMsgScripter.SEjecutar', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SEjecutar);
+  ARegistrar('inLibMsgScripter.SCompilar', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SCompilar);
+  ARegistrar('inLibMsgScripter.SPasoSinEntrar', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SPasoSinEntrar);
+  ARegistrar('inLibMsgScripter.SPasoEntrando', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SPasoEntrando);
+  ARegistrar('inLibMsgScripter.SHastaCursor', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SHastaCursor);
+  ARegistrar('inLibMsgScripter.SHastaSalir', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SHastaSalir);
+  ARegistrar('inLibMsgScripter.SPausar', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SPausar);
+  ARegistrar('inLibMsgScripter.SReiniciar', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SReiniciar);
+  ARegistrar('inLibMsgScripter.SAnadirExpresion', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SAnadirExpresion);
+  ARegistrar('inLibMsgScripter.SPuntoInterrupcion', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SPuntoInterrupcion);
+  ARegistrar('inLibMsgScripter.SUnidadPrincipal', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SUnidadPrincipal);
+  ARegistrar('inLibMsgScripter.SOpciones', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SOpciones);
+  ARegistrar('inLibMsgScripter.STituloOpciones', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.STituloOpciones);
+  ARegistrar('inLibMsgScripter.SColorDisenador', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SColorDisenador);
+  ARegistrar('inLibMsgScripter.SColorCuadricula', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SColorCuadricula);
+  ARegistrar('inLibMsgScripter.SMostrarCuadricula', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SMostrarCuadricula);
+  ARegistrar('inLibMsgScripter.SAjustarCuadricula', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SAjustarCuadricula);
+  ARegistrar('inLibMsgScripter.SPasoCuadricula', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SPasoCuadricula);
+  ARegistrar('inLibMsgScripter.STiradoresNormales', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.STiradoresNormales);
+  ARegistrar('inLibMsgScripter.STiradoresBloqueados', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.STiradoresBloqueados);
+  ARegistrar('inLibMsgScripter.SBordeTirador', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SBordeTirador);
+  ARegistrar('inLibMsgScripter.SRellenoTirador', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SRellenoTirador);
+  ARegistrar('inLibMsgScripter.STamanoTirador', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.STamanoTirador);
+  ARegistrar('inLibMsgScripter.SAyudaMovimiento', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SAyudaMovimiento);
+  ARegistrar('inLibMsgScripter.SAyudaComponente', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SAyudaComponente);
+  ARegistrar('inLibMsgScripter.SComponentesNoVisuales', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SComponentesNoVisuales);
+  ARegistrar('inLibMsgScripter.SAceptarOpciones', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SAceptarOpciones);
+  ARegistrar('inLibMsgScripter.SCancelarOpciones', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SCancelarOpciones);
+  ARegistrar('inLibMsgScripter.SCodigoPie', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SCodigoPie);
+  ARegistrar('inLibMsgScripter.SDisenoPie', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SDisenoPie);
+  ARegistrar('inLibMsgScripter.SExpresionPie', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SExpresionPie);
+  ARegistrar('inLibMsgScripter.SValorPie', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SValorPie);
+  ARegistrar('inLibMsgScripter.SDeshacerOperacion', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SDeshacerOperacion);
+  ARegistrar('inLibMsgScripter.SRehacerOperacion', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SRehacerOperacion);
+  ARegistrar('inLibMsgScripter.SCorte', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SCorte);
+  ARegistrar('inLibMsgScripter.SPegado', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SPegado);
+  ARegistrar('inLibMsgScripter.SAlineacion', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SAlineacion);
+  ARegistrar('inLibMsgScripter.STabulacion', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.STabulacion);
+  ARegistrar('inLibMsgScripter.SCambioTamano', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SCambioTamano);
+  ARegistrar('inLibMsgScripter.SInsercion', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SInsercion);
+  ARegistrar('inLibMsgScripter.SMovimiento', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SMovimiento);
+  ARegistrar('inLibMsgScripter.SMoverTamano', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SMoverTamano);
+  ARegistrar('inLibMsgScripter.SCambioPropiedad', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SCambioPropiedad);
+  ARegistrar('inLibMsgScripter.STituloDisenador', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.STituloDisenador);
+  ARegistrar('inLibMsgScripter.SLlamadasCliente', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SLlamadasCliente);
+  ARegistrar('inLibMsgScripter.STituloUnidad', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.STituloUnidad);
+  ARegistrar('inLibMsgScripter.SAbrirUnidad', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SAbrirUnidad);
+  ARegistrar('inLibMsgScripter.SNombre', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SNombre);
+  ARegistrar('inLibMsgScripter.SNombreInvalido', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SNombreInvalido);
+  ARegistrar('inLibMsgScripter.SPublicar', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SPublicar);
+  ARegistrar('inLibMsgScripter.SCopia', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SCopia);
+  ARegistrar('inLibMsgScripter.SSeleccioneCliente', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SSeleccioneCliente);
+  ARegistrar('inLibMsgScripter.SProyectoIlegible', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SProyectoIlegible);
+  ARegistrar('inLibMsgScripter.SAyudaSeguimiento', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SAyudaSeguimiento);
+  ARegistrar('inLibMsgScripter.SRevisarSeguimiento', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SRevisarSeguimiento);
+  ARegistrar('inLibMsgScripter.SRevisarFechaLlamada', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SRevisarFechaLlamada);
+  ARegistrar('inLibMsgScripter.SFaltaInicio', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SFaltaInicio);
+  ARegistrar('inLibMsgScripter.SFaltaArchivo', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SFaltaArchivo);
+  ARegistrar('inLibMsgScripter.SNombreProyecto', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SNombreProyecto);
   ARegistrar('inLibMsgCambioCodigoCliente.SCambioClienteTitulo',
     'src/Lib/inLibMsgCambioCodigoCliente.pas',
     @inLibMsgCambioCodigoCliente.SCambioClienteTitulo);

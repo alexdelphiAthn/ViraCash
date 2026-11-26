@@ -202,6 +202,8 @@ Type
     FOwnSourceFile   : Boolean;
     FKeyWords        : TDictionary<string, TSQLToken>;
     FExclude         : TStringList;
+    FCaptura         : TStringBuilder;
+    FColumnaCaptura  : Integer;
     function CommentDiv: TSQLToken;
     function DoIdentifier: TSQLToken;
     function DoMultiLineComment: TSQLToken;
@@ -228,6 +230,8 @@ Type
     destructor Destroy; override;
     procedure OpenFile(const AFilename: string);
     function FetchToken: TSQLToken;
+    procedure IniciarCaptura(ATexto: TStringBuilder);
+    procedure TerminarCaptura;
     function IsEndOfLine : Boolean;
     property Options : TSQLScannerOptions read FOptions write Setoptions;
     property SourceFile: TLineReader read FSourceFile;
@@ -322,8 +326,29 @@ begin
   raise ESQLScannerError.CreateFmt(Msg, Args);
 end;
 
+procedure TSQLScanner.IniciarCaptura(ATexto: TStringBuilder);
+begin
+  FCaptura := ATexto;
+  FColumnaCaptura := CurColumn;
+end;
+
+procedure TSQLScanner.TerminarCaptura;
+begin
+  if Assigned(FCaptura) then
+  begin
+    FCaptura.Append(Copy(FCurLine, FColumnaCaptura + 1,
+      CurColumn - FColumnaCaptura));
+    FCaptura := nil;
+  end;
+end;
+
 function TSQLScanner.FetchLine: Boolean;
 begin
+  if Assigned(FCaptura) then
+  begin
+    FCaptura.Append(Copy(FCurLine, FColumnaCaptura + 1, MaxInt));
+    FColumnaCaptura := 0;
+  end;
   if FSourceFile.IsEOF then
   begin
     FCurLine := '';

@@ -49,6 +49,7 @@ type
     class procedure Activar(
       const ANombre: string = NOMBRE_FUENTE_FASTREPORT);
     class procedure Desactivar;
+    class procedure AlMostrarDisenador(ASender: TObject);
     class procedure AplicarAFormulario(AFormulario: TCustomForm);
     // Públicas para poder probarlas sin abrir ventanas.
     class function EsSustituible(const ANombre: string): Boolean;
@@ -59,11 +60,20 @@ type
 implementation
 
 uses
-  System.SysUtils, frxBaseForm;
+  System.SysUtils, Winapi.Messages, Vcl.Graphics,
+  frxBaseForm, frxDesgn, frxSimpleMemo, inLibFuenteInterfaz;
 
 type
   // TControl declara Font y ParentFont en la sección protegida.
   TControlProtegido = class(TControl);
+  TEditorScriptProtegido = class(TfrxSyntaxMemo);
+
+  TGuiaCodigoFastReport = class(TGraphicControl)
+  private
+    procedure CMHitTest(var AMensaje: TMessage); message CM_HITTEST;
+  protected
+    procedure Paint; override;
+  end;
 
 const
   // Fuentes de texto corriente que trae la interfaz de FastReport.
@@ -74,6 +84,43 @@ const
     'Segoe UI',
     'MS Sans Serif',
     'Microsoft Sans Serif');
+
+procedure TGuiaCodigoFastReport.CMHitTest(var AMensaje: TMessage);
+begin
+  AMensaje.Result := 0;
+end;
+
+procedure TGuiaCodigoFastReport.Paint;
+var
+  Editor: TEditorScriptProtegido;
+  X: Integer;
+begin
+  Editor := TEditorScriptProtegido(Parent);
+  X := Editor.FGutterWidth +
+    (ColumnaGuiaCodigo - Editor.FOffset.X) * Editor.FCharWidth;
+  if (X >= Editor.FGutterWidth) and (X < Width) then
+  begin
+    Canvas.Pen.Color := clGray;
+    Canvas.MoveTo(X, 0);
+    Canvas.LineTo(X, Height);
+  end;
+end;
+
+class procedure TFuenteFastReport.AlMostrarDisenador(ASender: TObject);
+var
+  Editor: TfrxSyntaxMemo;
+  Guia: TGuiaCodigoFastReport;
+begin
+  Editor := (ASender as TfrxDesignerForm).CodeWindow;
+  AplicarFuenteCodigo(Editor.Font);
+  if Editor.FindComponent('GuiaColumnaCodigo') = nil then
+  begin
+    Guia := TGuiaCodigoFastReport.Create(Editor);
+    Guia.Name := 'GuiaColumnaCodigo';
+    Guia.Align := alClient;
+    Guia.Parent := Editor;
+  end;
+end;
 
 class function TFuenteFastReport.EsSustituible(
   const ANombre: string): Boolean;

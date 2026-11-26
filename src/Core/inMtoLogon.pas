@@ -58,7 +58,7 @@ type
     edtUser: TcxTextEdit;
     edtPass: TcxTextEdit;
     chkRememberPassword: TcxCheckBox;
-    chkRememberUser: TcxCheckBox;
+    chkRememberUser: TCheckBox;
     chkAuto: TcxCheckBox;
     pnlBBDD: TPanel;
     pnlLogin: TPanel;
@@ -96,10 +96,14 @@ type
     procedure btnSubirScriptClick(Sender: TObject);
     procedure btnCopiaSeguridadClick(Sender: TObject);
     procedure btnRecoverClick(Sender: TObject);
+    procedure OpcionEntradaCambiada(Sender: TObject);
     procedure GetIniValues;
     procedure EditorConexionMouseUp(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
   private
+    FRutaIni: string;
+    FCambioRecordarUsuario: Boolean;
+    FCambioArranqueAutomatico: Boolean;
     FRegistroLogArranque: IRegistroLog;
     FEditorUltimoClic: TObject;
     FClicsEditor: Integer;
@@ -200,7 +204,8 @@ type
     constructor Create(
       AOwner: TComponent;
       const AFabricaConexiones: IFabricaConexionesUniDAC;
-      const ARegistroLog: IRegistroLog = nil); reintroduce;
+      const ARegistroLog: IRegistroLog = nil;
+      const ARutaIni: string = ''); reintroduce;
     destructor Destroy; override;
     function EjecutarAutenticacionAutomatica: Boolean;
     function IsInitializeAuto:Boolean;
@@ -318,12 +323,16 @@ end;
 constructor TfrmLogon.Create(
   AOwner: TComponent;
   const AFabricaConexiones: IFabricaConexionesUniDAC;
-  const ARegistroLog: IRegistroLog);
+  const ARegistroLog: IRegistroLog;
+  const ARutaIni: string);
 begin
   if not Assigned(AFabricaConexiones) then
     raise EArgumentNilException.Create(
       SErrorFabricaConexionesNoAsignada);
   FFabricaConexiones := AFabricaConexiones;
+  FRutaIni := ARutaIni;
+  if FRutaIni = '' then
+    FRutaIni := RutaIniAplicacion(GetUserFolder);
   FRegistroLogArranque := ARegistroLog;
   inherited Create(AOwner);
 end;
@@ -668,8 +677,8 @@ begin
       RegistroLog.RegistrarError(MensajeErrorConexionServidor(E));
       ShowMessage_fza(MensajeErrorConexionServidor(E));
       chkAuto.Checked := False;
-      EscribirCadenaIni(
-        'UserInfo', 'AutoLogin', 'No', GetUserFolder);
+      EscribirCadenaEnIni(
+        FRutaIni, 'UserInfo', 'AutoLogin', 'No');
       if not pnlBBDD.Visible then
         btnConfClick(Self);
       if FConexionSinCredencial then
@@ -694,8 +703,8 @@ begin
     ShowMessage_fza(Format(SErrorEstructuraBBDD,
                        [CheckResult.FormattedMessage]));
     chkAuto.Checked := False;
-    EscribirCadenaIni(
-      'UserInfo', 'AutoLogin', 'No', GetUserFolder);
+    EscribirCadenaEnIni(
+      FRutaIni, 'UserInfo', 'AutoLogin', 'No');
     if not pnlBBDD.Visible then
       btnConfClick(Self);
     if FConexionLogon.Connected then
@@ -727,8 +736,8 @@ begin
       RegistroLog.RegistrarError(MensajeErrorConexionBBDD(E));
       ShowMessage_fza(MensajeErrorConexionBBDD(E));
       chkAuto.Checked := False;
-      EscribirCadenaIni(
-        'UserInfo', 'AutoLogin', 'No', GetUserFolder);
+      EscribirCadenaEnIni(
+        FRutaIni, 'UserInfo', 'AutoLogin', 'No');
       if not pnlBBDD.Visible then
         btnConfClick(Self);
       if FConexionSinCredencial then
@@ -753,7 +762,7 @@ var
   sContrasenaNueva: string;
   sRutaIni: string;
 begin
-  sRutaIni := RutaIniAplicacion(GetUserFolder);
+  sRutaIni := FRutaIni;
   bConmutadorMantenimiento := HayConmutadorNuevoEquipo;
   bPendienteInstalacion := HayNuevoEquipoPendienteEnIni(sRutaIni);
   if bPendienteInstalacion then
@@ -900,8 +909,8 @@ begin
         ShowMessage_fza(Format(SErrorEstructuraBBDD,
                            [CheckResult.FormattedMessage]));
         chkAuto.Checked := False;
-        EscribirCadenaIni(
-          'UserInfo', 'AutoLogin', 'No', GetUserFolder);
+        EscribirCadenaEnIni(
+          FRutaIni, 'UserInfo', 'AutoLogin', 'No');
         if not pnlBBDD.Visible then
           btnConfClick(Self);
         if FConexionLogon.Connected then
@@ -916,8 +925,8 @@ begin
       RegistroLog.RegistrarError(MensajeErrorConexionBBDD(E));
       ShowMessage_fza(MensajeErrorConexionBBDD(E));
       chkAuto.Checked := False;
-      EscribirCadenaIni(
-        'UserInfo', 'AutoLogin', 'No', GetUserFolder);
+      EscribirCadenaEnIni(
+        FRutaIni, 'UserInfo', 'AutoLogin', 'No');
       if not pnlBBDD.Visible then
         btnConfClick(Self);
       if FConexionSinCredencial then
@@ -1853,28 +1862,15 @@ var
   sErrorEliminarCredencial: string;
   sRutaIni: string;
 begin
-  sRutaIni := RutaIniAplicacion(GetUserFolder);
-  if chkRememberUser.Checked then
-  begin
-    EscribirCadenaIni(
-      'UserInfo', 'RememberUser', 'Yes', GetUserFolder);
-    EscribirCadenaIni(
-      'UserInfo', 'NomUser', edtUser.Text, GetUserFolder);
-  end
-  else
-  begin
-    EscribirCadenaIni(
-      'UserInfo', 'RememberUser', 'No', GetUserFolder);
-  end;
-
+  sRutaIni := FRutaIni;
   if chkRememberPassword.Checked then
   begin
     try
       GuardarContrasenaUsuarioRecordada(
         sRutaIni,
         edtPass.Text);
-      EscribirCadenaIni(
-        'UserInfo', 'RememberPassword', 'Yes', GetUserFolder);
+      EscribirCadenaEnIni(
+        FRutaIni, 'UserInfo', 'RememberPassword', 'Yes');
     except
       on E: Exception do
       begin
@@ -1899,8 +1895,8 @@ begin
         if bCredencialEliminada then
         begin
           chkRememberPassword.Checked := False;
-          EscribirCadenaIni(
-            'UserInfo', 'RememberPassword', 'No', GetUserFolder);
+          EscribirCadenaEnIni(
+            FRutaIni, 'UserInfo', 'RememberPassword', 'No');
           ShowMessage_fza(Format(
             SErrorGuardarContrasenaUsuario,
             [E.Message]));
@@ -1909,8 +1905,8 @@ begin
         begin
           { No se oculta una credencial que quizá siga en el fichero. }
           chkRememberPassword.Checked := True;
-          EscribirCadenaIni(
-            'UserInfo', 'RememberPassword', 'Yes', GetUserFolder);
+          EscribirCadenaEnIni(
+            FRutaIni, 'UserInfo', 'RememberPassword', 'Yes');
           ShowMessage_fza(Format(
             SErrorGuardarContrasenaUsuarioNoRetirada,
             [E.Message, sErrorEliminarCredencial]));
@@ -1932,8 +1928,8 @@ begin
           E.ClassName + ': ' + E.Message);
         chkRememberPassword.Checked := True;
         chkAuto.Checked := False;
-        EscribirCadenaIni(
-          'UserInfo', 'RememberPassword', 'Yes', GetUserFolder);
+        EscribirCadenaEnIni(
+          FRutaIni, 'UserInfo', 'RememberPassword', 'Yes');
         ShowMessage_fza(Format(
           SErrorEliminarContrasenaUsuario,
           [E.Message]));
@@ -1941,54 +1937,39 @@ begin
     end;
     if bCredencialEliminada then
     begin
-      EscribirCadenaIni(
-        'UserInfo', 'RememberPassword', 'No', GetUserFolder);
+      EscribirCadenaEnIni(
+        FRutaIni, 'UserInfo', 'RememberPassword', 'No');
     end;
   end;
 
-  if chkAuto.Checked then
-    EscribirCadenaIni(
-      'UserInfo', 'AutoLogin', 'Yes', GetUserFolder)
-  else
-    EscribirCadenaIni(
-      'UserInfo', 'AutoLogin', 'No', GetUserFolder);
+  GuardarOpcionesEntrada(sRutaIni, edtUser.Text, chkRememberUser.Checked,
+    chkAuto.Checked, FCambioRecordarUsuario, FCambioArranqueAutomatico);
+  FCambioRecordarUsuario := False;
+  FCambioArranqueAutomatico := False;
+end;
+
+procedure TfrmLogon.OpcionEntradaCambiada(Sender: TObject);
+begin
+  if Sender = chkRememberUser then
+    FCambioRecordarUsuario := True;
+  if Sender = chkAuto then
+    FCambioArranqueAutomatico := True;
 end;
 
 procedure TfrmLogon.GetIniValues;
 var
-  sRememberUser,
-  sAutoRun,
-  sRememberPassword,
+  oOpciones: TOpcionesEntrada;
   sRutaIni: string;
 begin
-  sRutaIni := RutaIniAplicacion(GetUserFolder);
-  sRememberUser := LeerCadenaIni('UserInfo',
-                                'RememberUser',
-                                'No',
-                                GetUserFolder);
-  sAutoRun := LeerCadenaIni('UserInfo',
-                          'AutoLogin',
-                          'No',
-                          GetUserFolder);
-  sRememberPassword := LeerCadenaIni('UserInfo',
-    'RememberPassword',
-    'No',
-    GetUserFolder);
-  if SameText(sAutoRun,'Yes') then
+  sRutaIni := FRutaIni;
+  oOpciones := LeerOpcionesEntrada(sRutaIni);
+  chkAuto.Checked := oOpciones.ArranqueAutomatico;
+  chkRememberUser.Checked := oOpciones.RecordarUsuario;
+  chkRememberPassword.Checked := oOpciones.RecordarContrasena;
+  edtUser.Text := oOpciones.Usuario;
+  edtPass.Text := '';
+  if chkRememberPassword.Checked then
   begin
-    chkAuto.Checked := True;
-  end;
-  if SameText(sRememberUser, 'Yes') then
-  begin
-    chkRememberUser.Checked := True;
-    edtUser.Text := LeerCadenaIni('UserInfo',
-                                'NomUser',
-                                'Administrador',
-                                GetUserFolder);
-  end;
-  if SameText(sRememberPassword, 'Yes') then
-  begin
-    chkRememberPassword.Checked := True;
     try
       edtPass.Text := CargarContrasenaUsuarioRecordada(sRutaIni);
       if edtPass.Text = '' then
@@ -2006,6 +1987,9 @@ begin
       end;
     end;
   end;
+  chkAuto.Properties.OnChange := OpcionEntradaCambiada;
+  FCambioRecordarUsuario := False;
+  FCambioArranqueAutomatico := False;
   RegistroLog.RegistrarInformacion('Leyendo archivo ini de usuario');
 end;
 

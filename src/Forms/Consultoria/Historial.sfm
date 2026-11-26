@@ -1,0 +1,66 @@
+object Historial: TScriptForm
+  Caption = 'Llamadas de clientes'
+  ClientWidth = 840
+  ClientHeight = 410
+  Position = poScreenCenter
+  SaveProps.Strings = (
+    'Visible=False'
+    'Position=poScreenCenter')
+  SaveEvents.Strings = (
+    'Self.OnShow=AlMostrar'
+    'btnNueva.OnClick=Nueva'
+    'btnEditar.OnClick=Editar'
+    'btnBorrar.OnClick=Borrar'
+    'btnActualizar.OnClick=Actualizar'
+    'btnImprimir.OnClick=Imprimir')
+  object pnlAcciones: TPanel
+    Left = 0
+    Top = 0
+    Width = 840
+    Height = 42
+    Align = alTop
+    BevelOuter = bvNone
+      object btnNueva: TcxButton
+    Left = 8
+    Top = 6
+    Width = 98
+    Height = 30
+    Caption = 'Nueva'
+  end
+      object btnEditar: TcxButton
+    Left = 114
+    Top = 6
+    Width = 98
+    Height = 30
+    Caption = 'Editar'
+  end
+      object btnBorrar: TcxButton
+    Left = 220
+    Top = 6
+    Width = 98
+    Height = 30
+    Caption = 'Borrar'
+  end
+      object btnActualizar: TcxButton
+    Left = 326
+    Top = 6
+    Width = 98
+    Height = 30
+    Caption = 'Actualizar'
+  end
+      object btnImprimir: TcxButton
+    Left = 432
+    Top = 6
+    Width = 98
+    Height = 30
+    Caption = 'Imprimir'
+  end
+  end
+  object grdLlamadas: TcxGrid
+    Left = 0
+    Top = 42
+    Width = 840
+    Height = 368
+    Align = alClient
+  end
+end

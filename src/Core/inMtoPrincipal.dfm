@@ -449,6 +449,10 @@
         ShortCut = 16460
         OnClick = MenuGenericoClick
       end
+      object mnuLlamadasCliente: TMenuItem
+        Caption = 'Llamadas de clientes'
+        OnClick = mnuLlamadasClick
+      end
       object mnuClientes: TMenuItem
         Caption = 'Clientes'
         ShortCut = 16459
@@ -911,6 +915,10 @@
         Caption = 'Sesiones de cambio de tarifa'
         ShortCut = 24659
         OnClick = MenuGenericoClick
+      end
+      object mnuDisenadorLlamadas: TMenuItem
+        Caption = 'Dise'#241'ador de llamadas'
+        OnClick = mnuLlamadasClick
       end
       object mnuGeneradorProcesos: TMenuItem
         Caption = 'Generador de Procesos'

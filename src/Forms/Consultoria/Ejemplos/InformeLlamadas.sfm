@@ -1,0 +1,43 @@
+object InformeLlamadas: TScriptForm
+  Caption = 'Informe de llamadas'
+  ClientWidth = 875
+  ClientHeight = 380
+  Position = poScreenCenter
+  SaveProps.Strings = (
+    'Visible=False'
+    'Position=poScreenCenter')
+  SaveEvents.Strings = (
+    'Self.OnShow=MostrarInformeLlamadas'
+    'btnImprimir.OnClick=ImprimirInformeLlamadas')
+  object pnlBotones: TPanel
+    Left = 0
+    Top = 0
+    Width = 875
+    Height = 48
+    Align = alTop
+    BevelOuter = bvNone
+    object btnImprimir: TcxButton
+      Left = 10
+      Top = 8
+      Width = 130
+      Height = 32
+      Caption = 'Imprimir'
+    end
+    object btnCerrar: TcxButton
+      Left = 150
+      Top = 8
+      Width = 110
+      Height = 32
+      Caption = 'Cerrar'
+      Cancel = True
+      ModalResult = 2
+    end
+  end
+  object grdInforme: TcxGrid
+    Left = 0
+    Top = 48
+    Width = 875
+    Height = 332
+    Align = alClient
+  end
+end

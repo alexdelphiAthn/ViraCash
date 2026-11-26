@@ -28,6 +28,8 @@ interface
 uses
   Winapi.Windows;
 
+function ActivarSesionConPerfil(const AMarca: string): Boolean;
+function MarcaSesionViraCash(const AEjecutable, ACarpeta: string): string;
 /// Asigna a la ventana un identificador de aplicación propio (botón
 /// separado en la barra de tareas). Llamar tras crear el manejador.
 procedure AsignarGrupoBarraTareas(AVentana: HWND; const AIdentificador: string);
@@ -47,9 +49,36 @@ function IconoDesdeRecursoPng(const ANombre: string): HICON;
 implementation
 
 uses
-  System.SysUtils, System.Classes, Winapi.Messages, Winapi.ActiveX,
+  System.SysUtils, System.Hash, System.Classes, Winapi.Messages, Winapi.ActiveX,
   Winapi.ShellAPI, Winapi.PropSys, Winapi.PropKey, Winapi.GDIPAPI,
   Winapi.GDIPOBJ, Vcl.AxCtrls;
+
+function MarcaSesionViraCash(const AEjecutable, ACarpeta: string): string;
+begin
+  Result := 'ViraCash.Sesion.' + THashSHA2.GetHashString(
+    UpperCase(ExpandFileName(AEjecutable) + '|' + ExpandFileName(ACarpeta)));
+end;
+
+function ActivarSesionConPerfil(const AMarca: string): Boolean;
+var
+  hPrincipal: HWND;
+  hActiva: HWND;
+begin
+  // Solo ventanas principales de este escritorio, instalación y usuario.
+  hPrincipal := FindWindowEx(0, 0, 'TfrmMtoPrincipal', nil);
+  while (hPrincipal <> 0) and (GetProp(hPrincipal, PChar(AMarca)) = 0) do
+    hPrincipal := FindWindowEx(0, hPrincipal, 'TfrmMtoPrincipal', nil);
+  Result := hPrincipal <> 0;
+  if Result then
+  begin
+    if IsIconic(hPrincipal) then
+      ShowWindowAsync(hPrincipal, SW_RESTORE);
+    hActiva := GetLastActivePopup(hPrincipal);
+    if not IsWindowVisible(hActiva) then
+      hActiva := hPrincipal;
+    SetForegroundWindow(hActiva);
+  end;
+end;
 
 function EscribirIdentificador(AVentana: HWND; const AIdentificador: string;
   AQuitar: Boolean): Boolean;

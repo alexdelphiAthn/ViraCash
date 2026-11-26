@@ -1,0 +1,6 @@
+[Files]
+File1=Inicio.psc
+File2=Ficha.psc
+File3=Historial.psc
+FileCount=3
+MainUnit=Inicio
