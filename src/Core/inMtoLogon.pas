@@ -176,7 +176,7 @@ type
     procedure BackupFinalizar(AResultado: TResultadoCopiaSeguridad;
                               const AError: string;
                               ALogBuffer: TStringList);
-    procedure ConfigurarDialogoCopiaProtegida;
+    procedure ConfigurarDialogoCopiaProtegida(const ACarpeta: string = '');
     procedure RestoreFinalizar(AResultado: TResultadoCopiaSeguridad;
                                const AError: string;
                                ALogBuffer: TStringList);
@@ -1561,12 +1561,16 @@ begin
   FWorkerOperacion := AWorker;
 end;
 
-procedure TfrmLogon.ConfigurarDialogoCopiaProtegida;
+procedure TfrmLogon.ConfigurarDialogoCopiaProtegida(
+  const ACarpeta: string);
 var
   oTipoFichero: TFileTypeItem;
 begin
   saveDialog.Title := STituloGuardarCopiaSeguridad;
-  saveDialog.DefaultFolder := GetCurrentDir;
+  if DirectoryExists(ACarpeta) then
+    saveDialog.DefaultFolder := ExpandFileName(ACarpeta)
+  else
+    saveDialog.DefaultFolder := GetCurrentDir;
   saveDialog.DefaultExtension := 'crypt';
   saveDialog.Options := saveDialog.Options +
     [fdoStrictFileTypes];
@@ -2050,7 +2054,8 @@ begin
   ARutaCopia := '';
   oRepositorio := TRepositorioCopiasSeguridadUniDAC.Create(
     ContextoSesion, ConexionPrincipal);
-  ConfigurarDialogoCopiaProtegida;
+  ConfigurarDialogoCopiaProtegida(
+    Trim(ParametrosApp.GetPath('appDirCopiasSeguridad')));
   saveDialog.Options := saveDialog.Options + [fdoOverwritePrompt];
   saveDialog.FileName := IncluirClaveCifradaEnRutaCopia(
     'viracash_antes_actualizacion_' +
