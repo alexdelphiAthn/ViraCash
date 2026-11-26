@@ -13,7 +13,6 @@ type
     FRepo: TRepositorioPaginas;
     FPagina: TPaginaExtension;
     FFormularioFicha: TCustomForm;
-    FRejilla: TcxGrid;
     FEnFicha: Boolean;
     FClave: Variant;
     FDatos: TUniQuery;
@@ -45,7 +44,7 @@ implementation
 
 uses
   System.Variants, System.Rtti, System.TypInfo, System.UITypes, Vcl.Dialogs,
-  dxPSCore, dxPScxGridLnk, dxPrintUtils, cxGridLevel, cxLabel, cxDBEdit, cxTextEdit, cxCalendar, cxMemo,
+  inMtoModalImpConsultoria, cxGridLevel, cxLabel, cxDBEdit, cxTextEdit, cxCalendar, cxMemo,
   cxDBLookupComboBox, cxDropDownEdit,
   inMtoFrmBase, inLibMensajesVcl, Vcl.ScripterInit, atScript, atPascal, inMtoProyectoConsultoria;
 
@@ -172,7 +171,6 @@ begin
     Boton(Barra,'Actualizar',238,Result.Recargar);
     Boton(Barra,'Imprimir',354,Result.Imprimir);
     Grid := TcxGrid.Create(Result);
-    Result.FRejilla := Grid;
     Grid.Parent := Result;
     Grid.Align := alClient;
     Result.FVista := Grid.CreateView(TcxGridDBTableView) as TcxGridDBTableView;
@@ -274,22 +272,12 @@ begin
 end;
 
 procedure TPanelPagina.Imprimir(Sender: TObject);
-var
-  Impresora: TdxComponentPrinter;
-  Informe: TdxGridReportLink;
 begin
-  Impresora := TdxComponentPrinter.Create(nil);
-  try
-    Informe := Impresora.AddLink(FRejilla) as TdxGridReportLink;
-    Informe.OptionsSize.AutoWidth := True;
-    Informe.OptionsOnEveryPage.Headers := True;
-    Informe.OptionsView.Caption := False;
-    Informe.OptionsView.FilterBar := FVista.DataController.Filter.Active
-      and not FVista.DataController.Filter.IsEmpty;
-    Impresora.Preview(True,Informe);
-  finally
-    Impresora.Free;
-  end;
+  if SameText(FPagina.Clase, 'Listado') then
+    TfrmPrintConsultoria.Abrir(FVista, FPagina.Nombre, FPagina.Id,
+      FRepo.PuedeDisenar)
+  else
+    ImprimirRejillaDX(FVista);
 end;
 
 procedure TPanelPagina.Guardar(Sender: TObject);
@@ -430,10 +418,24 @@ begin
   end;
 end;
 
+type
+  TfrmVentanaPagina = class(TfrmBase)
+  protected
+    procedure DoShow; override;
+  end;
+
+procedure TfrmVentanaPagina.DoShow;
+begin
+  inherited;
+  // El OnShow del formulario TMS puede crear controles mientras su ventana
+  // padre aún está oculta. Ahora la VCL puede mostrarlos con ella.
+  UpdateControlState;
+end;
+
 procedure AbrirPaginaMenu(AOwner: TComponent; Repo: TRepositorioPaginas;
   const P: TPaginaExtension);
 var
-  Ventana: TfrmBase;
+  Ventana: TfrmVentanaPagina;
   Entradas, Valores: TStringList;
   Campo, Valor: string;
   Aceptado: Boolean;
@@ -456,7 +458,7 @@ begin
     end;
     if Aceptado then
     begin
-      Ventana := TfrmBase.Create(AOwner);
+      Ventana := TfrmVentanaPagina.Create(AOwner);
       try
         Ventana.Caption := P.Nombre;
         Ventana.Position := poOwnerFormCenter;

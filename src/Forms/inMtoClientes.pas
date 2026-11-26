@@ -495,6 +495,9 @@ uses
 
 {$R *.dfm}
 
+const
+  CampoClaveCliente = 'CODIGO_CLI_CLI';
+
 procedure ForceReferenceToClass(C: TClass); begin end;
 
 procedure TfrmMtoClientes.DesplazarFichaMouseWheel(Sender: TObject;
@@ -756,7 +759,7 @@ begin
   cbbPaises.Properties.ListSource := FDmmClientes.dsPaises;
   ConfigurarComboPaisNumerico(cbbPaises);
   pcPestanas.ActivePage := tsDomicilioFiscal;
-  Self.pkFieldName := 'CODIGO_CLI_CLI';
+  Self.pkFieldName := CampoClaveCliente;
   // Carga perezosa de sub-pestañas detail (default = tsDomicilioFiscal,// que
   // no usa query detail). Historia/Depositos se abren solo cuando
   // el usuario activa su pestaña.
@@ -978,6 +981,6 @@ begin
 end;
 
 initialization
-  RegistrarPantalla(TfrmMtoClientes);
+  RegistrarPantalla(TfrmMtoClientes, 'Clientes', CampoClaveCliente);
   ForceReferenceToClass(TfrmMtoClientes);
 end.

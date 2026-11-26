@@ -8,6 +8,8 @@ uses
   inLibPermisosIntf;
 
 type
+  EValidacionPagina = class(EArgumentException);
+
   TReferenciaPagina = record
     Campo, Etiqueta, Origen, Clave, Texto, Filtro, Valor: string;
   end;
@@ -425,27 +427,29 @@ var
   S: string;
 begin
   if (Trim(P.Nombre) = '') or (Length(P.Nombre) > LongitudNombreConsultoria) then
-    raise EArgumentException.Create('Indique un nombre de hasta 53 caracteres.');
+    raise EValidacionPagina.Create('Indique un nombre de hasta 53 caracteres.');
   if not P.SoloOrigen and not P.Menu and (P.Mantenimiento = '') then
-    raise EArgumentException.Create('Elija un destino para la publicación.');
+    raise EValidacionPagina.Create('Elija un destino para la publicación.');
   if (P.Clase = 'Funcionalidad') and (P.Origen = '') and P.Menu then
     Exit;
+  if Trim(P.Origen) = '' then
+    raise EValidacionPagina.Create('Elija el origen en Proyecto > Datos y publicación > Lista y ficha.');
   if (P.Tipo <> Tabla) and (P.Tipo <> Vista) and (P.Tipo <> Procedimiento) then
-    raise EArgumentException.Create('Tipo de origen desconocido.');
+    raise EValidacionPagina.Create('Tipo de origen desconocido.');
   Disponibles := TStringList.Create;
   Elegidos := TStringList.Create;
   try
     Origenes(P.Tipo, Disponibles, P.Origen);
     if Disponibles.IndexOf(P.Origen) < 0 then
-      raise EArgumentException.Create('El origen ya no está disponible.');
+      raise EValidacionPagina.CreateFmt('El origen «%s» ya no está disponible. Revíselo en Datos y publicación.', [P.Origen]);
     Columnas(P.Tipo, P.Origen, Disponibles);
     if (P.Mantenimiento <> '') and ((P.Maestro = '') or
       (Disponibles.IndexOf(P.Detalle) < 0)) then
-      raise EArgumentException.Create('Seleccione el campo de enlace.');
+      raise EValidacionPagina.Create('Seleccione el campo de enlace.');
     if P.Tipo = Procedimiento then
     begin
       if (P.Mantenimiento <> '') and (Disponibles.Count <> 1) then
-        raise EArgumentException.Create('La pestaña requiere una sola entrada ' +
+        raise EValidacionPagina.Create('La pestaña requiere una sola entrada ' +
           'IN vinculada al registro principal.');
     end
     else
@@ -454,13 +458,13 @@ begin
       if (P.Referencia.Campo <> '') and ((P.Tipo <> Tabla) or
         (Elegidos.IndexOf(P.Referencia.Campo) < 0) or
         SameText(P.Detalle,P.Referencia.Campo)) then
-        raise EArgumentException.Create('Marque el campo de la lista de selección ' +
+        raise EValidacionPagina.Create('Marque el campo de la lista de selección ' +
           'y elija un campo de enlace distinto.');
       if (Elegidos.Count = 0) and not P.SoloOrigen then
-        raise EArgumentException.Create('Marque los campos de la lista y ficha.');
+        raise EValidacionPagina.Create('Marque los campos de la lista y ficha.');
       for S in Elegidos do
         if Disponibles.IndexOf(S) < 0 then
-          raise EArgumentException.CreateFmt('Campo no disponible: %s.', [S]);
+          raise EValidacionPagina.CreateFmt('Campo no disponible: %s.', [S]);
     end;
     if P.Referencia.Campo <> '' then
     begin
@@ -469,7 +473,7 @@ begin
          (Disponibles.IndexOf(P.Referencia.Texto) < 0) or
          ((P.Referencia.Filtro <> '') and
          (Disponibles.IndexOf(P.Referencia.Filtro) < 0)) then
-        raise EArgumentException.Create('Revise el origen y los campos de la lista de selección.');
+        raise EValidacionPagina.Create('Revise el origen y los campos de la lista de selección.');
     end;
   finally
     Elegidos.Free;

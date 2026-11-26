@@ -492,6 +492,7 @@ $(PreBuildEvent)]]></PreBuildEvent>
         <DCCReference Include="src\Forms\inMtoVistaLlamadas.pas"/>
         <DCCReference Include="src\DataModules\UniDataPaginasExtension.pas"/>
         <DCCReference Include="src\Forms\inMtoPaginaExtension.pas"/>
+        <DCCReference Include="src\Modals\inMtoModalImpConsultoria.pas"/>
         <DCCReference Include="src\Forms\inMtoDisenadorPaginas.pas"/>
         <DCCReference Include="src\Forms\inMtoProyectoConsultoria.pas"/>
         <DCCReference Include="src\DataModules\UniDataLlamadasCliente.pas"/>

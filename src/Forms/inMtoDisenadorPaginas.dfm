@@ -17,6 +17,7 @@
     Width = 380
     Height = 26
     Properties.MaxLength = 53
+    Properties.OnChange = CambiarNombrePagina
   end
   object lblGrupo: TcxLabel
     Left = 420
@@ -29,6 +30,7 @@
     Width = 340
     Height = 26
     Properties.MaxLength = 53
+    Properties.OnChange = CambiarNombreProyecto
   end
   object pcEditor: TcxPageControl
     Left = 16

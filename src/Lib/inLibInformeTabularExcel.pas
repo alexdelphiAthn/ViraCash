@@ -55,7 +55,21 @@ begin
   begin
     // Mantener las fechas nativas como numeros Excel con formato de fecha,
     // con independencia del nombre o del idioma del campo.
-    if ACampo.DataType in [ftDate, ftDateTime, ftTimeStamp] then
+    if ADefinicion.FormatoExcel <> '' then
+    begin
+      case ACampo.DataType of
+        ftDate, ftTime, ftDateTime, ftTimeStamp:
+          AServicios.Escritor.Escribir(AFila, AColumna,
+            VarFromDateTime(ACampo.AsDateTime));
+        ftBoolean:
+          AServicios.Escritor.Escribir(AFila, AColumna, ACampo.AsBoolean);
+      else
+        AServicios.Escritor.Escribir(AFila, AColumna, ACampo.AsString);
+      end;
+      AServicios.Formateador.AplicarFormato(AFila, AColumna,
+        ADefinicion.FormatoExcel);
+    end
+    else if ACampo.DataType in [ftDate, ftDateTime, ftTimeStamp] then
     begin
       AServicios.Escritor.Escribir(AFila, AColumna,
         VarFromDateTime(ACampo.AsDateTime));

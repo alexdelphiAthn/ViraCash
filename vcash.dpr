@@ -385,6 +385,7 @@ uses
   inMtoVistaLlamadas in 'src\Forms\inMtoVistaLlamadas.pas',
   UniDataPaginasExtension in 'src\DataModules\UniDataPaginasExtension.pas',
   inMtoPaginaExtension in 'src\Forms\inMtoPaginaExtension.pas',
+  inMtoModalImpConsultoria in 'src\Modals\inMtoModalImpConsultoria.pas',
   inMtoDisenadorPaginas in 'src\Forms\inMtoDisenadorPaginas.pas',
   inMtoProyectoConsultoria in 'src\Forms\inMtoProyectoConsultoria.pas',
   UniDataLlamadasCliente in 'src\DataModules\UniDataLlamadasCliente.pas',

@@ -1,4 +1,4 @@
-﻿{ IDE de páginas de datos y publicación en los mantenimientos abiertos. }
+﻿{ IDE de páginas de datos y publicación en los mantenimientos. }
 unit inMtoDisenadorPaginas;
 
 interface
@@ -19,6 +19,8 @@ type
     pcEditor: TcxPageControl;
     tsDatos, tsPublicar: TcxTabSheet;
     btnPublicar, btnCerrar, btnMarcarTodo, btnDesmarcarTodo: TcxButton;
+    procedure CambiarNombrePagina(Sender: TObject);
+    procedure CambiarNombreProyecto(Sender: TObject);
     procedure MarcarCampos(Sender: TObject);
     procedure ElegirPagina(Sender: TObject);
     procedure ElegirTipo(Sender: TObject);
@@ -30,6 +32,7 @@ type
     FPagina: TPaginaExtension;
     FAnfitriones, FClaves: TStringList;
     FCargando: Boolean;
+    FSugerirNombreProyecto: Boolean;
     FVersion: Integer;
     procedure Preparar;
     procedure CargarOrigenes;
@@ -46,7 +49,8 @@ procedure ActualizarPestanasExtension(AFormulario: TfrmBase);
 implementation
 
 uses
-  System.SysUtils, System.JSON, Vcl.Forms, inMtoGen, inMtoPaginaExtension, inMtoProyectoConsultoria;
+  System.SysUtils, System.JSON, Vcl.Forms, inMtoGen, inMtoPaginaExtension, inMtoProyectoConsultoria,
+  inLibRegistroPantallas;
 
 {$R *.dfm}
 
@@ -91,6 +95,7 @@ procedure TfrmDisenadorPaginas.Preparar;
 var
   Archivo: TJSONValue;
   Par: TJSONPair;
+  Destino: TDestinoPestana;
   Nombre: string;
   M: TfrmMtoGen;
   i: Integer;
@@ -98,6 +103,8 @@ begin
   FCargando := True;
   try
     AnadirDestino('(Sin pestaña)','','');
+    for Destino in DestinosPestana do
+      AnadirDestino(Destino.Titulo, Destino.Clase.ClassName, Destino.CampoClave);
     for i := 0 to Screen.FormCount-1 do
       if Screen.Forms[i] is TfrmMtoGen then
       begin
@@ -149,7 +156,11 @@ begin
         P.Tipo := Tabla;
       FVersion := P.Version;
       edtNombre.Text := P.Nombre;
-      edtGrupo.Text := P.Grupo;
+      FSugerirNombreProyecto := (P.Version = 0) and (Trim(P.Grupo) = '');
+      if FSugerirNombreProyecto then
+        edtGrupo.Text := P.Nombre
+      else
+        edtGrupo.Text := P.Grupo;
       edtGrupo.Properties.ReadOnly := (P.Version > 0) and (P.Grupo <> '');
       cmbClase.ItemIndex := cmbClase.Properties.Items.IndexOf(P.Clase);
       cmbEntrada.ItemIndex := cmbEntrada.Properties.Items.IndexOf(P.Entrada);
@@ -178,6 +189,25 @@ begin
       FCargando := False;
     end;
   end;
+end;
+
+procedure TfrmDisenadorPaginas.CambiarNombrePagina(Sender: TObject);
+begin
+  if FSugerirNombreProyecto and not FCargando then
+  begin
+    FCargando := True;
+    try
+      edtGrupo.Text := edtNombre.Text;
+    finally
+      FCargando := False;
+    end;
+  end;
+end;
+
+procedure TfrmDisenadorPaginas.CambiarNombreProyecto(Sender: TObject);
+begin
+  if not FCargando then
+    FSugerirNombreProyecto := False;
 end;
 
 procedure TfrmDisenadorPaginas.CargarOrigenes;

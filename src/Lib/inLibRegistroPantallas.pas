@@ -22,6 +22,12 @@ uses
   System.SysUtils, System.Classes, System.Generics.Collections, Vcl.Forms;
 
 type
+  TDestinoPestana = record
+    Clase: TFormClass;
+    Titulo: string;
+    CampoClave: string;
+  end;
+
   EFabricaPantallaNoRegistrada = class(Exception);
   TFabricaPantalla = reference to function(
     AOwner: TComponent): TForm;
@@ -29,7 +35,11 @@ type
 // Registra una clase de formulario por su QualifiedClassName
 // ('inMtoClientes.TfrmMtoClientes'). El identificador lo comprueba el
 // compilador: aquí no hay cadenas que puedan divergir del código.
-procedure RegistrarPantalla(AClase: TFormClass);
+procedure RegistrarPantalla(AClase: TFormClass); overload;
+
+// Registra también el destino que el IDE puede ofrecer con la pantalla cerrada.
+procedure RegistrarPantalla(AClase: TFormClass; const ATitulo, ACampoClave: string); overload;
+function DestinosPestana: TArray<TDestinoPestana>;
 
 // Registra una clase de data module por su QualifiedClassName
 // ('UniDataClientes.TdmClientes').
@@ -64,6 +74,7 @@ function ClaseDataModule(const ANombre: string): TComponentClass;
 implementation
 
 var
+  oDestinosPestana: TDictionary<TFormClass, TDestinoPestana>;
   oPantallas: TDictionary<string, TFormClass>;
   oDataModules: TDictionary<string, TComponentClass>;
   oFabricasPantallas: TDictionary<TFormClass, TFabricaPantalla>;
@@ -79,6 +90,22 @@ resourcestring
 procedure RegistrarPantalla(AClase: TFormClass);
 begin
   oPantallas.AddOrSetValue(UpperCase(AClase.QualifiedClassName), AClase);
+end;
+
+procedure RegistrarPantalla(AClase: TFormClass; const ATitulo, ACampoClave: string);
+var
+  Destino: TDestinoPestana;
+begin
+  RegistrarPantalla(AClase);
+  Destino.Clase := AClase;
+  Destino.Titulo := ATitulo;
+  Destino.CampoClave := ACampoClave;
+  oDestinosPestana.AddOrSetValue(AClase, Destino);
+end;
+
+function DestinosPestana: TArray<TDestinoPestana>;
+begin
+  Result := oDestinosPestana.Values.ToArray;
 end;
 
 procedure RegistrarDataModule(AClase: TComponentClass);
@@ -155,12 +182,14 @@ begin
 end;
 
 initialization
+  oDestinosPestana := TDictionary<TFormClass, TDestinoPestana>.Create;
   oPantallas := TDictionary<string, TFormClass>.Create;
   oDataModules := TDictionary<string, TComponentClass>.Create;
   oFabricasPantallas :=
     TDictionary<TFormClass, TFabricaPantalla>.Create;
 
 finalization
+  FreeAndNil(oDestinosPestana);
   FreeAndNil(oFabricasPantallas);
   FreeAndNil(oPantallas);
   FreeAndNil(oDataModules);

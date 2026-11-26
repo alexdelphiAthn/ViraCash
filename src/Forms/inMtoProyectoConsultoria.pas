@@ -57,6 +57,7 @@ type
     function EstadoEdicion: string;
     procedure CrearMenu(Sender: TObject);
     procedure ActualizarTitulo;
+    function ConfigurarElemento: Boolean;
     procedure Datos(Sender: TObject);
     procedure Guardar(Sender: TObject);
     procedure CambiarEstado(Sender: TObject);
@@ -296,17 +297,25 @@ begin
   end;
 end;
 
-procedure TConsultoriaTMS.Datos(Sender: TObject);
+function TConsultoriaTMS.ConfigurarElemento: Boolean;
 begin
-  RecogerCodigo;
-  if TfrmDisenadorPaginas.Ejecutar(Self,FRepo,FPagina) then
+  Result := TfrmDisenadorPaginas.Ejecutar(Self,FRepo,FPagina);
+  if Result then
   begin
+    if Length(FElementos) = 0 then
+      FElementos := [FPagina];
     if FVersionProyecto > 0 then
       FPagina.Grupo := FGrupo;
     FGrupo := FPagina.Grupo;
     ActivarEntrada(FProyecto,FPagina);
     ActualizarTitulo;
   end;
+end;
+
+procedure TConsultoriaTMS.Datos(Sender: TObject);
+begin
+  RecogerCodigo;
+  ConfigurarElemento;
 end;
 
 procedure TConsultoriaTMS.RecogerCodigo;
@@ -363,6 +372,9 @@ var
   Copia: TArray<TPaginaExtension>;
   Nombres: TStringList;
 begin
+  if Length(FElementos) = 0 then
+    if not ConfigurarElemento then
+      Abort;
   CompletarNombre(FGrupo,'Nombre del proyecto',nil);
   Copia := Copy(FElementos);
   Copia[FIndice] := FPagina;
@@ -401,6 +413,11 @@ var
   P: TPaginaExtension;
 begin
   RecogerCodigo;
+  if Length(FElementos) = 0 then
+  begin
+    ConfigurarElemento;
+    Exit;
+  end;
   P := Default(TPaginaExtension);
   P.Grupo := FGrupo;
   P.Tipo := Tabla;
@@ -428,6 +445,11 @@ var
   Boton: TcxButton;
   P: TPaginaExtension;
 begin
+  if Length(FElementos) = 0 then
+  begin
+    ShowMessage_fza('El proyecto todavía no tiene elementos. Use Proyecto > Añadir elemento.');
+    Exit;
+  end;
   FElementos[FIndice] := FPagina;
   F := TfrmBase.Create(Self);
   try
@@ -455,6 +477,7 @@ begin
     begin
       FIndice := Combo.ItemIndex;
       FPagina := FElementos[FIndice];
+      FPagina.Grupo := FGrupo;
       FPagina.Proyecto := FProyecto.Archivos.ToJSON;
       ActivarEntrada(FProyecto,FPagina);
       FProyecto.IDE.ActiveFile := FProyecto.IDE.MainUnit;
@@ -528,7 +551,16 @@ begin
   for i := 0 to High(Seleccion) do
   begin
     if Activar then
-      ValidarProyecto(Seleccion[i]);
+      try
+        ValidarProyecto(Seleccion[i]);
+      except
+        on E: EValidacionPagina do
+        begin
+          MessageDlg_fza(Format('Revise el elemento «%s».',[Seleccion[i].Nombre]) +
+            sLineBreak + E.Message, mtInformation, [mbOK], 0);
+          Exit;
+        end;
+      end;
     Texto := Texto + sLineBreak + Seleccion[i].Nombre;
   end;
   if MessageDlg_fza('¿' + Accion + ' los siguientes elementos?' + Texto,
@@ -652,7 +684,6 @@ begin
         P.Selectores := 'Selectores';
         P.Menu := True;
         P.Proyecto := Plantilla(Lista.ItemIndex = 1);
-        Elementos := [P];
         if Lista.ItemIndex = 1 then
         begin
           P.Nombre := 'Pantalla de ejemplo';

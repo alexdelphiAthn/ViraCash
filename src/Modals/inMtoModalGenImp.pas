@@ -89,6 +89,7 @@ type
     // directo a fza_usuarios_perfiles con sElegido y FScopePerfilFijado.
     FFormatoFijado: Boolean;
     FUsarFormatoOriginal: Boolean;
+    FMostrarDisenosGuardados: Boolean;
     FScopePerfilFijado: string;
     FServiciosPersistencia: TServiciosPersistenciaImpresion;
     FRestauracionesGuias: TInterfaceList;
@@ -190,6 +191,8 @@ type
       const ASerie, ANumero, ANombreDocumento, AEmail: string;
       const ADatos: TDatosCorreoDocumento;
       const ANombreAdjunto: string = '');
+    property MostrarDisenosGuardados: Boolean read FMostrarDisenosGuardados
+      write FMostrarDisenosGuardados;
     procedure PrepararSelectorFormato(
       ASelector: TfrmMtoModalGenImpEle;
       const AFormatoPredeterminado: string); virtual;
@@ -1757,6 +1760,13 @@ begin
   CargarFormatos(ASelector);
   // Al volver a elegir se confirma de nuevo si debe recordarse.
   ASelector.chkPredeterminado.Checked := False;
+  if MostrarDisenosGuardados then
+  begin
+    ASelector.chkPredeterminado.Visible := False;
+    ASelector.btnDeleteFormato.Visible := btnEditar.Visible;
+    if SameText(AFormatoPredeterminado, 'Predeterminado') then
+      ASelector.ActiveControl := ASelector.btnUsarOriginal;
+  end;
   if AFormatoPredeterminado <> '' then
   begin
     if AFormatoPredeterminado <> 'Predeterminado' then
@@ -1813,7 +1823,13 @@ procedure TfrmPrint.ActualizarFormatoPredeterminado(
 begin
   if (ASelector.sFicha = 'S') or (ASelector.sFicha = 'O') then
   begin
-    if ASelector.bPredeterminado then
+    if MostrarDisenosGuardados then
+    begin
+      if Assigned(PerfilesEscritura) and (ASelector.lstFormatos.Count > 0)
+        and (sElegido <> AFormatoAnterior) then
+        GuardarFormatoPredeterminado(sElegido);
+    end
+    else if ASelector.bPredeterminado then
     begin
       if sElegido <> AFormatoAnterior then
         GuardarFormatoPredeterminado(sElegido);
@@ -1915,10 +1931,13 @@ begin
   begin
     sElegido := '';
     sFichaAccion := '';
-    sFormatoGuardado := PerfilesLectura.ObtenerValorPerfil(
-      Self.Name + '_formato_seleccionado', IdentidadSesion.Usuario, '');
+    sFormatoGuardado := '';
+    if Assigned(PerfilesLectura) then
+      sFormatoGuardado := PerfilesLectura.ObtenerValorPerfil(
+        Self.Name + '_formato_seleccionado', IdentidadSesion.Usuario, '');
     bSeleccionAutomatica := False;
-    if (not bForzarSeleccion) and (sFormatoGuardado <> '') then
+    if not (bForzarSeleccion or MostrarDisenosGuardados) and
+      (sFormatoGuardado <> '') then
       bSeleccionAutomatica := SeleccionarFormatoSinDialogo(sFormatoGuardado);
     if not bSeleccionAutomatica then
     begin
@@ -2116,10 +2135,13 @@ begin
   end
   else
   begin
-    formulario := TfrmModalGenImpSave.Create(Application);
+    formulario := TfrmModalGenImpSave.Create(Self);
     try
       formulario.edtNombreOrigen.Text := Self.Name;
-      formulario.edtDescripcion.Text := sElegido;
+      if MostrarDisenosGuardados and SameText(sElegido, 'Predeterminado') then
+        formulario.edtDescripcion.Text := Caption
+      else
+        formulario.edtDescripcion.Text := sElegido;
       formulario.ShowModal;
       if (formulario.sFicha = 'S') then
       begin
@@ -2179,6 +2201,8 @@ begin
                      [Self.Name, sDescripcion, E.Message]));
         end;
         sElegido := sDescripcion;
+        if MostrarDisenosGuardados and Assigned(PerfilesEscritura) then
+          GuardarFormatoPredeterminado(sElegido);
         Result := True;
       end
       else

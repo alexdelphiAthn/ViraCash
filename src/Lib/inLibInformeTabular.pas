@@ -21,19 +21,21 @@ type
     Peso: Double;
     Numerica: Boolean;
     Formato: string;
+    FormatoExcel: string;
   end;
   TColumnasInformeTabular = TArray<TColumnaInformeTabular>;
 
 function ColumnaInforme(const ACampo, ATitulo: string; APeso: Double;
   const AFormato: string = ''): TColumnaInformeTabular;
 procedure CrearInformeTabular(AInforme: TfrxReport; ADatos: TfrxDBDataset;
-  const ATitulo: string; const AColumnas: TColumnasInformeTabular);
+  const ATitulo: string; const AColumnas: TColumnasInformeTabular;
+  AVertical: Boolean = False);
 
 implementation
 
 uses
   inLibMsgInformesCliente,
-  System.SysUtils, Vcl.Graphics, System.Classes, frCoreClasses,
+  System.SysUtils, Vcl.Graphics, Vcl.Printers, System.Classes, frCoreClasses,
   frBaseGraphicsTypes;
 
 function ColumnaInforme(const ACampo, ATitulo: string; APeso: Double;
@@ -44,6 +46,7 @@ begin
   Result.Peso := APeso;
   Result.Numerica := AFormato <> '';
   Result.Formato := AFormato;
+  Result.FormatoExcel := '';
 end;
 
 function CrearMemo(ABanda: TfrxBand; const ANombre, ATexto: string;
@@ -97,7 +100,8 @@ begin
 end;
 
 procedure CrearInformeTabular(AInforme: TfrxReport; ADatos: TfrxDBDataset;
-  const ATitulo: string; const AColumnas: TColumnasInformeTabular);
+  const ATitulo: string; const AColumnas: TColumnasInformeTabular;
+  AVertical: Boolean);
 var
   oPagina: TfrxReportPage;
   oCabecera: TfrxPageHeader;
@@ -114,13 +118,24 @@ begin
   oPagina := TfrxReportPage.Create(AInforme);
   oPagina.Name := 'Pagina';
   oPagina.SetDefaults;
-  oPagina.PaperWidth := 297;
-  oPagina.PaperHeight := 210;
+  if AVertical then
+  begin
+    oPagina.Orientation := poPortrait;
+    oPagina.PaperWidth := 210;
+    oPagina.PaperHeight := 297;
+  end
+  else
+  begin
+    oPagina.Orientation := poLandscape;
+    oPagina.PaperWidth := 297;
+    oPagina.PaperHeight := 210;
+  end;
   oPagina.LeftMargin := 10;
   oPagina.RightMargin := 10;
   oPagina.TopMargin := 10;
   oPagina.BottomMargin := 10;
-  dAncho := 277 * fr01cm;
+  dAncho := (oPagina.PaperWidth - oPagina.LeftMargin -
+    oPagina.RightMargin) * fr01cm;
   oCabecera := TfrxPageHeader.Create(oPagina);
   oCabecera.Name := 'CabeceraTabla';
   oCabecera.Height := 78;
