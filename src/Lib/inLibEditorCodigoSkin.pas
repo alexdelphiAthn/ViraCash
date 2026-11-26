@@ -42,6 +42,12 @@ uses
   SynEdit, SynEditHighlighter;
 
 type
+  // Los editores de código de estos formularios conservan la paleta DOS
+  // también cuando cambia el skin de la aplicación.
+  IEditoresEstiloPascal = interface
+    ['{71DFA969-39A8-4E1E-8D6B-58ED07BA078A}']
+  end;
+
   TPaletaEditorCodigo = record
     Fondo: TColor;
     Texto: TColor;
@@ -81,7 +87,7 @@ function AsegurarContraste(AColor, AFondo: TColor;
 
 procedure AplicarPaletaResaltador(AResaltador: TSynCustomHighlighter;
   const APaleta: TPaletaEditorCodigo);
-procedure AplicarSkinSynEdit(AEditor: TCustomSynEdit);
+procedure AplicarSkinSynEdit(AEditor: TCustomSynEdit); overload;
 procedure AplicarSkinArbol(AArbol: TCustomTreeView);
 
 /// Recorre AControl y sus hijos aplicando el skin a SynEdit, TTreeView y
@@ -143,6 +149,26 @@ type
   end;
 
 const
+  PALETA_PASCAL: TPaletaEditorCodigo = (
+    Fondo: clNavy;
+    Texto: clWhite;
+    Seleccion: clSilver;
+    TextoSeleccion: clNavy;
+    LineaActiva: $00901818;
+    Canal: clNavy;
+    TextoCanal: clSilver;
+    Borde: clGray;
+    Guias: clGray;
+    PalabraClave: clYellow;
+    Cadena: clAqua;
+    Numero: clFuchsia;
+    Comentario: clSilver;
+    TipoDato: clAqua;
+    Funcion: clLime;
+    Variable: clWhite;
+    Especial: clLime;
+    EsOscuro: True);
+
   BASE_CLARA: TBaseResaltador = (
     PalabraClave: $00FF0000;
     Cadena: $001515A3;
@@ -474,9 +500,18 @@ begin
   AArbol.Invalidate;
 end;
 
+procedure AplicarSkinSynEdit(AEditor: TCustomSynEdit;
+  const APaletaSkin: TPaletaEditorCodigo); overload;
+begin
+  if Supports(AEditor.Owner, IEditoresEstiloPascal) then
+    AplicarPaletaSynEdit(AEditor, PALETA_PASCAL)
+  else
+    AplicarPaletaSynEdit(AEditor, APaletaSkin);
+end;
+
 procedure AplicarSkinSynEdit(AEditor: TCustomSynEdit);
 begin
-  AplicarPaletaSynEdit(AEditor, PaletaEditorCodigoSkin);
+  AplicarSkinSynEdit(AEditor, PaletaEditorCodigoSkin);
 end;
 
 procedure AplicarSkinArbol(AArbol: TCustomTreeView);
@@ -494,7 +529,7 @@ begin
   begin
     oHijo := AControl.Controls[I];
     if oHijo is TCustomSynEdit then
-      AplicarPaletaSynEdit(TCustomSynEdit(oHijo), APaleta)
+      AplicarSkinSynEdit(TCustomSynEdit(oHijo), APaleta)
     else if oHijo is TCustomTreeView then
       AplicarPaletaArbol(TCustomTreeView(oHijo), APaleta)
     else if oHijo is TScrollBar then

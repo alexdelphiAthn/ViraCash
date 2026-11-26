@@ -451,8 +451,13 @@ type
     FVerificacionNif: TComponent;
     FTabMedidas: TcxTabSheet;
     FTabLlamadas: TcxTabSheet;
+    FSesionLlamadas: TComponent;
+    FAvisoLlamadas: TcxLabel;
+    FClienteHistorial: string;
+    FCargandoHistorial: Boolean;
     procedure CrearAccesoLlamadas;
-    procedure LlamadasClienteClick(Sender: TObject);
+    procedure SincronizarHistorial;
+    procedure DatosClienteCambiados(Sender: TObject; Field: TField);
     procedure CrearAccesoMedidas;
     procedure MedidasClienteClick(Sender: TObject);
     procedure InstalarVerificacionNif;
@@ -766,37 +771,62 @@ begin
 end;
 
 procedure TfrmMtoClientes.CrearAccesoLlamadas;
-var
-  oBoton: TcxButton;
 begin
   if (FTabLlamadas = nil) and Assigned(Permisos) and
     Permisos.TienePermiso(PermisoConsultarLlamadas, paExigirConcesion) then
   begin
     FTabLlamadas := TcxTabSheet.Create(Self);
-    FTabLlamadas.PageControl := pcPestanas;
     FTabLlamadas.Caption := SLlamadasCliente;
-    oBoton := TcxButton.Create(Self);
-    oBoton.Parent := FTabLlamadas;
-    oBoton.Align := alTop;
-    oBoton.Height := ScaleValue(44);
-    oBoton.Caption := SLlamadasCliente;
-    oBoton.OnClick := LlamadasClienteClick;
+    FAvisoLlamadas := TcxLabel.Create(FTabLlamadas);
+    FAvisoLlamadas.Parent := FTabLlamadas;
+    FAvisoLlamadas.Align := alTop;
+    FAvisoLlamadas.Caption := SSeleccioneCliente;
+    FTabLlamadas.PageControl := pcPestanas;
+    dsTablaG.OnDataChange := DatosClienteCambiados;
   end;
 end;
 
-procedure TfrmMtoClientes.LlamadasClienteClick(Sender: TObject);
+procedure TfrmMtoClientes.DatosClienteCambiados(Sender: TObject; Field: TField);
+begin
+  if Field = nil then
+    SincronizarHistorial;
+end;
+
+procedure TfrmMtoClientes.SincronizarHistorial;
 var
   sCliente: string;
 begin
-  if (dsTablaG.State = dsBrowse) and not dsTablaG.DataSet.IsEmpty then
+  if Assigned(FTabLlamadas) and not FCargandoHistorial and
+    not (csDestroying in ComponentState) then
   begin
-    sCliente := dsTablaG.DataSet.FieldByName('CODIGO_CLI_CLI').AsString;
-    if Trim(sCliente) <> '' then
-      AbrirLlamadas(Self, ConexionPrincipal, Permisos,
-        IdentidadSesion.Usuario, sCliente, False);
-  end
-  else
-    ShowMessage_fza(SSeleccioneCliente);
+    FCargandoHistorial := True;
+    try
+      sCliente := '';
+      if (pcPestanas.ActivePage = FTabLlamadas) and
+        (dsTablaG.State = dsBrowse) and not dsTablaG.DataSet.IsEmpty then
+        sCliente := Trim(dsTablaG.DataSet.FieldByName('CODIGO_CLI_CLI').AsString);
+      if sCliente <> FClienteHistorial then
+      begin
+        FreeAndNil(FSesionLlamadas);
+        FClienteHistorial := sCliente;
+        FAvisoLlamadas.Caption := SSeleccioneCliente;
+        FAvisoLlamadas.Visible := sCliente = '';
+        if sCliente <> '' then
+        try
+          FSesionLlamadas := IntegrarHistorial(FTabLlamadas, ConexionPrincipal,
+            Permisos, IdentidadSesion.Usuario, sCliente);
+        except
+          on E: Exception do
+          begin
+            FAvisoLlamadas.Caption := E.Message;
+            FAvisoLlamadas.Visible := True;
+          end;
+        end;
+      end;
+    finally
+      FCargandoHistorial := False;
+    end;
+  end;
 end;
 
 procedure TfrmMtoClientes.CrearAccesoMedidas;
@@ -871,6 +901,7 @@ begin
     else if pcPestanas.ActivePage = tsPrestamos then
       FDmmClientes.AsegurarDepositosAbierta;
   end;
+  SincronizarHistorial;
   // El artículo del visor Ctrl+F sale de la rejilla de la pestaña activa.
   RefrescarFotoArticulo;
 end;
@@ -898,6 +929,7 @@ end;
 procedure TfrmMtoClientes.dsTablaGStateChange(Sender: TObject);
 begin
   inherited;
+  SincronizarHistorial;
   if (dsTablaG.state = dsInsert) then
     txtCODIGO_CLIENTE.Enabled := True
   else

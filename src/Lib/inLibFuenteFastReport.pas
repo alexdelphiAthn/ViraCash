@@ -113,6 +113,15 @@ var
 begin
   Editor := (ASender as TfrxDesignerForm).CodeWindow;
   AplicarFuenteCodigo(Editor.Font);
+  Editor.Color := clNavy;
+  Editor.Font.Color := clWhite;
+  Editor.TextAttr.Color := clWhite;
+  Editor.KeywordAttr.Color := clYellow;
+  Editor.CommentAttr.Color := clSilver;
+  Editor.StringAttr.Color := clAqua;
+  Editor.NumberAttr.Color := clFuchsia;
+  Editor.BlockColor := clSilver;
+  Editor.BlockFontColor := clNavy;
   if Editor.FindComponent('GuiaColumnaCodigo') = nil then
   begin
     Guia := TGuiaCodigoFastReport.Create(Editor);

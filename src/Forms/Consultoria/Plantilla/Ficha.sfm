@@ -1,0 +1,13 @@
+object Ficha: TScriptForm
+  Caption = 'Ficha'
+  ClientWidth = 600
+  ClientHeight = 420
+  Position = poScreenCenter
+  object pnlCampos: TPanel
+    Left = 0
+    Top = 0
+    Align = alClient
+    BevelOuter = bvNone
+    Caption = ''
+  end
+end

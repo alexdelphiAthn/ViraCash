@@ -16,6 +16,8 @@ type
     FId: Int64;
     FVersion: Integer;
     FClienteEdicion: string;
+    FSoloSeguimiento: Boolean;
+    procedure CargarListado(ASoloSeguimiento: Boolean);
   public
     constructor Create(ARepositorio: TRepositorioLlamadas);
     destructor Destroy; override;
@@ -44,7 +46,7 @@ implementation
 uses
   System.SysUtils, System.UITypes, Vcl.Dialogs, cxGrid, cxGridLevel,
   cxGridDBTableView, dxPrintUtils, dxPSCore, dxPScxGridLnk, dxPrnDlg, dxPreVw,
-  inLibMensajesVcl, inLibMsgScripter;
+  inLibMensajesVcl, inLibMsgScripter, inMtoVistaLlamadas;
 
 resourcestring
   SConfirmarBorrar = '¿Borrar la llamada seleccionada?';
@@ -66,11 +68,17 @@ begin
 end;
 
 procedure TAccionesLlamadas.Actualizar;
+begin
+  CargarListado(FSoloSeguimiento);
+end;
+
+procedure TAccionesLlamadas.CargarListado(ASoloSeguimiento: Boolean);
 var
   oAnterior: TUniQuery;
 begin
   oAnterior := FDatos;
-  FDatos := FRepositorio.AbrirListado;
+  FDatos := FRepositorio.AbrirListado(ASoloSeguimiento);
+  FSoloSeguimiento := ASoloSeguimiento;
   try
     FOrigen.DataSet := FDatos;
   finally
@@ -117,9 +125,18 @@ begin
 end;
 
 procedure TAccionesLlamadas.EnlazarRejilla(ARejilla: TObject);
+var
+  oRejilla: TcxGrid;
 begin
-  Actualizar;
-  MostrarListado(ARejilla as TcxGrid, FOrigen);
+  oRejilla := ARejilla as TcxGrid;
+  if oRejilla.FindComponent('VistasHistorial') = nil then
+  begin
+    CargarListado(False);
+    MostrarListado(oRejilla, FOrigen);
+    TPanelVistasLlamadas.Instalar(oRejilla, FRepositorio, CargarListado);
+  end
+  else
+    Actualizar;
 end;
 
 procedure TAccionesLlamadas.EnlazarInforme(ARejilla: TObject;

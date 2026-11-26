@@ -7,6 +7,8 @@ uses
   System.Classes, Data.DB, Uni, inLibPermisosIntf;
 
 const
+  PrefijoVista = 'Llamadas/';
+  LongitudNombreVista = 60 - Length(PrefijoVista);
   PermisoConsultarLlamadas = 'menu.mnuLlamadasCliente';
   PermisoEditarProyecto = 'menu.mnuDisenadorLlamadas';
 
@@ -22,6 +24,8 @@ type
     FPermisos: IPermisosAplicacion;
     FUsuario, FCliente: string;
     function Consulta(const ASql: string): TUniQuery;
+    procedure EscribirProyecto(const ACodigo, AContenido: string;
+      AVersion: Integer);
     procedure Exigir(const ACodigo: string);
   public
     constructor Create(AConexion: TUniConnection;
@@ -30,7 +34,10 @@ type
     procedure Guardar(AId: Int64; AVersion: Integer;
       const ADatos: TDatosLlamada);
     procedure Borrar(AId: Int64; AVersion: Integer);
-    function LeerProyecto(out AVersion: Integer): string;
+    function LeerProyecto(out AVersion: Integer;
+      const ACodigo: string = 'Llamadas'): string;
+    procedure ListarVistas(ANombres: TStrings);
+    function CrearVista(const ANombre, AContenido: string): Boolean;
     procedure Publicar(const AContenido: string; AVersion: Integer);
     procedure ExigirEditor;
     function Permitido(const ACodigo: string): Boolean;
@@ -40,7 +47,7 @@ type
 implementation
 
 uses
-  System.SysUtils;
+  System.SysUtils, inLibMsgScripter;
 
 resourcestring
   SPermiso = 'Falta el permiso %s.';
@@ -196,13 +203,15 @@ begin
   end;
 end;
 
-function TRepositorioLlamadas.LeerProyecto(out AVersion: Integer): string;
+function TRepositorioLlamadas.LeerProyecto(out AVersion: Integer;
+  const ACodigo: string): string;
 var
   oConsulta: TUniQuery;
 begin
   oConsulta := Consulta('SELECT CONTENIDO_CPROY,VERSION_CPROY' +
-    ' FROM fza_consultoria_proyectos WHERE CODIGO_CPROY=''Llamadas''');
+    ' FROM fza_consultoria_proyectos WHERE CODIGO_CPROY=:COD');
   try
+    oConsulta.ParamByName('COD').AsString := ACodigo;
     oConsulta.Open;
     AVersion := oConsulta.FieldByName('VERSION_CPROY').AsInteger;
     Result := oConsulta.FieldByName('CONTENIDO_CPROY').AsString;
@@ -213,6 +222,49 @@ end;
 
 procedure TRepositorioLlamadas.Publicar(const AContenido: string;
   AVersion: Integer);
+begin
+  EscribirProyecto('Llamadas', AContenido, AVersion);
+end;
+
+procedure TRepositorioLlamadas.ListarVistas(ANombres: TStrings);
+var
+  oConsulta: TUniQuery;
+begin
+  oConsulta := Consulta('SELECT CODIGO_CPROY FROM fza_consultoria_proyectos' +
+    ' WHERE CODIGO_CPROY LIKE :PREF ORDER BY CODIGO_CPROY');
+  try
+    oConsulta.ParamByName('PREF').AsString := PrefijoVista + '%';
+    oConsulta.Open;
+    while not oConsulta.Eof do
+    begin
+      ANombres.Add(Copy(oConsulta.Fields[0].AsString, Length(PrefijoVista)+1));
+      oConsulta.Next;
+    end;
+  finally
+    oConsulta.Free;
+  end;
+end;
+
+function TRepositorioLlamadas.CrearVista(const ANombre,
+  AContenido: string): Boolean;
+begin
+  if (Trim(ANombre) = '') or (Length(ANombre) > LongitudNombreVista) then
+    raise EArgumentException.Create(SNombreVistaInvalido);
+  try
+    EscribirProyecto(PrefijoVista + Trim(ANombre), AContenido, 0);
+    Result := True;
+  except
+    on E: EUniError do
+    begin
+      if E.ErrorCode <> 1062 then
+        raise;
+      Result := False;
+    end;
+  end;
+end;
+
+procedure TRepositorioLlamadas.EscribirProyecto(const ACodigo,
+  AContenido: string; AVersion: Integer);
 var
   oConsulta: TUniQuery;
 begin
@@ -220,13 +272,14 @@ begin
   if AVersion = 0 then
     oConsulta := Consulta('INSERT INTO fza_consultoria_proyectos' +
       ' (CODIGO_CPROY,CONTENIDO_CPROY,VERSION_CPROY,' +
-      ' INSTANTE_ALTA,USUARIO_ALTA) VALUES (''Llamadas'',:TXT,1,NOW(),:USR)')
+      ' INSTANTE_ALTA,USUARIO_ALTA) VALUES (:COD,:TXT,1,NOW(),:USR)')
   else
     oConsulta := Consulta('UPDATE fza_consultoria_proyectos SET' +
       ' CONTENIDO_CPROY=:TXT,VERSION_CPROY=VERSION_CPROY+1,' +
       ' USUARIO_MODIF=:USR,INSTANTE_MODIF=NOW()' +
-      ' WHERE CODIGO_CPROY=''Llamadas'' AND VERSION_CPROY=:VER');
+      ' WHERE CODIGO_CPROY=:COD AND VERSION_CPROY=:VER');
   try
+    oConsulta.ParamByName('COD').AsString := ACodigo;
     oConsulta.ParamByName('TXT').AsMemo := AContenido;
     oConsulta.ParamByName('USR').AsString := FUsuario;
     if AVersion <> 0 then

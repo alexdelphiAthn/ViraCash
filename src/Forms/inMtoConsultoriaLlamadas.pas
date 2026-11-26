@@ -4,30 +4,13 @@ unit inMtoConsultoriaLlamadas;
 interface
 
 uses
-  System.Classes, Uni, inLibPermisosIntf;
-
-
-procedure AbrirLlamadas(AOwner: TComponent; AConexion: TUniConnection;
-  const APermisos: IPermisosAplicacion; const AUsuario, ACliente: string;
-  AEditar: Boolean);
-
-implementation
-
-uses
-  Winapi.Windows, System.SysUtils, System.JSON, System.Rtti, System.TypInfo,
-  System.IOUtils, System.UITypes, Vcl.Dialogs, Vcl.ExtCtrls, Vcl.Forms,
-  cxGrid, cxButtons, cxLabel, cxTextEdit, cxMemo, cxCheckBox,
-  cxDropDownEdit, cxCalendar, cxSpinEdit, cxCurrencyEdit,
-  atScript, IDEMain, IDEDialog, Vcl.ScripterInit, Vcl.ScriptForm, dxSkinsForm,
-  ap_Classes, ap_SysUtils, ap_Controls, ap_Forms, ap_Graphics, ap_Dialogs,
-  ap_ExtCtrls, ap_StdCtrls, inLibMensajesVcl, UniDataLlamadasCliente,
-  inMtoLlamadasAccionesVcl, inLibMenusScripter, inLibMsgScripter;
-
-{$R 'Consultoria\Llamadas.res'}
+  System.Classes, System.JSON, Vcl.Controls, Uni, IDEMain, inLibPermisosIntf;
 
 type
-  TProyectoLlamadas = class(TComponent)
+  TProyectoScripter = class(TComponent)
   private
+    FNombreProyecto, FTituloEditor: string;
+    FAlCrear: TNotifyEvent;
     FArchivos: TJSONObject;
     FMotor: TIDEScripter;
     FIde: TIDEEngine;
@@ -45,11 +28,54 @@ type
     procedure BuscarUnidad(Sender: TObject; ATipo: TIDEFileType;
       var ANombre: string; var AAceptado, ATratado: Boolean);
     procedure RegistrarPaleta;
+    procedure CrearEditor(Sender: TObject);
+
   public
     constructor Crear(AOwner: TComponent; const ATexto: string;
-      AAcciones: TAccionesLlamadas; AEditar: Boolean = False);
+      AAcciones: TObject; AEditar: Boolean = False;
+      const ANombre: string = 'Llamadas.ssproj';
+      const AObjeto: string = 'Llamadas');
     destructor Destroy; override;
     procedure Ejecutar(AEditar: Boolean);
+    property TituloEditor: string read FTituloEditor write FTituloEditor;
+    property Archivos: TJSONObject read FArchivos;
+    property Motor: TIDEScripter read FMotor;
+    property IDE: TIDEEngine read FIde;
+    property AlCrearEditor: TNotifyEvent read FAlCrear write FAlCrear;
+  end;
+
+
+procedure AbrirLlamadas(AOwner: TComponent; AConexion: TUniConnection;
+  const APermisos: IPermisosAplicacion; const AUsuario, ACliente: string;
+  AEditar: Boolean);
+
+function IntegrarHistorial(AContenedor: TWinControl; AConexion: TUniConnection;
+  const APermisos: IPermisosAplicacion; const AUsuario, ACliente: string):
+  TComponent;
+
+implementation
+
+uses
+  Winapi.Windows, System.SysUtils, System.Rtti, System.TypInfo,
+  System.IOUtils, System.UITypes, Vcl.Dialogs, Vcl.ExtCtrls, Vcl.Forms,
+  cxGrid, cxButtons, cxLabel, cxTextEdit, cxMemo, cxCheckBox,
+  cxDropDownEdit, cxCalendar, cxSpinEdit, cxCurrencyEdit,
+  atScript, IDEDialog, Vcl.ScripterInit, Vcl.ScriptForm, dxSkinsForm,
+  ap_Classes, ap_SysUtils, ap_Controls, ap_Forms, ap_Graphics, ap_Dialogs,
+  ap_ExtCtrls, ap_StdCtrls, inLibMensajesVcl, UniDataLlamadasCliente,
+  inMtoLlamadasAccionesVcl, inLibMenusScripter, inLibMsgScripter;
+
+{$R 'Consultoria\Llamadas.res'}
+
+type
+  TSesionHistorial = class(TComponent)
+  private
+    FRepositorio: TRepositorioLlamadas;
+    FAcciones: TAccionesLlamadas;
+    FProyecto: TProyectoScripter;
+    FFormularios: TComponent;
+  public
+    destructor Destroy; override;
   end;
 
 const
@@ -84,12 +110,13 @@ begin
   end;
 end;
 
-constructor TProyectoLlamadas.Crear(AOwner: TComponent; const ATexto: string;
-  AAcciones: TAccionesLlamadas; AEditar: Boolean);
+constructor TProyectoScripter.Crear(AOwner: TComponent; const ATexto: string;
+  AAcciones: TObject; AEditar: Boolean; const ANombre, AObjeto: string);
 var
   i: Integer;
 begin
   inherited Create(AOwner);
+  FNombreProyecto := ANombre;
   if AEditar then
   begin
     // TMS guarda y restaura WindowProc al cambiar de formulario.
@@ -110,8 +137,8 @@ begin
     raise EConvertError.Create(SProyectoIlegible);
   FMotor := TIDEScripter.Create(Self);
   FMotor.LibOptions.UseScriptFiles := False;
-  FMotor.DefineClassByRTTI(TAccionesLlamadas, '', [mvPublished]);
-  FMotor.AddObject('Llamadas', AAcciones);
+  FMotor.DefineClassByRTTI(AAcciones.ClassType, '', [mvPublished]);
+  FMotor.AddObject(AObjeto, AAcciones);
   FIde := TIDEEngine.Create(Self);
   FIde.Scripter := FMotor;
   FIde.OnCheckValidFile := Existe;
@@ -120,11 +147,11 @@ begin
   FIde.OnSaveDialog := ElegirUnidad;
   FIde.OnOpenDialog := BuscarUnidad;
   RegistrarPaleta;
-  if not FIde.OpenProject('Llamadas.ssproj') or (FIde.MainUnit = nil) then
+  if not FIde.OpenProject(FNombreProyecto) or (FIde.MainUnit = nil) then
     raise EConvertError.Create(SFaltaInicio);
 end;
 
-destructor TProyectoLlamadas.Destroy;
+destructor TProyectoScripter.Destroy;
 begin
   FIde.Free;
   FMotor.Free;
@@ -134,7 +161,7 @@ begin
   inherited;
 end;
 
-procedure TProyectoLlamadas.RegistrarPaleta;
+procedure TProyectoScripter.RegistrarPaleta;
 
   procedure Registrar(AClase: System.Classes.TComponentClass; const AUnidad: string = '');
   begin
@@ -157,13 +184,13 @@ begin
   Registrar(TcxGrid);
 end;
 
-procedure TProyectoLlamadas.Existe(Sender: TObject; ATipo: TIDEFileType;
+procedure TProyectoScripter.Existe(Sender: TObject; ATipo: TIDEFileType;
   ANombre: string; var AExiste: Boolean);
 begin
   AExiste := FArchivos.GetValue(LowerCase(ExtractFileName(ANombre))) <> nil;
 end;
 
-procedure TProyectoLlamadas.Leer(Sender: TObject; ATipo: TIDEFileType;
+procedure TProyectoScripter.Leer(Sender: TObject; ATipo: TIDEFileType;
   ANombre: string; var ATexto: string; AUnidad: TIDEProjectFile;
   var ATratado: Boolean);
 var
@@ -176,7 +203,7 @@ begin
   ATratado := True;
 end;
 
-procedure TProyectoLlamadas.Guardar(Sender: TObject; ATipo: TIDEFileType;
+procedure TProyectoScripter.Guardar(Sender: TObject; ATipo: TIDEFileType;
   ANombre: string; ATexto: string; AUnidad: TIDEProjectFile;
   var ATratado: Boolean);
 var
@@ -184,7 +211,7 @@ var
   oValor: TJSONValue;
 begin
   sClave := LowerCase(ExtractFileName(ANombre));
-  if (ATipo = iftProject) and (sClave <> 'llamadas.ssproj') then
+  if (ATipo = iftProject) and not SameText(sClave,FNombreProyecto) then
     raise EArgumentException.Create(SNombreProyecto);
   oValor := FArchivos.GetValue(sClave);
   if (oValor = nil) or (oValor.Value <> ATexto) then
@@ -196,14 +223,14 @@ begin
   ATratado := True;
 end;
 
-procedure TProyectoLlamadas.ElegirUnidad(Sender: TObject; ATipo: TIDEFileType;
+procedure TProyectoScripter.ElegirUnidad(Sender: TObject; ATipo: TIDEFileType;
   var ANombre: string; AUnidad: TIDEProjectFile;
   var AAceptado, ATratado: Boolean);
 begin
   ATratado := True;
   AAceptado := True;
   if ATipo = iftProject then
-    ANombre := 'Llamadas.ssproj'
+    ANombre := FNombreProyecto
   else
   begin
     ANombre := ExtractFileName(ANombre);
@@ -217,7 +244,7 @@ begin
   end;
 end;
 
-procedure TProyectoLlamadas.BuscarUnidad(Sender: TObject; ATipo: TIDEFileType;
+procedure TProyectoScripter.BuscarUnidad(Sender: TObject; ATipo: TIDEFileType;
   var ANombre: string; var AAceptado, ATratado: Boolean);
 var
   sEjemplo, sBase, sCodigo, sFormulario: string;
@@ -225,8 +252,14 @@ begin
   ATratado := True;
   if ATipo = iftProject then
   begin
-    ANombre := 'Llamadas.ssproj';
+    ANombre := FNombreProyecto;
     AAceptado := True;
+  end
+  else if not SameText(FNombreProyecto,'Llamadas.ssproj') then
+  begin
+    AAceptado := InputQuery(SAbrirUnidad,SNombre,ANombre);
+    if AAceptado then
+      ANombre := TPath.Combine(FIde.BasePath,ExtractFileName(ANombre));
   end
   else
   begin
@@ -255,7 +288,14 @@ begin
   end;
 end;
 
-procedure TProyectoLlamadas.Ejecutar(AEditar: Boolean);
+procedure TProyectoScripter.CrearEditor(Sender: TObject);
+begin
+  TMenusScripter.AlCrearEditor(Sender);
+  if Assigned(FAlCrear) then
+    FAlCrear(Sender);
+end;
+
+procedure TProyectoScripter.Ejecutar(AEditar: Boolean);
 var
   oDialogo: TIDEDialog;
 begin
@@ -264,8 +304,11 @@ begin
     oDialogo := TIDEDialog.Create(nil);
     try
       oDialogo.Engine := FIde;
-      oDialogo.OnCreateIDEForm := TMenusScripter.AlCrearEditor;
-      oDialogo.Title := 'ViraCash | ' + STituloDisenador + ' | %s';
+      oDialogo.OnCreateIDEForm := CrearEditor;
+      if SameText(FNombreProyecto,'Llamadas.ssproj') then
+        oDialogo.Title := 'ViraCash | ' + STituloDisenador + ' | %s'
+      else
+        oDialogo.Title := StringReplace(FTituloEditor,'%','%%',[rfReplaceAll]);
       oDialogo.IDECloseAction := icaNothing;
       repeat
         oDialogo.Execute;
@@ -284,7 +327,7 @@ procedure AbrirLlamadas(AOwner: TComponent; AConexion: TUniConnection;
 var
   oRepositorio: TRepositorioLlamadas;
   oAcciones: TAccionesLlamadas;
-  oProyecto, oValidacion: TProyectoLlamadas;
+  oProyecto, oValidacion: TProyectoScripter;
   iVersion: Integer;
   sContenido, sCopia: string;
 begin
@@ -296,7 +339,7 @@ begin
     sContenido := oRepositorio.LeerProyecto(iVersion);
     oAcciones := TAccionesLlamadas.Create(oRepositorio);
     try
-      oProyecto := TProyectoLlamadas.Crear(AOwner, sContenido, oAcciones,
+      oProyecto := TProyectoScripter.Crear(AOwner, sContenido, oAcciones,
         AEditar);
       try
         oProyecto.Ejecutar(AEditar);
@@ -306,7 +349,7 @@ begin
         begin
           sContenido := oProyecto.FArchivos.ToJSON;
           try
-            oValidacion := TProyectoLlamadas.Crear(nil, sContenido, oAcciones);
+            oValidacion := TProyectoScripter.Crear(nil, sContenido, oAcciones);
             try
               oValidacion.FIde.CompileProject;
             finally
@@ -329,6 +372,56 @@ begin
     end;
   finally
     oRepositorio.Free;
+  end;
+end;
+
+destructor TSesionHistorial.Destroy;
+begin
+  // Los eventos del formulario pertenecen al motor de esta sesión.
+  FFormularios.Free;
+  FProyecto.Free;
+  FAcciones.Free;
+  FRepositorio.Free;
+  inherited;
+end;
+
+function IntegrarHistorial(AContenedor: TWinControl; AConexion: TUniConnection;
+  const APermisos: IPermisosAplicacion; const AUsuario, ACliente: string):
+  TComponent;
+var
+  oSesion: TSesionHistorial;
+  oHistorial: TScriptForm;
+  iVersion: Integer;
+  sProyecto: string;
+begin
+  if Trim(ACliente) = '' then
+    raise EArgumentException.Create(SSeleccioneCliente);
+  oSesion := TSesionHistorial.Create(AContenedor);
+  try
+    oSesion.FRepositorio := TRepositorioLlamadas.Create(AConexion, APermisos,
+      AUsuario, ACliente);
+    oSesion.FAcciones := TAccionesLlamadas.Create(oSesion.FRepositorio);
+    sProyecto := oSesion.FRepositorio.LeerProyecto(iVersion);
+    oSesion.FProyecto := TProyectoScripter.Crear(nil, sProyecto,
+      oSesion.FAcciones);
+    oSesion.FFormularios := TComponent.Create(nil);
+    oSesion.FProyecto.FMotor.AddObject('PropietarioHistorial',
+      oSesion.FFormularios);
+    // En la ficha, la pestaña controla la vida del Historial publicado.
+    // El punto de entrada modal sigue disponible desde el menú general.
+    oSesion.FProyecto.FIde.MainUnit.Script.SourceCode.Text :=
+      'uses Forms, Historial;' + sLineBreak +
+      'begin THistorial.Create(PropietarioHistorial); end.';
+    oSesion.FProyecto.Ejecutar(False);
+    oHistorial := oSesion.FFormularios.Components[0] as TScriptForm;
+    oHistorial.BorderStyle := bsNone;
+    oHistorial.Parent := AContenedor;
+    oHistorial.Align := alClient;
+    oHistorial.Show;
+    Result := oSesion;
+  except
+    oSesion.Free;
+    raise;
   end;
 end;
 

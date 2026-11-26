@@ -18,7 +18,7 @@ unit inLibCamposAdicionalesDocumentoVcl;
 interface
 
 uses
-  System.Classes, Vcl.Controls,
+  System.Classes, System.SysUtils, Vcl.Controls,
   cxLabel, cxTextEdit, cxButtonEdit, cxDropDownEdit, cxCheckBox,
   cxEdit, cxButtons,
   inLibOpcionesDocumentoIntf;
@@ -49,6 +49,7 @@ type
     FControles: TArray<TControlesCampoAdicional>;
     FGeometria: TGeometriaCamposAdicionales;
     FAlCambiar: TNotifyEvent;
+    FEmpresaElegida: TFunc<string>;
     procedure CrearControles(AOwner: TComponent; AParent: TWinControl;
       AIndice: Integer);
     function CrearEditor(AOwner: TComponent; AParent: TWinControl;
@@ -69,7 +70,8 @@ type
     constructor Create(AOwner: TComponent; AParent: TWinControl;
       const ACampos: TCamposAdicionalesOpcionesDocumento;
       const AGeometria: TGeometriaCamposAdicionales;
-      AAlCambiar: TNotifyEvent);
+      AAlCambiar: TNotifyEvent;
+      const AEmpresaElegida: TFunc<string>);
     // Coloca los campos del principio o del final a partir de ATop y oculta
     // los que no se piden con el tipo de documento ATipo.
     procedure Colocar(AlPrincipio: Boolean; var ATop: Integer;
@@ -83,12 +85,10 @@ type
 
 implementation
 
-uses
-  System.SysUtils;
-
 constructor TCamposAdicionalesDocumentoVcl.Create(AOwner: TComponent;
   AParent: TWinControl; const ACampos: TCamposAdicionalesOpcionesDocumento;
-  const AGeometria: TGeometriaCamposAdicionales; AAlCambiar: TNotifyEvent);
+  const AGeometria: TGeometriaCamposAdicionales; AAlCambiar: TNotifyEvent;
+  const AEmpresaElegida: TFunc<string>);
 var
   iIndice: Integer;
 begin
@@ -96,6 +96,7 @@ begin
   FCampos := Copy(ACampos);
   FGeometria := AGeometria;
   FAlCambiar := AAlCambiar;
+  FEmpresaElegida := AEmpresaElegida;
   SetLength(FControles, Length(FCampos));
   for iIndice := 0 to High(FCampos) do
     CrearControles(AOwner, AParent, iIndice);
@@ -411,18 +412,21 @@ procedure TCamposAdicionalesDocumentoVcl.BotonBusquedaClick(
   Sender: TObject; AButtonIndex: Integer);
 var
   iIndice: Integer;
-  oAccion: TBuscarCampoAdicional;
+  bAceptado: Boolean;
   sCodigo, sDescripcion: string;
 begin
   iIndice := IndiceDe(Sender);
   if iIndice >= 0 then
   begin
-    oAccion := FCampos[iIndice].Buscar;
-    if AButtonIndex = 1 then
-      oAccion := FCampos[iIndice].Alta;
     sCodigo := FCampos[iIndice].Valor;
     sDescripcion := FCampos[iIndice].Descripcion;
-    if Assigned(oAccion) and oAccion(sCodigo, sDescripcion) then
+    if AButtonIndex = 1 then
+      bAceptado := Assigned(FCampos[iIndice].Alta) and
+        FCampos[iIndice].Alta(FEmpresaElegida(), sCodigo, sDescripcion)
+    else
+      bAceptado := Assigned(FCampos[iIndice].Buscar) and
+        FCampos[iIndice].Buscar(sCodigo, sDescripcion);
+    if bAceptado then
     begin
       TcxButtonEdit(FControles[iIndice].Editor).Text := sCodigo;
       FCampos[iIndice].Valor := sCodigo;

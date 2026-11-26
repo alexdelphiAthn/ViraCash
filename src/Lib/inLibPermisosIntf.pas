@@ -120,7 +120,8 @@ const
 
   // Pantallas de administración (FZ-ISSUE-028): un usuario que no es
   // administrador solo entra con concesión expresa a su usuario o grupo.
-  PERMISOS_ADMINISTRACION: array[0..13] of string = (
+  PERMISOS_ADMINISTRACION: array[0..14] of string = (
+    'menu.mnuEditorPaginas',
     'menu.mnuDisenadorLlamadas',
     'menu.mnuLlamadasCliente',
     'menu.mnuParmetrosdeEntorno',

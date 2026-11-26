@@ -1,0 +1,9 @@
+[Files]
+File1=Inicio.psc
+File2=Lista.psc
+File3=Ficha.psc
+File4=AntesGuardar.psc
+File5=Selectores.psc
+File6=Ayuda.psc
+FileCount=6
+MainUnit=Inicio

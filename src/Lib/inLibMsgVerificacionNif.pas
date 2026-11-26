@@ -17,6 +17,7 @@ interface
 
 resourcestring
   SCaptionBotonVerificarNif = 'AEAT';
+  SValidarAeatAltaRapida = 'VALIDAR AEAT';
   SHintBotonVerificarNif = 'Verificar el NIF en el censo de la AEAT';
   STituloVerificacionNif = 'Verificación de NIF en la AEAT';
   SCaptionVerificacionNifEnviado = 'Enviado:';

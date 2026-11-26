@@ -20,7 +20,7 @@ interface
 
 uses
   System.Classes, System.SysUtils, Data.DB, Vcl.Controls, Uni, cxButtons,
-  inLibVerificacionNifRoi;
+  inLibVerificacionNifRoi, inLibVerificacionNifIntf;
 
 type
   TContextoVerificacionNifVcl = record
@@ -75,6 +75,10 @@ type
     function ComprobarRoiAntesDeConsolidar: Boolean;
   end;
 
+function ConsultarRazonSocialAeat(AOwner: TComponent;
+  const AConsultar: TFunc<TResultadoVerificacionNif>;
+  APermitirUsarNombre: Boolean; out ANombreElegido: string): Boolean;
+
 // El componente es propiedad de AOwner (la ficha) y se libera con ella.
 function InstalarVerificacionNifVcl(
   AOwner: TComponent;
@@ -84,7 +88,7 @@ implementation
 
 uses
   Vcl.Dialogs, Vcl.Forms, System.UITypes,
-  inLibMensajesVcl, inLibMsgVerificacionNif, inLibVerificacionNifIntf,
+  inLibMensajesVcl, inLibMsgVerificacionNif,
   inMtoModalVerificacionNif, UniDataVerificacionNifRepositorio;
 
 const
@@ -276,23 +280,35 @@ end;
 procedure TVerificacionNifVcl.BotonClick(Sender: TObject);
 var
   Solicitud: TSolicitudVerificacionNif;
-  Resultado: TResultadoVerificacionNif;
-  oServicio: IServicioVerificacionNif;
-  bVerificado: Boolean;
+  sNombre: string;
 begin
   Solicitud := Default(TSolicitudVerificacionNif);
   Solicitud.Nif := ValorCampo(FContexto.CampoNif);
   Solicitud.Nombre := ValorCampo(FContexto.CampoNombre);
   Solicitud.CodigoEmpresa := EmpresaVerificacion;
   Solicitud.CodigoCliente := ValorCampo(FContexto.CampoCliente);
+  if ConsultarRazonSocialAeat(Owner,
+    function: TResultadoVerificacionNif
+    begin
+      Result := CrearServicioVerificacionNifAeat(ConexionVerificacion,
+        FContexto.Url).Verificar(Solicitud);
+    end, PuedeCambiarNombre, sNombre) then
+    AplicarRazonSocial(sNombre);
+end;
+
+function ConsultarRazonSocialAeat(AOwner: TComponent;
+  const AConsultar: TFunc<TResultadoVerificacionNif>;
+  APermitirUsarNombre: Boolean; out ANombreElegido: string): Boolean;
+var
+  Resultado: TResultadoVerificacionNif;
+  bVerificado: Boolean;
+begin
+  ANombreElegido := '';
   bVerificado := False;
   Screen.Cursor := crHourGlass;
   try
     try
-      oServicio := CrearServicioVerificacionNifAeat(
-        ConexionVerificacion,
-        FContexto.Url);
-      Resultado := oServicio.Verificar(Solicitud);
+      Resultado := AConsultar();
       bVerificado := True;
     except
       // Error de datos, certificado, red o AEAT: se informa y la ficha
@@ -306,10 +322,10 @@ begin
   finally
     Screen.Cursor := crDefault;
   end;
-  if bVerificado and
-     TfrmModalVerificacionNif.Ejecutar(Owner, Resultado,
-       PuedeCambiarNombre) then
-    AplicarRazonSocial(Resultado.NombreAeat);
+  Result := bVerificado and TfrmModalVerificacionNif.Ejecutar(AOwner,
+    Resultado, APermitirUsarNombre);
+  if Result then
+    ANombreElegido := Trim(Resultado.NombreAeat);
 end;
 
 // Guarda en el cliente el resultado (válido o no; no el "no disponible").

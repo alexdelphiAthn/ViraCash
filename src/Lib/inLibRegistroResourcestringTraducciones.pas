@@ -7054,6 +7054,32 @@ begin
     @inLibMsgScripter.SFaltaInicio);
   ARegistrar('inLibMsgScripter.SFaltaArchivo', 'src/Lib/inLibMsgScripter.pas',
     @inLibMsgScripter.SFaltaArchivo);
+  ARegistrar('inLibMsgScripter.SVistaHistorial', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SVistaHistorial);
+  ARegistrar('inLibMsgScripter.SHistorialOriginal', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SHistorialOriginal);
+  ARegistrar('inLibMsgScripter.SPersonalizarVista', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SPersonalizarVista);
+  ARegistrar('inLibMsgScripter.SCamposVisibles', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SCamposVisibles);
+  ARegistrar('inLibMsgScripter.SFiltroVista', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SFiltroVista);
+  ARegistrar('inLibMsgScripter.STodasLlamadas', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.STodasLlamadas);
+  ARegistrar('inLibMsgScripter.SConSeguimiento', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SConSeguimiento);
+  ARegistrar('inLibMsgScripter.SNombreVista', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SNombreVista);
+  ARegistrar('inLibMsgScripter.SProximasLlamadas', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SProximasLlamadas);
+  ARegistrar('inLibMsgScripter.SMarqueCampo', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SMarqueCampo);
+  ARegistrar('inLibMsgScripter.SNombreVistaInvalido', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SNombreVistaInvalido);
+  ARegistrar('inLibMsgScripter.SVistaYaExiste', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SVistaYaExiste);
+  ARegistrar('inLibMsgScripter.SVistaIlegible', 'src/Lib/inLibMsgScripter.pas',
+    @inLibMsgScripter.SVistaIlegible);
   ARegistrar('inLibMsgScripter.SNombreProyecto', 'src/Lib/inLibMsgScripter.pas',
     @inLibMsgScripter.SNombreProyecto);
   ARegistrar('inLibMsgCambioCodigoCliente.SCambioClienteTitulo',
@@ -32324,6 +32350,9 @@ begin
     'src/Lib/inLibMsgVerifactu.pas',
     @inLibMsgVerifactu.
       SErrorTipoFacturaVerifactuRectificativaInvalido);
+  ARegistrar('inLibMsgVerificacionNif.SValidarAeatAltaRapida',
+    'src/Lib/inLibMsgVerificacionNif.pas',
+    @inLibMsgVerificacionNif.SValidarAeatAltaRapida);
   ARegistrar(
     'inLibMsgVerificacionNif.' +
     'SCaptionBotonVerificarNif',

@@ -78,6 +78,8 @@ type
   // creó un registro, que se devuelve en ACodigo / ADescripcion.
   TBuscarCampoAdicional = reference to function(
     var ACodigo, ADescripcion: string): Boolean;
+  TAltaCampoAdicional = reference to function(const AEmpresa: string;
+    var ACodigo, ADescripcion: string): Boolean;
   // Nombre del código tecleado a mano; False si no existe.
   TResolverCampoAdicional = reference to function(
     const ACodigo: string; out ADescripcion: string): Boolean;
@@ -106,7 +108,7 @@ type
     // de una rectificativa no aplica al duplicado de la factura).
     SoloTipos: TArray<string>;
     Buscar: TBuscarCampoAdicional;
-    Alta: TBuscarCampoAdicional;
+    Alta: TAltaCampoAdicional;
     Resolver: TResolverCampoAdicional;
     function VisibleConTipo(const ATipo: string): Boolean;
   end;

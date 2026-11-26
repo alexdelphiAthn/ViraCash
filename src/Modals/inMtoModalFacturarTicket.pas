@@ -45,7 +45,8 @@ type
     FMemoRevision: TcxMemo;
     FBotonEmitir: TcxButton;
     function BuscarCliente(var ACodigo, ADescripcion: string): Boolean;
-    function AltaRapidaCliente(var ACodigo, ADescripcion: string): Boolean;
+    function AltaRapidaCliente(const AEmpresa: string;
+      var ACodigo, ADescripcion: string): Boolean;
     function ResolverCliente(const ACodigo: string;
       out ADescripcion: string): Boolean;
     function ComprobarClienteFacturaNormal(
@@ -102,7 +103,8 @@ uses
   inLibVentasPantallaIntf,
   UniDataVentasPantallaComposicion,
   inLibClientesAltaRapida, inMtoModalAltaRapidaCliente,
-  UniDataClientesAltaRapida,
+  UniDataClientesAltaRapida, UniDataVerificacionNifRepositorio,
+  inLibVerificacionNifAeat,
   inMtoModalOpcionesDocumento, UniDataOpcionesDocumentoRepositorio,
   inLibFacturasProformaIntf;
 
@@ -753,13 +755,16 @@ begin
   end;
 end;
 
-function TfrmModalFacturarTicket.AltaRapidaCliente(var ACodigo,
-  ADescripcion: string): Boolean;
+function TfrmModalFacturarTicket.AltaRapidaCliente(const AEmpresa: string;
+  var ACodigo, ADescripcion: string): Boolean;
 var
   oResultado: TResultadoAltaRapidaCliente;
 begin
   oResultado := TfrmModalAltaRapidaCliente.Ejecutar(Self,
-    CrearAltaRapidaClientesUniDAC(ConexionPrincipal));
+    CrearAltaRapidaClientesUniDAC(ConexionPrincipal),
+    CrearServicioVerificacionNifAeat(ConexionPrincipal,
+      ParametrosApp.GetString('appVerificacionNifUrl', cUrlVerificacionNifAeat)),
+    AEmpresa);
   Result := oResultado.Aceptado;
   if Result then
   begin

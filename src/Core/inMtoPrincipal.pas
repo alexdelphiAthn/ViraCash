@@ -91,6 +91,7 @@ type
     IPresentacionOperacionesAplicacion,
     IPasosArranqueAplicacion
   )
+    mnuConsultoria, mnuEditorPaginas: TMenuItem;
     mnuCaja: TMenuItem;
     mnuMenuCaja: TMenuItem;
     mnuAlmacenes: TMenuItem;
@@ -256,8 +257,6 @@ type
     mnuSesionesCambioTarifa: TMenuItem;
     mnuProcesosAuxiliaresBBDD: TMenuItem;
     mnuGeneradorProcesos: TMenuItem;
-    mnuDisenadorLlamadas: TMenuItem;
-    mnuLlamadasCliente: TMenuItem;
     mnuUsuarios: TMenuItem;
     mnuEmpleados: TMenuItem;
     mnuGrupos: TMenuItem;
@@ -296,6 +295,9 @@ type
     // el CALL del item (fza_winforms) y delega en ShowMto. Sustituye a
     // ~45 OnClick identicos. Pantalla nueva = fila en fza_winforms +
     // OnClick del item = MenuGenericoClick (sin handler nuevo).
+    procedure MenuConsultoriaClick(Sender: TObject);
+    procedure EditorPaginasClick(Sender: TObject);
+    procedure PaginaPublicadaClick(Sender: TObject);
     procedure MenuGenericoClick(Sender: TObject);
     procedure mnuEjecutarScriptClick(Sender: TObject);
     procedure mnuCambioArticuloColorClick(Sender: TObject);
@@ -303,7 +305,6 @@ type
     procedure mnuAjusteDepositosClick(Sender: TObject);
     procedure mnuBajasSinLoteClick(Sender: TObject);
     procedure mnuProcesosAuxiliaresBBDDClick(Sender: TObject);
-    procedure mnuLlamadasClick(Sender: TObject);
     procedure tmr1Timer(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
@@ -525,7 +526,8 @@ uses
   inLibDir,
   inMtoCajaMenu,
   inLibGenerarTicketCaja,
-  inMtoPrincipalAccionesVcl, inMtoConsultoriaLlamadas,
+  inMtoPrincipalAccionesVcl, UniDataPaginasExtension, inMtoPaginaExtension,
+  inMtoDisenadorPaginas,
   inMtoModalAjusteDepositos, inLibFiltroUsuario,
   inMtoModalBajasSinLote,
   inMtoModalScriptLog,
@@ -999,6 +1001,7 @@ begin
     mnuEjecutarScript.Enabled := False;
   end;
   AplicarPermisosMenu;
+  MenuConsultoriaClick(nil);
   // Visibilidad inicial del panel de monitor SQL: ya no la decide solo el
   // {$IFDEF DEBUG}. AplicarModosDepuracion la sincronizará con los flags
   // appModoDebug / appModoDebugSQL que acaba de cargar el servicio.
@@ -1199,18 +1202,66 @@ begin
       ProcesarItem(Menu.Items[i]);
 end;
 
+procedure TfrmMtoPrincipal.MenuConsultoriaClick(Sender: TObject);
+var
+  R: TRepositorioPaginas;
+  P: TPaginaExtension;
+  Item: TMenuItem;
+begin
+  R := TRepositorioPaginas.Create(ConexionPrincipal,Permisos,
+    IdentidadSesion.Usuario);
+  try
+    while mnuConsultoria.Count > 1 do
+      mnuConsultoria.Items[mnuConsultoria.Count-1].Free;
+    mnuEditorPaginas.Visible := R.PuedeDisenar;
+    mnuEditorPaginas.Enabled := mnuEditorPaginas.Visible;
+    for P in R.Publicaciones do
+      if P.Menu then
+      begin
+        Item := TMenuItem.Create(mnuConsultoria);
+        if P.Grupo = '' then
+          Item.Caption := StringReplace(P.Nombre,'&','&&',[rfReplaceAll])
+        else
+          Item.Caption := StringReplace(P.Grupo + ' · ' + P.Nombre,'&','&&',[rfReplaceAll]);
+        Item.Hint := P.Id;
+        Item.OnClick := PaginaPublicadaClick;
+        mnuConsultoria.Add(Item);
+      end;
+    mnuConsultoria.Visible := mnuEditorPaginas.Visible or
+      (mnuConsultoria.Count > 1);
+    mnuConsultoria.Enabled := mnuConsultoria.Visible;
+  finally
+    R.Free;
+  end;
+end;
+
+procedure TfrmMtoPrincipal.EditorPaginasClick(Sender: TObject);
+begin
+  if EditarPaginasExtension(Self) then
+    MenuConsultoriaClick(nil);
+end;
+
+procedure TfrmMtoPrincipal.PaginaPublicadaClick(Sender: TObject);
+var
+  R: TRepositorioPaginas;
+  P: TPaginaExtension;
+begin
+  R := TRepositorioPaginas.Create(ConexionPrincipal,Permisos,
+    IdentidadSesion.Usuario);
+  try
+    for P in R.Publicaciones do
+      if P.Menu and SameText(P.Id,TMenuItem(Sender).Hint) then
+        AbrirPaginaMenu(Self,R,P);
+  finally
+    R.Free;
+  end;
+end;
+
 procedure TfrmMtoPrincipal.AplicarInterruptorTransito;
 begin
   mnuCargasTransito.Visible := UsarAlmacenesTransito(ParametrosCaja) and
     PuedeAbrirMenu(mnuCargasTransito);
   mnuCargasTransito.Enabled := mnuCargasTransito.Visible;
-end;
-
-procedure TfrmMtoPrincipal.mnuLlamadasClick(Sender: TObject);
-begin
-  if PuedeAbrirMenu(Sender as TMenuItem) then
-    AbrirLlamadas(Self, ConexionPrincipal, Permisos, IdentidadSesion.Usuario,
-      '', Sender = mnuDisenadorLlamadas);
 end;
 
 procedure TfrmMtoPrincipal.mnuAlmacenClick(Sender: TObject);

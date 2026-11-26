@@ -366,6 +366,7 @@ implementation
 {$R *.dfm}
 
 uses
+  inMtoDisenadorPaginas,
   UniDataModeloMantenimiento,
   inLibMensajesVcl, inLibErroresBBDD,
   inLibEnterComoTabDesplegables,
@@ -2825,6 +2826,7 @@ begin
   oPerfilDic := FGestorPerfiles.Perfil;
   CrearTablaPrincipal;
   AplicarEtiquetas;
+  ActualizarPestanasExtension(Self);
   // Alto/ancho de los paneles con separador grabado con Alt+F12.
   FGestorPerfiles.RestaurarSeparadores;
   FGestorGuias.ReaplicarVisibilidad;

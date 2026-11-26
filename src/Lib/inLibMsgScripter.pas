@@ -107,6 +107,20 @@ resourcestring
   SFaltaArchivo = 'Falta el archivo %s del proyecto.';
   SNombreProyecto = 'El proyecto debe llamarse Llamadas.';
 
+  SVistaHistorial = 'Vista';
+  SHistorialOriginal = 'Historial (original)';
+  SPersonalizarVista = 'Personalizar';
+  SCamposVisibles = 'Campos visibles';
+  SFiltroVista = 'Filtro';
+  STodasLlamadas = 'Todas las llamadas';
+  SConSeguimiento = 'Con fecha de seguimiento (más próxima primero)';
+  SNombreVista = 'Nombre de la nueva vista';
+  SProximasLlamadas = 'Próximas llamadas';
+  SMarqueCampo = 'Seleccione al menos un campo.';
+  SNombreVistaInvalido = 'Indique un nombre válido para la vista.';
+  SVistaYaExiste = 'Ya existe una vista con ese nombre. Elija otro.';
+  SVistaIlegible = 'No se puede leer esta vista del historial.';
+
 implementation
 
 end.

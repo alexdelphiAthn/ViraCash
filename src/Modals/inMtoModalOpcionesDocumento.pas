@@ -284,7 +284,11 @@ begin
   oGeometria.DesfaseEtiqueta := ScaleValue(3);
   FAdicionales := TCamposAdicionalesDocumentoVcl.Create(Self, Self,
     FConfiguracion.Propuesta.Adicionales, oGeometria,
-    CamposPropiosCambiados);
+    CamposPropiosCambiados,
+    function: string
+    begin
+      Result := CodigoElegido(FEmpresas, cbbEmpresa);
+    end);
   if FConfiguracion.Aviso <> '' then
   begin
     FAviso := TcxLabel.Create(Self);

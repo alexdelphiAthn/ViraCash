@@ -41,7 +41,8 @@ uses
   SynDBEdit, SynEditTypes, Vcl.AppEvnts, JvComponentBase, JvEnterTab,
   dxShellDialogs, JvExComCtrls, JvDBTreeView, System.Actions, Vcl.ActnList,
   System.UITypes, Uni, inLibConexionesIntf, inLibVentanaEspera,
-  inLibProcesoGeneradorEnMarcha, inLibGeneradorProcesosAplicacion;
+  inLibProcesoGeneradorEnMarcha, inLibGeneradorProcesosAplicacion,
+  inLibEditorCodigoSkin;
 
 const
   ecSelColumnMode = 2577;
@@ -54,7 +55,7 @@ const
   INTERVALO_REVISION_PROCESOS_MS = 200;
 
 type
-  TfrmMtoGeneradorProcesos = class(TfrmMtoGen)
+  TfrmMtoGeneradorProcesos = class(TfrmMtoGen, IEditoresEstiloPascal)
     pnlTopFicha: TPanel;
     cxdbtxtdt1: TcxDBTextEdit;
     cxdbtxtdt2: TcxDBTextEdit;

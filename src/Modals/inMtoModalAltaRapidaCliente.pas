@@ -19,7 +19,7 @@ uses
   System.Classes, Vcl.Controls, Vcl.Forms, Vcl.ExtCtrls,
   cxControls, cxContainer, cxEdit, cxTextEdit, cxMaskEdit,
   cxDropDownEdit, cxCheckBox, cxLabel, cxButtons,
-  inMtoFrmBase, inLibClientesPersistenciaIntf;
+  inMtoFrmBase, inLibClientesPersistenciaIntf, inLibVerificacionNifIntf;
 
 type
   TResultadoAltaRapidaCliente = record
@@ -33,6 +33,7 @@ type
     edtRazonSocial: TcxTextEdit;
     lblNif: TcxLabel;
     edtNif: TcxTextEdit;
+    btnValidarAeat: TcxButton;
     lblDireccion: TcxLabel;
     edtDireccion: TcxTextEdit;
     lblCodigoPostal: TcxLabel;
@@ -47,34 +48,44 @@ type
     pnlBotones: TPanel;
     btnGuardar: TcxButton;
     btnCancelar: TcxButton;
+    procedure btnValidarAeatClick(Sender: TObject);
     procedure btnGuardarClick(Sender: TObject);
   private
     FResultado: TResultadoAltaRapidaCliente;
     FServicio: IAltaRapidaClientes;
+    FVerificacion: IServicioVerificacionNif;
+    FEmpresa: string;
     FPaises: TArray<TPaisAltaRapidaCliente>;
     procedure Configurar;
     function LeerDatos: TDatosAltaRapidaCliente;
   public
     class function Ejecutar(AOwner: TComponent;
-      const AServicio: IAltaRapidaClientes): TResultadoAltaRapidaCliente;
+      const AServicio: IAltaRapidaClientes;
+      const AVerificacion: IServicioVerificacionNif;
+      const AEmpresa: string): TResultadoAltaRapidaCliente;
   end;
 
 implementation
 
 uses
   System.SysUtils, inLibClientesAltaRapida, inLibDocumentoFiscal,
-  inLibMsgVentas, inLibMsgComun, inLibMensajesVcl;
+  inLibMsgVentas, inLibMsgComun, inLibMensajesVcl,
+  inLibMsgVerificacionNif, inMtoVerificacionNifVcl;
 
 {$R *.dfm}
 
 class function TfrmModalAltaRapidaCliente.Ejecutar(AOwner: TComponent;
-  const AServicio: IAltaRapidaClientes): TResultadoAltaRapidaCliente;
+  const AServicio: IAltaRapidaClientes;
+      const AVerificacion: IServicioVerificacionNif;
+      const AEmpresa: string): TResultadoAltaRapidaCliente;
 var
   oFormulario: TfrmModalAltaRapidaCliente;
 begin
   oFormulario := TfrmModalAltaRapidaCliente.Create(AOwner);
   try
     oFormulario.FServicio := AServicio;
+    oFormulario.FEmpresa := AEmpresa;
+    oFormulario.FVerificacion := AVerificacion;
     oFormulario.Configurar;
     oFormulario.ShowModal;
     Result := oFormulario.FResultado;
@@ -90,6 +101,8 @@ begin
   Caption := STituloAltaRapidaCliente;
   lblRazonSocial.Caption := SCaptionRazonSocialAltaRapida;
   lblNif.Caption := SCaptionNifAltaRapida;
+  btnValidarAeat.Caption := SValidarAeatAltaRapida;
+  btnValidarAeat.Hint := SHintBotonVerificarNif;
   lblDireccion.Caption := SCaptionDireccionAltaRapida;
   lblCodigoPostal.Caption := SCaptionCodigoPostalAltaRapida;
   lblPoblacion.Caption := SCaptionPoblacionAltaRapida;
@@ -107,6 +120,23 @@ begin
     if PaisEsEspana(FPaises[i].Codigo, FPaises[i].Nombre) then
       cbbPais.ItemIndex := i;
   end;
+end;
+
+procedure TfrmModalAltaRapidaCliente.btnValidarAeatClick(Sender: TObject);
+var
+  Solicitud: TSolicitudVerificacionNif;
+  sNombre: string;
+begin
+  Solicitud := Default(TSolicitudVerificacionNif);
+  Solicitud.CodigoEmpresa := FEmpresa;
+  Solicitud.Nif := Trim(edtNif.Text);
+  Solicitud.Nombre := Trim(edtRazonSocial.Text);
+  if ConsultarRazonSocialAeat(Self,
+    function: TResultadoVerificacionNif
+    begin
+      Result := FVerificacion.Verificar(Solicitud);
+    end, True, sNombre) then
+    edtRazonSocial.Text := sNombre;
 end;
 
 function TfrmModalAltaRapidaCliente.LeerDatos: TDatosAltaRapidaCliente;

@@ -449,10 +449,6 @@
         ShortCut = 16460
         OnClick = MenuGenericoClick
       end
-      object mnuLlamadasCliente: TMenuItem
-        Caption = 'Llamadas de clientes'
-        OnClick = mnuLlamadasClick
-      end
       object mnuClientes: TMenuItem
         Caption = 'Clientes'
         ShortCut = 16459
@@ -916,10 +912,6 @@
         ShortCut = 24659
         OnClick = MenuGenericoClick
       end
-      object mnuDisenadorLlamadas: TMenuItem
-        Caption = 'Dise'#241'ador de llamadas'
-        OnClick = mnuLlamadasClick
-      end
       object mnuGeneradorProcesos: TMenuItem
         Caption = 'Generador de Procesos'
         ShortCut = 16455
@@ -942,6 +934,14 @@
         Caption = 'Verifactu Log'
         ShortCut = 57462
         OnClick = MenuGenericoClick
+      end
+    end
+    object mnuConsultoria: TMenuItem
+      Caption = 'Consultoría'
+      OnClick = MenuConsultoriaClick
+      object mnuEditorPaginas: TMenuItem
+        Caption = 'IDE de consultoría TMS…'
+        OnClick = EditorPaginasClick
       end
     end
     object Ayuda1: TMenuItem
