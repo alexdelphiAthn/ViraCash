@@ -5,6 +5,7 @@ interface
 type
   TMenusScripter = class
   private
+    class procedure Compilar(Sender: TObject);
     class procedure AbrirOpciones(Sender: TObject);
     class procedure ActualizarHistorial(Sender: TObject);
   public
@@ -14,10 +15,10 @@ type
 implementation
 
 uses
-  System.SysUtils, System.StrUtils, Vcl.Menus, Vcl.ActnList, fIDEEditor,
+  System.SysUtils, System.StrUtils, Vcl.Dialogs, Vcl.Menus, Vcl.ActnList, fIDEEditor,
   System.Classes, System.Math, Vcl.Graphics, ScrMemo, ScrMps, dIDEActions,
   IDEMain, fWatches, inLibFuenteInterfaz,
-  DesignerOptionsDialog, inLibMsgScripter;
+  DesignerOptionsDialog, inLibMsgScripter, inLibIdiomaConsultoria;
 
 type
   TListaExpresiones = class(TIDEWatchListView);
@@ -322,6 +323,15 @@ begin
   end;
 end;
 
+class procedure TMenusScripter.Compilar(Sender: TObject);
+var
+  Acciones: TdmIDEActions;
+begin
+  Acciones := (Sender as TAction).ActionList.Owner as TdmIDEActions;
+  Acciones.Engine.CompileProject;
+  ShowMessage(TextoConsultoria('Proyecto compilado.'));
+end;
+
 class procedure TMenusScripter.AlCrearEditor(Sender: TObject);
 var
   Editor: TIDEEditorForm;
@@ -387,6 +397,8 @@ begin
   Traducir(Editor.DesignerOptions1, SOpciones);
 
   Editor.IDEActions.acDesignerOptionsDlg.OnExecute := AbrirOpciones;
+  Editor.IDEActions.acCompile.OnExecute := Compilar;
+  LocalizarEditorTMS(Editor);
   TPieEditor.Crear(Editor);
   Editor.IDEActions.acUndo.OnUpdate := ActualizarHistorial;
   Editor.IDEActions.acRedo.OnUpdate := ActualizarHistorial;

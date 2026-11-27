@@ -60,6 +60,7 @@ procedure RetirarPestanas(PC: TcxPageControl);
 implementation
 
 uses
+  inLibIdiomaConsultoria, inLibTextosProyecto, System.JSON,
   System.Variants, System.Rtti, System.TypInfo, System.UITypes, Vcl.Dialogs,
   inMtoModalImpConsultoria, cxGridLevel, cxDBEdit, cxTextEdit, cxCalendar, cxMemo,
   cxDBLookupComboBox, cxDropDownEdit, dxFilterPopupWindow, cxGridCustomTableView,
@@ -97,22 +98,27 @@ end;
 procedure TRegistroExtension.Asignar(const Nombre: string; const Valor: Variant);
 begin
   if SameText(Nombre, FBloqueado) then
-    raise EDatabaseError.Create('El registro pertenece al mantenimiento activo.');
+    raise EDatabaseError.Create(TextoConsultoria('El registro pertenece al mantenimiento activo.'));
   FDatos.FieldByName(Nombre).Value := Valor;
 end;
 
 procedure ProcesarScript(const Codigo: string; Datos: TDataSet;
-  const Bloqueado: string);
+  const Bloqueado: string; const Proyecto: string);
 var
   Motor: TatPascalScripter;
   Registro: TRegistroExtension;
   Error: string;
+  Archivos: TJSONObject;
 begin
   if Trim(Codigo) <> '' then
   begin
     Motor := TatPascalScripter.Create(nil);
+    Archivos := nil;
     Registro := TRegistroExtension.Create;
     try
+      if Proyecto <> '' then
+        Archivos := TJSONObject.ParseJSONValue(Proyecto) as TJSONObject;
+      TTextosProyecto.Crear(Motor, Archivos);
       Registro.FDatos := Datos;
       Registro.FBloqueado := Bloqueado;
       Motor.LibOptions.UseScriptFiles := False;
@@ -130,6 +136,7 @@ begin
       end;
     finally
       Motor.Free;
+      Archivos.Free;
       Registro.Free;
     end;
   end;
@@ -137,7 +144,7 @@ end;
 
 procedure ComprobarScript(const Codigo: string);
 begin
-  ProcesarScript(Codigo,nil,'');
+  ProcesarScript(Codigo,nil,'','');
 end;
 
 function Boton(Padre: TWinControl; const Texto: string; X: Integer;
@@ -147,7 +154,7 @@ begin
   Result.Parent := Padre;
   Result.SetBounds(Padre.ScaleValue(X),Padre.ScaleValue(4),
     Padre.ScaleValue(110),Padre.ScaleValue(30));
-  Result.Caption := Texto;
+  Result.Caption := TextoConsultoria(Texto);
   Result.OnClick := AlPulsar;
 end;
 
@@ -220,7 +227,7 @@ begin
   Propiedades.ListFieldNames := 'texto;clave';
   Propiedades.ListColumns[0].Caption := Etiqueta;
   Propiedades.ListColumns[0].Width := 270;
-  Propiedades.ListColumns[1].Caption := 'Código';
+  Propiedades.ListColumns[1].Caption := TextoConsultoria('Código');
   Propiedades.ListColumns[1].Width := 80;
   Propiedades.ListFieldIndex := 0;
   Propiedades.DropDownListStyle := lsFixedList;
@@ -288,14 +295,14 @@ var
 begin
   FRepo.ExigirVigente(FPagina);
   if not FRepo.Puede(FPagina.ClavePermiso,'editar') then
-    raise EDatabaseError.Create('Falta el permiso de edición de la página.');
+    raise EDatabaseError.Create(TextoConsultoria('Falta el permiso de edición de la página.'));
   if FEnFicha then
   begin
     Enlace := FPagina.Detalle;
     if not VarSameValue(DataSet.FieldByName(Enlace).Value,FClave) then
-      raise EDatabaseError.Create('Ha cambiado el enlace al registro principal.');
+      raise EDatabaseError.Create(TextoConsultoria('Ha cambiado el enlace al registro principal.'));
   end;
-  ProcesarScript(FPagina.Script,DataSet,Enlace);
+  ProcesarScript(FPagina.Script,DataSet,Enlace,FPagina.Proyecto);
   if FPagina.Referencia.Campo <> '' then
   begin
     Campo := DataSet.FieldByName(FPagina.Referencia.Campo);
@@ -623,7 +630,7 @@ begin
   try
     Tab.Repo := Repo;
     Tab.Pagina := P;
-    Tab.Vincular(PC, DS, P.Maestro, P.Nombre, 'Seleccione un registro guardado.');
+    Tab.Vincular(PC, DS, P.Maestro, P.Nombre, TextoConsultoria('Seleccione un registro guardado.'));
   except
     Tab.Free;
     raise;

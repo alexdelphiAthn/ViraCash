@@ -134,7 +134,7 @@
       end
     end
     object tsUnidades: TcxTabSheet
-      Caption = 'Elemento y unidades TMS'
+      Caption = 'Elemento y unidades'
       object lblClaseTMS: TcxLabel
         Left = 16
         Top = 15

@@ -78,7 +78,7 @@ const
 implementation
 
 uses
-  System.JSON, System.StrUtils, DBAccess;
+  System.JSON, System.StrUtils, DBAccess, inLibMsgPaginasExtension;
 
 const
   Prefijo = 'Pagina/';
@@ -140,7 +140,7 @@ begin
   J := TJSONObject.ParseJSONValue(ATexto);
   try
     if not (J is TJSONObject) then
-      raise EConvertError.CreateFmt('Definición ilegible de «%s».', [ANombre]);
+      raise EConvertError.CreateFmt(SDefinicionIlegible, [ANombre]);
     Result.Grupo := J.GetValue<string>('grupo','');
     Result.SoloOrigen := J.GetValue<Boolean>('soloOrigen',False);
     Result.Id := ANombre;
@@ -211,7 +211,7 @@ begin
   J := TJSONObject.ParseJSONValue(Contenido);
   try
     if not (J is TJSONObject) then
-      raise EConvertError.Create('El proyecto guardado es ilegible.');
+      raise EConvertError.Create(SProyectoGuardadoIlegible);
     Retirado := J.GetValue<string>('origenRetirado','');
     if not J.TryGetValue<string>('borrador',Borrador) then
     begin
@@ -233,14 +233,14 @@ end;
 function TRepositorioPaginas.Activas: TArray<TPaginaExtension>;
 begin
   if not PuedeDisenar then
-    raise EInvalidOpException.Create('Falta el permiso de diseño.');
+    raise EInvalidOpException.Create(SFaltaPermisoDiseno);
   Result := Listar(False,False);
 end;
 
 function TRepositorioPaginas.Borradores: TArray<TPaginaExtension>;
 begin
   if not PuedeDisenar then
-    raise EInvalidOpException.Create('Falta el permiso de diseño.');
+    raise EInvalidOpException.Create(SFaltaPermisoDiseno);
   Result := Listar(True,False);
 end;
 
@@ -421,7 +421,7 @@ var
   Q: TUniQuery;
 begin
   if Trim(VarToStr(Valor)) = '' then
-    raise EDatabaseError.CreateFmt('Seleccione un valor para %s.',[R.Etiqueta]);
+    raise EDatabaseError.CreateFmt(SSeleccioneValor, [R.Etiqueta]);
   Q := Consulta('SELECT 1 FROM ' + Ident(R.Origen) +
     ' WHERE ' + Ident(R.Clave) + '=:clave');
   try
@@ -433,8 +433,7 @@ begin
     end;
     Q.Open;
     if Q.IsEmpty then
-      raise EDatabaseError.CreateFmt('El valor de %s ya no está disponible.',
-        [R.Etiqueta]);
+      raise EDatabaseError.CreateFmt(SValorNoDisponible, [R.Etiqueta]);
   finally
     Q.Free;
   end;
@@ -446,30 +445,29 @@ var
   S: string;
 begin
   if (Trim(P.Nombre) = '') or (Length(P.Nombre) > LongitudNombreConsultoria) then
-    raise EValidacionPagina.Create('Indique un nombre de hasta 53 caracteres.');
+    raise EValidacionPagina.Create(SIndiqueNombre);
   if not P.SoloOrigen and not P.Menu and (P.Mantenimiento = '') then
-    raise EValidacionPagina.Create('Elija un destino para la publicación.');
+    raise EValidacionPagina.Create(SElijaDestino);
   if (P.Clase = 'Funcionalidad') and (P.Origen = '') and P.Menu then
     Exit;
   if Trim(P.Origen) = '' then
-    raise EValidacionPagina.Create('Elija el origen en Proyecto > Datos y publicación > Lista y ficha.');
+    raise EValidacionPagina.Create(SElijaOrigen);
   if (P.Tipo <> Tabla) and (P.Tipo <> Vista) and (P.Tipo <> Procedimiento) then
-    raise EValidacionPagina.Create('Tipo de origen desconocido.');
+    raise EValidacionPagina.Create(STipoOrigenDesconocido);
   Disponibles := TStringList.Create;
   Elegidos := TStringList.Create;
   try
     Origenes(P.Tipo, Disponibles, P.Origen);
     if Disponibles.IndexOf(P.Origen) < 0 then
-      raise EValidacionPagina.CreateFmt('El origen «%s» ya no está disponible. Revíselo en Datos y publicación.', [P.Origen]);
+      raise EValidacionPagina.CreateFmt(SOrigenNoDisponible, [P.Origen]);
     Columnas(P.Tipo, P.Origen, Disponibles);
     if (P.Mantenimiento <> '') and ((P.Maestro = '') or
       (Disponibles.IndexOf(P.Detalle) < 0)) then
-      raise EValidacionPagina.Create('Seleccione el campo de enlace.');
+      raise EValidacionPagina.Create(SSeleccioneCampoEnlace);
     if P.Tipo = Procedimiento then
     begin
       if (P.Mantenimiento <> '') and (Disponibles.Count <> 1) then
-        raise EValidacionPagina.Create('La pestaña requiere una sola entrada ' +
-          'IN vinculada al registro principal.');
+        raise EValidacionPagina.Create(SPestanaUnaEntrada);
     end
     else
     begin
@@ -477,13 +475,12 @@ begin
       if (P.Referencia.Campo <> '') and ((P.Tipo <> Tabla) or
         (Elegidos.IndexOf(P.Referencia.Campo) < 0) or
         SameText(P.Detalle,P.Referencia.Campo)) then
-        raise EValidacionPagina.Create('Marque el campo de la lista de selección ' +
-          'y elija un campo de enlace distinto.');
+        raise EValidacionPagina.Create(SMarqueCampoSeleccion);
       if (Elegidos.Count = 0) and not P.SoloOrigen then
-        raise EValidacionPagina.Create('Marque los campos de la lista y ficha.');
+        raise EValidacionPagina.Create(SMarqueCampos);
       for S in Elegidos do
         if Disponibles.IndexOf(S) < 0 then
-          raise EValidacionPagina.CreateFmt('Campo no disponible: %s.', [S]);
+          raise EValidacionPagina.CreateFmt(SCampoNoDisponible, [S]);
     end;
     if P.Referencia.Campo <> '' then
     begin
@@ -492,7 +489,7 @@ begin
          (Disponibles.IndexOf(P.Referencia.Texto) < 0) or
          ((P.Referencia.Filtro <> '') and
          (Disponibles.IndexOf(P.Referencia.Filtro) < 0)) then
-        raise EValidacionPagina.Create('Revise el origen y los campos de la lista de selección.');
+        raise EValidacionPagina.Create(SReviseListaSeleccion);
     end;
   finally
     Elegidos.Free;
@@ -508,9 +505,9 @@ var
   Anterior: TPaginaExtension;
 begin
   if not PuedeDisenar then
-    raise EInvalidOpException.Create('Falta el permiso de diseño.');
+    raise EInvalidOpException.Create(SFaltaPermisoDiseno);
   if (Trim(APagina.Nombre) = '') or (Length(APagina.Nombre) > LongitudNombreConsultoria) then
-    raise EArgumentException.Create('Indique un nombre de hasta 53 caracteres.');
+    raise EArgumentException.Create(SIndiqueNombre);
   if APagina.Id = '' then
     APagina.Id := TGUID.NewGuid.ToString;
   Publicado := '';
@@ -524,7 +521,7 @@ begin
       Q.ParamByName('version').AsInteger := APagina.Version;
       Q.Open;
       if Q.IsEmpty then
-        raise EInvalidOpException.Create('Otra sesión modificó esta consultoría.');
+        raise EInvalidOpException.Create(SOtraSesionConsultoria);
       SepararEstado(Q.Fields[0].AsString,Borrador,Publicado,Retirado);
     finally
       Q.Free;
@@ -574,13 +571,12 @@ begin
     except
       on E: EUniError do
         if E.ErrorCode = 1062 then
-          raise EInvalidOpException.Create('Ya existe una página con ese nombre.')
+          raise EInvalidOpException.Create(SPaginaYaExiste)
         else
           raise;
     end;
     if Q.RowsAffected <> 1 then
-      raise EInvalidOpException.Create('Otra sesión modificó esta página. ' +
-        'Vuelva a abrirla antes de publicar.');
+      raise EInvalidOpException.Create(SOtraSesionPagina);
     APagina.Publicada := Publicado <> '';
     Inc(APagina.Version);
   finally
@@ -612,11 +608,11 @@ var
   i: Integer;
 begin
   if not PuedeDisenar then
-    raise EInvalidOpException.Create('Falta el permiso de diseño.');
+    raise EInvalidOpException.Create(SFaltaPermisoDiseno);
   if (Trim(Nombre) = '') or (Length(Nombre) > LongitudNombreConsultoria) then
-    raise EArgumentException.Create('Indique un nombre de proyecto de hasta 53 caracteres.');
+    raise EArgumentException.Create(SIndiqueNombreProyecto);
   if FConexion.InTransaction then
-    raise EInvalidOpException.Create('Termine la operación en curso antes de guardar.');
+    raise EInvalidOpException.Create(STermineAntesGuardar);
   Copia := Copy(Elementos);
   Nombres := TStringList.Create;
   try
@@ -625,11 +621,10 @@ begin
       Copia[i].Nombre := Trim(Copia[i].Nombre);
       if (Copia[i].Nombre = '') or
         (Length(Copia[i].Nombre) > LongitudNombreConsultoria) then
-        raise EArgumentException.CreateFmt(
-          'Indique un nombre de hasta 53 caracteres para el elemento %d (%s).',
+        raise EArgumentException.CreateFmt(SIndiqueNombreElemento,
           [i+1,Copia[i].Clase]);
       if Nombres.IndexOf(Copia[i].Nombre) >= 0 then
-        raise EArgumentException.Create('Cada elemento del proyecto necesita un nombre distinto.');
+        raise EArgumentException.Create(SNombresDistintos);
       Nombres.Add(Copia[i].Nombre);
     end;
   finally
@@ -652,7 +647,7 @@ begin
       if Version <> 0 then Q.ParamByName('ver').AsInteger := Version;
       Q.ExecSQL;
       if Q.RowsAffected <> 1 then
-        raise EInvalidOpException.Create('El proyecto ha cambiado. Vuelva a abrirlo.');
+        raise EInvalidOpException.Create(SProyectoCambiado);
     finally
       Q.Free;
     end;
@@ -688,7 +683,7 @@ var
   i: Integer;
 begin
   if FConexion.InTransaction then
-    raise EInvalidOpException.Create('Termine la operación en curso antes de publicar.');
+    raise EInvalidOpException.Create(STermineAntesPublicar);
   Cambios := Copy(Paginas);
   FConexion.StartTransaction;
   try
@@ -714,7 +709,7 @@ begin
     for Actual in Publicaciones do
       if (Actual.Id = P.Id) and (Actual.Serializar = P.Serializar) then
         Exit;
-    raise EInvalidOpException.Create('La publicación ha cambiado. Vuelva a abrir el elemento.');
+    raise EInvalidOpException.Create(SPublicacionCambiada);
   end;
 end;
 
@@ -740,7 +735,7 @@ var
   F: TField;
 begin
   if not Puede(P.ClavePermiso, 'abrir') then
-    raise EInvalidOpException.Create('Falta el permiso de consulta.');
+    raise EInvalidOpException.Create(SFaltaPermisoConsulta);
   Validar(P);
   Campos := TStringList.Create;
   Claves := TStringList.Create;
@@ -753,7 +748,7 @@ begin
         Columnas(P.Tipo, P.Origen, Campos);
         if not AEnFicha and (Campos.Count > 0) and
           ((AParametros = nil) or (AParametros.Count <> Campos.Count)) then
-          raise EArgumentException.Create('Faltan parámetros del procedimiento.');
+          raise EArgumentException.Create(SFaltanParametros);
         ParametrosSQL := '';
         for i := 0 to Campos.Count-1 do
         begin

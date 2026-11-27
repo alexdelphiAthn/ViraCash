@@ -8,7 +8,7 @@ unit inMtoCajaEditorLineasBusqueda;
 interface
 
 uses
-  System.Classes, Vcl.Forms, Vcl.ExtCtrls, Data.DB, Uni,
+  System.Classes, System.SysUtils, Vcl.Forms, Vcl.ExtCtrls, Data.DB, Uni,
   cxEdit, cxGridCustomTableView, cxGridDBTableView,
   UniDataCaja, inLibParametrosIntf, inLibCajaVentaIntf,
   inLibGenBusq, inLibFotos, inLibLogIntf, inLibPestanasEjeVcl;
@@ -32,6 +32,9 @@ type
     VistaBusqueda: TcxGridDBTableView;
     TemporizadorBusqueda: TTimer;
     ImagenStock: TImage;
+    // FZ-ISSUE-1318: máscara de la unidad de la línea activa ('' si se
+    // vende por unidades enteras) para las existencias del panel.
+    MascaraCantidadLinea: TFunc<string>;
   end;
   TBusquedaEditorLineasCajaVcl = class
   private
@@ -40,6 +43,7 @@ type
     FPestanasStock: TControlPestanasGridStock;
     function CodigoConsultaStock(const ACodigo: string): string;
     procedure AsignarColumnasStock(ADataSet: TDataSet);
+    procedure FormatearCantidadesStock(ADataSet: TDataSet);
     procedure AjustarPresentacionStock(ADataSet: TDataSet);
     function ObtenerEditorActivo: TcxCustomEdit;
     function ObtenerTextoEditor(AEditor: TcxCustomEdit): string;
@@ -69,7 +73,7 @@ type
 implementation
 
 uses
-  System.SysUtils, System.Variants, System.Generics.Collections,
+  System.Variants, System.Generics.Collections,
   Data.FmtBcd, Data.SqlTimSt, Vcl.Imaging.PngImage, cxTextEdit,
   cxDBExtLookupComboBox, inLibAtributosPaleta,
   inMtoCajaEditorLineasDecisiones, inLibMsgArticulos, inLibMsgCaja,
@@ -142,6 +146,7 @@ begin
         SCaptionStockTotalCaja, '');
       ConfigurarCampo(ADataSet.FindField('Total'),
         SCaptionStockTotalCaja, '');
+      FormatearCantidadesStock(ADataSet);
       FContexto.VistaStock.DataController.CreateAllItems;
       for I := 0 to FContexto.VistaStock.ColumnCount - 1 do
       begin
@@ -156,6 +161,23 @@ begin
   finally
     FContexto.VistaStock.EndUpdate;
   end;
+end;
+
+procedure TBusquedaEditorLineasCajaVcl.FormatearCantidadesStock(
+  ADataSet: TDataSet);
+var
+  Mascara: string;
+  I: Integer;
+begin
+  // FZ-ISSUE-1318: las existencias se muestran con los decimales de la
+  // unidad de medida del artículo, como la línea, el cobro y los avisos.
+  Mascara := '';
+  if Assigned(FContexto.MascaraCantidadLinea) then
+    Mascara := FContexto.MascaraCantidadLinea();
+  if Mascara <> '' then
+    for I := 0 to ADataSet.FieldCount - 1 do
+      if ADataSet.Fields[I] is TNumericField then
+        ConfigurarCampo(ADataSet.Fields[I], '', Mascara);
 end;
 
 procedure TBusquedaEditorLineasCajaVcl.AjustarPresentacionStock(

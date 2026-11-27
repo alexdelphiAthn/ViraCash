@@ -7,7 +7,7 @@ uses
   System.Classes, System.Variants, Vcl.Controls, UniDataPaginasExtension;
 
 function EditarConsultoriaTMS(AOwner: TComponent;
-  Repo: TRepositorioPaginas): Boolean;
+  Repo: TRepositorioPaginas; AbrirIdiomas: Boolean = False): Boolean;
 function MontarConsultoriaTMS(Contenedor: TWinControl; Repo: TRepositorioPaginas;
   const P: TPaginaExtension; EnFicha: Boolean; const Clave: Variant;
   Parametros: TStrings): TComponent;
@@ -20,7 +20,8 @@ uses
   System.UITypes, Vcl.Forms, Vcl.Menus, Vcl.ExtCtrls, Vcl.Dialogs,
   cxButtons, cxDropDownEdit, cxLabel, IDEMain, fIDEEditor, atScript, atPascal,
   inMtoConsultoriaLlamadas, inMtoDisenadorPaginas, inMtoPaginaExtension,
-  inMtoFrmBase, inLibMensajesVcl;
+  inMtoFrmBase, inLibMensajesVcl, inLibIdiomaConsultoria,
+  inLibTextosProyecto, inMtoIdiomasProyecto;
 
 {$R 'Consultoria\Plantilla\Plantilla.res'}
 
@@ -52,6 +53,7 @@ type
     FElementos: TArray<TPaginaExtension>;
     FIndice, FVersionProyecto: Integer;
     procedure Elementos(Sender: TObject);
+    procedure IdiomasProyecto(Sender: TObject);
     procedure NuevoElemento(Sender: TObject);
     procedure ActivarEntrada(Proyecto: TProyectoScripter; const P: TPaginaExtension);
     procedure GuardarConjunto;
@@ -128,6 +130,9 @@ begin
       Recurso := 'CONS_' + UpperCase(StringReplace(Recurso,'.','_',[rfReplaceAll]));
       J.AddPair(LowerCase(Nombre), TextoPlantilla(Recurso));
     end;
+    if Ejemplo then
+      J.AddPair(ClaveIdiomasProyecto, TJSONObject.ParseJSONValue(
+        TextoPlantilla('CONS_IDIOMAS_EJEMPLO')));
     Result := J.ToJSON;
   finally
     J.Free;
@@ -143,7 +148,7 @@ begin
   begin
     Nodo := Archivos.GetValue(LowerCase(Unidad + '.psc'));
     if Nodo = nil then
-      raise EArgumentException.CreateFmt('Falta la unidad %s en el proyecto.',[Unidad]);
+      raise EArgumentException.CreateFmt(TextoConsultoria('Falta la unidad %s en el proyecto.'),[Unidad]);
     Result := Nodo.Value;
   end;
 end;
@@ -162,6 +167,7 @@ begin
     Motor.LibOptions.UseScriptFiles := False;
     Motor.DefineClassByRTTI(TConfiguracionPagina,'',[mvPublished]);
     Motor.AddObject('Consultoria',Config);
+    TTextosProyecto.Crear(Motor, Archivos);
     Motor.SourceCode.Text := CodigoUnidad(Archivos,P.Selectores);
     if Trim(Motor.SourceCode.Text) <> '' then
     begin
@@ -185,7 +191,7 @@ begin
   begin
     Unidad := Proyecto.IDE.Files.FindByUnitName(P.Entrada);
     if Unidad = nil then
-      raise EArgumentException.CreateFmt('Falta la unidad de entrada %s.',[P.Entrada]);
+      raise EArgumentException.CreateFmt(TextoConsultoria('Falta la unidad de entrada %s.'),[P.Entrada]);
     Proyecto.IDE.MainUnit := Unidad;
   end;
 end;
@@ -194,7 +200,7 @@ procedure TConsultoriaTMS.ActualizarTitulo;
 var
   Titulo: string;
 begin
-  Titulo := 'ViraCash | Consultoría TMS';
+  Titulo := 'ViraCash | ' + TextoConsultoria('Diseñador de consultoría');
   if FGrupo <> '' then
     Titulo := Titulo + ' | ' + FGrupo;
   if FPagina.Nombre <> '' then
@@ -209,6 +215,7 @@ begin
   FEditor := Editar;
   FProyecto := TProyectoScripter.Crear(Self,FPagina.Proyecto,Self,Editar,
     'Pagina.ssproj','Consultoria');
+  TTextosProyecto.Crear(FProyecto.Motor, FProyecto.Archivos);
   FPropietario := TComponent.Create(nil);
   FProyecto.Motor.AddObject('Propietario',FPropietario);
   ActivarEntrada(FProyecto,FPagina);
@@ -259,7 +266,7 @@ begin
       while Assigned(Anfitrion) and not (Anfitrion is TfrmBase) do
         Anfitrion := Anfitrion.Owner;
       if not Assigned(Anfitrion) then
-        raise EInvalidOpException.Create('Abra el historial desde Clientes.');
+        raise EInvalidOpException.Create(TextoConsultoria('Abra el historial desde Clientes.'));
       IntegrarHistorial(Panel, TfrmBase(Anfitrion).ConexionPrincipal,
         TfrmBase(Anfitrion).Permisos, TfrmBase(Anfitrion).IdentidadSesion.Usuario,
         VarToStr(FClave));
@@ -269,7 +276,7 @@ begin
       Aviso := TcxLabel.Create(Panel);
       Aviso.Parent := Panel;
       Aviso.Align := alTop;
-      Aviso.Caption := 'Abra esta pestaña en la ficha de un cliente guardado.';
+      Aviso.Caption := TextoConsultoria('Abra esta pestaña en la ficha de un cliente guardado.');
     end;
 end;
 
@@ -285,7 +292,7 @@ var
 begin
   Padre := Contenedor as TWinControl;
   if not (Ficha is TCustomForm) then
-    raise EArgumentException.Create('La ficha debe ser un formulario TMS.');
+    raise EArgumentException.Create(TextoConsultoria('La ficha debe ser un formulario del proyecto.'));
   for i := 0 to Padre.ControlCount-1 do
     if Padre.Controls[i] is TPanelPagina then
     begin
@@ -296,6 +303,7 @@ begin
   if FEditor then
   begin
     P.Version := 0;
+    P.Proyecto := FProyecto.Archivos.ToJSON;
     AplicarUnidades(P,FProyecto.Archivos);
   end;
   if FEditor and (P.Origen = '') then
@@ -303,11 +311,11 @@ begin
     Aviso := TcxLabel.Create(Padre);
     Aviso.Parent := Padre;
     Aviso.Align := alTop;
-    Aviso.Caption := 'Elija el origen desde Proyecto > Datos y publicación.';
+    Aviso.Caption := TextoConsultoria('Elija el origen desde Proyecto > Datos y publicación.');
     Exit;
   end;
   if FEditor and (P.Nombre = '') then
-    P.Nombre := 'Prueba';
+    P.Nombre := TextoConsultoria('Prueba');
   Entradas := TStringList.Create;
   Valores := TStringList.Create;
   try
@@ -353,6 +361,11 @@ begin
   ConfigurarElemento;
 end;
 
+procedure TConsultoriaTMS.IdiomasProyecto(Sender: TObject);
+begin
+  EditarIdiomasProyecto(FVentanaEditor, FProyecto.Archivos);
+end;
+
 procedure TConsultoriaTMS.RecogerCodigo;
 begin
   if not FProyecto.IDE.DlgSaveAll then
@@ -390,13 +403,13 @@ begin
     Nombre := Trim(Nombre);
     Motivo := '';
     if Nombre = '' then
-      Motivo := 'Falta el nombre.'
+      Motivo := TextoConsultoria('Falta el nombre.')
     else if Length(Nombre) > LongitudNombreConsultoria then
-      Motivo := 'El nombre admite hasta 53 caracteres.'
+      Motivo := TextoConsultoria('El nombre admite hasta 53 caracteres.')
     else if Assigned(Ocupados) and (Ocupados.IndexOf(Nombre) >= 0) then
-      Motivo := 'Ese nombre ya pertenece a otro elemento del proyecto.';
+      Motivo := TextoConsultoria('Ese nombre ya pertenece a otro elemento del proyecto.');
     if Motivo <> '' then
-      if not InputQuery('Guardar borrador', Etiqueta + '. ' + Motivo, Nombre) then
+      if not InputQuery(TextoConsultoria('Guardar borrador'), Etiqueta + '. ' + Motivo, Nombre) then
         Abort;
   until Motivo = '';
 end;
@@ -410,7 +423,7 @@ begin
   if Length(FElementos) = 0 then
     if not ConfigurarElemento then
       Abort;
-  CompletarNombre(FGrupo,'Nombre del proyecto',nil);
+  CompletarNombre(FGrupo,TextoConsultoria('Nombre del proyecto'),nil);
   Copia := Copy(FElementos);
   Copia[FIndice] := FPagina;
   Nombres := TStringList.Create;
@@ -421,8 +434,8 @@ begin
       if Copia[i].Version = 0 then
       begin
         Nombres.Delete(Nombres.IndexOf(Trim(Copia[i].Nombre)));
-        CompletarNombre(Copia[i].Nombre,Format('Nombre del elemento %d (%s)',
-          [i+1,Copia[i].Clase]),Nombres);
+        CompletarNombre(Copia[i].Nombre,Format(TextoConsultoria('Nombre del elemento %d (%s)'),
+          [i+1,TextoConsultoria(Copia[i].Clase)]),Nombres);
         Nombres.Add(Copia[i].Nombre);
       end;
   finally
@@ -440,7 +453,7 @@ begin
   GuardarConjunto;
   ActualizarTitulo;
   if Assigned(Sender) then
-    ShowMessage_fza('Proyecto guardado como borrador.');
+    ShowMessage_fza(TextoConsultoria('Proyecto guardado como borrador.'));
 end;
 
 procedure TConsultoriaTMS.NuevoElemento(Sender: TObject);
@@ -482,13 +495,13 @@ var
 begin
   if Length(FElementos) = 0 then
   begin
-    ShowMessage_fza('El proyecto todavía no tiene elementos. Use Proyecto > Añadir elemento.');
+    ShowMessage_fza(TextoConsultoria('El proyecto todavía no tiene elementos. Use Proyecto > Añadir elemento.'));
     Exit;
   end;
   FElementos[FIndice] := FPagina;
   F := TfrmBase.Create(Self);
   try
-    F.Caption := 'Elementos del proyecto';
+    F.Caption := TextoConsultoria('Elementos del proyecto');
     F.BorderStyle := bsDialog;
     F.Position := poScreenCenter;
     F.ClientWidth := F.ScaleValue(410);
@@ -499,14 +512,14 @@ begin
     Combo.Properties.DropDownListStyle := lsFixedList;
     for P in FElementos do
       if P.Publicada then
-        Combo.Properties.Items.Add(P.Clase+' · '+P.Nombre+' (publicado)')
+        Combo.Properties.Items.Add(TextoConsultoria(P.Clase)+' · '+P.Nombre+' ('+TextoConsultoria('Publicado')+')')
       else
-        Combo.Properties.Items.Add(P.Clase+' · '+P.Nombre+' (borrador)');
+        Combo.Properties.Items.Add(TextoConsultoria(P.Clase)+' · '+P.Nombre+' ('+TextoConsultoria('Borrador')+')');
     Combo.ItemIndex := FIndice;
     Boton := TcxButton.Create(F);
     Boton.Parent := F;
     Boton.SetBounds(F.ScaleValue(290),F.ScaleValue(52),F.ScaleValue(108),F.ScaleValue(30));
-    Boton.Caption := 'Seleccionar';
+    Boton.Caption := TextoConsultoria('Seleccionar');
     Boton.ModalResult := mrOk;
     if F.ShowModal = mrOk then
     begin
@@ -532,6 +545,7 @@ begin
     Proyecto := TProyectoScripter.Crear(nil,P.Proyecto,Self,False,
       'Pagina.ssproj','Consultoria');
     try
+      TTextosProyecto.Crear(Proyecto.Motor, Proyecto.Archivos);
       Proyecto.Motor.AddObject('Propietario',Self);
       ActivarEntrada(Proyecto,P);
       Proyecto.IDE.CompileProject;
@@ -557,11 +571,11 @@ begin
   Grupo := (TMenuItem(Sender).Tag and 2) <> 0;
   Activar := (TMenuItem(Sender).Tag and 1) <> 0;
   if Grupo and (Trim(FPagina.Grupo) = '') then
-    raise EArgumentException.Create('Indique el nombre del proyecto en Datos y publicación.');
+    raise EArgumentException.Create(TextoConsultoria('Indique el nombre del proyecto en Datos y publicación.'));
   if Activar then
-    Accion := 'Publicar'
+    Accion := TextoConsultoria('¿Publicar los siguientes elementos?')
   else
-    Accion := 'Despublicar';
+    Accion := TextoConsultoria('¿Despublicar los siguientes elementos?');
   if Activar then
     Guardar(nil);
   Candidatas := FRepo.Borradores;
@@ -581,7 +595,7 @@ begin
     Destinos.Free;
   end;
   if Length(Seleccion) = 0 then
-    raise EInvalidOpException.Create('No hay elementos para esta operación.');
+    raise EInvalidOpException.Create(TextoConsultoria('No hay elementos para esta operación.'));
   Texto := '';
   for i := 0 to High(Seleccion) do
   begin
@@ -591,14 +605,14 @@ begin
       except
         on E: EValidacionPagina do
         begin
-          MessageDlg_fza(Format('Revise el elemento «%s».',[Seleccion[i].Nombre]) +
+          MessageDlg_fza(Format(TextoConsultoria('Revise el elemento «%s».'),[Seleccion[i].Nombre]) +
             sLineBreak + E.Message, mtInformation, [mbOK], 0);
           Exit;
         end;
       end;
     Texto := Texto + sLineBreak + Seleccion[i].Nombre;
   end;
-  if MessageDlg_fza('¿' + Accion + ' los siguientes elementos?' + Texto,
+  if MessageDlg_fza(Accion + Texto,
     mtConfirmation,[mbYes,mbNo],0) = mrYes then
   begin
     FRepo.CambiarPublicacion(Seleccion,Activar);
@@ -615,7 +629,7 @@ begin
           end;
         end;
     FCambioPublicado := True;
-    ShowMessage_fza('Publicación actualizada.');
+    ShowMessage_fza(TextoConsultoria('Publicación actualizada.'));
   end;
 end;
 
@@ -628,7 +642,7 @@ var
     Item: TMenuItem;
   begin
     Item := TMenuItem.Create(Editor);
-    Item.Caption := Texto;
+    Item.Caption := TextoConsultoria(Texto);
     Item.Tag := Tag;
     Item.OnClick := Evento;
     Padre.Add(Item);
@@ -641,6 +655,7 @@ begin
   Agregar(Editor.Project1,'Elementos del proyecto…',Elementos);
   Agregar(Editor.Project1,'Añadir elemento…',NuevoElemento);
   Agregar(Editor.Project1,'Datos y publicación…',Datos);
+  Agregar(Editor.Project1,'Editor de idiomas…',IdiomasProyecto);
   Agregar(Editor.Project1,'Guardar borrador',Guardar);
   Agregar(Editor.Project1,'Publicar elemento…',CambiarEstado,1);
   Agregar(Editor.Project1,'Despublicar elemento…',CambiarEstado,0);
@@ -666,6 +681,8 @@ begin
         Archivos.RemovePair(Par.JsonString.Value).Free;
         Archivos.AddPair(Par.JsonString.Value, TextoPlantilla(Par.JsonValue.Value));
       end;
+      Archivos.AddPair(ClaveIdiomasProyecto,
+        Ejemplo.GetValue<TJSONObject>('idiomas').Clone as TJSONObject);
       Proyecto := Archivos.ToJSON;
     finally
       Archivos.Free;
@@ -676,10 +693,21 @@ begin
     begin
       Elementos[i] := TPaginaExtension.Leer('', Paginas.Items[i].ToJSON, 0);
       Elementos[i].Proyecto := Proyecto;
+      Elementos[i].Nombre := TextoConsultoria(Elementos[i].Nombre);
     end;
   finally
     Ejemplo.Free;
   end;
+end;
+
+// El rótulo cambia con el idioma: el botón se mide con el texto que muestra.
+function AnchoBotonRotulo(F: TfrmBase; const Rotulo: string;
+  Minimo: Integer): Integer;
+begin
+  F.Canvas.Font.Assign(F.Font);
+  Result := F.Canvas.TextWidth(Rotulo) + F.ScaleValue(32);
+  if Result < Minimo then
+    Result := Minimo;
 end;
 
 function ElegirProyecto(AOwner: TComponent; Repo: TRepositorioPaginas;
@@ -690,26 +718,37 @@ var
   Abrir, Cancelar: TcxButton;
   Paginas: TArray<TPaginaExtension>;
   Borrador, Ayuda: TPaginaExtension;
-  Estado: string;
+  Estado, RotuloAbrir, RotuloCancelar: string;
   Grupos: TStringList;
-  i: Integer;
+  i, Margen, Hueco, AnchoAbrir, AnchoCancelar, AnchoBotones: Integer;
 begin
   Paginas := Repo.Borradores;
   F := TfrmBase.Create(AOwner);
   Grupos := TStringList.Create;
   try
-    F.Caption := 'Biblioteca de consultoría TMS';
+    F.Caption := TextoConsultoria('Biblioteca de consultoría');
     F.BorderStyle := bsDialog;
     F.Position := poScreenCenter;
+    RotuloAbrir := TextoConsultoria('Abrir en el diseñador');
+    RotuloCancelar := TextoConsultoria('Cancelar');
+    Margen := F.ScaleValue(12);
+    Hueco := F.ScaleValue(8);
+    AnchoAbrir := AnchoBotonRotulo(F, RotuloAbrir, F.ScaleValue(115));
+    AnchoCancelar := AnchoBotonRotulo(F, RotuloCancelar,
+      F.ScaleValue(120));
+    AnchoBotones := AnchoAbrir + Hueco + AnchoCancelar + 2 * Margen;
     F.ClientWidth := F.ScaleValue(490);
+    if F.ClientWidth < AnchoBotones then
+      F.ClientWidth := AnchoBotones;
     F.ClientHeight := F.ScaleValue(108);
     Lista := TcxComboBox.Create(F);
     Lista.Parent := F;
-    Lista.SetBounds(F.ScaleValue(12),F.ScaleValue(12),F.ScaleValue(466),F.ScaleValue(28));
+    Lista.SetBounds(Margen, F.ScaleValue(12), F.ClientWidth - 2 * Margen,
+      F.ScaleValue(28));
     Lista.Properties.DropDownListStyle := lsFixedList;
-    Lista.Properties.Items.Add('Nueva consultoría');
-    Lista.Properties.Items.Add('Plantilla de aprendizaje · lista, ficha y selector');
-    Lista.Properties.Items.Add('Plantilla de Clientes · llamadas y medidas');
+    Lista.Properties.Items.Add(TextoConsultoria('Nueva consultoría'));
+    Lista.Properties.Items.Add(TextoConsultoria('Plantilla de aprendizaje · lista, ficha y selector'));
+    Lista.Properties.Items.Add(TextoConsultoria('Plantilla de Clientes · llamadas y medidas'));
     for Borrador in Paginas do
     begin
       Estado := Borrador.Grupo;
@@ -723,14 +762,17 @@ begin
     Lista.ItemIndex := 0;
     Abrir := TcxButton.Create(F);
     Abrir.Parent := F;
-    Abrir.SetBounds(F.ScaleValue(235),F.ScaleValue(60),F.ScaleValue(115),F.ScaleValue(33));
-    Abrir.Caption := 'Abrir en TMS';
+    Abrir.SetBounds(
+      F.ClientWidth - Margen - AnchoCancelar - Hueco - AnchoAbrir,
+      F.ScaleValue(60), AnchoAbrir, F.ScaleValue(33));
+    Abrir.Caption := RotuloAbrir;
     Abrir.Default := True;
     Abrir.ModalResult := mrOk;
     Cancelar := TcxButton.Create(F);
     Cancelar.Parent := F;
-    Cancelar.SetBounds(F.ScaleValue(358),F.ScaleValue(60),F.ScaleValue(120),F.ScaleValue(33));
-    Cancelar.Caption := 'Cancelar';
+    Cancelar.SetBounds(F.ClientWidth - Margen - AnchoCancelar,
+      F.ScaleValue(60), AnchoCancelar, F.ScaleValue(33));
+    Cancelar.Caption := RotuloCancelar;
     Cancelar.Cancel := True;
     Cancelar.ModalResult := mrCancel;
     Result := F.ShowModal = mrOk;
@@ -761,9 +803,9 @@ begin
         P.Proyecto := Plantilla(Lista.ItemIndex = 1);
         if Lista.ItemIndex = 1 then
         begin
-          P.Nombre := 'Pantalla de ejemplo';
+          P.Nombre := TextoConsultoria('Pantalla de ejemplo');
           Ayuda := P;
-          Ayuda.Nombre := 'Ayuda del proyecto';
+          Ayuda.Nombre := TextoConsultoria('Ayuda del proyecto');
           Ayuda.Clase := 'Funcionalidad';
           Ayuda.Entrada := 'Ayuda';
           Ayuda.Selectores := '';
@@ -778,7 +820,7 @@ begin
 end;
 
 function EditarConsultoriaTMS(AOwner: TComponent;
-  Repo: TRepositorioPaginas): Boolean;
+  Repo: TRepositorioPaginas; AbrirIdiomas: Boolean): Boolean;
 var
   Sesion: TConsultoriaTMS;
   P: TPaginaExtension;
@@ -786,6 +828,8 @@ var
   Reabrir: Boolean;
 begin
   Result := False;
+  if not Repo.PuedeDisenar then
+    raise EInvalidOpException.Create(TextoConsultoria('Falta el permiso de diseño.'));
   if ElegirProyecto(AOwner,Repo,P,Elementos) then
   begin
     Sesion := TConsultoriaTMS.Create(AOwner);
@@ -801,11 +845,16 @@ begin
       repeat
         Reabrir := False;
         Sesion.AbrirMotor(True);
+        if AbrirIdiomas then
+        begin
+          EditarIdiomasProyecto(AOwner, Sesion.FProyecto.Archivos);
+          AbrirIdiomas := False;
+        end;
         Sesion.FProyecto.Ejecutar(True);
         Sesion.FVentanaEditor := nil;
         Sesion.FPagina.Proyecto := Sesion.FProyecto.Archivos.ToJSON;
         if (Sesion.EstadoEdicion <> Sesion.FUltimoGuardado) and
-          (MessageDlg_fza('¿Guardar los cambios como borrador en la base?',
+          (MessageDlg_fza(TextoConsultoria('¿Guardar los cambios como borrador en la base?'),
             mtConfirmation,[mbYes,mbNo],0) = mrYes) then
           try
             Sesion.GuardarConjunto;

@@ -307,6 +307,7 @@
           Font.Style = [fsUnderline]
           Font.Quality = fqClearTypeNatural
           ParentFont = False
+          SpeedButtonOptions.CanBeFocused = False
           OnClick = btnF3Click
         end
         object btnF8: TcxButton

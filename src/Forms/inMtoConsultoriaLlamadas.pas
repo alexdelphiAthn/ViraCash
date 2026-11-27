@@ -1,10 +1,10 @@
-{ IDE integrado y proyecto inicial del mantenimiento de llamadas. }
+﻿{ IDE integrado y proyecto inicial del mantenimiento de llamadas. }
 unit inMtoConsultoriaLlamadas;
 
 interface
 
 uses
-  System.Classes, System.JSON, Vcl.Controls, Uni, IDEMain, inLibPermisosIntf;
+  System.Classes, System.JSON, Vcl.Graphics, Vcl.Controls, Uni, IDEMain, inLibPermisosIntf;
 
 type
   TProyectoScripter = class(TComponent)
@@ -27,6 +27,8 @@ type
       var AAceptado, ATratado: Boolean);
     procedure BuscarUnidad(Sender: TObject; ATipo: TIDEFileType;
       var ANombre: string; var AAceptado, ATratado: Boolean);
+    procedure IconoPaleta(Sender: TObject; Registro: TIDERegisteredComp;
+      Imagen: Vcl.Graphics.TBitmap; var Tratado: Boolean);
     procedure RegistrarPaleta;
     procedure CrearEditor(Sender: TObject);
 
@@ -161,6 +163,16 @@ begin
   inherited;
 end;
 
+procedure TProyectoScripter.IconoPaleta(Sender: TObject;
+  Registro: TIDERegisteredComp; Imagen: Vcl.Graphics.TBitmap; var Tratado: Boolean);
+begin
+  if Registro.CompClass = TPanel then
+  begin
+    Imagen.LoadFromResourceName(HInstance, 'VC_PALETA_PANEL');
+    Tratado := True;
+  end;
+end;
+
 procedure TProyectoScripter.RegistrarPaleta;
 
   procedure Registrar(AClase: System.Classes.TComponentClass; const AUnidad: string = '');
@@ -170,6 +182,7 @@ procedure TProyectoScripter.RegistrarPaleta;
   end;
 
 begin
+  FIde.OnGetComponentImage := IconoPaleta;
   FIde.RegisteredComps.Clear;
   Registrar(TPanel, 'ExtCtrls');
   Registrar(TcxLabel);

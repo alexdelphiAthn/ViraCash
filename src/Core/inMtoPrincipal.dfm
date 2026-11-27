@@ -940,7 +940,11 @@
       Caption = 'Consultoría'
       OnClick = MenuConsultoriaClick
       object mnuEditorPaginas: TMenuItem
-        Caption = 'IDE de consultoría TMS…'
+        Caption = 'Diseñador de consultoría…'
+        OnClick = EditorPaginasClick
+      end
+      object mnuIdiomasProyecto: TMenuItem
+        Caption = 'Editor de idiomas…'
         OnClick = EditorPaginasClick
       end
     end

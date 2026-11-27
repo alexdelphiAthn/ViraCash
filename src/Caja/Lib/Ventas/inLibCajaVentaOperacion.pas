@@ -43,6 +43,7 @@ type
     IdentificadoPorCodigoBarras: Boolean;
   end;
 
+  TSolicitarCantidadCaja = function(const AUnidad: string): Double of object;
   TAccionCodigoCaja = procedure(const ACodigo: string) of object;
 
 // Devuelve el orden del primer atributo obligatorio sin valor (0 si no hay).
@@ -176,7 +177,9 @@ function PrepararArticuloLineaVenta(
   AEsLecturaScanner, AActualizandoDepositos: Boolean;
   const AValidador: IArticulosValidador;
   const AResolver: IArticulosResolver;
-  AConsultarStock, ARecalcularPrecio: TAccionCodigoCaja):
+  AConsultarStock, ARecalcularPrecio: TAccionCodigoCaja;
+  ASolicitarCantidad: TSolicitarCantidadCaja = nil;
+  ACantidadInicial: Double = 1):
   TResultadoPreparacionArticuloVenta;
 
 implementation
@@ -208,26 +211,19 @@ end;
 // la linea se quedaba sin el y GetTipoIVA lo convertia en 'N': todo se
 // vendia al 21 % aunque el articulo fuera reducido o superreducido.
 procedure EscribirDatosArticuloResuelto(
-  ALineas, ACabecera: TDataSet;
-  const ACodigoArticulo: string;
-  const AResolver: IArticulosResolver);
+  ALineas: TDataSet; const ADatos: TArticuloDatos);
 var
-  Datos: TArticuloDatos;
   Campo: TField;
 begin
-  if Assigned(AResolver) and (Trim(ACodigoArticulo) <> '') then
+  if ADatos.TipoCantidad <> '' then
   begin
-    Datos := AResolver.ResolverDatos(
-      ACodigoArticulo, '',
-      ACabecera.FieldByName('TARIFA_ARTICULO_CLIENTE_FAC').AsString,
-      ACabecera.FieldByName('FECHA_FAC').AsDateTime);
     Campo := ALineas.FindField('TIPO_CANTIDAD_ARTICULO_FACLIN');
-    if (Campo <> nil) and (Datos.TipoCantidad <> '') then
-      Campo.AsString := Datos.TipoCantidad;
-    Campo := ALineas.FindField('TIPO_IVA_ARTICULO_FACLIN');
-    if (Campo <> nil) and (Trim(Datos.TipoIVA) <> '') then
-      Campo.AsString := Trim(Datos.TipoIVA);
+    if Campo <> nil then
+      Campo.AsString := ADatos.TipoCantidad;
   end;
+  Campo := ALineas.FindField('TIPO_IVA_ARTICULO_FACLIN');
+  if (Campo <> nil) and (Trim(ADatos.TipoIVA) <> '') then
+    Campo.AsString := Trim(ADatos.TipoIVA);
 end;
 
 procedure PrepararSkuResuelto(
@@ -290,7 +286,6 @@ begin
       'PRECIO_VENTA_CIVA_ARTICULO_FACLIN').AsCurrency := 0;
     ALineas.FieldByName(
       'PRECIO_VENTA_SIVA_ARTICULO_FACLIN').AsCurrency := 0;
-    ALineas.FieldByName('CANTIDAD_FACLIN').AsCurrency := 1;
   end;
 end;
 
@@ -985,13 +980,17 @@ function PrepararArticuloLineaVenta(
   AEsLecturaScanner, AActualizandoDepositos: Boolean;
   const AValidador: IArticulosValidador;
   const AResolver: IArticulosResolver;
-  AConsultarStock, ARecalcularPrecio: TAccionCodigoCaja):
+  AConsultarStock, ARecalcularPrecio: TAccionCodigoCaja;
+  ASolicitarCantidad: TSolicitarCantidadCaja;
+  ACantidadInicial: Double):
   TResultadoPreparacionArticuloVenta;
 var
   Resolucion: TArtResolucionEntrada;
   sCodigoLimpio: string;
   sSkuPreferido: string;
   sSkuResuelto: string;
+  Datos: TArticuloDatos;
+  CantidadInicial: Double;
 begin
   Result := Default(TResultadoPreparacionArticuloVenta);
   Result.ConservoImportesExistentes := ALineas.State = dsEdit;
@@ -1029,15 +1028,30 @@ begin
         Result.ConservoImportesExistentes and
         (Trim(sSkuPreferido) <> '') and
         SameText(sSkuPreferido, sSkuResuelto);
+      Datos := Default(TArticuloDatos);
+      if not AActualizandoDepositos and Assigned(AResolver) and
+         (Trim(Resolucion.CodigoArticulo) <> '') then
+        Datos := AResolver.ResolverDatos(Resolucion.CodigoArticulo, '',
+          ACabecera.FieldByName('TARIFA_ARTICULO_CLIENTE_FAC').AsString,
+          ACabecera.FieldByName('FECHA_FAC').AsDateTime);
+      CantidadInicial := ACantidadInicial;
+      if not AEsLecturaScanner and not AActualizandoDepositos and
+         not Result.ConservoImportesExistentes and
+         SameText(Resolucion.TipoArticulo, 'ESTANDAR') and
+         ((Resolucion.CodigoSku <> '') or Resolucion.RequiereSku) and
+         Assigned(ASolicitarCantidad) then
+        CantidadInicial := ASolicitarCantidad(Datos.TipoCantidad);
       ALineas.DisableControls;
       try
         EscribirDatosBaseArticulo(ALineas, Resolucion);
+        if not AActualizandoDepositos and
+           not Result.ConservoImportesExistentes then
+          ALineas.FieldByName('CANTIDAD_FACLIN').AsFloat := CantidadInicial;
         if Resolucion.CodigoSku <> '' then
         begin
           // El SKU pendiente ya resuelve los datos y escribe la unidad.
           if not AActualizandoDepositos then
-            EscribirDatosArticuloResuelto(ALineas, ACabecera,
-              Resolucion.CodigoArticulo, AResolver);
+            EscribirDatosArticuloResuelto(ALineas, Datos);
           PrepararSkuResuelto(
             ALineas,
             Resolucion.CodigoSku,

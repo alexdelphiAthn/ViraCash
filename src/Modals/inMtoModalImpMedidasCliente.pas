@@ -24,7 +24,26 @@ implementation
 
 uses
   System.SysUtils, Data.DB, Vcl.Graphics, frCoreClasses, frBaseGraphicsTypes,
-  inLibInformeTabular, inLibMsgMedidasCliente, inLibDibujoMedidas;
+  inLibTraducciones, inLibTraduccionesIntf,
+  inLibIdiomaConsultoria, inLibInformeTabular, inLibMsgMedidasCliente, inLibDibujoMedidas;
+
+function RotuloMagnitud(const Medida: TMedidaCliente): string;
+const
+  Codigos: array[0..11] of string = ('HOMBROS', 'PECHO', 'CINTURA',
+    'MANGA', 'LARGO', 'ROPA_CADERA',
+    'PIE_LARGO_I', 'PIE_LARGO_D', 'PIE_ANCHO_I',
+    'PIE_ANCHO_D', 'PIE_EMPEINE_I', 'PIE_EMPEINE_D');
+var
+  I: Integer;
+begin
+  Result := Medida.Nombre;
+  for I := Low(Codigos) to High(Codigos) do
+    if SameText(Codigos[I], Medida.Codigo) then
+    begin
+      Result := TextoMedidaCatalogo(Medida.Nombre);
+      Break;
+    end;
+end;
 
 procedure TfrmPrintMedidasCliente.preparar_consulta;
 begin
@@ -47,6 +66,8 @@ var
   Valor: TMedidaCliente;
   Notas, TextoValor, Magnitud, Leyenda: string;
   Ancho: Double;
+  Traducciones: IServicioTraducciones;
+  Objeto: TfrxComponent;
   i, Marca, AltoGuia: Integer;
 
   function Enlazar(Datos: TClientDataSet; const Alias: string): TfrxDBDataset;
@@ -80,7 +101,7 @@ var
   end;
 
 begin
-  Caption := TituloFichaMedidas(AFicha);
+  Caption := TextoConsultoria(TituloFichaMedidas(AFicha));
   MostrarDisenosGuardados := True;
   FCabecera := TClientDataSet.Create(Self);
   FCabecera.FieldDefs.Add('Cliente', ftWideString, 300);
@@ -90,7 +111,7 @@ begin
   FCabecera.CreateDataSet;
   Notas := ASesion.Observaciones;
   if ASesion.Motivo <> '' then
-    Notas := Trim(Notas + sLineBreak + SMedidasMotivo + ': ' + ASesion.Motivo);
+    Notas := Trim(Notas + sLineBreak + TextoConsultoria(SMedidasMotivo) + ': ' + ASesion.Motivo);
   FCabecera.AppendRecord([Trim(ASesion.Cliente + '  ' + ANombre),
     DateToStr(ASesion.Fecha), ASesion.Persona, Notas]);
   FDetalle := TClientDataSet.Create(Self);
@@ -103,10 +124,10 @@ begin
   begin
     if IncluyeMagnitud(AFicha, Valor.Codigo) then
     begin
-      TextoValor := SMedidasDesconocida;
+      TextoValor := TextoConsultoria(SMedidasDesconocida);
       if Valor.Conocida then
         TextoValor := FormatCurr('0.##', Valor.Valor);
-      Magnitud := Valor.Nombre;
+      Magnitud := RotuloMagnitud(Valor);
       Marca := MarcaMagnitud(AFicha, Valor.Codigo);
       if Marca > 0 then
         Magnitud := IntToStr(Marca) + '    ' + Magnitud
@@ -120,9 +141,9 @@ begin
   Detalle := Enlazar(FDetalle, 'Medidas');
   Cabecera := Enlazar(FCabecera, 'Sesion');
   CrearInformeTabular(frxReportOrigen, Detalle, Caption,
-    [ColumnaInforme('Magnitud', SMedidasMagnitud, 62),
-     ColumnaInforme('Valor', SMedidasValor, 23),
-     ColumnaInforme('Unidad', SMedidasUnidad, 15)], True);
+    [ColumnaInforme('Magnitud', TextoConsultoria(SMedidasMagnitud), 62),
+     ColumnaInforme('Valor', TextoConsultoria(SMedidasValor), 23),
+     ColumnaInforme('Unidad', TextoConsultoria(SMedidasUnidad), 15)], True);
   frxReportOrigen.EnabledDataSets.Add(Cabecera);
   frxReportOrigen.DataSets.Add(Cabecera);
   Banda := frxReportOrigen.FindObject('CabeceraTabla') as TfrxPageHeader;
@@ -139,10 +160,10 @@ begin
   Memo.Color := Verde;
   Memo.GapX := 10;
   Memo.VAlign := vaCenter;
-  Texto(Banda, 'RotuloCliente', SMedidasCliente, 0, 49, Ancho * 0.50, 16, 9);
-  Texto(Banda, 'RotuloFecha', SMedidasFecha, Ancho * 0.50, 49,
+  Texto(Banda, 'RotuloCliente', TextoConsultoria(SMedidasCliente), 0, 49, Ancho * 0.50, 16, 9);
+  Texto(Banda, 'RotuloFecha', TextoConsultoria(SMedidasFecha), Ancho * 0.50, 49,
     Ancho * 0.20, 16, 9);
-  Texto(Banda, 'RotuloPersona', SMedidasPersona, Ancho * 0.71, 49,
+  Texto(Banda, 'RotuloPersona', TextoConsultoria(SMedidasPersona), Ancho * 0.71, 49,
     Ancho * 0.29, 16, 9);
   Campo(Banda, 'Cliente', 0, 68, Ancho * 0.48, 48, 12);
   Campo(Banda, 'Fecha', Ancho * 0.50, 68, Ancho * 0.20, 48, 12);
@@ -155,14 +176,14 @@ begin
     Dibujo.KeepAspectRatio := True;
     Dibujo.ShiftMode := smWhenOverlapped;
     DibujarGuiaMedidas(Dibujo.Picture, AFicha);
-    Texto(Banda, 'TituloGuia', SMedidasGuia, 315, 136, Ancho - 320,
+    Texto(Banda, 'TituloGuia', TextoConsultoria(SMedidasGuia), 315, 136, Ancho - 320,
       26, 13).Font.Style := [fsBold];
     if AFicha in [fmPieIzquierdo, fmPieDerecho] then
-      Leyenda := SMedidasGuiaPie
+      Leyenda := TextoConsultoria(SMedidasGuiaPie)
     else
-      Leyenda := SMedidasGuiaRopa;
+      Leyenda := TextoConsultoria(SMedidasGuiaRopa);
     if AFicha = fmRopa then
-      Leyenda := Leyenda + '|' + SMedidasGuiaCadera;
+      Leyenda := Leyenda + '|' + TextoConsultoria(SMedidasGuiaCadera);
     Memo := Texto(Banda, 'LeyendaGuia', StringReplace(Leyenda, '|',
       sLineBreak, [rfReplaceAll]), 315, 172, Ancho - 320, 128, 11);
     Memo.LineSpacing := 4;
@@ -194,13 +215,13 @@ begin
   Resumen.Height := 60;
   Resumen.Stretched := True;
   Resumen.AllowSplit := True;
-  Texto(Resumen, 'RotuloNotas', SMedidasObservaciones, 0, 12, Ancho, 19,
+  Texto(Resumen, 'RotuloNotas', TextoConsultoria(SMedidasObservaciones), 0, 12, Ancho, 19,
     11).Font.Style := [fsBold];
   Campo(Resumen, 'Notas', 0, 36, Ancho, 24, 10);
   if AFicha <> fmCompleta then
   begin
     Resumen.Height := 132;
-    Memo := Texto(Resumen, 'RotuloAjustes', SMedidasPrueba, 0, 68,
+    Memo := Texto(Resumen, 'RotuloAjustes', TextoConsultoria(SMedidasPrueba), 0, 68,
       Ancho, 22, 11);
     Memo.Font.Style := [fsBold];
     Memo.ShiftMode := smAlways;
@@ -211,8 +232,21 @@ begin
   end;
   frxReportOrigen.FindObject('PieTabla').Top := 400 + AltoGuia;
   Memo := frxReportOrigen.FindObject('PaginaTabla') as TfrxMemoView;
+  Memo.Text := TextoConsultoria('Página [Page#] de [TotalPages#]');
   Memo.HAlign := haRight;
   Texto(Memo.Parent as TfrxBand, 'Marca', 'ViraCash', 0, 0, Ancho / 2, 18, 9);
+  Traducciones := ResolverServicioTraducciones(Self);
+  if Assigned(Traducciones) and
+    SameText(Traducciones.Idioma, IDIOMA_CHINO_SIMPLIFICADO) then
+  begin
+    frxpdfxprtPedWeb.EmbeddedFonts := True;
+    for i := 0 to frxReportOrigen.AllObjects.Count - 1 do
+    begin
+      Objeto := TfrxComponent(frxReportOrigen.AllObjects[i]);
+      if Objeto is TfrxMemoView then
+        TfrxMemoView(Objeto).Font.Name := 'Microsoft YaHei';
+    end;
+  end;
 end;
 
 class procedure TfrmPrintMedidasCliente.Abrir(AOwner: TComponent;

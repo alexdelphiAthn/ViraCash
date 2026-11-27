@@ -45,7 +45,7 @@ uses
   inMtoCajaEditorAtributosVcl, inMtoCajaOpeVentanaVcl,
   inMtoCajaSubsanacionVcl, inLibCajaSubsanacionIntf,
   inMtoCajaCierreVentaVcl, inLibCajaLotes, inLibIndicadoresColasVcl,
-  inLibCajaStockLinea, inLibContextoSesionIntf;
+  inLibCajaStockLinea, inLibContextoSesionIntf, inLibCajaVentaOperacion;
 
 const
   WM_CANCELAR_LINEA = WM_APP + 100;
@@ -284,7 +284,14 @@ type
     procedure CambiarUnidades(Sender: TObject);
     function RellenarDatosArticuloEnDataset(
       ACodigo: string): Boolean;
+    function PrepararArticuloEnDataset(const ACodigo: string;
+      ACantidadInicial: Double; APedirCantidad: TSolicitarCantidadCaja):
+      Boolean;
     procedure InicializarPopupBusqueda(Sender: TObject);
+    function DecimalesUnidadVenta(const AUnidad: string): Integer;
+    function MascaraCantidadLineaActual: string;
+    function SolicitarCantidadVenta(const AUnidad: string): Double;
+    function ConsolidarLineaActual(const ASku: string): Boolean;
     procedure RecalcularPrecioDesdeSku(const ASku: string);
     procedure RellenarAtributosDesdeSku(ASku: string);
     // ALote: solo suma a una línea con ese lote ('' = sin lote).
@@ -725,7 +732,8 @@ uses
   inLibMensajesVcl, inLibErroresBBDD, inLibMsgReparaciones,
   inLibMsgFacturas,
   inLibCajaRectificacion,
-  inLibGridCantidad,
+  inLibGridCantidad, inLibSeparadorDecimalTeclado,
+  inLibMsgCompras,
   inLibFormatoMonetario,
 
   inLibDevExp, inLibValoresAutomaticos,
@@ -733,7 +741,6 @@ uses
   inLibShowMto,
   inLibCorreoTickets, UniDataCorreoTicketsRepositorio,
   inLibCajaVentaCliente,
-  inLibCajaVentaOperacion,
   inLibCajaOpePresentacion,
   inMtoCajaOperacionVclInyeccion,
   inMtoCajaOpeEntradaVcl,
@@ -1516,6 +1523,7 @@ begin
   ContextoBusqueda.TemporizadorBusqueda :=
     AControles.TemporizadorBusqueda;
   ContextoBusqueda.ImagenStock := AControles.ImagenStock;
+  ContextoBusqueda.MascaraCantidadLinea := MascaraCantidadLineaActual;
   FBusqueda := TBusquedaEditorLineasCajaVcl.Create(
     ContextoBusqueda);
   ContextoInteraccion :=
@@ -1561,7 +1569,7 @@ begin
   ContextoAtributos.Consolidar :=
     function(const ASku: string): Boolean
     begin
-      Result := ConsolidarSiExiste(ASku);
+      Result := ConsolidarLineaActual(ASku);
     end;
   ContextoAtributos.ValidarSku :=
     function(const ASku: string): Boolean
@@ -2026,7 +2034,7 @@ begin
       'FECHA_CADUCIDAD_FACLIN').AsDateTime := ACaducidad;
   DatosCaja.cdsLineas.FieldByName('CODIGO_VENDEDOR_FACLIN').AsString :=
     DatosCaja.cdsCabecera.FieldByName('CODIGO_CAJERO_FAC').AsString;
-  Result := FEditorLineas.RellenarDatosArticuloEnDataset(ASku);
+  Result := FEditorLineas.PrepararArticuloEnDataset(ASku, ACant, nil);
   if Result then
   begin
     // El relleno recalcula la linea y la deja confirmada (Post): hay que
@@ -2513,7 +2521,7 @@ begin
     if sSku = '' then
       sSku := sCodigo;
     DatosCaja.cdsLineas.Append;
-    bRellenada := FEditorLineas.RellenarDatosArticuloEnDataset(sSku);
+    bRellenada := FEditorLineas.PrepararArticuloEnDataset(sSku, nCantidad, nil);
     bCargada := bRellenada and
       FEditorLineas.ValidarSkuParaVenta(DatosCaja.cdsLineas.FieldByName(
         'CODIGO_UNIDAD_FACLIN').AsString);
@@ -2837,7 +2845,7 @@ begin
                  DatosCaja.cdsCabecera,
                  ActualizarLabelTotal);
     end;
-    if ConsolidarSiExiste(SkuDetectado) then
+    if ConsolidarLineaActual(SkuDetectado) then
     begin
        // RellenarDatosArticuloEnDataset ya CONFIRMA (Post) la linea de trabajo
        // en su recalculo fiscal interno, asi que un Cancel no la elimina: si
@@ -3132,6 +3140,13 @@ end;
 
 function TEditorLineasCajaVcl.RellenarDatosArticuloEnDataset(
   ACodigo: string): Boolean;
+begin
+  Result := PrepararArticuloEnDataset(ACodigo, 1, SolicitarCantidadVenta);
+end;
+
+function TEditorLineasCajaVcl.PrepararArticuloEnDataset(
+  const ACodigo: string; ACantidadInicial: Double;
+  APedirCantidad: TSolicitarCantidadCaja): Boolean;
 var
   Resultado: TResultadoPreparacionArticuloVenta;
   Articulo, Sku: string;
@@ -3151,7 +3166,7 @@ begin
       FValidadorArticulos,
       FResolverArticulos,
       ConsultarStock,
-      RecalcularPrecioDesdeSku);
+      RecalcularPrecioDesdeSku, APedirCantidad, ACantidadInicial);
     Result := Resultado.Preparado;
     FMotivoRechazoArticulo := Resultado.MotivoRechazo;
     FConservoImportesUltimaPreparacion :=
@@ -3173,6 +3188,73 @@ begin
         DatosCaja.cdsCabecera, ActualizarLabelTotal);
     end;
   end;
+end;
+
+function TEditorLineasCajaVcl.DecimalesUnidadVenta(
+  const AUnidad: string): Integer;
+begin
+  Result := 0;
+  if Assigned(TfrmMtoOpeCaja(Formulario).UnidadesMedida) then
+    Result := TfrmMtoOpeCaja(Formulario).UnidadesMedida.Decimales(AUnidad);
+end;
+
+function TEditorLineasCajaVcl.MascaraCantidadLineaActual: string;
+var
+  Unidad: string;
+  Decimales: Integer;
+begin
+  Result := '';
+  if DatosCaja.cdsLineas.Active then
+  begin
+    Unidad := DatosCaja.cdsLineas.FieldByName(
+      'TIPO_CANTIDAD_ARTICULO_FACLIN').AsString;
+    Decimales := DecimalesUnidadVenta(Unidad);
+    if Decimales > 0 then
+      Result := '#,##0.' + StringOfChar('0', Decimales);
+  end;
+end;
+
+function TEditorLineasCajaVcl.SolicitarCantidadVenta(
+  const AUnidad: string): Double;
+var
+  Decimales, Separador: Integer;
+  Texto, Normalizado, Aviso: string;
+begin
+  Result := 1;
+  Decimales := DecimalesUnidadVenta(AUnidad);
+  if Decimales > 0 then
+  begin
+    Texto := TfrmMtoOpeCaja(Formulario).UnidadesMedida.Formatear(1, AUnidad);
+    repeat
+      if not InputQuery_fza(SAvisoTituloCantidad,
+        SCaptionColCantidad + ' (' + AUnidad + ')', Texto) then
+        Abort;
+      Aviso := '';
+      if not NormalizarTextoDecimal(Texto, Normalizado) then
+        Aviso := Format(SErrorCantidadSeparadorAmbiguo, [Texto])
+      else if not TryStrToFloat(Normalizado, Result) or (Result <= 0) then
+        Aviso := SErrorOrigenRecepcionCantidadPositiva
+      else
+      begin
+        Separador := Pos(FormatSettings.DecimalSeparator, Normalizado);
+        if (Separador > 0) and (Length(Normalizado) - Separador > Decimales)
+        then
+          Aviso := Format(SErrorCantidadDecimalesUnidad, [AUnidad, Decimales]);
+      end;
+      if Aviso <> '' then
+        ShowMessage_fza(Aviso);
+    until Aviso = '';
+  end;
+end;
+
+function TEditorLineasCajaVcl.ConsolidarLineaActual(
+  const ASku: string): Boolean;
+begin
+  // El agrupado automático suma una unidad. La cantidad solicitada para
+  // una venta por peso o longitud ya pertenece a su propia línea.
+  Result := (DecimalesUnidadVenta(DatosCaja.cdsLineas.FieldByName(
+    'TIPO_CANTIDAD_ARTICULO_FACLIN').AsString) = 0) and
+    ConsolidarSiExiste(ASku);
 end;
 
 procedure TEditorLineasCajaVcl.InicializarPopupBusqueda(Sender: TObject);
@@ -3264,8 +3346,6 @@ begin
           IfThen(Precio.EsImpIncl, 'S', 'N');
       DatosCaja.cdsLineas.FieldByName(
         'PRECIO_SALIDA_FACLIN').AsCurrency := Precio.PrecioSalida;
-      DatosCaja.cdsLineas.FieldByName(
-        'CANTIDAD_FACLIN').AsCurrency := 1;
       DatosCaja.cdsLineas.FieldByName(
         'PORCENTAJE_DTO_FACLIN').AsFloat := Precio.PorcentajeDto;
       DatosCaja.cdsLineas.FieldByName(
@@ -3559,7 +3639,7 @@ begin
                                         'CODIGO_UNIDAD_FACLIN').AsString;
       if SkuActual = '' then
          SkuActual := CodArticulo;
-      if ConsolidarSiExiste(SkuActual) then
+      if ConsolidarLineaActual(SkuActual) then
       begin
         // La linea de trabajo ya puede estar grabada: Cancel no la quita.
         // Si tras cancelar sigue ahi con el mismo SKU consolidado, la
@@ -3793,6 +3873,8 @@ end;
 
 // Los botones F3 y F8 hacen lo mismo que sus teclas: con el ratón no
 // respondían porque solo las acciones tenían el atajo.
+// FZ-ISSUE-1317: btnF3 no toma el foco (DFM); al tomarlo, la celda de
+// artículo vacía se validaba antes de abrir la búsqueda.
 procedure TfrmMtoOpeCaja.btnF3Click(Sender: TObject);
 begin
   actBuscarEmpleados.Execute;

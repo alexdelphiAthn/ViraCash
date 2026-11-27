@@ -1,4 +1,4 @@
-﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
         <ProjectGuid>{5372F570-A327-4800-98DB-9E38B75C697D}</ProjectGuid>
         <ProjectVersion>20.5</ProjectVersion>
@@ -190,7 +190,7 @@ $(PreBuildEvent)]]></PreBuildEvent>
         <Exec WorkingDirectory="$(MSBuildProjectDirectory)\src\Forms\Consultoria" Command="&quot;$(BDS)\bin\brcc32.exe&quot; -foLlamadas.res Llamadas.rc"/>
     </Target>
     <ItemGroup>
-        <FuenteConsultoria Include="src\Forms\Consultoria\Plantilla\*.rc;src\Forms\Consultoria\Plantilla\*.ssproj;src\Forms\Consultoria\Plantilla\*.psc;src\Forms\Consultoria\Plantilla\*.sfm;src\Forms\Consultoria\Plantilla\*.json"/>
+        <FuenteConsultoria Include="src\Forms\Consultoria\Plantilla\*.rc;src\Forms\Consultoria\Plantilla\Paleta\*.bmp;src\Forms\Consultoria\Plantilla\*.ssproj;src\Forms\Consultoria\Plantilla\*.psc;src\Forms\Consultoria\Plantilla\*.sfm;src\Forms\Consultoria\Plantilla\*.json"/>
     </ItemGroup>
     <Target Name="CompilarPlantillaConsultoria" BeforeTargets="_PasCoreCompile"
         Inputs="@(FuenteConsultoria)"
@@ -489,7 +489,11 @@ $(PreBuildEvent)]]></PreBuildEvent>
         <DCCReference Include="src\Core\inMtoPrincipalAccionesVcl.pas"/>
         <DCCReference Include="src\Forms\inMtoConsultoriaLlamadas.pas"/>
         <DCCReference Include="src\Lib\inLibMsgScripter.pas"/>
+        <DCCReference Include="src\Lib\inLibMsgPaginasExtension.pas"/>
         <DCCReference Include="src\Lib\inLibMenusScripter.pas"/>
+        <DCCReference Include="src\Forms\inMtoIdiomasProyecto.pas"/>
+        <DCCReference Include="src\Lib\inLibTextosProyecto.pas"/>
+        <DCCReference Include="src\Lib\inLibIdiomaConsultoria.pas"/>
         <DCCReference Include="src\Forms\inMtoLlamadasAccionesVcl.pas"/>
         <DCCReference Include="src\Forms\inMtoVistaLlamadas.pas"/>
         <DCCReference Include="src\DataModules\UniDataPaginasExtension.pas"/>

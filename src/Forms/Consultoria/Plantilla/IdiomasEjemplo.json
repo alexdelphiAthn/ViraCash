@@ -1,0 +1,8 @@
+{
+  "ayuda.proyecto": {
+    "es-ES": "Este proyecto incluye una pantalla y una ayuda. Elige un elemento en Proyecto > Elementos del proyecto.",
+    "ca-ES": "Aquest projecte inclou una pantalla i una ajuda. Tria un element a Projecte > Elements del projecte.",
+    "en-GB": "This project contains a screen and a help item. Choose one under Project > Project items.",
+    "zh-CN": "本项目包含一个界面和一个帮助项。请在“项目 > 项目项”中选择。"
+  }
+}

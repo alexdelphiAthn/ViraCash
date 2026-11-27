@@ -120,14 +120,14 @@
             TabOrder = 3
           end
           object txtCantidadLineas: TcxTextEdit
-            Left = 355
+            Left = 260
             Top = 14
             Properties.Alignment.Horz = taCenter
             Properties.ReadOnly = True
             Style.BorderStyle = ebsOffice11
             TabOrder = 4
             Text = '1'
-            Width = 64
+            Width = 150
           end
           object txtBrutoLineas: TcxCurrencyEdit
             Left = 414

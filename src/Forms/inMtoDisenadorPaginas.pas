@@ -49,16 +49,29 @@ type
       Boolean; static;
   end;
 
-function EditarPaginasExtension(Anfitrion: TfrmBase): Boolean;
+function EditarPaginasExtension(Anfitrion: TfrmBase;
+  AbrirIdiomas: Boolean = False): Boolean;
 procedure ActualizarPestanasExtension(AFormulario: TfrmBase);
 
 implementation
 
 uses
-  System.SysUtils, System.JSON, Vcl.Dialogs, Vcl.Forms, inMtoGen, inMtoPaginaExtension, inMtoProyectoConsultoria,
-  inLibRegistroPantallas;
+  System.SysUtils, System.StrUtils, System.JSON, Vcl.Dialogs, Vcl.Forms, inMtoGen, inMtoPaginaExtension, inMtoProyectoConsultoria,
+  inLibRegistroPantallas, inLibIdiomaConsultoria;
 
 {$R *.dfm}
+
+const
+  ClasesPagina: array[0..5] of string = ('Pantalla', 'Listado', 'Modal',
+    'Análisis', 'Funcionalidad', 'Origen de datos');
+  TiposOrigen: array[0..2] of string = (Tabla, Vista, Procedimiento);
+
+function CodigoElegido(Indice: Integer; const Codigos: array of string): string;
+begin
+  Result := '';
+  if (Indice >= 0) and (Indice <= High(Codigos)) then
+    Result := Codigos[Indice];
+end;
 
 class function TfrmDisenadorPaginas.Ejecutar(AOwner: TComponent;
   Repo: TRepositorioPaginas; var Pagina: TPaginaExtension): Boolean;
@@ -66,7 +79,7 @@ var
   F: TfrmDisenadorPaginas;
 begin
   if not Repo.PuedeDisenar then
-    raise EInvalidOpException.Create('Falta el permiso de diseño.');
+    raise EInvalidOpException.Create(TextoConsultoria('Falta el permiso de diseño.'));
   F := TfrmDisenadorPaginas.Create(AOwner);
   try
     F.FRepo := Repo;
@@ -74,6 +87,7 @@ begin
     F.FAnfitriones := TStringList.Create;
     F.FClaves := TStringList.Create;
     try
+      TraducirDatosPublicacion(F);
       F.Preparar;
       Result := F.ShowModal = mrOk;
       if Result then
@@ -108,7 +122,7 @@ var
 begin
   FCargando := True;
   try
-    AnadirDestino('(Sin pestaña)','','');
+    AnadirDestino(TextoConsultoria('(Sin pestaña)'),'','');
     for Destino in DestinosPestana do
       AnadirDestino(Destino.Titulo, Destino.Clase.ClassName, Destino.CampoClave);
     for i := 0 to Screen.FormCount-1 do
@@ -120,8 +134,8 @@ begin
           Assigned(M.dsTablaG.DataSet.FindField(M.pkFieldName)) then
           AnadirDestino(M.Caption,M.ClassName,M.pkFieldName);
       end;
-    cmbClase.Properties.Items.Text := 'Pantalla'+sLineBreak+'Listado'+sLineBreak+
-      'Modal'+sLineBreak+'Análisis'+sLineBreak+'Funcionalidad'+sLineBreak+'Origen de datos';
+    for Nombre in ClasesPagina do
+      cmbClase.Properties.Items.Add(TextoConsultoria(Nombre));
     cmbEvento.Properties.Items.Add('');
     cmbSelector.Properties.Items.Add('');
     Archivo := TJSONObject.ParseJSONValue(FPagina.Proyecto);
@@ -138,9 +152,8 @@ begin
     finally
       Archivo.Free;
     end;
-    cmbTipo.Properties.Items.Add(Tabla);
-    cmbTipo.Properties.Items.Add(Vista);
-    cmbTipo.Properties.Items.Add(Procedimiento);
+    for Nombre in TiposOrigen do
+      cmbTipo.Properties.Items.Add(TextoConsultoria(Nombre));
   finally
     FCargando := False;
   end;
@@ -168,7 +181,7 @@ begin
       else
         edtGrupo.Text := P.Grupo;
       edtGrupo.Properties.ReadOnly := (P.Version > 0) and (P.Grupo <> '');
-      cmbClase.ItemIndex := cmbClase.Properties.Items.IndexOf(P.Clase);
+      cmbClase.ItemIndex := IndexText(P.Clase, ClasesPagina);
       CambiarClase(nil);
       if P.UsaFastReport then
         cmbMotor.ItemIndex := 0
@@ -178,7 +191,7 @@ begin
       cmbEvento.ItemIndex := cmbEvento.Properties.Items.IndexOf(P.AntesGuardar);
       cmbSelector.ItemIndex := cmbSelector.Properties.Items.IndexOf(P.Selectores);
       edtNombre.Properties.ReadOnly := FVersion <> 0;
-      cmbTipo.ItemIndex := cmbTipo.Properties.Items.IndexOf(P.Tipo);
+      cmbTipo.ItemIndex := IndexText(P.Tipo, TiposOrigen);
       CargarOrigenes;
       cmbOrigen.ItemIndex := cmbOrigen.Properties.Items.IndexOf(P.Origen);
       CargarCampos;
@@ -225,8 +238,8 @@ end;
 
 procedure TfrmDisenadorPaginas.CambiarClase(Sender: TObject);
 begin
-  cmbMotor.Enabled := (cmbClase.Text <> 'Origen de datos') and
-    (cmbClase.Text <> 'Funcionalidad');
+  cmbMotor.Enabled := (CodigoElegido(cmbClase.ItemIndex, ClasesPagina) <> 'Origen de datos') and
+    (CodigoElegido(cmbClase.ItemIndex, ClasesPagina) <> 'Funcionalidad');
 end;
 
 procedure TfrmDisenadorPaginas.CambiarNombreProyecto(Sender: TObject);
@@ -238,7 +251,7 @@ end;
 procedure TfrmDisenadorPaginas.CargarOrigenes;
 begin
   cmbOrigen.ItemIndex := -1;
-  FRepo.Origenes(cmbTipo.Text,cmbOrigen.Properties.Items);
+  FRepo.Origenes(CodigoElegido(cmbTipo.ItemIndex, TiposOrigen),cmbOrigen.Properties.Items);
 end;
 
 procedure TfrmDisenadorPaginas.CargarCampos;
@@ -249,13 +262,13 @@ begin
   cmbEnlace.Properties.Items.Clear;
   cmbEnlace.ItemIndex := -1;
   if cmbOrigen.ItemIndex >= 0 then
-    FRepo.Columnas(cmbTipo.Text,cmbOrigen.Text,cmbEnlace.Properties.Items);
+    FRepo.Columnas(CodigoElegido(cmbTipo.ItemIndex, TiposOrigen),cmbOrigen.Text,cmbEnlace.Properties.Items);
   for S in cmbEnlace.Properties.Items do
   begin
     lstCampos.Items.Add.Text := S;
     lstCampos.Items[lstCampos.Items.Count-1].Checked := True;
   end;
-  lstCampos.Enabled := cmbTipo.Text <> Procedimiento;
+  lstCampos.Enabled := CodigoElegido(cmbTipo.ItemIndex, TiposOrigen) <> Procedimiento;
   btnMarcarTodo.Visible := lstCampos.Enabled;
   btnDesmarcarTodo.Visible := lstCampos.Enabled;
   btnMarcarTodo.Enabled := lstCampos.Items.Count > 0;
@@ -267,9 +280,9 @@ begin
   if btnRotulos.Enabled then
     lstCampos.ItemIndex := 0;
   if lstCampos.Enabled then
-    lblCampos.Caption := 'Campos de la lista y de la ficha'
+    lblCampos.Caption := TextoConsultoria('Campos de la lista y de la ficha')
   else
-    lblCampos.Caption := 'Entradas del procedimiento. La lista mostrará el primer resultado.';
+    lblCampos.Caption := TextoConsultoria('Entradas del procedimiento. La lista mostrará el primer resultado.');
 end;
 
 procedure TfrmDisenadorPaginas.MarcarCampos(Sender: TObject);
@@ -301,8 +314,8 @@ begin
       Ficha.Text := FPagina.RotulosFicha;
       Valores[0] := Lista.Values[Campo];
       Valores[1] := Ficha.Values[Campo];
-      if InputQuery('Rótulos de ' + Campo,
-        ['Cabecera de la lista', 'Etiqueta de la ficha (vacía usa la cabecera)'],
+      if InputQuery(Format(TextoConsultoria('Rótulos de %s'), [Campo]),
+        [TextoConsultoria('Cabecera de la lista'), TextoConsultoria('Etiqueta de la ficha (vacía usa la cabecera)')],
         Valores) then
       begin
         Lista.Values[Campo] := Trim(Valores[0]);
@@ -348,7 +361,7 @@ begin
       Texto := Anchos.Values[Campo];
       if Texto = '' then
         Texto := IntToStr(AnchoColumnaConsultoria);
-      while InputQuery('Ancho de ' + Campo, 'Ancho en píxeles', Texto) do
+      while InputQuery(Format(TextoConsultoria('Ancho de %s'), [Campo]), TextoConsultoria('Ancho en píxeles'), Texto) do
       begin
         if TryStrToInt(Trim(Texto), Ancho) and (Ancho > 0) and
           (Ancho <= AnchoMaximoColumnaConsultoria) then
@@ -360,7 +373,7 @@ begin
           FPagina.AnchosLista := Anchos.Text;
           Break;
         end;
-        ShowMessage(Format('Indica un ancho entre 1 y %d píxeles.',
+        ShowMessage(Format(TextoConsultoria('Indica un ancho entre 1 y %d píxeles.'),
           [AnchoMaximoColumnaConsultoria]));
       end;
     finally
@@ -393,7 +406,7 @@ procedure TfrmDisenadorPaginas.ElegirDestino(Sender: TObject);
 begin
   cmbEnlace.Enabled := cmbDestino.ItemIndex > 0;
   if cmbEnlace.Enabled then
-    lblMaestro.Caption := 'Clave principal: ' + FClaves[cmbDestino.ItemIndex]
+    lblMaestro.Caption := TextoConsultoria('Clave principal') + ': ' + FClaves[cmbDestino.ItemIndex]
   else
     lblMaestro.Caption := '';
 end;
@@ -407,9 +420,9 @@ begin
   P := Default(TPaginaExtension);
   P.Version := FVersion;
   P.Nombre := Trim(edtNombre.Text);
-  P.Tipo := cmbTipo.Text;
+  P.Tipo := CodigoElegido(cmbTipo.ItemIndex, TiposOrigen);
   P.Origen := cmbOrigen.Text;
-  P.SoloOrigen := cmbClase.Text = 'Origen de datos';
+  P.SoloOrigen := CodigoElegido(cmbClase.ItemIndex, ClasesPagina) = 'Origen de datos';
   P.Menu := chkMenu.Checked and not P.SoloOrigen;
   if (cmbDestino.ItemIndex > 0) and not P.SoloOrigen then
   begin
@@ -428,7 +441,7 @@ begin
     Campos.Free;
   end;
 
-  FPagina.Clase := cmbClase.Text;
+  FPagina.Clase := CodigoElegido(cmbClase.ItemIndex, ClasesPagina);
   FPagina.MotorImpresion := cmbMotor.Text;
   FPagina.Entrada := cmbEntrada.Text;
   FPagina.AntesGuardar := cmbEvento.Text;
@@ -446,7 +459,8 @@ begin
   ModalResult := mrOk;
 end;
 
-function EditarPaginasExtension(Anfitrion: TfrmBase): Boolean;
+function EditarPaginasExtension(Anfitrion: TfrmBase;
+  AbrirIdiomas: Boolean): Boolean;
 var
   Repo: TRepositorioPaginas;
   i: Integer;
@@ -454,7 +468,7 @@ begin
   Repo := TRepositorioPaginas.Create(Anfitrion.ConexionPrincipal,
     Anfitrion.Permisos,Anfitrion.IdentidadSesion.Usuario);
   try
-    Result := EditarConsultoriaTMS(Anfitrion,Repo);
+    Result := EditarConsultoriaTMS(Anfitrion, Repo, AbrirIdiomas);
     if Result then
       for i := 0 to Screen.FormCount-1 do
         if Screen.Forms[i] is TfrmMtoGen then

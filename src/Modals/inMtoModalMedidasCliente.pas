@@ -29,6 +29,7 @@ function CrearPestanaMedidas(AFormulario: TfrmBase; APaginas: TcxPageControl;
 implementation
 
 uses
+  inLibIdiomaConsultoria,
   System.SysUtils, System.UITypes, System.Variants, Vcl.ExtCtrls, Vcl.Dialogs,
   Vcl.Menus, cxLabel, cxGroupBox, cxDropDownEdit, cxMemo, cxButtons,
   inLibPermisosIntf, inLibMsgMedidasCliente, inLibMensajesVcl,
@@ -237,7 +238,7 @@ begin
   for Ficha := Low(TFichaMedidas) to High(TFichaMedidas) do
   begin
     Opcion := TMenuItem.Create(Menu);
-    Opcion.Caption := TituloFichaMedidas(Ficha);
+    Opcion.Caption := TextoConsultoria(TituloFichaMedidas(Ficha));
     Opcion.Tag := Ord(Ficha);
     Opcion.OnClick := ImprimirClick;
     Menu.Items.Add(Opcion);

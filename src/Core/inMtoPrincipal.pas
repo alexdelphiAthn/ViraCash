@@ -91,7 +91,7 @@ type
     IPresentacionOperacionesAplicacion,
     IPasosArranqueAplicacion
   )
-    mnuConsultoria, mnuEditorPaginas: TMenuItem;
+    mnuConsultoria, mnuEditorPaginas, mnuIdiomasProyecto: TMenuItem;
     mnuCaja: TMenuItem;
     mnuMenuCaja: TMenuItem;
     mnuAlmacenes: TMenuItem;
@@ -488,6 +488,7 @@ function EjecutarAtajoApertura(AMenu: TMainMenu;
 implementation
 
 uses
+  inLibIdiomaConsultoria,
   UniDataReposicionAutomatica,
   inLibMensajesVcl,
   inLibMsgTrazabilidad,
@@ -1211,10 +1212,14 @@ begin
   R := TRepositorioPaginas.Create(ConexionPrincipal,Permisos,
     IdentidadSesion.Usuario);
   try
-    while mnuConsultoria.Count > 1 do
+    while mnuConsultoria.Count > 2 do
       mnuConsultoria.Items[mnuConsultoria.Count-1].Free;
+    mnuEditorPaginas.Caption := TextoConsultoria('Diseñador de consultoría') + '…';
     mnuEditorPaginas.Visible := R.PuedeDisenar;
     mnuEditorPaginas.Enabled := mnuEditorPaginas.Visible;
+    mnuIdiomasProyecto.Caption := TextoConsultoria('Editor de idiomas…');
+    mnuIdiomasProyecto.Visible := mnuEditorPaginas.Visible;
+    mnuIdiomasProyecto.Enabled := mnuEditorPaginas.Enabled;
     for P in R.Publicaciones do
       if P.Menu then
       begin
@@ -1228,7 +1233,7 @@ begin
         mnuConsultoria.Add(Item);
       end;
     mnuConsultoria.Visible := mnuEditorPaginas.Visible or
-      (mnuConsultoria.Count > 1);
+      (mnuConsultoria.Count > 2);
     mnuConsultoria.Enabled := mnuConsultoria.Visible;
   finally
     R.Free;
@@ -1237,7 +1242,7 @@ end;
 
 procedure TfrmMtoPrincipal.EditorPaginasClick(Sender: TObject);
 begin
-  if EditarPaginasExtension(Self) then
+  if EditarPaginasExtension(Self, Sender = mnuIdiomasProyecto) then
     MenuConsultoriaClick(nil);
 end;
 

@@ -1670,17 +1670,18 @@ begin
     txtCantidadLineas.Text := ResumenCantidadesPorTipo(
       TotalesFactura.Lineas, 'CANTIDAD_FACLIN',
       'TIPO_CANTIDAD_ARTICULO_FACLIN', 'CODIGO_ART_FACLIN',
-      ['ACUENTA', 'ANTICIPO']);
+      ['ACUENTA', 'ANTICIPO'], UnidadesMedida);
     txtCantidadLineas.Hint := txtCantidadLineas.Text;
     txtCantidadLineas.ShowHint := True;
-    // El resumen mixto no cabe en la celda de 64 píxeles. Mostrar el
+    // El resumen mixto puede exceder el ancho del campo. Mostrar el
     // número de líneas y conservar el desglose completo en la ayuda.
     if Pos(' + ', txtCantidadLineas.Text) > 0 then
     begin
       lblSuma.Caption := STextoLineasCaja;
       txtCantidadLineas.Text := IntToStr(TotalesFactura.Lineas.RecordCount);
     end;
-    txtBrutoLineas.Value := TotalesFactura.Totales.TotalBruto;
+    txtBrutoLineas.Value := RedondearACentimos(
+      TotalesFactura.Totales.TotalBruto);
     MostrarDescuentoLineal(TotalesFactura.Totales.TotalBruto,
       TotalesFactura.Totales.TotalDescuentosLineas);
     FDatosCobro.Recalcular;
@@ -1704,13 +1705,13 @@ begin
   if (ADescuento < 0) and (ABruto >= 0) then
   begin
     lblImporteDtoLineal.Caption := SCaptionDtoDevueltoCobroCaja;
-    txtTotalDtoLineal.Value := -ADescuento;
+    txtTotalDtoLineal.Value := RedondearACentimos(-ADescuento);
     txtPorcenDtoLineal.Text := '';
   end
   else
   begin
     lblImporteDtoLineal.Caption := FCaptionDtoLineal;
-    txtTotalDtoLineal.Value := ADescuento;
+    txtTotalDtoLineal.Value := RedondearACentimos(ADescuento);
     if ABruto <> 0 then
       txtPorcenDtoLineal.Text := FormatFloat('0.## %',
         (ADescuento / ABruto) * 100)

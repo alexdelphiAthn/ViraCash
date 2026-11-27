@@ -17,6 +17,7 @@ uses
   inLibMsgInformesCliente,
   inLibCambiosTrabajo,
   inLibMsgMedidasCliente, inLibMsgScripter,
+  inLibMsgPaginasExtension,
   inLibMsgRetiradaLotes,
   inLibMsgSubsanacionCaja,
   inLibMsgPersistenciaSubsanacionCaja,
@@ -7723,6 +7724,48 @@ begin
     'SMedidasTitulo',
     'src/Lib/inLibMsgMedidasCliente.pas',
     @inLibMsgMedidasCliente.SMedidasTitulo);
+  ARegistrar('inLibMsgMedidasCliente.SMedidasImprimir',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasImprimir);
+  ARegistrar('inLibMsgMedidasCliente.SMedidasPieIzquierdo',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasPieIzquierdo);
+  ARegistrar('inLibMsgMedidasCliente.SMedidasPieDerecho',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasPieDerecho);
+  ARegistrar('inLibMsgMedidasCliente.SMedidasTraje',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasTraje);
+  ARegistrar('inLibMsgMedidasCliente.SMedidasRopa',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasRopa);
+  ARegistrar('inLibMsgMedidasCliente.SMedidasGuia',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasGuia);
+  ARegistrar('inLibMsgMedidasCliente.SMedidasPrueba',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasPrueba);
+  ARegistrar('inLibMsgMedidasCliente.SMedidasGuiaPie',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasGuiaPie);
+  ARegistrar('inLibMsgMedidasCliente.SMedidasGuiaRopa',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasGuiaRopa);
+  ARegistrar('inLibMsgMedidasCliente.SMedidasGuiaCadera',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasGuiaCadera);
+  ARegistrar('inLibMsgMedidasCliente.SMedidasCliente',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasCliente);
+  ARegistrar('inLibMsgMedidasCliente.SMedidasMagnitud',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasMagnitud);
+  ARegistrar('inLibMsgMedidasCliente.SMedidasValor',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasValor);
+  ARegistrar('inLibMsgMedidasCliente.SMedidasUnidad',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasUnidad);
   ARegistrar('inLibMsgMedidasCliente.' +
     'SMedidasNueva',
     'src/Lib/inLibMsgMedidasCliente.pas',
@@ -39809,6 +39852,90 @@ begin
   ARegistrar('inLibMsgVentas.SErrorEfectoNoAdmiteAdeudoSepa',
     'src/Lib/inLibMsgVentas.pas',
     @inLibMsgVentas.SErrorEfectoNoAdmiteAdeudoSepa);
+  ARegistrar('inLibMsgPaginasExtension.SDefinicionIlegible',
+    'src/Lib/inLibMsgPaginasExtension.pas',
+    @inLibMsgPaginasExtension.SDefinicionIlegible);
+  ARegistrar('inLibMsgPaginasExtension.SProyectoGuardadoIlegible',
+    'src/Lib/inLibMsgPaginasExtension.pas',
+    @inLibMsgPaginasExtension.SProyectoGuardadoIlegible);
+  ARegistrar('inLibMsgPaginasExtension.SFaltaPermisoDiseno',
+    'src/Lib/inLibMsgPaginasExtension.pas',
+    @inLibMsgPaginasExtension.SFaltaPermisoDiseno);
+  ARegistrar('inLibMsgPaginasExtension.SFaltaPermisoConsulta',
+    'src/Lib/inLibMsgPaginasExtension.pas',
+    @inLibMsgPaginasExtension.SFaltaPermisoConsulta);
+  ARegistrar('inLibMsgPaginasExtension.SSeleccioneValor',
+    'src/Lib/inLibMsgPaginasExtension.pas',
+    @inLibMsgPaginasExtension.SSeleccioneValor);
+  ARegistrar('inLibMsgPaginasExtension.SValorNoDisponible',
+    'src/Lib/inLibMsgPaginasExtension.pas',
+    @inLibMsgPaginasExtension.SValorNoDisponible);
+  ARegistrar('inLibMsgPaginasExtension.SIndiqueNombre',
+    'src/Lib/inLibMsgPaginasExtension.pas',
+    @inLibMsgPaginasExtension.SIndiqueNombre);
+  ARegistrar('inLibMsgPaginasExtension.SIndiqueNombreProyecto',
+    'src/Lib/inLibMsgPaginasExtension.pas',
+    @inLibMsgPaginasExtension.SIndiqueNombreProyecto);
+  ARegistrar('inLibMsgPaginasExtension.SIndiqueNombreElemento',
+    'src/Lib/inLibMsgPaginasExtension.pas',
+    @inLibMsgPaginasExtension.SIndiqueNombreElemento);
+  ARegistrar('inLibMsgPaginasExtension.SNombresDistintos',
+    'src/Lib/inLibMsgPaginasExtension.pas',
+    @inLibMsgPaginasExtension.SNombresDistintos);
+  ARegistrar('inLibMsgPaginasExtension.SElijaDestino',
+    'src/Lib/inLibMsgPaginasExtension.pas',
+    @inLibMsgPaginasExtension.SElijaDestino);
+  ARegistrar('inLibMsgPaginasExtension.SElijaOrigen',
+    'src/Lib/inLibMsgPaginasExtension.pas',
+    @inLibMsgPaginasExtension.SElijaOrigen);
+  ARegistrar('inLibMsgPaginasExtension.STipoOrigenDesconocido',
+    'src/Lib/inLibMsgPaginasExtension.pas',
+    @inLibMsgPaginasExtension.STipoOrigenDesconocido);
+  ARegistrar('inLibMsgPaginasExtension.SOrigenNoDisponible',
+    'src/Lib/inLibMsgPaginasExtension.pas',
+    @inLibMsgPaginasExtension.SOrigenNoDisponible);
+  ARegistrar('inLibMsgPaginasExtension.SSeleccioneCampoEnlace',
+    'src/Lib/inLibMsgPaginasExtension.pas',
+    @inLibMsgPaginasExtension.SSeleccioneCampoEnlace);
+  ARegistrar('inLibMsgPaginasExtension.SPestanaUnaEntrada',
+    'src/Lib/inLibMsgPaginasExtension.pas',
+    @inLibMsgPaginasExtension.SPestanaUnaEntrada);
+  ARegistrar('inLibMsgPaginasExtension.SMarqueCampoSeleccion',
+    'src/Lib/inLibMsgPaginasExtension.pas',
+    @inLibMsgPaginasExtension.SMarqueCampoSeleccion);
+  ARegistrar('inLibMsgPaginasExtension.SMarqueCampos',
+    'src/Lib/inLibMsgPaginasExtension.pas',
+    @inLibMsgPaginasExtension.SMarqueCampos);
+  ARegistrar('inLibMsgPaginasExtension.SCampoNoDisponible',
+    'src/Lib/inLibMsgPaginasExtension.pas',
+    @inLibMsgPaginasExtension.SCampoNoDisponible);
+  ARegistrar('inLibMsgPaginasExtension.SReviseListaSeleccion',
+    'src/Lib/inLibMsgPaginasExtension.pas',
+    @inLibMsgPaginasExtension.SReviseListaSeleccion);
+  ARegistrar('inLibMsgPaginasExtension.SOtraSesionConsultoria',
+    'src/Lib/inLibMsgPaginasExtension.pas',
+    @inLibMsgPaginasExtension.SOtraSesionConsultoria);
+  ARegistrar('inLibMsgPaginasExtension.SPaginaYaExiste',
+    'src/Lib/inLibMsgPaginasExtension.pas',
+    @inLibMsgPaginasExtension.SPaginaYaExiste);
+  ARegistrar('inLibMsgPaginasExtension.SOtraSesionPagina',
+    'src/Lib/inLibMsgPaginasExtension.pas',
+    @inLibMsgPaginasExtension.SOtraSesionPagina);
+  ARegistrar('inLibMsgPaginasExtension.STermineAntesGuardar',
+    'src/Lib/inLibMsgPaginasExtension.pas',
+    @inLibMsgPaginasExtension.STermineAntesGuardar);
+  ARegistrar('inLibMsgPaginasExtension.STermineAntesPublicar',
+    'src/Lib/inLibMsgPaginasExtension.pas',
+    @inLibMsgPaginasExtension.STermineAntesPublicar);
+  ARegistrar('inLibMsgPaginasExtension.SProyectoCambiado',
+    'src/Lib/inLibMsgPaginasExtension.pas',
+    @inLibMsgPaginasExtension.SProyectoCambiado);
+  ARegistrar('inLibMsgPaginasExtension.SPublicacionCambiada',
+    'src/Lib/inLibMsgPaginasExtension.pas',
+    @inLibMsgPaginasExtension.SPublicacionCambiada);
+  ARegistrar('inLibMsgPaginasExtension.SFaltanParametros',
+    'src/Lib/inLibMsgPaginasExtension.pas',
+    @inLibMsgPaginasExtension.SFaltanParametros);
 end;
 {$WARN SYMBOL_DEPRECATED ON}
 

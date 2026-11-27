@@ -24,7 +24,7 @@ unit inLibTipoCantidad;
 
 interface
 
-uses Data.DB;
+uses Data.DB, inLibUnidadesMedida;
 
 // Quita espacios y puntos finales: 'Uds.' y 'Uds' son el mismo valor.
 function NormalizarTipoCantidad(const AValor: string): string;
@@ -43,7 +43,8 @@ function ResumenCantidadesPorTipo(ALineas: TDataSet;
 // prendas de depósito devueltas (ACCION_DEPOSITO = 'CANCELAR').
 function ResumenCantidadesPorTipo(ALineas: TDataSet;
   const ACampoCantidad, ACampoTipo, ACampoArticulo: string;
-  const AArticulosExcluidos: array of string): string; overload;
+  const AArticulosExcluidos: array of string;
+  AUnidades: TUnidadesMedida = nil): string; overload;
 
 implementation
 
@@ -63,12 +64,13 @@ end;
 
 function ResumenCantidadesPorTipo(ALineas: TDataSet;
   const ACampoCantidad, ACampoTipo, ACampoArticulo: string;
-  const AArticulosExcluidos: array of string): string;
+  const AArticulosExcluidos: array of string;
+  AUnidades: TUnidadesMedida): string;
 var
   bExcluida: Boolean;
   Cantidades: TDictionary<string, Double>;
   Marca: TBookmark;
-  Tipo: string;
+  Tipo, TextoCantidad: string;
   Cantidad: Double;
 begin
   Result := '';
@@ -108,8 +110,11 @@ begin
     begin
       if Result <> '' then
         Result := Result + ' + ';
-      Result := Result + FormatFloat('0.###', Cantidades[Tipo]) +
-        ' ' + Tipo;
+      if Assigned(AUnidades) and AUnidades.Existe(Tipo) then
+        TextoCantidad := AUnidades.Formatear(Cantidades[Tipo], Tipo)
+      else
+        TextoCantidad := FormatFloat('0.###', Cantidades[Tipo]);
+      Result := Result + TextoCantidad + ' ' + Tipo;
     end;
   finally
     if ALineas.BookmarkValid(Marca) then

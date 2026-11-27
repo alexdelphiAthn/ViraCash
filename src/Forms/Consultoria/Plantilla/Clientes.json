@@ -1,4 +1,24 @@
 {
+  "idiomas": {
+  "medida.campos": {
+    "es-ES": "Indique el código, el nombre y la unidad de medida.",
+    "ca-ES": "Indiqueu el codi, el nom i la unitat de mesura.",
+    "en-GB": "Enter the code, name and unit of measurement.",
+    "zh-CN": "请输入代码、名称和测量单位。"
+  },
+  "medida.limites": {
+    "es-ES": "Revise el mínimo y el máximo de la medida.",
+    "ca-ES": "Reviseu el mínim i el màxim de la mida.",
+    "en-GB": "Check the minimum and maximum measurement.",
+    "zh-CN": "请检查测量项目的最小值和最大值。"
+  },
+  "medida.activa": {
+    "es-ES": "Indique S o N en Activa.",
+    "ca-ES": "Indiqueu S o N a Activa.",
+    "en-GB": "Enter S or N for Active.",
+    "zh-CN": "请在启用字段中输入 S 或 N。"
+  }
+},
   "archivos": {
     "pagina.ssproj": "CONS_PROYECTO_CLIENTES",
     "iniciollamadas.psc": "CONS_INICIO_LLAMADAS",
