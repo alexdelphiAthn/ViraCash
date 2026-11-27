@@ -24,7 +24,7 @@ uses
   System.SysUtils, Data.DB, Datasnap.DBClient, inLibTrazabilidad,
   inLibArticulosValidadorIntf, inLibLotesPersistenciaIntf,
   inLibLotesVisualIntf, inLibAsignacionLoteLectura, inLibCajaEntradaIntf,
-  inLibLecturaGs1Pendiente;
+  inLibLecturaGs1Pendiente, inLibCajaStockPersistenciaIntf;
 
 const
   CAMPO_LOTE_CAJA = 'LOTE_FACLIN';
@@ -62,6 +62,7 @@ type
     Avisar: TAvisoLoteCaja;
     // Política general antes de repartir, también al elegir con F9.
     ValidarStock: TProc<TDataSet>;
+    MascaraCantidadSku: TMascaraCantidadSkuCaja;
     CompensarDevoluciones: TFunc<Boolean>;
     // Unidades que no caben en la línea grabada (series, varios lotes):
     // se dan de alta como lecturas del SKU, fuera del Post.
@@ -516,7 +517,7 @@ var
   PuntoGuardado: Int64;
   Cantidad, Total: Double;
   EsDevolucion: Boolean;
-  Sku, Lote: string;
+  Sku, Lote, Mascara: string;
   Validacion: TValidacionSalidaLote;
 begin
   EsDevolucion := ALinea.FieldByName(CAMPO_CANTIDAD_CAJA).AsFloat < 0;
@@ -546,9 +547,10 @@ begin
         if (Validacion.Resultado = rslLoteInexistente) or
            (Cantidad > Validacion.StockDisponible + 0.000001) then
         begin
+          Mascara := MascaraAvisoStockCaja(FConfig.MascaraCantidadSku, Sku);
           FConfig.Avisar(Format(SErrorCantidadLoteSuperaStock,
-            [Lote, FormatFloat('0.###', Cantidad),
-             FormatFloat('0.###', Validacion.StockDisponible)]));
+            [Lote, FormatFloat(Mascara, Cantidad),
+             FormatFloat(Mascara, Validacion.StockDisponible)]));
           Abort;
         end;
       end;
@@ -727,7 +729,7 @@ end;
 procedure TTrazabilidadEntradaCaja.ValidarExistencias(ALinea: TDataSet);
 var
   Cantidad: Double;
-  Sku, Lote: string;
+  Sku, Lote, Mascara: string;
   Validacion: TValidacionSalidaLote;
   Deposito: TField;
   Catalogo: TLoteCatalogo;
@@ -757,9 +759,10 @@ begin
            = mtSerie) then
         raise EStockInsuficienteCaja.CreateFmt(SErrorSerieNoEnAlmacen,
           [Lote, FConfig.Almacen()]);
+      Mascara := MascaraAvisoStockCaja(FConfig.MascaraCantidadSku, Sku);
       raise EStockInsuficienteCaja.CreateFmt(SErrorCantidadLoteSuperaStock,
-        [Lote, FormatFloat('0.###', Cantidad),
-         FormatFloat('0.###', Validacion.StockDisponible)]);
+        [Lote, FormatFloat(Mascara, Cantidad),
+         FormatFloat(Mascara, Validacion.StockDisponible)]);
     end;
   end;
 end;

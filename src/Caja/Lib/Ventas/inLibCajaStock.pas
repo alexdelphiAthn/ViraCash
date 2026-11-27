@@ -24,13 +24,15 @@ type
   private
     FPersistencia: ICajaStockPersistencia;
     FParametrosCaja: IParametrosCaja;
+    FMascaraCantidadSku: TMascaraCantidadSkuCaja;
     procedure CompletarMensaje(
       const ACodigoSku, AMensajeStock: string;
       var AResultado: TResultadoPoliticaStockVenta);
   public
     constructor Create(
       const APersistencia: ICajaStockPersistencia;
-      const AParametrosCaja: IParametrosCaja);
+      const AParametrosCaja: IParametrosCaja;
+      AMascaraCantidadSku: TMascaraCantidadSkuCaja = nil);
     function Validar(
       const ACodigoSku, ACodigoAlmacen: string
     ): TResultadoPoliticaStockVenta;
@@ -46,13 +48,15 @@ uses
 
 constructor TPoliticaStockVenta.Create(
   const APersistencia: ICajaStockPersistencia;
-  const AParametrosCaja: IParametrosCaja);
+  const AParametrosCaja: IParametrosCaja;
+  AMascaraCantidadSku: TMascaraCantidadSkuCaja);
 begin
   inherited Create;
   if not Assigned(APersistencia) then
     raise EArgumentNilException.Create('APersistencia');
   FPersistencia := APersistencia;
   FParametrosCaja := AParametrosCaja;
+  FMascaraCantidadSku := AMascaraCantidadSku;
 end;
 
 procedure TPoliticaStockVenta.CompletarMensaje(
@@ -140,7 +144,7 @@ const
   TOLERANCIA = 0.0000005;
 var
   bBloquear: Boolean;
-  sAviso, sDetalle, sCodigoSku: string;
+  sAviso, sDetalle, sCodigoSku, Mascara: string;
   dDisponible: Double;
 begin
   Result.Permitida := True;
@@ -157,9 +161,10 @@ begin
       ACodigoAlmacen);
     if ACantidad > dDisponible + TOLERANCIA then
     begin
+      Mascara := MascaraAvisoStockCaja(FMascaraCantidadSku, sCodigoSku);
       sDetalle := Format(SDetalleStockInsuficienteLinea,
-        [sCodigoSku, FormatFloat('0.###', ACantidad),
-         FormatFloat('0.###', dDisponible), ACodigoAlmacen]);
+        [sCodigoSku, FormatFloat(Mascara, ACantidad),
+         FormatFloat(Mascara, dDisponible), ACodigoAlmacen]);
       Result.Motivo := msvSinStock;
       Result.Permitida := not bBloquear;
       if bBloquear then

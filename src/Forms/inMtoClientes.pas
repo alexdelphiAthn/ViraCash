@@ -451,7 +451,6 @@ type
     FVerificacionNif: TComponent;
     FTabMedidas: TcxTabSheet;
     procedure CrearAccesoMedidas;
-    procedure MedidasClienteClick(Sender: TObject);
     procedure InstalarVerificacionNif;
   public
     procedure CrearTablaPrincipal; override;
@@ -467,7 +466,7 @@ implementation
 
 uses
   inLibMensajesVcl,
-  inLibMsgMedidasCliente, inMtoModalMedidasCliente,
+  inMtoModalMedidasCliente,
   inLibComboPais,
   inLibWin,
   inLibUser,
@@ -764,30 +763,12 @@ begin
 end;
 
 procedure TfrmMtoClientes.CrearAccesoMedidas;
-var
-  oBoton: TcxButton;
 begin
   if FTabMedidas = nil then
-  begin
-    FTabMedidas := TcxTabSheet.Create(Self);
-    FTabMedidas.PageControl := pcPestanas;
-    FTabMedidas.Caption := SMedidasTitulo;
-    oBoton := TcxButton.Create(Self);
-    oBoton.Parent := FTabMedidas;
-    oBoton.Align := alTop;
-    oBoton.Height := ScaleValue(44);
-    oBoton.Caption := SMedidasTitulo;
-    oBoton.OnClick := MedidasClienteClick;
-  end;
+    FTabMedidas := CrearPestanaMedidas(Self, pcPestanas, dsTablaG,
+      CampoClaveCliente);
   tsOtros.PageIndex := pcPestanas.PageCount - 1;
   NumerarPestanasAtajo(pcPestanas);
-end;
-
-procedure TfrmMtoClientes.MedidasClienteClick(Sender: TObject);
-begin
-  FDmmClientes.unqryTablaG.CheckBrowseMode;
-  TfrmModalMedidasCliente.Ejecutar(Self,
-    FDmmClientes.unqryTablaG.FieldByName('CODIGO_CLI_CLI').AsString);
 end;
 
 // FZ-ISSUE-131: botón «AEAT» junto al NIF; firma con el certificado de

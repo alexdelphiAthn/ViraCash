@@ -37,7 +37,8 @@ function CrearServiciosOperacionCaja(
   const ARepositorioPdf: IRepositorioPdfFactura;
   const ARepositorioVentasWs: IAltaVentasWsCola;
   const ARegistroLog: IRegistroLog;
-  const AFormatoDocumentos: IFormatoDocumentoLecturas = nil
+  const AFormatoDocumentos: IFormatoDocumentoLecturas = nil;
+  AMascaraCantidadSku: TMascaraCantidadSkuCaja = nil
 ): TContextoDependenciasOperacionCaja;
 
 implementation
@@ -58,7 +59,8 @@ function CrearServiciosOperacionCaja(
   const ARepositorioPdf: IRepositorioPdfFactura;
   const ARepositorioVentasWs: IAltaVentasWsCola;
   const ARegistroLog: IRegistroLog;
-  const AFormatoDocumentos: IFormatoDocumentoLecturas
+  const AFormatoDocumentos: IFormatoDocumentoLecturas;
+  AMascaraCantidadSku: TMascaraCantidadSkuCaja
 ): TContextoDependenciasOperacionCaja;
 begin
   Result.RepositorioConsultas := ARepositorioConsultas;
@@ -67,8 +69,7 @@ begin
       Result.RepositorioConsultas);
   Result.PoliticaStock :=
     TPoliticaStockVenta.Create(
-      ACajaStockPersistencia,
-      AParametrosCaja);
+      ACajaStockPersistencia, AParametrosCaja, AMascaraCantidadSku);
   Result.RepartidorDescuento :=
     TRepartidorDescuento.Create;
   Result.CasoUsoCierre :=

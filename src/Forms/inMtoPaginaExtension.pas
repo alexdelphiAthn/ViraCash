@@ -5,9 +5,26 @@ interface
 
 uses
   System.SysUtils, System.Classes, Data.DB, Uni, Vcl.Controls, Vcl.ExtCtrls, Vcl.Forms,
-  cxPC, cxButtons, cxGrid, cxGridDBTableView, UniDataPaginasExtension;
+  cxPC, cxLabel, cxButtons, cxGrid, cxGridDBTableView, UniDataPaginasExtension;
 
 type
+  TPestanaVinculada = class(TcxTabSheet)
+  private
+    FEnlace: TDataLink;
+    FPanel: TComponent;
+    FAviso: TcxLabel;
+    FClave: Variant;
+    FCampoMaestro, FMensajeSeleccion: string;
+    FOcupada: Boolean;
+    procedure Sincronizar(Sender: TObject);
+  protected
+    function Montar(const AClave: Variant): TComponent; virtual; abstract;
+  public
+    procedure Vincular(PC: TcxPageControl; DS: TDataSource;
+      const ACampo, ATitulo, AMensajeSeleccion: string);
+    destructor Destroy; override;
+  end;
+
   TPanelPagina = class(TPanel)
   private
     FRepo: TRepositorioPaginas;
@@ -44,7 +61,7 @@ implementation
 
 uses
   System.Variants, System.Rtti, System.TypInfo, System.UITypes, Vcl.Dialogs,
-  inMtoModalImpConsultoria, cxGridLevel, cxLabel, cxDBEdit, cxTextEdit, cxCalendar, cxMemo,
+  inMtoModalImpConsultoria, cxGridLevel, cxDBEdit, cxTextEdit, cxCalendar, cxMemo,
   cxDBLookupComboBox, cxDropDownEdit, dxFilterPopupWindow, cxGridCustomTableView,
   inMtoFrmBase, inLibMensajesVcl, Vcl.ScripterInit, atScript, atPascal, inMtoProyectoConsultoria;
 
@@ -499,26 +516,19 @@ begin
 end;
 
 type
-  TPestanaExtension = class;
-
   TEnlaceMaestro = class(TDataLink)
-    Pestana: TPestanaExtension;
+    Pestana: TPestanaVinculada;
     procedure DataSetChanged; override;
     procedure ActiveChanged; override;
     procedure EditingChanged; override;
   end;
 
-  TPestanaExtension = class(TcxTabSheet)
-  public
+  TPestanaExtension = class(TPestanaVinculada)
+  private
     Repo: TRepositorioPaginas;
     Pagina: TPaginaExtension;
-    Enlace: TEnlaceMaestro;
-    Panel: TComponent;
-    Aviso: TcxLabel;
-    Clave: Variant;
-    Ocupada: Boolean;
-    procedure Sincronizar(Sender: TObject);
-    destructor Destroy; override;
+  protected
+    function Montar(const AClave: Variant): TComponent; override;
   end;
 
 procedure TEnlaceMaestro.DataSetChanged;
@@ -537,51 +547,71 @@ begin
   DataSetChanged;
 end;
 
-destructor TPestanaExtension.Destroy;
+destructor TPestanaVinculada.Destroy;
 begin
-  if Assigned(Enlace) then
-    Enlace.Pestana := nil;
-  Enlace.Free;
+  if Assigned(FEnlace) then
+    TEnlaceMaestro(FEnlace).Pestana := nil;
+  FEnlace.Free;
   inherited;
 end;
 
-procedure TPestanaExtension.Sincronizar(Sender: TObject);
+procedure TPestanaVinculada.Vincular(PC: TcxPageControl; DS: TDataSource;
+  const ACampo, ATitulo, AMensajeSeleccion: string);
+begin
+  Caption := ATitulo;
+  FCampoMaestro := ACampo;
+  FMensajeSeleccion := AMensajeSeleccion;
+  FAviso := TcxLabel.Create(Self);
+  FAviso.Parent := Self;
+  FAviso.Align := alTop;
+  FEnlace := TEnlaceMaestro.Create;
+  TEnlaceMaestro(FEnlace).Pestana := Self;
+  FEnlace.DataSource := DS;
+  OnShow := Sincronizar;
+  PageControl := PC;
+end;
+
+procedure TPestanaVinculada.Sincronizar(Sender: TObject);
 var
   Valor: Variant;
-  F: TField;
+  Campo: TField;
 begin
-  if not Ocupada and Assigned(PageControl) and
-    (PageControl.ActivePage = Self) and not (csDestroying in ComponentState) then
+  if Showing and not FOcupada and not (csDestroying in ComponentState) then
   begin
-    Ocupada := True;
+    FOcupada := True;
     try
       Valor := Null;
-      if Enlace.Active and (Enlace.DataSet.State = dsBrowse) and
-        not Enlace.DataSet.IsEmpty then
+      if FEnlace.Active and (FEnlace.DataSet.State = dsBrowse) and
+        not FEnlace.DataSet.IsEmpty then
       begin
-        F := Enlace.DataSet.FindField(Pagina.Maestro);
-        if Assigned(F) then
-          Valor := F.Value;
+        Campo := FEnlace.DataSet.FindField(FCampoMaestro);
+        if Assigned(Campo) then
+          Valor := Campo.Value;
       end;
-      if not Assigned(Panel) or not VarSameValue(Valor,Clave) then
+      if not Assigned(FPanel) or not VarSameValue(Valor, FClave) then
       begin
-        FreeAndNil(Panel);
-        Clave := Valor;
-        Aviso.Visible := True;
-        Aviso.Caption := 'Seleccione un registro guardado.';
+        FreeAndNil(FPanel);
+        FClave := Valor;
+        FAviso.Visible := True;
+        FAviso.Caption := FMensajeSeleccion;
         if not VarIsNull(Valor) then
           try
-            Panel := MontarConsultoriaTMS(Self,Repo,Pagina,True,Valor,nil);
-            Aviso.Visible := False;
+            FPanel := Montar(Valor);
+            FAviso.Visible := False;
           except
             on E: Exception do
-              Aviso.Caption := E.Message;
+              FAviso.Caption := E.Message;
           end;
       end;
     finally
-      Ocupada := False;
+      FOcupada := False;
     end;
   end;
+end;
+
+function TPestanaExtension.Montar(const AClave: Variant): TComponent;
+begin
+  Result := MontarConsultoriaTMS(Self, Repo, Pagina, True, AClave, nil);
 end;
 
 procedure MontarPestana(PC: TcxPageControl; DS: TDataSource;
@@ -590,17 +620,14 @@ var
   Tab: TPestanaExtension;
 begin
   Tab := TPestanaExtension.Create(PC);
-  Tab.Repo := Repo;
-  Tab.Pagina := P;
-  Tab.Caption := P.Nombre;
-  Tab.Aviso := TcxLabel.Create(Tab);
-  Tab.Aviso.Parent := Tab;
-  Tab.Aviso.Align := alTop;
-  Tab.Enlace := TEnlaceMaestro.Create;
-  Tab.Enlace.Pestana := Tab;
-  Tab.Enlace.DataSource := DS;
-  Tab.OnShow := Tab.Sincronizar;
-  Tab.PageControl := PC;
+  try
+    Tab.Repo := Repo;
+    Tab.Pagina := P;
+    Tab.Vincular(PC, DS, P.Maestro, P.Nombre, 'Seleccione un registro guardado.');
+  except
+    Tab.Free;
+    raise;
+  end;
 end;
 
 procedure RetirarPestanas(PC: TcxPageControl);

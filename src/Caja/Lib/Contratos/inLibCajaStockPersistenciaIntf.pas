@@ -16,6 +16,7 @@ unit inLibCajaStockPersistenciaIntf;
 interface
 
 type
+  TMascaraCantidadSkuCaja = function(const ASku: string): string of object;
   TEstadoSkuCajaStock = record
     Existe: Boolean;
     Activo: Boolean;
@@ -31,6 +32,18 @@ type
     function SkuSinControlStock(const ACodigoSku: string): Boolean;
   end;
 
+function MascaraAvisoStockCaja(AObtener: TMascaraCantidadSkuCaja;
+  const ASku: string): string;
+
 implementation
+
+function MascaraAvisoStockCaja(AObtener: TMascaraCantidadSkuCaja;
+  const ASku: string): string;
+begin
+  if Assigned(AObtener) then
+    Result := AObtener(ASku)
+  else
+    Result := '0.###';
+end;
 
 end.

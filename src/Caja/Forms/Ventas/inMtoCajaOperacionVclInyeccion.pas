@@ -125,7 +125,8 @@ begin
       AIncidenciasSql),
     PersistenciaFacturas.Pdf,
     CrearRepositorioVentasWsColaUniDAC(AConexion),
-    ARegistroLog, CrearFormatoDocumentoLecturas(AConexion));
+    ARegistroLog, CrearFormatoDocumentoLecturas(AConexion),
+    ADatosCaja.MascaraCantidadSku);
 end;
 
 end.

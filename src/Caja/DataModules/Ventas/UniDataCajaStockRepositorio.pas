@@ -17,13 +17,18 @@ interface
 
 uses
   Uni, Datasnap.DBClient,
-  inLibCajaStockPersistenciaIntf;
+  inLibCajaStockPersistenciaIntf, inLibUnidadesMedida;
+
+function MascaraCantidadVentaCaja(ALineas: TClientDataSet;
+  AUnidades: TUnidadesMedida; AConexion: TUniConnection;
+  const ASku: string): string;
 
 function CrearCajaStockRepositorio(
   AConexion: TUniConnection): ICajaStockPersistencia;
 
 procedure ValidarStockCobroCaja(AConexion: TUniConnection;
-  ALineas: TClientDataSet; const AAlmacen: string);
+  ALineas: TClientDataSet; const AAlmacen: string;
+  AMascaraCantidadSku: TMascaraCantidadSkuCaja = nil);
 
 implementation
 
@@ -32,11 +37,71 @@ uses
   System.Generics.Defaults, Data.DB, inLibErroresBBDD, inLibMsgArticulos,
   inLibMsgTrazabilidad;
 
+function MascaraCantidadVentaCaja(ALineas: TClientDataSet;
+  AUnidades: TUnidadesMedida; AConexion: TUniConnection;
+  const ASku: string): string;
+const
+  CAMPO_SKU = 'CODIGO_UNIDAD_FACLIN';
+  CAMPO_UNIDAD = 'TIPO_CANTIDAD_ARTICULO_FACLIN';
+var
+  Clon: TClientDataSet;
+  Consulta: TUniQuery;
+  Unidad: string;
+  EnTicket: Boolean;
+begin
+  Result := '0.###';
+  if Assigned(AUnidades) and (Trim(ASku) <> '') then
+  begin
+    Unidad := '';
+    EnTicket := False;
+    if Assigned(ALineas) and ALineas.Active and
+       Assigned(ALineas.FindField(CAMPO_UNIDAD)) then
+    begin
+      EnTicket := SameText(Trim(ALineas.FieldByName(CAMPO_SKU).AsString),
+        Trim(ASku));
+      if EnTicket then
+        Unidad := ALineas.FieldByName(CAMPO_UNIDAD).AsString
+      else
+      begin
+        Clon := TClientDataSet.Create(nil);
+        try
+          Clon.CloneCursor(ALineas, True);
+          EnTicket := Clon.Locate(CAMPO_SKU, Trim(ASku), [loCaseInsensitive]);
+          if EnTicket then
+            Unidad := Clon.FieldByName(CAMPO_UNIDAD).AsString;
+        finally
+          Clon.Free;
+        end;
+      end;
+    end;
+    // Una primera lectura puede ser rechazada antes de insertar su línea.
+    if not EnTicket and Assigned(AConexion) then
+    begin
+      Consulta := TUniQuery.Create(nil);
+      try
+        Consulta.Connection := AConexion;
+        Consulta.SQL.Text :=
+          'SELECT A.TIPO_CANTIDAD_ART FROM fza_articulos_skus S ' +
+          'JOIN fza_articulos A ON A.CODIGO_ART_ART = S.CODIGO_ART_SKU ' +
+          'WHERE S.CODIGO_UNIDAD_SKU = :SKU';
+        Consulta.ParamByName('SKU').AsString := ASku;
+        Consulta.Open;
+        Unidad := Consulta.Fields[0].AsString;
+      finally
+        Consulta.Free;
+      end;
+    end;
+    if AUnidades.Existe(Unidad) then
+      Result := AUnidades.Mascara(Unidad);
+  end;
+end;
+
 type
   TCantidadesSerie = TDictionary<string, Double>;
 
 procedure ValidarStockCobroCaja(AConexion: TUniConnection;
-  ALineas: TClientDataSet; const AAlmacen: string);
+  ALineas: TClientDataSet; const AAlmacen: string;
+  AMascaraCantidadSku: TMascaraCantidadSkuCaja);
 var
   Lineas: TClientDataSet;
   Consulta: TUniQuery;
@@ -45,7 +110,7 @@ var
   SeriesPorSku: TObjectDictionary<string, TCantidadesSerie>;
   Series: TCantidadesSerie;
   CampoSerie: TField;
-  Sku, Detalle, Serie: string;
+  Sku, Detalle, Serie, Mascara: string;
   Partida: TPair<string, Double>;
   Cantidad, Disponible: Double;
 begin
@@ -137,17 +202,21 @@ begin
               raise EValidacionBBDD.CreateFmt(SErrorSerieNoEnAlmacen,
                 [Partida.Key, AAlmacen]);
             if Partida.Value > Cantidad + 0.0000005 then
+            begin
+              Mascara := MascaraAvisoStockCaja(AMascaraCantidadSku, Sku);
               raise EValidacionBBDD.CreateFmt(SErrorCantidadLoteSuperaStock,
-                [Partida.Key, FormatFloat('0.###', Partida.Value),
-                 FormatFloat('0.###', Cantidad)]);
+                [Partida.Key, FormatFloat(Mascara, Partida.Value),
+                 FormatFloat(Mascara, Cantidad)]);
+            end;
           end;
       Consulta.Close;
       if (Cantidades[Sku] > 0.0000005) and
          (Cantidades[Sku] > Disponible + 0.0000005) then
       begin
+        Mascara := MascaraAvisoStockCaja(AMascaraCantidadSku, Sku);
         Detalle := Format(SDetalleStockInsuficienteLinea,
-          [Sku, FormatFloat('0.###', Cantidades[Sku]),
-           FormatFloat('0.###', Disponible), AAlmacen]);
+          [Sku, FormatFloat(Mascara, Cantidades[Sku]),
+           FormatFloat(Mascara, Disponible), AAlmacen]);
         raise EValidacionBBDD.CreateFmt(SErrorStockInsuficienteLinea,
           [Detalle]);
       end;

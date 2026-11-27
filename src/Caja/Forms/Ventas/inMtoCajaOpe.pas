@@ -937,6 +937,7 @@ begin
     rConfig.Selector := CrearSelectorLotesVisual(AFormulario,
                                                  rConfig.Repositorio);
     rConfig.Lineas := AFormulario.DatosCaja.cdsLineas;
+    rConfig.MascaraCantidadSku := AFormulario.DatosCaja.MascaraCantidadSku;
     rConfig.PartidasDevolucion :=
       function(ASku: string): TLotesDisponibles
       begin
@@ -1353,7 +1354,7 @@ begin
     AFormulario.ConexionPrincipal,
     AFormulario.ParametrosApp,
     AFormulario.ParametrosCaja,
-    AFormulario.PreviewTicket);
+    AFormulario.PreviewTicket, AFormulario.UnidadesMedida);
   AFormulario.DatosCaja.ConfirmarContador :=
     function(AMensaje: string): Boolean
     begin

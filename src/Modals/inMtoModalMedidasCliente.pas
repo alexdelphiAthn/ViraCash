@@ -7,22 +7,46 @@ unit inMtoModalMedidasCliente;
 interface
 
 uses
-  System.Classes, Vcl.Controls, Vcl.Forms, cxDropDownEdit, cxMemo,
-  cxButtons, inMtoModalAceptCancel, UniDataMedidasCliente,
-  inLibMedidasCliente;
+  System.Classes, Vcl.Controls, Vcl.Forms, Data.DB, cxPC,
+  inMtoFrmBase, inMtoModalAceptCancel;
 
 type
   TfrmModalMedidasCliente = class(TfrmModalAceptCancel)
   private
+    FIdElegido: string;
+    procedure CerrarSinLiberar(Sender: TObject; var Action: TCloseAction);
+    procedure PrepararDialogo(const ACliente: string);
+  public
+    class function Elegir(AOwner: TComponent; const ACliente: string;
+      out AId: string): Boolean;
+    class procedure Ejecutar(AOwner: TComponent; const ACliente: string;
+      AOrden: Int64 = 0);
+  end;
+
+function CrearPestanaMedidas(AFormulario: TfrmBase; APaginas: TcxPageControl;
+  AOrigen: TDataSource; const ACampoCliente: string): TcxTabSheet;
+
+implementation
+
+uses
+  System.SysUtils, System.UITypes, System.Variants, Vcl.ExtCtrls, Vcl.Dialogs,
+  Vcl.Menus, cxLabel, cxGroupBox, cxDropDownEdit, cxMemo, cxButtons,
+  inLibPermisosIntf, inLibMsgMedidasCliente, inLibMensajesVcl,
+  inLibMedidasCliente, UniDataMedidasCliente, inMtoModalDatosOrden,
+  inMtoModalImpMedidasCliente, inMtoPaginaExtension;
+
+type
+  TPanelMedidas = class(TPanel)
+  private
+    FAnfitrion: TfrmBase;
     FRepositorio: TRepositorioMedidasCliente;
     FCliente: string;
     FOrden: Int64;
     FElegir: Boolean;
-    FIdElegido: string;
     FSesiones: TSesionesMedidasCliente;
     FSelector: TcxComboBox;
     FDetalle: TcxMemo;
-    FImprimir: TcxButton;
+    FImprimir, FCorregir: TcxButton;
     procedure CrearInterfaz;
     procedure CargarHistorial;
     procedure SeleccionCambio(Sender: TObject);
@@ -30,7 +54,6 @@ type
     procedure CorregirClick(Sender: TObject);
     procedure ImprimirClick(Sender: TObject);
     procedure VincularClick(Sender: TObject);
-    procedure CerrarSinLiberar(Sender: TObject; var Action: TCloseAction);
     procedure EditarSesion(ACorregir: Boolean);
     function CapturarSesion(var ASesion: TSesionMedidasCliente): Boolean;
     procedure CamposSesion(const ASesion: TSesionMedidasCliente;
@@ -39,19 +62,74 @@ type
     procedure LeerCampos(var ASesion: TSesionMedidasCliente;
       const AMagnitudes: TMagnitudesCliente; const AValores: TArray<string>);
   public
+    constructor CrearEn(AAnfitrion: TfrmBase; AContenedor: TWinControl;
+      const ACliente: string; AOrden: Int64; AElegir: Boolean);
     destructor Destroy; override;
-    class function Elegir(AOwner: TComponent; const ACliente: string;
-      out AId: string): Boolean;
-    class procedure Ejecutar(AOwner: TComponent; const ACliente: string;
-      AOrden: Int64 = 0);
   end;
 
-implementation
+  TPestanaMedidas = class(TPestanaVinculada)
+  private
+    FAnfitrion: TfrmBase;
+  protected
+    function Montar(const AClave: Variant): TComponent; override;
+  end;
 
-uses
-  System.SysUtils, System.UITypes, Vcl.Dialogs, Vcl.Menus, cxLabel, cxGroupBox,
-  inLibPermisosIntf, inLibMsgMedidasCliente, inLibMensajesVcl,
-  inMtoModalDatosOrden, inMtoModalImpMedidasCliente;
+function CrearPestanaMedidas(AFormulario: TfrmBase; APaginas: TcxPageControl;
+  AOrigen: TDataSource; const ACampoCliente: string): TcxTabSheet;
+var
+  Tab: TPestanaMedidas;
+begin
+  Tab := TPestanaMedidas.Create(APaginas);
+  try
+    Tab.FAnfitrion := AFormulario;
+    Tab.Vincular(APaginas, AOrigen, ACampoCliente, SMedidasTitulo,
+      SMedidasSeleccioneCliente);
+    Result := Tab;
+  except
+    Tab.Free;
+    raise;
+  end;
+end;
+
+function TPestanaMedidas.Montar(const AClave: Variant): TComponent;
+begin
+  Result := TPanelMedidas.CrearEn(FAnfitrion, Self, VarToStr(AClave), 0, False);
+end;
+
+constructor TPanelMedidas.CrearEn(AAnfitrion: TfrmBase;
+  AContenedor: TWinControl; const ACliente: string; AOrden: Int64;
+  AElegir: Boolean);
+begin
+  inherited Create(AContenedor);
+  FAnfitrion := AAnfitrion;
+  FCliente := ACliente;
+  FOrden := AOrden;
+  FElegir := AElegir;
+  FRepositorio := TRepositorioMedidasCliente.Create(AAnfitrion.ConexionPrincipal,
+    AAnfitrion.Permisos, AAnfitrion.IdentidadSesion.Usuario);
+  if not AAnfitrion.Permisos.TienePermiso('clientes.medidas.consultar',
+    paExigirConcesion) then
+    raise EInvalidOpException.Create(SMedidasSinPermiso);
+  if not FRepositorio.Disponible then
+    raise EInvalidOpException.Create(SMedidasMigracionPendiente);
+  Parent := AContenedor;
+  Align := alClient;
+  BevelOuter := bvNone;
+  ShowCaption := False;
+  CrearInterfaz;
+  CargarHistorial;
+end;
+
+procedure TfrmModalMedidasCliente.PrepararDialogo(const ACliente: string);
+begin
+  Caption := SMedidasTitulo + ' - ' + ACliente;
+  ClientWidth := ScaleValue(760);
+  ClientHeight := ScaleValue(520);
+  OnClose := CerrarSinLiberar;
+  btnAceptar.Visible := False;
+  btnCancelar.Caption := SMedidasCerrar;
+  btnCancelar.Left := ScaleValue(12);
+end;
 
 class procedure TfrmModalMedidasCliente.Ejecutar(AOwner: TComponent;
   const ACliente: string; AOrden: Int64);
@@ -62,15 +140,9 @@ begin
     raise EArgumentException.Create(SMedidasClienteInexistente);
   oFormulario := TfrmModalMedidasCliente.Create(AOwner);
   try
-    oFormulario.FCliente := ACliente;
-    oFormulario.FOrden := AOrden;
-    oFormulario.FRepositorio := TRepositorioMedidasCliente.Create(
-      oFormulario.ConexionPrincipal, oFormulario.Permisos,
-      oFormulario.IdentidadSesion.Usuario);
-    if not oFormulario.FRepositorio.Disponible then
-      raise EInvalidOpException.Create(SMedidasMigracionPendiente);
-    oFormulario.CrearInterfaz;
-    oFormulario.CargarHistorial;
+    oFormulario.PrepararDialogo(ACliente);
+    TPanelMedidas.CrearEn(oFormulario, oFormulario.pnlBody,
+      ACliente, AOrden, False);
     oFormulario.ShowModal;
   finally
     FreeAndNil(oFormulario);
@@ -81,28 +153,23 @@ class function TfrmModalMedidasCliente.Elegir(AOwner: TComponent;
   const ACliente: string; out AId: string): Boolean;
 var
   oFormulario: TfrmModalMedidasCliente;
+  Panel: TPanelMedidas;
 begin
   AId := '';
   if Trim(ACliente) = '' then
     raise EArgumentException.Create(SMedidasClienteInexistente);
   oFormulario := TfrmModalMedidasCliente.Create(AOwner);
   try
-    oFormulario.FCliente := ACliente;
-    oFormulario.FElegir := True;
-    oFormulario.FRepositorio := TRepositorioMedidasCliente.Create(
-      oFormulario.ConexionPrincipal, oFormulario.Permisos,
-      oFormulario.IdentidadSesion.Usuario);
+    oFormulario.PrepararDialogo(ACliente);
     if not oFormulario.Permisos.TienePermiso(
       'clientes.medidas.vincular', paExigirConcesion) then
       raise EInvalidOpException.Create(SMedidasSinPermiso);
-    if not oFormulario.FRepositorio.Disponible then
-      raise EInvalidOpException.Create(SMedidasMigracionPendiente);
-    oFormulario.CrearInterfaz;
-    oFormulario.CargarHistorial;
-    if (Length(oFormulario.FSesiones) = 0) and
+    Panel := TPanelMedidas.CrearEn(oFormulario, oFormulario.pnlBody,
+      ACliente, 0, True);
+    if (Length(Panel.FSesiones) = 0) and
        oFormulario.Permisos.TienePermiso('clientes.medidas.alta',
          paExigirConcesion) then
-      oFormulario.EditarSesion(False);
+      Panel.EditarSesion(False);
     Result := oFormulario.ShowModal = mrOk;
     if Result then
       AId := oFormulario.FIdElegido;
@@ -112,7 +179,7 @@ begin
   end;
 end;
 
-destructor TfrmModalMedidasCliente.Destroy;
+destructor TPanelMedidas.Destroy;
 begin
   FreeAndNil(FRepositorio);
   inherited;
@@ -124,7 +191,7 @@ begin
   Action := caHide;
 end;
 
-procedure TfrmModalMedidasCliente.CrearInterfaz;
+procedure TPanelMedidas.CrearInterfaz;
 var
   oBarra: TcxGroupBox;
   oBoton: TcxButton;
@@ -141,24 +208,17 @@ var
     oBoton.Caption := ATexto;
     oBoton.OnClick := AClick;
     oBoton.Visible := AVisible;
-    oBoton.Enabled := Permisos.TienePermiso(
+    oBoton.Enabled := FAnfitrion.Permisos.TienePermiso(
       'clientes.medidas.' + APermiso, paExigirConcesion);
   end;
 begin
-  Caption := SMedidasTitulo + ' - ' + FCliente;
-  ClientWidth := ScaleValue(760);
-  ClientHeight := ScaleValue(520);
-  OnClose := CerrarSinLiberar;
-  btnAceptar.Visible := False;
-  btnCancelar.Caption := SMedidasCerrar;
-  btnCancelar.Left := ScaleValue(12);
   FSelector := TcxComboBox.Create(Self);
-  FSelector.Parent := pnlBody;
+  FSelector.Parent := Self;
   FSelector.Align := alTop;
   FSelector.Properties.DropDownListStyle := lsFixedList;
   FSelector.Properties.OnChange := SeleccionCambio;
   oBarra := TcxGroupBox.Create(Self);
-  oBarra.Parent := pnlBody;
+  oBarra.Parent := Self;
   oBarra.PanelStyle.Active := True;
   oBarra.Align := alBottom;
   oBarra.Height := ScaleValue(45);
@@ -167,6 +227,7 @@ begin
   else
     Boton(SMedidasNueva, 'alta', NuevaClick, True);
   Boton(SMedidasCorregir, 'corregir', CorregirClick, True);
+  FCorregir := oBoton;
   Boton(SMedidasEnviar, 'vincular', VincularClick,
     (FOrden > 0) or FElegir);
   Boton(SMedidasImprimir, 'consultar', nil, True);
@@ -184,12 +245,12 @@ begin
   FImprimir.Kind := cxbkDropDown;
   FImprimir.DropDownMenu := Menu;
   FDetalle := TcxMemo.Create(Self);
-  FDetalle.Parent := pnlBody;
+  FDetalle.Parent := Self;
   FDetalle.Align := alClient;
   FDetalle.Properties.ReadOnly := True;
 end;
 
-procedure TfrmModalMedidasCliente.CargarHistorial;
+procedure TPanelMedidas.CargarHistorial;
 var
   rSesion: TSesionMedidasCliente;
 begin
@@ -203,7 +264,7 @@ begin
   SeleccionCambio(nil);
 end;
 
-procedure TfrmModalMedidasCliente.SeleccionCambio(Sender: TObject);
+procedure TPanelMedidas.SeleccionCambio(Sender: TObject);
 var
   rSesion: TSesionMedidasCliente;
   sFoto: string;
@@ -213,8 +274,10 @@ begin
   FDetalle.Clear;
   FImprimir.Enabled := (FSelector.ItemIndex >= 0) and
     (FSelector.ItemIndex < Length(FSesiones));
-  if (FSelector.ItemIndex >= 0) and
-     (FSelector.ItemIndex < Length(FSesiones)) then
+  FCorregir.Enabled := FImprimir.Enabled and
+    FAnfitrion.Permisos.TienePermiso('clientes.medidas.corregir',
+      paExigirConcesion);
+  if FImprimir.Enabled then
   begin
     rSesion := FRepositorio.Leer(FCliente, FSesiones[FSelector.ItemIndex].Id);
     for Ficha := Low(TFichaMedidas) to High(TFichaMedidas) do
@@ -228,6 +291,8 @@ begin
     FDetalle.Text := TextoSesionMedidas(rSesion) + sLineBreak +
       SMedidasMotivo + ': ' + rSesion.Motivo;
   end;
+  if Length(FSesiones) = 0 then
+    FDetalle.Text := SMedidasSinMediciones;
   if FOrden > 0 then
   begin
     sFoto := FRepositorio.Fotografia(FOrden, FCliente);
@@ -237,33 +302,33 @@ begin
   end;
 end;
 
-procedure TfrmModalMedidasCliente.ImprimirClick(Sender: TObject);
+procedure TPanelMedidas.ImprimirClick(Sender: TObject);
 begin
   if (FSelector.ItemIndex >= 0) and (FSelector.ItemIndex < Length(FSesiones)) then
-    TfrmPrintMedidasCliente.Abrir(Self,
+    TfrmPrintMedidasCliente.Abrir(FAnfitrion,
       FRepositorio.Leer(FCliente, FSesiones[FSelector.ItemIndex].Id),
       FRepositorio.NombreCliente(FCliente), TFichaMedidas(TMenuItem(Sender).Tag));
 end;
 
-procedure TfrmModalMedidasCliente.NuevaClick(Sender: TObject);
+procedure TPanelMedidas.NuevaClick(Sender: TObject);
 begin
   EditarSesion(False);
 end;
 
-procedure TfrmModalMedidasCliente.CorregirClick(Sender: TObject);
+procedure TPanelMedidas.CorregirClick(Sender: TObject);
 begin
   if FSelector.ItemIndex >= 0 then
     EditarSesion(True);
 end;
 
-procedure TfrmModalMedidasCliente.VincularClick(Sender: TObject);
+procedure TPanelMedidas.VincularClick(Sender: TObject);
 begin
   if FSelector.ItemIndex >= 0 then
   begin
     if FElegir then
     begin
-      FIdElegido := FSesiones[FSelector.ItemIndex].Id;
-      ModalResult := mrOk;
+      TfrmModalMedidasCliente(FAnfitrion).FIdElegido := FSesiones[FSelector.ItemIndex].Id;
+      FAnfitrion.ModalResult := mrOk;
     end
     else
     begin
@@ -275,7 +340,7 @@ begin
   end;
 end;
 
-procedure TfrmModalMedidasCliente.EditarSesion(ACorregir: Boolean);
+procedure TPanelMedidas.EditarSesion(ACorregir: Boolean);
 var
   rSesion: TSesionMedidasCliente;
   i: Integer;
@@ -283,7 +348,7 @@ begin
   rSesion := Default(TSesionMedidasCliente);
   rSesion.Cliente := FCliente;
   rSesion.Fecha := Date;
-  rSesion.Persona := IdentidadSesion.Usuario;
+  rSesion.Persona := FAnfitrion.IdentidadSesion.Usuario;
   if FElegir and not ACorregir and (FSelector.ItemIndex >= 0) then
   begin
     rSesion := FRepositorio.Leer(FCliente, FSesiones[FSelector.ItemIndex].Id);
@@ -291,7 +356,7 @@ begin
     rSesion.Origen := '';
     rSesion.Motivo := '';
     rSesion.Fecha := Date;
-    rSesion.Persona := IdentidadSesion.Usuario;
+    rSesion.Persona := FAnfitrion.IdentidadSesion.Usuario;
   end;
   if ACorregir then
   begin
@@ -311,7 +376,7 @@ begin
   end;
 end;
 
-procedure TfrmModalMedidasCliente.CamposSesion(
+procedure TPanelMedidas.CamposSesion(
   const ASesion: TSesionMedidasCliente;
   const AMagnitudes: TMagnitudesCliente;
   out ARotulos, AValores: TArray<string>);
@@ -339,7 +404,7 @@ begin
   end;
 end;
 
-procedure TfrmModalMedidasCliente.LeerCampos(
+procedure TPanelMedidas.LeerCampos(
   var ASesion: TSesionMedidasCliente;
   const AMagnitudes: TMagnitudesCliente; const AValores: TArray<string>);
 var
@@ -364,7 +429,7 @@ begin
   end;
 end;
 
-function TfrmModalMedidasCliente.CapturarSesion(
+function TPanelMedidas.CapturarSesion(
   var ASesion: TSesionMedidasCliente): Boolean;
 var
   aMagnitudes: TMagnitudesCliente;
@@ -374,7 +439,7 @@ begin
   aMagnitudes := FRepositorio.Magnitudes;
   CamposSesion(ASesion, aMagnitudes, aRotulos, aValores);
   rSesion := ASesion;
-  Result := TfrmModalDatosOrden.Ejecutar(Self,
+  Result := TfrmModalDatosOrden.Ejecutar(FAnfitrion,
     SMedidasTitulo + '. ' + SMedidasVacia, aRotulos, aValores, [],
     function(const AEntrada: TArray<string>; out AIndice: Integer): Boolean
     var

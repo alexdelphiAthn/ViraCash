@@ -24,6 +24,8 @@ resourcestring
   SMedidasValor = 'Valor';
   SMedidasUnidad = 'Unidad';
   SMedidasNueva = 'Nueva medición';
+  SMedidasSeleccioneCliente = 'Seleccione un cliente guardado para ver sus medidas.';
+  SMedidasSinMediciones = 'Todavía no hay mediciones para este cliente.';
   SMedidasCorregir = 'Corregir seleccionada';
   SMedidasVincular = 'Usar en esta orden';
   SMedidasCerrar = 'Cerrar';

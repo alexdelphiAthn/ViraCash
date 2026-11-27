@@ -23,7 +23,7 @@ uses
   system.StrUtils, inLibFaseCobro, Windows,
   inLibCajaDatosFactura, inLibCajaTipos, inLibContextoSesionIntf,
   inLibParametrosIntf, inLibTicketsCajaIntf, inLibPreviewTicket,
-  inLibMovimientosAlmacenAplicacion, inLibLogIntf;
+  inLibMovimientosAlmacenAplicacion, inLibLogIntf, inLibUnidadesMedida;
 
 function TotalSinIvaAnticipoCaja(AImporte, AIva: Currency): Currency;
 function TipoFiscalFacturaCaja(const ATipo, ATipoOriginal: string): string;
@@ -135,6 +135,7 @@ type
     FConexion: TUniConnection;
     FParametrosApp: IParametrosAplicacion;
     FParametrosCaja: IParametrosCaja;
+    FUnidadesMedida: TUnidadesMedida;
     FOnRellenarArticulo:  TRellenarArticuloEvent;
     FOnRellenarAtributos: TRellenarAtributosEvent;
     FOnUpdateTotal: TOnUpdateTotalEvent;
@@ -264,7 +265,9 @@ type
       AConexion: TUniConnection;
       const AParametrosApp: IParametrosAplicacion;
       const AParametrosCaja: IParametrosCaja;
-      const APreviewTicket: IPreviewTicket); reintroduce;
+      const APreviewTicket: IPreviewTicket;
+      AUnidadesMedida: TUnidadesMedida = nil); reintroduce;
+    function MascaraCantidadSku(const ASku: string): string;
     procedure AsignarContextoSesion(
       const AContextoSesion: IContextoSesionAplicacion);
     // F-LOTEC-015: la caja la asigna con los interruptores; la llama el
@@ -614,7 +617,7 @@ constructor TdmCajaOpe.Create(
   AConexion: TUniConnection;
   const AParametrosApp: IParametrosAplicacion;
   const AParametrosCaja: IParametrosCaja;
-  const APreviewTicket: IPreviewTicket);
+  const APreviewTicket: IPreviewTicket; AUnidadesMedida: TUnidadesMedida);
 var
   ProveedorContexto: IProveedorContextoSesion;
 begin
@@ -626,12 +629,19 @@ begin
   FParametrosApp := AParametrosApp;
   FParametrosCaja := AParametrosCaja;
   FPreviewTicket := APreviewTicket;
+  FUnidadesMedida := AUnidadesMedida;
   FRepositorioTicketsCaja :=
     CrearRepositoriosTicketsCaja(AConexion);
   FContextoSesion := nil;
   if Supports(AOwner, IProveedorContextoSesion, ProveedorContexto) then
     FContextoSesion := ProveedorContexto.ContextoSesion;
   inherited Create(AOwner);
+end;
+
+function TdmCajaOpe.MascaraCantidadSku(const ASku: string): string;
+begin
+  Result := MascaraCantidadVentaCaja(cdsLineas, FUnidadesMedida,
+    FConexion, ASku);
 end;
 
 procedure TdmCajaOpe.AsignarContextoSesion(
@@ -3388,7 +3398,7 @@ begin
     if FGenerarMovimientos and
        FDataModule.FParametrosCaja.GetBool('vgerChkStockOnly', False) then
       ValidarStockCobroCaja(FDataModule.FConexion,
-        FDataModule.cdsLineas, FAlmacen);
+        FDataModule.cdsLineas, FAlmacen, FDataModule.MascaraCantidadSku);
     CrearFacturaSiProcede;
     ProcesarLineas;
     SincronizarContadorLineas;
