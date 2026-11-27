@@ -136,7 +136,8 @@ implementation
 
 uses
   System.Math, System.Classes, System.Variants, System.Generics.Collections,
-  inLibMsgTrazabilidad, inLibCajaStockLinea, inLibCajaVentaOperacion;
+  inLibMsgTrazabilidad, inLibCajaStockLinea, inLibCajaVentaOperacion,
+  inLibCajaVentaIntf;
 
 function EsLineaStockRectificativaCaja(ALinea: TDataSet): Boolean;
 begin
@@ -751,10 +752,14 @@ begin
     if (Validacion.Resultado <> rslCorrecta) or
        (Cantidad > Validacion.StockDisponible + 0.000001) then
     begin
-      FConfig.Avisar(Format(SErrorCantidadLoteSuperaStock,
+      if (Validacion.StockDisponible <= 0) and
+         (ModoArticulo(ALinea.FieldByName(CAMPO_ARTICULO_CAJA).AsString)
+           = mtSerie) then
+        raise EStockInsuficienteCaja.CreateFmt(SErrorSerieNoEnAlmacen,
+          [Lote, FConfig.Almacen()]);
+      raise EStockInsuficienteCaja.CreateFmt(SErrorCantidadLoteSuperaStock,
         [Lote, FormatFloat('0.###', Cantidad),
-         FormatFloat('0.###', Validacion.StockDisponible)]));
-      Abort;
+         FormatFloat('0.###', Validacion.StockDisponible)]);
     end;
   end;
 end;

@@ -37,6 +37,7 @@ type
       AOrden: Int64): string; static;
     function Disponible: Boolean;
     function Magnitudes: TMagnitudesCliente;
+    function NombreCliente(const ACliente: string): string;
     function Historial(const ACliente: string): TSesionesMedidasCliente;
     function Leer(const ACliente, AId: string): TSesionMedidasCliente;
     procedure Guardar(var ASesion: TSesionMedidasCliente);
@@ -143,6 +144,22 @@ begin
     Result := oConsulta.Fields[0].AsInteger = 4;
   finally
     FreeAndNil(oConsulta);
+  end;
+end;
+
+function TRepositorioMedidasCliente.NombreCliente(const ACliente: string): string;
+var
+  Q: TUniQuery;
+begin
+  ExigirPermiso('consultar');
+  Q := Consulta('SELECT RAZON_SOCIAL_CLI FROM fza_clientes ' +
+    'WHERE CODIGO_CLI_CLI=:cliente');
+  try
+    Q.ParamByName('cliente').AsString := ACliente;
+    Q.Open;
+    Result := Q.Fields[0].AsString;
+  finally
+    Q.Free;
   end;
 end;
 

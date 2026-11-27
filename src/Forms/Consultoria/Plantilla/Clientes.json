@@ -1,0 +1,43 @@
+{
+  "archivos": {
+    "pagina.ssproj": "CONS_PROYECTO_CLIENTES",
+    "iniciollamadas.psc": "CONS_INICIO_LLAMADAS",
+    "tabllamadas.psc": "CONS_TAB_LLAMADAS",
+    "tabllamadas.sfm": "CONS_PANEL_LLAMADAS",
+    "validarmagnitud.psc": "CONS_VALIDAR_MAGNITUD"
+  },
+  "elementos": [
+    {
+      "nombre": "Llamadas de clientes",
+      "clase": "Pantalla",
+      "tipo": "Tabla",
+      "origen": "fza_clientes_llamadas",
+      "campos": "FECHA_CLLAM,TELEFONO_CLLAM,MOTIVO_CLLAM,RESULTADO_CLLAM,SEGUIMIENTO_CLLAM",
+      "entrada": "InicioLlamadas",
+      "evento": "",
+      "selectores": "",
+      "antesGuardar": "",
+      "menu": false,
+      "mantenimiento": "TfrmMtoClientes",
+      "maestro": "CODIGO_CLI_CLI",
+      "detalle": "CODIGO_CLI_CLLAM"
+    },
+    {
+      "nombre": "Catálogo de medidas",
+      "clase": "Pantalla",
+      "tipo": "Tabla",
+      "origen": "fza_clientes_medidas_magnitudes",
+      "campos": "CODIGO_CMM,NOMBRE_CMM,UNIDAD_CMM,VALOR_MINIMO_CMM,VALOR_MAXIMO_CMM,ORDEN_CMM,ESACTIVO_CMM",
+      "rotulosLista": "CODIGO_CMM=Código\nNOMBRE_CMM=Medida\nUNIDAD_CMM=Unidad\nVALOR_MINIMO_CMM=Mínimo\nVALOR_MAXIMO_CMM=Máximo\nORDEN_CMM=Orden\nESACTIVO_CMM=Activa",
+      "anchosLista": "NOMBRE_CMM=300\nCODIGO_CMM=150",
+      "entrada": "Inicio",
+      "evento": "ValidarMagnitud",
+      "selectores": "",
+      "antesGuardar": "",
+      "menu": true,
+      "mantenimiento": "",
+      "maestro": "",
+      "detalle": ""
+    }
+  ]
+}

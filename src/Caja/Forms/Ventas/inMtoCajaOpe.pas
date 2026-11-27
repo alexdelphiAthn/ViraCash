@@ -2235,7 +2235,7 @@ begin
     Resultado := VigilanteStock.ComprobarLinea(ALinea);
     // EValidacionBBDD: el gestor global lo presenta como aviso, sin pila.
     if not Resultado.Permitida then
-      raise EValidacionBBDD.Create(Resultado.Mensaje);
+      raise EStockInsuficienteCaja.Create(Resultado.Mensaje);
     if Resultado.Mensaje <> '' then
     begin
       sAviso := Resultado.Mensaje;
@@ -2256,7 +2256,7 @@ var
 begin
   Resultado := VigilanteStock.ComprobarTicket(DatosCaja.cdsLineas);
   if not Resultado.Permitida then
-    raise EValidacionBBDD.Create(Resultado.Mensaje);
+    raise EStockInsuficienteCaja.Create(Resultado.Mensaje);
   if Resultado.Mensaje <> '' then
     FMostrarAvisoStock(Resultado.Mensaje);
 end;

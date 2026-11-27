@@ -195,7 +195,7 @@ begin
           raise EGrabacionVentaCaja.Create(
             SErrorConfirmacionVentaCaja, False);
         raise EGrabacionVentaCaja.Create(
-          Format(SErrorGuardarTicketCaja, [E.Message]));
+          MensajeErrorGuardarTicketCaja(E.Message));
       end;
       on E: Exception do
       begin
@@ -206,7 +206,7 @@ begin
         end;
         if (E is EErrorBBDD) or (E is EValidacionBBDD) then
           raise EGrabacionVentaCaja.Create(
-            Format(SErrorGuardarTicketCaja, [E.Message]));
+            MensajeErrorGuardarTicketCaja(E.Message));
         raise;
       end;
     end;

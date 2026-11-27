@@ -16,6 +16,7 @@ implementation
 
 uses
   Winapi.Windows, System.SysUtils, System.JSON, System.Rtti, System.TypInfo,
+  System.Generics.Collections,
   System.UITypes, Vcl.Forms, Vcl.Menus, Vcl.ExtCtrls, Vcl.Dialogs,
   cxButtons, cxDropDownEdit, cxLabel, IDEMain, fIDEEditor, atScript, atPascal,
   inMtoConsultoriaLlamadas, inMtoDisenadorPaginas, inMtoPaginaExtension,
@@ -69,6 +70,7 @@ type
   published
     procedure Mostrar(Ventana: TObject);
     procedure Lista(Contenedor, Ficha: TObject);
+    procedure HistorialLlamadas(Contenedor: TObject);
   end;
   {$M-}
 
@@ -89,15 +91,31 @@ begin
   Referencia.Valor := Valor;
 end;
 
+function TextoPlantilla(const Recurso: string): string;
+var
+  Flujo: TResourceStream;
+  Lector: TStreamReader;
+begin
+  Flujo := TResourceStream.Create(HInstance, Recurso, RT_RCDATA);
+  try
+    Lector := TStreamReader.Create(Flujo, TEncoding.UTF8);
+    try
+      Result := Lector.ReadToEnd;
+    finally
+      Lector.Free;
+    end;
+  finally
+    Flujo.Free;
+  end;
+end;
+
 function Plantilla(Ejemplo: Boolean): string;
 const
   Archivos: array[0..8] of string = ('Pagina.ssproj','Inicio.psc','Lista.psc',
     'Lista.sfm','Ficha.psc','Ficha.sfm','AntesGuardar.psc','Selectores.psc','Ayuda.psc');
 var
   J: TJSONObject;
-  Nombre, Recurso, Codigo: string;
-  Flujo: TResourceStream;
-  Lector: TStreamReader;
+  Nombre, Recurso: string;
 begin
   J := TJSONObject.Create;
   try
@@ -108,18 +126,7 @@ begin
         (Nombre = 'Selectores.psc')) then
         Recurso := 'Ejemplo' + Nombre;
       Recurso := 'CONS_' + UpperCase(StringReplace(Recurso,'.','_',[rfReplaceAll]));
-      Flujo := TResourceStream.Create(HInstance,Recurso,RT_RCDATA);
-      try
-        Lector := TStreamReader.Create(Flujo,TEncoding.UTF8);
-        try
-          Codigo := Lector.ReadToEnd;
-          J.AddPair(LowerCase(Nombre),Codigo);
-        finally
-          Lector.Free;
-        end;
-      finally
-        Flujo.Free;
-      end;
+      J.AddPair(LowerCase(Nombre), TextoPlantilla(Recurso));
     end;
     Result := J.ToJSON;
   finally
@@ -235,6 +242,34 @@ begin
       F.ShowModal;
     finally
       F.Free;
+    end;
+end;
+
+procedure TConsultoriaTMS.HistorialLlamadas(Contenedor: TObject);
+var
+  Panel: TWinControl;
+  Anfitrion: TComponent;
+  Aviso: TcxLabel;
+begin
+  Panel := Contenedor as TWinControl;
+  if Panel.ControlCount = 0 then
+    if FEnFicha and not VarIsNull(FClave) then
+    begin
+      Anfitrion := Owner;
+      while Assigned(Anfitrion) and not (Anfitrion is TfrmBase) do
+        Anfitrion := Anfitrion.Owner;
+      if not Assigned(Anfitrion) then
+        raise EInvalidOpException.Create('Abra el historial desde Clientes.');
+      IntegrarHistorial(Panel, TfrmBase(Anfitrion).ConexionPrincipal,
+        TfrmBase(Anfitrion).Permisos, TfrmBase(Anfitrion).IdentidadSesion.Usuario,
+        VarToStr(FClave));
+    end
+    else
+    begin
+      Aviso := TcxLabel.Create(Panel);
+      Aviso.Parent := Panel;
+      Aviso.Align := alTop;
+      Aviso.Caption := 'Abra esta pestaña en la ficha de un cliente guardado.';
     end;
 end;
 
@@ -613,6 +648,40 @@ begin
   Agregar(Editor.Project1,'Despublicar proyecto completo…',CambiarEstado,2);
 end;
 
+procedure CargarEjemploClientes(out Elementos: TArray<TPaginaExtension>);
+var
+  Ejemplo, Archivos: TJSONObject;
+  Par: TJSONPair;
+  Paginas: TJSONArray;
+  Proyecto: string;
+  i: Integer;
+begin
+  Ejemplo := TJSONObject.ParseJSONValue(TextoPlantilla('CONS_CLIENTES'))
+    as TJSONObject;
+  try
+    Archivos := TJSONObject.ParseJSONValue(Plantilla(False)) as TJSONObject;
+    try
+      for Par in Ejemplo.GetValue<TJSONObject>('archivos') do
+      begin
+        Archivos.RemovePair(Par.JsonString.Value).Free;
+        Archivos.AddPair(Par.JsonString.Value, TextoPlantilla(Par.JsonValue.Value));
+      end;
+      Proyecto := Archivos.ToJSON;
+    finally
+      Archivos.Free;
+    end;
+    Paginas := Ejemplo.GetValue<TJSONArray>('elementos');
+    SetLength(Elementos, Paginas.Count);
+    for i := 0 to High(Elementos) do
+    begin
+      Elementos[i] := TPaginaExtension.Leer('', Paginas.Items[i].ToJSON, 0);
+      Elementos[i].Proyecto := Proyecto;
+    end;
+  finally
+    Ejemplo.Free;
+  end;
+end;
+
 function ElegirProyecto(AOwner: TComponent; Repo: TRepositorioPaginas;
   out P: TPaginaExtension; out Elementos: TArray<TPaginaExtension>): Boolean;
 var
@@ -640,6 +709,7 @@ begin
     Lista.Properties.DropDownListStyle := lsFixedList;
     Lista.Properties.Items.Add('Nueva consultoría');
     Lista.Properties.Items.Add('Plantilla de aprendizaje · lista, ficha y selector');
+    Lista.Properties.Items.Add('Plantilla de Clientes · llamadas y medidas');
     for Borrador in Paginas do
     begin
       Estado := Borrador.Grupo;
@@ -665,9 +735,14 @@ begin
     Cancelar.ModalResult := mrCancel;
     Result := F.ShowModal = mrOk;
     if Result then
-      if Lista.ItemIndex >= 2 then
+      if Lista.ItemIndex = 2 then
       begin
-        Estado := Grupos[Lista.ItemIndex-2];
+        CargarEjemploClientes(Elementos);
+        P := Elementos[0];
+      end
+      else if Lista.ItemIndex > 2 then
+      begin
+        Estado := Grupos[Lista.ItemIndex-3];
         for i := 0 to High(Paginas) do
           if SameText(Paginas[i].Grupo,Estado) or
             ((Paginas[i].Grupo='') and SameText(Paginas[i].Nombre,Estado)) then

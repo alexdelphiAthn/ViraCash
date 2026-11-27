@@ -1,0 +1,12 @@
+object TabLlamadas: TScriptForm
+  Caption = 'Llamadas de clientes'
+  ClientWidth = 780
+  ClientHeight = 420
+  SaveEvents.Strings = (
+    'Self.OnShow=AlMostrar')
+  object pnlHistorial: TPanel
+    Align = alClient
+    BevelOuter = bvNone
+    Caption = ''
+  end
+end

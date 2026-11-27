@@ -207,6 +207,8 @@ uses
   inLibMsgMedidasCliente in 'src\Lib\inLibMsgMedidasCliente.pas',
   UniDataMedidasCliente in 'src\DataModules\UniDataMedidasCliente.pas',
   inMtoModalMedidasCliente in 'src\Modals\inMtoModalMedidasCliente.pas',
+  inMtoModalImpMedidasCliente in 'src\Modals\inMtoModalImpMedidasCliente.pas',
+  inLibDibujoMedidas in 'src\Lib\inLibDibujoMedidas.pas',
   inLibMsgVentas in 'src\Lib\inLibMsgVentas.pas',
   inLibMsgCompras in 'src\Lib\inLibMsgCompras.pas',
   inLibMsgFacturas in 'src\Lib\inLibMsgFacturas.pas',

@@ -22,11 +22,13 @@ type
     FSesiones: TSesionesMedidasCliente;
     FSelector: TcxComboBox;
     FDetalle: TcxMemo;
+    FImprimir: TcxButton;
     procedure CrearInterfaz;
     procedure CargarHistorial;
     procedure SeleccionCambio(Sender: TObject);
     procedure NuevaClick(Sender: TObject);
     procedure CorregirClick(Sender: TObject);
+    procedure ImprimirClick(Sender: TObject);
     procedure VincularClick(Sender: TObject);
     procedure CerrarSinLiberar(Sender: TObject; var Action: TCloseAction);
     procedure EditarSesion(ACorregir: Boolean);
@@ -47,9 +49,9 @@ type
 implementation
 
 uses
-  System.SysUtils, System.UITypes, Vcl.Dialogs, cxLabel, cxGroupBox,
+  System.SysUtils, System.UITypes, Vcl.Dialogs, Vcl.Menus, cxLabel, cxGroupBox,
   inLibPermisosIntf, inLibMsgMedidasCliente, inLibMensajesVcl,
-  inMtoModalDatosOrden;
+  inMtoModalDatosOrden, inMtoModalImpMedidasCliente;
 
 class procedure TfrmModalMedidasCliente.Ejecutar(AOwner: TComponent;
   const ACliente: string; AOrden: Int64);
@@ -126,6 +128,9 @@ procedure TfrmModalMedidasCliente.CrearInterfaz;
 var
   oBarra: TcxGroupBox;
   oBoton: TcxButton;
+  Menu: TPopupMenu;
+  Opcion: TMenuItem;
+  Ficha: TFichaMedidas;
   procedure Boton(const ATexto, APermiso: string; AClick: TNotifyEvent;
     AVisible: Boolean);
   begin
@@ -164,6 +169,20 @@ begin
   Boton(SMedidasCorregir, 'corregir', CorregirClick, True);
   Boton(SMedidasEnviar, 'vincular', VincularClick,
     (FOrden > 0) or FElegir);
+  Boton(SMedidasImprimir, 'consultar', nil, True);
+  FImprimir := oBoton;
+  FImprimir.Width := ScaleValue(150);
+  Menu := TPopupMenu.Create(Self);
+  for Ficha := Low(TFichaMedidas) to High(TFichaMedidas) do
+  begin
+    Opcion := TMenuItem.Create(Menu);
+    Opcion.Caption := TituloFichaMedidas(Ficha);
+    Opcion.Tag := Ord(Ficha);
+    Opcion.OnClick := ImprimirClick;
+    Menu.Items.Add(Opcion);
+  end;
+  FImprimir.Kind := cxbkDropDown;
+  FImprimir.DropDownMenu := Menu;
   FDetalle := TcxMemo.Create(Self);
   FDetalle.Parent := pnlBody;
   FDetalle.Align := alClient;
@@ -188,12 +207,24 @@ procedure TfrmModalMedidasCliente.SeleccionCambio(Sender: TObject);
 var
   rSesion: TSesionMedidasCliente;
   sFoto: string;
+  Ficha: TFichaMedidas;
+  Valor: TMedidaCliente;
 begin
   FDetalle.Clear;
+  FImprimir.Enabled := (FSelector.ItemIndex >= 0) and
+    (FSelector.ItemIndex < Length(FSesiones));
   if (FSelector.ItemIndex >= 0) and
      (FSelector.ItemIndex < Length(FSesiones)) then
   begin
     rSesion := FRepositorio.Leer(FCliente, FSesiones[FSelector.ItemIndex].Id);
+    for Ficha := Low(TFichaMedidas) to High(TFichaMedidas) do
+    begin
+      TPopupMenu(FImprimir.DropDownMenu).Items[Ord(Ficha)].Enabled :=
+        Ficha = fmCompleta;
+      for Valor in rSesion.Valores do
+        if IncluyeMagnitud(Ficha, Valor.Codigo) then
+          TPopupMenu(FImprimir.DropDownMenu).Items[Ord(Ficha)].Enabled := True;
+    end;
     FDetalle.Text := TextoSesionMedidas(rSesion) + sLineBreak +
       SMedidasMotivo + ': ' + rSesion.Motivo;
   end;
@@ -204,6 +235,14 @@ begin
       FDetalle.Text := FDetalle.Text + sLineBreak + sLineBreak +
         SMedidasVinculadas + sLineBreak + sFoto;
   end;
+end;
+
+procedure TfrmModalMedidasCliente.ImprimirClick(Sender: TObject);
+begin
+  if (FSelector.ItemIndex >= 0) and (FSelector.ItemIndex < Length(FSesiones)) then
+    TfrmPrintMedidasCliente.Abrir(Self,
+      FRepositorio.Leer(FCliente, FSesiones[FSelector.ItemIndex].Id),
+      FRepositorio.NombreCliente(FCliente), TFichaMedidas(TMenuItem(Sender).Tag));
 end;
 
 procedure TfrmModalMedidasCliente.NuevaClick(Sender: TObject);

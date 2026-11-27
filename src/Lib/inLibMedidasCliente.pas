@@ -7,6 +7,7 @@ unit inLibMedidasCliente;
 interface
 
 type
+  TFichaMedidas = (fmCompleta, fmPieIzquierdo, fmPieDerecho, fmTraje, fmRopa);
   TMagnitudCliente = record
     Codigo, Nombre, Unidad: string;
     Minimo, Maximo: Currency;
@@ -29,11 +30,65 @@ type
 function ValidarSesionMedidas(const ASesion: TSesionMedidasCliente;
   const AMagnitudes: TMagnitudesCliente): string;
 function TextoSesionMedidas(const ASesion: TSesionMedidasCliente): string;
+function TituloFichaMedidas(AFicha: TFichaMedidas): string;
+function IncluyeMagnitud(AFicha: TFichaMedidas; const ACodigo: string): Boolean;
+function MarcaMagnitud(AFicha: TFichaMedidas; const ACodigo: string): Integer;
 
 implementation
 
 uses
   System.SysUtils, inLibMsgMedidasCliente;
+
+function TituloFichaMedidas(AFicha: TFichaMedidas): string;
+begin
+  case AFicha of
+    fmPieIzquierdo: Result := SMedidasPieIzquierdo;
+    fmPieDerecho: Result := SMedidasPieDerecho;
+    fmTraje: Result := SMedidasTraje;
+    fmRopa: Result := SMedidasRopa;
+  else
+    Result := SMedidasTitulo;
+  end;
+end;
+
+function MarcaMagnitud(AFicha: TFichaMedidas; const ACodigo: string): Integer;
+const
+  Pie: array[1..3] of string = ('PIE_LARGO_', 'PIE_ANCHO_', 'PIE_EMPEINE_');
+  Ropa: array[1..5] of string = ('HOMBROS', 'PECHO', 'CINTURA', 'MANGA', 'LARGO');
+var
+  i: Integer;
+  Lado: string;
+begin
+  Result := 0;
+  case AFicha of
+    fmPieIzquierdo, fmPieDerecho:
+      begin
+        if AFicha = fmPieIzquierdo then Lado := 'I' else Lado := 'D';
+        for i := Low(Pie) to High(Pie) do
+          if SameText(ACodigo, Pie[i] + Lado) then Result := i;
+      end;
+    fmTraje, fmRopa:
+      for i := Low(Ropa) to High(Ropa) do
+        if SameText(ACodigo, Ropa[i]) then Result := i;
+  end;
+end;
+
+function IncluyeMagnitud(AFicha: TFichaMedidas; const ACodigo: string): Boolean;
+var
+  Codigo: string;
+begin
+  Codigo := UpperCase(ACodigo);
+  case AFicha of
+    fmPieIzquierdo: Result := Codigo.StartsWith('PIE_') and Codigo.EndsWith('_I');
+    fmPieDerecho: Result := Codigo.StartsWith('PIE_') and Codigo.EndsWith('_D');
+    fmTraje: Result := (MarcaMagnitud(AFicha, Codigo) > 0) or
+      Codigo.StartsWith('TRAJE_');
+    fmRopa: Result := (MarcaMagnitud(AFicha, Codigo) > 0) or
+      Codigo.StartsWith('ROPA_') or Codigo.StartsWith('TRAJE_');
+  else
+    Result := True;
+  end;
+end;
 
 function ValidarSesionMedidas(const ASesion: TSesionMedidasCliente;
   const AMagnitudes: TMagnitudesCliente): string;

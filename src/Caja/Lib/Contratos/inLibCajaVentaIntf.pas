@@ -16,9 +16,12 @@ unit inLibCajaVentaIntf;
 interface
 
 uses
-  System.Classes, System.SysUtils, Data.DB, inLibCajaTipos, inLibFaseCobro;
+  System.Classes, System.SysUtils, Data.DB, inLibCajaTipos, inLibFaseCobro,
+  inLibErroresBBDD;
 
 type
+  EStockInsuficienteCaja = class(EValidacionBBDD);
+
   EGrabacionVentaCaja = class(Exception)
   private
     FPermiteReintentar: Boolean;

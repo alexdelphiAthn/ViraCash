@@ -364,13 +364,25 @@ begin
     FFormulario.EnviarEmail, FFormulario.EmailEnvio);
 end;
 
+function ReintentarVentaRechazada(const ARegistro: IRegistroLog;
+  const AMensaje: string): Boolean;
+begin
+  ARegistro.RegistrarError(AMensaje);
+  Result := MessageDlg_fza(AMensaje, mtWarning, [mbRetry, mbCancel],
+    0, mbCancel) = mrRetry;
+end;
+
 function TSesionCierreVentaCajaVcl.Ejecutar: Boolean;
 var
   oModelo: IModeloPreparacionVentaTpv;
   oInteraccion: TInteraccionCierreVentaTpv;
 begin
   oModelo := TModeloPreparacionVentaTpv.Create(FContexto.Lineas,
-    FContexto.ValidarStock, FContexto.ValidarLotes);
+    FContexto.ValidarStock, FContexto.ValidarLotes,
+    function(AMensaje: string): Boolean
+    begin
+      Result := ReintentarVentaRechazada(FContexto.RegistroLog, AMensaje);
+    end);
   oInteraccion.EnfocarAtributo := EnfocarAtributo;
   oInteraccion.PrepararCobro := PrepararCobro;
   oInteraccion.AplicarCobro := AplicarCobro;
@@ -798,15 +810,18 @@ begin
             mtWarning, [mbRetry, mbCancel], 0, mbRetry) = mrRetry;
         end);
     except
+      on E: EStockInsuficienteCaja do
+        bRepetir := ReintentarVentaRechazada(AContexto.RegistroLog,
+          MensajeErrorGuardarTicketCaja(E.Message));
       on E: EGrabacionVentaCaja do
-      begin
-        AContexto.RegistroLog.RegistrarError(E.Message);
         if E.PermiteReintentar then
-          bRepetir := MessageDlg_fza(E.Message,
-            mtWarning, [mbRetry, mbCancel], 0, mbCancel) = mrRetry
+          bRepetir := ReintentarVentaRechazada(AContexto.RegistroLog,
+            E.Message)
         else
+        begin
+          AContexto.RegistroLog.RegistrarError(E.Message);
           MessageDlg_fza(E.Message, mtWarning, [mbOK], 0);
-      end;
+        end;
     end;
   until not bRepetir;
   AResultado := oResultado;

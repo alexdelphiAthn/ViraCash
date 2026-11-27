@@ -15,6 +15,8 @@ unit inLibMsgCaja;
 
 interface
 
+function MensajeErrorGuardarTicketCaja(const AMotivo: string): string;
+
 resourcestring
   SFechaHoraArqueoNoValida =
     'Fecha no válida. Use dd/mm/aaaa hh:mm:ss.';
@@ -1504,5 +1506,18 @@ resourcestring
     'Interacción de salida incompleta';
 
 implementation
+
+uses
+  System.SysUtils;
+
+function MensajeErrorGuardarTicketCaja(const AMotivo: string): string;
+var
+  Motivo: string;
+begin
+  Motivo := TrimRight(AMotivo);
+  if Motivo.EndsWith('.') then
+    Delete(Motivo, Length(Motivo), 1);
+  Result := Format(SErrorGuardarTicketCaja, [Motivo]);
+end;
 
 end.

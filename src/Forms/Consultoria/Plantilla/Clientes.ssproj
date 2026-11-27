@@ -1,0 +1,12 @@
+[Files]
+File1=Inicio.psc
+File2=Lista.psc
+File3=Ficha.psc
+File4=AntesGuardar.psc
+File5=Selectores.psc
+File6=Ayuda.psc
+File7=InicioLlamadas.psc
+File8=TabLlamadas.psc
+File9=ValidarMagnitud.psc
+FileCount=9
+MainUnit=InicioLlamadas

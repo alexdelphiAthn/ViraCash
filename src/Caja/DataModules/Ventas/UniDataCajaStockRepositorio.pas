@@ -29,7 +29,11 @@ implementation
 
 uses
   System.SysUtils, System.Classes, System.Generics.Collections,
-  Data.DB, inLibErroresBBDD, inLibMsgArticulos;
+  System.Generics.Defaults, Data.DB, inLibErroresBBDD, inLibMsgArticulos,
+  inLibMsgTrazabilidad;
+
+type
+  TCantidadesSerie = TDictionary<string, Double>;
 
 procedure ValidarStockCobroCaja(AConexion: TUniConnection;
   ALineas: TClientDataSet; const AAlmacen: string);
@@ -38,7 +42,11 @@ var
   Consulta: TUniQuery;
   Cantidades: TDictionary<string, Double>;
   Claves: TStringList;
-  Sku, Detalle: string;
+  SeriesPorSku: TObjectDictionary<string, TCantidadesSerie>;
+  Series: TCantidadesSerie;
+  CampoSerie: TField;
+  Sku, Detalle, Serie: string;
+  Partida: TPair<string, Double>;
   Cantidad, Disponible: Double;
 begin
   if not AConexion.InTransaction then
@@ -47,9 +55,12 @@ begin
   Lineas := TClientDataSet.Create(nil);
   Consulta := TUniQuery.Create(nil);
   Cantidades := TDictionary<string, Double>.Create;
+  SeriesPorSku := TObjectDictionary<string, TCantidadesSerie>.Create(
+    [doOwnsValues]);
   Claves := TStringList.Create;
   try
     Lineas.CloneCursor(ALineas, True);
+    CampoSerie := Lineas.FindField('ESSERIE_LOTE');
     Lineas.First;
     while not Lineas.Eof do
     begin
@@ -67,18 +78,39 @@ begin
         if not Cantidades.TryGetValue(Sku, Disponible) then
           Disponible := 0;
         Cantidades.AddOrSetValue(Sku, Disponible + Cantidad);
+        if Assigned(CampoSerie) and SameText(CampoSerie.AsString, 'S') then
+        begin
+          Serie := Trim(Lineas.FieldByName('LOTE_FACLIN').AsString);
+          if Serie <> '' then
+          begin
+            if not SeriesPorSku.TryGetValue(Sku, Series) then
+            begin
+              Series := TCantidadesSerie.Create(TIStringComparer.Ordinal);
+              SeriesPorSku.Add(Sku, Series);
+            end;
+            Series.TryGetValue(Serie, Disponible);
+            Series.AddOrSetValue(Serie, Disponible + Cantidad);
+          end;
+        end;
       end;
       Lineas.Next;
     end;
-    // Solo se bloquean y validan los SKU que la operación deja vendidos.
+    // Un cambio de serie puede dejar el SKU a cero y vender otra partida.
     for Sku in Cantidades.Keys do
       if Cantidades[Sku] > 0.0000005 then
-        Claves.Add(Sku);
+        Claves.Add(Sku)
+      else if SeriesPorSku.TryGetValue(Sku, Series) then
+        for Partida in Series do
+          if Partida.Value > 0.0000005 then
+          begin
+            Claves.Add(Sku);
+            Break;
+          end;
     // Mismo orden entre cajas; los bloqueos duran hasta commit/rollback.
     Claves.Sort;
     Consulta.Connection := AConexion;
     Consulta.SQL.Text :=
-      'SELECT CANTIDAD_STK FROM fza_articulos_stockactual ' +
+      'SELECT LOTE_STK, CANTIDAD_STK FROM fza_articulos_stockactual ' +
       'WHERE CODIGO_UNIDAD_STK = :SKU AND CODIGO_ALM_STK = :ALMACEN ' +
       'FOR UPDATE';
     for Sku in Claves do
@@ -93,8 +125,25 @@ begin
           Consulta.FieldByName('CANTIDAD_STK').AsFloat;
         Consulta.Next;
       end;
+      if SeriesPorSku.TryGetValue(Sku, Series) then
+        for Partida in Series do
+          if Partida.Value > 0.0000005 then
+          begin
+            Cantidad := 0;
+            if Consulta.Locate('LOTE_STK', Partida.Key,
+              [loCaseInsensitive]) then
+              Cantidad := Consulta.FieldByName('CANTIDAD_STK').AsFloat;
+            if Cantidad <= 0 then
+              raise EValidacionBBDD.CreateFmt(SErrorSerieNoEnAlmacen,
+                [Partida.Key, AAlmacen]);
+            if Partida.Value > Cantidad + 0.0000005 then
+              raise EValidacionBBDD.CreateFmt(SErrorCantidadLoteSuperaStock,
+                [Partida.Key, FormatFloat('0.###', Partida.Value),
+                 FormatFloat('0.###', Cantidad)]);
+          end;
       Consulta.Close;
-      if Cantidades[Sku] > Disponible + 0.0000005 then
+      if (Cantidades[Sku] > 0.0000005) and
+         (Cantidades[Sku] > Disponible + 0.0000005) then
       begin
         Detalle := Format(SDetalleStockInsuficienteLinea,
           [Sku, FormatFloat('0.###', Cantidades[Sku]),
@@ -105,6 +154,7 @@ begin
     end;
   finally
     Claves.Free;
+    SeriesPorSku.Free;
     Cantidades.Free;
     Consulta.Free;
     Lineas.Free;

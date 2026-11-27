@@ -28,10 +28,13 @@ type
     FApartadas: TClientDataSet;
     FValidarStock: TProc;
     FValidarLotes: TProc;
+    FReintentarStock: TFunc<string, Boolean>;
+    function ComprobarLineas: Boolean;
   public
     // Las líneas son prestadas; solo posee la copia de depósitos apartados.
     constructor Create(ALineas: TDataSet;
-      const AValidarStock, AValidarLotes: TProc);
+      const AValidarStock, AValidarLotes: TProc;
+      const AReintentarStock: TFunc<string, Boolean> = nil);
     destructor Destroy; override;
     function LocalizarAtributoPendiente: Integer;
     function ApartarDepositos: Boolean;
@@ -42,10 +45,11 @@ type
 implementation
 
 uses
-  inLibCajaVentaOperacion;
+  inLibCajaVentaOperacion, inLibCajaVentaIntf, inLibMsgCaja;
 
 constructor TModeloPreparacionVentaTpv.Create(ALineas: TDataSet;
-  const AValidarStock, AValidarLotes: TProc);
+  const AValidarStock, AValidarLotes: TProc;
+  const AReintentarStock: TFunc<string, Boolean>);
 begin
   inherited Create;
   if ALineas = nil then
@@ -53,6 +57,7 @@ begin
   FLineas := ALineas;
   FValidarStock := AValidarStock;
   FValidarLotes := AValidarLotes;
+  FReintentarStock := AReintentarStock;
   FApartadas := TClientDataSet.Create(nil);
 end;
 
@@ -73,18 +78,46 @@ begin
     not OperacionVentaVacia(FLineas);
 end;
 
-function TModeloPreparacionVentaTpv.PrepararLineas: Boolean;
+function TModeloPreparacionVentaTpv.ComprobarLineas: Boolean;
 begin
-  CerrarLineaPendiente(FLineas);
-  Result := not FLineas.IsEmpty and
-    not HayLineasConCantidadCero(FLineas);
-  if Result then
-  begin
-    if Assigned(FValidarStock) then
+  try
+    CerrarLineaPendiente(FLineas);
+    Result := not FLineas.IsEmpty and
+      not HayLineasConCantidadCero(FLineas);
+    if Result and Assigned(FValidarStock) then
       FValidarStock();
-    if Assigned(FValidarLotes) then
-      FValidarLotes();
+  except
+    on E: EStockInsuficienteCaja do
+    begin
+      // El saldo del artículo por sí solo no identifica la serie agotada.
+      if Assigned(FValidarLotes) then
+        FValidarLotes();
+      raise;
+    end;
   end;
+  if Result and Assigned(FValidarLotes) then
+    FValidarLotes();
+end;
+
+function TModeloPreparacionVentaTpv.PrepararLineas: Boolean;
+var
+  Reintentar: Boolean;
+begin
+  Result := False;
+  repeat
+    Reintentar := False;
+    try
+      Result := ComprobarLineas;
+    except
+      on E: EStockInsuficienteCaja do
+      begin
+        if not Assigned(FReintentarStock) then
+          raise;
+        Reintentar := FReintentarStock(
+          MensajeErrorGuardarTicketCaja(E.Message));
+      end;
+    end;
+  until not Reintentar;
 end;
 
 procedure TModeloPreparacionVentaTpv.RestaurarDepositos;

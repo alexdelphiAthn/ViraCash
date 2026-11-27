@@ -36,6 +36,7 @@ type
     FPermisos: IPermisosAplicacion;
     FUsuario: string;
     function Consulta(const ASql: string): TUniQuery;
+    procedure IniciarAuditoria(DataSet: TDataSet);
     function Listar(Borrador: Boolean; SoloDisponibles: Boolean): TArray<TPaginaExtension>;
     procedure GuardarEstado(var APagina: TPaginaExtension; Modo: Integer);
   public
@@ -717,6 +718,18 @@ begin
   end;
 end;
 
+procedure TRepositorioPaginas.IniciarAuditoria(DataSet: TDataSet);
+var
+  F: TField;
+begin
+  F := DataSet.FindField('USUARIO_ALTA');
+  if Assigned(F) and F.CanModify and F.IsNull then
+    F.AsString := FUsuario;
+  F := DataSet.FindField('INSTANTE_ALTA');
+  if Assigned(F) and F.CanModify and F.IsNull then
+    F.AsDateTime := Now;
+end;
+
 function TRepositorioPaginas.Abrir(const P: TPaginaExtension;
   AEnFicha: Boolean; const AClave: Variant; AParametros: TStrings): TUniQuery;
 var
@@ -760,7 +773,7 @@ begin
       begin
         Campos.CommaText := P.Campos;
         Metas := Consulta('SELECT COLUMN_NAME,COLUMN_KEY,EXTRA,IS_GENERATED,' +
-          'PRIVILEGES FROM information_schema.COLUMNS WHERE ' +
+          'PRIVILEGES,IS_NULLABLE,COLUMN_DEFAULT FROM information_schema.COLUMNS WHERE ' +
           'TABLE_SCHEMA=DATABASE() AND TABLE_NAME=:t ORDER BY ORDINAL_POSITION');
         try
           Metas.ParamByName('t').AsString := P.Origen;
@@ -777,6 +790,11 @@ begin
             if ContainsText(Metas.Fields[2].AsString,'auto_increment') or
               SameText(Metas.Fields[3].AsString,'ALWAYS') then
               Protegidos.Add(S);
+            if (P.Tipo = Tabla) and (P.Clase = 'Pantalla') and
+              (SameText(S, 'INSTANTE_ALTA') or SameText(S, 'USUARIO_ALTA')) and
+              (Metas.Fields[5].AsString = 'NO') and Metas.Fields[6].IsNull and
+              (Campos.IndexOf(S) < 0) then
+              Campos.Add(S);
             Metas.Next;
           end;
         finally
@@ -805,6 +823,7 @@ begin
           Q.UpdatingTable := P.Origen;
           Q.KeyFields := string.Join(';',Claves.ToStringArray);
           Q.Options.UpdateAllFields := False;
+          Q.OnNewRecord := IniciarAuditoria;
         end;
       end;
       Q.Open;

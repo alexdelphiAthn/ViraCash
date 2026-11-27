@@ -45,7 +45,7 @@ type
 implementation
 
 uses
-  System.SysUtils, System.Math, cxLabel, cxDropDownEdit,
+  System.SysUtils, System.Math, System.Types, cxLabel, cxDropDownEdit,
   inLibMsgReparacionesCircuito;
 
 function TfrmModalDatosOrden.CloseQuery: Boolean;
@@ -103,11 +103,20 @@ var
   oRotulo: TcxLabel;
   aOpciones: TArray<string>;
   oLista: TcxComboBox;
+  Zona: TScrollBox;
+  Area: TRect;
   sOpcion: string;
 begin
   iFilas := Min(9, Length(ARotulos));
-  ClientWidth := ScaleValue(460 * Ceil(Length(ARotulos) / iFilas));
-  ClientHeight := ScaleValue(24 + iFilas * 55) + pnlButton.Height;
+  Area := Monitor.WorkareaRect;
+  ClientWidth := Min(ScaleValue(460 * Ceil(Length(ARotulos) / iFilas)),
+    Area.Width - ScaleValue(32));
+  ClientHeight := Min(ScaleValue(24 + iFilas * 55) + pnlButton.Height,
+    Area.Height - ScaleValue(64));
+  Zona := TScrollBox.Create(Self);
+  Zona.Parent := pnlBody;
+  Zona.Align := alClient;
+  Zona.BorderStyle := bsNone;
   // Los botones heredan la posición del diseño base (más ancho): se
   // recolocan simétricos para que Aceptar no quede cortado.
   btnCancelar.Left := ScaleValue(12);
@@ -118,7 +127,7 @@ begin
     iColumna := i div iFilas;
     iFila := i mod iFilas;
     oRotulo := TcxLabel.Create(Self);
-    oRotulo.Parent := pnlBody;
+    oRotulo.Parent := Zona;
     oRotulo.Transparent := True;
     oRotulo.Caption := ARotulos[i];
     oRotulo.SetBounds(ScaleValue(12 + iColumna * 460),
@@ -135,7 +144,7 @@ begin
     else
       FEditores[i] := TcxTextEdit.Create(Self);
     FEditores[i].OnKeyDown := TeclaEditor;
-    FEditores[i].Parent := pnlBody;
+    FEditores[i].Parent := Zona;
     FEditores[i].SetBounds(ScaleValue(12 + iColumna * 460),
       ScaleValue(30 + iFila * 55), ScaleValue(430), ScaleValue(26));
     FEditores[i].Properties.MaxLength := 500;
