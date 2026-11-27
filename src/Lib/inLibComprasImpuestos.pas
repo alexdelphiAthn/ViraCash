@@ -49,7 +49,8 @@ procedure AplicarIvaExentoIntracomunitarioProveedor(
 
 procedure AplicarPorcentajesIvaCompra(
   const ALecturas: ILecturasImpuestos;
-  ACabecera: TDataSet; const ASufijoCabecera: string);
+  ACabecera: TDataSet; const ASufijoCabecera: string;
+  ADesdeEmpresa: Boolean = False);
 
 procedure AplicarPorcentajesRecargoCompra(
   const ALecturas: ILecturasImpuestos;
@@ -272,7 +273,8 @@ end;
 
 procedure AplicarPorcentajesIvaCompra(
   const ALecturas: ILecturasImpuestos;
-  ACabecera: TDataSet; const ASufijoCabecera: string);
+  ACabecera: TDataSet; const ASufijoCabecera: string;
+  ADesdeEmpresa: Boolean);
 var
   bEncontrado: Boolean;
   rIvaN, rIvaR, rIvaS, rIvaE, rRecN, rRecR, rRecS, rRecE: Double;
@@ -280,8 +282,18 @@ var
 begin
   if Assigned(ACabecera) then
   begin
+    bEncontrado := False;
+    if ADesdeEmpresa then
+    begin
+      sEmpresa := CampoString(ACabecera, 'CODIGO_EMP_' + ASufijoCabecera);
+      LeerPorcentajesIvaPorEmpresa(ALecturas, sEmpresa,
+        sCodigoIva, rIvaN, rIvaR, rIvaS, rIvaE,
+        rRecN, rRecR, rRecS, rRecE);
+    end;
     if DocumentoCompraSinIva(ACabecera, ASufijoCabecera) then
     begin
+      if ADesdeEmpresa then
+        PonerString(ACabecera, 'CODIGO_IVA_' + ASufijoCabecera, sCodigoIva);
       PonerFloat(ACabecera, 'PORCENTAJE_IVAN_' + ASufijoCabecera,
                  0);
       PonerFloat(ACabecera, 'PORCENTAJE_IVAR_' + ASufijoCabecera,
@@ -301,23 +313,24 @@ begin
     end
     else
     begin
-      sCodigoIva := Trim(CampoString(ACabecera,
-        'CODIGO_IVA_' + ASufijoCabecera));
-      bEncontrado := False;
-      if (sCodigoIva <> '') and (sCodigoIva <> '0') then
+      if not ADesdeEmpresa then
+      begin
+        sCodigoIva := Trim(CampoString(ACabecera,
+          'CODIGO_IVA_' + ASufijoCabecera));
         bEncontrado := LeerPorcentajesIvaPorCodigo(
           ALecturas, sCodigoIva,
           rIvaN, rIvaR, rIvaS, rIvaE, rRecN, rRecR, rRecS, rRecE);
-      if not bEncontrado then
-      begin
-        sEmpresa := CampoString(ACabecera,
-          'CODIGO_EMP_' + ASufijoCabecera);
-        bEncontrado := LeerPorcentajesIvaPorEmpresa(
-          ALecturas, sEmpresa,
-          sCodigoIva, rIvaN, rIvaR, rIvaS, rIvaE,
-          rRecN, rRecR, rRecS, rRecE);
+        if not bEncontrado then
+        begin
+          sEmpresa := CampoString(ACabecera,
+            'CODIGO_EMP_' + ASufijoCabecera);
+          bEncontrado := LeerPorcentajesIvaPorEmpresa(
+            ALecturas, sEmpresa,
+            sCodigoIva, rIvaN, rIvaR, rIvaS, rIvaE,
+            rRecN, rRecR, rRecS, rRecE);
+        end;
       end;
-      if bEncontrado then
+      if bEncontrado or ADesdeEmpresa then
       begin
         PonerString(ACabecera, 'CODIGO_IVA_' + ASufijoCabecera,
                     sCodigoIva);

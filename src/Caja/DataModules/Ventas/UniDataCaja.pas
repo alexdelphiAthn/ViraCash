@@ -2308,7 +2308,7 @@ begin
       FArqueosConfirmados);
   end;
   FNumeroOperacion := FPersistencia.SiguienteOperacion(
-    FEmpresa, FAlmacen, FCaja, FUsuario);
+    FEmpresa, FAlmacen, FCaja);
   FQuery := FPersistencia.CrearConsulta;
 end;
 
@@ -2350,7 +2350,7 @@ begin
     begin
       AsegurarCajaAuxiliarAlmacen(FDataModule.FConexion, FAlmacenEmision);
       FNumeroOperacionAuxiliar := FPersistencia.SiguienteOperacion(
-        FEmpresaEmisora, FAlmacenEmision, FCajaEmision, FUsuario);
+        FEmpresaEmisora, FAlmacenEmision, FCajaEmision);
       FCabecera.Comentarios := Trim(FCabecera.Comentarios + sLineBreak +
         ReferenciaCajaDevolucion);
     end;
@@ -2359,6 +2359,11 @@ begin
       FSerieGenerada, FTipoFactura, FUsuarioSesion, FCabecera.Fecha,
       not SameText(FEmpresaEmisora, FEmpresa));
     FNumeroFactura := ObtenerNumeroFactura;
+    // El contador sigue bloqueado hasta el commit. Ambos puestos usan
+    // la hora del servidor una vez adquirido el turno de numeración.
+    if (FNumeroManual = '') and SameText(FTipoFactura, 'SIMPLIFICADA') then
+      FFechaOperacion := FPersistencia.FechaOperacionNumerada(
+        FFechaOperacion);
     FDatosCobro.TotalesFactura.Cabecera.Edit;
     FDatosCobro.TotalesFactura.Cabecera.FieldByName(
       'SERIE_FAC').AsString := FSerieElegida;
@@ -3722,7 +3727,7 @@ begin
     AsegurarCajaAuxiliarAlmacen(FDataModule.FConexion,
       FAlmacenOrigenDevolucion);
     sNumOperacion := FPersistencia.SiguienteOperacion(sEmpresaOrigen,
-      FAlmacenOrigenDevolucion, CAJA_AUXILIAR_DEVOLUCION, FUsuario);
+      FAlmacenOrigenDevolucion, CAJA_AUXILIAR_DEVOLUCION);
     cTotal := RegistrarLineasTraspasoDevolucion(
       sEmpresaOrigen, sTipoDoc, sSerieDoc, sNumeroDoc,
       sNumOperacion);

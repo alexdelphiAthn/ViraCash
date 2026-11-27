@@ -85,6 +85,14 @@
         Caption = 'Marcar todo'
         OnClick = MarcarCampos
       end
+      object btnRotulos: TcxButton
+        Left = 250
+        Top = 78
+        Width = 150
+        Height = 30
+        Caption = 'Editar rótulo...'
+        OnClick = EditarRotulos
+      end
       object btnDesmarcarTodo: TcxButton
         Left = 558
         Top = 78
@@ -97,8 +105,32 @@
         EditValueFormat = cvfStatesString
         Left = 12
         Top = 113
-        Width = 696
+        Width = 538
         Height = 210
+      end
+      object btnSubir: TcxButton
+        Left = 558
+        Top = 113
+        Width = 150
+        Height = 30
+        Caption = 'Subir'
+        OnClick = MoverCampo
+      end
+      object btnBajar: TcxButton
+        Left = 558
+        Top = 151
+        Width = 150
+        Height = 30
+        Caption = 'Bajar'
+        OnClick = MoverCampo
+      end
+      object btnAncho: TcxButton
+        Left = 558
+        Top = 189
+        Width = 150
+        Height = 30
+        Caption = 'Ancho...'
+        OnClick = EditarAncho
       end
     end
     object tsUnidades: TcxTabSheet
@@ -111,8 +143,23 @@
       object cmbClase: TcxComboBox
         Left = 16
         Top = 40
-        Width = 560
+        Width = 308
         Properties.DropDownListStyle = lsFixedList
+        Properties.OnChange = CambiarClase
+      end
+      object lblMotor: TcxLabel
+        Left = 342
+        Top = 15
+        Caption = 'Motor de impresión'
+      end
+      object cmbMotor: TcxComboBox
+        Left = 342
+        Top = 40
+        Width = 234
+        Properties.DropDownListStyle = lsFixedList
+        Properties.Items.Strings = (
+          'FastReport'
+          'DevExpress')
       end
       object lblEntradaTMS: TcxLabel
         Left = 16

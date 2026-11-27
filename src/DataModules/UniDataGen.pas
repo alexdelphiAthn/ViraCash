@@ -850,7 +850,7 @@ begin
     function(AMensaje: string): Boolean
     begin
       Result := SolicitarConfirmacion(AMensaje);
-    end);
+    end, RegistroLog);
 end;
 
 procedure TdmBase.DoCreate;

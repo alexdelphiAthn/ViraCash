@@ -4,7 +4,7 @@ interface
 
 uses
   System.Classes, System.SysUtils, Data.DB, Uni,
-  inLibValoresAutomaticosPersistenciaIntf;
+  inLibValoresAutomaticosPersistenciaIntf, inLibLogIntf;
 
 type
   TRepositorioValoresAutomaticosUniDAC = class(
@@ -33,6 +33,8 @@ function ObtenerSeriePropiaAlmacen(AConexion: TUniConnection;
 function ObtenerSerieDefecto(AConexion: TUniConnection;
   const AEmpresa, ATipoDocumento: string;
   const AAlmacen: string = ''): string;
+function ObtenerSerieDefectoConContador(AConexion: TUniConnection;
+  const AEmpresa, ATipoDocumento, AAlmacen: string): string;
 procedure CargarSeriesEmpresa(AConexion: TUniConnection;
   const AEmpresa, ATipoDocumento: string;
   AElementos: TStrings);
@@ -47,7 +49,8 @@ procedure AplicarValoresPorDefecto(AConexion: TUniConnection;
 // La reparación y la reserva participan en la transacción del documento.
 procedure EjecutarContadorDocumentoUniDAC(AProcedimiento: TUniStoredProc;
   AEsAdministrador: Boolean;
-  const AConfirmar: TFunc<string, Boolean>);
+  const AConfirmar: TFunc<string, Boolean>;
+  const ARegistroLog: IRegistroLog = nil);
 
 implementation
 
@@ -158,7 +161,8 @@ end;
 
 procedure EjecutarContadorDocumentoUniDAC(AProcedimiento: TUniStoredProc;
   AEsAdministrador: Boolean;
-  const AConfirmar: TFunc<string, Boolean>);
+  const AConfirmar: TFunc<string, Boolean>;
+  const ARegistroLog: IRegistroLog);
 const
   // Tope de números ya ocupados que se saltan en una petición.
   MAX_SALTOS_NUMERO_OCUPADO = 1000;
@@ -168,6 +172,7 @@ var
   Reserva: TUniStoredProc;
   Configuracion: TConfiguracionDocumento;
   Tipo, Empresa, Serie, Usuario, Mensaje, Numero: string;
+  PrimerNumero: string;
   Propia, Activo, Ocupado: Boolean;
   Saltos: Integer;
   procedure AsignarClave;
@@ -272,6 +277,8 @@ begin
           repeat
             Reserva.ExecProc;
             Numero := Reserva.ParamByName('pContador').AsString;
+            if Saltos = 0 then
+              PrimerNumero := Numero;
             Ocupado := NumeroDocumentoOcupado(Consulta, Configuracion,
               AProcedimiento.ParamByName('pserie').AsString, Numero);
             Inc(Saltos);
@@ -280,6 +287,12 @@ begin
             raise Exception.CreateFmt(SErrorNumeracionSerieOcupada,
               [Serie, Configuracion.NombreSingular]);
           AProcedimiento.ParamByName('pcont').AsString := Numero;
+          if (Saltos > 1) and Assigned(ARegistroLog) then
+            ARegistroLog.RegistrarInformacion(Format(
+              'Numeración: tipo=%s empresa=%s serie=%s primero=%s ' +
+              'reservado=%s ocupados=%d usuario=%s',
+              [Tipo, Empresa, Serie, PrimerNumero, Numero,
+               Saltos - 1, Usuario]));
         finally
           Reserva.Free;
         end;
@@ -427,6 +440,35 @@ begin
     finally
       FreeAndNil(oConsulta);
     end;
+  end;
+end;
+
+function ObtenerSerieDefectoConContador(AConexion: TUniConnection;
+  const AEmpresa, ATipoDocumento, AAlmacen: string): string;
+var
+  Consulta: TUniQuery;
+  SeriePreferida: string;
+begin
+  Result := '';
+  SeriePreferida := ObtenerSerieDefecto(AConexion, AEmpresa,
+    ATipoDocumento, AAlmacen);
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := AConexion;
+    Consulta.SQL.Text :=
+      'SELECT SERIE_CON FROM fza_contadores ' +
+      ' WHERE TIPO_DOC_CON = :TIPO AND EMPRESA_CON = :EMPRESA ' +
+      '   AND ESACTIVO_CON = ''S'' AND TRIM(SERIE_CON) <> '''' ' +
+      ' ORDER BY (SERIE_CON = ''-''), (SERIE_CON = :PREFERIDA) DESC, ' +
+      '   (DEFAULT_CON = ''S'') DESC, SERIE_CON LIMIT 1';
+    Consulta.ParamByName('TIPO').AsString := ATipoDocumento;
+    Consulta.ParamByName('EMPRESA').AsString := AEmpresa;
+    Consulta.ParamByName('PREFERIDA').AsString := SeriePreferida;
+    Consulta.Open;
+    if not Consulta.IsEmpty then
+      Result := Consulta.Fields[0].AsString;
+  finally
+    Consulta.Free;
   end;
 end;
 

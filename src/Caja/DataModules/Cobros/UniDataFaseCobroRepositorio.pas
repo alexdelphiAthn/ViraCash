@@ -295,7 +295,11 @@ begin
       '   AND (FECHA_DESDE_EMPSER <= :FECHA ' +
       '        OR FECHA_DESDE_EMPSER IS NULL) ' +
       '   AND (FECHA_HASTA_EMPSER >= :FECHA ' +
-      '        OR FECHA_HASTA_EMPSER IS NULL)';
+      '        OR FECHA_HASTA_EMPSER IS NULL) ' +
+      ' ORDER BY ESDEFECTO_EMPSER DESC, ' +
+      '   (COALESCE(CODIGO_CAJA_EMPSER, '''') <> '''') DESC, ' +
+      '   (COALESCE(CODIGO_ALM_EMPSER, '''') <> '''') DESC, ' +
+      '   EMPSER, CODIGO_SERIE_EMPSER';
     oConsulta.ParamByName('EMPRESA').AsString :=
       ASolicitud.CodigoEmpresa;
     oConsulta.ParamByName('ALMACEN').AsString :=

@@ -12,6 +12,7 @@ type
   TfrmDisenadorPaginas = class(TfrmBase)
     cmbTipo, cmbOrigen, cmbDestino, cmbEnlace: TcxComboBox;
     cmbClase, cmbEntrada, cmbEvento, cmbSelector: TcxComboBox;
+    cmbMotor: TcxComboBox;
     edtNombre, edtGrupo: TcxTextEdit;
     lstCampos: TcxCheckListBox;
     chkMenu: TcxCheckBox;
@@ -19,6 +20,11 @@ type
     pcEditor: TcxPageControl;
     tsDatos, tsPublicar: TcxTabSheet;
     btnPublicar, btnCerrar, btnMarcarTodo, btnDesmarcarTodo: TcxButton;
+    btnRotulos, btnSubir, btnBajar, btnAncho: TcxButton;
+    procedure CambiarClase(Sender: TObject);
+    procedure EditarRotulos(Sender: TObject);
+    procedure EditarAncho(Sender: TObject);
+    procedure MoverCampo(Sender: TObject);
     procedure CambiarNombrePagina(Sender: TObject);
     procedure CambiarNombreProyecto(Sender: TObject);
     procedure MarcarCampos(Sender: TObject);
@@ -49,7 +55,7 @@ procedure ActualizarPestanasExtension(AFormulario: TfrmBase);
 implementation
 
 uses
-  System.SysUtils, System.JSON, Vcl.Forms, inMtoGen, inMtoPaginaExtension, inMtoProyectoConsultoria,
+  System.SysUtils, System.JSON, Vcl.Dialogs, Vcl.Forms, inMtoGen, inMtoPaginaExtension, inMtoProyectoConsultoria,
   inLibRegistroPantallas;
 
 {$R *.dfm}
@@ -145,7 +151,7 @@ procedure TfrmDisenadorPaginas.ElegirPagina(Sender: TObject);
 var
   P: TPaginaExtension;
   Elegidos: TStringList;
-  i: Integer;
+  i, Posicion: Integer;
 begin
   if not FCargando then
   begin
@@ -163,6 +169,11 @@ begin
         edtGrupo.Text := P.Grupo;
       edtGrupo.Properties.ReadOnly := (P.Version > 0) and (P.Grupo <> '');
       cmbClase.ItemIndex := cmbClase.Properties.Items.IndexOf(P.Clase);
+      CambiarClase(nil);
+      if P.UsaFastReport then
+        cmbMotor.ItemIndex := 0
+      else
+        cmbMotor.ItemIndex := 1;
       cmbEntrada.ItemIndex := cmbEntrada.Properties.Items.IndexOf(P.Entrada);
       cmbEvento.ItemIndex := cmbEvento.Properties.Items.IndexOf(P.AntesGuardar);
       cmbSelector.ItemIndex := cmbSelector.Properties.Items.IndexOf(P.Selectores);
@@ -177,6 +188,14 @@ begin
         for i := 0 to lstCampos.Items.Count-1 do
           lstCampos.Items[i].Checked :=
             Elegidos.IndexOf(lstCampos.Items[i].Text)>=0;
+        for i := Elegidos.Count - 1 downto 0 do
+        begin
+          Posicion := lstCampos.Items.IndexOf(Elegidos[i]);
+          if Posicion > 0 then
+            lstCampos.Items[Posicion].Index := 0;
+        end;
+        if lstCampos.Items.Count > 0 then
+          lstCampos.ItemIndex := 0;
       finally
         Elegidos.Free;
       end;
@@ -202,6 +221,12 @@ begin
       FCargando := False;
     end;
   end;
+end;
+
+procedure TfrmDisenadorPaginas.CambiarClase(Sender: TObject);
+begin
+  cmbMotor.Enabled := (cmbClase.Text <> 'Origen de datos') and
+    (cmbClase.Text <> 'Funcionalidad');
 end;
 
 procedure TfrmDisenadorPaginas.CambiarNombreProyecto(Sender: TObject);
@@ -235,6 +260,12 @@ begin
   btnDesmarcarTodo.Visible := lstCampos.Enabled;
   btnMarcarTodo.Enabled := lstCampos.Items.Count > 0;
   btnDesmarcarTodo.Enabled := btnMarcarTodo.Enabled;
+  btnRotulos.Enabled := lstCampos.Enabled and btnMarcarTodo.Enabled;
+  btnSubir.Enabled := btnRotulos.Enabled and (lstCampos.Items.Count > 1);
+  btnBajar.Enabled := btnSubir.Enabled;
+  btnAncho.Enabled := btnRotulos.Enabled;
+  if btnRotulos.Enabled then
+    lstCampos.ItemIndex := 0;
   if lstCampos.Enabled then
     lblCampos.Caption := 'Campos de la lista y de la ficha'
   else
@@ -251,6 +282,90 @@ begin
       lstCampos.Items[i].Checked := Sender = btnMarcarTodo;
   finally
     lstCampos.Items.EndUpdate;
+  end;
+end;
+
+procedure TfrmDisenadorPaginas.EditarRotulos(Sender: TObject);
+var
+  Campo: string;
+  Lista, Ficha: TStringList;
+  Valores: array[0..1] of string;
+begin
+  if lstCampos.ItemIndex >= 0 then
+  begin
+    Campo := lstCampos.Items[lstCampos.ItemIndex].Text;
+    Lista := TStringList.Create;
+    Ficha := TStringList.Create;
+    try
+      Lista.Text := FPagina.RotulosLista;
+      Ficha.Text := FPagina.RotulosFicha;
+      Valores[0] := Lista.Values[Campo];
+      Valores[1] := Ficha.Values[Campo];
+      if InputQuery('Rótulos de ' + Campo,
+        ['Cabecera de la lista', 'Etiqueta de la ficha (vacía usa la cabecera)'],
+        Valores) then
+      begin
+        Lista.Values[Campo] := Trim(Valores[0]);
+        Ficha.Values[Campo] := Trim(Valores[1]);
+        FPagina.RotulosLista := Lista.Text;
+        FPagina.RotulosFicha := Ficha.Text;
+      end;
+    finally
+      Ficha.Free;
+      Lista.Free;
+    end;
+  end;
+end;
+
+procedure TfrmDisenadorPaginas.MoverCampo(Sender: TObject);
+var
+  Actual, Destino: Integer;
+begin
+  Actual := lstCampos.ItemIndex;
+  if Sender = btnSubir then
+    Destino := Actual - 1
+  else
+    Destino := Actual + 1;
+  if (Actual >= 0) and (Destino >= 0) and (Destino < lstCampos.Items.Count) then
+  begin
+    lstCampos.Items[Actual].Index := Destino;
+    lstCampos.ItemIndex := Destino;
+  end;
+end;
+
+procedure TfrmDisenadorPaginas.EditarAncho(Sender: TObject);
+var
+  Anchos: TStringList;
+  Campo, Texto: string;
+  Ancho: Integer;
+begin
+  if lstCampos.ItemIndex >= 0 then
+  begin
+    Campo := lstCampos.Items[lstCampos.ItemIndex].Text;
+    Anchos := TStringList.Create;
+    try
+      Anchos.Text := FPagina.AnchosLista;
+      Texto := Anchos.Values[Campo];
+      if Texto = '' then
+        Texto := IntToStr(AnchoColumnaConsultoria);
+      while InputQuery('Ancho de ' + Campo, 'Ancho en píxeles', Texto) do
+      begin
+        if TryStrToInt(Trim(Texto), Ancho) and (Ancho > 0) and
+          (Ancho <= AnchoMaximoColumnaConsultoria) then
+        begin
+          if Ancho = AnchoColumnaConsultoria then
+            Anchos.Values[Campo] := ''
+          else
+            Anchos.Values[Campo] := IntToStr(Ancho);
+          FPagina.AnchosLista := Anchos.Text;
+          Break;
+        end;
+        ShowMessage(Format('Indica un ancho entre 1 y %d píxeles.',
+          [AnchoMaximoColumnaConsultoria]));
+      end;
+    finally
+      Anchos.Free;
+    end;
   end;
 end;
 
@@ -314,6 +429,7 @@ begin
   end;
 
   FPagina.Clase := cmbClase.Text;
+  FPagina.MotorImpresion := cmbMotor.Text;
   FPagina.Entrada := cmbEntrada.Text;
   FPagina.AntesGuardar := cmbEvento.Text;
   FPagina.Selectores := cmbSelector.Text;

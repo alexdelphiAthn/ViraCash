@@ -95,8 +95,7 @@ begin
     Result := oPersistencia.SiguienteOperacion(
       ASolicitud.Empresa,
       ASolicitud.Almacen,
-      ASolicitud.Caja,
-      ASolicitud.Empleado);
+      ASolicitud.Caja);
     oPersistencia.IniciarUnidadTrabajo;
     try
       oConsulta := oPersistencia.CrearConsulta;

@@ -1355,6 +1355,7 @@
                     OptionsBehavior.IncSearch = True
                     OptionsCustomize.ColumnHiding = True
                     OptionsData.Appending = True
+                    OptionsData.CancelOnExit = False
                     OptionsView.GroupByBox = False
                     OptionsView.Indicator = True
                     object dbmSeriesCODIGO_ALMACEN_SERIE: TcxGridDBColumn

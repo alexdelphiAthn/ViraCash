@@ -256,7 +256,7 @@ begin
   inherited;
   Dataset.FindField('CODIGO_SERIE_EMPSER').AsString := '0';
   if Dataset.FindField('ESDEFECTO_EMPSER') <> nil then
-    Dataset.FindField('ESDEFECTO_EMPSER').AsString := 'S';
+    Dataset.FindField('ESDEFECTO_EMPSER').AsString := 'N';
 end;
 
 procedure TdmEmpresas.unqrySeriesAfterPost(DataSet: TDataSet);

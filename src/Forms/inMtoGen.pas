@@ -620,7 +620,7 @@ begin
         begin
           if not bTransaccionExterior then
             Datos.ConfirmarCambiosDiferidos;
-          ShowMessage_fza(SInfoDatosGuardados);
+          ShowMessage_fza(GetParentForm(Self), SInfoDatosGuardados);
         end
         else if Datos.UsaCambiosDiferidos then
         begin

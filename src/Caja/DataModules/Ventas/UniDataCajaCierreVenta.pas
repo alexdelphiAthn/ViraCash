@@ -51,7 +51,8 @@ type
     procedure ConfirmarUnidadTrabajo;
     procedure RevertirUnidadTrabajo;
     function SiguienteOperacion(
-      const AEmpresa, AAlmacen, ACaja, AEmpleado: string): string;
+      const AEmpresa, AAlmacen, ACaja: string): string;
+    function FechaOperacionNumerada(AFechaCaja: TDateTime): TDateTime;
     procedure GuardarPago(
       AConsulta: TUniQuery;
       const AEmpresa, AAlmacen, ACaja, ASerie: string;
@@ -298,7 +299,7 @@ begin
 end;
 
 function TPersistenciaCierreVentaCajaUniDAC.SiguienteOperacion(
-  const AEmpresa, AAlmacen, ACaja, AEmpleado: string): string;
+  const AEmpresa, AAlmacen, ACaja: string): string;
 var
   oProcedimiento: TUniStoredProc;
 begin
@@ -313,7 +314,7 @@ begin
     oProcedimiento.Params.CreateParam(
       ftString, 'pCaja', ptInput).AsString := ACaja;
     oProcedimiento.Params.CreateParam(
-      ftString, 'pUsuario', ptInput).AsString := AEmpleado;
+      ftString, 'pUsuario', ptInput).AsString := FUsuarioAuditoria;
     oProcedimiento.Params.CreateParam(
       ftString, 'pSerie', ptOutput).Size := 12;
     oProcedimiento.Params.CreateParam(
@@ -369,6 +370,23 @@ begin
   AConsulta.ParamByName('OBS').AsString := AObservaciones;
   AConsulta.ParamByName('USUARIO').AsString := FUsuarioAuditoria;
   AConsulta.Execute;
+end;
+
+function TPersistenciaCierreVentaCajaUniDAC.FechaOperacionNumerada(
+  AFechaCaja: TDateTime): TDateTime;
+var
+  Consulta: TUniQuery;
+begin
+  Consulta := CrearConsulta;
+  try
+    Consulta.SQL.Text :=
+      'SELECT TIMESTAMP(:DIA, CURRENT_TIME) AS FECHA_OPERACION';
+    Consulta.ParamByName('DIA').AsDate := AFechaCaja;
+    Consulta.Open;
+    Result := Consulta.FieldByName('FECHA_OPERACION').AsDateTime;
+  finally
+    Consulta.Free;
+  end;
 end;
 
 procedure TPersistenciaCierreVentaCajaUniDAC.GuardarOperacion(

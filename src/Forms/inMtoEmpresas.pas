@@ -352,10 +352,14 @@ type
     procedure AplicarEtiquetas; override;
     procedure ResetForm; override;
     procedure PrepararGuardado; override;
+    function CancelarEdicionConEscape: Boolean; override;
     procedure ResolverArtSkuActivo(out ACodArt, ACodSku: string); override;
     function  DataSourcesParaFoto: TArray<TDataSource>; override;
+  protected
+    procedure KeyDown(var Key: Word; Shift: TShiftState); override;
   private
     FRepositorioSeriesEmpresa: IRepositorioSeriesEmpresa;
+    procedure GrabarSerieEnEdicion;
     procedure IncorporarCertificados;
     function SerieLibreEnOtrasEmpresas(
       const AEmpresa, ASerieTokenizada: string): Boolean;
@@ -371,6 +375,7 @@ implementation
 
 uses
   inLibBotonesDetalle,
+  inLibEnterComoTabDesplegables,
   inLibMensajesVcl,
   inLibComboPais,
   inLibWin,
@@ -513,15 +518,64 @@ begin
 end;
 
 procedure TfrmMtoEmpresas.btnAddSerieClick(Sender: TObject);
+var
+  Sitio: TWinControl;
 begin
   inherited;
-  if ((dmmEmpresas.unqryTablaG.State = dsInsert) or
-      (dmmEmpresas.unqryTablaG.State = dsEdit)) then
+  dmmEmpresas.AsegurarSeriesAbierta;
+  GrabarSerieEnEdicion;
+  if dmmEmpresas.unqryTablaG.State in dsEditModes then
     dmmEmpresas.unqryTablaG.Post;
-  if ((dmmEmpresas.unqrySeries.State = dsInsert) or
-      (dmmEmpresas.unqrySeries.State = dsEdit)) then
-    dmmEmpresas.unqrySeries.Post;
-  dmmEmpresas.unqrySeries.Insert;
+  Sitio := tvSeries.Site;
+  if Assigned(Sitio) and not Sitio.Focused and Sitio.CanFocus then
+    Sitio.SetFocus;
+  tvSeries.DataController.Append;
+  if dmmEmpresas.unqrySeries.State = dsInsert then
+  begin
+    tvSeries.Controller.FocusedColumn := dbmSeriesCODIGO_ALMACEN_SERIE;
+    tvSeries.Controller.EditingController.ShowEdit(
+      dbmSeriesCODIGO_ALMACEN_SERIE);
+  end;
+end;
+
+procedure TfrmMtoEmpresas.GrabarSerieEnEdicion;
+begin
+  if tvSeries.Controller.EditingController.IsEditing then
+    tvSeries.Controller.EditingController.HideEdit(True);
+  if dmmEmpresas.unqrySeries.State in dsEditModes then
+    tvSeries.DataController.Post(True);
+end;
+
+function TfrmMtoEmpresas.CancelarEdicionConEscape: Boolean;
+var
+  Editor: TcxCustomEdit;
+begin
+  Result := False;
+  if Assigned(dmmEmpresas) and (pcPantalla.ActivePage = tsFicha) and
+     (pcPestana.ActivePage = tsSeries) and
+     not EsDesplegableAbierto(Screen.ActiveControl) then
+  begin
+    Editor := tvSeries.Controller.EditingController.Edit;
+    Result := (dmmEmpresas.unqrySeries.State in dsEditModes) or
+      (Assigned(Editor) and Editor.EditModified);
+    if Result then
+    begin
+      tvSeries.Controller.EditingController.HideEdit(False);
+      tvSeries.DataController.Cancel;
+      if dmmEmpresas.unqrySeries.State in dsEditModes then
+        dmmEmpresas.unqrySeries.Cancel;
+    end;
+  end;
+  if not Result then
+    Result := inherited CancelarEdicionConEscape;
+end;
+
+procedure TfrmMtoEmpresas.KeyDown(var Key: Word; Shift: TShiftState);
+begin
+  if (Key = VK_ESCAPE) and (Shift = []) and CancelarEdicionConEscape then
+    Key := 0
+  else
+    inherited KeyDown(Key, Shift);
 end;
 
 procedure TfrmMtoEmpresas.btnAddBancoClick(Sender: TObject);
@@ -1037,8 +1091,7 @@ procedure TfrmMtoEmpresas.PrepararGuardado;
 begin
   inherited;
   // Confirmar el detalle antes de que el Post del maestro lo refresque.
-  if dmmEmpresas.unqrySeries.State in dsEditModes then
-    dmmEmpresas.unqrySeries.Post;
+  GrabarSerieEnEdicion;
   if dmmEmpresas.unqryBancos.State in dsEditModes then
     dmmEmpresas.unqryBancos.Post;
   if dmmEmpresas.unqryRetenciones.State in dsEditModes then

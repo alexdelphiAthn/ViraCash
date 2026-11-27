@@ -45,7 +45,7 @@ implementation
 uses
   System.Variants, System.Rtti, System.TypInfo, System.UITypes, Vcl.Dialogs,
   inMtoModalImpConsultoria, cxGridLevel, cxLabel, cxDBEdit, cxTextEdit, cxCalendar, cxMemo,
-  cxDBLookupComboBox, cxDropDownEdit,
+  cxDBLookupComboBox, cxDropDownEdit, dxFilterPopupWindow, cxGridCustomTableView,
   inMtoFrmBase, inLibMensajesVcl, Vcl.ScripterInit, atScript, atPascal, inMtoProyectoConsultoria;
 
 type
@@ -176,6 +176,9 @@ begin
     Result.FVista := Grid.CreateView(TcxGridDBTableView) as TcxGridDBTableView;
     Grid.Levels.Add.GridView := Result.FVista;
     Result.FVista.OptionsData.Editing := False;
+    Result.FVista.Filtering.ColumnPopupMode := fpmExcel;
+    Result.FVista.OptionsView.ShowColumnFilterButtons := sfbAlways;
+    Result.FVista.DateTimeHandling.IgnoreTimeForFiltering := True;
     Result.FVista.OptionsView.GroupByBox := P.Clase = 'Análisis';
     Result.FVista.DataController.DataSource := Result.FOrigen;
     Result.Recargar(nil);
@@ -199,16 +202,18 @@ begin
   Propiedades.KeyFieldNames := 'clave';
   Propiedades.ListFieldNames := 'texto;clave';
   Propiedades.ListColumns[0].Caption := Etiqueta;
+  Propiedades.ListColumns[0].Width := 270;
   Propiedades.ListColumns[1].Caption := 'Código';
+  Propiedades.ListColumns[1].Width := 80;
   Propiedades.ListFieldIndex := 0;
   Propiedades.DropDownListStyle := lsFixedList;
-  Propiedades.DropDownAutoSize := True;
+  Propiedades.DropDownAutoSize := False;
 end;
 
 procedure TPanelPagina.Recargar(Sender: TObject);
 var
   Q, Anterior: TUniQuery;
-  Nombres: TStringList;
+  Nombres, Rotulos, Anchos: TStringList;
   F: TField;
   Col: TcxGridDBColumn;
 begin
@@ -222,17 +227,25 @@ begin
   Anterior.Free;
   FNueva.Enabled := not Q.ReadOnly;
   FFicha.Enabled := not Q.IsEmpty;
+  // Las tablas y vistas conservan las mismas columnas al actualizar.
+  if (FVista.ColumnCount > 0) and (FPagina.Tipo <> Procedimiento) then
+    Exit;
   FVista.BeginUpdate;
   Nombres := TStringList.Create;
+  Rotulos := TStringList.Create;
+  Anchos := TStringList.Create;
   try
     FVista.ClearItems;
     Nombres.CommaText := FPagina.Campos;
+    Rotulos.Text := FPagina.RotulosLista;
+    Anchos.Text := FPagina.AnchosLista;
     for F in Q.Fields do
       if (FPagina.Tipo = Procedimiento) or (Nombres.IndexOf(F.FieldName)>=0) then
       begin
         Col := FVista.CreateColumn;
         Col.DataBinding.FieldName := F.FieldName;
-        Col.Width := ScaleValue(150);
+        Col.Width := ScaleValue(StrToIntDef(Anchos.Values[F.FieldName],
+          AnchoColumnaConsultoria));
         if SameText(F.FieldName,FPagina.Referencia.Campo) then
         begin
           Col.Caption := FPagina.Referencia.Etiqueta;
@@ -240,8 +253,12 @@ begin
           ConfigurarSelector(TcxLookupComboBoxProperties(Col.Properties),FOpciones,
             FPagina.Referencia.Etiqueta);
         end;
+        if Rotulos.Values[F.FieldName] <> '' then
+          Col.Caption := Rotulos.Values[F.FieldName];
       end;
   finally
+    Anchos.Free;
+    Rotulos.Free;
     Nombres.Free;
     FVista.EndUpdate;
   end;
@@ -273,11 +290,8 @@ end;
 
 procedure TPanelPagina.Imprimir(Sender: TObject);
 begin
-  if SameText(FPagina.Clase, 'Listado') then
-    TfrmPrintConsultoria.Abrir(FVista, FPagina.Nombre, FPagina.Id,
-      FRepo.PuedeDisenar)
-  else
-    ImprimirRejillaDX(FVista);
+  TfrmPrintConsultoria.Abrir(FVista, FPagina.Nombre, FPagina.Id,
+    FRepo.PuedeDisenar, FPagina.UsaFastReport);
 end;
 
 procedure TPanelPagina.Guardar(Sender: TObject);
@@ -310,14 +324,19 @@ var
   B: TcxButton;
   i, Y, Alto: Integer;
   SoloLeer: Boolean;
+  Rotulos: TStringList;
 begin
+  if (Sender = FFicha) and (FVista.DataController.FilteredRecordCount = 0) then
+    Exit;
   SoloLeer := FDatos.ReadOnly;
   Ventana := FFormularioFicha;
   if not Assigned(Ventana) then
     Ventana := TfrmBase.Create(GetParentForm(Self));
   Pie := nil;
   Panel := nil;
+  Rotulos := TStringList.Create;
   try
+    Rotulos.Text := FPagina.RotulosFicha;
     Contenedor := Ventana;
     if Assigned(FFormularioFicha) then
     begin
@@ -351,12 +370,13 @@ begin
       F := FVista.Columns[i].DataBinding.Field;
       L := TcxLabel.Create(Panel);
       L.Parent := Panel;
-      L.Caption := F.DisplayLabel;
+      L.Caption := Rotulos.Values[F.FieldName];
+      if L.Caption = '' then
+        L.Caption := FVista.Columns[i].Caption;
       L.SetBounds(ScaleValue(12),ScaleValue(Y),ScaleValue(190),ScaleValue(25));
       Alto := 26;
       if SameText(F.FieldName,FPagina.Referencia.Campo) then
       begin
-        L.Caption := FPagina.Referencia.Etiqueta;
         CodigoActual := Null;
         if Sender <> FNueva then
           CodigoActual := F.Value;
@@ -408,6 +428,7 @@ begin
         FDatos.Edit;
     Ventana.ShowModal;
   finally
+    Rotulos.Free;
     if FDatos.State in dsEditModes then
       FDatos.Cancel;
     FFicha.Enabled := not FDatos.IsEmpty;

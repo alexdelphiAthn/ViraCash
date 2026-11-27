@@ -84,7 +84,9 @@ type
     // la sincronizacion de movimientos (cascada por linea al navegar).
     FDesempaquetandoAtributos: Boolean;
     FSerieRecepcionSinConfirmar: string;
+    FEmpresaSerieAlta: string;
     FNumeroRecepcionSinConfirmar: string;
+    FPostEsAltaRecepcion: Boolean;
     // >0 mientras el modo de entrada expande/consolida lineas en bloque
     // (una linea por SKU): totales y movimientos se posponen a
     // FinalizarReorganizacionLineas para no regenerarlos por linea.
@@ -110,6 +112,9 @@ type
     procedure RefrescarMovimientosProveedor;
     procedure GuardarTotalesTrasCambiarLineas;
     procedure CopiarEmpresaaAlbaranCompra(DataSet: TDataSet);
+    procedure EmpresaAltaCambiada(Sender: TField);
+    procedure ProponerSerieAlta(const AEmpresa, AAlmacen: string);
+    procedure AplicarImpuestosEmpresaAlta;
     procedure ValidarAlmacenCabecera;
     procedure ValidarEdicionRecepcion(DataSet: TDataSet);
     function RevisionCargada(const ASerie, ANumero: string): Int64;
@@ -199,13 +204,15 @@ uses
   inLibPrestaShopColaSenal,
   UniDataAlbaranesCompraMovimientos,
   UniDataPedidosCompraAlbaranComun, UniDataPedidosCompraPendientes,
-  inLibComprasImpuestos, UniDataImpuestosRepositorio,
+  inLibComprasImpuestos, inLibImpuestosLecturasIntf,
+  UniDataImpuestosRepositorio,
   inLibData, UniDataAlmacenesEmpresaRepositorio,
   inLibArticulosValidadorIntf,
   UniDataArticulosValidadorRepositorio,
   inLibMsgArticulos, inLibMsgCompras, inLibMsgVentas,
   inLibDocumento, inLibDocumentoIntf,
-  UniDataDatosProveedorDocumento, UniDataInformeDocumento, inLibErroresBBDD;
+  UniDataDatosProveedorDocumento, UniDataInformeDocumento, inLibErroresBBDD,
+  inLibMsgOpcionesDocumento;
 
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 
@@ -551,6 +558,7 @@ var
 begin
   FRevisionesConfirmadas.Clear;
   DataSet.FieldByName('REVISION_EDICION').Visible := False;
+  DataSet.FieldByName('CODIGO_EMP_ALBC').OnChange := EmpresaAltaCambiada;
   // El instante llega en vi_albaranes_compra (garantizado por
   // 20261006_vi_albaranes_compra_instante.sql) y la vista lo marca como
   // solo lectura. Los DML explicitos si lo guardan en la tabla base.
@@ -559,9 +567,47 @@ begin
     oCampoInstante.ReadOnly := False;
 end;
 
+procedure TdmAlbaranesCompra.EmpresaAltaCambiada(Sender: TField);
+var
+  Empresa: string;
+begin
+  Empresa := Trim(Sender.AsString);
+  if (unqryTablaG.State = dsInsert) and
+     not SameText(Empresa, FEmpresaSerieAlta) then
+  begin
+    ProponerSerieAlta(Empresa,
+      unqryTablaG.FieldByName('CODIGO_ALM_ALBC').AsString);
+    AplicarImpuestosEmpresaAlta;
+  end;
+end;
+
+procedure TdmAlbaranesCompra.AplicarImpuestosEmpresaAlta;
+var
+  Lecturas: ILecturasImpuestos;
+begin
+  Lecturas := CrearLecturasImpuestos(ConexionEscritura);
+  AplicarRecargoComprasEmpresa(Lecturas, unqryTablaG,
+    'CODIGO_EMP_ALBC', 'ESIVA_RECARGO_COMPRAS_ALBC');
+  AplicarPorcentajesIvaCompra(Lecturas, unqryTablaG, 'ALBC', True);
+end;
+
+procedure TdmAlbaranesCompra.ProponerSerieAlta(
+  const AEmpresa, AAlmacen: string);
+var
+  Serie: string;
+begin
+  Serie := '';
+  if (AEmpresa <> '') and (AEmpresa <> '0') then
+    Serie := ObtenerSerieDefectoConContador(ConexionEscritura, AEmpresa,
+      CrearConfiguracionDocumento(tdAlbaran, sdCompra).TipoContador,
+      AAlmacen);
+  FEmpresaSerieAlta := AEmpresa;
+  unqryTablaG.FieldByName('SERIE_ALBC').AsString := Serie;
+end;
+
 procedure TdmAlbaranesCompra.unqryTablaGAfterInsert(DataSet: TDataSet);
 var
-  sSerie: string;
+  Empresa: string;
   function FieldByName(const ANombre: string): TField;
   begin
     Result := unqryTablaG.FieldByName(ANombre);
@@ -577,20 +623,10 @@ begin
     AplicarTemporadaDefecto(DataSet, unqryTemporadasAlbc,
       'ID_PV_TEMPORADA_ALBC',
       ParametrosApp.GetString('appTemporadaDefecto'));
-    // Serie por defecto: buscar en fza_empresas_series para TIPO_DOC='AB'
-    sSerie := ObtenerSerieDefecto(
-      ConexionEscritura,
-      UbicacionSesion.Empresa,
-      CrearConfiguracionDocumento(
-        tdAlbaran, sdCompra).TipoContador,
-      UbicacionSesion.Almacen);
-    if FindField('SERIE_ALBC') <> nil then
-    begin
-      if sSerie <> '' then
-        FieldByName('SERIE_ALBC').AsString := sSerie
-      else
-        FieldByName('SERIE_ALBC').AsString := 'C1';
-    end;
+    Empresa := Trim(UbicacionSesion.Empresa);
+    if Empresa = '' then
+      Empresa := '0';
+    ProponerSerieAlta(Empresa, UbicacionSesion.Almacen);
     // UniDAC no recarga el detalle mientras el maestro esta en dsInsert.
     // Reabrirlo con numero 0 evita mostrar las lineas del albaran anterior.
     if unqryAlbaranesCompraLineas.Active then
@@ -603,10 +639,7 @@ begin
       Trunc(FieldByName('INSTANTE_MOVIMIENTO_ALBC').AsDateTime);
     if FindField('ESTADO_ALBC') <> nil then
       FieldByName('ESTADO_ALBC').AsString := 'ABIERTO';
-    if Trim(UbicacionSesion.Empresa) <> '' then
-      FieldByName('CODIGO_EMP_ALBC').AsString := UbicacionSesion.Empresa
-    else
-      FieldByName('CODIGO_EMP_ALBC').AsString := '0';
+    FieldByName('CODIGO_EMP_ALBC').AsString := Empresa;
     if Trim(UbicacionSesion.Empresa) <> '' then
       BuscarEmpresa(UbicacionSesion.Empresa);
     if FindField('CODIGO_ALM_ALBC') <> nil then
@@ -621,12 +654,7 @@ begin
       FieldByName('ESDEPOSITO_ALBC').AsString := 'N';
     if FindField('ESIVA_EXENTO_INTRACOMUNITARIO_ALBC') <> nil then
       FieldByName('ESIVA_EXENTO_INTRACOMUNITARIO_ALBC').AsString := 'N';
-    AplicarRecargoComprasEmpresa(
-      CrearLecturasImpuestos(ConexionEscritura), unqryTablaG,
-      'CODIGO_EMP_ALBC', 'ESIVA_RECARGO_COMPRAS_ALBC');
-  AplicarPorcentajesIvaCompra(
-    CrearLecturasImpuestos(ConexionEscritura), unqryTablaG,
-    'ALBC');
+  AplicarImpuestosEmpresaAlta;
   RefrescarAlmacenes(
     DataSet.FieldByName('CODIGO_EMP_ALBC').AsString);
 end;
@@ -742,10 +770,15 @@ begin
       DataSet.FieldByName('ESTADO_ALBC').AsString := 'CERRADO';
     IniciarEscrituraRecepcion(DataSet);
   end;
+  FPostEsAltaRecepcion := DataSet.State = dsInsert;
 end;
 
 procedure TdmAlbaranesCompra.unqryTablaGAfterPost(DataSet: TDataSet);
+var
+  EsAlta: Boolean;
 begin
+  EsAlta := FPostEsAltaRecepcion;
+  FPostEsAltaRecepcion := False;
   try
     inherited;
     if FEscrituraRecepcion <> nil then
@@ -753,6 +786,14 @@ begin
         #0 + DataSet.FieldByName('NUMERO_ALBC').AsString;
     SincronizarMovimientos;
     ConfirmarEscrituraRecepcion(DataSet);
+    // La cabecera de un alta manual puede persistirse al añadir una línea.
+    // Solo esa alta puede quedar pendiente de confirmación en la ficha.
+    if EsAlta and not ConexionEscritura.InTransaction then
+    begin
+      FSerieRecepcionSinConfirmar := DataSet.FieldByName('SERIE_ALBC').AsString;
+      FNumeroRecepcionSinConfirmar :=
+        DataSet.FieldByName('NUMERO_ALBC').AsString;
+    end;
   except
     CancelarEscrituraRecepcion(DataSet);
     raise;
@@ -1171,6 +1212,11 @@ var
   iNumero: Int64;
   sNumero: string;
 begin
+  if Trim(unqryTablaG.FieldByName('SERIE_ALBC').AsString) = '' then
+  begin
+    NotificarAdvertencia(SErrorSerieOpcionesDocumento);
+    Abort;
+  end;
   unstrdprcGetContadorAlbc.Params.Clear;
   unstrdprcGetContadorAlbc.Params.CreateParam(
     ftString, 'pserie', ptInput);
@@ -1269,6 +1315,8 @@ begin
       // BeforePost recalcula desde las líneas grabadas y AfterPost
       // sincroniza los movimientos en la misma conexión.
       unqryTablaG.Post;
+      // Neto líneas es un agregado de la vista, fuera del UPDATE.
+      unqryTablaG.RefreshRecord;
     end;
   end;
 end;
@@ -1349,8 +1397,6 @@ begin
             unqryTablaG.Connection.Rollback;
           raise;
         end;
-        FSerieRecepcionSinConfirmar := sSerie;
-        FNumeroRecepcionSinConfirmar := sNumero;
         RefrescarMovimientosProveedor;
         if not unqryTablaG.Connection.InTransaction then
           SolicitarProcesadoPrestaShop;

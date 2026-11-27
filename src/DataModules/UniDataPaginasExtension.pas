@@ -16,12 +16,15 @@ type
 
   TPaginaExtension = record
     Id, Nombre, Tipo, Origen, Campos, Script: string;
+    RotulosLista, RotulosFicha, AnchosLista: string;
+    MotorImpresion: string;
     Clase, Entrada, AntesGuardar, Selectores: string;
     Mantenimiento, Maestro, Detalle, Proyecto, Grupo: string;
     Referencia: TReferenciaPagina;
     Menu, Publicada, SoloOrigen: Boolean;
     Version: Integer;
     function Serializar: string;
+    function UsaFastReport: Boolean;
     function ClavePermiso: string;
     class function Leer(const ANombre, ATexto: string;
       AVersion: Integer): TPaginaExtension; static;
@@ -65,6 +68,8 @@ type
 
 const
   LongitudNombreConsultoria = 53;
+  AnchoColumnaConsultoria = 150;
+  AnchoMaximoColumnaConsultoria = 10000;
   Tabla = 'Tabla';
   Vista = 'Vista';
   Procedimiento = 'Procedimiento';
@@ -80,6 +85,11 @@ const
 function TPaginaExtension.ClavePermiso: string;
 begin
   if Grupo = '' then Result := Nombre else Result := Grupo + '.' + Nombre;
+end;
+
+function TPaginaExtension.UsaFastReport: Boolean;
+begin
+  Result := not SameText(MotorImpresion, 'DevExpress');
 end;
 
 function TPaginaExtension.Serializar: string;
@@ -98,6 +108,10 @@ begin
     J.AddPair('tipo', Tipo);
     J.AddPair('origen', Origen);
     J.AddPair('campos', Campos);
+    J.AddPair('rotulosLista', RotulosLista);
+    J.AddPair('rotulosFicha', RotulosFicha);
+    J.AddPair('anchosLista', AnchosLista);
+    J.AddPair('motorImpresion', MotorImpresion);
     J.AddPair('antesGuardar', Script);
     J.AddPair('menu', Menu);
     J.AddPair('mantenimiento', Mantenimiento);
@@ -138,6 +152,10 @@ begin
     Result.Tipo := J.GetValue<string>('tipo');
     Result.Origen := J.GetValue<string>('origen');
     Result.Campos := J.GetValue<string>('campos');
+    Result.RotulosLista := J.GetValue<string>('rotulosLista', '');
+    Result.RotulosFicha := J.GetValue<string>('rotulosFicha', '');
+    Result.AnchosLista := J.GetValue<string>('anchosLista', '');
+    Result.MotorImpresion := J.GetValue<string>('motorImpresion', '');
     Result.Script := J.GetValue<string>('antesGuardar');
     Result.Menu := J.GetValue<Boolean>('menu');
     Result.Mantenimiento := J.GetValue<string>('mantenimiento');

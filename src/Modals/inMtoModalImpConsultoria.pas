@@ -5,27 +5,25 @@ interface
 
 uses
   System.Classes, Datasnap.DBClient, cxGridDBTableView, dxSpreadSheet,
-  dxPSCore, cxRadioGroup,
+  dxPSCore,
   inLibInformeTabular, inMtoModalGenImp;
 
 type
   TfrmPrintConsultoria = class(TfrmPrint)
   private
-    FMotor: TcxRadioGroup;
     FImpresora: TdxComponentPrinter;
     FEnlaceDX: TBasedxReportLink;
     FDatos: TClientDataSet;
     FColumnas: TColumnasInformeTabular;
-    procedure CambiarMotor(Sender: TObject);
-    procedure VistaPrevia(Sender: TObject);
-    procedure Imprimir(Sender: TObject);
+    procedure VistaPreviaDX(Sender: TObject);
+    procedure ImprimirDX(Sender: TObject);
     procedure Preparar(AVista: TcxGridDBTableView; const ATitulo,
-      AIdentificador: string; APuedeDisenar: Boolean);
+      AIdentificador: string; APuedeDisenar, AUsaFastReport: Boolean);
   protected
     procedure ConstruirExcelNativo(AControl: TdxSpreadSheet); override;
   public
     class procedure Abrir(AVista: TcxGridDBTableView; const ATitulo,
-      AIdentificador: string; APuedeDisenar: Boolean); static;
+      AIdentificador: string; APuedeDisenar, AUsaFastReport: Boolean); static;
     procedure preparar_consulta; override;
   end;
 
@@ -62,30 +60,18 @@ begin
   end;
 end;
 
-procedure TfrmPrintConsultoria.CambiarMotor(Sender: TObject);
+procedure TfrmPrintConsultoria.VistaPreviaDX(Sender: TObject);
 begin
-  btnEditar.Enabled := FMotor.ItemIndex = 0;
-  btnPDF.Enabled := FMotor.ItemIndex = 0;
+  FImpresora.Preview(True, FEnlaceDX);
 end;
 
-procedure TfrmPrintConsultoria.VistaPrevia(Sender: TObject);
+procedure TfrmPrintConsultoria.ImprimirDX(Sender: TObject);
 begin
-  if FMotor.ItemIndex = 0 then
-    btnVistaPreliminarClick(Sender)
-  else
-    FImpresora.Preview(True, FEnlaceDX);
-end;
-
-procedure TfrmPrintConsultoria.Imprimir(Sender: TObject);
-begin
-  if FMotor.ItemIndex = 0 then
-    btnImprimirClick(Sender)
-  else
-    FImpresora.Print(True, nil, FEnlaceDX);
+  FImpresora.Print(True, nil, FEnlaceDX);
 end;
 
 class procedure TfrmPrintConsultoria.Abrir(AVista: TcxGridDBTableView;
-  const ATitulo, AIdentificador: string; APuedeDisenar: Boolean);
+  const ATitulo, AIdentificador: string; APuedeDisenar, AUsaFastReport: Boolean);
 var
   Padre: TWinControl;
   Propietario: TForm;
@@ -102,7 +88,8 @@ begin
   try
     Dialogo.PopupMode := pmExplicit;
     Dialogo.PopupParent := Propietario;
-    Dialogo.Preparar(AVista, ATitulo, AIdentificador, APuedeDisenar);
+    Dialogo.Preparar(AVista, ATitulo, AIdentificador, APuedeDisenar,
+      AUsaFastReport);
     Dialogo.ShowModal;
   finally
     Dialogo.Free;
@@ -110,7 +97,7 @@ begin
 end;
 
 procedure TfrmPrintConsultoria.Preparar(AVista: TcxGridDBTableView;
-  const ATitulo, AIdentificador: string; APuedeDisenar: Boolean);
+  const ATitulo, AIdentificador: string; APuedeDisenar, AUsaFastReport: Boolean);
 var
   Enlace: TfrxDBDataset;
   Columna: TcxGridDBColumn;
@@ -126,9 +113,10 @@ begin
   Caption := ATitulo;
   // Los formatos de cada elemento tienen la misma clave al volver a abrirlo.
   Name := 'frmCons' + Copy(THashSHA2.GetHashString(AIdentificador), 1, 24);
-  MostrarDisenosGuardados := AIdentificador <> '';
+  MostrarDisenosGuardados := AUsaFastReport and (AIdentificador <> '');
   UsarFormatoOriginal := not MostrarDisenosGuardados;
-  btnEditar.Visible := APuedeDisenar and (AIdentificador <> '');
+  btnEditar.Visible := APuedeDisenar and MostrarDisenosGuardados;
+  btnPDF.Enabled := AUsaFastReport;
   btnExcel.OnClick := btnExcelNativoClick;
   FDatos := TClientDataSet.Create(Self);
   SetLength(FColumnas, AVista.VisibleColumnCount);
@@ -199,39 +187,36 @@ begin
     end;
     FDatos.Post;
   end;
-  Enlace := TfrxDBDataset.Create(Self);
-  Enlace.Name := 'fxdsListado';
-  Enlace.UserName := 'Listado';
-  Enlace.DataSet := FDatos;
   // A4 vertical, con diez milímetros de margen en cada lateral.
   Vertical := AnchoTotal <= Round(190 * 96 / 25.4);
-  CrearInformeTabular(frxReportOrigen, Enlace, ATitulo, FColumnas, Vertical);
-  FImpresora := TdxComponentPrinter.Create(Self);
-  FEnlaceDX := EnlaceImpresionDX(FImpresora, AVista);
-  FEnlaceDX.PrinterPage.DMPaper := DMPAPER_A4;
-  if Vertical then
-    FEnlaceDX.PrinterPage.Orientation := poPortrait
+  if AUsaFastReport then
+  begin
+    Enlace := TfrxDBDataset.Create(Self);
+    Enlace.Name := 'fxdsListado';
+    Enlace.UserName := 'Listado';
+    Enlace.DataSet := FDatos;
+    CrearInformeTabular(frxReportOrigen, Enlace, ATitulo, FColumnas, Vertical);
+  end
   else
-    FEnlaceDX.PrinterPage.Orientation := poLandscape;
-  FMotor := TcxRadioGroup.Create(Self);
+  begin
+    FImpresora := TdxComponentPrinter.Create(Self);
+    FEnlaceDX := EnlaceImpresionDX(FImpresora, AVista);
+    FEnlaceDX.PrinterPage.DMPaper := DMPAPER_A4;
+    if Vertical then
+      FEnlaceDX.PrinterPage.Orientation := poPortrait
+    else
+      FEnlaceDX.PrinterPage.Orientation := poLandscape;
+    btnVistaPreliminar.OnClick := VistaPreviaDX;
+    btnImprimir.OnClick := ImprimirDX;
+  end;
   ClientWidth := ScaleValue(440);
-  FMotor.Parent := Self;
-  FMotor.SetBounds(ScaleValue(12), ScaleValue(12),
-    pnl1.Left - ScaleValue(24), ScaleValue(90));
-  FMotor.Caption := StripHotkey(btnImprimir.Caption);
-  FMotor.Properties.Items.Add.Caption := 'FastReport · Informe diseñado';
-  FMotor.Properties.Items.Add.Caption := 'DevExpress · Como en pantalla';
-  FMotor.ItemIndex := 0;
-  FMotor.Properties.OnChange := CambiarMotor;
-  btnVistaPreliminar.OnClick := VistaPrevia;
-  btnImprimir.OnClick := Imprimir;
   if Vertical then
     Papel := '210 × 297 mm'
   else
     Papel := '297 × 210 mm';
   Etiqueta := TcxLabel.Create(Self);
   Etiqueta.Parent := Self;
-  Etiqueta.SetBounds(ScaleValue(12), ScaleValue(114),
+  Etiqueta.SetBounds(ScaleValue(12), ScaleValue(12),
     pnl1.Left - ScaleValue(20), ScaleValue(30));
   Etiqueta.Caption := 'A4 · ' + Papel;
   preparar_consulta;
