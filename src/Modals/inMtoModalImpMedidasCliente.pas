@@ -161,6 +161,8 @@ begin
       Leyenda := SMedidasGuiaPie
     else
       Leyenda := SMedidasGuiaRopa;
+    if AFicha = fmRopa then
+      Leyenda := Leyenda + '|' + SMedidasGuiaCadera;
     Memo := Texto(Banda, 'LeyendaGuia', StringReplace(Leyenda, '|',
       sLineBreak, [rfReplaceAll]), 315, 172, Ancho - 320, 128, 11);
     Memo.LineSpacing := 4;

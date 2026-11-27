@@ -68,8 +68,12 @@ begin
           if SameText(ACodigo, Pie[i] + Lado) then Result := i;
       end;
     fmTraje, fmRopa:
+    begin
       for i := Low(Ropa) to High(Ropa) do
         if SameText(ACodigo, Ropa[i]) then Result := i;
+      if (AFicha = fmRopa) and SameText(ACodigo, 'ROPA_CADERA') then
+        Result := 6;
+    end;
   end;
 end;
 

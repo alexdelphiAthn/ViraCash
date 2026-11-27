@@ -18,6 +18,7 @@ resourcestring
   SMedidasPrueba = 'Ajustes para la próxima prueba';
   SMedidasGuiaPie = '1   Longitud del pie|2   Ancho de antepié|3   Contorno de empeine';
   SMedidasGuiaRopa = '1   Hombros|2   Pecho|3   Cintura|4   Manga|5   Largo';
+  SMedidasGuiaCadera = '6   Cadera';
   SMedidasCliente = 'Cliente';
   SMedidasMagnitud = 'Medida';
   SMedidasValor = 'Valor';

@@ -1,5 +1,5 @@
 {$FORM TLista, Lista.sfm}
-uses Forms, Ficha;
+uses Classes, Forms, Ficha;
 
 procedure AlMostrar(Sender: TObject);
 begin

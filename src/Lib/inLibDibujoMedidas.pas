@@ -134,6 +134,11 @@ var
     Cota(272,29,272,201);
     Linea(214,201,272,201);
     Marca(272,119,5);
+    if AFicha = fmRopa then
+    begin
+      Cota(91,172,209,172);
+      Marca(117,172,6);
+    end;
   end;
 
 begin

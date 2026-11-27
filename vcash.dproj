@@ -190,7 +190,7 @@ $(PreBuildEvent)]]></PreBuildEvent>
         <Exec WorkingDirectory="$(MSBuildProjectDirectory)\src\Forms\Consultoria" Command="&quot;$(BDS)\bin\brcc32.exe&quot; -foLlamadas.res Llamadas.rc"/>
     </Target>
     <ItemGroup>
-        <FuenteConsultoria Include="src\Forms\Consultoria\Plantilla\*.rc;src\Forms\Consultoria\Plantilla\*.ssproj;src\Forms\Consultoria\Plantilla\*.psc;src\Forms\Consultoria\Plantilla\*.sfm"/>
+        <FuenteConsultoria Include="src\Forms\Consultoria\Plantilla\*.rc;src\Forms\Consultoria\Plantilla\*.ssproj;src\Forms\Consultoria\Plantilla\*.psc;src\Forms\Consultoria\Plantilla\*.sfm;src\Forms\Consultoria\Plantilla\*.json"/>
     </ItemGroup>
     <Target Name="CompilarPlantillaConsultoria" BeforeTargets="_PasCoreCompile"
         Inputs="@(FuenteConsultoria)"

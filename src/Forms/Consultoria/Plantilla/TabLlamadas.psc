@@ -1,5 +1,5 @@
 {$FORM TTabLlamadas, TabLlamadas.sfm}
-uses Forms;
+uses Classes, Forms;
 
 procedure AlMostrar(Sender: TObject);
 begin
