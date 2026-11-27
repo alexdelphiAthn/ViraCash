@@ -461,6 +461,7 @@ resourcestring
   SCaptionEstadoInsertando = 'Insertando';
   SCaptionEstadoEditando = 'Editando';
   SCaptionEstadoNavegando = 'Navegando';
+  SCaptionEstadoGuardado = 'Guardado';
   SCaptionEstadoInactivo = 'Inactivo';
   SCaptionMenuDeshacer = '&Deshacer';
   SCaptionMenuRehacer = '&Rehacer';

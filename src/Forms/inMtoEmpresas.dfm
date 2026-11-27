@@ -165,7 +165,7 @@
         end
       end
       inherited tsFicha: TcxTabSheet
-        OnEnter = tsFichaEnter
+        OnShow = AlMostrarFichaEmpresa
         ExplicitLeft = 2
         ExplicitTop = 28
         ExplicitWidth = 941

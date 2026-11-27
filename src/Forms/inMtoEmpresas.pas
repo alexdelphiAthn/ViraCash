@@ -319,7 +319,7 @@ type
     procedure tvBancosCellClick(Sender: TcxCustomGridTableView;
       ACellViewInfo: TcxGridTableDataCellViewInfo; AButton: TMouseButton;
       AShift: TShiftState; var AHandled: Boolean);
-    procedure tsFichaEnter(Sender: TObject);
+    procedure AlMostrarFichaEmpresa(Sender: TObject);
     procedure chkAplicaRetencionesPropertiesChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btnCargarColumnasClick(Sender: TObject);
@@ -357,6 +357,7 @@ type
     function  DataSourcesParaFoto: TArray<TDataSource>; override;
   protected
     procedure KeyDown(var Key: Word; Shift: TShiftState); override;
+    procedure NotificarGuardado; override;
   private
     FRepositorioSeriesEmpresa: IRepositorioSeriesEmpresa;
     procedure GrabarSerieEnEdicion;
@@ -532,10 +533,19 @@ begin
   tvSeries.DataController.Append;
   if dmmEmpresas.unqrySeries.State = dsInsert then
   begin
+    lblEditMode.Caption := SCaptionEstadoNavegando;
     tvSeries.Controller.FocusedColumn := dbmSeriesCODIGO_ALMACEN_SERIE;
     tvSeries.Controller.EditingController.ShowEdit(
       dbmSeriesCODIGO_ALMACEN_SERIE);
   end;
+end;
+
+procedure TfrmMtoEmpresas.NotificarGuardado;
+begin
+  if pcPestana.ActivePage = tsSeries then
+    lblEditMode.Caption := SCaptionEstadoGuardado
+  else
+    inherited NotificarGuardado;
 end;
 
 procedure TfrmMtoEmpresas.GrabarSerieEnEdicion;
@@ -1104,10 +1114,11 @@ begin
   pcPestana.ActivePage := tsMasDatos;
 end;
 
-procedure TfrmMtoEmpresas.tsFichaEnter(Sender: TObject);
+procedure TfrmMtoEmpresas.AlMostrarFichaEmpresa(Sender: TObject);
 begin
-  inherited;
-  txtRAZONSOCIAL_EMPRESA.SetFocus;
+  inherited tsFichaShow(Sender);
+  if txtRAZONSOCIAL_EMPRESA.CanFocus then
+    txtRAZONSOCIAL_EMPRESA.SetFocus;
 end;
 
 procedure TfrmMtoEmpresas.txtCODIGO_PAIS_EMPRESAPropertiesChange(

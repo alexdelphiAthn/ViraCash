@@ -304,6 +304,7 @@ type
     procedure AsegurarConexionTrabajo;
     procedure ComprobarPermisoGrabar;
     procedure PrepararGuardado; virtual;
+    procedure NotificarGuardado; virtual;
   public
     BuscarSoloColumnasVisibles: Boolean;
     tdmDataModule:TObject;
@@ -537,6 +538,11 @@ procedure TfrmMtoGen.PrepararGuardado;
 begin
 end;
 
+procedure TfrmMtoGen.NotificarGuardado;
+begin
+  ShowMessage_fza(GetParentForm(Self), SInfoDatosGuardados);
+end;
+
 procedure TfrmMtoGen.btnGrabarClick(Sender: TObject);
 var
   Datos: TdmBase;
@@ -620,7 +626,7 @@ begin
         begin
           if not bTransaccionExterior then
             Datos.ConfirmarCambiosDiferidos;
-          ShowMessage_fza(GetParentForm(Self), SInfoDatosGuardados);
+          NotificarGuardado;
         end
         else if Datos.UsaCambiosDiferidos then
         begin

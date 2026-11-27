@@ -1284,6 +1284,7 @@ begin
     if Lineas.State in dsEditModes then
       Lineas.Cancel;
     inherited btnCancelarClick(Sender);
+    dmmAlbaranesCompra.DescartarAltaVaciaSinConfirmar;
     ActualizarPivoteTrasCancelar;
   end;
 end;
@@ -1297,7 +1298,13 @@ end;
 function TfrmMtoAlbaranesCompra.InterceptarCierre: Boolean;
 begin
   Result := True;
-  if ResolverRecepcionPendiente then
+  if Assigned(dmmAlbaranesCompra) and
+     dmmAlbaranesCompra.HayAltaVaciaSinConfirmar then
+  begin
+    if CloseQuery then
+      Result := inherited InterceptarCierre;
+  end
+  else if ResolverRecepcionPendiente then
     Result := inherited InterceptarCierre;
 end;
 
@@ -1305,12 +1312,22 @@ function TfrmMtoAlbaranesCompra.CloseQuery: Boolean;
 begin
   Result := False;
   if ResolverRecepcionPendiente then
+  begin
     Result := inherited CloseQuery;
+    if Result and Assigned(dmmAlbaranesCompra) then
+      dmmAlbaranesCompra.DescartarAltaVaciaSinConfirmar;
+  end;
 end;
 
 function TfrmMtoAlbaranesCompra.CancelarEdicionConEscape: Boolean;
 begin
   Result := ResolverConflictoRecepcion;
+  if not Result and Assigned(dmmAlbaranesCompra) and
+     dmmAlbaranesCompra.HayAltaVaciaSinConfirmar then
+  begin
+    btnCancelarRecepcionClick(Self);
+    Result := True;
+  end;
   if not Result then
   begin
     Result := True;

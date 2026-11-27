@@ -14633,6 +14633,12 @@ begin
     'src/Lib/inLibMsgCompras.pas',
     @inLibMsgCompras.
       SAvisoAlbaranCompraFacturado);
+  ARegistrar('inLibMsgCompras.SInfoAltaAlbaranVaciaDescartada',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SInfoAltaAlbaranVaciaDescartada);
+  ARegistrar('inLibMsgCompras.SErrorAltaAlbaranYaNoVacia',
+    'src/Lib/inLibMsgCompras.pas',
+    @inLibMsgCompras.SErrorAltaAlbaranYaNoVacia);
   ARegistrar('inLibMsgCompras.SErrorAlbaranCompraPartidaUtilizada',
     'src/Lib/inLibMsgCompras.pas',
     @inLibMsgCompras.SErrorAlbaranCompraPartidaUtilizada);
@@ -17539,6 +17545,8 @@ begin
     'src/Lib/inLibMsgComun.pas',
     @inLibMsgComun.
       SCaptionEstadoNavegando);
+  ARegistrar('inLibMsgComun.SCaptionEstadoGuardado',
+    'src/Lib/inLibMsgComun.pas', @inLibMsgComun.SCaptionEstadoGuardado);
   ARegistrar(
     'inLibMsgComun.' +
     'SCaptionEstadoInactivo',

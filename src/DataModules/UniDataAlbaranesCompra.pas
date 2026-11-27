@@ -87,6 +87,7 @@ type
     FEmpresaSerieAlta: string;
     FNumeroRecepcionSinConfirmar: string;
     FPostEsAltaRecepcion: Boolean;
+    FDescartandoAltaVacia: Boolean;
     // >0 mientras el modo de entrada expande/consolida lineas en bloque
     // (una linea por SKU): totales y movimientos se posponen a
     // FinalizarReorganizacionLineas para no regenerarlos por linea.
@@ -139,6 +140,8 @@ type
     procedure CalcularTotalesAlbaranCompra;
     procedure SincronizarMovimientos;
     function HayRecepcionSinConfirmar: Boolean;
+    function HayAltaVaciaSinConfirmar: Boolean;
+    procedure DescartarAltaVaciaSinConfirmar;
     function TieneEntradasStock: Boolean;
     procedure ConfirmarRecepcion;
     procedure ExigirRecepcionEditable;
@@ -871,7 +874,7 @@ begin
       Abort;
     end;
     ExigirRecepcionEditable;
-    if not SolicitarConfirmacion(
+    if not FDescartandoAltaVacia and not SolicitarConfirmacion(
       Format(SPreguntaBorrarAlbaranCompra,
         [sSerie, sNumero])) then
     begin
@@ -879,9 +882,16 @@ begin
     end;
     IniciarBorradoTransaccional;
     try
+      if FDescartandoAltaVacia then
+      begin
+        ReservarRevisionRecepcion(sSerie, sNumero);
+        if not HayAltaVaciaSinConfirmar then
+          raise EValidacionBBDD.Create(SErrorAltaAlbaranYaNoVacia);
+      end;
       ReponerPendientesAlBorrarAlbaranCompra(
         q.Connection, sSerie, sNumero, IdentidadSesion.Usuario);
-      ReservarRevisionRecepcion(sSerie, sNumero);
+      if not FDescartandoAltaVacia then
+        ReservarRevisionRecepcion(sSerie, sNumero);
       RevertirRecepcionAlbaranCompra(q.Connection, sSerie, sNumero,
         IdentidadSesion.Usuario);
       q.SQL.Text :=
@@ -1414,6 +1424,57 @@ begin
       FSerieRecepcionSinConfirmar) and
     (unqryTablaG.FieldByName('NUMERO_ALBC').AsString =
       FNumeroRecepcionSinConfirmar);
+end;
+
+function TdmAlbaranesCompra.HayAltaVaciaSinConfirmar: Boolean;
+var
+  Consulta: TUniQuery;
+begin
+  Result := False;
+  if HayRecepcionSinConfirmar then
+  begin
+    Consulta := TUniQuery.Create(nil);
+    try
+      Consulta.Connection := ConexionEscritura;
+      Consulta.SQL.Text :=
+        'SELECT 1 FROM fza_albaranes_compra A ' +
+        'WHERE A.SERIE_ALBC = :SERIE AND A.NUMERO_ALBC = :NUMERO ' +
+        'AND A.ESTADO_ALBC = ''ABIERTO'' ' +
+        'AND NOT EXISTS (SELECT 1 FROM fza_albaranes_compra_lineas L ' +
+        '  WHERE L.SERIE_ALBC_ALBCLIN = A.SERIE_ALBC ' +
+        '    AND L.NUMERO_ALBC_ALBCLIN = A.NUMERO_ALBC) ' +
+        'AND NOT EXISTS (SELECT 1 FROM fza_movimientos_almacen M ' +
+        '  WHERE M.TIPO_DOC_MOV = ''AC'' AND M.ESACTIVO_MOV = ''S'' ' +
+        '    AND M.SERIE_DOC_MOV = A.SERIE_ALBC ' +
+        '    AND M.NUMERO_DOC_MOV = A.NUMERO_ALBC)';
+      Consulta.ParamByName('SERIE').AsString := FSerieRecepcionSinConfirmar;
+      Consulta.ParamByName('NUMERO').AsString := FNumeroRecepcionSinConfirmar;
+      Consulta.Open;
+      Result := not Consulta.IsEmpty;
+    finally
+      Consulta.Free;
+    end;
+  end;
+end;
+
+procedure TdmAlbaranesCompra.DescartarAltaVaciaSinConfirmar;
+var
+  Serie, Numero: string;
+begin
+  if (unqryTablaG.State = dsBrowse) and HayAltaVaciaSinConfirmar then
+  begin
+    Serie := FSerieRecepcionSinConfirmar;
+    Numero := FNumeroRecepcionSinConfirmar;
+    FDescartandoAltaVacia := True;
+    try
+      unqryTablaG.Delete;
+    finally
+      FDescartandoAltaVacia := False;
+    end;
+    ConfirmarRecepcion;
+    NotificarInformacion(Format(SInfoAltaAlbaranVaciaDescartada,
+      [Serie, Numero]));
+  end;
 end;
 
 procedure TdmAlbaranesCompra.ConfirmarRecepcion;

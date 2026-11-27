@@ -123,6 +123,10 @@ resourcestring
   SAvisoAlbaranCompraFacturado =
     'No se puede borrar el albarán de compra: ya está facturado. Borra o ' +
     'deshaz primero la factura de compra vinculada.';
+  SInfoAltaAlbaranVaciaDescartada =
+    'Se ha descartado el albarán vacío %s / %s. El número queda consumido.';
+  SErrorAltaAlbaranYaNoVacia =
+    'El albarán ya tiene líneas o movimientos de stock. Se ha conservado.';
   SPreguntaCancelarRecepcionCompra =
     'Este albarán ya tiene entradas de stock grabadas al confirmar ' +
     'sus líneas. Cancelar solo descarta la edición en curso; las ' +
