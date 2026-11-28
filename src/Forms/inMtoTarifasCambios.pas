@@ -95,10 +95,13 @@ type
     FEtiquetasDmArt   : TObject;
     FEtiquetaPorArticulo: Boolean;
     pnlSeleccion: TPanel;
-    edtBuscarSkuLinea: TcxTextEdit;
+    edtBuscarLineas: TcxTextEdit;
+    tmrBuscarLineas: TTimer;
     btnMarcarTodo: TcxButton;
     btnDesmarcarTodo: TcxButton;
     btnActualizarCostes: TcxButton;
+    btnDescomponerPorColor: TcxButton;
+    btnDescomponerPorTalla: TcxButton;
     btnEliminarLineas: TcxButton;
     btnEliminarSinStock: TcxButton;
     actIrArticulo     : TAction;
@@ -159,9 +162,9 @@ type
     procedure CrearAcciones;
     procedure CrearGridLineas;
     procedure CrearPanelDatosLinea;
-    procedure CrearBuscadorSkuLinea(ATop: Integer);
-    procedure BuscarSkuLinea(Sender: TObject);
-    procedure ActualizarSkuLinea(ALineas: TDataSet);
+    procedure CrearBuscadorLineas(ATop: Integer);
+    procedure edtBuscarLineasChange(Sender: TObject);
+    procedure tmrBuscarLineasTimer(Sender: TObject);
     procedure ActualizarRutaFamiliaLinea;
     procedure CrearSelectorTarifaAnterior(var AX: Integer; AY: Integer);
     procedure ActualizarTarifaAnterior;
@@ -211,6 +214,7 @@ type
       const ACodTarifa, AAlmacenesCsv: string; AFecha: TDateTime);
     procedure btnMarcarTodoClick(Sender: TObject);
     procedure btnActualizarCostesClick(Sender: TObject);
+    procedure DescomponerLineaClick(Sender: TObject);
     procedure btnEliminarLineasClick(Sender: TObject);
     procedure btnEliminarSinStockClick(Sender: TObject);
     procedure btnDesmarcarTodoClick(Sender: TObject);
@@ -298,9 +302,6 @@ uses
 {$R *.dfm}
 
 resourcestring
-  SErrorSkuNoVisibleSesionTarifa =
-    'El SKU %s no está en las líneas visibles de esta sesión.';
-  SAyudaBuscarSkuSesionTarifa = 'Artículo/Color/Talla';
   SAvisoLineaSinProveedorPrincipal =
     'El artículo de la línea no tiene proveedor principal.';
   SAvisoLineaSinFamilia = 'El artículo de la línea no tiene familia.';
@@ -332,6 +333,7 @@ end;
 
 destructor TfrmMtoTarifasCambios.Destroy;
 begin
+  FreeAndNil(tmrBuscarLineas);
   FreeAndNil(FMiniaturaFoto);
   DesvincularDatos;
   LiberarStockArticulo;
@@ -726,7 +728,7 @@ begin
   ColocarBoton(btnEliminarSinStock, Y, X);
   ColocarBoton(btnStockAlmacenes, Y, X, Esc(FICHA_SEP_GRUPO));
   CrearSelectorTarifaAnterior(X, Y);
-  CrearBuscadorSkuLinea(Y + Esc(FICHA_ALTO_BOTON + 6));
+  CrearBuscadorLineas(Y + Esc(FICHA_ALTO_BOTON + 6));
   CrearPanelDatosLinea;
   cxgrdLineas := TcxGrid.Create(Self);
   cxgrdLineas.Parent := tsLineas;
@@ -763,61 +765,58 @@ begin
   tvLineas.DataController.KeyFieldNames := 'ID_TARCLIN';
 end;
 
-procedure TfrmMtoTarifasCambios.CrearBuscadorSkuLinea(ATop: Integer);
+procedure TfrmMtoTarifasCambios.CrearBuscadorLineas(ATop: Integer);
 var
   X: Integer;
-  BotonBuscar: TcxButton;
 begin
   X := Esc(8);
-  CrearEtiqueta(pnlSeleccion, @SCaptionColSku, X, ATop + Esc(3));
-  Inc(X, AnchoTexto(SCaptionColSku) + Esc(FICHA_SEP_ETIQ));
-  edtBuscarSkuLinea := TcxTextEdit.Create(Self);
-  edtBuscarSkuLinea.Parent := pnlSeleccion;
-  edtBuscarSkuLinea.SetBounds(X, ATop, Esc(240), edtBuscarSkuLinea.Height);
-  AsignarTexto(edtBuscarSkuLinea, 'Hint', @SAyudaBuscarSkuSesionTarifa);
-  edtBuscarSkuLinea.ShowHint := True;
-  Inc(X, edtBuscarSkuLinea.Width + Esc(FICHA_SEP_BOTON));
-  BotonBuscar := CrearBoton(pnlSeleccion, @SCaptionBuscar, BuscarSkuLinea);
-  ColocarBoton(BotonBuscar, ATop, X);
+  CrearEtiqueta(pnlSeleccion, @SCaptionTextoABuscar, X, ATop + Esc(3));
+  Inc(X, AnchoTexto(SCaptionTextoABuscar) + Esc(FICHA_SEP_ETIQ));
+
+  tmrBuscarLineas := TTimer.Create(Self);
+  tmrBuscarLineas.Enabled := False;
+  tmrBuscarLineas.Interval := 300;
+  tmrBuscarLineas.OnTimer := tmrBuscarLineasTimer;
+
+  edtBuscarLineas := TcxTextEdit.Create(Self);
+  edtBuscarLineas.Parent := pnlSeleccion;
+  edtBuscarLineas.SetBounds(X, ATop, Esc(240), edtBuscarLineas.Height);
+  edtBuscarLineas.Properties.MaxLength := 128;
+  edtBuscarLineas.Properties.OnChange := edtBuscarLineasChange;
+  Inc(X, edtBuscarLineas.Width + Esc(FICHA_SEP_GRUPO));
+  btnDescomponerPorColor := CrearBoton(pnlSeleccion,
+    @SCaptionDescomponerTarifaPorColor, DescomponerLineaClick);
+  ColocarBoton(btnDescomponerPorColor, ATop, X);
+  btnDescomponerPorTalla := CrearBoton(pnlSeleccion,
+    @SCaptionDescomponerTarifaPorTalla, DescomponerLineaClick);
+  ColocarBoton(btnDescomponerPorTalla, ATop, X);
 end;
 
-procedure TfrmMtoTarifasCambios.BuscarSkuLinea(Sender: TObject);
-var
-  Sku: string;
-  Columna: TcxGridDBColumn;
-  Registro, Fila: Integer;
+procedure TfrmMtoTarifasCambios.edtBuscarLineasChange(Sender: TObject);
 begin
-  Sku := Trim(edtBuscarSkuLinea.Text);
-  Columna := tvLineas.GetColumnByFieldName('CODIGO_UNIDAD_SKU_TARCLIN');
-  if (Sku <> '') and Assigned(Columna) then
+  if Assigned(tmrBuscarLineas) and not (csDestroying in ComponentState) then
   begin
-    Registro := tvLineas.DataController.FindRecordIndexByText(
-      0, Columna.Index, Sku, False, False, True);
-    Fila := -1;
-    if Registro >= 0 then
-      Fila := tvLineas.DataController.GetRowIndexByRecordIndex(Registro, True);
-    if Fila >= 0 then
-    begin
-      tvLineas.DataController.FocusedRowIndex := Fila;
-      ActualizarSkuLinea(tvLineas.DataController.DataSet);
-    end
-    else
-    begin
-      ShowMessage_fza(Format(SErrorSkuNoVisibleSesionTarifa, [Sku]));
-      if edtBuscarSkuLinea.CanFocus then
-        edtBuscarSkuLinea.SetFocus;
-      edtBuscarSkuLinea.SelectAll;
-    end;
+    tmrBuscarLineas.Enabled := False;
+    tmrBuscarLineas.Enabled := True;
   end;
 end;
 
-procedure TfrmMtoTarifasCambios.ActualizarSkuLinea(ALineas: TDataSet);
+procedure TfrmMtoTarifasCambios.tmrBuscarLineasTimer(Sender: TObject);
+var
+  Lineas: TDataSet;
 begin
-  if Assigned(ALineas) and ALineas.Active and not ALineas.IsEmpty then
-    edtBuscarSkuLinea.Text :=
-      ALineas.FieldByName('CODIGO_UNIDAD_SKU_TARCLIN').AsString
-  else
-    edtBuscarSkuLinea.Clear;
+  tmrBuscarLineas.Enabled := False;
+  Lineas := tvLineas.DataController.DataSet;
+  if Assigned(Lineas) and Lineas.Active then
+  begin
+    // El filtro puede provocar un Post al mover la fila activa.
+    if (Lineas.State in dsEditModes) or
+       (dsTablaG.DataSet.State in dsEditModes) or
+       (dmmTarifasCambios.unqryPeriodos.State in dsEditModes) then
+      tmrBuscarLineas.Enabled := True
+    else
+      BusqAllGrid(tvLineas, Trim(edtBuscarLineas.Text));
+  end;
 end;
 
 procedure TfrmMtoTarifasCambios.CrearPanelDatosLinea;
@@ -1354,7 +1353,6 @@ procedure TfrmMtoTarifasCambios.dsLineasDataChange(Sender: TObject;
 begin
   if not (csDestroying in ComponentState) and (Field = nil) then
   begin
-    ActualizarSkuLinea(dmmTarifasCambios.unqryLineas);
     ActualizarRutaFamiliaLinea;
     ActualizarStockArticulo;
   end;
@@ -1757,7 +1755,6 @@ begin
   txtProveedorLinea.DataBinding.DataSource := dmmTarifasCambios.dsLineas;
   txtTemporadaLinea.DataBinding.DataSource := dmmTarifasCambios.dsLineas;
   dmmTarifasCambios.dsLineas.OnDataChange := dsLineasDataChange;
-  ActualizarSkuLinea(dmmTarifasCambios.unqryLineas);
   ActualizarRutaFamiliaLinea;
   dmmTarifasCambios.unqryPeriodos.MasterFields := 'CODIGO_TARC';
   dmmTarifasCambios.unqryPeriodos.DetailFields := 'CODIGO_TARC_TARCP';
@@ -1765,6 +1762,8 @@ begin
   tvPeriodos.DataController.DataSource := dmmTarifasCambios.dsPeriodos;
   dmmTarifasCambios.dsPeriodos.OnDataChange := dsPeriodosDataChange;
   btnActualizarCostes.Enabled := PuedeAccionMto(apmModificar);
+  btnDescomponerPorColor.Enabled := PuedeAccionMto(apmModificar);
+  btnDescomponerPorTalla.Enabled := btnDescomponerPorColor.Enabled;
   btnEliminarLineas.Enabled := PuedeAccionMto(apmBorrar);
   nvNavegador.Buttons.Delete.Hint := SCaptionEliminarSesionCompleta;
   tvLineas.OptionsData.Deleting := PuedeAccionMto(apmBorrar);
@@ -1904,6 +1903,10 @@ begin
       tvLineas.OptionsData.Editing := PuedeAccionMto(apmModificar) and
         not SameText(dsTablaG.DataSet.FieldByName('ESTADO_TARC').AsString,
           'APLICADA');
+    btnDescomponerPorColor.Enabled := tvLineas.OptionsData.Editing and
+      Assigned(dsTablaG.DataSet) and dsTablaG.DataSet.Active and
+      not dsTablaG.DataSet.IsEmpty;
+    btnDescomponerPorTalla.Enabled := btnDescomponerPorColor.Enabled;
     if (Field = nil) or SameText(Field.FieldName, 'TIPO_APLICACION_TARC') then
       ActualizarFormatoValor;
     if (Field = nil) or
@@ -2151,6 +2154,8 @@ begin
       iLineasAplicadas := dmmTarifasCambios.AplicarSesionActual(sMensaje);
       if sMensaje <> '' then
         ShowMessage_fza(Format(SErrorAplicarSesionTarifa, [sMensaje]))
+      else if iLineasAplicadas = 0 then
+        ShowMessage_fza(SInfoSesionTarifaSinCambios)
       else
         ShowMessage_fza(Format(SInfoLineasSesionTarifaAplicadas,
                            [iLineasAplicadas]));
@@ -2337,13 +2342,7 @@ begin
     end;
   if not Result then
   begin
-    if (Message.CharCode = VK_RETURN) and Assigned(edtBuscarSkuLinea) and
-       edtBuscarSkuLinea.Focused then
-    begin
-      BuscarSkuLinea(edtBuscarSkuLinea);
-      Result := True;
-    end
-    else if (Message.CharCode = VK_DELETE) and
+    if (Message.CharCode = VK_DELETE) and
       (GetKeyState(VK_CONTROL) < 0) and (GetKeyState(VK_MENU) >= 0) then
       Result := ProcesarBorradoContextual
     else
@@ -2355,14 +2354,15 @@ procedure TfrmMtoTarifasCambios.btnEliminarLineasClick(Sender: TObject);
 var
   Ids: TArray<Integer>;
   Mensaje: string;
+  Registro: TcxCustomGridRecord;
 begin
   if PuedeAccionMto(apmBorrar) and GrabarCabeceraSiNecesario then
   begin
     Ids := IdsLineasSeleccionadas;
-    if (Length(Ids) = 0) and dmmTarifasCambios.unqryLineas.Active and
-      not dmmTarifasCambios.unqryLineas.IsEmpty then
-      Ids := [dmmTarifasCambios.unqryLineas.
-        FieldByName('ID_TARCLIN').AsInteger];
+    Registro := tvLineas.Controller.FocusedRecord;
+    if (Length(Ids) = 0) and Assigned(Registro) and Registro.IsData then
+      Ids := [Integer(
+        tvLineas.DataController.GetRecordId(Registro.RecordIndex))];
     if Length(Ids) = 0 then
       ShowMessage_fza(SErrorSeleccionVaciaSesionTarifa)
     else if SameText(dsTablaG.DataSet.FieldByName('ESTADO_TARC').AsString,
@@ -2512,6 +2512,33 @@ begin
   end;
 end;
 
+procedure TfrmMtoTarifasCambios.DescomponerLineaClick(Sender: TObject);
+var
+  Ids: TArray<Integer>;
+  Registro: TcxCustomGridRecord;
+  Nivel: TNivelDescomposicionTarifa;
+begin
+  if Assigned(dmmTarifasCambios) and PuedeAccionMto(apmModificar) then
+  begin
+    Ids := IdsLineasSeleccionadas;
+    Registro := tvLineas.Controller.FocusedRecord;
+    if (Length(Ids) = 0) and Assigned(Registro) and Registro.IsData then
+      Ids := [Integer(
+        tvLineas.DataController.GetRecordId(Registro.RecordIndex))];
+    if Length(Ids) <> 1 then
+      ShowMessage_fza(SErrorDescomponerTarifaSeleccioneLinea)
+    else if GrabarCabeceraSiNecesario then
+    begin
+      if Sender = btnDescomponerPorColor then
+        Nivel := ndtColor
+      else
+        Nivel := ndtTalla;
+      tvLineas.Controller.EditingController.HideEdit(True);
+      dmmTarifasCambios.DescomponerLinea(Ids[0], Nivel);
+    end;
+  end;
+end;
+
 procedure TfrmMtoTarifasCambios.btnActualizarCostesClick(Sender: TObject);
 var
   Ids: TArray<Integer>;
@@ -2545,7 +2572,7 @@ begin
   for iFila := 0 to tvLineas.Controller.SelectedRecordCount - 1 do
   begin
     Registro := tvLineas.Controller.SelectedRecords[iFila];
-    if Registro.IsData then
+    if Assigned(Registro) and Registro.IsData then
       Result := Result + [Integer(
         tvLineas.DataController.GetRecordId(Registro.RecordIndex))];
   end;

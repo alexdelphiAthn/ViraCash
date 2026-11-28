@@ -72,6 +72,14 @@ PATRON_INDICE = re.compile(
     r'EXISTS\s+)?[`\'"]?[A-Za-z0-9_]+[`\'"]?\s+ON\s+[`\'"]?([A-Za-z0-9_]+)',
     re.IGNORECASE)
 PREFIJOS_IGNORADOS = ('bak_', 'tmp_', 'fzu_')
+EJEMPLOS_CONSULTORIA = {
+    'demo_consultoria_expositores', 'demo_consultoria_llamadas',
+    'demo_consultoria_llamadas_pendientes',
+}
+ELEMENTOS_OPCIONALES = {
+    'ESTRUCTURA': {'fza_clientes_medidas.codigo_empl_clmed'},
+    'INDICES': {'fza_clientes_medidas:idx_clmed_empl'},
+}
 
 
 def error(texto):
@@ -105,6 +113,18 @@ def recalcular(huella):
         codigo['huella'] = sha256(canonico(codigo['elementos']))
 
 
+def quitar_objetos_opcionales(huella):
+    cambios = []
+    for apartado, elementos in huella['elementos'].items():
+        for clave in elementos.copy():
+            tabla = re.split(r'[.:]', clave.removeprefix('view '), maxsplit=1)[0]
+            if (tabla in EJEMPLOS_CONSULTORIA
+                    or clave in ELEMENTOS_OPCIONALES.get(apartado, ())):
+                del elementos[clave]
+                cambios.append(apartado + ' ' + clave)
+    return cambios
+
+
 def coherente(huella):
     copia = json.loads(json.dumps(huella))
     recalcular(copia)
@@ -135,6 +155,7 @@ def es_script_esquema(ruta):
         for coincidencia in patron.finditer(texto):
             nombre = coincidencia.group(1).lower()
             if (nombre != 'fza_clientes_llamadas'
+                    and nombre not in EJEMPLOS_CONSULTORIA
                     and not nombre.startswith(PREFIJOS_IGNORADOS)):
                 return True
     return False
@@ -245,8 +266,18 @@ def main():
         print('Huella del esquema: HuellaEsquema.res no correspondía a '
               'HuellaEsquema.json; rehecho.')
         res_al_dia = True
+    opcionales = quitar_objetos_opcionales(base)
+    if opcionales and (opciones.comprobar or opciones.solo_recurso):
+        print('Huella del esquema: objetos opcionales aún incluidos.')
+        if opciones.comprobar:
+            sys.exit(3)
     if not pendientes:
-        if not res_al_dia and not opciones.comprobar:
+        if opcionales and not opciones.solo_recurso:
+            recalcular(base)
+            escribir(base, opciones.json, opciones.res)
+            for opcional in opcionales:
+                print('Huella del esquema: objeto opcional retirado: ' + opcional)
+        elif not res_al_dia and not opciones.comprobar:
             open(opciones.res, 'wb').write(recurso(datos_json))
             print('Huella del esquema: al día; HuellaEsquema.res rehecho.')
         else:
@@ -277,7 +308,8 @@ def main():
                         temporal)
     finally:
         shutil.rmtree(temporal, ignore_errors=True)
-    cambios = aplicar_diferencia(base, control, nuevo)
+    cambios = opcionales + aplicar_diferencia(base, control, nuevo)
+    cambios.extend(quitar_objetos_opcionales(base))
     for nombre in pendientes:
         huella_script = sha256_fichero(os.path.join(opciones.carpeta,
                                                     nombre))

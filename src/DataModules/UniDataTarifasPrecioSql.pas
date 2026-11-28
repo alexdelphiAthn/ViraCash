@@ -8,6 +8,14 @@ unit UniDataTarifasPrecioSql;
 
 interface
 
+const
+  // Unidad de tarifa por talla para un SKU (alias SKU y ATS).
+  SQL_UNIDAD_TALLA = 'CONCAT(SKU.CODIGO_ART_SKU, ''/*/'', TAL.AV)';
+  SQL_ATRIBUTO_TALLA =
+    'JOIN fza_atributos_valores TAL ON TAL.ID_AV = ATS.ID_AV_SA ' +
+    'JOIN vi_variaciones_ejes EJE ON EJE.ID_ATB_VA = TAL.ID_VA_AV ' +
+    'AND EJE.ID_VAR_VA = SKU.CODIGO_VAR_SKU AND EJE.EJE_VA = ''P'' ';
+
 // Los argumentos son expresiones SQL fijas del llamador, nunca valores del
 // usuario. Estos viajan como parámetros de la consulta que incluye el bloque.
 function SqlSeleccionPrecioTarifa(const AArticulo, ASku, ATarifa,

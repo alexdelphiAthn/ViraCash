@@ -69,14 +69,23 @@ const
   // Lo mismo que excluye PRC_FZA_HUELLA_ESQUEMA: temporales, copias,
   // objetos de usuario (fzu_, vu_, PRU_), vistas *_print (se amplían a
   // petición), los propios procedimientos y la sonda de MySQL 8.
+  cSinEjemplosConsultoria =
+    '    AND LOWER(%0:s) NOT IN (''demo_consultoria_expositores'', ' +
+    '        ''demo_consultoria_llamadas'', ' +
+    '        ''demo_consultoria_llamadas_pendientes'') ';
+  cSinColumnaEmpleadoMedidas =
+    '    AND NOT (LOWER(C.TABLE_NAME) = ''fza_clientes_medidas'' ' +
+    '      AND LOWER(C.COLUMN_NAME) = ''codigo_empl_clmed'') ';
   cSinTablasAjenas =
     '    AND %0:s NOT LIKE ''tmp\_%%'' ' +
     '    AND %0:s NOT LIKE ''bak\_%%'' ' +
     '    AND %0:s NOT LIKE ''fzu\_%%'' ' +
-    '    AND LOWER(%0:s) <> ''fza_clientes_llamadas'' ';
+    '    AND LOWER(%0:s) <> ''fza_clientes_llamadas'' ' +
+    cSinEjemplosConsultoria;
   cSinVistasAjenas =
     '    AND %0:s NOT LIKE ''tmp\_%%'' ' +
-    '    AND %0:s NOT LIKE ''vu\_%%'' ';
+    '    AND %0:s NOT LIKE ''vu\_%%'' ' +
+    cSinEjemplosConsultoria;
   cSinRutinasAjenas =
     '    AND %0:s NOT LIKE ''PRC\_FZA\_HUELLA\_ESQUEMA%%'' ' +
     '    AND %0:s NOT LIKE ''PRU\_%%'' ' +
@@ -141,6 +150,7 @@ begin
     '        C.COLLATION_NAME FROM information_schema.COLUMNS C ' +
     ' WHERE C.TABLE_SCHEMA = DATABASE() ' +
     Format(cSinTablasAjenas, ['C.TABLE_NAME']) +
+    cSinColumnaEmpleadoMedidas +
     ' AND C.TABLE_NAME NOT LIKE ''vu\_%'' ' +
     ' AND C.TABLE_NAME NOT LIKE ''%\_print'' ' +
     ' AND C.COLLATION_NAME NOT IN ' +
@@ -184,6 +194,7 @@ begin
     '   FROM information_schema.COLUMNS C ' +
     '  WHERE C.TABLE_SCHEMA = DATABASE() ' +
     Format(cSinTablasAjenas, ['C.TABLE_NAME']) +
+    cSinColumnaEmpleadoMedidas +
     '    AND C.TABLE_NAME NOT LIKE ''vu\_%'' ' +
     '    AND C.TABLE_NAME NOT LIKE ''%\_print'' ';
 end;
@@ -200,6 +211,8 @@ begin
     '   FROM information_schema.STATISTICS S ' +
     '  WHERE S.TABLE_SCHEMA = DATABASE() ' +
     Format(cSinTablasAjenas, ['S.TABLE_NAME']) +
+    '    AND NOT (LOWER(S.TABLE_NAME) = ''fza_clientes_medidas'' ' +
+    '      AND LOWER(S.INDEX_NAME) = ''idx_clmed_empl'') ' +
     '  GROUP BY S.TABLE_NAME, S.INDEX_NAME, S.NON_UNIQUE ';
 end;
 

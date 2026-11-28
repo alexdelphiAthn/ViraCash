@@ -1266,6 +1266,18 @@ SLeyendaAvisosBalance =
     'La sesión ya está aplicada; no se pueden cambiar sus descuentos.';
   SCaptionMarcarTodoSesionTarifa = 'Marcar todo';
   SCaptionDesmarcarTodoSesionTarifa = 'Desmarcar todo';
+  SCaptionDescomponerTarifaPorColor = 'Descomponer por color';
+  SCaptionDescomponerTarifaPorTalla = 'Descomponer por talla';
+  SErrorDescomponerTarifaSeleccioneLinea =
+    'Selecciona una sola línea general del artículo.';
+  SErrorDescomponerTarifaLineaNoGeneral =
+    'Solo se puede descomponer la línea general del artículo.';
+  SErrorDescomponerTarifaSinColores =
+    'El artículo no tiene variantes de color activas.';
+  SErrorDescomponerTarifaSinTallas =
+    'El artículo no tiene variantes de talla activas.';
+  SInfoLineaTarifaSinCambios = 'El precio y el descuento ya estaban vigentes.';
+  SInfoSesionTarifaSinCambios = 'La sesión no ha generado cambios en la tarifa.';
   SErrorSeleccionVaciaSesionTarifa =
     'Selecciona al menos una línea para realizar la operación en lote.';
   SCaptionDescuentoLoteSesionTarifa = 'Descuento en lote';

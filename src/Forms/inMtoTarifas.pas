@@ -213,6 +213,7 @@ uses
   inLibUser,
   inLibDevExp,
   inLibFotos,
+  inLibFormatoMonetario,
   inMtoModalAddBlockTarifa, inLibMsgArticulos,
   UniDataTarifasDescuentoCondicionesRepositorio,
   UniDataTarifasPeriodicidadRepositorio;
@@ -332,6 +333,11 @@ begin
   inherited;
   dmmTarifas := tdmDataModule as TdmTarifas;
   tvArticulos.DataController.DataSource := dmmTarifas.dsArticulosTarifas;
+  FormatearColumnaMonetaria(cxgrdbclmnArticulosPRECIO_ULT_COMPRA);
+  FormatearColumnaMonetaria(cxgrdbclmnArticulosPRECIOFINAL);
+  FormatearColumnaMonetaria(tvArticulosPRECIOSALIDA_TARIFA);
+  FormatearColumnaMonetaria(tvArticulosPRECIO_DTO_TARIFA);
+  FormatearColumnaMonetaria(tvArticulosPRECIOFINAL_TARIFA);
   tvArticulos.OptionsData.Deleting := PuedeAccionMto(apmBorrar);
   tvArticulos.Navigator.Buttons.Delete.Enabled := True;
   lblInstanteAlta.Caption := SCaptionInstanteAltaServidor;

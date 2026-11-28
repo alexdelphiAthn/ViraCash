@@ -55,6 +55,8 @@ type
       out AOrigenEnInicio: Integer);
     procedure EscribirPendientes(APendientes: TList<TTramoPendiente>);
     procedure ComprobarSolape(ADesde, AHasta: TDate);
+    function CambiaPrecio(ADesde: TDate; ATieneHasta: Boolean; AHasta: TDate;
+      AEsPeriodo: Boolean; const APrecios: TPreciosTramoTarifa): Boolean;
   public
     constructor Create(AConexion: TUniConnection; const AUsuario,
       AArticulo, ASku, ATarifa: string);
@@ -63,7 +65,8 @@ type
     function AplicarPeriodo(ADesde, AHasta: TDate;
       const APrecios: TPreciosTramoTarifa): Integer;
     // Precio base desde ADesde (hasta AHasta si ATieneHasta). Devuelve el
-    // CODIGO_UNICO_ARTTAR de su primer tramo.
+    // CODIGO_UNICO_ARTTAR de su primer tramo. Ambas operaciones devuelven
+    // 0 cuando dejan la tarifa intacta.
     function AplicarBase(ADesde: TDate; ATieneHasta: Boolean; AHasta: TDate;
       const APrecios: TPreciosTramoTarifa): Integer;
   end;
@@ -71,7 +74,7 @@ type
 implementation
 
 uses
-  inLibMsgArticulos;
+  inLibMsgArticulos, UniDataTarifasPrecioSql;
 
 const
   SQL_CLAVE =
@@ -408,6 +411,67 @@ begin
   end;
 end;
 
+function TTramosPrecioTarifa.CambiaPrecio(ADesde: TDate;
+  ATieneHasta: Boolean; AHasta: TDate; AEsPeriodo: Boolean;
+  const APrecios: TPreciosTramoTarifa): Boolean;
+const
+  SQL_FECHAS =
+    'SELECT T.FECHA_DESDE_ARTTAR, T.FECHA_HASTA_ARTTAR ' +
+    'FROM fza_articulos_tarifas T WHERE T.CODIGO_ART_ARTTAR = :ART ' +
+    'AND T.CODIGO_TAR_ARTTAR = :TAR AND T.ESACTIVO_ARTTAR = ''S''';
+var
+  Consulta: TUniQuery;
+begin
+  // El precio efectivo solo puede variar al comenzar o terminar un tramo.
+  Consulta := NuevaConsulta(
+    'WITH TRAMOS AS (' + SQL_FECHAS + '), DIAS AS (' +
+    'SELECT CAST(:DESDE AS DATE) AS DIA UNION ' +
+    'SELECT FECHA_DESDE_ARTTAR FROM TRAMOS ' +
+    'WHERE FECHA_DESDE_ARTTAR > :DESDE AND FECHA_DESDE_ARTTAR <= :HASTA ' +
+    'UNION SELECT DATE_ADD(FECHA_HASTA_ARTTAR, INTERVAL 1 DAY) ' +
+    'FROM TRAMOS WHERE FECHA_HASTA_ARTTAR >= :DESDE ' +
+    'AND FECHA_HASTA_ARTTAR < :HASTA), UNIDADES AS (' +
+    // Una tarifa por talla puede cambiar el precio heredado de un color.
+    'SELECT SKU.CODIGO_UNIDAD_SKU AS UNIDAD FROM fza_articulos_skus SKU ' +
+    'JOIN fza_atributos_sku ATS ' +
+    'ON ATS.CODIGO_UNIDAD_SKU_SA = SKU.CODIGO_UNIDAD_SKU ' +
+    SQL_ATRIBUTO_TALLA +
+    'WHERE LOCATE(''/*/'', :SKU) > 0 AND SKU.CODIGO_ART_SKU = :ART ' +
+    'AND SKU.ESACTIVO_SKU = ''S'' AND ' + SQL_UNIDAD_TALLA + ' = :SKU ' +
+    'UNION SELECT :SKU) ' +
+    'SELECT 1 FROM DIAS D CROSS JOIN UNIDADES U ' +
+    'LEFT JOIN fza_articulos_tarifas T ON T.CODIGO_UNICO_ARTTAR = (' +
+    SqlSeleccionPrecioTarifa(':ART', 'U.UNIDAD', ':TAR', 'D.DIA') + ') ' +
+    'WHERE T.CODIGO_UNICO_ARTTAR IS NULL OR (' +
+    // Un precio exacto de SKU tiene prioridad sobre la tarifa por talla.
+    '(U.UNIDAD = :SKU OR T.CODIGO_UNIDAD_ARTTAR <> U.UNIDAD) AND ' +
+    // Un precio base deja intactos los periodos fijos de su misma clave.
+    '(:PERIODO = 1 OR T.CODIGO_UNIDAD_ARTTAR <> :SKU ' +
+    'OR T.FECHA_HASTA_ARTTAR IS NULL OR T.ESTRAMO_ARTTAR <> ''N'') AND (' +
+    'T.PRECIO_SALIDA_ARTTAR IS NULL OR T.PRECIO_FINAL_ARTTAR IS NULL OR ' +
+    'T.PRECIO_SALIDA_ARTTAR <> CAST(:SALIDA AS DECIMAL(19,6)) OR ' +
+    'T.PRECIO_FINAL_ARTTAR <> CAST(:FINAL AS DECIMAL(19,6)) OR ' +
+    'COALESCE(T.PRECIO_DTO_ARTTAR, 0) <> CAST(:DTO AS DECIMAL(19,6)) OR ' +
+    'COALESCE(T.PORCENTAJE_DTO_ARTTAR, 0) <> CAST(:PORC AS DECIMAL(19,6)))) ' +
+    'LIMIT 1');
+  try
+    Consulta.ParamByName('DESDE').AsDate := ADesde;
+    if ATieneHasta then
+      Consulta.ParamByName('HASTA').AsDate := AHasta
+    else
+      Consulta.ParamByName('HASTA').AsDate := EncodeDate(9999, 12, 31);
+    Consulta.ParamByName('PERIODO').AsInteger := Ord(AEsPeriodo);
+    Consulta.ParamByName('SALIDA').AsFloat := APrecios.Salida;
+    Consulta.ParamByName('FINAL').AsFloat := APrecios.Final;
+    Consulta.ParamByName('DTO').AsFloat := APrecios.Dto;
+    Consulta.ParamByName('PORC').AsFloat := APrecios.PorcentajeDto;
+    Consulta.Open;
+    Result := not Consulta.IsEmpty;
+  finally
+    Consulta.Free;
+  end;
+end;
+
 function TTramosPrecioTarifa.AplicarPeriodo(ADesde, AHasta: TDate;
   const APrecios: TPreciosTramoTarifa): Integer;
 var
@@ -415,57 +479,61 @@ var
   Pendientes: TList<TTramoPendiente>;
   OrigenBase: Integer;
 begin
-  ComprobarSolape(ADesde, AHasta);
-  Pendientes := TList<TTramoPendiente>.Create;
-  try
-    // Primero se aparta el precio base: así el periodo no se solapa con él.
-    ApartarBase(ADesde, True, AHasta, Pendientes, OrigenBase);
-    qry := NuevaConsulta(
-      'SELECT T.CODIGO_UNICO_ARTTAR FROM fza_articulos_tarifas T ' +
-      'WHERE ' + SQL_CLAVE + SQL_FIJO +
-      'AND T.FECHA_DESDE_ARTTAR = :DESDE AND T.FECHA_HASTA_ARTTAR = :HASTA ' +
-      'ORDER BY T.CODIGO_UNICO_ARTTAR DESC LIMIT 1');
+  Result := 0;
+  if CambiaPrecio(ADesde, True, AHasta, True, APrecios) then
+  begin
+    ComprobarSolape(ADesde, AHasta);
+    Pendientes := TList<TTramoPendiente>.Create;
     try
-      qry.ParamByName('DESDE').AsDate := ADesde;
-      qry.ParamByName('HASTA').AsDate := AHasta;
-      qry.Open;
-      if qry.IsEmpty then
-      begin
-        Result := Insertar(ADesde, True, AHasta, 0, True, APrecios);
-        // Insertar marca como tramo lo cerrado; un periodo es fijo.
-        qry.Close;
-        qry.SQL.Text :=
-          'UPDATE fza_articulos_tarifas SET ESTRAMO_ARTTAR = ''N'' ' +
-          'WHERE CODIGO_UNICO_ARTTAR = :ID';
-        qry.ParamByName('ID').AsInteger := Result;
-        qry.Execute;
-      end
-      else
-      begin
-        Result := qry.FieldByName('CODIGO_UNICO_ARTTAR').AsInteger;
-        qry.Close;
-        qry.SQL.Text :=
-          'UPDATE fza_articulos_tarifas SET ' +
-          'PRECIO_SALIDA_ARTTAR = :SALIDA, PRECIO_FINAL_ARTTAR = :FINAL, ' +
-          'PRECIO_DTO_ARTTAR = :DTO, PORCENTAJE_DTO_ARTTAR = :PORC, ' +
-          'USUARIO_MODIF = :USUARIO, INSTANTE_MODIF = NOW() ' +
-          'WHERE CODIGO_UNICO_ARTTAR = :ID';
-        qry.ParamByName('SALIDA').AsFloat := APrecios.Salida;
-        qry.ParamByName('FINAL').AsFloat := APrecios.Final;
-        qry.ParamByName('DTO').AsFloat := APrecios.Dto;
-        qry.ParamByName('PORC').AsFloat := APrecios.PorcentajeDto;
-        qry.ParamByName('USUARIO').AsString := FUsuario;
-        qry.ParamByName('ID').AsInteger := Result;
-        qry.Execute;
+      // Primero se aparta el precio base: así el periodo no se solapa con él.
+      ApartarBase(ADesde, True, AHasta, Pendientes, OrigenBase);
+      qry := NuevaConsulta(
+        'SELECT T.CODIGO_UNICO_ARTTAR FROM fza_articulos_tarifas T ' +
+        'WHERE ' + SQL_CLAVE + SQL_FIJO +
+        'AND T.FECHA_DESDE_ARTTAR = :DESDE AND T.FECHA_HASTA_ARTTAR = :HASTA ' +
+        'ORDER BY T.CODIGO_UNICO_ARTTAR DESC LIMIT 1');
+      try
+        qry.ParamByName('DESDE').AsDate := ADesde;
+        qry.ParamByName('HASTA').AsDate := AHasta;
+        qry.Open;
+        if qry.IsEmpty then
+        begin
+          Result := Insertar(ADesde, True, AHasta, 0, True, APrecios);
+          // Insertar marca como tramo lo cerrado; un periodo es fijo.
+          qry.Close;
+          qry.SQL.Text :=
+            'UPDATE fza_articulos_tarifas SET ESTRAMO_ARTTAR = ''N'' ' +
+            'WHERE CODIGO_UNICO_ARTTAR = :ID';
+          qry.ParamByName('ID').AsInteger := Result;
+          qry.Execute;
+        end
+        else
+        begin
+          Result := qry.FieldByName('CODIGO_UNICO_ARTTAR').AsInteger;
+          qry.Close;
+          qry.SQL.Text :=
+            'UPDATE fza_articulos_tarifas SET ' +
+            'PRECIO_SALIDA_ARTTAR = :SALIDA, PRECIO_FINAL_ARTTAR = :FINAL, ' +
+            'PRECIO_DTO_ARTTAR = :DTO, PORCENTAJE_DTO_ARTTAR = :PORC, ' +
+            'USUARIO_MODIF = :USUARIO, INSTANTE_MODIF = NOW() ' +
+            'WHERE CODIGO_UNICO_ARTTAR = :ID';
+          qry.ParamByName('SALIDA').AsFloat := APrecios.Salida;
+          qry.ParamByName('FINAL').AsFloat := APrecios.Final;
+          qry.ParamByName('DTO').AsFloat := APrecios.Dto;
+          qry.ParamByName('PORC').AsFloat := APrecios.PorcentajeDto;
+          qry.ParamByName('USUARIO').AsString := FUsuario;
+          qry.ParamByName('ID').AsInteger := Result;
+          qry.Execute;
+        end;
+      finally
+        qry.Free;
       end;
+      // Lo que el precio base cubría después del periodo vuelve, saltando
+      // otros periodos que haya a continuación.
+      EscribirPendientes(Pendientes);
     finally
-      qry.Free;
+      Pendientes.Free;
     end;
-    // Lo que el precio base cubría después del periodo vuelve, saltando
-    // otros periodos que haya a continuación.
-    EscribirPendientes(Pendientes);
-  finally
-    Pendientes.Free;
   end;
 end;
 
@@ -475,14 +543,18 @@ var
   Pendientes: TList<TTramoPendiente>;
   OrigenBase: Integer;
 begin
-  Pendientes := TList<TTramoPendiente>.Create;
-  try
-    ApartarBase(ADesde, ATieneHasta, AHasta, Pendientes, OrigenBase);
-    Result := EscribirBase(ADesde, ATieneHasta, AHasta, OrigenBase, True,
-      APrecios);
-    EscribirPendientes(Pendientes);
-  finally
-    Pendientes.Free;
+  Result := 0;
+  if CambiaPrecio(ADesde, ATieneHasta, AHasta, False, APrecios) then
+  begin
+    Pendientes := TList<TTramoPendiente>.Create;
+    try
+      ApartarBase(ADesde, ATieneHasta, AHasta, Pendientes, OrigenBase);
+      Result := EscribirBase(ADesde, ATieneHasta, AHasta, OrigenBase, True,
+        APrecios);
+      EscribirPendientes(Pendientes);
+    finally
+      Pendientes.Free;
+    end;
   end;
 end;
 

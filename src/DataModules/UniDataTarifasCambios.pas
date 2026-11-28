@@ -23,6 +23,8 @@ uses
   UniDataGen, inLibTarifasCambiosExcel, inLibTarifasCambiosPeriodos;
 
 type
+  TNivelDescomposicionTarifa = (ndtColor, ndtTalla);
+
   TdmTarifasCambios = class(TdmBase)
     procedure DataModuleCreate(Sender: TObject);
     procedure DataModuleDestroy(Sender: TObject);
@@ -57,6 +59,7 @@ type
     procedure ConfigurarConsultaTarifasArticulo;
     procedure CambiarParametroLineas(const AParametro, AValor: string);
     procedure GrabarLineaPendiente;
+    procedure BloquearSesionEditable(AConsulta: TUniQuery; ASesion: Integer);
     procedure AsignarParametrosLineaExcel(AConsulta: TUniQuery;
       const ALinea: TLineaSesionTarifaExcel);
     procedure CompletarDescuentoLineaExcel(AConsulta: TUniQuery;
@@ -103,6 +106,7 @@ type
     procedure RellenarPreciosPartida;
     function ActualizarCostesLineas(const AIds: TArray<Integer>): Integer;
     function EliminarLineasSesion(const AIds: TArray<Integer>): Integer;
+    procedure DescomponerLinea(AId: Integer; ANivel: TNivelDescomposicionTarifa);
     procedure ImportarLineasExcel(const ALineas: TLineasSesionTarifaExcel;
       out ANuevas, AActualizadas: Integer);
     procedure AbrirDetalles; override;
@@ -129,7 +133,7 @@ uses
   inLibErroresBBDD,
   inLibPrestaShopColaSenal, inLibRedondeo, UniDataTarifasCambiosPeriodos,
   UniDataTarifasTramos, UniDataMargenRepositorio, inLibMargenPersistenciaIntf,
-  UniDataSeleccionFamiliaRepositorio;
+  UniDataSeleccionFamiliaRepositorio, UniDataTarifasPrecioSql;
 
 {$R *.dfm}
 
@@ -143,12 +147,32 @@ resourcestring
 
 const
   fstockactual = 'STOCK_ACTUAL';
-  // Una línea ART/COLOR reúne los SKU de todas las tallas de ese color.
+  // El stock y los movimientos se agregan con el mismo alcance del precio.
   SQL_FILTRO_SKU_LINEA =
-    ' AND (COALESCE(L.CODIGO_UNIDAD_SKU_TARCLIN, '''') = '''' ' +
+    ' AND (L.CODIGO_UNIDAD_SKU_TARCLIN IN ('''', L.CODIGO_ART_TARCLIN) ' +
     ' OR L.CODIGO_UNIDAD_SKU_TARCLIN = SKU.CODIGO_UNIDAD_SKU ' +
     ' OR L.CODIGO_UNIDAD_SKU_TARCLIN = ' +
-    ' SUBSTRING_INDEX(SKU.CODIGO_UNIDAD_SKU, ''/'', 2)) ';
+    ' SUBSTRING_INDEX(SKU.CODIGO_UNIDAD_SKU, ''/'', 2) ' +
+    ' OR (LOCATE(''/*/'', L.CODIGO_UNIDAD_SKU_TARCLIN) > 0 AND EXISTS (' +
+    ' SELECT 1 FROM fza_atributos_sku ATS ' + SQL_ATRIBUTO_TALLA +
+    ' WHERE ATS.CODIGO_UNIDAD_SKU_SA = SKU.CODIGO_UNIDAD_SKU ' +
+    ' AND L.CODIGO_UNIDAD_SKU_TARCLIN = ' + SQL_UNIDAD_TALLA + '))) ';
+  SQL_UNIDADES_COLOR =
+    'SELECT DISTINCT SUBSTRING_INDEX(SKU.CODIGO_UNIDAD_SKU, ''/'', 2) ' +
+    'AS UNIDAD FROM fza_articulos_skus SKU ' +
+    'JOIN vi_variaciones_ejes EJE ON EJE.ID_VAR_VA = SKU.CODIGO_VAR_SKU ' +
+    'AND EJE.EJE_VA = ''F'' ' +
+    'WHERE SKU.CODIGO_ART_SKU = :ART AND SKU.ESACTIVO_SKU = ''S'' ' +
+    'AND LEFT(SKU.CODIGO_UNIDAD_SKU, CHAR_LENGTH(:ART) + 1) ' +
+    '= CONCAT(:ART, ''/'') AND SUBSTRING_INDEX(SUBSTRING_INDEX(' +
+    'SKU.CODIGO_UNIDAD_SKU, ''/'', 2), ''/'', -1) NOT IN ('''', ''*'')';
+  SQL_UNIDADES_TALLA =
+    'SELECT DISTINCT ' + SQL_UNIDAD_TALLA + ' AS UNIDAD ' +
+    'FROM fza_articulos_skus SKU JOIN fza_atributos_sku ATS ' +
+    'ON ATS.CODIGO_UNIDAD_SKU_SA = SKU.CODIGO_UNIDAD_SKU ' +
+    SQL_ATRIBUTO_TALLA +
+    'WHERE SKU.CODIGO_ART_SKU = :ART AND SKU.ESACTIVO_SKU = ''S'' ' +
+    'AND TAL.AV NOT IN ('''', ''*'')';
   SQL_TOTAL_STOCK =
     'COALESCE((SELECT SUM(STK.CANTIDAD_STK) ' +
     '         FROM fza_articulos_stockactual STK ' +
@@ -303,7 +327,12 @@ const
     '  LEFT JOIN fza_tarifas_cambios_periodos P ' +
     '    ON P.ID_TARCP = L.ID_TARCP_TARCLIN ' +
     ' WHERE L.CODIGO_TARC_TARCLIN = :SESION ' +
-    ' ORDER BY L.ID_TARCLIN';
+    // Aplicar los niveles generales antes que sus precios específicos.
+    ' ORDER BY CASE WHEN L.CODIGO_UNIDAD_SKU_TARCLIN = '''' THEN 0 ' +
+    'WHEN LOCATE(''/*/'', L.CODIGO_UNIDAD_SKU_TARCLIN) > 0 THEN 2 ' +
+    'WHEN L.CODIGO_UNIDAD_SKU_TARCLIN = SUBSTRING_INDEX(' +
+    'L.CODIGO_UNIDAD_SKU_TARCLIN, ''/'', 2) THEN 1 ELSE 3 END, ' +
+    'L.ID_TARCLIN';
 
 procedure ForceReferenceToClass(C: TClass); begin end;
 
@@ -1277,6 +1306,162 @@ begin
   end;
 end;
 
+procedure TdmTarifasCambios.BloquearSesionEditable(AConsulta: TUniQuery;
+  ASesion: Integer);
+begin
+  AConsulta.SQL.Text :=
+    'SELECT ESTADO_TARC FROM fza_tarifas_cambios ' +
+    'WHERE CODIGO_TARC = :SESION FOR UPDATE';
+  AConsulta.ParamByName('SESION').AsInteger := ASesion;
+  AConsulta.Open;
+  if AConsulta.IsEmpty then
+    raise EValidacionBBDD.Create(SErrorTarifasCambiosSinSesionActiva);
+  if SameText(AConsulta.Fields[0].AsString, 'APLICADA') then
+    raise EValidacionBBDD.Create(SErrorTarifasCambiosSesionAplicada);
+  AConsulta.Close;
+end;
+
+procedure TdmTarifasCambios.DescomponerLinea(AId: Integer;
+  ANivel: TNivelDescomposicionTarifa);
+const
+  SQL_LINEA_GENERAL =
+    'L.CODIGO_TARC_TARCLIN = :SESION AND L.CODIGO_ART_TARCLIN = :ART ' +
+    'AND L.CODIGO_UNIDAD_SKU_TARCLIN = :ORIGINAL';
+  SQL_INSERTAR_VARIANTES =
+    'INSERT INTO fza_tarifas_cambios_lineas (CODIGO_TARC_TARCLIN, ' +
+    'ID_TARCP_TARCLIN, CODIGO_ART_TARCLIN, CODIGO_UNIDAD_SKU_TARCLIN, ' +
+    'CODIGO_TAR_ORIGEN_TARCLIN, CODIGO_TAR_DESTINO_TARCLIN, ' +
+    'PRECIO_ORIGEN_TARCLIN, PRECIO_COSTE_TARCLIN, ' +
+    'PRECIO_SALIDA_ACTUAL_TARCLIN, PRECIO_FINAL_ACTUAL_TARCLIN, ' +
+    'PRECIO_DTO_ACTUAL_TARCLIN, PORCENTAJE_DTO_ACTUAL_TARCLIN, ' +
+    'PRECIO_NUEVO_TARCLIN, PRECIO_FINAL_NUEVO_TARCLIN, ' +
+    'PRECIO_DTO_NUEVO_TARCLIN, PORCENTAJE_DTO_NUEVO_TARCLIN, ' +
+    'ESAPLICAR_TARCLIN, USUARIO_ALTA, USUARIO_MODIF) ' +
+    'SELECT L.CODIGO_TARC_TARCLIN, L.ID_TARCP_TARCLIN, ' +
+    'L.CODIGO_ART_TARCLIN, V.UNIDAD, L.CODIGO_TAR_ORIGEN_TARCLIN, ' +
+    'L.CODIGO_TAR_DESTINO_TARCLIN, ' +
+    'COALESCE(O.PRECIO_SALIDA_ARTTAR, L.PRECIO_ORIGEN_TARCLIN), ' +
+    'L.PRECIO_COSTE_TARCLIN, ' +
+    'COALESCE(D.PRECIO_SALIDA_ARTTAR, L.PRECIO_SALIDA_ACTUAL_TARCLIN), ' +
+    'COALESCE(D.PRECIO_FINAL_ARTTAR, L.PRECIO_FINAL_ACTUAL_TARCLIN), ' +
+    'CASE WHEN D.CODIGO_UNICO_ARTTAR IS NULL THEN L.PRECIO_DTO_ACTUAL_TARCLIN ' +
+    'ELSE COALESCE(D.PRECIO_DTO_ARTTAR, 0) END, ' +
+    'CASE WHEN D.CODIGO_UNICO_ARTTAR IS NULL ' +
+    'THEN L.PORCENTAJE_DTO_ACTUAL_TARCLIN ' +
+    'ELSE COALESCE(D.PORCENTAJE_DTO_ARTTAR, 0) END, ' +
+    'L.PRECIO_NUEVO_TARCLIN, L.PRECIO_FINAL_NUEVO_TARCLIN, ' +
+    'L.PRECIO_DTO_NUEVO_TARCLIN, L.PORCENTAJE_DTO_NUEVO_TARCLIN, ' +
+    'L.ESAPLICAR_TARCLIN, :USUARIO, :USUARIO ' +
+    'FROM fza_tarifas_cambios_lineas L CROSS JOIN (%s) V ' +
+    'LEFT JOIN fza_articulos_tarifas O ON O.CODIGO_UNICO_ARTTAR = (%s) ' +
+    'AND O.CODIGO_UNIDAD_ARTTAR = V.UNIDAD ' +
+    'LEFT JOIN fza_articulos_tarifas D ON D.CODIGO_UNICO_ARTTAR = (%s) ' +
+    'AND D.CODIGO_UNIDAD_ARTTAR = V.UNIDAD ' +
+    'WHERE ' + SQL_LINEA_GENERAL +
+    ' AND NOT EXISTS (SELECT 1 FROM fza_tarifas_cambios_lineas X ' +
+    'WHERE X.CODIGO_TARC_TARCLIN = L.CODIGO_TARC_TARCLIN ' +
+    'AND X.ID_TARCP_TARCLIN = L.ID_TARCP_TARCLIN ' +
+    'AND X.CODIGO_ART_TARCLIN = L.CODIGO_ART_TARCLIN ' +
+    'AND X.CODIGO_UNIDAD_SKU_TARCLIN = V.UNIDAD)';
+var
+  Consulta: TUniQuery;
+  Conexion: TUniConnection;
+  Sesion: Integer;
+  Articulo, Unidad, SqlVariantes, MensajeSinVariantes: string;
+  TransaccionPropia: Boolean;
+begin
+  Sesion := SesionActual;
+  if Sesion = 0 then
+    raise EValidacionBBDD.Create(SErrorTarifasCambiosSinSesionActiva);
+  if SesionAplicada then
+    raise EValidacionBBDD.Create(SErrorTarifasCambiosSesionAplicada);
+  GrabarLineaPendiente;
+  if ANivel = ndtColor then
+  begin
+    SqlVariantes := SQL_UNIDADES_COLOR;
+    MensajeSinVariantes := SErrorDescomponerTarifaSinColores;
+  end
+  else
+  begin
+    SqlVariantes := SQL_UNIDADES_TALLA;
+    MensajeSinVariantes := SErrorDescomponerTarifaSinTallas;
+  end;
+
+  Conexion := unqryTablaG.Connection as TUniConnection;
+  Consulta := TUniQuery.Create(nil);
+  try
+    Consulta.Connection := Conexion;
+    TransaccionPropia := not Conexion.InTransaction;
+    if TransaccionPropia then
+      Conexion.StartTransaction
+    else
+      Conexion.ExecSQL('SAVEPOINT descomponer_linea_tarifa', []);
+    try
+      BloquearSesionEditable(Consulta, Sesion);
+      Consulta.SQL.Text :=
+        'SELECT CODIGO_ART_TARCLIN, CODIGO_UNIDAD_SKU_TARCLIN ' +
+        'FROM fza_tarifas_cambios_lineas WHERE ID_TARCLIN = :ID ' +
+        'AND CODIGO_TARC_TARCLIN = :SESION FOR UPDATE';
+      Consulta.ParamByName('ID').AsInteger := AId;
+      Consulta.ParamByName('SESION').AsInteger := Sesion;
+      Consulta.Open;
+      if Consulta.IsEmpty then
+        raise EValidacionBBDD.Create(SErrorDescomponerTarifaSeleccioneLinea);
+      Articulo := Consulta.FieldByName('CODIGO_ART_TARCLIN').AsString;
+      Unidad := Consulta.FieldByName('CODIGO_UNIDAD_SKU_TARCLIN').AsString;
+      if (Unidad <> '') and not SameText(Unidad, Articulo) then
+        raise EValidacionBBDD.Create(SErrorDescomponerTarifaLineaNoGeneral);
+      Consulta.Close;
+
+      Consulta.SQL.Text := SqlVariantes + ' LIMIT 1';
+      Consulta.ParamByName('ART').AsString := Articulo;
+      Consulta.Open;
+      if Consulta.IsEmpty then
+        raise EValidacionBBDD.Create(MensajeSinVariantes);
+      Consulta.Close;
+
+      // Cada periodo aporta sus propios precios y conserva las variantes
+      // que ya estaban preparadas en la sesión.
+      Consulta.SQL.Text := Format(SQL_INSERTAR_VARIANTES, [SqlVariantes,
+        SqlSeleccionPrecioTarifa('L.CODIGO_ART_TARCLIN', 'V.UNIDAD',
+          'L.CODIGO_TAR_ORIGEN_TARCLIN', 'CURDATE()'),
+        SqlSeleccionPrecioTarifa('L.CODIGO_ART_TARCLIN', 'V.UNIDAD',
+          'L.CODIGO_TAR_DESTINO_TARCLIN', 'CURDATE()')]);
+      Consulta.ParamByName('SESION').AsInteger := Sesion;
+      Consulta.ParamByName('ART').AsString := Articulo;
+      Consulta.ParamByName('ORIGINAL').AsString := Unidad;
+      Consulta.ParamByName('USUARIO').AsString := IdentidadSesion.Usuario;
+      Consulta.Execute;
+
+      Consulta.SQL.Text := 'DELETE L FROM fza_tarifas_cambios_lineas L ' +
+        'WHERE ' + SQL_LINEA_GENERAL;
+      Consulta.ParamByName('SESION').AsInteger := Sesion;
+      Consulta.ParamByName('ART').AsString := Articulo;
+      Consulta.ParamByName('ORIGINAL').AsString := Unidad;
+      Consulta.Execute;
+      if TransaccionPropia then
+        Conexion.Commit
+      else
+        Conexion.ExecSQL('RELEASE SAVEPOINT descomponer_linea_tarifa', []);
+    except
+      if Conexion.InTransaction then
+        if TransaccionPropia then
+          Conexion.Rollback
+        else
+        begin
+          Conexion.ExecSQL(
+            'ROLLBACK TO SAVEPOINT descomponer_linea_tarifa', []);
+          Conexion.ExecSQL(
+            'RELEASE SAVEPOINT descomponer_linea_tarifa', []);
+        end;
+      raise;
+    end;
+  finally
+    Consulta.Free;
+  end;
+  unqryLineas.Refresh;
+end;
+
 function TdmTarifasCambios.ActualizarCostesLineas(
   const AIds: TArray<Integer>): Integer;
 var
@@ -1821,9 +2006,10 @@ begin
   AConsultaBusca.SQL.Clear;
   AConsultaMarca.SQL.Text :=
     'UPDATE fza_tarifas_cambios_lineas SET ' +
-    'ESTADO_TARCLIN = ''APLICADA'', MENSAJE_TARCLIN = :MENSAJE, ' +
-    'CODIGO_UNICO_ARTTAR_TARCLIN = :UNICO, ' +
-    'INSTANTE_APLICACION_TARCLIN = NOW(), USUARIO_MODIF = :USUARIO, ' +
+    'ESTADO_TARCLIN = :ESTADO, MENSAJE_TARCLIN = :MENSAJE, ' +
+    'CODIGO_UNICO_ARTTAR_TARCLIN = NULLIF(:UNICO, 0), ' +
+    'INSTANTE_APLICACION_TARCLIN = IF(:UNICO = 0, NULL, NOW()), ' +
+    'USUARIO_MODIF = :USUARIO, ' +
     'INSTANTE_MODIF = NOW() WHERE ID_TARCLIN = :ID';
   AConsultaUnico.SQL.Text :=
     'SELECT LAST_INSERT_ID() AS CODIGO_UNICO_ARTTAR';
@@ -1893,14 +2079,25 @@ begin
     finally
       oTramos.Free;
     end;
-    AConsultaMarca.ParamByName('MENSAJE').AsString := 'Aplicada';
+    Result := iUnico <> 0;
+    if Result then
+    begin
+      AConsultaMarca.ParamByName('ESTADO').AsString := 'APLICADA';
+      AConsultaMarca.ParamByName('MENSAJE').AsString := 'Aplicada';
+    end
+    else
+    begin
+      AConsultaMarca.ParamByName('ESTADO').AsString := 'SIN CAMBIOS';
+      AConsultaMarca.ParamByName('MENSAJE').AsString :=
+        SInfoLineaTarifaSinCambios;
+    end;
     AConsultaMarca.ParamByName('UNICO').AsInteger := iUnico;
     AConsultaMarca.ParamByName('USUARIO').AsString :=
       IdentidadSesion.Usuario;
     AConsultaMarca.ParamByName('ID').AsInteger :=
       ALinea.FieldByName('ID_TARCLIN').AsInteger;
     AConsultaMarca.Execute;
-    if SameText(
+    if Result and SameText(
       Trim(sTarifa),
       LeerCodigoTarifaPrestaShop(
         AConsultaExec.Connection,
@@ -1912,7 +2109,6 @@ begin
         IdentidadSesion.Usuario);
       AEncoloPrestaShop := True;
     end;
-    Result := True;
   end;
 end;
 
@@ -1987,6 +2183,7 @@ begin
       if EsTransaccionPropia then
         oConexion.StartTransaction;
       try
+        BloquearSesionEditable(qryExec, SesionActual);
         qryLineas.Open;
         while not qryLineas.Eof do
         begin
