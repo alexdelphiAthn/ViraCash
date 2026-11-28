@@ -349,7 +349,6 @@ begin
   rSesion := Default(TSesionMedidasCliente);
   rSesion.Cliente := FCliente;
   rSesion.Fecha := Date;
-  rSesion.Persona := FAnfitrion.IdentidadSesion.Usuario;
   if FElegir and not ACorregir and (FSelector.ItemIndex >= 0) then
   begin
     rSesion := FRepositorio.Leer(FCliente, FSesiones[FSelector.ItemIndex].Id);
@@ -357,7 +356,9 @@ begin
     rSesion.Origen := '';
     rSesion.Motivo := '';
     rSesion.Fecha := Date;
-    rSesion.Persona := FAnfitrion.IdentidadSesion.Usuario;
+    // Una medición nueva pide de nuevo quién mide.
+    rSesion.Empleado := '';
+    rSesion.Persona := '';
   end;
   if ACorregir then
   begin
@@ -388,11 +389,11 @@ begin
   SetLength(ARotulos, Length(AMagnitudes) + 4);
   SetLength(AValores, Length(ARotulos));
   ARotulos[0] := SMedidasFecha;
-  ARotulos[1] := SMedidasPersona;
+  ARotulos[1] := SMedidasEmpleado;
   ARotulos[2] := SMedidasObservaciones;
   ARotulos[3] := SMedidasMotivo;
   AValores[0] := DateToStr(ASesion.Fecha);
-  AValores[1] := ASesion.Persona;
+  AValores[1] := ASesion.Empleado;
   AValores[2] := ASesion.Observaciones;
   AValores[3] := ASesion.Motivo;
   for iIndice := 0 to High(AMagnitudes) do
@@ -413,7 +414,7 @@ var
 begin
   if not TryStrToDate(AValores[0], ASesion.Fecha) then
     raise EArgumentException.Create(SMedidasFechaInvalida);
-  ASesion.Persona := Trim(AValores[1]);
+  ASesion.Empleado := Trim(AValores[1]);
   ASesion.Observaciones := AValores[2];
   ASesion.Motivo := Trim(AValores[3]);
   SetLength(ASesion.Valores, Length(AMagnitudes));
@@ -470,6 +471,13 @@ begin
       begin
         try
           LeerCampos(rSesion, aMagnitudes, AEntrada);
+          // FZ-ISSUE-1320: quien mide se identifica por su código.
+          rSesion.Persona := FRepositorio.NombreEmpleado(rSesion.Empleado);
+          if rSesion.Persona = '' then
+          begin
+            AIndice := 1;
+            raise EArgumentException.Create(SMedidasEmpleadoInvalido);
+          end;
           sAviso := ValidarSesionMedidas(rSesion, aMagnitudes);
           if sAviso <> '' then
           begin

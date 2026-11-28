@@ -594,42 +594,49 @@ begin
   finally
     Destinos.Free;
   end;
+  // Despublicar algo que no está publicado es una situación normal de uso:
+  // se avisa sin pasar por la ventana de error de la aplicación.
   if Length(Seleccion) = 0 then
-    raise EInvalidOpException.Create(TextoConsultoria('No hay elementos para esta operación.'));
-  Texto := '';
-  for i := 0 to High(Seleccion) do
+    MessageDlg_fza(
+      TextoConsultoria('No hay elementos para esta operación.'),
+      mtInformation, [mbOK], 0)
+  else
   begin
-    if Activar then
-      try
-        ValidarProyecto(Seleccion[i]);
-      except
-        on E: EValidacionPagina do
-        begin
-          MessageDlg_fza(Format(TextoConsultoria('Revise el elemento «%s».'),[Seleccion[i].Nombre]) +
-            sLineBreak + E.Message, mtInformation, [mbOK], 0);
-          Exit;
-        end;
-      end;
-    Texto := Texto + sLineBreak + Seleccion[i].Nombre;
-  end;
-  if MessageDlg_fza(Accion + Texto,
-    mtConfirmation,[mbYes,mbNo],0) = mrYes then
-  begin
-    FRepo.CambiarPublicacion(Seleccion,Activar);
-    for i := 0 to High(FElementos) do
-      for j := 0 to High(Seleccion) do
-        if SameText(Seleccion[j].Id,FElementos[i].Id) then
-        begin
-          FElementos[i].Version := Seleccion[j].Version;
-          FElementos[i].Publicada := Seleccion[j].Publicada;
-          if i = FIndice then
+    Texto := '';
+    for i := 0 to High(Seleccion) do
+    begin
+      if Activar then
+        try
+          ValidarProyecto(Seleccion[i]);
+        except
+          on E: EValidacionPagina do
           begin
-            FPagina.Version := Seleccion[j].Version;
-            FPagina.Publicada := Seleccion[j].Publicada;
+            MessageDlg_fza(Format(TextoConsultoria('Revise el elemento «%s».'),[Seleccion[i].Nombre]) +
+              sLineBreak + E.Message, mtInformation, [mbOK], 0);
+            Exit;
           end;
         end;
-    FCambioPublicado := True;
-    ShowMessage_fza(TextoConsultoria('Publicación actualizada.'));
+      Texto := Texto + sLineBreak + Seleccion[i].Nombre;
+    end;
+    if MessageDlg_fza(Accion + Texto,
+      mtConfirmation,[mbYes,mbNo],0) = mrYes then
+    begin
+      FRepo.CambiarPublicacion(Seleccion,Activar);
+      for i := 0 to High(FElementos) do
+        for j := 0 to High(Seleccion) do
+          if SameText(Seleccion[j].Id,FElementos[i].Id) then
+          begin
+            FElementos[i].Version := Seleccion[j].Version;
+            FElementos[i].Publicada := Seleccion[j].Publicada;
+            if i = FIndice then
+            begin
+              FPagina.Version := Seleccion[j].Version;
+              FPagina.Publicada := Seleccion[j].Publicada;
+            end;
+          end;
+      FCambioPublicado := True;
+      ShowMessage_fza(TextoConsultoria('Publicación actualizada.'));
+    end;
   end;
 end;
 

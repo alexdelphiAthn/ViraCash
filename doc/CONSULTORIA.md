@@ -1,0 +1,81 @@
+# Consultoría de ViraCash · relevo técnico
+
+Revisión del 28 de noviembre de 2026 sobre ViraCash `876c765` y ViraCash_web `7748000`. Ambos repositorios están en carpetas hermanas. El [capítulo 23 del manual](../../ViraCash_web/manual/23-consultoria-llamadas.md) es el recorrido para el operario. Este documento identifica el código que ejecuta cada paso, los datos que persisten y las pruebas que permiten retomar el desarrollo.
+
+## Del diseñador a la ficha de Clientes
+
+1. **Consultoría ▸ Diseñador de consultoría…** abre la biblioteca. Se puede partir de **Nueva consultoría**, de una plantilla o de un borrador guardado en la base conectada. Un proyecto agrupa elementos con nombre propio. Los tipos disponibles son pantalla, listado, modal, análisis, funcionalidad y origen de datos.
+2. En **Proyecto ▸ Datos y publicación…** se eligen el origen, los campos, su orden, el ancho y los rótulos independientes de la lista y de la ficha. El origen puede ser una tabla o vista accesible de la base actual, o un procedimiento declarado de lectura con parámetros de entrada. La edición de filas requiere una pantalla sobre tabla con clave primaria y el permiso correspondiente. Las vistas y los procedimientos se consultan en modo lectura.
+3. Cada elemento elige una unidad de entrada. La plantilla llama a `Consultoria.Mostrar(TLista.Create(Propietario))`. En el menú abre una ventana y en la ficha monta el formulario dentro de la pestaña. Para un destino en Clientes se selecciona el mantenimiento y se indica qué campo del detalle coincide con la clave maestra. Clientes es un destino registrado y puede elegirse con su ficha cerrada.
+4. **Guardar borrador** permite cerrar y volver a abrir el proyecto. **Publicar elemento…** entrega sólo el seleccionado. **Publicar proyecto completo…** presenta el conjunto para confirmarlo. El usuario final ejecuta la versión publicada sin recompilar ViraCash. Despublicar retira el acceso y conserva borradores, tablas y registros. Publicar un origen activa el uso de un objeto que ya existe en la base.
+
+### Dónde intervenir
+
+| Si cambia… | Punto de entrada |
+| --- | --- |
+| Biblioteca, selección de elemento, guardado o publicación | [inMtoProyectoConsultoria.pas](../src/Forms/inMtoProyectoConsultoria.pas). Seguir `GuardarConjunto`, `CambiarEstado` y `MontarConsultoriaTMS`. |
+| Selector de orígenes y campos, destinos, unidades o motor de impresión | [inMtoDisenadorPaginas.pas](../src/Forms/inMtoDisenadorPaginas.pas) y su DFM. El formulario recoge las opciones y el repositorio valida los metadatos al usarlos. |
+| SQL, permisos, concurrencia o formato de almacenamiento | [UniDataPaginasExtension.pas](../src/DataModules/UniDataPaginasExtension.pas). Seguir `Origenes`, `Validar`, `GuardarProyecto`, `CambiarPublicacion` y `Abrir`. |
+| Lista y ficha en ejecución, filtro, selector o cambio de cliente | [inMtoPaginaExtension.pas](../src/Forms/inMtoPaginaExtension.pas). `TPanelPagina` construye el contenido y `TPestanaVinculada.Sincronizar` sigue al registro maestro. El [formulario principal](../src/Core/inMtoPrincipal.pas) incorpora al menú las publicaciones autorizadas. |
+| Unidad de script, formulario o ejemplo entregado de fábrica | [Plantilla](../src/Forms/Consultoria/Plantilla). Los `.psc` contienen Pascal Script, los `.sfm` contienen formularios y los `.ssproj` enumeran unidades. [Clientes.json](../src/Forms/Consultoria/Plantilla/Clientes.json) define los dos elementos del ejemplo. `Plantilla.rc` los incorpora al ejecutable mediante el objetivo `CompilarPlantillaConsultoria` de [vcash.dproj](../vcash.dproj). Una plantilla modificada se prueba abriendo un proyecto nuevo. Los borradores guardados contienen su propia copia. |
+| Motor, paleta y apariencia | [inMtoConsultoriaLlamadas.pas](../src/Forms/inMtoConsultoriaLlamadas.pas) aloja el motor y registra los controles. [inLibMenusScripter.pas](../src/Lib/inLibMenusScripter.pas) configura el editor, las opciones y el pie de expresiones. |
+| Impresión de un listado y salida a Excel | [inMtoModalImpConsultoria.pas](../src/Modals/inMtoModalImpConsultoria.pas). El diseñador elige FastReport por defecto o DevExpress por elemento. El diálogo prepara el A4 según las columnas, identifica los diseños FastReport guardados por elemento y genera la hoja DevExpress con tipos y formatos de celda. |
+
+## Contrato de los proyectos guardados
+
+La tabla de aplicación es `fza_consultoria_proyectos`. En `CODIGO_CPROY`, la clave histórica `TMS/<nombre del proyecto>` guarda el conjunto de archivos del IDE. Cada `Pagina/<identificador>` guarda en `CONTENIDO_CPROY` el borrador, la instantánea publicada y el origen retirado cuando procede. `VERSION_CPROY` permite detectar ediciones concurrentes. Al cambiar la serialización conviene probar la apertura de un proyecto anterior y una segunda edición concurrente. Los identificadores históricos forman parte del formato persistido aunque la interfaz use el nombre **Consultoría**.
+
+El permiso de diseño es `menu.mnuEditorPaginas`. Los permisos de uso se consultan como `consultoria.<grupo>.<elemento>.<acción>` o por nombre de elemento cuando falta el grupo. Para comprobar lo que realmente ve un operario hay que usar un perfil sin permiso de diseño, porque el diseñador también tiene acceso de uso.
+
+El script trabaja con los objetos que ViraCash registra para cada unidad. En **AntesGuardar**, `Registro.Campo`, `Registro.Texto` y `Registro.Asignar` leen o cambian el registro y `Error` permite detener el guardado con un mensaje. [ValidarMagnitud.psc](../src/Forms/Consultoria/Plantilla/ValidarMagnitud.psc) muestra valores por defecto, campos obligatorios, límites y traducción del error. **Selectores** configura el desplegable con tabla, clave y texto visible. La implementación actual conserva una referencia de selector por elemento. Para añadir una segunda, revisar tanto la serialización como ficha, validación y compatibilidad.
+
+## Qué lleva la DEMO de medidas
+
+La **Plantilla de Clientes** ofrece *Llamadas de clientes* y *Catálogo de medidas*. La **DEMO de medidas** toma de ella únicamente *Catálogo de medidas*, publicado como opción de menú del proyecto *Medidas de clientes*. La pestaña **Clientes ▸ Ficha ▸ Medidas del cliente** sigue siendo la entrada integrada para las sesiones, sus correcciones y las copias vinculadas a arreglos. El catálogo del consultor define las magnitudes disponibles. Hay que conservar los códigos existentes de ropa al añadir los de calzado.
+
+| Pieza | Fuente y comprobación |
+| --- | --- |
+| Preparación del volcado | [incluir_medidas_demo.py](../../ViraCash_web/scripts/incluir_medidas_demo.py) toma dos rutas, origen y copia de destino. Añade el proyecto, la publicación, las magnitudes, la sesión de muestra y los catálogos de idiomas. Para inspeccionar la definición en memoria sirven `contenido_proyecto()` y `sql_ejemplo()`. |
+| Cliente y resultados conocidos | [medicion_cliente_demo.sql](../../ViraCash_web/empaquetador/medicion_cliente_demo.sql) enlaza a **MODAS ALAMEDA DEMO SL**. La sesión contiene, en orden longitud/ancho/empeine, **254/96/240 mm** para el pie izquierdo y **257/98/243 mm** para el derecho. También incluye medidas de traje y cadera. |
+| Sesiones e informes | [UniDataMedidasCliente.pas](../src/DataModules/UniDataMedidasCliente.pas), [impresión de medidas](../src/Modals/inMtoModalImpMedidasCliente.pas) y [dibujos](../src/Lib/inLibDibujoMedidas.pas). Hay cuatro fichas ilustradas de taller y una impresión general de la sesión. Las [muestras PDF y SQL de prácticas](../../ViraCash_web/manual/ejemplos/consultoria/) acompañan al manual en los cuatro idiomas para medidas. |
+| Llamadas | La pestaña de la plantilla enlaza `CODIGO_CLI_CLI` con `CODIGO_CLI_CLLAM` de `fza_clientes_llamadas`. Esta última es opcional y se excluye en el [generador de huella](../eng/huella/regenerar_huella.py). El ejercicio independiente [agenda-llamadas.sql](../../ViraCash_web/manual/ejemplos/consultoria/agenda-llamadas.sql) crea una tabla y una vista propias, `demo_consultoria_llamadas` y `demo_consultoria_llamadas_pendientes`. |
+
+## Idiomas y tema del diseñador
+
+Los textos de la interfaz pasan por [inLibIdiomaConsultoria.pas](../src/Lib/inLibIdiomaConsultoria.pas) y el [catálogo integrado](../src/Lib/inLibTextosConsultoria.inc). Una fila de `fza_traducciones` puede prevalecer sobre el texto integrado. Para los dos avisos de permiso de diseño se alinearon las traducciones en [el SQL de idiomas](../../ViraCash_web/DESARROLLOS%20EN%20CURSO/20261127_consultoria_idiomas_textos.sql) y [el de mensajes de páginas](../../ViraCash_web/DESARROLLOS%20EN%20CURSO/20261127_consultoria_paginas_mensajes_textos.sql). El segundo corrige la redacción anterior cuando coincide exactamente. La prueba previa cubrió base nueva, base con la redacción antigua y fila personalizada.
+
+Cada proyecto tiene además su propio `idiomas.json`, editable en **Proyecto ▸ Editor de idiomas…**. En script se usa `Idiomas.Texto('clave', 'Texto de respaldo')`. La búsqueda prueba idioma activo, español de la fila y texto de respaldo. El ejemplo [ValidarMagnitud.psc](../src/Forms/Consultoria/Plantilla/ValidarMagnitud.psc) permite probarlo provocando un máximo inferior al mínimo.
+
+**Tema pendiente de decisión.** El editor de código ya aplica el aspecto Pascal clásico, con fondo azul marino, comentarios y numeración gris plata, fuente de 14 puntos y guía en la columna 80. [inLibFuenteInterfaz.pas](../src/Lib/inLibFuenteInterfaz.pas) elige la fuente. Para añadir temas elegibles, el punto de partida es `ColoresDelEditor` y `AplicarSintaxisPascal`. El formulario de script en modo diseño se excluye expresamente del skin DevExpress porque ambos intervienen en su procedimiento de ventana. Si se amplía el tema a toda la ventana, probar los cambios entre código y diseño y el cierre del IDE.
+
+## Prueba breve para retomar el trabajo
+
+1. En una base de prácticas con los orígenes de la agenda, seguir el capítulo 23 hasta guardar *Agenda comercial* con una pantalla y un listado. Cerrar el IDE, recuperar el borrador y comprobar nombres, orden, ancho y rótulos.
+2. Publicar sólo la pantalla y comprobar el menú con un operario autorizado. Mantener el listado en borrador. Para probar la pestaña, vincular un elemento al código de cliente, publicar y alternar dos clientes con datos distintos. Despublicarlo y comprobar que desaparece el acceso y se conservan los registros.
+3. En la DEMO de medidas, abrir el catálogo desde el menú y la sesión de **MODAS ALAMEDA DEMO SL** desde Clientes. Previsualizar ambas fichas de pie y cotejar los seis valores anteriores. Probar la ficha de traje y la de ropa. Para listados genéricos, verificar un filtro de fecha, la vista previa FastReport con un diseño guardado y la hoja Excel.
+4. Cambiar el idioma de un usuario de pruebas y reabrir el elemento. Comprobar un rótulo de la aplicación y una validación del script. Así se ejercitan los dos catálogos.
+
+**Resultado del 28/11/2026.** La prueba se ejecutó con `vcash.exe` 1.0.24.202611271033 (Win64) sobre una copia desechable de la DEMO de medidas con los SQL de agenda y expositores. Pasaron los pasos 1 a 3 en español: borrador recuperado con nombres, orden, ancho y rótulos; publicación de un solo elemento y del proyecto completo; cierre de DEMO-01 con una sola llamada pendiente después; pestaña en Clientes siguiendo a los clientes 293, 294 y 295; despublicación con registros conservados; y las cuatro fichas de taller con los seis valores de pie. El recorrido de la agenda y de expositores se repitió en inglés, catalán y chino con la interfaz y los rótulos del proyecto en cada idioma. Quedan sin ejercitar el menú con un operario sin permiso de diseño, el filtro de fecha, la vista previa con un diseño FastReport guardado, la hoja Excel y la traducción de una validación de script.
+
+**Cómo repetirla.** Los scripts están en [consultoria_prueba_interactiva](../../ViraCash_web/scripts/consultoria_prueba_interactiva/). `vc.py` maneja `vcash.exe` en un escritorio de Windows que no se muestra, `agenda.ps1` y `ficha.ps1` recorren el taller e `idioma.ps1` lo repite en otro idioma con capturas. Hay que levantar antes un MariaDB propio con el volcado que genera `incluir_medidas_demo.py`, ajustar el puerto en `aux_prueba.ps1` y crear un perfil INI que apunte a él. Las órdenes de menú se localizan por posición porque sus identificadores cambian al publicar. Los diálogos de rótulo y ancho cambian de tamaño con el idioma, así que el botón de aceptar se busca entre sus controles. Conviene situar la base fuera de `ViraCash_web/tmp`: esa carpeta se limpia y los registros `prueba.log` de pruebas anteriores ya no existen.
+
+**Corregido en esta revisión.** **Despublicar elemento…** sobre un elemento sin publicar mostraba la ventana de error de la aplicación. Ahora `CambiarEstado` avisa con un mensaje informativo. Compilado; falta comprobarlo en pantalla.
+
+**Observaciones abiertas.** **Nombre del proyecto** se rellena con el nombre de la página mientras está vacío y el capítulo 23 no lo menciona. En la ficha de Clientes, *Medidas del cliente* y *Otros* comparten el número 6 de pestaña. El selector de sesiones de medidas muestra el identificador interno de la sesión.
+
+**Manual.** Las 39 capturas que faltaban del capítulo 23 en catalán, inglés y chino se hicieron con el tema `TheAsphaltWorld`, registrado como `tema_activo` en `capturas.json`, y se publicaron en viracash.net junto con las 120 páginas regeneradas. No siguen el reparto de `tema_previsto`. Al regenerar, `sincronizar_capturas_portada.py` reescribe «ViraCash» como «Factuzam» en las cuatro portadas y en su inventario: ese cambio se deshizo y no se publicó, y hay que corregir el script antes de volver a sincronizar las portadas.
+
+**Ejecutables.** En la fecha del relevo, las copias locales de `Win32/Release/vcash.exe` y `Win64/Release/vcash.exe` coincidían por SHA-256 con sus respectivas compilaciones en `build/reproducible/bin`.
+
+### Aceptación de la DEMO de Medidas · DEM-01-R04
+
+El 28/11/2026 el puesto D comprobó en la aplicación instalada el catálogo, el historial y las cuatro vistas preliminares. El [comprobante de D](../../../viracash_web/bateria64/rondas/DEM-01-R04/evidencias/D/resultado_demo.txt) identifica el instalador por SHA-256 y recoge la comparación de servicios y ficheros. FZ-ISSUE-1319 quedó cerrada según el coordinador. Se verificó el puerto **elegido**, 3308. Quedó sin observar el puerto que proponía por defecto el asistente, ya que el usuario completó la instalación con elevación.
+
+| Recorrido reproducido por D | Resultado |
+| --- | --- |
+| Acceso directo **ViraCash DEMO 2** → aceptar el aviso de modo DEMO | Accedió como Administrador a `127.0.0.1:3308`. La carpeta `C:\Program Files\ViraCash DEMO 2` y el servicio `MariaDBViraCashDemo2` eran propios. La instalación anterior conservó su inventario de 2.450 ficheros y el servicio de la batería siguió en 3306. |
+| **Consultoría ▸ Medidas de clientes · Catálogo de medidas** | El [catálogo](../../../viracash_web/bateria64/rondas/DEM-01-R04/evidencias/D/P1_04_catalogo_medidas.jpg) ya estaba publicado y mostraba 12 magnitudes activas. |
+| **Archivo ▸ Clientes ▸ 293 MODAS ALAMEDA DEMO SL ▸ Ficha ▸ 6_Medidas del cliente** | En el [historial](../../../viracash_web/bateria64/rondas/DEM-01-R04/evidencias/D/P1_07_historial_mediciones.jpg) figuraba una medición, **Modelo de taller**, con el motivo «Prueba de traje y calzado a medida». |
+| **Imprimir medición ▸ ficha elegida ▸ Vista preliminar** | [Pie izquierdo](../../../viracash_web/bateria64/rondas/DEM-01-R04/evidencias/D/P1_09_ficha_pie_izquierdo.jpg) 254/96/240 mm. [Pie derecho](../../../viracash_web/bateria64/rondas/DEM-01-R04/evidencias/D/P1_10_ficha_pie_derecho.jpg) 257/98/243 mm y dibujo en espejo. [Traje](../../../viracash_web/bateria64/rondas/DEM-01-R04/evidencias/D/P1_11_ficha_traje.jpg) 42/98/87/63/73 cm. [Ropa general](../../../viracash_web/bateria64/rondas/DEM-01-R04/evidencias/D/P1_12_medidas_generales_ropa.jpg) añade 101 cm de cadera. Cada ficha ocupó una página. |
+
+**Seguimiento de baja prioridad, FZ-ISSUE-1320.** La ficha de Clientes repite el número 6 en dos pestañas. «Persona que mide» muestra «Modelo de taller». El país del cliente de muestra es Reino Unido y su código postal corresponde a Zamora.

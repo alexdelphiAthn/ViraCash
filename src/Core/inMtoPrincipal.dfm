@@ -947,6 +947,9 @@
         Caption = 'Editor de idiomas…'
         OnClick = EditorPaginasClick
       end
+      object mnuSepConsultoria: TMenuItem
+        Caption = '-'
+      end
     end
     object Ayuda1: TMenuItem
       Caption = 'Ayuda'

@@ -38,6 +38,8 @@ type
     function Disponible: Boolean;
     function Magnitudes: TMagnitudesCliente;
     function NombreCliente(const ACliente: string): string;
+    // Nombre del empleado activo; vacío si no existe o está de baja.
+    function NombreEmpleado(const ACodigo: string): string;
     function Historial(const ACliente: string): TSesionesMedidasCliente;
     function Leer(const ACliente, AId: string): TSesionMedidasCliente;
     procedure Guardar(var ASesion: TSesionMedidasCliente);
@@ -142,8 +144,42 @@ begin
   try
     oConsulta.Open;
     Result := oConsulta.Fields[0].AsInteger = 4;
+    if Result then
+    begin
+      // FZ-ISSUE-1320: sin la columna del empleado falta la actualización.
+      oConsulta.Close;
+      oConsulta.SQL.Text := 'SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS' +
+        ' WHERE TABLE_SCHEMA=DATABASE()' +
+        ' AND TABLE_NAME=''fza_clientes_medidas''' +
+        ' AND COLUMN_NAME=''CODIGO_EMPL_CLMED''';
+      oConsulta.Open;
+      Result := not oConsulta.IsEmpty;
+    end;
   finally
     FreeAndNil(oConsulta);
+  end;
+end;
+
+function TRepositorioMedidasCliente.NombreEmpleado(
+  const ACodigo: string): string;
+var
+  oConsulta: TUniQuery;
+begin
+  ExigirPermiso('consultar');
+  Result := '';
+  if Trim(ACodigo) <> '' then
+  begin
+    oConsulta := Consulta('SELECT COALESCE(NULLIF(TRIM(NOMBRE_EMPL),''''),' +
+      'CODIGO_EMPL) FROM fza_empleados WHERE CODIGO_EMPL=:CODIGO' +
+      ' AND ESACTIVO_EMPL=''S''');
+    try
+      oConsulta.ParamByName('CODIGO').AsString := Trim(ACodigo);
+      oConsulta.Open;
+      if not oConsulta.IsEmpty then
+        Result := oConsulta.Fields[0].AsString;
+    finally
+      FreeAndNil(oConsulta);
+    end;
   end;
 end;
 
@@ -199,6 +235,7 @@ begin
   Result.Cliente := AConsulta.FieldByName('CODIGO_CLI_CLMED').AsString;
   Result.Fecha := AConsulta.FieldByName('FECHA_CLMED').AsDateTime;
   Result.Persona := AConsulta.FieldByName('PERSONA_CLMED').AsString;
+  Result.Empleado := AConsulta.FieldByName('CODIGO_EMPL_CLMED').AsString;
   Result.Origen := AConsulta.FieldByName('ID_ORIGEN_CLMED').AsString;
   Result.Motivo := AConsulta.FieldByName('MOTIVO_CLMED').AsString;
   Result.Observaciones :=
@@ -215,7 +252,8 @@ begin
   ExigirPermiso('consultar');
   Result := nil;
   oConsulta := Consulta('SELECT ID_CLMED,CODIGO_CLI_CLMED,FECHA_CLMED,' +
-    'PERSONA_CLMED,ID_ORIGEN_CLMED,MOTIVO_CLMED,OBSERVACIONES_CLMED,' +
+    'PERSONA_CLMED,CODIGO_EMPL_CLMED,ID_ORIGEN_CLMED,MOTIVO_CLMED,' +
+    'OBSERVACIONES_CLMED,' +
     'USUARIO_ALTA FROM fza_clientes_medidas WHERE CODIGO_CLI_CLMED=:CLI' +
     ' ORDER BY FECHA_CLMED DESC,INSTANTE_ALTA DESC,ID_CLMED DESC');
   try
@@ -275,7 +313,8 @@ var
   oConsulta: TUniQuery;
 begin
   oConsulta := Consulta('SELECT ID_CLMED,CODIGO_CLI_CLMED,FECHA_CLMED,' +
-    'PERSONA_CLMED,ID_ORIGEN_CLMED,MOTIVO_CLMED,OBSERVACIONES_CLMED,' +
+    'PERSONA_CLMED,CODIGO_EMPL_CLMED,ID_ORIGEN_CLMED,MOTIVO_CLMED,' +
+    'OBSERVACIONES_CLMED,' +
     'USUARIO_ALTA FROM fza_clientes_medidas WHERE CODIGO_CLI_CLMED=:CLI' +
     ' AND ID_CLMED=:ID');
   try
@@ -337,15 +376,16 @@ var
 begin
   oConsulta := Consulta('INSERT INTO fza_clientes_medidas' +
     ' (ID_CLMED,CODIGO_CLI_CLMED,FECHA_CLMED,PERSONA_CLMED,' +
-    'ID_ORIGEN_CLMED,MOTIVO_CLMED,OBSERVACIONES_CLMED,' +
+    'CODIGO_EMPL_CLMED,ID_ORIGEN_CLMED,MOTIVO_CLMED,OBSERVACIONES_CLMED,' +
     'INSTANTE_ALTA,USUARIO_ALTA)' +
-    ' VALUES (:ID,:CLI,:FECHA,:PERSONA,NULLIF(:ORIGEN,''''),' +
+    ' VALUES (:ID,:CLI,:FECHA,:PERSONA,:EMPLEADO,NULLIF(:ORIGEN,''''),' +
     ':MOTIVO,:OBS,NOW(),:USUARIO)');
   try
     oConsulta.ParamByName('ID').AsString := ASesion.Id;
     oConsulta.ParamByName('CLI').AsString := ASesion.Cliente;
     oConsulta.ParamByName('FECHA').AsDate := ASesion.Fecha;
     oConsulta.ParamByName('PERSONA').AsString := ASesion.Persona;
+    oConsulta.ParamByName('EMPLEADO').AsString := Trim(ASesion.Empleado);
     oConsulta.ParamByName('ORIGEN').AsString := ASesion.Origen;
     oConsulta.ParamByName('MOTIVO').AsString := ASesion.Motivo;
     oConsulta.ParamByName('OBS').AsString := ASesion.Observaciones;
@@ -395,6 +435,10 @@ begin
   ExigirPermiso('alta');
   if ASesion.Origen <> '' then
     ExigirPermiso('corregir');
+  // El nombre se toma del empleado: es la fotografía de quién midió.
+  ASesion.Persona := NombreEmpleado(ASesion.Empleado);
+  if ASesion.Persona = '' then
+    raise EArgumentException.Create(SMedidasEmpleadoInvalido);
   sAviso := ValidarSesionMedidas(ASesion, Magnitudes);
   if (sAviso <> '') and not ASesion.AceptaFueraRango then
     raise EArgumentException.Create(SMedidasFueraRango + sLineBreak + sAviso);

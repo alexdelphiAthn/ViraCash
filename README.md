@@ -29,6 +29,9 @@ El [mapa MVC](doc/ARQUITECTURA_MVC.md) explica las responsabilidades,
 las unidades de entrada por dominio y el controlador común de mantenimientos.
 Incluye el alcance de la migración y cómo ejecutar sus pruebas.
 
+El [relevo de consultoría](doc/CONSULTORIA.md) sitúa el diseñador, los
+proyectos publicados, la DEMO de medidas y las pruebas para retomar el trabajo.
+
 ## Imagen de marca
 
 - Símbolo: V blanca con rayo lima sobre verde esmeralda.

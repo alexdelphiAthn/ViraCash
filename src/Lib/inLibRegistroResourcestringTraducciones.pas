@@ -7791,6 +7791,14 @@ begin
     'src/Lib/inLibMsgMedidasCliente.pas',
     @inLibMsgMedidasCliente.SMedidasPersona);
   ARegistrar('inLibMsgMedidasCliente.' +
+    'SMedidasEmpleado',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasEmpleado);
+  ARegistrar('inLibMsgMedidasCliente.' +
+    'SMedidasEmpleadoInvalido',
+    'src/Lib/inLibMsgMedidasCliente.pas',
+    @inLibMsgMedidasCliente.SMedidasEmpleadoInvalido);
+  ARegistrar('inLibMsgMedidasCliente.' +
     'SMedidasObservaciones',
     'src/Lib/inLibMsgMedidasCliente.pas',
     @inLibMsgMedidasCliente.SMedidasObservaciones);

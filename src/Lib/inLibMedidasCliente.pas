@@ -21,6 +21,9 @@ type
   TMedidasCliente = TArray<TMedidaCliente>;
   TSesionMedidasCliente = record
     Id, Cliente, Persona, Origen, Motivo, Observaciones, Usuario: string;
+    // Código del empleado que mide; Persona conserva su nombre de entonces.
+    // Vacío en las sesiones anteriores a FZ-ISSUE-1320.
+    Empleado: string;
     Fecha: TDateTime;
     Valores: TMedidasCliente;
     AceptaFueraRango: Boolean;
@@ -106,6 +109,8 @@ begin
   if (Trim(ASesion.Cliente) = '') or (Trim(ASesion.Persona) = '') or
      (ASesion.Fecha <= 0) or (Length(ASesion.Valores) = 0) then
     raise EArgumentException.Create(SMedidasDatosObligatorios);
+  if Trim(ASesion.Empleado) = '' then
+    raise EArgumentException.Create(SMedidasEmpleadoInvalido);
   if (ASesion.Origen <> '') and (Trim(ASesion.Motivo) = '') then
     raise EArgumentException.Create(SMedidasMotivoCorreccion);
   sCodigos := '|';

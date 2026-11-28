@@ -92,6 +92,7 @@ type
     IPasosArranqueAplicacion
   )
     mnuConsultoria, mnuEditorPaginas, mnuIdiomasProyecto: TMenuItem;
+    mnuSepConsultoria: TMenuItem;
     mnuCaja: TMenuItem;
     mnuMenuCaja: TMenuItem;
     mnuAlmacenes: TMenuItem;
@@ -1204,6 +1205,9 @@ begin
 end;
 
 procedure TfrmMtoPrincipal.MenuConsultoriaClick(Sender: TObject);
+const
+  // Diseñador, editor de idiomas y separador; el resto son publicaciones.
+  ITEMS_FIJOS_CONSULTORIA = 3;
 var
   R: TRepositorioPaginas;
   P: TPaginaExtension;
@@ -1212,7 +1216,7 @@ begin
   R := TRepositorioPaginas.Create(ConexionPrincipal,Permisos,
     IdentidadSesion.Usuario);
   try
-    while mnuConsultoria.Count > 2 do
+    while mnuConsultoria.Count > ITEMS_FIJOS_CONSULTORIA do
       mnuConsultoria.Items[mnuConsultoria.Count-1].Free;
     mnuEditorPaginas.Caption := TextoConsultoria('Diseñador de consultoría') + '…';
     mnuEditorPaginas.Visible := R.PuedeDisenar;
@@ -1232,8 +1236,11 @@ begin
         Item.OnClick := PaginaPublicadaClick;
         mnuConsultoria.Add(Item);
       end;
+    // La barra solo separa algo si hay herramientas y publicaciones.
+    mnuSepConsultoria.Visible := mnuEditorPaginas.Visible and
+      (mnuConsultoria.Count > ITEMS_FIJOS_CONSULTORIA);
     mnuConsultoria.Visible := mnuEditorPaginas.Visible or
-      (mnuConsultoria.Count > 2);
+      (mnuConsultoria.Count > ITEMS_FIJOS_CONSULTORIA);
     mnuConsultoria.Enabled := mnuConsultoria.Visible;
   finally
     R.Free;

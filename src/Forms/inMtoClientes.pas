@@ -454,6 +454,7 @@ type
     procedure InstalarVerificacionNif;
   public
     procedure CrearTablaPrincipal; override;
+    procedure AplicarEtiquetas; override;
     procedure ResetForm; override;
     function  NombreCampoESACTIVO: string; override;
     function  ContarHijosActivos: Integer; override;
@@ -768,6 +769,14 @@ begin
     FTabMedidas := CrearPestanaMedidas(Self, pcPestanas, dsTablaG,
       CampoClaveCliente);
   tsOtros.PageIndex := pcPestanas.PageCount - 1;
+  NumerarPestanasAtajo(pcPestanas);
+end;
+
+procedure TfrmMtoClientes.AplicarEtiquetas;
+begin
+  inherited;
+  // FZ-ISSUE-1320: la traducción repone el título del DFM (&6_Otros) y
+  // repetía el número de la pestaña de medidas, creada en ejecución.
   NumerarPestanasAtajo(pcPestanas);
 end;
 

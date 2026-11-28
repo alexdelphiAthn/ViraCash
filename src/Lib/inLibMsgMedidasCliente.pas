@@ -31,6 +31,8 @@ resourcestring
   SMedidasCerrar = 'Cerrar';
   SMedidasFecha = 'Fecha de medición';
   SMedidasPersona = 'Persona que mide';
+  SMedidasEmpleado = 'Empleado que mide (código)';
+  SMedidasEmpleadoInvalido = 'Indique el código de un empleado activo.';
   SMedidasObservaciones = 'Observaciones';
   SMedidasMotivo = 'Motivo de la corrección';
   SMedidasDesconocida = 'Sin medir';

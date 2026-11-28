@@ -1,8 +1,10 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
         <VIRACASH_TMSSCRIPTER_ROOT Condition="'$(VIRACASH_TMSSCRIPTER_ROOT)'==''">C:\DISCO_DURO\TMSScripter</VIRACASH_TMSSCRIPTER_ROOT>
-        <ViraCashTms>$(VIRACASH_TMSSCRIPTER_ROOT)\source</ViraCashTms>
-        <ViraCashTmsUnits>$(ViraCashTms)\core;$(ViraCashTms)\ide;$(ViraCashTms)\vcl;$(ViraCashTms)\memo;$(ViraCashTms)\imports\rtl;$(ViraCashTms)\imports\vcl</ViraCashTmsUnits>
+        <!-- TMS Scripter se enlaza desde sus DCU ya compilados (con sus DFM y
+             RES); sus fuentes no entran en la compilación de ViraCash. -->
+        <ViraCashTms>$(VIRACASH_TMSSCRIPTER_ROOT)\packages\d13\$(Platform)\Release</ViraCashTms>
+        <ViraCashTmsUnits>$(ViraCashTms)</ViraCashTmsUnits>
         <VIRACASH_DELPHI_ROOT Condition="'$(VIRACASH_DELPHI_ROOT)'==''">$(FACTUZAM_DELPHI_ROOT)</VIRACASH_DELPHI_ROOT>
         <VIRACASH_DEVEXPRESS_ROOT Condition="'$(VIRACASH_DEVEXPRESS_ROOT)'==''">$(FACTUZAM_DEVEXPRESS_ROOT)</VIRACASH_DEVEXPRESS_ROOT>
         <VIRACASH_FASTREPORT_ROOT Condition="'$(VIRACASH_FASTREPORT_ROOT)'==''">$(FACTUZAM_FASTREPORT_ROOT)</VIRACASH_FASTREPORT_ROOT>
@@ -62,6 +64,9 @@
         <Error
             Condition="'$(Platform)'!='Win32' and '$(Platform)'!='Win64'"
             Text="Plataforma no soportada: $(Platform). Use Win32 o Win64."/>
+        <Error
+            Condition="!Exists('$(ViraCashTms)\atScript.dcu')"
+            Text="TMS Scripter no contiene atScript.dcu para $(Platform): $(ViraCashTms). Compile sus paquetes o defina VIRACASH_TMSSCRIPTER_ROOT."/>
         <Error
             Condition="'$(ViraCashDevExpressRoot)'==''"
             Text="Falta DevExpress. Defina VIRACASH_DEVEXPRESS_ROOT o ViraCashDevExpressRoot. Consulte ViraCash_web\scripts\README.md."/>
